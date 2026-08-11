@@ -1,0 +1,80 @@
+# =====================
+# .NET / dotnet
+# =====================
+bin/
+obj/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.nupkg
+*.snupkg
+*.dll
+*.exe
+*.pdb
+*.cache
+*.paket.lock
+*.ncrunch*
+_ReSharper*/
+*.rsuser
+*.rsproj
+artifacts/
+publish/
+TestResults/
+coverage/
+*.trx
+*.coverage
+*.coveragexml
+
+# =====================
+# Visual Studio
+# =====================
+.vs/
+.vsconfig
+*.opendb
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.VC.opendb
+.vs/
+
+# =====================
+# Rider
+# =====================
+.idea/
+*.sln.iml
+
+# =====================
+# VS Code
+# =====================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# =====================
+# Secrets / Environment
+# =====================
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
+*.pem
+secrets.json
+appsettings.Local.json
+appsettings.*.Local.json
+
+# =====================
+# Docker
+# =====================
+docker-compose.override.yml
+
+# =====================
+# OS
+# =====================
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
