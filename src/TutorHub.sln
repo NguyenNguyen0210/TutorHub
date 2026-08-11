@@ -1,17 +1,15 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Domain", "TutorHub.Domain\TutorHub.Domain.csproj", "{C93836C3-3E95-4250-B811-F70A04CF8D80}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Domain", "src\TutorHub.Domain\TutorHub.Domain.csproj", "{C93836C3-3E95-4250-B811-F70A04CF8D80}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Application", "TutorHub.Application\TutorHub.Application.csproj", "{491B72F6-904B-4C13-8997-A8B420BDBA14}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Application", "src\TutorHub.Application\TutorHub.Application.csproj", "{491B72F6-904B-4C13-8997-A8B420BDBA14}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Infrastructure", "TutorHub.Infrastructure\TutorHub.Infrastructure.csproj", "{CD568334-5C69-4C73-84F0-3EC5E243318D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Infrastructure", "src\TutorHub.Infrastructure\TutorHub.Infrastructure.csproj", "{CD568334-5C69-4C73-84F0-3EC5E243318D}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Api", "src\TutorHub.Api\TutorHub.Api.csproj", "{CFF28C3A-AA6B-40CC-A693-73B5EB4729FD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Api", "TutorHub.Api\TutorHub.Api.csproj", "{CFF28C3A-AA6B-40CC-A693-73B5EB4729FD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -74,11 +72,5 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{C93836C3-3E95-4250-B811-F70A04CF8D80} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{491B72F6-904B-4C13-8997-A8B420BDBA14} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{CD568334-5C69-4C73-84F0-3EC5E243318D} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{CFF28C3A-AA6B-40CC-A693-73B5EB4729FD} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal
