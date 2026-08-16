@@ -26,12 +26,6 @@ public class AuthController : ControllerBase
         _sender = sender;
     }
 
-    public record RegisterRequest(string Email, string Password, string FullName, string? Phone, string Role);
-    public record LoginRequest(string Email, string Password);
-    public record RefreshTokenRequest(string AccessToken, string RefreshToken);
-    public record LogoutRequest(string RefreshToken);
-    public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
-
     /// <summary>
     /// Register a new student or tutor account.
     /// </summary>
