@@ -6,6 +6,7 @@ public class ApiResponse<T>
     public string? Message { get; set; }
     public T? Data { get; set; }
     public ApiErrorResponse? Error { get; set; }
+    public string? TraceId { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
     public static ApiResponse<T> SuccessResult(T data, string? message = null) =>
@@ -16,11 +17,16 @@ public class ApiResponse<T>
             Message = message
         };
 
-    public static ApiResponse<T> FailureResult(string code, string message, IDictionary<string, string[]>? details = null) =>
+    public static ApiResponse<T> FailureResult(
+        string code,
+        string message,
+        IDictionary<string, string[]>? details = null,
+        string? traceId = null) =>
         new()
         {
             Success = false,
-            Error = new ApiErrorResponse(code, message, details)
+            Error = new ApiErrorResponse(code, message, details),
+            TraceId = traceId
         };
 }
 

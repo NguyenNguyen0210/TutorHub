@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using TutorHub.Api.Exceptions;
 using TutorHub.Application;
 using TutorHub.Infrastructure;
 using TutorHub.Infrastructure.Authentication;
@@ -12,6 +13,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
+
+// Exception Handling & Problem Details
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 // Controllers
 builder.Services.AddControllers();
@@ -84,10 +89,9 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-app.UseMiddleware<TutorHub.Api.Middleware.ExceptionHandlingMiddleware>();
+app.UseExceptionHandler(_ => { });
 
 if (app.Environment.IsDevelopment())
-
 {
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TutorHub API v1"));

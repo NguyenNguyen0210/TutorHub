@@ -15,6 +15,9 @@ public class BadRequestException : AppException
 public class NotFoundException : AppException
 {
     public NotFoundException(string message) : base(message) { }
+
+    public NotFoundException(string name, object key) 
+        : base($"Entity \"{name}\" ({key}) was not found.") { }
 }
 
 public class ConflictException : AppException
@@ -24,12 +27,14 @@ public class ConflictException : AppException
 
 public class UnauthorizedException : AppException
 {
-    public UnauthorizedException(string message) : base(message) { }
+    public UnauthorizedException(string message = "You are not authorized to perform this action.") 
+        : base(message) { }
 }
 
 public class ForbiddenException : AppException
 {
-    public ForbiddenException(string message) : base(message) { }
+    public ForbiddenException(string message = "You do not have permission to access this resource.") 
+        : base(message) { }
 }
 
 public class ValidationException : AppException

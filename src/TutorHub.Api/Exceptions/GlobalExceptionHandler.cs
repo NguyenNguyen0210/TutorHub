@@ -1,43 +1,39 @@
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Diagnostics;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 
-namespace TutorHub.Api.Middleware;
+namespace TutorHub.Api.Exceptions;
 
-public class ExceptionHandlingMiddleware
+public class GlobalExceptionHandler : IExceptionHandler
 {
-    private readonly RequestDelegate _next;
-    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
+    private readonly ILogger<GlobalExceptionHandler> _logger;
     private readonly IHostEnvironment _environment;
 
-    public ExceptionHandlingMiddleware(
-        RequestDelegate next,
-        ILogger<ExceptionHandlingMiddleware> logger,
+    public GlobalExceptionHandler(
+        ILogger<GlobalExceptionHandler> logger,
         IHostEnvironment environment)
     {
-        _next = next;
         _logger = logger;
         _environment = environment;
     }
 
-    public async Task InvokeAsync(HttpContext context)
+    public async ValueTask<bool> TryHandleAsync(
+        HttpContext httpContext,
+        Exception exception,
+        CancellationToken cancellationToken)
     {
-        try
-        {
-            await _next(context);
-        }
-        catch (Exception ex)
-        {
-            await HandleExceptionAsync(context, ex);
-        }
-    }
+        var traceId = httpContext.TraceIdentifier;
 
-    private async Task HandleExceptionAsync(HttpContext context, Exception exception)
-    {
-        _logger.LogError(exception, "Unhandled exception occurred: {Message}", exception.Message);
+        _logger.LogError(
+            exception,
+            "Unhandled exception occurred. TraceId: {TraceId}, Message: {Message}",
+            traceId,
+            exception.Message);
 
-        var (statusCode, code, message, details) = exception switch
+        var (statusCode, errorCode, message, details) = exception switch
         {
             ValidationException ve => (
                 HttpStatusCode.BadRequest,
@@ -83,17 +79,21 @@ public class ExceptionHandlingMiddleware
             )
         };
 
-        context.Response.ContentType = "application/json";
-        context.Response.StatusCode = (int)statusCode;
+        httpContext.Response.ContentType = "application/json";
+        httpContext.Response.StatusCode = (int)statusCode;
 
-        var response = ApiResponse<object>.FailureResult(code, message, details);
+        var response = ApiResponse<object>.FailureResult(errorCode, message, details, traceId);
 
         var jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
 
-        await context.Response.WriteAsync(JsonSerializer.Serialize(response, jsonOptions));
+        await httpContext.Response.WriteAsync(
+            JsonSerializer.Serialize(response, jsonOptions),
+            cancellationToken);
+
+        return true;
     }
 }
