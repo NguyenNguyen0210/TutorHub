@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -59,16 +60,18 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "TutorHub API",
         Version = "v1",
-        Description = "Backend API for TutorHub Tutor Matching Platform"
+        Description = "Backend REST API for TutorHub Tutor Matching Platform"
     });
 
+    // Configure HTTP Bearer JWT Authentication
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
         Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Description = "Nhập JWT Access Token của bạn vào đây (Swagger sẽ tự động đính kèm 'Bearer ' phía trước)."
     });
 
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -85,6 +88,14 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
+
+    // Include XML comments documentation
+    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
 });
 
 var app = builder.Build();
