@@ -10,11 +10,3 @@ public record UserDto(
     Guid? TutorProfileId,
     Guid? StudentProfileId
 );
-
-public record AuthResponseDto(
-    string AccessToken,
-    string RefreshToken,
-    string TokenType,
-    int ExpiresIn,
-    UserDto User
-);

@@ -1,31 +1,12 @@
-using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Auth.Models;
 using TutorHub.Domain.Entities;
+using RefreshTokenEntity = TutorHub.Domain.Entities.RefreshToken;
 
 namespace TutorHub.Application.Features.Auth.Login;
-
-public record LoginCommand(
-    string Email,
-    string Password,
-    string? IpAddress = null
-) : IRequest<AuthResponseDto>;
-
-public class LoginCommandValidator : AbstractValidator<LoginCommand>
-{
-    public LoginCommandValidator()
-    {
-        RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Email is required.")
-            .EmailAddress().WithMessage("A valid email is required.");
-
-        RuleFor(x => x.Password)
-            .NotEmpty().WithMessage("Password is required.");
-    }
-}
 
 public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto>
 {
@@ -68,15 +49,13 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
         var accessToken = _jwtService.GenerateAccessToken(user, tutorProfileId, studentProfileId);
         var rawRefreshToken = _jwtService.GenerateRefreshToken();
 
-        var refreshTokenEntity = new Domain.Entities.RefreshToken
+        var refreshTokenEntity = new RefreshTokenEntity
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
-
             Token = rawRefreshToken,
             ExpiresAt = DateTime.UtcNow.AddDays(7),
-            CreatedAt = DateTime.UtcNow,
-            CreatedByIp = request.IpAddress
+            CreatedAt = DateTime.UtcNow
         };
 
         _context.RefreshTokens.Add(refreshTokenEntity);

@@ -1,4 +1,3 @@
-using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
@@ -6,42 +5,9 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Auth.Models;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
+using RefreshTokenEntity = TutorHub.Domain.Entities.RefreshToken;
 
 namespace TutorHub.Application.Features.Auth.Register;
-
-public record RegisterCommand(
-    string Email,
-    string Password,
-    string FullName,
-    string? Phone,
-    UserRole Role,
-    string? IpAddress = null
-) : IRequest<AuthResponseDto>;
-
-public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
-{
-    public RegisterCommandValidator()
-    {
-        RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Email is required.")
-            .EmailAddress().WithMessage("A valid email is required.")
-            .MaximumLength(256);
-
-        RuleFor(x => x.Password)
-            .NotEmpty().WithMessage("Password is required.")
-            .MinimumLength(6).WithMessage("Password must be at least 6 characters long.")
-            .MaximumLength(100);
-
-        RuleFor(x => x.FullName)
-            .NotEmpty().WithMessage("Full name is required.")
-            .MaximumLength(100);
-
-        RuleFor(x => x.Role)
-            .IsInEnum().WithMessage("Valid role is required.")
-            .Must(r => r == UserRole.Student || r == UserRole.Tutor)
-            .WithMessage("Only Student and Tutor roles can register directly.");
-    }
-}
 
 public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthResponseDto>
 {
@@ -136,19 +102,16 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
         var accessToken = _jwtService.GenerateAccessToken(user, tutorProfileId, studentProfileId);
         var rawRefreshToken = _jwtService.GenerateRefreshToken();
 
-        var refreshTokenEntity = new Domain.Entities.RefreshToken
+        var refreshTokenEntity = new RefreshTokenEntity
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-
             Token = rawRefreshToken,
             ExpiresAt = DateTime.UtcNow.AddDays(7),
-            CreatedAt = DateTime.UtcNow,
-            CreatedByIp = request.IpAddress
+            CreatedAt = DateTime.UtcNow
         };
 
         _context.RefreshTokens.Add(refreshTokenEntity);
-
         await _context.SaveChangesAsync(cancellationToken);
 
         var userDto = new UserDto(
@@ -166,7 +129,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
             AccessToken: accessToken,
             RefreshToken: rawRefreshToken,
             TokenType: "Bearer",
-            ExpiresIn: 15 * 60, // 15 minutes in seconds
+            ExpiresIn: 15 * 60,
             User: userDto
         );
     }

@@ -1,4 +1,3 @@
-using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
@@ -7,21 +6,6 @@ using TutorHub.Application.Features.Auth.Models;
 using TutorHub.Domain.Entities;
 
 namespace TutorHub.Application.Features.Auth.RefreshToken;
-
-public record RefreshTokenCommand(
-    string AccessToken,
-    string RefreshToken,
-    string? IpAddress = null
-) : IRequest<AuthResponseDto>;
-
-public class RefreshTokenCommandValidator : AbstractValidator<RefreshTokenCommand>
-{
-    public RefreshTokenCommandValidator()
-    {
-        RuleFor(x => x.RefreshToken)
-            .NotEmpty().WithMessage("Refresh token is required.");
-    }
-}
 
 public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, AuthResponseDto>
 {
@@ -52,7 +36,7 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, A
 
         // =========================================================================
         // REPLAY ATTACK DETECTION (Token Reuse)
-        // If an already-revoked refresh token is received, it means the token was compromised!
+        // If an already-revoked refresh token is received, it means the token was compromised.
         // Immediately revoke all existing active tokens for this user to protect the account.
         // =========================================================================
         if (existingToken.IsRevoked)
@@ -64,8 +48,6 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, A
             foreach (var token in compromisedTokens)
             {
                 token.RevokedAt = DateTime.UtcNow;
-                token.RevokedByIp = request.IpAddress;
-                token.ReasonRevoked = $"Compromised by token reuse attempt of token {existingToken.Id}";
             }
 
             await _context.SaveChangesAsync(cancellationToken);
@@ -92,11 +74,8 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, A
 
         var newRawRefreshToken = _jwtService.GenerateRefreshToken();
 
-        // Rotate: Revoke the current token and link it to the new token
+        // Rotate: Revoke the current token
         existingToken.RevokedAt = DateTime.UtcNow;
-        existingToken.RevokedByIp = request.IpAddress;
-        existingToken.ReplacedByToken = newRawRefreshToken;
-        existingToken.ReasonRevoked = "Rotated to new refresh token";
 
         var newRefreshTokenEntity = new Domain.Entities.RefreshToken
         {
@@ -104,8 +83,7 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, A
             UserId = existingToken.UserId,
             Token = newRawRefreshToken,
             ExpiresAt = DateTime.UtcNow.AddDays(7),
-            CreatedAt = DateTime.UtcNow,
-            CreatedByIp = request.IpAddress
+            CreatedAt = DateTime.UtcNow
         };
 
         _context.RefreshTokens.Add(newRefreshTokenEntity);

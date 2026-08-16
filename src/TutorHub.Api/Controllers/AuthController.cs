@@ -44,9 +44,7 @@ public class AuthController : ControllerBase
             return BadRequest(new { error = new { code = "INVALID_ROLE", message = "Role must be Student or Tutor." } });
         }
 
-        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var command = new RegisterCommand(request.Email, request.Password, request.FullName, request.Phone, role, ipAddress);
-
+        var command = new RegisterCommand(request.Email, request.Password, request.FullName, request.Phone, role);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(result);
     }
@@ -59,9 +57,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
-        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var command = new LoginCommand(request.Email, request.Password, ipAddress);
-
+        var command = new LoginCommand(request.Email, request.Password);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(result);
     }
@@ -74,9 +70,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
     {
-        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var command = new RefreshTokenCommand(request.AccessToken, request.RefreshToken, ipAddress);
-
+        var command = new RefreshTokenCommand(request.AccessToken, request.RefreshToken);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(result);
     }
@@ -89,9 +83,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Logout([FromBody] LogoutRequest request, CancellationToken cancellationToken)
     {
-        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var command = new RevokeTokenCommand(request.RefreshToken, ipAddress);
-
+        var command = new RevokeTokenCommand(request.RefreshToken);
         await _sender.Send(command, cancellationToken);
         return Ok(new { message = "Logged out successfully." });
     }
