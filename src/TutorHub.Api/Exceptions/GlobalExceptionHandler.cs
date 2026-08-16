@@ -36,39 +36,15 @@ public class GlobalExceptionHandler : IExceptionHandler
         var (statusCode, errorCode, message, details) = exception switch
         {
             ValidationException ve => (
-                HttpStatusCode.BadRequest,
-                "VALIDATION_ERROR",
+                ve.StatusCode,
+                ve.ErrorCode,
                 ve.Message,
                 ve.Errors
             ),
-            BadRequestException bre => (
-                HttpStatusCode.BadRequest,
-                "BAD_REQUEST",
-                bre.Message,
-                (IDictionary<string, string[]>?)null
-            ),
-            UnauthorizedException ue => (
-                HttpStatusCode.Unauthorized,
-                "UNAUTHORIZED",
-                ue.Message,
-                null
-            ),
-            ForbiddenException fe => (
-                HttpStatusCode.Forbidden,
-                "FORBIDDEN",
-                fe.Message,
-                null
-            ),
-            NotFoundException ne => (
-                HttpStatusCode.NotFound,
-                "NOT_FOUND",
-                ne.Message,
-                null
-            ),
-            ConflictException ce => (
-                HttpStatusCode.Conflict,
-                "CONFLICT",
-                ce.Message,
+            AppException appEx => (
+                appEx.StatusCode,
+                appEx.ErrorCode,
+                appEx.Message,
                 null
             ),
             _ => (
