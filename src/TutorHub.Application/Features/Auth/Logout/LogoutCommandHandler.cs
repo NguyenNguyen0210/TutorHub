@@ -3,18 +3,18 @@ using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 
-namespace TutorHub.Application.Features.Auth.RevokeToken;
+namespace TutorHub.Application.Features.Auth.Logout;
 
-public class RevokeTokenCommandHandler : IRequestHandler<RevokeTokenCommand, bool>
+public class LogoutCommandHandler : IRequestHandler<LogoutCommand, bool>
 {
     private readonly IAppDbContext _context;
 
-    public RevokeTokenCommandHandler(IAppDbContext context)
+    public LogoutCommandHandler(IAppDbContext context)
     {
         _context = context;
     }
 
-    public async Task<bool> Handle(RevokeTokenCommand request, CancellationToken cancellationToken)
+    public async Task<bool> Handle(LogoutCommand request, CancellationToken cancellationToken)
     {
         var token = await _context.RefreshTokens
             .FirstOrDefaultAsync(r => r.Token == request.RefreshToken, cancellationToken);

@@ -2,7 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
-using TutorHub.Application.Features.Auth.Models;
+using TutorHub.Application.Features.Auth.DTOs;
 
 namespace TutorHub.Application.Features.Auth.GetMe;
 

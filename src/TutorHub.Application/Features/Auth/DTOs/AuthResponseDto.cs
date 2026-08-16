@@ -1,4 +1,4 @@
-namespace TutorHub.Application.Features.Auth.Models;
+namespace TutorHub.Application.Features.Auth.DTOs;
 
 public record AuthResponseDto(
     string AccessToken,

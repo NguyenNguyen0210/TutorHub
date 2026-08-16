@@ -2,7 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
-using TutorHub.Application.Features.Auth.Models;
+using TutorHub.Application.Features.Auth.DTOs;
 using TutorHub.Domain.Entities;
 using RefreshTokenEntity = TutorHub.Domain.Entities.RefreshToken;
 

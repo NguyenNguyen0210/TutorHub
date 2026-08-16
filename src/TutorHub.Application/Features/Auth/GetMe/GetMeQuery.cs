@@ -1,5 +1,5 @@
 using MediatR;
-using TutorHub.Application.Features.Auth.Models;
+using TutorHub.Application.Features.Auth.DTOs;
 
 namespace TutorHub.Application.Features.Auth.GetMe;
 

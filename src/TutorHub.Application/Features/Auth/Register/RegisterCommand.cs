@@ -1,5 +1,5 @@
 using MediatR;
-using TutorHub.Application.Features.Auth.Models;
+using TutorHub.Application.Features.Auth.DTOs;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Auth.Register;
