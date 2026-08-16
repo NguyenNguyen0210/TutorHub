@@ -17,6 +17,8 @@ public interface IAppDbContext
     DbSet<Withdrawal> Withdrawals { get; }
     DbSet<Review> Reviews { get; }
     DbSet<Report> Reports { get; }
+    DbSet<RefreshToken> RefreshTokens { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
 }
