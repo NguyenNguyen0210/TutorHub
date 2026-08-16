@@ -5,8 +5,7 @@ public class ApiResponse<T>
     public bool Success { get; set; }
     public string? Message { get; set; }
     public T? Data { get; set; }
-    public string? ErrorCode { get; set; }
-    public IDictionary<string, string[]>? Errors { get; set; }
+    public List<string>? Errors { get; set; }
     public string? TraceId { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
@@ -19,16 +18,26 @@ public class ApiResponse<T>
         };
 
     public static ApiResponse<T> FailureResult(
-        string errorCode,
         string message,
-        IDictionary<string, string[]>? errors = null,
+        List<string>? errors = null,
         string? traceId = null) =>
         new()
         {
             Success = false,
-            ErrorCode = errorCode,
             Message = message,
             Errors = errors,
+            TraceId = traceId
+        };
+
+    public static ApiResponse<T> FailureResult(
+        string message,
+        string error,
+        string? traceId = null) =>
+        new()
+        {
+            Success = false,
+            Message = message,
+            Errors = new List<string> { error },
             TraceId = traceId
         };
 }

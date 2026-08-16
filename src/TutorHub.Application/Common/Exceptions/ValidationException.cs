@@ -5,25 +5,24 @@ namespace TutorHub.Application.Common.Exceptions;
 
 public class ValidationException : AppException
 {
-    public IDictionary<string, string[]> Errors { get; }
-
-    public ValidationException(
-        IDictionary<string, string[]> errors,
-        string message = "One or more validation failures have occurred.",
-        string errorCode = "VALIDATION_ERROR")
-        : base(message, HttpStatusCode.BadRequest, errorCode)
+    public ValidationException(List<string> errors)
+        : base("Validation failed", HttpStatusCode.BadRequest, errors)
     {
-        Errors = errors;
     }
 
-    public ValidationException(
-        IEnumerable<ValidationFailure> failures,
-        string message = "One or more validation failures have occurred.",
-        string errorCode = "VALIDATION_ERROR")
-        : base(message, HttpStatusCode.BadRequest, errorCode)
+    public ValidationException(IEnumerable<ValidationFailure> failures)
+        : base(
+            "Validation failed",
+            HttpStatusCode.BadRequest,
+            failures.Select(f => f.ErrorMessage).Distinct().ToList())
     {
-        Errors = failures
-            .GroupBy(e => e.PropertyName, e => e.ErrorMessage)
-            .ToDictionary(failureGroup => failureGroup.Key, failureGroup => failureGroup.ToArray());
+    }
+
+    public ValidationException(string propertyName, string errorMessage)
+        : base(
+            "Validation failed",
+            HttpStatusCode.BadRequest,
+            new List<string> { $"{propertyName}: {errorMessage}" })
+    {
     }
 }

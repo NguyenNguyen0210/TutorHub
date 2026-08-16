@@ -33,32 +33,24 @@ public class GlobalExceptionHandler : IExceptionHandler
             traceId,
             exception.Message);
 
-        var (statusCode, errorCode, message, details) = exception switch
+        var (statusCode, message, errors) = exception switch
         {
-            ValidationException ve => (
-                ve.StatusCode,
-                ve.ErrorCode,
-                ve.Message,
-                ve.Errors
-            ),
             AppException appEx => (
                 appEx.StatusCode,
-                appEx.ErrorCode,
                 appEx.Message,
-                null
+                appEx.Errors
             ),
             _ => (
                 HttpStatusCode.InternalServerError,
-                "INTERNAL_SERVER_ERROR",
-                _environment.IsDevelopment() ? exception.Message : "An unexpected server error occurred.",
-                null
+                "Internal server error",
+                new List<string> { _environment.IsDevelopment() ? exception.Message : "An unexpected server error occurred." }
             )
         };
 
         httpContext.Response.ContentType = "application/json";
         httpContext.Response.StatusCode = (int)statusCode;
 
-        var response = ApiResponse<object>.FailureResult(errorCode, message, details, traceId);
+        var response = ApiResponse<object>.FailureResult(message, errors, traceId);
 
         var jsonOptions = new JsonSerializerOptions
         {
