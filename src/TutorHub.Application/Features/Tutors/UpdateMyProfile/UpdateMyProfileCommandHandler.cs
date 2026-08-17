@@ -1,0 +1,92 @@
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Exceptions;
+using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Features.Tutors.DTOs;
+
+namespace TutorHub.Application.Features.Tutors.UpdateMyProfile;
+
+public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileCommand, TutorProfileDto>
+{
+    private readonly IAppDbContext _context;
+
+    public UpdateMyProfileCommandHandler(IAppDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<TutorProfileDto> Handle(UpdateMyProfileCommand request, CancellationToken cancellationToken)
+    {
+        var tutor = await _context.TutorProfiles
+            .Include(t => t.User)
+            .Include(t => t.TutorSubjects)
+                .ThenInclude(ts => ts.Subject)
+            .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
+
+        if (tutor == null)
+        {
+            throw new NotFoundException("Tutor profile not found for this user account.");
+        }
+
+        // Update User info if provided
+        if (!string.IsNullOrWhiteSpace(request.FullName))
+        {
+            tutor.User.FullName = request.FullName.Trim();
+        }
+
+        if (request.Phone != null)
+        {
+            tutor.User.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+        }
+
+        if (request.AvatarUrl != null)
+        {
+            tutor.User.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+        }
+
+        // Update Tutor Profile info
+        tutor.Bio = request.Bio?.Trim() ?? string.Empty;
+        tutor.Education = request.Education?.Trim() ?? string.Empty;
+        tutor.ExperienceYears = request.ExperienceYears;
+        tutor.HourlyRate = request.HourlyRate;
+        tutor.TeachingMode = request.TeachingMode;
+        tutor.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
+        tutor.Latitude = request.Latitude;
+        tutor.Longitude = request.Longitude;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var subjects = tutor.TutorSubjects
+            .Select(ts => new TutorSubjectDto(
+                ts.Id,
+                ts.SubjectId,
+                ts.Subject.Name,
+                ts.Subject.Category,
+                ts.OverridePrice,
+                ts.IsActive
+            ))
+            .ToList();
+
+        return new TutorProfileDto(
+            tutor.Id,
+            tutor.UserId,
+            tutor.User.FullName,
+            tutor.User.Email,
+            tutor.User.Phone,
+            tutor.User.AvatarUrl,
+            tutor.Bio,
+            tutor.Education,
+            tutor.ExperienceYears,
+            tutor.HourlyRate,
+            tutor.TeachingMode.ToString(),
+            tutor.Address,
+            tutor.Latitude,
+            tutor.Longitude,
+            tutor.Status.ToString(),
+            tutor.RejectionReason,
+            tutor.RatingAvg,
+            tutor.TotalReviews,
+            subjects
+        );
+    }
+}
