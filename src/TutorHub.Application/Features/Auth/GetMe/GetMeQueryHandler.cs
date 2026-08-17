@@ -6,7 +6,7 @@ using TutorHub.Application.Features.Auth.DTOs;
 
 namespace TutorHub.Application.Features.Auth.GetMe;
 
-public class GetMeQueryHandler : IRequestHandler<GetMeQuery, UserDto>
+public class GetMeQueryHandler : IRequestHandler<GetMeQuery, RegisterResponseDto>
 {
     private readonly IAppDbContext _context;
 
@@ -15,12 +15,10 @@ public class GetMeQueryHandler : IRequestHandler<GetMeQuery, UserDto>
         _context = context;
     }
 
-    public async Task<UserDto> Handle(GetMeQuery request, CancellationToken cancellationToken)
+    public async Task<RegisterResponseDto> Handle(GetMeQuery request, CancellationToken cancellationToken)
     {
         var user = await _context.Users
             .AsNoTracking()
-            .Include(u => u.TutorProfile)
-            .Include(u => u.StudentProfile)
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 
         if (user == null)
@@ -28,15 +26,12 @@ public class GetMeQueryHandler : IRequestHandler<GetMeQuery, UserDto>
             throw new NotFoundException("User not found.");
         }
 
-        return new UserDto(
+        return new RegisterResponseDto(
             user.Id,
             user.Email,
             user.FullName,
             user.Phone,
-            user.Role.ToString(),
-            user.AvatarUrl,
-            user.TutorProfile?.Id,
-            user.StudentProfile?.Id
+            user.Role.ToString()
         );
     }
 }

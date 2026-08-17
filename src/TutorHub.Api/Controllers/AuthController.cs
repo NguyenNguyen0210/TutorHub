@@ -115,7 +115,7 @@ public class AuthController : ControllerBase
     /// </summary>
     [Authorize]
     [HttpGet("me")]
-    [ProducesResponseType(typeof(ApiResponse<UserDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<RegisterResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMe(CancellationToken cancellationToken)
     {
@@ -126,6 +126,6 @@ public class AuthController : ControllerBase
         }
 
         var result = await _sender.Send(new GetMeQuery(userId), cancellationToken);
-        return Ok(ApiResponse<UserDto>.SuccessResult(result));
+        return Ok(ApiResponse<RegisterResponseDto>.SuccessResult(result));
     }
 }
