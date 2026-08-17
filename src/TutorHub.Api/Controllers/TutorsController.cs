@@ -89,10 +89,11 @@ public class TutorsController : ControllerBase
     }
 
     /// <summary>
-    /// Update the profile information of the authenticated tutor (Tutor only).
+    /// Partially update the profile information of the authenticated tutor (Tutor only).
+    /// Only non-null provided fields will be updated.
     /// </summary>
     [Authorize(Roles = "Tutor")]
-    [HttpPut("me")]
+    [HttpPatch("me")]
     [ProducesResponseType(typeof(ApiResponse<TutorProfileDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -101,9 +102,14 @@ public class TutorsController : ControllerBase
         [FromBody] UpdateMyProfileRequest request,
         CancellationToken cancellationToken)
     {
-        if (!Enum.TryParse<TeachingMode>(request.TeachingMode, true, out var teachingMode))
+        TeachingMode? teachingMode = null;
+        if (!string.IsNullOrWhiteSpace(request.TeachingMode))
         {
-            throw new BadRequestException("Teaching mode must be Online, Offline, or Both.");
+            if (!Enum.TryParse<TeachingMode>(request.TeachingMode, true, out var parsedMode))
+            {
+                throw new BadRequestException("Teaching mode must be Online, Offline, or Both.");
+            }
+            teachingMode = parsedMode;
         }
 
         var userId = GetCurrentUserId();

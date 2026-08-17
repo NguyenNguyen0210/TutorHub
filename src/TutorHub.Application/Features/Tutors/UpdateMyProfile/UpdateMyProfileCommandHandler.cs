@@ -28,7 +28,7 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
             throw new NotFoundException("Tutor profile not found for this user account.");
         }
 
-        // Update User info if provided
+        // Patch User fields
         if (!string.IsNullOrWhiteSpace(request.FullName))
         {
             tutor.User.FullName = request.FullName.Trim();
@@ -44,15 +44,46 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
             tutor.User.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
         }
 
-        // Update Tutor Profile info
-        tutor.Bio = request.Bio?.Trim() ?? string.Empty;
-        tutor.Education = request.Education?.Trim() ?? string.Empty;
-        tutor.ExperienceYears = request.ExperienceYears;
-        tutor.HourlyRate = request.HourlyRate;
-        tutor.TeachingMode = request.TeachingMode;
-        tutor.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
-        tutor.Latitude = request.Latitude;
-        tutor.Longitude = request.Longitude;
+        // Patch Tutor Profile fields
+        if (request.Bio != null)
+        {
+            tutor.Bio = request.Bio.Trim();
+        }
+
+        if (request.Education != null)
+        {
+            tutor.Education = request.Education.Trim();
+        }
+
+        if (request.ExperienceYears.HasValue)
+        {
+            tutor.ExperienceYears = request.ExperienceYears.Value;
+        }
+
+        if (request.HourlyRate.HasValue)
+        {
+            tutor.HourlyRate = request.HourlyRate.Value;
+        }
+
+        if (request.TeachingMode.HasValue)
+        {
+            tutor.TeachingMode = request.TeachingMode.Value;
+        }
+
+        if (request.Address != null)
+        {
+            tutor.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
+        }
+
+        if (request.Latitude.HasValue)
+        {
+            tutor.Latitude = request.Latitude.Value;
+        }
+
+        if (request.Longitude.HasValue)
+        {
+            tutor.Longitude = request.Longitude.Value;
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
 
