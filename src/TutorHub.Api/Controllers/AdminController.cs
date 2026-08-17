@@ -15,12 +15,12 @@ namespace TutorHub.Api.Controllers;
 
 [ApiController]
 [Authorize(Roles = "Admin")]
-[Route("api/v1/admin/tutors")]
-public class AdminTutorsController : ControllerBase
+[Route("api/v1/admin")]
+public class AdminController : ControllerBase
 {
     private readonly ISender _sender;
 
-    public AdminTutorsController(ISender sender)
+    public AdminController(ISender sender)
     {
         _sender = sender;
     }
@@ -28,7 +28,7 @@ public class AdminTutorsController : ControllerBase
     /// <summary>
     /// Get paginated list of tutor profiles with status and search filters (Admin only).
     /// </summary>
-    [HttpGet]
+    [HttpGet("tutors")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<AdminTutorDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
@@ -53,7 +53,7 @@ public class AdminTutorsController : ControllerBase
     /// <summary>
     /// Approve a pending tutor profile (Admin only).
     /// </summary>
-    [HttpPost("{id:guid}/approve")]
+    [HttpPost("tutors/{id:guid}/approve")]
     [ProducesResponseType(typeof(ApiResponse<AdminTutorDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -70,7 +70,7 @@ public class AdminTutorsController : ControllerBase
     /// <summary>
     /// Reject a tutor profile with a reason (Admin only).
     /// </summary>
-    [HttpPost("{id:guid}/reject")]
+    [HttpPost("tutors/{id:guid}/reject")]
     [ProducesResponseType(typeof(ApiResponse<AdminTutorDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -90,7 +90,7 @@ public class AdminTutorsController : ControllerBase
     /// <summary>
     /// Suspend a tutor profile with a reason (Admin only).
     /// </summary>
-    [HttpPost("{id:guid}/suspend")]
+    [HttpPost("tutors/{id:guid}/suspend")]
     [ProducesResponseType(typeof(ApiResponse<AdminTutorDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
