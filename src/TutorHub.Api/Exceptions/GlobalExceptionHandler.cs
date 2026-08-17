@@ -42,7 +42,7 @@ public class GlobalExceptionHandler : IExceptionHandler
             ),
             _ => (
                 HttpStatusCode.InternalServerError,
-                "Internal server error",
+                "An unexpected internal server error occurred.",
                 new List<string> { _environment.IsDevelopment() ? exception.Message : "An unexpected server error occurred." }
             )
         };
