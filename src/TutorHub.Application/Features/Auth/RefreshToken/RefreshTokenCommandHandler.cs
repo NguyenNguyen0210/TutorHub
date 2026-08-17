@@ -7,7 +7,7 @@ using TutorHub.Domain.Entities;
 
 namespace TutorHub.Application.Features.Auth.RefreshToken;
 
-public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, AuthResponseDto>
+public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, RefreshTokenResponseDto>
 {
     private readonly IAppDbContext _context;
     private readonly IJwtService _jwtService;
@@ -20,7 +20,7 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, A
         _jwtService = jwtService;
     }
 
-    public async Task<AuthResponseDto> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
+    public async Task<RefreshTokenResponseDto> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
     {
         var existingToken = await _context.RefreshTokens
             .Include(r => r.User)
@@ -89,23 +89,12 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, A
         _context.RefreshTokens.Add(newRefreshTokenEntity);
         await _context.SaveChangesAsync(cancellationToken);
 
-        var userDto = new UserDto(
-            existingToken.User.Id,
-            existingToken.User.Email,
-            existingToken.User.FullName,
-            existingToken.User.Phone,
-            existingToken.User.Role.ToString(),
-            existingToken.User.AvatarUrl,
-            existingToken.User.TutorProfile?.Id,
-            existingToken.User.StudentProfile?.Id
-        );
+        var expiresAt = DateTime.UtcNow.AddMinutes(15);
 
-        return new AuthResponseDto(
+        return new RefreshTokenResponseDto(
             AccessToken: newAccessToken,
             RefreshToken: newRawRefreshToken,
-            TokenType: "Bearer",
-            ExpiresIn: 15 * 60,
-            User: userDto
+            ExpiresAt: expiresAt
         );
     }
 }

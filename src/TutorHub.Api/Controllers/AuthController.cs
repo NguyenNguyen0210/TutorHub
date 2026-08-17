@@ -64,14 +64,14 @@ public class AuthController : ControllerBase
     /// Refresh an expired access token using a valid refresh token (Rotation enabled).
     /// </summary>
     [HttpPost("refresh")]
-    [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<RefreshTokenResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
     {
         var command = new RefreshTokenCommand(request.AccessToken, request.RefreshToken);
         var result = await _sender.Send(command, cancellationToken);
 
-        return Ok(ApiResponse<AuthResponseDto>.SuccessResult(result, "Tokens refreshed successfully."));
+        return Ok(ApiResponse<RefreshTokenResponseDto>.SuccessResult(result, "Tokens refreshed successfully."));
     }
 
     /// <summary>
