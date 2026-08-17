@@ -58,7 +58,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
                 ExperienceYears = 0,
                 HourlyRate = 0,
                 TeachingMode = TeachingMode.Online,
-                Status = TutorProfileStatus.PendingReview,
+                Status = TutorProfileStatus.Draft,
                 RatingAvg = 0,
                 TotalReviews = 0
             };
