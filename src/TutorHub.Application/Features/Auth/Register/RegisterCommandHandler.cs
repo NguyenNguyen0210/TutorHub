@@ -5,27 +5,23 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Auth.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
-using RefreshTokenEntity = TutorHub.Domain.Entities.RefreshToken;
 
 namespace TutorHub.Application.Features.Auth.Register;
 
-public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthResponseDto>
+public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterResponseDto>
 {
     private readonly IAppDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IJwtService _jwtService;
 
     public RegisterCommandHandler(
         IAppDbContext context,
-        IPasswordHasher passwordHasher,
-        IJwtService jwtService)
+        IPasswordHasher passwordHasher)
     {
         _context = context;
         _passwordHasher = passwordHasher;
-        _jwtService = jwtService;
     }
 
-    public async Task<AuthResponseDto> Handle(RegisterCommand request, CancellationToken cancellationToken)
+    public async Task<RegisterResponseDto> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
@@ -50,15 +46,12 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
             CreatedAt = DateTime.UtcNow
         };
 
-        Guid? tutorProfileId = null;
-        Guid? studentProfileId = null;
-
         if (request.Role == UserRole.Tutor)
         {
-            tutorProfileId = Guid.NewGuid();
+            var tutorProfileId = Guid.NewGuid();
             var tutorProfile = new TutorProfile
             {
-                Id = tutorProfileId.Value,
+                Id = tutorProfileId,
                 UserId = userId,
                 Bio = string.Empty,
                 Education = string.Empty,
@@ -73,7 +66,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
             var wallet = new Wallet
             {
                 Id = Guid.NewGuid(),
-                TutorProfileId = tutorProfileId.Value,
+                TutorProfileId = tutorProfileId,
                 PendingBalance = 0,
                 AvailableBalance = 0,
                 UpdatedAt = DateTime.UtcNow
@@ -85,10 +78,10 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
         }
         else if (request.Role == UserRole.Student)
         {
-            studentProfileId = Guid.NewGuid();
+            var studentProfileId = Guid.NewGuid();
             var studentProfile = new StudentProfile
             {
-                Id = studentProfileId.Value,
+                Id = studentProfileId,
                 UserId = userId
             };
 
@@ -97,40 +90,14 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
         }
 
         _context.Users.Add(user);
-
-        // Generate Access & Refresh Tokens
-        var accessToken = _jwtService.GenerateAccessToken(user, tutorProfileId, studentProfileId);
-        var rawRefreshToken = _jwtService.GenerateRefreshToken();
-
-        var refreshTokenEntity = new RefreshTokenEntity
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            Token = rawRefreshToken,
-            ExpiresAt = DateTime.UtcNow.AddDays(7),
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.RefreshTokens.Add(refreshTokenEntity);
         await _context.SaveChangesAsync(cancellationToken);
 
-        var userDto = new UserDto(
+        return new RegisterResponseDto(
             user.Id,
             user.Email,
             user.FullName,
             user.Phone,
-            user.Role.ToString(),
-            user.AvatarUrl,
-            tutorProfileId,
-            studentProfileId
-        );
-
-        return new AuthResponseDto(
-            AccessToken: accessToken,
-            RefreshToken: rawRefreshToken,
-            TokenType: "Bearer",
-            ExpiresIn: 15 * 60,
-            User: userDto
+            user.Role.ToString()
         );
     }
 }

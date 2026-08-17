@@ -10,4 +10,4 @@ public record RegisterCommand(
     string FullName,
     string? Phone,
     UserRole Role
-) : IRequest<AuthResponseDto>;
+) : IRequest<RegisterResponseDto>;

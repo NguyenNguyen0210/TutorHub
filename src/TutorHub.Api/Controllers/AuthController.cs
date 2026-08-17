@@ -30,7 +30,7 @@ public class AuthController : ControllerBase
     /// Register a new student or tutor account.
     /// </summary>
     [HttpPost("register")]
-    [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<RegisterResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
@@ -43,7 +43,7 @@ public class AuthController : ControllerBase
         var command = new RegisterCommand(request.Email, request.Password, request.FullName, request.Phone, role);
         var result = await _sender.Send(command, cancellationToken);
 
-        return Ok(ApiResponse<AuthResponseDto>.SuccessResult(result, "Account registered successfully."));
+        return Ok(ApiResponse<RegisterResponseDto>.SuccessResult(result, "Account registered successfully."));
     }
 
     /// <summary>
