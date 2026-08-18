@@ -14,14 +14,15 @@ public class SubjectConfiguration : IEntityTypeConfiguration<Subject>
             .IsRequired()
             .HasMaxLength(100);
 
-        builder.Property(s => s.Category)
-            .IsRequired()
-            .HasMaxLength(100);
-
-        builder.HasIndex(s => new { s.Name, s.Category })
+        builder.HasIndex(s => new { s.Name, s.CategoryId })
             .IsUnique();
 
         builder.Property(s => s.IsActive)
             .IsRequired();
+
+        builder.HasOne(s => s.Category)
+            .WithMany(c => c.Subjects)
+            .HasForeignKey(s => s.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

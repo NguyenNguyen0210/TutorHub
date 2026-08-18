@@ -8,6 +8,7 @@ public interface IAppDbContext
     DbSet<User> Users { get; }
     DbSet<StudentProfile> StudentProfiles { get; }
     DbSet<TutorProfile> TutorProfiles { get; }
+    DbSet<Category> Categories { get; }
     DbSet<Subject> Subjects { get; }
     DbSet<TutorSubject> TutorSubjects { get; }
     DbSet<AvailabilitySlot> AvailabilitySlots { get; }
@@ -20,5 +21,4 @@ public interface IAppDbContext
     DbSet<RefreshToken> RefreshTokens { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
-
 }

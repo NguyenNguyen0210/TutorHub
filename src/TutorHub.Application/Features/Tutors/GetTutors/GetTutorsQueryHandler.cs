@@ -23,6 +23,7 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
             .Include(t => t.User)
             .Include(t => t.TutorSubjects)
                 .ThenInclude(ts => ts.Subject)
+                    .ThenInclude(s => s.Category)
             .Where(t => t.Status == TutorProfileStatus.Verified && t.User.IsActive);
 
         // Filter by Subject
@@ -54,13 +55,15 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
             query = query.Where(t => t.RatingAvg >= request.MinRating.Value);
         }
 
-        // Search by keyword (tutor full name or subject name)
+        // Search by keyword (tutor full name, subject name, or category name)
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim().ToLower();
             query = query.Where(t =>
                 t.User.FullName.ToLower().Contains(search) ||
-                t.TutorSubjects.Any(ts => ts.IsActive && ts.Subject.Name.ToLower().Contains(search)));
+                t.TutorSubjects.Any(ts => ts.IsActive && (
+                    ts.Subject.Name.ToLower().Contains(search) ||
+                    ts.Subject.Category.Name.ToLower().Contains(search))));
         }
 
         // Sorting

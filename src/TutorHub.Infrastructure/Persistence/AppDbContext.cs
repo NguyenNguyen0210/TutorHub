@@ -5,7 +5,6 @@ using TutorHub.Domain.Entities;
 namespace TutorHub.Infrastructure.Persistence;
 
 public class AppDbContext : DbContext, IAppDbContext
-
 {
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -15,6 +14,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<StudentProfile> StudentProfiles => Set<StudentProfile>();
     public DbSet<TutorProfile> TutorProfiles => Set<TutorProfile>();
+    public DbSet<Category> Categories => Set<Category>();
     public DbSet<Subject> Subjects => Set<Subject>();
     public DbSet<TutorSubject> TutorSubjects => Set<TutorSubject>();
     public DbSet<AvailabilitySlot> AvailabilitySlots => Set<AvailabilitySlot>();
@@ -27,7 +27,6 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
-
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

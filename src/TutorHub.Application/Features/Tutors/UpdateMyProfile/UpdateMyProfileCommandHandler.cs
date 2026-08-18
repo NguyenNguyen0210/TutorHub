@@ -21,6 +21,7 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
             .Include(t => t.User)
             .Include(t => t.TutorSubjects)
                 .ThenInclude(ts => ts.Subject)
+                    .ThenInclude(s => s.Category)
             .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
 
         if (tutor == null)
@@ -92,7 +93,8 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
                 ts.Id,
                 ts.SubjectId,
                 ts.Subject.Name,
-                ts.Subject.Category,
+                ts.Subject.CategoryId,
+                ts.Subject.Category.Name,
                 ts.OverridePrice,
                 ts.IsActive
             ))

@@ -23,6 +23,7 @@ public class SuspendTutorCommandHandler : IRequestHandler<SuspendTutorCommand, A
             .Include(t => t.User)
             .Include(t => t.TutorSubjects)
                 .ThenInclude(ts => ts.Subject)
+                    .ThenInclude(s => s.Category)
             .FirstOrDefaultAsync(t => t.Id == request.TutorProfileId, cancellationToken);
 
         if (tutor == null)
@@ -61,7 +62,8 @@ public class SuspendTutorCommandHandler : IRequestHandler<SuspendTutorCommand, A
                 ts.Id,
                 ts.SubjectId,
                 ts.Subject.Name,
-                ts.Subject.Category,
+                ts.Subject.CategoryId,
+                ts.Subject.Category.Name,
                 ts.OverridePrice,
                 ts.IsActive
             )).ToList()
