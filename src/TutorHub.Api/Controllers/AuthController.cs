@@ -126,6 +126,6 @@ public class AuthController : ControllerBase
         }
 
         var result = await _sender.Send(new GetMeQuery(userId), cancellationToken);
-        return Ok(ApiResponse<RegisterResponseDto>.SuccessResult(result));
+        return Ok(ApiResponse<RegisterResponseDto>.SuccessResult(result, "User profile retrieved successfully."));
     }
 }
