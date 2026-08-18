@@ -3,7 +3,7 @@
 -- =============================================================================
 
 -- 1. USERS (Admin, Tutors, Students)
--- Password hash sample: BCrypt hash for "Password123@"
+-- Password hash sample: BCrypt hash for "Test@123"
 INSERT INTO "Users" ("Id", "Email", "PasswordHash", "FullName", "Phone", "AvatarUrl", "Role", "IsActive", "CreatedAt")
 VALUES 
     ('11111111-1111-1111-1111-111111111111', 'admin@tutorhub.com', '$2a$11$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Quản Trị Viên Hệ Thống', '0901234567', 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin', 'Admin', true, NOW()),
