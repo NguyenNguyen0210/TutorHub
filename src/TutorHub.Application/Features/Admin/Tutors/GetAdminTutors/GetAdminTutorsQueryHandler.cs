@@ -23,6 +23,7 @@ public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, P
             .Include(t => t.User)
             .Include(t => t.TutorSubjects)
                 .ThenInclude(ts => ts.Subject)
+                    .ThenInclude(s => s.Category)
             .AsQueryable();
 
         if (request.Status.HasValue)
@@ -69,7 +70,8 @@ public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, P
                     ts.Id,
                     ts.SubjectId,
                     ts.Subject.Name,
-                    ts.Subject.Category,
+                    ts.Subject.CategoryId,
+                    ts.Subject.Category.Name,
                     ts.OverridePrice,
                     ts.IsActive
                 )).ToList()

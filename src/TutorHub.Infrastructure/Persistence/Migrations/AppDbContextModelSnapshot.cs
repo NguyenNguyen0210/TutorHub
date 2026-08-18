@@ -130,6 +130,32 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TutorHub.Domain.Entities.Category", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Categories");
+                });
+
             modelBuilder.Entity("TutorHub.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -285,10 +311,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -300,7 +324,9 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name", "Category")
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("Name", "CategoryId")
                         .IsUnique();
 
                     b.ToTable("Subjects");
@@ -698,6 +724,17 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("TutorHub.Domain.Entities.Subject", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.Category", "Category")
+                        .WithMany("Subjects")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+                });
+
             modelBuilder.Entity("TutorHub.Domain.Entities.Transaction", b =>
                 {
                     b.HasOne("TutorHub.Domain.Entities.Booking", "Booking")
@@ -782,6 +819,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("Reviews");
 
                     b.Navigation("Transaction");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.Category", b =>
+                {
+                    b.Navigation("Subjects");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.StudentProfile", b =>
