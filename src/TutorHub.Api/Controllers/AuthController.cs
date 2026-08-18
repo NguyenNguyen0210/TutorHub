@@ -68,7 +68,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
     {
-        var command = new RefreshTokenCommand(request.AccessToken, request.RefreshToken);
+        var command = new RefreshTokenCommand(request.RefreshToken);
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<RefreshTokenResponseDto>.SuccessResult(result, "Tokens refreshed successfully."));
