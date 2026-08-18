@@ -12,8 +12,8 @@ using TutorHub.Infrastructure.Persistence;
 namespace TutorHub.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260816033353_UpdateRefreshTokenSchema")]
-    partial class UpdateRefreshTokenSchema
+    [Migration("20260818014545_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -131,6 +131,32 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_Booking_TimeRange", "\"StartAt\" < \"EndAt\"");
                         });
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.Category", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.RefreshToken", b =>
@@ -288,10 +314,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -303,7 +327,9 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name", "Category")
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("Name", "CategoryId")
                         .IsUnique();
 
                     b.ToTable("Subjects");
@@ -701,6 +727,17 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("TutorHub.Domain.Entities.Subject", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.Category", "Category")
+                        .WithMany("Subjects")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+                });
+
             modelBuilder.Entity("TutorHub.Domain.Entities.Transaction", b =>
                 {
                     b.HasOne("TutorHub.Domain.Entities.Booking", "Booking")
@@ -785,6 +822,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("Reviews");
 
                     b.Navigation("Transaction");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.Category", b =>
+                {
+                    b.Navigation("Subjects");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.StudentProfile", b =>

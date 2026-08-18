@@ -3,7 +3,7 @@
 -- =============================================================================
 
 -- 1. USERS (Admin, Tutors, Students)
--- Password hash sample: BCrypt hash for "Password123@"
+-- Password hash sample: BCrypt hash for "Test@123"
 INSERT INTO "Users" ("Id", "Email", "PasswordHash", "FullName", "Phone", "AvatarUrl", "Role", "IsActive", "CreatedAt")
 VALUES 
     ('11111111-1111-1111-1111-111111111111', 'admin@tutorhub.com', '$2a$11$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Quản Trị Viên Hệ Thống', '0901234567', 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin', 'Admin', true, NOW()),
@@ -59,17 +59,27 @@ VALUES
     ('44444444-3333-3333-3333-111111111111', '44444444-2222-2222-2222-111111111111', 0.00, 0.00, NOW())
 ON CONFLICT ("Id") DO NOTHING;
 
--- 5. SUBJECTS
-INSERT INTO "Subjects" ("Id", "Name", "Category", "IsActive")
+-- 5. CATEGORIES
+INSERT INTO "Categories" ("Id", "Name", "Description", "IsActive")
 VALUES
-    ('aaaaaaaa-0001-0000-0000-000000000000', 'Toán THPT (Lớp 10-12)', 'Toán học', true),
-    ('aaaaaaaa-0002-0000-0000-000000000000', 'Tiếng Anh Giao Tiếp', 'Ngoại ngữ', true),
-    ('aaaaaaaa-0003-0000-0000-000000000000', 'Luyện thi IELTS 6.5+', 'Ngoại ngữ', true),
-    ('aaaaaaaa-0004-0000-0000-000000000000', 'Vật lý THPT', 'Khoa học tự nhiên', true),
-    ('aaaaaaaa-0005-0000-0000-000000000000', 'Lập trình C# / .NET Core', 'Công nghệ thông tin', true)
+    ('11111111-0000-0000-0000-000000000001', 'Toán học', 'Các môn toán từ cơ bản đến nâng cao, luyện thi chuyển cấp và đại học', true),
+    ('11111111-0000-0000-0000-000000000002', 'Ngoại ngữ', 'Tiếng Anh, Tiếng Trung, Tiếng Nhật, Tiếng Hàn và luyện thi chứng chỉ quốc tế', true),
+    ('11111111-0000-0000-0000-000000000003', 'Khoa học tự nhiên', 'Vật lý, Hóa học, Sinh học các cấp', true),
+    ('11111111-0000-0000-0000-000000000004', 'Công nghệ thông tin', 'Lập trình phần mềm, thiết kế web, khoa học dữ liệu', true),
+    ('11111111-0000-0000-0000-000000000005', 'Khoa học xã hội', 'Ngữ văn, Lịch sử, Địa lý', true)
 ON CONFLICT ("Id") DO NOTHING;
 
--- 6. TUTOR SUBJECTS (Mapping tutors with subjects & optional override price)
+-- 6. SUBJECTS
+INSERT INTO "Subjects" ("Id", "Name", "CategoryId", "IsActive")
+VALUES
+    ('aaaaaaaa-0001-0000-0000-000000000000', 'Toán THPT (Lớp 10-12)', '11111111-0000-0000-0000-000000000001', true),
+    ('aaaaaaaa-0002-0000-0000-000000000000', 'Tiếng Anh Giao Tiếp', '11111111-0000-0000-0000-000000000002', true),
+    ('aaaaaaaa-0003-0000-0000-000000000000', 'Luyện thi IELTS 6.5+', '11111111-0000-0000-0000-000000000002', true),
+    ('aaaaaaaa-0004-0000-0000-000000000000', 'Vật lý THPT', '11111111-0000-0000-0000-000000000003', true),
+    ('aaaaaaaa-0005-0000-0000-000000000000', 'Lập trình C# / .NET Core', '11111111-0000-0000-0000-000000000004', true)
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 7. TUTOR SUBJECTS (Mapping tutors with subjects & optional override price)
 INSERT INTO "TutorSubjects" ("Id", "TutorProfileId", "SubjectId", "OverridePrice", "IsActive")
 VALUES
     ('bbbbbbbb-0001-0000-0000-000000000000', '22222222-2222-2222-2222-111111111111', 'aaaaaaaa-0001-0000-0000-000000000000', 200000.00, true),
@@ -79,7 +89,7 @@ VALUES
     ('bbbbbbbb-0005-0000-0000-000000000000', '44444444-2222-2222-2222-111111111111', 'aaaaaaaa-0005-0000-0000-000000000000', 220000.00, true)
 ON CONFLICT ("Id") DO NOTHING;
 
--- 7. AVAILABILITY SLOTS (Weekly recurring schedule)
+-- 8. AVAILABILITY SLOTS (Weekly recurring schedule)
 INSERT INTO "AvailabilitySlots" ("Id", "TutorProfileId", "DayOfWeek", "StartTime", "EndTime", "IsActive")
 VALUES
     ('cccccccc-0001-0000-0000-000000000000', '22222222-2222-2222-2222-111111111111', 'Monday', '18:00:00', '20:00:00', true),
@@ -88,7 +98,7 @@ VALUES
     ('cccccccc-0004-0000-0000-000000000000', '33333333-2222-2222-2222-111111111111', 'Thursday', '19:00:00', '21:00:00', true)
 ON CONFLICT ("Id") DO NOTHING;
 
--- 8. BOOKINGS
+-- 9. BOOKINGS
 INSERT INTO "Bookings" (
     "Id", "StudentProfileId", "TutorProfileId", "SubjectId", "StartAt", "EndAt", 
     "HourlyRate", "TotalAmount", "Status", "HoldingExpiresAt", "ConfirmedAt", 
@@ -118,7 +128,7 @@ VALUES
     )
 ON CONFLICT ("Id") DO NOTHING;
 
--- 9. TRANSACTIONS (Escrow tracking)
+-- 10. TRANSACTIONS (Escrow tracking)
 INSERT INTO "Transactions" (
     "Id", "BookingId", "Amount", "Status", "CommissionRate", "CommissionAmount", 
     "PayoutAmount", "PaymentGatewayRef", "CreatedAt", "ReleasedAt", "RefundedAt"
@@ -136,7 +146,7 @@ VALUES
     )
 ON CONFLICT ("Id") DO NOTHING;
 
--- 10. REVIEWS
+-- 11. REVIEWS
 INSERT INTO "Reviews" ("Id", "BookingId", "ReviewerUserId", "RevieweeUserId", "Rating", "Comment", "IsPublic", "CreatedAt")
 VALUES
     (

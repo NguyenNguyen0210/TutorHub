@@ -4,6 +4,7 @@ using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Auth.DTOs;
 using TutorHub.Domain.Entities;
+using TutorHub.Domain.Enums;
 using RefreshTokenEntity = TutorHub.Domain.Entities.RefreshToken;
 
 namespace TutorHub.Application.Features.Auth.Login;
@@ -60,7 +61,15 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
 
         _context.RefreshTokens.Add(refreshTokenEntity);
         await _context.SaveChangesAsync(cancellationToken);
-
+        Guid? idProfile;
+        if (user.Role == UserRole.Tutor)
+        {
+            idProfile = tutorProfileId;
+        }
+        else
+        {
+            idProfile = studentProfileId;
+        }
         var userDto = new UserDto(
             user.Id,
             user.Email,
@@ -68,8 +77,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
             user.Phone,
             user.Role.ToString(),
             user.AvatarUrl,
-            tutorProfileId,
-            studentProfileId
+            idProfile
         );
 
         return new AuthResponseDto(

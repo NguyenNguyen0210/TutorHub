@@ -78,6 +78,7 @@ public class UpdateMySubjectsCommandHandler : IRequestHandler<UpdateMySubjectsCo
         // Fetch refreshed subjects with metadata
         var updatedSubjects = await _context.TutorSubjects
             .Include(ts => ts.Subject)
+                .ThenInclude(s => s.Category)
             .Where(ts => ts.TutorProfileId == tutor.Id)
             .ToListAsync(cancellationToken);
 
@@ -86,7 +87,8 @@ public class UpdateMySubjectsCommandHandler : IRequestHandler<UpdateMySubjectsCo
                 ts.Id,
                 ts.SubjectId,
                 ts.Subject.Name,
-                ts.Subject.Category,
+                ts.Subject.CategoryId,
+                ts.Subject.Category.Name,
                 ts.OverridePrice,
                 ts.IsActive
             ))
