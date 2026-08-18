@@ -3,18 +3,18 @@ namespace TutorHub.Application.Common.Models;
 public class ApiResponse<T>
 {
     public bool Success { get; set; }
-    public string? Message { get; set; }
+    public string Message { get; set; } = default!;
     public T? Data { get; set; }
     public List<string>? Errors { get; set; }
     public string? TraceId { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
-    public static ApiResponse<T> SuccessResult(T data, string? message = null) =>
+    public static ApiResponse<T> SuccessResult(T data, string? message = "Operation completed successfully.") =>
         new()
         {
             Success = true,
             Data = data,
-            Message = message
+            Message = string.IsNullOrWhiteSpace(message) ? "Operation completed successfully." : message
         };
 
     public static ApiResponse<T> FailureResult(

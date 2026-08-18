@@ -47,7 +47,7 @@ public class AdminController : ControllerBase
         );
 
         var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<PagedResult<AdminTutorDto>>.SuccessResult(result));
+        return Ok(ApiResponse<PagedResult<AdminTutorDto>>.SuccessResult(result, "Admin tutors list retrieved successfully."));
     }
 
     /// <summary>

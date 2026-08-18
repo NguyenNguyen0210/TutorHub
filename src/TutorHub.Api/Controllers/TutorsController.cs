@@ -56,7 +56,7 @@ public class TutorsController : ControllerBase
         );
 
         var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<PagedResult<TutorSummaryDto>>.SuccessResult(result));
+        return Ok(ApiResponse<PagedResult<TutorSummaryDto>>.SuccessResult(result, "Tutors list retrieved successfully."));
     }
 
     /// <summary>
@@ -69,7 +69,7 @@ public class TutorsController : ControllerBase
     {
         var query = new GetTutorByIdQuery(id);
         var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<TutorProfileDto>.SuccessResult(result));
+        return Ok(ApiResponse<TutorProfileDto>.SuccessResult(result, "Tutor profile details retrieved successfully."));
     }
 
     /// <summary>
@@ -85,7 +85,7 @@ public class TutorsController : ControllerBase
         var userId = GetCurrentUserId();
         var query = new GetMyProfileQuery(userId);
         var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<TutorProfileDto>.SuccessResult(result));
+        return Ok(ApiResponse<TutorProfileDto>.SuccessResult(result, "Current tutor profile retrieved successfully."));
     }
 
     /// <summary>
