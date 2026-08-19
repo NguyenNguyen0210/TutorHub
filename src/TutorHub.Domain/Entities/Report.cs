@@ -18,7 +18,7 @@ public class Report
 
     public ReportStatus Status { get; set; }
 
-    public string? AdminDecision { get; set; }
+    public ReportDecision? AdminDecision { get; set; }
     public string? Resolution { get; set; }
 
     public Guid? ResolvedByAdminId { get; set; }

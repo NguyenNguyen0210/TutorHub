@@ -23,7 +23,8 @@ public class ReportConfiguration : IEntityTypeConfiguration<Report>
             .IsRequired();
 
         builder.Property(r => r.AdminDecision)
-            .HasMaxLength(1000);
+            .HasConversion<string>()
+            .HasMaxLength(50);
 
         builder.Property(r => r.Resolution)
             .HasMaxLength(1000);
@@ -33,7 +34,8 @@ public class ReportConfiguration : IEntityTypeConfiguration<Report>
 
         builder.HasIndex(r => r.Status);
 
-        builder.HasIndex(r => new { r.BookingId, r.ReporterUserId });
+        builder.HasIndex(r => new { r.BookingId, r.ReporterUserId })
+            .IsUnique();
 
         builder.HasOne(r => r.Booking)
             .WithMany(b => b.Reports)
@@ -44,7 +46,6 @@ public class ReportConfiguration : IEntityTypeConfiguration<Report>
             .WithMany()
             .HasForeignKey(r => r.ReporterUserId)
             .OnDelete(DeleteBehavior.Restrict);
-
 
         builder.HasOne(r => r.ResolvedByAdmin)
             .WithMany()
