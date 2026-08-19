@@ -9,6 +9,10 @@ using TutorHub.Application.Features.Admin.Tutors.DTOs;
 using TutorHub.Application.Features.Admin.Tutors.GetAdminTutors;
 using TutorHub.Application.Features.Admin.Tutors.RejectTutor;
 using TutorHub.Application.Features.Admin.Tutors.SuspendTutor;
+using TutorHub.Application.Features.Admin.Withdrawals.ApproveWithdrawal;
+using TutorHub.Application.Features.Admin.Withdrawals.GetAdminWithdrawals;
+using TutorHub.Application.Features.Admin.Withdrawals.RejectWithdrawal;
+using TutorHub.Application.Features.Wallets.DTOs;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Api.Controllers;
@@ -105,6 +109,67 @@ public class AdminController : ControllerBase
         var command = new SuspendTutorCommand(id, adminId, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<AdminTutorDto>.SuccessResult(result, "Tutor profile suspended successfully."));
+    }
+
+    /// <summary>
+    /// Get paginated list of all withdrawal requests in the platform (Admin only).
+    /// </summary>
+    [HttpGet("withdrawals")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<WithdrawalDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAdminWithdrawals(
+        [FromQuery] WithdrawalStatus? status,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetAdminWithdrawalsQuery(
+            Status: status,
+            PageNumber: pageNumber,
+            PageSize: pageSize
+        );
+
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<WithdrawalDto>>.SuccessResult(result, "Admin withdrawals list retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Approve a pending withdrawal request and mark payout completed (Admin only).
+    /// </summary>
+    [HttpPost("withdrawals/{id:guid}/approve")]
+    [ProducesResponseType(typeof(ApiResponse<WithdrawalDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ApproveWithdrawal([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        var adminId = GetCurrentUserId();
+        var command = new ApproveWithdrawalCommand(id, adminId);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<WithdrawalDto>.SuccessResult(result, "Withdrawal approved and completed successfully."));
+    }
+
+    /// <summary>
+    /// Reject a pending withdrawal request and refund amount to tutor's available balance (Admin only).
+    /// </summary>
+    [HttpPost("withdrawals/{id:guid}/reject")]
+    [ProducesResponseType(typeof(ApiResponse<WithdrawalDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RejectWithdrawal(
+        [FromRoute] Guid id,
+        [FromBody] RejectWithdrawalRequest request,
+        CancellationToken cancellationToken)
+    {
+        var adminId = GetCurrentUserId();
+        var command = new RejectWithdrawalCommand(id, adminId, request.Reason);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<WithdrawalDto>.SuccessResult(result, "Withdrawal rejected and amount refunded to tutor's wallet."));
     }
 
     private Guid GetCurrentUserId()
