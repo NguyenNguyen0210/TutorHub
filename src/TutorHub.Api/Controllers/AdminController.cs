@@ -4,10 +4,18 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
+using TutorHub.Application.Features.Admin.Categories.CreateCategory;
+using TutorHub.Application.Features.Admin.Categories.DeleteCategory;
+using TutorHub.Application.Features.Admin.Categories.GetAdminCategories;
+using TutorHub.Application.Features.Admin.Categories.UpdateCategory;
 using TutorHub.Application.Features.Admin.Reports.DTOs;
 using TutorHub.Application.Features.Admin.Reports.GetAdminReportById;
 using TutorHub.Application.Features.Admin.Reports.GetAdminReports;
 using TutorHub.Application.Features.Admin.Reports.ResolveReport;
+using TutorHub.Application.Features.Admin.Subjects.CreateSubject;
+using TutorHub.Application.Features.Admin.Subjects.DeleteSubject;
+using TutorHub.Application.Features.Admin.Subjects.GetAdminSubjects;
+using TutorHub.Application.Features.Admin.Subjects.UpdateSubject;
 using TutorHub.Application.Features.Admin.Tutors.ApproveTutor;
 using TutorHub.Application.Features.Admin.Tutors.DTOs;
 using TutorHub.Application.Features.Admin.Tutors.GetAdminTutors;
@@ -16,7 +24,9 @@ using TutorHub.Application.Features.Admin.Tutors.SuspendTutor;
 using TutorHub.Application.Features.Admin.Withdrawals.ApproveWithdrawal;
 using TutorHub.Application.Features.Admin.Withdrawals.GetAdminWithdrawals;
 using TutorHub.Application.Features.Admin.Withdrawals.RejectWithdrawal;
+using TutorHub.Application.Features.Categories.DTOs;
 using TutorHub.Application.Features.Reports.DTOs;
+using TutorHub.Application.Features.Subjects.DTOs;
 using TutorHub.Application.Features.Wallets.DTOs;
 using TutorHub.Domain.Enums;
 
@@ -229,6 +239,146 @@ public class AdminController : ControllerBase
         var command = new ResolveReportCommand(id, adminId, request.Decision, request.Resolution);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<AdminReportDetailDto>.SuccessResult(result, "Dispute report resolved successfully."));
+    }
+
+    // ==========================================
+    // CATEGORIES MANAGEMENT (Admin)
+    // ==========================================
+
+    /// <summary>
+    /// Get paginated list of all categories with active filter and search (Admin only).
+    /// </summary>
+    [HttpGet("categories")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<AdminCategoryDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAdminCategories(
+        [FromQuery] string? search,
+        [FromQuery] bool? isActive,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetAdminCategoriesQuery(search, isActive, pageNumber, pageSize);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<AdminCategoryDto>>.SuccessResult(result, "Admin categories retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Create a new category (Admin only).
+    /// </summary>
+    [HttpPost("categories")]
+    [ProducesResponseType(typeof(ApiResponse<AdminCategoryDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CreateCategory(
+        [FromBody] CreateCategoryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new CreateCategoryCommand(request.Name, request.Description);
+        var result = await _sender.Send(command, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, ApiResponse<AdminCategoryDto>.SuccessResult(result, "Category created successfully."));
+    }
+
+    /// <summary>
+    /// Update an existing category (Admin only).
+    /// </summary>
+    [HttpPut("categories/{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<AdminCategoryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateCategory(
+        [FromRoute] Guid id,
+        [FromBody] UpdateCategoryRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new UpdateCategoryCommand(id, request.Name, request.Description, request.IsActive);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<AdminCategoryDto>.SuccessResult(result, "Category updated successfully."));
+    }
+
+    /// <summary>
+    /// Delete a category (Admin only - must contain no subjects).
+    /// </summary>
+    [HttpDelete("categories/{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeleteCategory([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        var command = new DeleteCategoryCommand(id);
+        await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<object?>.SuccessResult(null, "Category deleted successfully."));
+    }
+
+    // ==========================================
+    // SUBJECTS MANAGEMENT (Admin)
+    // ==========================================
+
+    /// <summary>
+    /// Get paginated list of all subjects with category, active, and search filters (Admin only).
+    /// </summary>
+    [HttpGet("subjects")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<AdminSubjectDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAdminSubjects(
+        [FromQuery] Guid? categoryId,
+        [FromQuery] bool? isActive,
+        [FromQuery] string? search,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetAdminSubjectsQuery(categoryId, isActive, search, pageNumber, pageSize);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<AdminSubjectDto>>.SuccessResult(result, "Admin subjects retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Create a new subject within an active category (Admin only).
+    /// </summary>
+    [HttpPost("subjects")]
+    [ProducesResponseType(typeof(ApiResponse<AdminSubjectDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CreateSubject(
+        [FromBody] CreateSubjectRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new CreateSubjectCommand(request.Name, request.CategoryId);
+        var result = await _sender.Send(command, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, ApiResponse<AdminSubjectDto>.SuccessResult(result, "Subject created successfully."));
+    }
+
+    /// <summary>
+    /// Update an existing subject (Admin only).
+    /// </summary>
+    [HttpPut("subjects/{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<AdminSubjectDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateSubject(
+        [FromRoute] Guid id,
+        [FromBody] UpdateSubjectRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new UpdateSubjectCommand(id, request.Name, request.CategoryId, request.IsActive);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<AdminSubjectDto>.SuccessResult(result, "Subject updated successfully."));
+    }
+
+    /// <summary>
+    /// Delete a subject (Admin only - must not be associated with tutors or bookings).
+    /// </summary>
+    [HttpDelete("subjects/{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeleteSubject([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        var command = new DeleteSubjectCommand(id);
+        await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<object?>.SuccessResult(null, "Subject deleted successfully."));
     }
 
     private Guid GetCurrentUserId()
