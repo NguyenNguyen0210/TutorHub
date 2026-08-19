@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
+using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 using TutorHub.Domain.Services;
 
@@ -63,6 +64,27 @@ public class CompleteBookingCommandHandler : IRequestHandler<CompleteBookingComm
         {
             booking.Transaction.Status = TransactionStatus.Released;
             booking.Transaction.ReleasedAt = now;
+
+            // 5. Synchronize Tutor Wallet
+            var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.TutorProfileId == booking.TutorProfileId, cancellationToken);
+            if (wallet == null)
+            {
+                wallet = new Wallet
+                {
+                    Id = Guid.NewGuid(),
+                    TutorProfileId = booking.TutorProfileId,
+                    PendingBalance = 0,
+                    AvailableBalance = booking.Transaction.PayoutAmount,
+                    UpdatedAt = now
+                };
+                _context.Wallets.Add(wallet);
+            }
+            else
+            {
+                wallet.PendingBalance = Math.Max(0, wallet.PendingBalance - booking.TotalAmount);
+                wallet.AvailableBalance += booking.Transaction.PayoutAmount;
+                wallet.UpdatedAt = now;
+            }
         }
 
         await _context.SaveChangesAsync(cancellationToken);

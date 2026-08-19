@@ -78,6 +78,26 @@ public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, Booki
         _context.Transactions.Add(transaction);
         booking.Transaction = transaction;
 
+        // 4. Synchronize Tutor Wallet PendingBalance
+        var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.TutorProfileId == booking.TutorProfileId, cancellationToken);
+        if (wallet == null)
+        {
+            wallet = new Wallet
+            {
+                Id = Guid.NewGuid(),
+                TutorProfileId = booking.TutorProfileId,
+                PendingBalance = booking.TotalAmount,
+                AvailableBalance = 0,
+                UpdatedAt = now
+            };
+            _context.Wallets.Add(wallet);
+        }
+        else
+        {
+            wallet.PendingBalance += booking.TotalAmount;
+            wallet.UpdatedAt = now;
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return new BookingDto(

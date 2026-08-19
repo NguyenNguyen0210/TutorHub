@@ -16,7 +16,6 @@ public class WithdrawalConfiguration : IEntityTypeConfiguration<Withdrawal>
         });
 
         builder.Property(w => w.Amount)
-
             .HasPrecision(12, 2)
             .IsRequired();
 
@@ -25,6 +24,21 @@ public class WithdrawalConfiguration : IEntityTypeConfiguration<Withdrawal>
             .HasMaxLength(50)
             .IsRequired();
 
+        builder.Property(w => w.BankName)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.Property(w => w.AccountNumber)
+            .HasMaxLength(50)
+            .IsRequired();
+
+        builder.Property(w => w.AccountHolderName)
+            .HasMaxLength(150)
+            .IsRequired();
+
+        builder.Property(w => w.Note)
+            .HasMaxLength(500);
+
         builder.Property(w => w.RequestedAt)
             .IsRequired();
 
@@ -32,7 +46,6 @@ public class WithdrawalConfiguration : IEntityTypeConfiguration<Withdrawal>
             .HasMaxLength(500);
 
         builder.HasIndex(w => new { w.WalletId, w.Status });
-
         builder.HasIndex(w => w.Status);
 
         builder.HasOne(w => w.Wallet)

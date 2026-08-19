@@ -54,6 +54,14 @@ public class RejectBookingCommandHandler : IRequestHandler<RejectBookingCommand,
         {
             booking.Transaction.Status = TransactionStatus.Refunded;
             booking.Transaction.RefundedAt = now;
+
+            // Synchronize Tutor Wallet
+            var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.TutorProfileId == booking.TutorProfileId, cancellationToken);
+            if (wallet != null)
+            {
+                wallet.PendingBalance = Math.Max(0, wallet.PendingBalance - booking.TotalAmount);
+                wallet.UpdatedAt = now;
+            }
         }
 
         await _context.SaveChangesAsync(cancellationToken);

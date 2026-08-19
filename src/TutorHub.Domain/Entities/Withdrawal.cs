@@ -13,6 +13,12 @@ public class Withdrawal
 
     public WithdrawalStatus Status { get; set; }
 
+    // Snapshot of tutor's payout destination
+    public string BankName { get; set; } = string.Empty;
+    public string AccountNumber { get; set; } = string.Empty;
+    public string AccountHolderName { get; set; } = string.Empty;
+    public string? Note { get; set; }
+
     public DateTime RequestedAt { get; set; }
 
     public DateTime? ProcessedAt { get; set; }

@@ -88,6 +88,13 @@ public class BookingTimeoutBackgroundService : BackgroundService
                 {
                     booking.Transaction.Status = TransactionStatus.Refunded;
                     booking.Transaction.RefundedAt = now;
+
+                    var wallet = await context.Wallets.FirstOrDefaultAsync(w => w.TutorProfileId == booking.TutorProfileId, cancellationToken);
+                    if (wallet != null)
+                    {
+                        wallet.PendingBalance = Math.Max(0, wallet.PendingBalance - booking.TotalAmount);
+                        wallet.UpdatedAt = now;
+                    }
                 }
             }
         }

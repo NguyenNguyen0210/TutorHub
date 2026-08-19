@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
+using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 using TutorHub.Domain.Services;
 
@@ -67,12 +68,23 @@ public class CancelBookingCommandHandler : IRequestHandler<CancelBookingCommand,
         booking.CancellationReason = request.Reason;
         booking.CancelledAt = now;
 
-        // 5. Update Transaction if payment was held
+        // 5. Update Transaction & Tutor Wallet if payment was held
         if (booking.Transaction != null && booking.Transaction.Status == TransactionStatus.Held)
         {
             booking.Transaction.Status = TransactionStatus.Refunded;
             booking.Transaction.RefundedAt = now;
             booking.Transaction.PayoutAmount = payoutAmount;
+
+            var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.TutorProfileId == booking.TutorProfileId, cancellationToken);
+            if (wallet != null)
+            {
+                wallet.PendingBalance = Math.Max(0, wallet.PendingBalance - booking.TotalAmount);
+                if (payoutAmount > 0)
+                {
+                    wallet.AvailableBalance += payoutAmount;
+                }
+                wallet.UpdatedAt = now;
+            }
         }
 
         await _context.SaveChangesAsync(cancellationToken);
