@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Infrastructure.Authentication;
+using TutorHub.Infrastructure.BackgroundServices;
 using TutorHub.Infrastructure.Persistence;
 
 namespace TutorHub.Infrastructure;
@@ -28,8 +29,9 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
+        // Background Workers
+        services.AddHostedService<BookingTimeoutBackgroundService>();
+
         return services;
     }
 }
-
-
