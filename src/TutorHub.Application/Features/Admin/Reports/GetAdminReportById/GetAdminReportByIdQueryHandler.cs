@@ -33,19 +33,19 @@ public class GetAdminReportByIdQueryHandler : IRequestHandler<GetAdminReportById
         }
 
         var booking = report.Booking;
-        var studentUser = booking.StudentProfile.User;
-        var tutorUser = booking.TutorProfile.User;
+        var studentUser = booking.StudentProfile?.User;
+        var tutorUser = booking.TutorProfile?.User;
 
-        var reporterRole = report.ReporterUserId == studentUser.Id ? "Student" : "Tutor";
+        var reporterRole = report.ReporterUserId == studentUser?.Id ? "Student" : "Tutor";
 
         var bookingSummary = new BookingSummaryDto(
             Id: booking.Id,
             StudentProfileId: booking.StudentProfileId,
-            StudentName: studentUser.FullName,
+            StudentName: studentUser?.FullName ?? string.Empty,
             TutorProfileId: booking.TutorProfileId,
-            TutorName: tutorUser.FullName,
+            TutorName: tutorUser?.FullName ?? string.Empty,
             SubjectId: booking.SubjectId,
-            SubjectName: booking.Subject.Name,
+            SubjectName: booking.Subject?.Name ?? string.Empty,
             StartAt: booking.StartAt,
             EndAt: booking.EndAt,
             TotalAmount: booking.TotalAmount,
@@ -57,7 +57,7 @@ public class GetAdminReportByIdQueryHandler : IRequestHandler<GetAdminReportById
             Id: report.Id,
             BookingId: report.BookingId,
             ReporterUserId: report.ReporterUserId,
-            ReporterName: report.ReporterUser.FullName,
+            ReporterName: report.ReporterUser?.FullName ?? string.Empty,
             ReporterRole: reporterRole,
             Description: report.Description,
             EvidenceUrl: report.EvidenceUrl,
@@ -69,12 +69,12 @@ public class GetAdminReportByIdQueryHandler : IRequestHandler<GetAdminReportById
             CreatedAt: report.CreatedAt,
             ResolvedAt: report.ResolvedAt,
             Booking: bookingSummary,
-            StudentName: studentUser.FullName,
-            StudentEmail: studentUser.Email,
-            StudentPhone: studentUser.Phone,
-            TutorName: tutorUser.FullName,
-            TutorEmail: tutorUser.Email,
-            TutorPhone: tutorUser.Phone
+            StudentName: studentUser?.FullName ?? string.Empty,
+            StudentEmail: studentUser?.Email ?? string.Empty,
+            StudentPhone: studentUser?.Phone,
+            TutorName: tutorUser?.FullName ?? string.Empty,
+            TutorEmail: tutorUser?.Email ?? string.Empty,
+            TutorPhone: tutorUser?.Phone
         );
     }
 }

@@ -56,7 +56,7 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
                     // Tutor already received payout in AvailableBalance
                     if (wallet != null)
                     {
-                        wallet.AvailableBalance -= transaction.PayoutAmount;
+                        wallet.AvailableBalance = Math.Max(0, wallet.AvailableBalance - transaction.PayoutAmount);
                         wallet.UpdatedAt = now;
                     }
                 }
@@ -65,7 +65,7 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
                     // Funds are in PendingBalance
                     if (wallet != null)
                     {
-                        wallet.PendingBalance -= transaction.Amount;
+                        wallet.PendingBalance = Math.Max(0, wallet.PendingBalance - transaction.Amount);
                         wallet.UpdatedAt = now;
                     }
                 }
@@ -76,7 +76,8 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
                 report.Booking.Status = BookingStatus.Cancelled;
                 report.Booking.CancelledAt = now;
                 report.Booking.CancelledBy = CancelledBy.Admin;
-                report.Booking.CancellationReason = $"Dispute resolved by Admin: {request.Resolution.Trim()}";
+                var reason = $"Dispute resolved by Admin: {request.Resolution.Trim()}";
+                report.Booking.CancellationReason = reason.Length > 500 ? reason[..500] : reason;
             }
         }
 
@@ -91,18 +92,18 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
         await _context.SaveChangesAsync(cancellationToken);
 
         var booking = report.Booking;
-        var studentUser = booking.StudentProfile.User;
-        var tutorUser = booking.TutorProfile.User;
-        var reporterRole = report.ReporterUserId == studentUser.Id ? "Student" : "Tutor";
+        var studentUser = booking.StudentProfile?.User;
+        var tutorUser = booking.TutorProfile?.User;
+        var reporterRole = report.ReporterUserId == studentUser?.Id ? "Student" : "Tutor";
 
         var bookingSummary = new BookingSummaryDto(
             Id: booking.Id,
             StudentProfileId: booking.StudentProfileId,
-            StudentName: studentUser.FullName,
+            StudentName: studentUser?.FullName ?? string.Empty,
             TutorProfileId: booking.TutorProfileId,
-            TutorName: tutorUser.FullName,
+            TutorName: tutorUser?.FullName ?? string.Empty,
             SubjectId: booking.SubjectId,
-            SubjectName: booking.Subject.Name,
+            SubjectName: booking.Subject?.Name ?? string.Empty,
             StartAt: booking.StartAt,
             EndAt: booking.EndAt,
             TotalAmount: booking.TotalAmount,
@@ -114,7 +115,7 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
             Id: report.Id,
             BookingId: report.BookingId,
             ReporterUserId: report.ReporterUserId,
-            ReporterName: report.ReporterUser.FullName,
+            ReporterName: report.ReporterUser?.FullName ?? string.Empty,
             ReporterRole: reporterRole,
             Description: report.Description,
             EvidenceUrl: report.EvidenceUrl,
@@ -126,12 +127,12 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
             CreatedAt: report.CreatedAt,
             ResolvedAt: report.ResolvedAt,
             Booking: bookingSummary,
-            StudentName: studentUser.FullName,
-            StudentEmail: studentUser.Email,
-            StudentPhone: studentUser.Phone,
-            TutorName: tutorUser.FullName,
-            TutorEmail: tutorUser.Email,
-            TutorPhone: tutorUser.Phone
+            StudentName: studentUser?.FullName ?? string.Empty,
+            StudentEmail: studentUser?.Email ?? string.Empty,
+            StudentPhone: studentUser?.Phone,
+            TutorName: tutorUser?.FullName ?? string.Empty,
+            TutorEmail: tutorUser?.Email ?? string.Empty,
+            TutorPhone: tutorUser?.Phone
         );
     }
 }
