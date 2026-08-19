@@ -9,6 +9,8 @@ using TutorHub.Application.Features.Availability.DeleteAvailabilitySlot;
 using TutorHub.Application.Features.Availability.DTOs;
 using TutorHub.Application.Features.Availability.GetMyAvailabilitySlots;
 using TutorHub.Application.Features.Availability.GetTutorAvailability;
+using TutorHub.Application.Features.Reviews.DTOs;
+using TutorHub.Application.Features.Reviews.GetTutorReviews;
 using TutorHub.Application.Features.Tutors.DTOs;
 using TutorHub.Application.Features.Tutors.GetMyProfile;
 using TutorHub.Application.Features.Tutors.GetTutorById;
@@ -94,6 +96,23 @@ public class TutorsController : ControllerBase
         var query = new GetTutorAvailabilityQuery(id, fromDate, toDate);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<TutorAvailabilityDto>.SuccessResult(result, "Tutor availability schedule retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Get paginated public reviews for a specific tutor (Public).
+    /// </summary>
+    [HttpGet("{id:guid}/reviews")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<TutorPublicReviewDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetTutorReviews(
+        [FromRoute] Guid id,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetTutorReviewsQuery(id, pageNumber, pageSize);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<TutorPublicReviewDto>>.SuccessResult(result, "Tutor reviews retrieved successfully."));
     }
 
     /// <summary>
