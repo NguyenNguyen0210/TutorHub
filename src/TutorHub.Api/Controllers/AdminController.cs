@@ -8,6 +8,9 @@ using TutorHub.Application.Features.Admin.Categories.CreateCategory;
 using TutorHub.Application.Features.Admin.Categories.DeleteCategory;
 using TutorHub.Application.Features.Admin.Categories.GetAdminCategories;
 using TutorHub.Application.Features.Admin.Categories.UpdateCategory;
+using TutorHub.Application.Features.Admin.Dashboard.DTOs;
+using TutorHub.Application.Features.Admin.Dashboard.GetAdminDashboardStats;
+using TutorHub.Application.Features.Admin.Dashboard.GetAdminRevenueChart;
 using TutorHub.Application.Features.Admin.Reports.DTOs;
 using TutorHub.Application.Features.Admin.Reports.GetAdminReportById;
 using TutorHub.Application.Features.Admin.Reports.GetAdminReports;
@@ -379,6 +382,37 @@ public class AdminController : ControllerBase
         var command = new DeleteSubjectCommand(id);
         await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<object?>.SuccessResult(null, "Subject deleted successfully."));
+    }
+
+    /// <summary>
+    /// Get real-time overview metrics for the Admin Dashboard (Admin only).
+    /// </summary>
+    [HttpGet("dashboard/stats")]
+    [ProducesResponseType(typeof(ApiResponse<AdminDashboardStatsDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetDashboardStats(CancellationToken cancellationToken)
+    {
+        var query = new GetAdminDashboardStatsQuery();
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<AdminDashboardStatsDto>.SuccessResult(result, "Dashboard stats retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Get monthly revenue and booking analytics chart data (Admin only).
+    /// </summary>
+    [HttpGet("dashboard/revenue-chart")]
+    [ProducesResponseType(typeof(ApiResponse<RevenueChartDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetRevenueChart(
+        [FromQuery] int months = 6,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetAdminRevenueChartQuery(months);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<RevenueChartDto>.SuccessResult(result, "Revenue chart retrieved successfully."));
     }
 
     private Guid GetCurrentUserId()
