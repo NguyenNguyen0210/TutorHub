@@ -1,9 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using TutorHub.Application.Common.Interfaces;
-using TutorHub.Domain.Enums;
+using TutorHub.Application.Features.Bookings.ProcessBookingTimeouts;
 
 namespace TutorHub.Infrastructure.BackgroundServices;
 
@@ -29,79 +28,18 @@ public class BookingTimeoutBackgroundService : BackgroundService
         {
             try
             {
-                await ProcessTimeoutsAsync(stoppingToken);
+                using var scope = _scopeFactory.CreateScope();
+                var sender = scope.ServiceProvider.GetRequiredService<ISender>();
+                await sender.Send(new ProcessBookingTimeoutsCommand(), stoppingToken);
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogError(ex, "An error occurred while processing booking timeouts.");
+                _logger.LogError(ex, "An error occurred while dispatching ProcessBookingTimeoutsCommand.");
             }
 
             await Task.Delay(_checkInterval, stoppingToken);
         }
 
         _logger.LogInformation("BookingTimeoutBackgroundService is stopping.");
-    }
-
-    private async Task ProcessTimeoutsAsync(CancellationToken cancellationToken)
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
-        var now = DateTime.UtcNow;
-
-        // 1. Expire Holding Bookings (Past 15-minute window)
-        var expiredHoldingBookings = await context.Bookings
-            .Where(b => b.Status == BookingStatus.Holding &&
-                        b.HoldingExpiresAt.HasValue &&
-                        b.HoldingExpiresAt.Value <= now)
-            .ToListAsync(cancellationToken);
-
-        if (expiredHoldingBookings.Any())
-        {
-            _logger.LogInformation("Found {Count} expired holding bookings to release.", expiredHoldingBookings.Count);
-            foreach (var booking in expiredHoldingBookings)
-            {
-                booking.Status = BookingStatus.Cancelled;
-                booking.CancelledBy = CancelledBy.System;
-                booking.CancellationReason = "HoldingExpired";
-                booking.CancelledAt = now;
-            }
-        }
-
-        // 2. Expire Pending Bookings (Past 24-hour tutor confirmation window)
-        var expiredPendingBookings = await context.Bookings
-            .Include(b => b.Transaction)
-            .Where(b => b.Status == BookingStatus.Pending &&
-                        b.CreatedAt.AddHours(24) <= now)
-            .ToListAsync(cancellationToken);
-
-        if (expiredPendingBookings.Any())
-        {
-            _logger.LogInformation("Found {Count} expired pending bookings to refund and cancel.", expiredPendingBookings.Count);
-            foreach (var booking in expiredPendingBookings)
-            {
-                booking.Status = BookingStatus.Cancelled;
-                booking.CancelledBy = CancelledBy.System;
-                booking.CancellationReason = "TutorConfirmationTimeout";
-                booking.CancelledAt = now;
-
-                if (booking.Transaction != null && booking.Transaction.Status == TransactionStatus.Held)
-                {
-                    booking.Transaction.Status = TransactionStatus.Refunded;
-                    booking.Transaction.RefundedAt = now;
-
-                    var wallet = await context.Wallets.FirstOrDefaultAsync(w => w.TutorProfileId == booking.TutorProfileId, cancellationToken);
-                    if (wallet != null)
-                    {
-                        wallet.PendingBalance = Math.Max(0, wallet.PendingBalance - booking.TotalAmount);
-                        wallet.UpdatedAt = now;
-                    }
-                }
-            }
-        }
-
-        if (expiredHoldingBookings.Any() || expiredPendingBookings.Any())
-        {
-            await context.SaveChangesAsync(cancellationToken);
-        }
     }
 }

@@ -156,6 +156,77 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("TutorHub.Domain.Entities.Media", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BucketName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsPrivate")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ObjectKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("StorageProvider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("StoredFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ObjectKey")
+                        .IsUnique();
+
+                    b.HasIndex("UploadedByUserId", "Status");
+
+                    b.ToTable("Media", (string)null);
+                });
+
             modelBuilder.Entity("TutorHub.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -669,6 +740,17 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("TutorProfile");
                 });
 
+            modelBuilder.Entity("TutorHub.Domain.Entities.Media", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.User", "UploadedByUser")
+                        .WithMany("MediaUploaded")
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("UploadedByUser");
+                });
+
             modelBuilder.Entity("TutorHub.Domain.Entities.RefreshToken", b =>
                 {
                     b.HasOne("TutorHub.Domain.Entities.User", "User")
@@ -869,6 +951,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("TutorHub.Domain.Entities.User", b =>
                 {
+                    b.Navigation("MediaUploaded");
+
                     b.Navigation("StudentProfile");
 
                     b.Navigation("TutorProfile");
