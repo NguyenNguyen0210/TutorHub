@@ -19,6 +19,8 @@ using TutorHub.Application.Features.Admin.Subjects.CreateSubject;
 using TutorHub.Application.Features.Admin.Subjects.DeleteSubject;
 using TutorHub.Application.Features.Admin.Subjects.GetAdminSubjects;
 using TutorHub.Application.Features.Admin.Subjects.UpdateSubject;
+using TutorHub.Application.Features.Admin.Transactions.DTOs;
+using TutorHub.Application.Features.Admin.Transactions.GetAdminTransactions;
 using TutorHub.Application.Features.Admin.Tutors.ApproveTutor;
 using TutorHub.Application.Features.Admin.Tutors.DTOs;
 using TutorHub.Application.Features.Admin.Tutors.GetAdminTutors;
@@ -474,6 +476,28 @@ public class AdminController : ControllerBase
         var command = new SetUserStatusCommand(id, adminId, request.IsActive, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<AdminUserSummaryDto>.SuccessResult(result, "User status updated successfully."));
+    }
+
+    /// <summary>
+    /// Get paginated list of all financial transactions across the platform with filters (Admin only).
+    /// </summary>
+    [HttpGet("transactions")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<AdminTransactionDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAdminTransactions(
+        [FromQuery] string? search,
+        [FromQuery] TransactionStatus? status,
+        [FromQuery] DateTime? fromDate,
+        [FromQuery] DateTime? toDate,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetAdminTransactionsQuery(search, status, fromDate, toDate, pageNumber, pageSize);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<AdminTransactionDto>>.SuccessResult(result, "Transactions retrieved successfully."));
     }
 
     private Guid GetCurrentUserId()
