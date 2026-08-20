@@ -28,7 +28,7 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
         // 1. Normalize FullName
         user.FullName = request.FullName.Trim();
 
-        // 2. Canonical Phone Normalization (empty / whitespace to null, +84 to 0, strip spaces/dashes)
+        // 2. Canonical Phone Normalization (empty / whitespace to null, +84 / 84 to 0, strip spaces/dashes/dots)
         if (string.IsNullOrWhiteSpace(request.Phone))
         {
             user.Phone = null;
@@ -39,6 +39,10 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
             if (cleanPhone.StartsWith("+84"))
             {
                 cleanPhone = "0" + cleanPhone.Substring(3);
+            }
+            else if (cleanPhone.StartsWith("84") && cleanPhone.Length == 11)
+            {
+                cleanPhone = "0" + cleanPhone.Substring(2);
             }
             user.Phone = cleanPhone;
         }
