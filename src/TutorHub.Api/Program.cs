@@ -9,7 +9,36 @@ using TutorHub.Application;
 using TutorHub.Infrastructure;
 using TutorHub.Infrastructure.Authentication;
 
+// Load .env file if present in working directory or repository root
+var currentDir = Directory.GetCurrentDirectory();
+var dotenvPaths = new[]
+{
+    Path.Combine(currentDir, ".env"),
+    Path.Combine(Directory.GetParent(currentDir)?.FullName ?? "", ".env")
+};
+
+foreach (var dotenv in dotenvPaths)
+{
+    if (File.Exists(dotenv))
+    {
+        foreach (var line in File.ReadAllLines(dotenv))
+        {
+            var trimmed = line.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith('#')) continue;
+            var parts = trimmed.Split('=', 2);
+            if (parts.Length == 2)
+            {
+                var key = parts[0].Trim();
+                var val = parts[1].Trim().Trim('"', '\'');
+                Environment.SetEnvironmentVariable(key, val);
+            }
+        }
+        break;
+    }
+}
+
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddEnvironmentVariables();
 
 // Add Layers
 builder.Services.AddApplication();
