@@ -72,6 +72,19 @@ appsettings.*.Local.json
 docker-compose.override.yml
 
 # =====================
+# Frontend / Node / JS
+# =====================
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.next/
+frontend/build/
+frontend/.turbo/
+.npm/
+.yarn/
+*.log
+
+# =====================
 # OS
 # =====================
 Thumbs.db
