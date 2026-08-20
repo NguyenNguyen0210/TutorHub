@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using TutorHub.Domain.Entities;
 
 namespace TutorHub.Application.Common.Interfaces;
@@ -19,6 +20,8 @@ public interface IAppDbContext
     DbSet<Review> Reviews { get; }
     DbSet<Report> Reports { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
+
+    DatabaseFacade Database { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

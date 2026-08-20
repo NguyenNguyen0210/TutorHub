@@ -29,6 +29,10 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
+        // VNPay Payment Gateway Services
+        services.Configure<Services.VnPay.VnPayOptions>(configuration.GetSection(Services.VnPay.VnPayOptions.SectionName));
+        services.AddScoped<IVnPayService, Services.VnPay.VnPayService>();
+
         // Background Workers
         services.AddHostedService<BookingTimeoutBackgroundService>();
 
