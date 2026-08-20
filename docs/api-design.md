@@ -1,302 +1,153 @@
-# API Endpoints Design — Nền tảng Tìm Gia Sư
+# API Endpoints Specification — Nền tảng TutorHub (Production-Ready)
 
-**Stack:** ASP.NET Core Web API (REST)
-**Auth:** JWT Bearer Token (Access Token + Refresh Token)
-**Quy ước:**
-- Prefix chung: `/api/v1`
-- Response lỗi theo format chuẩn: `{ "error": { "code": "...", "message": "..." } }`
-- Các endpoint có 🔒 = yêu cầu đăng nhập, kèm role cụ thể trong ngoặc
+**Tech Stack:** ASP.NET Core 8.0 Web API (Clean Architecture + Vertical Slice + MediatR CQRS)  
+**Authentication:** JWT Bearer Token (Access Token 15m + Refresh Token 7d Rotation)  
+**Base URL:** `/api/v1`  
+**Response Envelope Format:**
+```json
+{
+  "success": true,
+  "message": "Operation completed successfully.",
+  "data": { ... },
+  "errors": null
+}
+```
 
 ---
 
-## 1. Auth
+## 1. 🔐 Authentication & Session Management (`/api/v1/auth`)
 
-| Method | Endpoint | Mô tả | Role |
+| Method | Endpoint | Quyền hạn | Mô tả |
 |---|---|---|---|
-| POST | `/auth/register` | Đăng ký (body có `role`: Student/Tutor) | Public |
-| POST | `/auth/login` | Đăng nhập, trả về access + refresh token | Public |
-| POST | `/auth/refresh` | Làm mới access token | Public (cần refresh token hợp lệ) |
-| POST | `/auth/logout` | Thu hồi refresh token | 🔒 Any |
-| POST | `/auth/change-password` | Đổi mật khẩu | 🔒 Any |
-| GET | `/auth/me` | Lấy thông tin user hiện tại (kèm role, tutor profile nếu có) | 🔒 Any |
-
-**Request mẫu — Register:**
-```json
-POST /auth/register
-{
-  "email": "string",
-  "password": "string",
-  "fullName": "string",
-  "phone": "string",
-  "role": "Student" // hoặc "Tutor"
-}
-```
-
-> Nếu `role = Tutor`, sau khi tạo `User` thành công, backend tự tạo `TutorProfile` rỗng với `Status = PendingReview`, redirect FE sang bước hoàn thiện hồ sơ.
+| `POST` | `/api/v1/auth/register` | Public | Đăng ký tài khoản (`Student` hoặc `Tutor`). Tự động khởi tạo `TutorProfile` hoặc `StudentProfile`. |
+| `POST` | `/api/v1/auth/login` | Public | Đăng nhập bằng Email + Mật khẩu. Trả về Access Token, Refresh Token và thông tin User. |
+| `POST` | `/api/v1/auth/refresh` | Public | Làm mới Access Token thông qua Refresh Token Rotation. |
+| `POST` | `/api/v1/auth/logout` | 🔒 Authenticated | Đăng xuất và thu hồi Refresh Token hiện tại. |
+| `POST` | `/api/v1/auth/change-password` | 🔒 Authenticated | Đổi mật khẩu tài khoản (yêu cầu mật khẩu cũ). |
+| `GET` | `/api/v1/auth/me` | 🔒 Authenticated | Kiểm tra phiên làm việc và lấy thông tin User đang đăng nhập (Bootstrap Auth). |
 
 ---
 
-## 2. Subjects (danh mục môn học — dùng chung, do admin quản lý)
+## 2. 👤 Hồ Sơ Cá Nhân (`/api/v1/users`)
 
-| Method | Endpoint | Mô tả | Role |
+| Method | Endpoint | Quyền hạn | Mô tả |
 |---|---|---|---|
-| GET | `/subjects` | Danh sách môn học (dùng cho filter/dropdown) | Public |
-| POST | `/subjects` | Tạo môn học mới | 🔒 Admin |
-| PUT | `/subjects/{id}` | Sửa môn học | 🔒 Admin |
-| DELETE | `/subjects/{id}` | Xóa môn học (chỉ khi không có tutor nào đang dùng) | 🔒 Admin |
+| `GET` | `/api/v1/users/me` | 🔒 Authenticated | Xem thông tin hồ sơ tài khoản cá nhân. |
+| `PUT` | `/api/v1/users/me` | 🔒 Authenticated | Cập nhật Họ tên, Số điện thoại (chuẩn hóa di động VN), Avatar URL. |
 
 ---
 
-## 3. Tutor Profile
+## 3. 📚 Danh Mục & Môn Học Master Data (`/api/v1/categories`, `/api/v1/subjects`)
 
-### 3.1 Gia sư tự quản lý hồ sơ
-
-| Method | Endpoint | Mô tả | Role |
+| Method | Endpoint | Quyền hạn | Mô tả |
 |---|---|---|---|
-| GET | `/tutors/me` | Xem hồ sơ của chính mình | 🔒 Tutor |
-| PUT | `/tutors/me` | Cập nhật hồ sơ (bio, kinh nghiệm, giá, hình thức dạy...) | 🔒 Tutor |
-| POST | `/tutors/me/submit-review` | Nộp hồ sơ để admin duyệt (chuyển status → `PendingReview`) | 🔒 Tutor |
-| PUT | `/tutors/me/subjects` | Cập nhật danh sách môn dạy + giá riêng từng môn | 🔒 Tutor |
+| `GET` | `/api/v1/categories` | Public | Cây danh mục phân cấp cha/con lồng danh sách môn học. |
+| `GET` | `/api/v1/categories/{id}` | Public | Chi tiết danh mục kèm danh sách môn học con. |
+| `GET` | `/api/v1/subjects` | Public | Tìm kiếm môn học, phân trang, lọc theo `categoryId`. |
+| `GET` | `/api/v1/subjects/{id}` | Public | Chi tiết môn học. |
 
-**Request mẫu — Cập nhật hồ sơ:**
-```json
-PUT /tutors/me
-{
-  "bio": "string",
-  "education": "string",
-  "experienceYears": 5,
-  "hourlyRate": 200000,
-  "teachingMode": "Both",
-  "address": "string",
-  "latitude": 10.762622,
-  "longitude": 106.660172
-}
-```
+---
 
-**Request mẫu — Cập nhật môn dạy:**
-```json
-PUT /tutors/me/subjects
-{
-  "subjects": [
-    { "subjectId": "guid", "overridePrice": 250000 },
-    { "subjectId": "guid", "overridePrice": null }
-  ]
-}
-```
+## 4. 👨‍🏫 Gia Sư & Khung Giờ Rảnh (`/api/v1/tutors`)
 
-### 3.2 Tìm kiếm gia sư (public, học viên dùng)
-
-| Method | Endpoint | Mô tả | Role |
+| Method | Endpoint | Quyền hạn | Mô tả |
 |---|---|---|---|
-| GET | `/tutors` | Tìm kiếm/lọc gia sư (chỉ trả về `Verified` + còn slot trống) | Public |
-| GET | `/tutors/{id}` | Xem chi tiết hồ sơ 1 gia sư (kèm rating, review công khai) | Public |
-| GET | `/tutors/{id}/availability?fromDate=&toDate=` | Xem lịch trống của gia sư trong khoảng ngày | Public |
-
-**Query params cho `GET /tutors`:**
-```
-subjectId, minPrice, maxPrice, teachingMode, minRating,
-latitude, longitude, radiusKm,
-sortBy=price_asc|price_desc|rating_desc|experience_desc,
-page, pageSize
-```
-
-**Response mẫu — `/tutors/{id}/availability`:**
-```json
-{
-  "tutorProfileId": "guid",
-  "availableSlots": [
-    { "date": "2026-08-17", "startTime": "18:00", "endTime": "19:00" },
-    { "date": "2026-08-17", "startTime": "19:00", "endTime": "20:00" }
-  ]
-}
-```
-> Backend tự tính từ `AvailabilitySlot` (theo `DayOfWeek`) trừ đi `Booking` đã có và `BlockedDate`, trả về danh sách slot rời rạc theo từng ngày cụ thể trong khoảng `fromDate`–`toDate`.
+| `GET` | `/api/v1/tutors` | Public | Tìm kiếm gia sư công khai (lọc môn, giá, địa chỉ, hình thức dạy, phân trang). |
+| `GET` | `/api/v1/tutors/{id}` | Public | Xem chi tiết hồ sơ công khai của gia sư. |
+| `GET` | `/api/v1/tutors/{id}/reviews` | Public | Xem danh sách đánh giá của gia sư. |
+| `GET` | `/api/v1/tutors/me` | 🔒 Tutor | Gia sư xem hồ sơ chuyên môn của mình. |
+| `PUT` | `/api/v1/tutors/me` | 🔒 Tutor | Cập nhật Bio, kinh nghiệm, học vấn, giá mặc định, địa chỉ. |
+| `PUT` | `/api/v1/tutors/me/subjects` | 🔒 Tutor | Cập nhật danh sách môn dạy kèm giá riêng từng môn (`overridePrice`). |
+| `PUT` | `/api/v1/tutors/me/availabilities` | 🔒 Tutor | Cấu hình các khung giờ rảnh trong tuần (`dayOfWeek`, `startTime`, `endTime`). |
 
 ---
 
-## 4. Availability & Blocked Dates (gia sư tự quản lý)
+## 5. 📅 Đặt Lịch Học & Đánh Giá (`/api/v1/bookings`)
 
-| Method | Endpoint | Mô tả | Role |
+| Method | Endpoint | Quyền hạn | Mô tả |
 |---|---|---|---|
-| GET | `/tutors/me/availability-slots` | Xem lịch tuần cố định của mình | 🔒 Tutor |
-| POST | `/tutors/me/availability-slots` | Thêm 1 khung giờ rảnh (dayOfWeek, startTime, endTime) | 🔒 Tutor |
-| DELETE | `/tutors/me/availability-slots/{id}` | Xóa 1 khung giờ | 🔒 Tutor |
-| GET | `/tutors/me/blocked-dates` | Xem danh sách ngày đã block | 🔒 Tutor |
-| POST | `/tutors/me/blocked-dates` | Block 1 ngày cụ thể (kèm lý do) | 🔒 Tutor |
-| DELETE | `/tutors/me/blocked-dates/{id}` | Bỏ block 1 ngày | 🔒 Tutor |
+| `POST` | `/api/v1/bookings` | 🔒 Student | Tạo đặt lịch mới (giữ chỗ 15 phút, status = `Holding`). |
+| `POST` | `/api/v1/bookings/{id}/pay` | 🔒 Student | Thanh toán giả lập (Mock Payment) → `Holding` ➔ `Pending`. |
+| `GET` | `/api/v1/bookings/me` | 🔒 Authenticated | Danh sách lịch học cá nhân (phân trang, lọc status, role). |
+| `GET` | `/api/v1/bookings/{id}` | 🔒 Authenticated | Xem chi tiết 1 buổi học. |
+| `POST` | `/api/v1/bookings/{id}/confirm` | 🔒 Tutor | Gia sư xác nhận nhận lớp → `Pending` ➔ `Confirmed`. |
+| `POST` | `/api/v1/bookings/{id}/reject` | 🔒 Tutor | Gia sư từ chối → `Cancelled` + hoàn tiền. |
+| `POST` | `/api/v1/bookings/{id}/cancel` | 🔒 Authenticated | Hủy buổi học kèm chính sách hoàn tiền theo mốc thời gian. |
+| `POST` | `/api/v1/bookings/{id}/complete` | 🔒 Authenticated | Xác nhận hoàn thành buổi học & giải ngân tiền vào ví gia sư. |
+| `POST` | `/api/v1/bookings/{id}/reviews` | 🔒 Student | Đánh giá sau buổi học hoàn thành (Rating 1-5 sao). |
+| `GET` | `/api/v1/bookings/{id}/reviews` | 🔒 Authenticated | Xem đánh giá của buổi học. |
 
 ---
 
-## 5. Booking — luồng đặt lịch (trọng tâm hệ thống)
+## 6. 💳 Cổng Thanh Toán VNPay (`/api/v1/payments`)
 
-| Method | Endpoint | Mô tả | Role |
+| Method | Endpoint | Quyền hạn | Mô tả |
 |---|---|---|---|
-| POST | `/bookings` | Tạo booking mới (giữ chỗ tạm 15 phút, status = `Holding`) | 🔒 Student |
-| POST | `/bookings/{id}/pay` | Xác nhận thanh toán → status `Holding` → `Pending` | 🔒 Student |
-| POST | `/bookings/{id}/confirm` | Gia sư xác nhận booking → `Pending` → `Confirmed` | 🔒 Tutor |
-| POST | `/bookings/{id}/reject` | Gia sư từ chối → `Cancelled` + hoàn tiền 100% | 🔒 Tutor |
-| POST | `/bookings/{id}/cancel` | Học viên/gia sư hủy booking (áp dụng chính sách hoàn tiền theo role) | 🔒 Student/Tutor |
-| POST | `/bookings/{id}/complete` | Xác nhận buổi học đã diễn ra (1 trong 2 bên gọi) | 🔒 Student/Tutor |
-| GET | `/bookings/{id}` | Xem chi tiết 1 booking | 🔒 Student/Tutor liên quan, hoặc Admin |
-| GET | `/bookings/me?status=&role=` | Danh sách booking của chính mình (học viên hoặc gia sư) | 🔒 Student/Tutor |
-
-**Request mẫu — Tạo booking:**
-```json
-POST /bookings
-{
-  "tutorProfileId": "guid",
-  "subjectId": "guid",
-  "startTime": "2026-08-17T18:00:00Z",
-  "endTime": "2026-08-17T19:00:00Z"
-}
-```
-> Backend kiểm tra conflict (mục 6.2 trong tài liệu schema) trong transaction, trả lỗi `409 Conflict` nếu slot đã bị đặt. Nếu thành công, trả về `bookingId` + `holdExpiresAt` để FE đếm ngược 15 phút.
-
-**Response mẫu — lỗi conflict:**
-```json
-409 Conflict
-{
-  "error": { "code": "SLOT_CONFLICT", "message": "Khung giờ đã có người đặt" }
-}
-```
-
-**Request mẫu — Hủy booking:**
-```json
-POST /bookings/{id}/cancel
-{
-  "reason": "string"
-}
-```
-> Backend tự xác định `CancelledBy` dựa theo role của người gọi API, tự tính % hoàn tiền theo chính sách (100%/50%/100%) và tạo `Transaction` type `Refund` tương ứng — không cần FE truyền số tiền hoàn.
+| `POST` | `/api/v1/payments/vnpay/create-url` | 🔒 Student | Sinh mã `MerchantReference` và URL thanh toán VNPay Sandbox có thời hạn 15 phút. |
+| `GET` | `/api/v1/payments/vnpay/return` | Public | Tiếp nhận điều hướng từ trình duyệt sau thanh toán, xác thực SHA512 (Read-Only). |
+| `GET` | `/api/v1/payments/vnpay/ipn` | Public | Webhook ngầm Server-to-Server từ VNPay: Atomic DB Transaction, Idempotent, cập nhật `Booking = Pending`, `Transaction = Held`, cộng `PayoutAmount` ví gia sư. |
 
 ---
 
-## 6. Payment & Wallet
+## 7. ☁️ Quản Lý Tệp Đa Phương Tiện & Cloudflare R2 (`/api/v1/media`)
 
-| Method | Endpoint | Mô tả | Role |
+| Method | Endpoint | Quyền hạn | Mô tả |
 |---|---|---|---|
-| GET | `/bookings/{id}/transaction` | Xem trạng thái giao dịch của 1 booking | 🔒 Student/Tutor liên quan |
-| GET | `/tutors/me/wallet` | Xem số dư ví (pending/available) | 🔒 Tutor |
-| GET | `/tutors/me/wallet/transactions` | Lịch sử giao dịch của gia sư | 🔒 Tutor |
-| POST | `/tutors/me/wallet/withdraw` | Yêu cầu rút tiền (tạo request, admin xử lý thủ công) | 🔒 Tutor |
-
-> Endpoint `/bookings/{id}/pay` ở mục 5 là nơi thực sự tích hợp cổng thanh toán (Stripe/VNPay) — trả về `paymentUrl` hoặc `clientSecret` tùy cổng thanh toán bạn chọn sau này. Webhook từ cổng thanh toán sẽ gọi vào 1 endpoint nội bộ riêng (mục 9) để cập nhật trạng thái.
+| `POST` | `/api/v1/media/presigned-upload-url` | 🔒 Authenticated | Sinh Presigned PUT URL 15 phút khóa `Content-Type` để Frontend đẩy file trực tiếp lên Cloudflare R2 ($0 Egress). |
+| `POST` | `/api/v1/media/complete-upload` | 🔒 Authenticated | Xác thực file tồn tại trên R2 qua `HEAD Object` (`ExistsAsync`), tạo bản ghi `Media` trong DB và cấp access URL. |
+| `POST` | `/api/v1/media/upload` | 🔒 Authenticated | Direct API Stream Upload (multipart/form-data), kiểm tra chữ ký nhị phân Magic Bytes, stream lên R2 và lưu DB. |
+| `GET` | `/api/v1/media/{id}/download-url` | 🔒 Authenticated | Kiểm tra quyền sở hữu và sinh Presigned GET URL ngắn hạn (15 phút) trên Private Bucket R2. |
+| `GET` | `/api/v1/media/{id}/url` | 🔒 Authenticated | Alias tương thích cho `/download-url`. |
+| `DELETE` | `/api/v1/media/{id}` | 🔒 Authenticated | Soft-delete trong PostgreSQL và xóa physical object trên Cloudflare R2 (Chủ tệp hoặc Admin). |
 
 ---
 
-## 7. Review
+## 8. ⚖️ Báo Cáo & Tranh Chấp Khiếu Nại (`/api/v1/reports`)
 
-| Method | Endpoint | Mô tả | Role |
+| Method | Endpoint | Quyền hạn | Mô tả |
 |---|---|---|---|
-| POST | `/bookings/{id}/review` | Tạo đánh giá (chỉ khi booking đã `Completed`) | 🔒 Student/Tutor liên quan |
-| GET | `/tutors/{id}/reviews` | Danh sách review công khai của 1 gia sư | Public |
-
-**Request mẫu:**
-```json
-POST /bookings/{id}/review
-{
-  "rating": 5,
-  "comment": "string"
-}
-```
-> Backend tự xác định đây là review chiều nào (student→tutor hay tutor→student) dựa vào role người gọi, ghi vào đúng field tương ứng trong bảng `Review`. Nếu là student→tutor, sau khi lưu, backend tự cập nhật lại `RatingAvg`/`TotalReviews` của `TutorProfile`.
+| `POST` | `/api/v1/reports` | 🔒 Authenticated | Gửi báo cáo khiếu nại buổi học kèm lý do và chứng cứ. |
+| `GET` | `/api/v1/reports/me` | 🔒 Authenticated | Xem danh sách khiếu nại do mình gửi. |
 
 ---
 
-## 8. Report & Tranh chấp
+## 9. 💼 Ví Tiền & Rút Tiền Gia Sư (`/api/v1/tutors/me/wallet`)
 
-| Method | Endpoint | Mô tả | Role |
+| Method | Endpoint | Quyền hạn | Mô tả |
 |---|---|---|---|
-| POST | `/bookings/{id}/reports` | Tạo report cho 1 booking | 🔒 Student/Tutor liên quan |
-| GET | `/reports/me` | Xem các report mình đã gửi | 🔒 Student/Tutor |
-
-**Request mẫu:**
-```json
-POST /bookings/{id}/reports
-{
-  "description": "string",
-  "evidenceUrl": "string" // optional
-}
-```
+| `GET` | `/api/v1/tutors/me/wallet` | 🔒 Tutor | Xem số dư ví: `AvailableBalance` (khả dụng) và `PendingBalance` (đang giữ). |
+| `POST` | `/api/v1/tutors/me/wallet/withdraw` | 🔒 Tutor | Tạo yêu cầu rút tiền về tài khoản ngân hàng (khóa số dư khả dụng). |
+| `GET` | `/api/v1/tutors/me/wallet/withdrawals` | 🔒 Tutor | Xem lịch sử các yêu cầu rút tiền. |
 
 ---
 
-## 9. Admin
+## 10. 🧾 Lịch Sử Dòng Tiền Giao Dịch (`/api/v1/transactions`)
 
-### 9.1 Duyệt hồ sơ gia sư
-
-| Method | Endpoint | Mô tả |
-|---|---|---|
-| GET | `/admin/tutors?status=PendingReview` | Danh sách hồ sơ chờ duyệt |
-| GET | `/admin/tutors/{id}` | Xem chi tiết hồ sơ gia sư |
-| POST | `/admin/tutors/{id}/approve` | Duyệt hồ sơ → `Verified` |
-| POST | `/admin/tutors/{id}/reject` | Từ chối hồ sơ (kèm `rejectionReason`) → `Rejected` |
-| POST | `/admin/tutors/{id}/suspend` | Khóa gia sư (do vi phạm/report) → `Suspended` |
-| POST | `/admin/tutors/{id}/reinstate` | Mở khóa lại gia sư → `Verified` |
-
-### 9.2 Quản lý người dùng
-
-| Method | Endpoint | Mô tả |
-|---|---|---|
-| GET | `/admin/users?role=&search=` | Danh sách người dùng, tìm kiếm | 
-| POST | `/admin/users/{id}/deactivate` | Khóa tài khoản (Student hoặc Tutor) |
-| POST | `/admin/users/{id}/activate` | Mở khóa tài khoản |
-
-### 9.3 Xử lý report/tranh chấp
-
-| Method | Endpoint | Mô tả |
-|---|---|---|
-| GET | `/admin/reports?status=Open` | Danh sách report chờ xử lý |
-| GET | `/admin/reports/{id}` | Chi tiết report (kèm thông tin booking liên quan) |
-| POST | `/admin/reports/{id}/resolve` | Xử lý report (ghi note, quyết định hoàn tiền/suspend) |
-
-**Request mẫu — Xử lý report:**
-```json
-POST /admin/reports/{id}/resolve
-{
-  "resolutionNote": "string",
-  "refundBooking": true,
-  "suspendUserId": "guid" // optional, null nếu không suspend ai
-}
-```
-
-### 9.4 Giám sát booking & giao dịch (hỗ trợ tranh chấp)
-
-| Method | Endpoint | Mô tả |
-|---|---|---|
-| GET | `/admin/bookings?status=&fromDate=&toDate=` | Xem toàn bộ booking trong hệ thống |
-| GET | `/admin/transactions?status=&type=` | Xem toàn bộ giao dịch |
-| GET | `/admin/wallets/withdraw-requests?status=Pending` | Danh sách yêu cầu rút tiền chờ xử lý |
-| POST | `/admin/wallets/withdraw-requests/{id}/approve` | Duyệt yêu cầu rút tiền |
+| Method | Endpoint | Quyền hạn | Mô tả |
+|---|---|---|---|
+| `GET` | `/api/v1/transactions/me` | 🔒 Student, Tutor | Lịch sử giao dịch cá nhân theo ngữ cảnh (Học viên xem tiền đã thanh toán/hoàn; Gia sư xem học phí, phí sàn và thực nhận). |
 
 ---
 
-## 10. Background Jobs (không phải REST endpoint, nhưng cần thiết kế cùng)
+## 11. 🛡️ Quản Trị Hệ Thống Toàn Diện (`/api/v1/admin`)
 
-Các job chạy nền (dùng Hangfire hoặc Quartz.NET trong .NET) để tự động xử lý theo thời gian:
-
-| Job | Tần suất | Nghiệp vụ |
-|---|---|---|
-| `ReleaseExpiredHoldingSlots` | Mỗi 1 phút | Booking ở status `Holding` quá 15 phút chưa thanh toán → hủy, nhả slot |
-| `AutoCancelUnconfirmedBookings` | Mỗi 5-10 phút | Booking `Pending` quá 24h gia sư không xác nhận → `Cancelled` + hoàn tiền 100% |
-| `AutoCompleteBookings` | Mỗi giờ | Booking `Confirmed` đã qua `EndTime` + 48h, không ai xác nhận/report → tự chuyển `Completed`, giải ngân |
-
----
-
-## 11. Tổng hợp theo Role — dễ hình dung khi phân quyền (Authorization Policy)
-
-| Role | Nhóm endpoint chính |
-|---|---|
-| **Public** | Auth (register/login), Subjects (GET), Tutors search, Tutor detail, Reviews (GET) |
-| **Student** | Bookings (tạo, pay, cancel, complete, review, report), xem profile gia sư |
-| **Tutor** | Hồ sơ cá nhân, Availability/BlockedDates, Bookings (confirm, reject, complete), Wallet, Review, Report |
-| **Admin** | Toàn bộ `/admin/*` — duyệt tutor, quản lý user, xử lý report, giám sát booking/transaction |
-
----
-
-## 12. Bước tiếp theo đề xuất
-
-- [ ] Định nghĩa DTO/Request-Response models chi tiết cho từng endpoint (validation rules)
-- [ ] Thiết kế Authorization Policy trong .NET (`[Authorize(Roles = "Tutor")]` hoặc Policy-based cho các case phức tạp hơn như "chỉ chủ booking mới xem được")
-- [ ] Chọn cổng thanh toán (Stripe/VNPay) và thiết kế webhook endpoint cụ thể
-- [ ] Dựng khung project ASP.NET Core (Controllers/Services/Repositories hoặc CQRS với MediatR)
+| Method | Endpoint | Quyền hạn | Mô tả |
+|---|---|---|---|
+| `GET` | `/api/v1/admin/dashboard/stats` | 🔒 Admin | Snapshot thời gian thực: Users, Tutors, Bookings, Financials GMV, Action Queue. |
+| `GET` | `/api/v1/admin/dashboard/revenue-chart` | 🔒 Admin | Biểu đồ doanh thu/booking theo tháng (Zero-fill đầy đủ). |
+| `GET` | `/api/v1/admin/tutors` | 🔒 Admin | Danh sách hồ sơ gia sư chờ duyệt. |
+| `POST` | `/api/v1/admin/tutors/{id}/approve` | 🔒 Admin | Duyệt hồ sơ gia sư → `Verified`. |
+| `POST` | `/api/v1/admin/tutors/{id}/reject` | 🔒 Admin | Từ chối hồ sơ gia sư kèm lý do. |
+| `POST` | `/api/v1/admin/tutors/{id}/suspend` | 🔒 Admin | Khóa tài khoản gia sư vi phạm. |
+| `GET` | `/api/v1/admin/withdrawals` | 🔒 Admin | Danh sách yêu cầu rút tiền chờ xử lý. |
+| `POST` | `/api/v1/admin/withdrawals/{id}/approve` | 🔒 Admin | Duyệt chi trả rút tiền cho gia sư. |
+| `POST` | `/api/v1/admin/withdrawals/{id}/reject` | 🔒 Admin | Từ chối rút tiền & hoàn lại ví khả dụng. |
+| `GET` | `/api/v1/admin/reports` | 🔒 Admin | Danh sách khiếu nại toàn sàn. |
+| `GET` | `/api/v1/admin/reports/{id}` | 🔒 Admin | Chi tiết khiếu nại, các bên liên quan và buổi học. |
+| `POST` | `/api/v1/admin/reports/{id}/resolve` | 🔒 Admin | Xử lý khiếu nại: Hoàn tiền, Cảnh cáo, Khóa tài khoản, Hủy đơn. |
+| `GET`, `POST`, `PUT`, `DELETE` | `/api/v1/admin/categories` | 🔒 Admin | Quản lý danh mục cha/con (Safe Deletion 409). |
+| `GET`, `POST`, `PUT`, `DELETE` | `/api/v1/admin/subjects` | 🔒 Admin | Quản lý môn học (Safe Deletion 409). |
+| `GET` | `/api/v1/admin/users` | 🔒 Admin | Danh sách người dùng toàn sàn (lọc role, isActive, search). |
+| `GET` | `/api/v1/admin/users/{id}` | 🔒 Admin | Chi tiết tài khoản, thống kê dạy/học, 10 bookings gần nhất. |
+| `PATCH` | `/api/v1/admin/users/{id}/status` | 🔒 Admin | Khóa/Mở khóa tài khoản kèm thu hồi Refresh Tokens (Chống self-lockout & bảo vệ admin cuối). |
+| `GET` | `/api/v1/admin/transactions` | 🔒 Admin | Tra cứu toàn bộ dòng tiền, đối soát cổng thanh toán, lọc status, date range. |

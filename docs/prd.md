@@ -1,204 +1,82 @@
-# PRD — Nền tảng Tìm Gia Sư / Đặt Lịch Học 1-Kèm-1
+# Product Requirements Document (PRD) — TutorHub Backend Platform
 
-**Phiên bản:** 1.0
-**Ngày:** 11/08/2026
-**Trạng thái:** Nghiệp vụ đã chốt, chuẩn bị thiết kế kỹ thuật
-
----
-
-## 1. Tổng quan
-
-### 1.1 Mục tiêu
-Xây dựng nền tảng kết nối học viên với gia sư, cho phép tìm kiếm, đặt lịch học 1-kèm-1, thanh toán và đánh giá sau buổi học. Nền tảng có quản lý tập trung qua admin để đảm bảo chất lượng gia sư và xử lý tranh chấp.
-
-### 1.2 Đối tượng người dùng
-| Vai trò | Mô tả |
-|---|---|
-| Học viên (student) | Tìm gia sư, đặt lịch, thanh toán, đánh giá sau buổi học |
-| Gia sư (tutor) | Tạo hồ sơ, khai báo lịch rảnh, xác nhận booking, dạy học |
-| Admin | Duyệt hồ sơ gia sư, xử lý report/tranh chấp, quản lý tài khoản |
-
-### 1.3 Phạm vi phiên bản này (MVP + Quản lý)
-Bao gồm: Auth, hồ sơ gia sư + duyệt admin, tìm kiếm, đặt lịch, thanh toán (escrow, không hoa hồng), đánh giá, report & xử lý tranh chấp.
-
-**Không bao gồm ở bản này** (để sau, xem mục 10): đăng nhập Google/Facebook, chat real-time, video call, hoa hồng nền tảng, gói combo, chương trình giới thiệu.
+**Tên dự án:** TutorHub — Nền Tảng Kết Nối Gia Sư & Học Viên Trực Tuyến  
+**Phiên bản:** 2.0 (Production-Ready Architecture)  
+**Kiến trúc:** Clean Architecture + CQRS + Vertical Slice Architecture (.NET 8 + PostgreSQL)  
 
 ---
 
-## 2. Đăng ký / Đăng nhập
-
-- Xác thực bằng **email + password** (không OAuth ở bản này).
-- Khi đăng ký, người dùng chọn vai trò: **Học viên** hoặc **Gia sư**.
-- **Học viên**: có thể sử dụng ngay sau khi đăng ký thành công.
-- **Gia sư**: sau khi đăng ký, bắt buộc hoàn thiện hồ sơ → hồ sơ vào trạng thái chờ duyệt (`pending_review`) → chưa hiển thị công khai cho đến khi admin duyệt.
-
----
-
-## 3. Hồ sơ Gia sư & Quy trình duyệt
-
-### 3.1 Thông tin gia sư khai báo
-- Môn dạy (có thể nhiều môn, mỗi môn có thể có giá riêng)
-- Bằng cấp, số năm kinh nghiệm, giới thiệu bản thân
-- Hình thức dạy: online / offline / cả hai
-- Giá dạy theo giờ
-- Lịch rảnh cố định theo tuần (xem mục 4)
-
-### 3.2 Trạng thái hồ sơ
-```
-pending_review → verified (admin duyệt)
-              → rejected (admin từ chối, kèm lý do)
-                  → gia sư sửa hồ sơ → nộp lại → pending_review
-verified → suspended (admin khóa do vi phạm/report)
-```
-
-- Chỉ gia sư có trạng thái `verified` mới hiển thị công khai và cho phép học viên tìm thấy, đặt lịch.
-
-### 3.3 Xử lý report gia sư
-- Admin xem toàn bộ report liên quan đến 1 gia sư.
-- Admin **tự quyết định** có suspend tài khoản hay không — không có cơ chế tự động suspend theo ngưỡng số lượng report.
+## 1. Giới Thiệu & Mục Tiêu Sản Phẩm
+TutorHub là nền tảng marketplace kết nối giữa Học Viên có nhu cầu học tập và Gia Sư chuyên môn chất lượng cao. Hệ thống đóng vai trò trung gian bảo đảm:
+- Học viên tìm kiếm gia sư minh bạch theo môn học, địa lý, hình thức dạy (Online/Offline) và đánh giá thực tế.
+- Quy trình đặt lịch và thanh toán bảo chứng (Escrow Mechanism): Tiền học phí được tạm giữ an toàn, chỉ giải ngân vào ví gia sư khi buổi học diễn ra thành công.
+- Tích hợp cổng thanh toán thực tế **VNPay Sandbox (2.1.0)** chuẩn HMAC SHA512.
+- Hệ thống quản trị Admin toàn diện giám sát người dùng, duyệt hồ sơ gia sư, xử lý tranh chấp khiếu nại, và đối soát dòng tiền.
 
 ---
 
-## 4. Lịch rảnh của Gia sư
+## 2. Các Phân Hệ Tính Năng Cốt Lõi (Core Feature Modules)
 
-### 4.1 Mô hình: Lịch cố định theo tuần
-- Gia sư khai báo khung giờ rảnh lặp lại hàng tuần (VD: Thứ 2, 4, 6 — 18h-21h).
-- Lịch này áp dụng vô thời hạn cho đến khi gia sư chủ động sửa.
+### 2.1 🔐 Xác Thực & Quản Lý Phiên (`Auth & Identity`)
+- Đăng ký tài khoản Học viên hoặc Gia sư.
+- Đăng nhập bảo mật Email + Password (Bcrypt Hash).
+- Cấp phát JWT Access Token (15 phút) và Refresh Token (7 ngày) cơ chế Token Rotation chống replay attack.
+- Thu hồi Refresh Token khi đăng xuất hoặc khi tài khoản bị Admin vô hiệu hóa.
 
-### 4.2 Block ngày cụ thể (nghỉ đột xuất)
-- Gia sư có thể chặn (block) một ngày cụ thể dù ngày đó thường rảnh theo lịch tuần (VD: nghỉ ốm, có việc bận).
+### 2.2 👤 Quản Lý Hồ Sơ Cá Nhân (`User Profile`)
+- Xem thông tin tài khoản cá nhân.
+- Cập nhật Họ tên, Avatar URL, và Số điện thoại di động Việt Nam (Tự động chuẩn hóa canonical `09xxxxxxxx` / `+849xxxxxxxx` 10 chữ số).
 
-### 4.3 Logic hiển thị lịch trống cho học viên
-```
-Lịch trống = (Lịch tuần theo day_of_week)
-             − (Các slot đã có booking pending/confirmed)
-             − (Các ngày nằm trong danh sách bị block)
-```
+### 2.3 👨‍🏫 Quản Lý Gia Sư & Lịch Rảnh (`Tutors & Availability`)
+- Tìm kiếm gia sư công khai với bộ lọc đa tiêu chí: Môn học, khoảng giá, địa điểm, bán kính, hình thức dạy (Online/Offline/Both), điểm đánh giá, sắp xếp theo giá/kinh nghiệm/đánh giá.
+- Gia sư quản lý hồ sơ chuyên môn (Bio, học vấn, kinh nghiệm, địa chỉ tọa độ).
+- Gia sư quản lý danh mục môn dạy kèm giá riêng từng môn (`overridePrice`).
+- Gia sư cấu hình khung giờ rảnh hàng tuần theo từng thứ (`DayOfWeek`, `StartTime`, `EndTime`).
 
-### 4.4 Khi gia sư sửa lịch tuần
-- Các booking **đã xác nhận trong tương lai** dựa trên lịch cũ **không bị ảnh hưởng**, vẫn giữ nguyên.
-- Lịch mới chỉ áp dụng cho các lượt đặt phát sinh sau thời điểm sửa.
+### 2.4 📚 Quản Lý Danh Mục & Môn Học (`Categories & Subjects Master Data`)
+- Cấu trúc phân cấp danh mục cha/con lồng môn học con.
+- API công khai phục vụ tra cứu và bộ lọc tìm kiếm.
+- Toàn quyền quản trị CRUD cho Admin kèm cơ chế **Safe Deletion Guard (`409 Conflict`)** ngăn xóa danh mục/môn học đang có dữ liệu ràng buộc.
 
----
+### 2.5 📅 Đặt Lịch Học & Đánh Giá (`Bookings & Reviews`)
+- Học viên chọn slot rảnh và tạo đặt lịch: Hệ thống giữ chỗ tạm 15 phút (`Holding`).
+- Background Service tự động hủy và nhả slot nếu quá 15 phút không thanh toán.
+- Thanh toán giả lập (Mock Payment) hoặc thanh toán qua cổng VNPay chuyển trạng thái sang `Pending`.
+- Gia sư xác nhận lịch dạy (`Confirmed`) hoặc từ chối (`Cancelled` + hoàn tiền 100%).
+- Hủy lịch học có chính sách hoàn tiền tự động theo mốc thời gian trước buổi học.
+- Xác nhận hoàn thành buổi học (`Completed`) ➔ Giải ngân tiền từ ví giữ sang ví khả dụng của gia sư.
+- Học viên đánh giá chất lượng buổi học (Rating 1-5 sao và nhận xét). Tự động cập nhật điểm trung bình `RatingAvg` và tổng số review của gia sư.
 
-## 5. Tìm kiếm & Lọc Gia sư
+### 2.6 💳 Tích Hợp Cổng Thanh Toán VNPay (`VNPay Payment Gateway 2.1.0`)
+- Sinh mã `MerchantReference` độc nhất cho từng attempt thanh toán và tạo URL chuyển hướng sang cổng VNPay Sandbox.
+- Return URL tiếp nhận redirect trình duyệt, xác thực chữ ký SHA512 (Read-Only UI).
+- IPN Webhook Server-to-Server ngầm: Chạy trong **Atomic DB Transaction**, **Idempotency Guard**, kiểm tra toàn diện mã merchant, đơn vị tiền VND, số tiền chính xác, chuyển trạng thái `Booking` sang `Pending`, `Transaction` sang `Held`, và cộng đúng `PayoutAmount` vào ví gia sư.
 
-Học viên có thể tìm/lọc gia sư theo:
-- Môn học (bắt buộc)
-- Khoảng giá (min–max)
-- Hình thức dạy (online/offline/cả hai)
-- Khu vực (nếu offline)
-- Rating tối thiểu
-- Sắp xếp: giá thấp→cao, rating cao nhất, kinh nghiệm nhiều nhất
+### 2.7 💼 Ví Tiền & Rút Tiền Gia Sư (`Wallets & Withdrawals`)
+- Tách bạch rõ ràng giữa `PendingBalance` (tiền đang giữ từ các booking chưa dạy) và `AvailableBalance` (tiền khả dụng đã dạy xong).
+- Gia sư gửi yêu cầu rút tiền về tài khoản ngân hàng (khóa số dư khả dụng chống chi tiêu vượt mức).
+- Admin xét duyệt giải ngân (`Approve`) hoặc từ chối (`Reject` và hoàn lại tiền vào ví khả dụng).
 
-**Điều kiện hiển thị:** chỉ hiện gia sư có trạng thái `verified` **và** còn ít nhất 1 slot rảnh trong tương lai.
+### 2.8 ⚖️ Khiếu Nại & Tranh Chấp (`Reports & Resolution`)
+- Người dùng gửi báo cáo khiếu nại buổi học kèm lý do và chứng cứ.
+- Admin điều tra, tra cứu thông tin hai bên và xử lý tranh chấp: Hoàn tiền, cảnh cáo, khóa tài khoản vi phạm hoặc bác bỏ khiếu nại.
 
----
+### 2.9 🛡️ Quản Trị Hệ Thống Toàn Diện (`Admin Management & Analytics`)
+- **Dashboard Analytics:** Báo cáo thời gian thực về Người dùng, Gia sư theo trạng thái, Bookings theo giai đoạn, và các chỉ số tài chính (Tổng GMV, Net GMV, Doanh thu sàn, Tiền trả gia sư, Tiền hoàn).
+- **Revenue Growth Chart:** Biểu đồ doanh thu/booking theo tháng (Zero-fill đầy đủ các tháng không phát sinh giao dịch).
+- **Quản lý Người dùng:** Phân trang, tìm kiếm, xem hồ sơ chi tiết (10 bookings gần nhất), và Khóa/Mở khóa tài khoản an toàn (bảo vệ chống self-lockout, chống khóa admin cuối cùng, và thu hồi toàn bộ phiên đăng nhập).
+- **Lịch sử Giao dịch Tài chính:** Tra cứu toàn bộ dòng tiền toàn sàn, đối soát mã cổng thanh toán, lọc theo trạng thái và khoảng thời gian chuẩn Half-Open Interval.
 
-## 6. Luồng Đặt lịch (Booking) — Nghiệp vụ trung tâm
-
-### 6.1 Các bước
-
-| Bước | Mô tả | Trạng thái booking |
-|---|---|---|
-| 1 | Học viên chọn slot trống của gia sư | — |
-| 2 | Bấm "Đặt lịch" → hệ thống **giữ chỗ tạm 15 phút** | `holding` |
-| 3 | Học viên thanh toán trong 15 phút. Nếu không thanh toán kịp → slot tự nhả ra | `pending` (nếu thanh toán thành công) |
-| 4 | Tiền chuyển vào trạng thái **held** (nền tảng giữ hộ, chưa chuyển gia sư) | `pending` |
-| 5 | Gia sư có **24h** để xác nhận | `confirmed` hoặc `cancelled` |
-| 6 | Nếu quá 24h không phản hồi hoặc gia sư từ chối → hoàn tiền 100% | `cancelled` |
-| 7 | Đến giờ học, 2 bên tham gia buổi học | `confirmed` |
-| 8 | Sau buổi học, **48h** để 1 trong 2 bên xác nhận hoàn thành (hoặc tự động nếu không ai báo vấn đề) | `completed` |
-| 9 | Tiền chuyển từ `held` → `released` cho gia sư (100%, chưa trừ hoa hồng) | — |
-| 10 | Học viên được mời đánh giá gia sư | — |
-
-### 6.2 Race condition khi đặt lịch
-- Khi 2 học viên cùng thao tác đặt 1 slot cùng lúc, hệ thống phải dùng **transaction + row lock** ở tầng database để đảm bảo chỉ 1 người đặt được, người còn lại nhận thông báo "khung giờ đã có người đặt".
-
-### 6.3 Chính sách hủy lịch
-
-| Ai hủy | Điều kiện | Hoàn tiền |
-|---|---|---|
-| Học viên | Trước 24h so với giờ học | 100% |
-| Học viên | Trong vòng 24h trước giờ học | 50% |
-| Gia sư | Bất kỳ lúc nào | 100% (lỗi thuộc gia sư) |
+### 2.10 ☁️ Quản Lý Tệp Đa Phương Tiện & Cloudflare R2 (`Media Management Subsystem`)
+- Trừu tượng hóa qua `IObjectStorageService` độc lập nhà cung cấp lưu trữ.
+- Hỗ trợ luồng **Presigned Direct Upload (PUT trực tiếp lên Cloudflare R2)**: Tiết kiệm 100% RAM và băng thông server API, tận dụng $0 Egress Fees của Cloudflare R2.
+- Cơ chế xác thực file bằng lệnh `HEAD Object` (`ExistsAsync`) trước khi lưu metadata vào bảng `Media` trong PostgreSQL.
+- Hỗ trợ Direct API Stream Upload với bộ lọc chữ ký nhị phân **Magic Bytes** (JPEG, PNG, WEBP, PDF) và cơ chế tự động rollback S3/R2 nếu DB insert thất bại.
+- Duy trì **Private Bucket 100%**, cấp quyền truy cập qua **Presigned GET URL** ngắn hạn (15 phút) sau khi xác thực quyền sở hữu (Avatar, Certificate, DisputeEvidence).
 
 ---
 
-## 7. Thanh toán
-
-### 7.1 Mô hình Escrow đơn giản
-- Học viên thanh toán khi đặt lịch → tiền vào trạng thái **held** (nền tảng giữ hộ).
-- Sau khi booking chuyển `completed` → tiền chuyển sang **released**, ghi có vào ví nội bộ của gia sư.
-- Nếu booking bị hủy/hoàn tiền → tiền chuyển sang **refunded**, trả lại học viên theo chính sách mục 6.3.
-
-### 7.2 Hoa hồng nền tảng
-- **Phiên bản này: 0%** — gia sư nhận toàn bộ học phí.
-- Cấu trúc dữ liệu (bảng `transactions`) đã thiết kế sẵn field `commission_rate` (mặc định = 0) và `payout_amount` để khi cần bật tính năng thu phí, chỉ cần thay đổi giá trị cấu hình, **không cần sửa cấu trúc DB hay luồng thanh toán hiện có**.
-
-### 7.3 Ví gia sư
-- Gia sư có ví nội bộ hiển thị 2 số dư:
-  - `pending`: tiền đang giữ (booking chưa hoàn thành)
-  - `available`: tiền có thể rút (booking đã completed và released)
-- Gia sư yêu cầu rút tiền định kỳ (admin xử lý thủ công ở giai đoạn đầu).
-
----
-
-## 8. Report & Xử lý tranh chấp
-
-- Học viên và gia sư đều có thể **report một booking cụ thể** (không phải report chung chung về đối phương), kèm mô tả và bằng chứng (ảnh, nếu cần).
-- Report được gửi đến admin.
-- Admin xem xét và **quyết định thủ công**:
-  - Hoàn tiền / không hoàn tiền cho học viên
-  - Suspend tài khoản bên vi phạm (nếu cần)
-- Không có logic tự động xử lý tranh chấp ở phiên bản này.
-
----
-
-## 9. Đánh giá (Review)
-
-- Chỉ được đánh giá sau khi booking có trạng thái `completed`.
-- **Học viên → Gia sư**: rating (1-5 sao) + comment, **công khai**, hiển thị trên hồ sơ gia sư.
-- **Gia sư → Học viên**: rating, **chỉ admin thấy**, dùng làm căn cứ nếu học viên thường xuyên phá lịch/vi phạm.
-
----
-
-## 10. Ngoài phạm vi (Out of scope — dự kiến mở rộng sau)
-
-| Tính năng | Ghi chú |
-|---|---|
-| Đăng nhập Google/Facebook | Đã cân nhắc, quyết định bỏ ở bản này |
-| Chat real-time giữa học viên–gia sư | Phase 7 |
-| Video call tích hợp | Phase 7 |
-| Hoa hồng nền tảng | Cấu trúc DB đã hỗ trợ, chỉ cần bật cấu hình |
-| Gói học combo nhiều buổi | Chưa thiết kế |
-| Chương trình giới thiệu bạn bè | Chưa thiết kế |
-| Chứng chỉ hoàn thành khóa học | Chưa thiết kế |
-| Tự động suspend gia sư theo ngưỡng report | Quyết định giữ thủ công (admin toàn quyền) |
-
----
-
-## 11. Bảng thông số nghiệp vụ đã chốt
-
-| Thông số | Giá trị |
-|---|---|
-| Thời gian giữ chỗ tạm khi thanh toán (soft lock) | 15 phút |
-| Thời gian gia sư phải xác nhận booking | 24 giờ |
-| Hoàn tiền khi học viên hủy trước 24h | 100% |
-| Hoàn tiền khi học viên hủy trong vòng 24h | 50% |
-| Hoàn tiền khi gia sư hủy | 100% |
-| Thời gian tự động chuyển `completed` sau buổi học | 48 giờ |
-| Hoa hồng nền tảng | 0% (đã để sẵn cấu trúc mở rộng) |
-
----
-
-## 12. Trạng thái dữ liệu chính (tổng hợp)
-
-**Tutor profile status:** `pending_review` → `verified` / `rejected` → `suspended`
-
-**Booking status:** `holding` → `pending` → `confirmed` → `completed`
-(hoặc → `cancelled` ở bước xác nhận, kèm hoàn tiền theo chính sách)
-
-**Transaction status:** `held` → `released` / `refunded`
-
----
+## 3. Các Ràng Buộc & Tiêu Chuẩn Kỹ Thuật
+- **Bảo mật:** JWT Auth, BCrypt password hashing, HMAC SHA512 signature, Magic Bytes binary validation, Presigned URLs, Idempotency keys, CORS policy.
+- **Biên dịch:** `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`, `<LangVersion>12.0</LangVersion>` đạt chuẩn 0 Warning, 0 Error.
+- **Tính nhất quán dữ liệu:** Database Transactions cho mọi luồng chuyển tiền và thanh toán IPN; Rollback guard cho object storage.

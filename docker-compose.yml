@@ -19,7 +19,7 @@ services:
 
   api:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: tutorhub-api
     restart: unless-stopped
@@ -29,6 +29,19 @@ services:
     environment:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-tutorhub};Username=${POSTGRES_USER:-tutorhub};Password=${POSTGRES_PASSWORD:-tutorhub}
+      Jwt__Secret: ${JWT_SECRET:-super_secret_jwt_key_tutorhub_platform_minimum_32_characters_long_2026!}
+      Jwt__Issuer: TutorHubAPI
+      Jwt__Audience: TutorHubClient
+      Jwt__AccessTokenExpirationMinutes: 15
+      Jwt__RefreshTokenExpirationDays: 7
+      VnPay__TmnCode: ${VNPAY_TMN_CODE:-TUTORHUB}
+      VnPay__HashSecret: ${VNPAY_HASH_SECRET:-}
+      VnPay__BaseUrl: ${VNPAY_BASE_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      VnPay__ReturnUrl: ${VNPAY_RETURN_URL:-http://localhost:5000/api/v1/payments/vnpay/return}
+      CloudflareR2__AccountId: ${CLOUDFLARE_R2_ACCOUNT_ID:-}
+      CloudflareR2__BucketName: ${CLOUDFLARE_R2_BUCKET_NAME:-tutorhub-media}
+      CloudflareR2__AccessKeyId: ${CLOUDFLARE_R2_ACCESS_KEY_ID:-}
+      CloudflareR2__SecretAccessKey: ${CLOUDFLARE_R2_SECRET_ACCESS_KEY:-}
     ports:
       - "8080:8080"
     healthcheck:
