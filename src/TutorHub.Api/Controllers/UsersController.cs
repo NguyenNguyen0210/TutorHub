@@ -47,7 +47,7 @@ public class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateMyProfile(
-        [FromBody] UpdateMyProfileRequest request,
+        [FromBody] UpdateUserProfileRequest request,
         CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
