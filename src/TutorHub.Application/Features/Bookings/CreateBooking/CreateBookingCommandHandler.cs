@@ -39,7 +39,6 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
                 User = user
             };
             _context.StudentProfiles.Add(student);
-            await _context.SaveChangesAsync(cancellationToken);
         }
 
         // 2. Fetch and validate TutorProfile

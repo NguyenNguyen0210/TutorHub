@@ -29,6 +29,11 @@ services:
     environment:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-tutorhub};Username=${POSTGRES_USER:-tutorhub};Password=${POSTGRES_PASSWORD:-tutorhub}
+      Jwt__Secret: ${JWT_SECRET:-super_secret_jwt_key_tutorhub_platform_minimum_32_characters_long_2026!}
+      Jwt__Issuer: TutorHubAPI
+      Jwt__Audience: TutorHubClient
+      Jwt__AccessTokenExpirationMinutes: 15
+      Jwt__RefreshTokenExpirationDays: 7
     ports:
       - "8080:8080"
     healthcheck:

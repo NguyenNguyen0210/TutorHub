@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\TutorHub.Application\TutorHub.Application.csproj" />
     <ProjectReference Include="..\TutorHub.Infrastructure\TutorHub.Infrastructure.csproj" />
   </ItemGroup>
 
