@@ -49,7 +49,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TutorProfileId", "DayOfWeek");
 
-                    b.ToTable("AvailabilitySlots", t =>
+                    b.ToTable("AvailabilitySlots", null, t =>
                         {
                             t.HasCheckConstraint("CK_AvailabilitySlot_TimeRange", "\"StartTime\" < \"EndTime\"");
                         });
@@ -122,7 +122,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TutorProfileId", "StartAt", "EndAt", "Status");
 
-                    b.ToTable("Bookings", t =>
+                    b.ToTable("Bookings", null, t =>
                         {
                             t.HasCheckConstraint("CK_Booking_Price", "\"HourlyRate\" >= 0 AND \"TotalAmount\" >= 0");
 
@@ -153,7 +153,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.RefreshToken", b =>
@@ -186,7 +186,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshTokens");
+                    b.ToTable("RefreshTokens", (string)null);
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Report", b =>
@@ -243,7 +243,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasIndex("BookingId", "ReporterUserId")
                         .IsUnique();
 
-                    b.ToTable("Reports");
+                    b.ToTable("Reports", (string)null);
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Review", b =>
@@ -283,7 +283,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasIndex("BookingId", "ReviewerUserId")
                         .IsUnique();
 
-                    b.ToTable("Reviews", t =>
+                    b.ToTable("Reviews", null, t =>
                         {
                             t.HasCheckConstraint("CK_Review_RatingRange", "\"Rating\" >= 1 AND \"Rating\" <= 5");
                         });
@@ -303,7 +303,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("StudentProfiles");
+                    b.ToTable("StudentProfiles", (string)null);
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Subject", b =>
@@ -330,7 +330,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasIndex("Name", "CategoryId")
                         .IsUnique();
 
-                    b.ToTable("Subjects");
+                    b.ToTable("Subjects", (string)null);
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Transaction", b =>
@@ -381,7 +381,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasIndex("BookingId")
                         .IsUnique();
 
-                    b.ToTable("Transactions");
+                    b.ToTable("Transactions", (string)null);
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.TutorProfile", b =>
@@ -456,7 +456,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("TutorProfiles");
+                    b.ToTable("TutorProfiles", (string)null);
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.TutorSubject", b =>
@@ -485,7 +485,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasIndex("TutorProfileId", "SubjectId")
                         .IsUnique();
 
-                    b.ToTable("TutorSubjects");
+                    b.ToTable("TutorSubjects", (string)null);
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.User", b =>
@@ -533,7 +533,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Wallet", b =>
@@ -561,7 +561,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasIndex("TutorProfileId")
                         .IsUnique();
 
-                    b.ToTable("Wallets", t =>
+                    b.ToTable("Wallets", null, t =>
                         {
                             t.HasCheckConstraint("CK_Wallet_NonNegativeBalances", "\"PendingBalance\" >= 0 AND \"AvailableBalance\" >= 0");
                         });
@@ -625,7 +625,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("WalletId", "Status");
 
-                    b.ToTable("Withdrawals", t =>
+                    b.ToTable("Withdrawals", null, t =>
                         {
                             t.HasCheckConstraint("CK_Withdrawal_PositiveAmount", "\"Amount\" > 0");
                         });
