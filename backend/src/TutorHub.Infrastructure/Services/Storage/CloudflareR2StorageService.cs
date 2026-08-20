@@ -1,4 +1,3 @@
-using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
@@ -8,19 +7,19 @@ using TutorHub.Application.Common.Interfaces;
 
 namespace TutorHub.Infrastructure.Services.Storage;
 
-public class AwsS3StorageService : IStorageService
+public class CloudflareR2StorageService : IStorageService
 {
     private readonly IAmazonS3 _s3Client;
-    private readonly AwsS3Options _options;
-    private readonly ILogger<AwsS3StorageService> _logger;
+    private readonly CloudflareR2Options _options;
+    private readonly ILogger<CloudflareR2StorageService> _logger;
 
-    public AwsS3StorageService(
-        IOptions<AwsS3Options> options,
-        ILogger<AwsS3StorageService> logger)
+    public CloudflareR2StorageService(
+        IOptions<CloudflareR2Options> options,
+        ILogger<CloudflareR2StorageService> logger)
     {
         _options = options.Value;
         _logger = logger;
-        _s3Client = CreateS3Client(_options);
+        _s3Client = CreateR2Client(_options);
     }
 
     public async Task<StoredFileResult> UploadAsync(
@@ -37,17 +36,12 @@ public class AwsS3StorageService : IStorageService
             InputStream = stream,
             ContentType = contentType,
             AutoCloseStream = false,
-            ServerSideEncryptionMethod = ServerSideEncryptionMethod.AES256
+            DisablePayloadSigning = true // Recommended for Cloudflare R2
         };
-
-        if (!isPrivate)
-        {
-            putRequest.CannedACL = S3CannedACL.PublicRead;
-        }
 
         var response = await _s3Client.PutObjectAsync(putRequest, cancellationToken);
 
-        _logger.LogInformation("File uploaded to S3: Bucket={Bucket}, Key={Key}, ETag={ETag}",
+        _logger.LogInformation("File uploaded to Cloudflare R2: Bucket={Bucket}, Key={Key}, ETag={ETag}",
             _options.BucketName, objectKey, response.ETag);
 
         return new StoredFileResult(
@@ -67,7 +61,7 @@ public class AwsS3StorageService : IStorageService
         };
 
         await _s3Client.DeleteObjectAsync(deleteRequest, cancellationToken);
-        _logger.LogInformation("File deleted from S3: Bucket={Bucket}, Key={Key}", _options.BucketName, objectKey);
+        _logger.LogInformation("File deleted from Cloudflare R2: Bucket={Bucket}, Key={Key}", _options.BucketName, objectKey);
     }
 
     public Task<string> GetReadUrlAsync(
@@ -89,40 +83,36 @@ public class AwsS3StorageService : IStorageService
 
     public string GetPublicUrl(string objectKey)
     {
-        if (!string.IsNullOrWhiteSpace(_options.CloudFrontDomain))
+        if (!string.IsNullOrWhiteSpace(_options.PublicDomain))
         {
-            return $"https://{_options.CloudFrontDomain.TrimEnd('/')}/{objectKey}";
+            var domain = _options.PublicDomain.TrimEnd('/');
+            if (!domain.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                !domain.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                domain = $"https://{domain}";
+            }
+            return $"{domain}/{objectKey}";
         }
 
-        if (!string.IsNullOrWhiteSpace(_options.ServiceUrl))
-        {
-            return $"{_options.ServiceUrl.TrimEnd('/')}/{_options.BucketName}/{objectKey}";
-        }
-
-        return $"https://{_options.BucketName}.s3.{_options.Region}.amazonaws.com/{objectKey}";
+        return $"https://{_options.BucketName}.{_options.AccountId}.r2.cloudflarestorage.com/{objectKey}";
     }
 
-    private static IAmazonS3 CreateS3Client(AwsS3Options options)
+    private static IAmazonS3 CreateR2Client(CloudflareR2Options options)
     {
-        var config = new AmazonS3Config();
+        var config = new AmazonS3Config
+        {
+            ServiceURL = options.ServiceUrl,
+            ForcePathStyle = true,
+            AuthenticationRegion = "auto"
+        };
 
-        if (!string.IsNullOrWhiteSpace(options.ServiceUrl))
+        if (!string.IsNullOrWhiteSpace(options.AccessKeyId) && !string.IsNullOrWhiteSpace(options.SecretAccessKey))
         {
-            config.ServiceURL = options.ServiceUrl;
-            config.ForcePathStyle = options.ForcePathStyle;
-        }
-        else if (!string.IsNullOrWhiteSpace(options.Region))
-        {
-            config.RegionEndpoint = RegionEndpoint.GetBySystemName(options.Region);
-        }
-
-        if (!string.IsNullOrWhiteSpace(options.AccessKey) && !string.IsNullOrWhiteSpace(options.SecretKey))
-        {
-            var credentials = new BasicAWSCredentials(options.AccessKey, options.SecretKey);
+            var credentials = new BasicAWSCredentials(options.AccessKeyId, options.SecretAccessKey);
             return new AmazonS3Client(credentials, config);
         }
 
-        // Use AWS Default Credential Provider Chain (IAM Role on EC2/ECS/EKS or Environment Variables)
-        return new AmazonS3Client(config);
+        // Fallback for local initialization
+        return new AmazonS3Client(new AnonymousAWSCredentials(), config);
     }
 }

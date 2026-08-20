@@ -10,7 +10,7 @@ public class Media
     public string StoredFileName { get; set; } = default!;
     public string ContentType { get; set; } = default!;
     public long FileSize { get; set; }
-    public string StorageProvider { get; set; } = "AwsS3";
+    public string StorageProvider { get; set; } = "CloudflareR2";
     public string BucketName { get; set; } = default!;
     public MediaType MediaType { get; set; }
     public bool IsPrivate { get; set; }

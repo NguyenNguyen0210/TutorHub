@@ -1,17 +1,17 @@
-# PRD: Quản Lý Tệp Đa Phương Tiện & AWS S3 (Media Management Subsystem)
+# PRD: Quản Lý Tệp Đa Phương Tiện & Cloudflare R2 (Media Management Subsystem)
 
-* **Tính năng:** Phân hệ quản lý tệp đa phương tiện tải lên đám mây AWS S3, xác thực tệp nhị phân đa lớp (Magic Bytes), quản lý danh tính tệp trong Database (`Media` table), phân cấp bảo mật Public vs Private và sinh Pre-signed URL.
+* **Tính năng:** Phân hệ quản lý tệp đa phương tiện tải lên đám mây Cloudflare R2 (Zero Egress Fees), xác thực tệp nhị phân đa lớp (Magic Bytes), quản lý danh tính tệp trong Database (`Media` table), phân cấp bảo mật Public vs Private và sinh Pre-signed URL.
 * **Người dùng:** Học Viên (Student), Gia Sư (Tutor), Quản Trị Viên (Admin).
-* **Stack:** .NET 8 Web API, AWSSDK.S3, EF Core 8, PostgreSQL, Magic Bytes Binary Inspection.
+* **Stack:** .NET 8 Web API, AWSSDK.S3 (S3-Compatible Protocol), EF Core 8, PostgreSQL, Magic Bytes Binary Inspection.
 
 ---
 
 ## 1. Vấn Đề Cần Giải Quyết & Success Metrics
-* **Vấn đề:** Thay vì lưu chuỗi URL thô không kiểm soát, hệ thống cần một phân hệ quản trị tệp chuẩn hóa: Phân cấp bảo mật (Avatar là Public; Bằng cấp, Chứng cứ khiếu nại là Private), chống giả mạo đuôi tệp bằng chữ ký nhị phân (Magic Bytes), và cấp quyền truy cập tệp nhạy cảm thông qua Pre-signed URL có thời hạn.
+* **Vấn đề:** Thay vì lưu chuỗi URL thô không kiểm soát, hệ thống cần một phân hệ quản trị tệp chuẩn hóa: Phân cấp bảo mật (Avatar là Public; Bằng cấp, Chứng cứ khiếu nại là Private), chống giả mạo đuôi tệp bằng chữ ký nhị phân (Magic Bytes), tối ưu chi phí truyền tải $0 Egress Fees với Cloudflare R2, và cấp quyền truy cập tệp nhạy cảm thông qua Pre-signed URL có thời hạn.
 * **Success Metrics:**
   - 100% tệp tải lên được quét và đối chiếu chữ ký Magic Bytes header (chống 100% file `.exe` đổi đuôi thành `.jpg`).
   - 100% tệp nhạy cảm (`Certificate`, `DisputeEvidence`) ở chế độ Private và chỉ truy cập được qua Pre-signed URL tạm thời (15 phút) sau khi xác thực quyền sở hữu.
-  - 0 file rác mồ côi (Orphan S3 objects) nhờ cơ chế rollback S3 khi Database insert thất bại.
+  - 0 file rác mồ côi (Orphan R2 objects) nhờ cơ chế rollback S3 khi Database insert thất bại.
 
 ---
 
@@ -30,13 +30,13 @@
     - PDF: `%PDF`
   - Phân quyền theo vai trò: `Certificate` chỉ dành cho `Tutor` và `Admin`.
   - Phân vùng ObjectKey: `{mediaType}/{yyyy}/{MM}/{guid}.{ext}`.
-  - Tự động lưu bản ghi `Media` vào Database. Nếu lưu DB lỗi, tự động gọi xóa S3 object để rollback.
+  - Tự động lưu bản ghi `Media` vào Database. Nếu lưu DB lỗi, tự động gọi xóa R2 object để rollback.
 
 ### US-02: Lấy URL truy cập tệp (Get Media Access URL)
 * **User Story:** Là người dùng hoặc Admin, tôi muốn xem/tải tệp của mình.
 * **Acceptance Criteria:**
   - `GET /api/v1/media/{id}/url`.
-  - Nếu `IsPrivate = false` (`Avatar`): Trả về Public S3 URL hoặc CloudFront CDN URL.
+  - Nếu `IsPrivate = false` (`Avatar`): Trả về Public CDN URL (`https://{PublicDomain}/{objectKey}`).
   - Nếu `IsPrivate = true` (`Certificate`, `DisputeEvidence`): Kiểm tra quyền sở hữu (`UploadedByUserId == CurrentUserId` hoặc `Admin`). Sinh Pre-signed URL có thời hạn 15 phút.
 
 ### US-03: Xóa tệp (Delete Media)
@@ -44,7 +44,7 @@
 * **Acceptance Criteria:**
   - `DELETE /api/v1/media/{id}`.
   - Kiểm tra quyền sở hữu (Chủ tệp hoặc Admin).
-  - Soft delete trong Database (`Status = Deleted`, `DeletedAt = UtcNow`) và xóa physical object trên S3.
+  - Soft delete trong Database (`Status = Deleted`, `DeletedAt = UtcNow`) và xóa physical object trên Cloudflare R2.
 
 ---
 
@@ -53,15 +53,15 @@
   - Upload `Avatar`, `Certificate`, `DisputeEvidence`, `General`.
   - Magic Bytes binary inspection.
   - Presigned URL 15 phút cho private media, CDN/Public URL cho avatar.
-  - Soft-delete DB và delete S3 object.
+  - Soft-delete DB và delete R2 object.
 * **Chưa có trong v1 (Dời sang v2):**
-  - Tự động nén và resize ảnh đại diện thành nhiều kích thước (Thumbnail, Medium, Large) qua AWS Lambda.
+  - Tự động nén và resize ảnh đại diện thành nhiều kích thước (Thumbnail, Medium, Large) qua Cloudflare Workers / Image Resizing.
   - Tích hợp Antivirus/ClamAV quarantine scanning pipeline trước khi lưu vào production bucket.
 
 ---
 
 ## 4. Data Model
-* **`Media`:** `Id (PK, Guid)`, `ObjectKey (Unique, string)`, `OriginalFileName (string)`, `StoredFileName (string)`, `ContentType (string)`, `FileSize (long)`, `StorageProvider (string: AwsS3)`, `BucketName (string)`, `MediaType (MediaType enum: Avatar, Certificate, DisputeEvidence, General)`, `IsPrivate (bool)`, `Status (MediaStatus enum: Active, Deleted)`, `UploadedByUserId (FK, Guid)`, `CreatedAt (DateTime)`, `DeletedAt (DateTime?)`.
+* **`Media`:** `Id (PK, Guid)`, `ObjectKey (Unique, string)`, `OriginalFileName (string)`, `StoredFileName (string)`, `ContentType (string)`, `FileSize (long)`, `StorageProvider (string: CloudflareR2)`, `BucketName (string)`, `MediaType (MediaType enum: Avatar, Certificate, DisputeEvidence, General)`, `IsPrivate (bool)`, `Status (MediaStatus enum: Active, Deleted)`, `UploadedByUserId (FK, Guid)`, `CreatedAt (DateTime)`, `DeletedAt (DateTime?)`.
 
 ---
 
