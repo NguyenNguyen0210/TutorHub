@@ -20,21 +20,14 @@ public class MediaConfiguration : IEntityTypeConfiguration<Media>
             .IsRequired()
             .HasMaxLength(255);
 
-        builder.Property(m => m.StoredFileName)
-            .IsRequired()
-            .HasMaxLength(255);
-
         builder.Property(m => m.ContentType)
             .IsRequired()
             .HasMaxLength(100);
 
         builder.Property(m => m.StorageProvider)
+            .HasConversion<string>()
             .IsRequired()
             .HasMaxLength(50);
-
-        builder.Property(m => m.BucketName)
-            .IsRequired()
-            .HasMaxLength(100);
 
         builder.Property(m => m.MediaType)
             .HasConversion<string>()

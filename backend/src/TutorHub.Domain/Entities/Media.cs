@@ -7,11 +7,9 @@ public class Media
     public Guid Id { get; set; }
     public string ObjectKey { get; set; } = default!;
     public string OriginalFileName { get; set; } = default!;
-    public string StoredFileName { get; set; } = default!;
     public string ContentType { get; set; } = default!;
     public long FileSize { get; set; }
-    public string StorageProvider { get; set; } = "CloudflareR2";
-    public string BucketName { get; set; } = default!;
+    public StorageProvider StorageProvider { get; set; } = StorageProvider.CloudflareR2;
     public MediaType MediaType { get; set; }
     public bool IsPrivate { get; set; }
     public MediaStatus Status { get; set; } = MediaStatus.Active;

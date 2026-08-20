@@ -30,7 +30,6 @@ public class CompleteUploadCommandHandler : IRequestHandler<CompleteUploadComman
         }
 
         var isPrivate = request.MediaType != MediaType.Avatar;
-        var fileName = Path.GetFileName(request.ObjectKey);
 
         // 2. Persist Media record in database
         var media = new Domain.Entities.Media
@@ -38,11 +37,9 @@ public class CompleteUploadCommandHandler : IRequestHandler<CompleteUploadComman
             Id = Guid.NewGuid(),
             ObjectKey = request.ObjectKey,
             OriginalFileName = request.OriginalFileName,
-            StoredFileName = fileName,
             ContentType = request.ContentType,
             FileSize = request.FileSize,
-            StorageProvider = "CloudflareR2",
-            BucketName = "tutorhub-media",
+            StorageProvider = StorageProvider.CloudflareR2,
             MediaType = request.MediaType,
             IsPrivate = isPrivate,
             Status = MediaStatus.Active,
