@@ -38,12 +38,10 @@ services:
       VnPay__HashSecret: ${VNPAY_HASH_SECRET:-}
       VnPay__BaseUrl: ${VNPAY_BASE_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
       VnPay__ReturnUrl: ${VNPAY_RETURN_URL:-http://localhost:5000/api/v1/payments/vnpay/return}
-      AwsS3__BucketName: ${AWS_S3_BUCKET_NAME:-tutorhub-media}
-      AwsS3__Region: ${AWS_S3_REGION:-ap-southeast-1}
-      AwsS3__AccessKey: ${AWS_ACCESS_KEY_ID:-}
-      AwsS3__SecretKey: ${AWS_SECRET_ACCESS_KEY:-}
-      AwsS3__ServiceUrl: ${AWS_S3_SERVICE_URL:-}
-      AwsS3__CloudFrontDomain: ${AWS_CLOUDFRONT_DOMAIN:-}
+      CloudflareR2__AccountId: ${CLOUDFLARE_R2_ACCOUNT_ID:-}
+      CloudflareR2__BucketName: ${CLOUDFLARE_R2_BUCKET_NAME:-tutorhub-media}
+      CloudflareR2__AccessKeyId: ${CLOUDFLARE_R2_ACCESS_KEY_ID:-}
+      CloudflareR2__SecretAccessKey: ${CLOUDFLARE_R2_SECRET_ACCESS_KEY:-}
     ports:
       - "8080:8080"
     healthcheck:

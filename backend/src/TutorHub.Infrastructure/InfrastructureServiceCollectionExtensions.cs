@@ -33,9 +33,29 @@ public static class InfrastructureServiceCollectionExtensions
         services.Configure<Services.VnPay.VnPayOptions>(configuration.GetSection(Services.VnPay.VnPayOptions.SectionName));
         services.AddScoped<IVnPayService, Services.VnPay.VnPayService>();
 
-        // AWS S3 Cloud Storage Services
-        services.Configure<Services.Storage.AwsS3Options>(configuration.GetSection(Services.Storage.AwsS3Options.SectionName));
-        services.AddScoped<IStorageService, Services.Storage.AwsS3StorageService>();
+        // Cloudflare R2 Object Storage Services
+        services.Configure<Services.Storage.CloudflareR2Options>(configuration.GetSection(Services.Storage.CloudflareR2Options.SectionName));
+        services.AddSingleton<Amazon.S3.IAmazonS3>(sp =>
+        {
+            var r2Options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Services.Storage.CloudflareR2Options>>().Value;
+
+            var config = new Amazon.S3.AmazonS3Config
+            {
+                ServiceURL = r2Options.ServiceUrl,
+                ForcePathStyle = true,
+                AuthenticationRegion = "auto"
+            };
+
+            if (!string.IsNullOrWhiteSpace(r2Options.AccessKeyId) && !string.IsNullOrWhiteSpace(r2Options.SecretAccessKey))
+            {
+                var credentials = new Amazon.Runtime.BasicAWSCredentials(r2Options.AccessKeyId, r2Options.SecretAccessKey);
+                return new Amazon.S3.AmazonS3Client(credentials, config);
+            }
+
+            return new Amazon.S3.AmazonS3Client(new Amazon.Runtime.AnonymousAWSCredentials(), config);
+        });
+
+        services.AddScoped<IObjectStorageService, Services.Storage.CloudflareR2ObjectStorageService>();
 
         // Background Workers
         services.AddHostedService<BookingTimeoutBackgroundService>();

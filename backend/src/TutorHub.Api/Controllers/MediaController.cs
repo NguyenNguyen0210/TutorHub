@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
+using TutorHub.Application.Features.Media.CompleteUpload;
 using TutorHub.Application.Features.Media.DeleteMedia;
 using TutorHub.Application.Features.Media.DTOs;
+using TutorHub.Application.Features.Media.GenerateUploadUrl;
 using TutorHub.Application.Features.Media.GetMediaUrl;
 using TutorHub.Application.Features.Media.UploadMedia;
 using TutorHub.Domain.Enums;
@@ -24,7 +26,66 @@ public class MediaController : ControllerBase
     }
 
     /// <summary>
-    /// Upload a file or image to AWS S3 Cloud Storage with binary magic bytes validation.
+    /// Generate a Presigned PUT URL for Frontend to upload binary directly to Cloudflare R2.
+    /// </summary>
+    [Authorize]
+    [HttpPost("presigned-upload-url")]
+    [ProducesResponseType(typeof(ApiResponse<UploadUrlDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GeneratePresignedUploadUrl(
+        [FromBody] GenerateUploadUrlRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = GetCurrentUserId();
+        var userRole = GetCurrentUserRole();
+
+        var command = new GenerateUploadUrlCommand(
+            FileName: request.FileName,
+            ContentType: request.ContentType,
+            EstimatedSize: request.EstimatedFileSize,
+            MediaType: request.MediaType,
+            UserId: userId,
+            UserRole: userRole
+        );
+
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<UploadUrlDto>.SuccessResult(result, "Presigned upload URL generated successfully."));
+    }
+
+    /// <summary>
+    /// Confirm direct upload completion: Verifies file existence on R2 (HEAD check) and persists metadata record in Database.
+    /// </summary>
+    [Authorize]
+    [HttpPost("complete-upload")]
+    [ProducesResponseType(typeof(ApiResponse<MediaDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CompleteUpload(
+        [FromBody] CompleteUploadRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = GetCurrentUserId();
+        var userRole = GetCurrentUserRole();
+
+        var command = new CompleteUploadCommand(
+            ObjectKey: request.ObjectKey,
+            OriginalFileName: request.OriginalFileName,
+            ContentType: request.ContentType,
+            FileSize: request.FileSize,
+            MediaType: request.MediaType,
+            UserId: userId,
+            UserRole: userRole
+        );
+
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<MediaDto>.SuccessResult(result, "Upload confirmed and media metadata registered successfully."));
+    }
+
+    /// <summary>
+    /// Direct API stream upload to Cloudflare R2 with Magic Bytes binary validation (convenient for small files / avatars).
     /// </summary>
     [Authorize]
     [HttpPost("upload")]
@@ -63,7 +124,23 @@ public class MediaController : ControllerBase
     }
 
     /// <summary>
-    /// Get fresh access URL for a media file (returns Pre-signed URL for private files or CDN URL for public files).
+    /// Get fresh Presigned Download URL for a media file (15-minute validity after ownership check).
+    /// </summary>
+    [Authorize]
+    [HttpGet("{id}/download-url")]
+    [ProducesResponseType(typeof(ApiResponse<MediaDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetDownloadUrl(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        return await HandleGetMediaUrl(id, cancellationToken);
+    }
+
+    /// <summary>
+    /// Get fresh access URL for a media file (alias for /download-url).
     /// </summary>
     [Authorize]
     [HttpGet("{id}/url")]
@@ -75,21 +152,11 @@ public class MediaController : ControllerBase
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var userId = GetCurrentUserId();
-        var userRole = GetCurrentUserRole();
-
-        var query = new GetMediaUrlQuery(
-            MediaId: id,
-            UserId: userId,
-            UserRole: userRole
-        );
-
-        var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<MediaDto>.SuccessResult(result, "Media access URL retrieved successfully."));
+        return await HandleGetMediaUrl(id, cancellationToken);
     }
 
     /// <summary>
-    /// Soft delete media record in database and delete physical object from AWS S3 storage.
+    /// Soft delete media record in database and delete physical object from Cloudflare R2 storage.
     /// </summary>
     [Authorize]
     [HttpDelete("{id}")]
@@ -112,6 +179,21 @@ public class MediaController : ControllerBase
 
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<bool>.SuccessResult(result, "Media deleted successfully."));
+    }
+
+    private async Task<IActionResult> HandleGetMediaUrl(Guid id, CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var userRole = GetCurrentUserRole();
+
+        var query = new GetMediaUrlQuery(
+            MediaId: id,
+            UserId: userId,
+            UserRole: userRole
+        );
+
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<MediaDto>.SuccessResult(result, "Media access URL retrieved successfully."));
     }
 
     private Guid GetCurrentUserId()

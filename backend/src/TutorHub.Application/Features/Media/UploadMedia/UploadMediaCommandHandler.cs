@@ -12,12 +12,12 @@ namespace TutorHub.Application.Features.Media.UploadMedia;
 public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, MediaDto>
 {
     private readonly IAppDbContext _context;
-    private readonly IStorageService _storageService;
+    private readonly IObjectStorageService _storageService;
     private readonly ILogger<UploadMediaCommandHandler> _logger;
 
     public UploadMediaCommandHandler(
         IAppDbContext context,
-        IStorageService storageService,
+        IObjectStorageService storageService,
         ILogger<UploadMediaCommandHandler> logger)
     {
         _context = context;
@@ -39,22 +39,28 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
         var isPrivate = request.MediaType != MediaType.Avatar;
         var folder = request.MediaType switch
         {
-            MediaType.Avatar => "avatars",
-            MediaType.Certificate => "certificates",
-            MediaType.DisputeEvidence => "evidence",
+            MediaType.Avatar => "profiles",
+            MediaType.Certificate => "tutors",
+            MediaType.DisputeEvidence => "reports",
             _ => "general"
         };
 
         var now = DateTime.UtcNow;
-        var storedFileName = $"{Guid.NewGuid():N}{ext}";
-        var objectKey = $"{folder}/{now:yyyy}/{now:MM}/{storedFileName}";
+        var uniqueId = Guid.NewGuid().ToString("N");
+        var storedFileName = $"{uniqueId}{ext}";
+        var objectKey = request.MediaType switch
+        {
+            MediaType.Avatar => $"profiles/{request.UserId}/avatar/{storedFileName}",
+            MediaType.Certificate => $"tutors/{request.UserId}/documents/{storedFileName}",
+            MediaType.DisputeEvidence => $"reports/{request.UserId}/attachments/{storedFileName}",
+            _ => $"general/{request.UserId}/{now:yyyy}/{now:MM}/{storedFileName}"
+        };
 
-        // 3. Upload to Cloud Storage
+        // 3. Upload to Cloudflare R2 Object Storage
         var storedResult = await _storageService.UploadAsync(
             stream: request.Stream,
             objectKey: objectKey,
             contentType: detectedMime,
-            isPrivate: isPrivate,
             cancellationToken: cancellationToken
         );
 
@@ -64,11 +70,9 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
             Id = Guid.NewGuid(),
             ObjectKey = storedResult.ObjectKey,
             OriginalFileName = request.OriginalFileName,
-            StoredFileName = storedFileName,
             ContentType = detectedMime,
             FileSize = storedResult.Size,
-            StorageProvider = "AwsS3",
-            BucketName = "tutorhub-media",
+            StorageProvider = StorageProvider.CloudflareR2,
             MediaType = request.MediaType,
             IsPrivate = isPrivate,
             Status = MediaStatus.Active,
@@ -83,31 +87,23 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to persist Media record in DB for ObjectKey={ObjectKey}. Rolling back S3 object.", objectKey);
+            _logger.LogError(ex, "Failed to persist Media record in DB for ObjectKey={ObjectKey}. Rolling back R2 object.", objectKey);
 
-            // Rollback orphan object on S3
+            // Rollback orphan object on R2
             try
             {
                 await _storageService.DeleteAsync(objectKey, CancellationToken.None);
             }
             catch (Exception rollbackEx)
             {
-                _logger.LogError(rollbackEx, "Failed to rollback S3 object ObjectKey={ObjectKey}", objectKey);
+                _logger.LogError(rollbackEx, "Failed to rollback R2 object ObjectKey={ObjectKey}", objectKey);
             }
 
             throw;
         }
 
-        // 5. Generate appropriate Access URL
-        string? accessUrl;
-        if (!isPrivate)
-        {
-            accessUrl = _storageService.GetPublicUrl(media.ObjectKey);
-        }
-        else
-        {
-            accessUrl = await _storageService.GetReadUrlAsync(media.ObjectKey, TimeSpan.FromMinutes(15), cancellationToken);
-        }
+        // 5. Generate Presigned Access URL (15 minutes)
+        var accessUrl = await _storageService.GenerateDownloadUrlAsync(media.ObjectKey, TimeSpan.FromMinutes(15), cancellationToken);
 
         return new MediaDto(
             Id: media.Id,

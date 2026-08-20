@@ -41,9 +41,10 @@
 1. **Xác thực & Bảo mật (Auth & Identity):** JWT Bearer Token (15 phút), Refresh Token Rotation (7 ngày), BCrypt password hashing, phân quyền Role-based (`Student`, `Tutor`, `Admin`).
 2. **Đặt lịch học & Giữ chỗ (Booking & Escrow):** Cơ chế tạm giữ slot 15 phút (`Holding`), background job tự động hủy quá hạn, kiểm tra xung đột lịch rảnh và trùng giờ.
 3. **Cổng thanh toán thực tế VNPay (Payment Gateway 2.1.0):** Sinh URL Sandbox có chữ ký bảo mật HMAC SHA512, Return URL (Read-Only) và Webhook IPN Server-to-Server ngầm bảo vệ bằng **Atomic DB Transaction** và **Idempotency Guard**.
-4. **Ví tiền & Rút tiền (Wallets & Withdrawals):** Quản lý riêng biệt `PendingBalance` (tiền chờ dạy) và `AvailableBalance` (tiền khả dụng), quy trình rút tiền có phê duyệt của Admin.
-5. **Đánh giá & Khiếu nại (Reviews & Reports):** Đánh giá 1-5 sao sau buổi học hoàn thành, cơ chế gửi báo cáo tranh chấp và Admin xử lý hoàn tiền / cảnh cáo / khóa tài khoản.
-6. **Quản trị toàn sàn (Admin Dashboard & Management):** Thống kê snapshot thời gian thực, biểu đồ doanh thu theo tháng (Zero-fill đầy đủ), quản lý danh mục/môn học (Safe Deletion), quản lý người dùng (Self-lockout guard, thu hồi phiên đăng nhập), và tra cứu dòng tiền toàn hệ thống.
+4. **Lưu trữ đám mây & Media (Cloudflare R2 Object Storage):** Trừu tượng hóa qua `IObjectStorageService`, hỗ trợ **Presigned Direct Upload** ($0 Egress Fees), quét Magic Bytes nhị phân, bảo mật Private Bucket 100% qua Presigned URLs.
+5. **Ví tiền & Rút tiền (Wallets & Withdrawals):** Quản lý riêng biệt `PendingBalance` (tiền chờ dạy) và `AvailableBalance` (tiền khả dụng), quy trình rút tiền có phê duyệt của Admin.
+6. **Đánh giá & Khiếu nại (Reviews & Reports):** Đánh giá 1-5 sao sau buổi học hoàn thành, cơ chế gửi báo cáo tranh chấp và Admin xử lý hoàn tiền / cảnh cáo / khóa tài khoản.
+7. **Quản trị toàn sàn (Admin Dashboard & Management):** Thống kê snapshot thời gian thực, biểu đồ doanh thu theo tháng (Zero-fill đầy đủ), quản lý danh mục/môn học (Safe Deletion), quản lý người dùng (Self-lockout guard, thu hồi phiên đăng nhập), và tra cứu dòng tiền toàn hệ thống.
 
 ---
 
@@ -55,7 +56,7 @@ TutorHub/
 │   ├── src/
 │   │   ├── TutorHub.Domain/        # Entities, Enums, Policies
 │   │   ├── TutorHub.Application/   # Vertical Slices (Features), MediatR CQRS, DTOs, Validators
-│   │   ├── TutorHub.Infrastructure/# EF Core DbContext, PostgreSQL, JWT, VNPay, AWS S3, Jobs
+│   │   ├── TutorHub.Infrastructure/# EF Core DbContext, PostgreSQL, JWT, VNPay, Cloudflare R2, Jobs
 │   │   └── TutorHub.Api/           # REST API Controllers, Middlewares, Configurations
 │   ├── Directory.Build.props       # Cấu hình biên dịch tập trung (TreatWarningsAsErrors=true)
 │   ├── Dockerfile                  # Docker container build script cho backend

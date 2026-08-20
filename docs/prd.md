@@ -67,9 +67,16 @@ TutorHub là nền tảng marketplace kết nối giữa Học Viên có nhu c�
 - **Quản lý Người dùng:** Phân trang, tìm kiếm, xem hồ sơ chi tiết (10 bookings gần nhất), và Khóa/Mở khóa tài khoản an toàn (bảo vệ chống self-lockout, chống khóa admin cuối cùng, và thu hồi toàn bộ phiên đăng nhập).
 - **Lịch sử Giao dịch Tài chính:** Tra cứu toàn bộ dòng tiền toàn sàn, đối soát mã cổng thanh toán, lọc theo trạng thái và khoảng thời gian chuẩn Half-Open Interval.
 
+### 2.10 ☁️ Quản Lý Tệp Đa Phương Tiện & Cloudflare R2 (`Media Management Subsystem`)
+- Trừu tượng hóa qua `IObjectStorageService` độc lập nhà cung cấp lưu trữ.
+- Hỗ trợ luồng **Presigned Direct Upload (PUT trực tiếp lên Cloudflare R2)**: Tiết kiệm 100% RAM và băng thông server API, tận dụng $0 Egress Fees của Cloudflare R2.
+- Cơ chế xác thực file bằng lệnh `HEAD Object` (`ExistsAsync`) trước khi lưu metadata vào bảng `Media` trong PostgreSQL.
+- Hỗ trợ Direct API Stream Upload với bộ lọc chữ ký nhị phân **Magic Bytes** (JPEG, PNG, WEBP, PDF) và cơ chế tự động rollback S3/R2 nếu DB insert thất bại.
+- Duy trì **Private Bucket 100%**, cấp quyền truy cập qua **Presigned GET URL** ngắn hạn (15 phút) sau khi xác thực quyền sở hữu (Avatar, Certificate, DisputeEvidence).
+
 ---
 
 ## 3. Các Ràng Buộc & Tiêu Chuẩn Kỹ Thuật
-- **Bảo mật:** JWT Auth, BCrypt password hashing, HMAC SHA512 signature, Idempotency keys, CORS policy.
+- **Bảo mật:** JWT Auth, BCrypt password hashing, HMAC SHA512 signature, Magic Bytes binary validation, Presigned URLs, Idempotency keys, CORS policy.
 - **Biên dịch:** `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`, `<LangVersion>12.0</LangVersion>` đạt chuẩn 0 Warning, 0 Error.
-- **Tính nhất quán dữ liệu:** Database Transactions cho mọi luồng chuyển tiền và thanh toán IPN.
+- **Tính nhất quán dữ liệu:** Database Transactions cho mọi luồng chuyển tiền và thanh toán IPN; Rollback guard cho object storage.

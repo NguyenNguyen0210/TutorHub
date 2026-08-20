@@ -9,16 +9,11 @@ using TutorHub.Application;
 using TutorHub.Infrastructure;
 using TutorHub.Infrastructure.Authentication;
 
-// Load .env file if present in working directory or repository root
-var currentDir = Directory.GetCurrentDirectory();
-var dotenvPaths = new[]
+// Load .env file searching upward from working directory up to repository root
+var searchDir = new DirectoryInfo(Directory.GetCurrentDirectory());
+while (searchDir != null)
 {
-    Path.Combine(currentDir, ".env"),
-    Path.Combine(Directory.GetParent(currentDir)?.FullName ?? "", ".env")
-};
-
-foreach (var dotenv in dotenvPaths)
-{
+    var dotenv = Path.Combine(searchDir.FullName, ".env");
     if (File.Exists(dotenv))
     {
         foreach (var line in File.ReadAllLines(dotenv))
@@ -35,6 +30,7 @@ foreach (var dotenv in dotenvPaths)
         }
         break;
     }
+    searchDir = searchDir.Parent;
 }
 
 var builder = WebApplication.CreateBuilder(args);

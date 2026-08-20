@@ -7,23 +7,34 @@ public record StoredFileResult(
     string? ETag
 );
 
-public interface IStorageService
+public interface IObjectStorageService
 {
     Task<StoredFileResult> UploadAsync(
         Stream stream,
         string objectKey,
         string contentType,
-        bool isPrivate,
+        CancellationToken cancellationToken = default);
+
+    Task<Stream> DownloadAsync(
+        string objectKey,
         CancellationToken cancellationToken = default);
 
     Task DeleteAsync(
         string objectKey,
         CancellationToken cancellationToken = default);
 
-    Task<string> GetReadUrlAsync(
+    Task<bool> ExistsAsync(
         string objectKey,
-        TimeSpan expiresIn,
         CancellationToken cancellationToken = default);
 
-    string GetPublicUrl(string objectKey);
+    Task<string> GenerateDownloadUrlAsync(
+        string objectKey,
+        TimeSpan expiration,
+        CancellationToken cancellationToken = default);
+
+    Task<string> GenerateUploadUrlAsync(
+        string objectKey,
+        string contentType,
+        TimeSpan expiration,
+        CancellationToken cancellationToken = default);
 }
