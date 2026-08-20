@@ -33,6 +33,10 @@ public static class InfrastructureServiceCollectionExtensions
         services.Configure<Services.VnPay.VnPayOptions>(configuration.GetSection(Services.VnPay.VnPayOptions.SectionName));
         services.AddScoped<IVnPayService, Services.VnPay.VnPayService>();
 
+        // AWS S3 Cloud Storage Services
+        services.Configure<Services.Storage.AwsS3Options>(configuration.GetSection(Services.Storage.AwsS3Options.SectionName));
+        services.AddScoped<IStorageService, Services.Storage.AwsS3StorageService>();
+
         // Background Workers
         services.AddHostedService<BookingTimeoutBackgroundService>();
 

@@ -20,6 +20,7 @@ public interface IAppDbContext
     DbSet<Review> Reviews { get; }
     DbSet<Report> Reports { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
+    DbSet<Media> Media { get; }
 
     DatabaseFacade Database { get; }
 

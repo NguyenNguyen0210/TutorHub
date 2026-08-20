@@ -24,4 +24,7 @@ public class User
     // Profiles
     public TutorProfile? TutorProfile { get; set; }
     public StudentProfile? StudentProfile { get; set; }
+
+    // Media
+    public ICollection<Media> MediaUploaded { get; set; } = new List<Media>();
 }
