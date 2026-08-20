@@ -9,9 +9,9 @@ namespace TutorHub.Application.Features.Media.DeleteMedia;
 public class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaCommand, bool>
 {
     private readonly IAppDbContext _context;
-    private readonly IStorageService _storageService;
+    private readonly IObjectStorageService _storageService;
 
-    public DeleteMediaCommandHandler(IAppDbContext context, IStorageService storageService)
+    public DeleteMediaCommandHandler(IAppDbContext context, IObjectStorageService storageService)
     {
         _context = context;
         _storageService = storageService;

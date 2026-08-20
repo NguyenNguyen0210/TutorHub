@@ -10,9 +10,9 @@ namespace TutorHub.Application.Features.Media.GetMediaUrl;
 public class GetMediaUrlQueryHandler : IRequestHandler<GetMediaUrlQuery, MediaDto>
 {
     private readonly IAppDbContext _context;
-    private readonly IStorageService _storageService;
+    private readonly IObjectStorageService _storageService;
 
-    public GetMediaUrlQueryHandler(IAppDbContext context, IStorageService storageService)
+    public GetMediaUrlQueryHandler(IAppDbContext context, IObjectStorageService storageService)
     {
         _context = context;
         _storageService = storageService;
@@ -41,17 +41,8 @@ public class GetMediaUrlQueryHandler : IRequestHandler<GetMediaUrlQuery, MediaDt
             }
         }
 
-        // 2. Generate Access URL
-        string? accessUrl;
-        if (!media.IsPrivate)
-        {
-            accessUrl = _storageService.GetPublicUrl(media.ObjectKey);
-        }
-        else
-        {
-            // Pre-signed URL valid for 15 minutes
-            accessUrl = await _storageService.GetReadUrlAsync(media.ObjectKey, TimeSpan.FromMinutes(15), cancellationToken);
-        }
+        // 2. Generate Access URL (Presigned 15 minutes)
+        var accessUrl = await _storageService.GenerateDownloadUrlAsync(media.ObjectKey, TimeSpan.FromMinutes(15), cancellationToken);
 
         return new MediaDto(
             Id: media.Id,

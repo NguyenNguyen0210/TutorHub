@@ -1,4 +1,4 @@
-using Amazon.Runtime;
+using System.Net;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Logging;
@@ -7,26 +7,26 @@ using TutorHub.Application.Common.Interfaces;
 
 namespace TutorHub.Infrastructure.Services.Storage;
 
-public class CloudflareR2StorageService : IStorageService
+public sealed class CloudflareR2ObjectStorageService : IObjectStorageService
 {
     private readonly IAmazonS3 _s3Client;
     private readonly CloudflareR2Options _options;
-    private readonly ILogger<CloudflareR2StorageService> _logger;
+    private readonly ILogger<CloudflareR2ObjectStorageService> _logger;
 
-    public CloudflareR2StorageService(
+    public CloudflareR2ObjectStorageService(
+        IAmazonS3 s3Client,
         IOptions<CloudflareR2Options> options,
-        ILogger<CloudflareR2StorageService> logger)
+        ILogger<CloudflareR2ObjectStorageService> logger)
     {
+        _s3Client = s3Client;
         _options = options.Value;
         _logger = logger;
-        _s3Client = CreateR2Client(_options);
     }
 
     public async Task<StoredFileResult> UploadAsync(
         Stream stream,
         string objectKey,
         string contentType,
-        bool isPrivate,
         CancellationToken cancellationToken = default)
     {
         var putRequest = new PutObjectRequest
@@ -52,7 +52,23 @@ public class CloudflareR2StorageService : IStorageService
         );
     }
 
-    public async Task DeleteAsync(string objectKey, CancellationToken cancellationToken = default)
+    public async Task<Stream> DownloadAsync(
+        string objectKey,
+        CancellationToken cancellationToken = default)
+    {
+        var getRequest = new GetObjectRequest
+        {
+            BucketName = _options.BucketName,
+            Key = objectKey
+        };
+
+        var response = await _s3Client.GetObjectAsync(getRequest, cancellationToken);
+        return response.ResponseStream;
+    }
+
+    public async Task DeleteAsync(
+        string objectKey,
+        CancellationToken cancellationToken = default)
     {
         var deleteRequest = new DeleteObjectRequest
         {
@@ -64,9 +80,30 @@ public class CloudflareR2StorageService : IStorageService
         _logger.LogInformation("File deleted from Cloudflare R2: Bucket={Bucket}, Key={Key}", _options.BucketName, objectKey);
     }
 
-    public Task<string> GetReadUrlAsync(
+    public async Task<bool> ExistsAsync(
         string objectKey,
-        TimeSpan expiresIn,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var metaRequest = new GetObjectMetadataRequest
+            {
+                BucketName = _options.BucketName,
+                Key = objectKey
+            };
+
+            var response = await _s3Client.GetObjectMetadataAsync(metaRequest, cancellationToken);
+            return response.HttpStatusCode == HttpStatusCode.OK;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+    }
+
+    public Task<string> GenerateDownloadUrlAsync(
+        string objectKey,
+        TimeSpan expiration,
         CancellationToken cancellationToken = default)
     {
         var preSignedUrlRequest = new GetPreSignedUrlRequest
@@ -74,34 +111,29 @@ public class CloudflareR2StorageService : IStorageService
             BucketName = _options.BucketName,
             Key = objectKey,
             Verb = HttpVerb.GET,
-            Expires = DateTime.UtcNow.Add(expiresIn)
+            Expires = DateTime.UtcNow.Add(expiration)
         };
 
         var preSignedUrl = _s3Client.GetPreSignedURL(preSignedUrlRequest);
         return Task.FromResult(preSignedUrl);
     }
 
-    public string GetPublicUrl(string objectKey)
+    public Task<string> GenerateUploadUrlAsync(
+        string objectKey,
+        string contentType,
+        TimeSpan expiration,
+        CancellationToken cancellationToken = default)
     {
-        return $"https://{_options.BucketName}.{_options.AccountId}.r2.cloudflarestorage.com/{objectKey}";
-    }
-
-    private static IAmazonS3 CreateR2Client(CloudflareR2Options options)
-    {
-        var config = new AmazonS3Config
+        var preSignedUrlRequest = new GetPreSignedUrlRequest
         {
-            ServiceURL = options.ServiceUrl,
-            ForcePathStyle = true,
-            AuthenticationRegion = "auto"
+            BucketName = _options.BucketName,
+            Key = objectKey,
+            Verb = HttpVerb.PUT,
+            ContentType = contentType,
+            Expires = DateTime.UtcNow.Add(expiration)
         };
 
-        if (!string.IsNullOrWhiteSpace(options.AccessKeyId) && !string.IsNullOrWhiteSpace(options.SecretAccessKey))
-        {
-            var credentials = new BasicAWSCredentials(options.AccessKeyId, options.SecretAccessKey);
-            return new AmazonS3Client(credentials, config);
-        }
-
-        // Fallback for local initialization
-        return new AmazonS3Client(new AnonymousAWSCredentials(), config);
+        var preSignedUrl = _s3Client.GetPreSignedURL(preSignedUrlRequest);
+        return Task.FromResult(preSignedUrl);
     }
 }
