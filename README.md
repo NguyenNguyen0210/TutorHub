@@ -51,20 +51,25 @@
 
 ```text
 TutorHub/
-├── docs/                           # Tài liệu chi tiết dự án (API, Schema, PRD)
+├── backend/                        # Toàn bộ mã nguồn & cấu hình Backend .NET 8
+│   ├── src/
+│   │   ├── TutorHub.Domain/        # Entities, Enums, Policies
+│   │   ├── TutorHub.Application/   # Vertical Slices (Features), MediatR CQRS, DTOs, Validators
+│   │   ├── TutorHub.Infrastructure/# EF Core DbContext, PostgreSQL, JWT, VNPay, AWS S3, Jobs
+│   │   └── TutorHub.Api/           # REST API Controllers, Middlewares, Configurations
+│   ├── Directory.Build.props       # Cấu hình biên dịch tập trung (TreatWarningsAsErrors=true)
+│   ├── Dockerfile                  # Docker container build script cho backend
+│   └── seedData.sql                # Dữ liệu mẫu khởi tạo hệ thống
+├── frontend/                       # Mã nguồn ứng dụng Client Frontend (React/Next.js/Vue)
+│   └── README.md
+├── docs/                           # Toàn bộ tài liệu kỹ thuật & PRDs
 │   ├── api-design.md
 │   ├── database-schema.md
-│   └── prd.md
-├── src/
-│   ├── TutorHub.Domain/            # Entities, Enums, Policies
-│   ├── TutorHub.Application/       # Vertical Slices (Features), MediatR CQRS, DTOs, Validators
-│   ├── TutorHub.Infrastructure/    # EF Core DbContext, PostgreSQL, JWT, VNPay, Background Jobs
-│   └── TutorHub.Api/               # REST API Controllers, Middlewares, Configurations
-├── docker-compose.yml              # Cấu hình khởi chạy Docker PostgreSQL & API
-├── Dockerfile                      # Docker container build script
-├── seedData.sql                    # Dữ liệu mẫu khởi tạo hệ thống
-├── Directory.Build.props           # Cấu hình biên dịch tập trung (TreatWarningsAsErrors=true)
-└── README.md
+│   └── prd-*.md
+├── docker-compose.yml              # Cấu hình khởi chạy Docker PostgreSQL & Backend Container
+├── .env.example                    # Template biến môi trường
+├── README.md                       # Tài liệu tổng quan dự án
+└── CLAUDE.md                       # Quy chuẩn phát triển và bất biến hệ thống
 ```
 
 ---
@@ -87,27 +92,14 @@ docker-compose up -d --build
 
 ### 3. Khởi Chạy Trực Tiếp Bằng .NET CLI (Local Development)
 
-#### Bước 1: Cấu hình chuỗi kết nối Database trong `src/TutorHub.Api/appsettings.json`
-```json
-"ConnectionStrings": {
-  "DefaultConnection": "Host=localhost;Port=5432;Database=tutorhub;Username=tutorhub;Password=tutorhub"
-}
+#### Bước 1: Build toàn bộ Backend Solution
+```bash
+dotnet build backend/src/TutorHub.sln
 ```
 
-#### Bước 2: Build toàn bộ Solution
+#### Bước 2: Chạy API Server
 ```bash
-dotnet build src/TutorHub.sln
-```
-
-#### Bước 3: Nạp dữ liệu mẫu (Seed Data)
-Chạy script `seedData.sql` vào cơ sở dữ liệu PostgreSQL của bạn để tạo sẵn các tài khoản mẫu:
-- **Admin:** `admin@tutorhub.com` / `Admin123!`
-- **Gia Sư:** `tutor@tutorhub.com` / `Tutor123!`
-- **Học Viên:** `student@tutorhub.com` / `Student123!`
-
-#### Bước 4: Chạy API Server
-```bash
-dotnet run --project src/TutorHub.Api
+dotnet run --project backend/src/TutorHub.Api
 ```
 Truy cập Swagger UI tại: `http://localhost:5000/swagger` (hoặc `https://localhost:7000/swagger`).
 
