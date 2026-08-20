@@ -39,13 +39,9 @@ public static class InfrastructureServiceCollectionExtensions
         {
             var r2Options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Services.Storage.CloudflareR2Options>>().Value;
 
-            var serviceUrl = !string.IsNullOrWhiteSpace(r2Options.ServiceUrl)
-                ? r2Options.ServiceUrl
-                : "https://a723aecd2d08dcca2efc3a66d27e16db.r2.cloudflarestorage.com";
-
             var config = new Amazon.S3.AmazonS3Config
             {
-                ServiceURL = serviceUrl,
+                ServiceURL = r2Options.ServiceUrl,
                 ForcePathStyle = true,
                 AuthenticationRegion = "auto"
             };
