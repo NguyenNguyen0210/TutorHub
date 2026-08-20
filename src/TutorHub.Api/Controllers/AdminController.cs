@@ -24,6 +24,10 @@ using TutorHub.Application.Features.Admin.Tutors.DTOs;
 using TutorHub.Application.Features.Admin.Tutors.GetAdminTutors;
 using TutorHub.Application.Features.Admin.Tutors.RejectTutor;
 using TutorHub.Application.Features.Admin.Tutors.SuspendTutor;
+using TutorHub.Application.Features.Admin.Users.DTOs;
+using TutorHub.Application.Features.Admin.Users.GetAdminUserById;
+using TutorHub.Application.Features.Admin.Users.GetAdminUsers;
+using TutorHub.Application.Features.Admin.Users.SetUserStatus;
 using TutorHub.Application.Features.Admin.Withdrawals.ApproveWithdrawal;
 using TutorHub.Application.Features.Admin.Withdrawals.GetAdminWithdrawals;
 using TutorHub.Application.Features.Admin.Withdrawals.RejectWithdrawal;
@@ -413,6 +417,63 @@ public class AdminController : ControllerBase
         var query = new GetAdminRevenueChartQuery(months);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<RevenueChartDto>.SuccessResult(result, "Revenue chart retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Get paginated list of all users on the platform with search and filters (Admin only).
+    /// </summary>
+    [HttpGet("users")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<AdminUserSummaryDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetUsers(
+        [FromQuery] string? search,
+        [FromQuery] UserRole? role,
+        [FromQuery] bool? isActive,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetAdminUsersQuery(search, role, isActive, pageNumber, pageSize);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<AdminUserSummaryDto>>.SuccessResult(result, "Users retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Get detailed profile, teaching/learning stats, and recent bookings for a specific user (Admin only).
+    /// </summary>
+    [HttpGet("users/{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<AdminUserDetailDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetUserById([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        var query = new GetAdminUserByIdQuery(id);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<AdminUserDetailDto>.SuccessResult(result, "User detail retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Set user account active status (Activate or Deactivate) with session revocation (Admin only).
+    /// </summary>
+    [HttpPatch("users/{id:guid}/status")]
+    [ProducesResponseType(typeof(ApiResponse<AdminUserSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SetUserStatus(
+        [FromRoute] Guid id,
+        [FromBody] SetUserStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        var adminId = GetCurrentUserId();
+        var command = new SetUserStatusCommand(id, adminId, request.IsActive, request.Reason);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<AdminUserSummaryDto>.SuccessResult(result, "User status updated successfully."));
     }
 
     private Guid GetCurrentUserId()
