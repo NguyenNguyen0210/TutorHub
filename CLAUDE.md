@@ -39,9 +39,9 @@ Stop-Process -Name "TutorHub.Api" -Force -ErrorAction SilentlyContinue
 
 ## 🏛️ Kiến Trúc Hệ Thống (Thứ gì nằm ở đâu và vì sao)
 
-* `backend/src/TutorHub.Domain/`: **Cốt lõi độc lập**. Chứa Entities (`User`, `TutorProfile`, `Booking`, `Transaction`, `Wallet`...), Enums, và Business Policies (`BookingPolicy`). Tuyệt đối không phụ thuộc vào bất kỳ layer hay thư viện bên ngoài nào.
-* `backend/src/TutorHub.Application/`: **Nghiệp vụ ứng dụng**. Tổ chức theo **Vertical Slice Architecture** (`Features/{Module}/{FeatureName}/`). Mỗi slice chứa `Command/Query`, `Validator`, `Handler`, và `DTOs`. Chứa Abstractions (`IAppDbContext`, `IVnPayService`, `IStorageService`, `IJwtService`).
-* `backend/src/TutorHub.Infrastructure/`: **Triển khai kỹ thuật**. Chứa `AppDbContext`, `JwtService`, `BcryptPasswordHasher`, `VnPayService` (HMAC SHA512), `AwsS3StorageService`, và `BookingTimeoutBackgroundService`.
+* `backend/src/TutorHub.Domain/`: **Cốt lõi độc lập**. Chứa Entities (`User`, `TutorProfile`, `Booking`, `Transaction`, `Wallet`, `Media`...), Enums, và Business Policies (`BookingPolicy`). Tuyệt đối không phụ thuộc vào bất kỳ layer hay thư viện bên ngoài nào.
+* `backend/src/TutorHub.Application/`: **Nghiệp vụ ứng dụng**. Tổ chức theo **Vertical Slice Architecture** (`Features/{Module}/{FeatureName}/`). Mỗi slice chứa `Command/Query`, `Validator`, `Handler`, và `DTOs`. Chứa Abstractions (`IAppDbContext`, `IVnPayService`, `IObjectStorageService`, `IJwtService`).
+* `backend/src/TutorHub.Infrastructure/`: **Triển khai kỹ thuật**. Chứa `AppDbContext`, `JwtService`, `BcryptPasswordHasher`, `VnPayService` (HMAC SHA512), `CloudflareR2ObjectStorageService`, và `BookingTimeoutBackgroundService`.
 * `backend/src/TutorHub.Api/`: **Giao tiếp ngoại vi (Thin Controllers)**. Tiếp nhận HTTP request, trích xuất Claims, dispatch qua `ISender.Send()`, và trả về `ApiResponse<T>`.
 * `frontend/`: **Giao diện người dùng Client**. Nơi chứa ứng dụng Frontend kết nối tới Backend API.
 

@@ -157,3 +157,40 @@ VALUES
         5, 'Thầy An dạy rất nhiệt tình và giải thích bản chất bài toán cực kỳ dễ hiểu!', true, NOW() - INTERVAL '2 days'
     )
 ON CONFLICT ("Id") DO NOTHING;
+
+-- 12. MEDIA (Cloudflare R2 Object Storage Records)
+INSERT INTO "Media" (
+    "Id", "ObjectKey", "OriginalFileName", "StoredFileName", "ContentType", 
+    "FileSize", "StorageProvider", "BucketName", "MediaType", "IsPrivate", 
+    "Status", "UploadedByUserId", "CreatedAt", "DeletedAt"
+)
+VALUES
+    (
+        '99999999-0001-0000-0000-000000000000',
+        'profiles/22222222-1111-1111-1111-111111111111/avatar/an-avatar.png',
+        'an-avatar.png', 'an-avatar.png', 'image/png',
+        142500, 'CloudflareR2', 'tutorhub-media', 'Avatar', false,
+        'Active', '22222222-1111-1111-1111-111111111111', NOW() - INTERVAL '10 days', NULL
+    ),
+    (
+        '99999999-0002-0000-0000-000000000000',
+        'tutors/22222222-1111-1111-1111-111111111111/documents/ielts-certificate-8.0.pdf',
+        'ielts-certificate-8.0.pdf', 'ielts-certificate-8.0.pdf', 'application/pdf',
+        2450000, 'CloudflareR2', 'tutorhub-media', 'Certificate', true,
+        'Active', '22222222-1111-1111-1111-111111111111', NOW() - INTERVAL '10 days', NULL
+    ),
+    (
+        '99999999-0003-0000-0000-000000000000',
+        'tutors/33333333-1111-1111-1111-111111111111/documents/math-degree-hcmus.pdf',
+        'math-degree-hcmus.pdf', 'math-degree-hcmus.pdf', 'application/pdf',
+        1850000, 'CloudflareR2', 'tutorhub-media', 'Certificate', true,
+        'Active', '33333333-1111-1111-1111-111111111111', NOW() - INTERVAL '8 days', NULL
+    ),
+    (
+        '99999999-0004-0000-0000-000000000000',
+        'reports/55555555-1111-1111-1111-111111111111/attachments/tutor-absent-screenshot.png',
+        'tutor-absent-screenshot.png', 'tutor-absent-screenshot.png', 'image/png',
+        854000, 'CloudflareR2', 'tutorhub-media', 'DisputeEvidence', true,
+        'Active', '55555555-1111-1111-1111-111111111111', NOW() - INTERVAL '1 days', NULL
+    )
+ON CONFLICT ("Id") DO NOTHING;

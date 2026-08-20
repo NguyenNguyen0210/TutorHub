@@ -89,7 +89,20 @@
 
 ---
 
-## 7. ⚖️ Báo Cáo & Tranh Chấp Khiếu Nại (`/api/v1/reports`)
+## 7. ☁️ Quản Lý Tệp Đa Phương Tiện & Cloudflare R2 (`/api/v1/media`)
+
+| Method | Endpoint | Quyền hạn | Mô tả |
+|---|---|---|---|
+| `POST` | `/api/v1/media/presigned-upload-url` | 🔒 Authenticated | Sinh Presigned PUT URL 15 phút khóa `Content-Type` để Frontend đẩy file trực tiếp lên Cloudflare R2 ($0 Egress). |
+| `POST` | `/api/v1/media/complete-upload` | 🔒 Authenticated | Xác thực file tồn tại trên R2 qua `HEAD Object` (`ExistsAsync`), tạo bản ghi `Media` trong DB và cấp access URL. |
+| `POST` | `/api/v1/media/upload` | 🔒 Authenticated | Direct API Stream Upload (multipart/form-data), kiểm tra chữ ký nhị phân Magic Bytes, stream lên R2 và lưu DB. |
+| `GET` | `/api/v1/media/{id}/download-url` | 🔒 Authenticated | Kiểm tra quyền sở hữu và sinh Presigned GET URL ngắn hạn (15 phút) trên Private Bucket R2. |
+| `GET` | `/api/v1/media/{id}/url` | 🔒 Authenticated | Alias tương thích cho `/download-url`. |
+| `DELETE` | `/api/v1/media/{id}` | 🔒 Authenticated | Soft-delete trong PostgreSQL và xóa physical object trên Cloudflare R2 (Chủ tệp hoặc Admin). |
+
+---
+
+## 8. ⚖️ Báo Cáo & Tranh Chấp Khiếu Nại (`/api/v1/reports`)
 
 | Method | Endpoint | Quyền hạn | Mô tả |
 |---|---|---|---|
@@ -98,7 +111,7 @@
 
 ---
 
-## 8. 💼 Ví Tiền & Rút Tiền Gia Sư (`/api/v1/tutors/me/wallet`)
+## 9. 💼 Ví Tiền & Rút Tiền Gia Sư (`/api/v1/tutors/me/wallet`)
 
 | Method | Endpoint | Quyền hạn | Mô tả |
 |---|---|---|---|
@@ -108,7 +121,7 @@
 
 ---
 
-## 9. 🧾 Lịch Sử Dòng Tiền Giao Dịch (`/api/v1/transactions`)
+## 10. 🧾 Lịch Sử Dòng Tiền Giao Dịch (`/api/v1/transactions`)
 
 | Method | Endpoint | Quyền hạn | Mô tả |
 |---|---|---|---|
@@ -116,7 +129,7 @@
 
 ---
 
-## 10. 🛡️ Quản Trị Hệ Thống Toàn Diện (`/api/v1/admin`)
+## 11. 🛡️ Quản Trị Hệ Thống Toàn Diện (`/api/v1/admin`)
 
 | Method | Endpoint | Quyền hạn | Mô tả |
 |---|---|---|---|

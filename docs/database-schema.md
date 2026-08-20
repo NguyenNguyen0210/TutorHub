@@ -73,6 +73,20 @@ public enum ReportedByRole
     Student,
     Tutor
 }
+
+public enum MediaType
+{
+    Avatar,
+    Certificate,
+    DisputeEvidence,
+    General
+}
+
+public enum MediaStatus
+{
+    Active,
+    Deleted
+}
 ```
 
 ---
@@ -209,7 +223,7 @@ public class Booking
 }
 ```
 
-### 2.6 `Transaction`
+### 2.7 `Transaction`
 ```csharp
 public class Transaction
 {
@@ -229,7 +243,7 @@ public class Transaction
 }
 ```
 
-### 2.7 `Wallet` & `Withdrawal`
+### 2.8 `Wallet` & `Withdrawal`
 ```csharp
 public class Wallet
 {
@@ -265,18 +279,44 @@ public class Withdrawal
 }
 ```
 
+### 2.9 `Media` (Cloudflare R2 Object Storage)
+```csharp
+public class Media
+{
+    public Guid Id { get; set; }
+    public string ObjectKey { get; set; } = default!;
+    public string OriginalFileName { get; set; } = default!;
+    public string StoredFileName { get; set; } = default!;
+    public string ContentType { get; set; } = default!;
+    public long FileSize { get; set; }
+    public string StorageProvider { get; set; } = "CloudflareR2";
+    public string BucketName { get; set; } = "tutorhub-media";
+    public MediaType MediaType { get; set; }
+    public bool IsPrivate { get; set; }
+    public MediaStatus Status { get; set; } = MediaStatus.Active;
+
+    public Guid UploadedByUserId { get; set; }
+    public User UploadedByUser { get; set; } = default!;
+
+    public DateTime CreatedAt { get; set; }
+    public DateTime? DeletedAt { get; set; }
+}
+```
+
 ---
 
 ## 3. Database Indexes & Ràng Buộc (Constraints)
 
 * **Unique Constraints:**
   * `IX_Users_Email` (UNIQUE)
+  * `IX_Media_ObjectKey` (UNIQUE)
   * `IX_TutorProfiles_UserId` (UNIQUE)
   * `IX_StudentProfiles_UserId` (UNIQUE)
   * `IX_Wallets_TutorProfileId` (UNIQUE)
   * `IX_Transactions_BookingId` (UNIQUE)
   * `IX_TutorSubjects_TutorProfileId_SubjectId` (UNIQUE)
 * **Performance & Filter Indexes:**
+  * `IX_Media_UploadedByUserId_Status`
   * `IX_Bookings_TutorProfileId_StartAt_EndAt_Status`
   * `IX_Bookings_StudentProfileId_CreatedAt`
   * `IX_Transactions_CreatedAt`
