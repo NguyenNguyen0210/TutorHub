@@ -68,6 +68,9 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Backend REST API for TutorHub Tutor Matching Platform"
     });
 
+    // Prevent duplicate schema ID conflicts across vertical slice DTOs
+    c.CustomSchemaIds(type => type.ToString().Replace("+", "."));
+
     // Configure HTTP Bearer JWT Authentication
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -120,6 +123,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-
 app.Run();
+
+// Required for Integration Testing WebApplicationFactory
+public partial class Program { }
