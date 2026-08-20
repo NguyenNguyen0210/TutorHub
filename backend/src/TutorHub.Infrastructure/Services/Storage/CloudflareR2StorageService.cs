@@ -83,17 +83,6 @@ public class CloudflareR2StorageService : IStorageService
 
     public string GetPublicUrl(string objectKey)
     {
-        if (!string.IsNullOrWhiteSpace(_options.PublicDomain))
-        {
-            var domain = _options.PublicDomain.TrimEnd('/');
-            if (!domain.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
-                !domain.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            {
-                domain = $"https://{domain}";
-            }
-            return $"{domain}/{objectKey}";
-        }
-
         return $"https://{_options.BucketName}.{_options.AccountId}.r2.cloudflarestorage.com/{objectKey}";
     }
 

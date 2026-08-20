@@ -8,7 +8,6 @@ public class CloudflareR2Options
     public string BucketName { get; set; } = "tutorhub-media";
     public string? AccessKeyId { get; set; }
     public string? SecretAccessKey { get; set; }
-    public string? PublicDomain { get; set; }
     public int PresignedUrlExpirationMinutes { get; set; } = 15;
 
     public string ServiceUrl => !string.IsNullOrWhiteSpace(AccountId)

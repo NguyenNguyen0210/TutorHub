@@ -42,7 +42,6 @@ services:
       CloudflareR2__BucketName: ${CLOUDFLARE_R2_BUCKET_NAME:-tutorhub-media}
       CloudflareR2__AccessKeyId: ${CLOUDFLARE_R2_ACCESS_KEY_ID:-}
       CloudflareR2__SecretAccessKey: ${CLOUDFLARE_R2_SECRET_ACCESS_KEY:-}
-      CloudflareR2__PublicDomain: ${CLOUDFLARE_R2_PUBLIC_DOMAIN:-}
     ports:
       - "8080:8080"
     healthcheck:
