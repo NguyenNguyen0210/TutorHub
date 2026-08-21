@@ -1,4 +1,4 @@
-namespace TutorHub.Application.Common.Interfaces;
+namespace TutorHub.Application.Common.Storage;
 
 public record StoredFileResult(
     string ObjectKey,

@@ -1,4 +1,4 @@
-namespace TutorHub.Application.Common.Interfaces;
+namespace TutorHub.Application.Common.Payment;
 
 public interface IVnPayService
 {

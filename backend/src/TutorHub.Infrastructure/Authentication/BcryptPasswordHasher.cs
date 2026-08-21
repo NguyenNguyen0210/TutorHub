@@ -1,4 +1,4 @@
-using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Security;
 
 namespace TutorHub.Infrastructure.Authentication;
 

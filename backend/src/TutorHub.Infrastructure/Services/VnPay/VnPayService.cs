@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Options;
-using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Payment;
 
 namespace TutorHub.Infrastructure.Services.VnPay;
 
