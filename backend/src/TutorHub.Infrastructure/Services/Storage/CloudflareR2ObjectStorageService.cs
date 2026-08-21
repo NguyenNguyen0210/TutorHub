@@ -3,7 +3,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Storage;
 
 namespace TutorHub.Infrastructure.Services.Storage;
 

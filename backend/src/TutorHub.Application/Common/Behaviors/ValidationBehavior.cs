@@ -1,7 +1,6 @@
 using FluentValidation;
 using MediatR;
-using ValidationException = TutorHub.Application.Common.Exceptions.ValidationException;
-
+using TutorHub.Application.Common.Exceptions;
 namespace TutorHub.Application.Common.Behaviors;
 
 public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
@@ -33,7 +32,7 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
 
             if (failures.Count != 0)
             {
-                throw new ValidationException(failures);
+                throw new AppValidationException(failures);
             }
         }
 

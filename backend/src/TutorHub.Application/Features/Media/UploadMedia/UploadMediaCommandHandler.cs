@@ -37,13 +37,7 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
 
         // 2. Determine Privacy & Partitioned S3 ObjectKey
         var isPrivate = request.MediaType != MediaType.Avatar;
-        var folder = request.MediaType switch
-        {
-            MediaType.Avatar => "profiles",
-            MediaType.Certificate => "tutors",
-            MediaType.DisputeEvidence => "reports",
-            _ => "general"
-        };
+
 
         var now = DateTime.UtcNow;
         var uniqueId = Guid.NewGuid().ToString("N");
