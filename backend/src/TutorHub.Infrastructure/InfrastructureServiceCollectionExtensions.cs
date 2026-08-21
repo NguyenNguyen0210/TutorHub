@@ -1,6 +1,9 @@
+using Amazon.Runtime;
+using Amazon.S3;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Payment;
 using TutorHub.Application.Common.Security;
@@ -8,6 +11,8 @@ using TutorHub.Application.Common.Storage;
 using TutorHub.Infrastructure.Authentication;
 using TutorHub.Infrastructure.BackgroundServices;
 using TutorHub.Infrastructure.Persistence;
+using TutorHub.Infrastructure.Services.Storage;
+using TutorHub.Infrastructure.Services.VnPay;
 
 namespace TutorHub.Infrastructure;
 
@@ -25,7 +30,10 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
 
         // JWT Options Pattern Configuration
-        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.AddOptions<JwtOptions>()
+            .BindConfiguration(JwtOptions.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         // Authentication & Security Services
         services.AddSingleton<IJwtService, JwtService>();
@@ -33,32 +41,35 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         // VNPay Payment Gateway Services
-        services.Configure<Services.VnPay.VnPayOptions>(configuration.GetSection(Services.VnPay.VnPayOptions.SectionName));
-        services.AddScoped<IVnPayService, Services.VnPay.VnPayService>();
+        services.AddOptions<VnPayOptions>()
+            .BindConfiguration(VnPayOptions.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddScoped<IVnPayService, VnPayService>();
 
         // Cloudflare R2 Object Storage Services
-        services.Configure<Services.Storage.CloudflareR2Options>(configuration.GetSection(Services.Storage.CloudflareR2Options.SectionName));
-        services.AddSingleton<Amazon.S3.IAmazonS3>(sp =>
-        {
-            var r2Options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Services.Storage.CloudflareR2Options>>().Value;
+        services.AddOptions<CloudflareR2Options>()
+            .BindConfiguration(CloudflareR2Options.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
-            var config = new Amazon.S3.AmazonS3Config
+        services.AddSingleton<IAmazonS3>(sp =>
+        {
+            var r2Options = sp.GetRequiredService<IOptions<CloudflareR2Options>>().Value;
+
+            var config = new AmazonS3Config
             {
                 ServiceURL = r2Options.ServiceUrl,
                 ForcePathStyle = true,
                 AuthenticationRegion = "auto"
             };
 
-            if (!string.IsNullOrWhiteSpace(r2Options.AccessKeyId) && !string.IsNullOrWhiteSpace(r2Options.SecretAccessKey))
-            {
-                var credentials = new Amazon.Runtime.BasicAWSCredentials(r2Options.AccessKeyId, r2Options.SecretAccessKey);
-                return new Amazon.S3.AmazonS3Client(credentials, config);
-            }
-
-            return new Amazon.S3.AmazonS3Client(new Amazon.Runtime.AnonymousAWSCredentials(), config);
+            var credentials = new BasicAWSCredentials(r2Options.AccessKeyId, r2Options.SecretAccessKey);
+            return new AmazonS3Client(credentials, config);
         });
 
-        services.AddScoped<IObjectStorageService, Services.Storage.CloudflareR2ObjectStorageService>();
+        services.AddScoped<IObjectStorageService, CloudflareR2ObjectStorageService>();
 
         // Background Workers
         services.AddHostedService<BookingTimeoutBackgroundService>();
