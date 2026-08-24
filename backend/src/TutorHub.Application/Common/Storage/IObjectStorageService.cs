@@ -1,11 +1,4 @@
-namespace TutorHub.Application.Common.Interfaces;
-
-public record StoredFileResult(
-    string ObjectKey,
-    long Size,
-    string ContentType,
-    string? ETag
-);
+namespace TutorHub.Application.Common.Storage;
 
 public interface IObjectStorageService
 {

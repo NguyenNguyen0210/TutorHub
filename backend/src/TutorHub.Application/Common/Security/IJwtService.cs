@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using TutorHub.Domain.Entities;
 
-namespace TutorHub.Application.Common.Interfaces;
+namespace TutorHub.Application.Common.Security;
 
 public interface IJwtService
 {

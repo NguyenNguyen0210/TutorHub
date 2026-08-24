@@ -3,14 +3,14 @@ using FluentValidation.Results;
 
 namespace TutorHub.Application.Common.Exceptions;
 
-public class ValidationException : AppException
+public class AppValidationException : AppException
 {
-    public ValidationException(List<string> errors)
+    public AppValidationException(List<string> errors)
         : base("Validation failed. One or more validation errors occurred.", HttpStatusCode.BadRequest, errors)
     {
     }
 
-    public ValidationException(IEnumerable<ValidationFailure> failures)
+    public AppValidationException(IEnumerable<ValidationFailure> failures)
         : base(
             "Validation failed. One or more validation errors occurred.",
             HttpStatusCode.BadRequest,
@@ -18,7 +18,7 @@ public class ValidationException : AppException
     {
     }
 
-    public ValidationException(string propertyName, string errorMessage)
+    public AppValidationException(string propertyName, string errorMessage)
         : base(
             "Validation failed. One or more validation errors occurred.",
             HttpStatusCode.BadRequest,

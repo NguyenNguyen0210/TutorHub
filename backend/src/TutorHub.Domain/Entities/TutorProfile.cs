@@ -28,7 +28,7 @@ public class TutorProfile
 
     // Profile review lifecycle
     public TutorProfileStatus Status { get; set; }
-        = TutorProfileStatus.PendingReview;
+        = TutorProfileStatus.Draft;
 
     public string? RejectionReason { get; set; }
 
