@@ -57,6 +57,54 @@ public class CancelBookingCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WhenBookingHasHeldTransaction_ShouldRefundTransactionAndUpdateTutorWallet()
+    {
+        // Arrange - Booking with Held transaction (200,000 VND) and tutor wallet having pending balance
+        var transaction = new TransactionBuilder()
+            .WithAmount(200_000m)
+            .WithStatus(TransactionStatus.Held)
+            .Build();
+
+        var booking = new BookingBuilder()
+            .WithStatus(BookingStatus.Confirmed)
+            .WithPricing(200_000m, 200_000m)
+            .WithSchedule(DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(2).AddHours(1))
+            .WithTransaction(transaction)
+            .Build();
+
+        var tutorWallet = new WalletBuilder()
+            .WithTutorProfileId(booking.TutorProfileId)
+            .WithBalances(pending: 200_000m, available: 0m)
+            .Build();
+
+        var bookingsList = new List<Booking> { booking };
+        var walletsList = new List<Wallet> { tutorWallet };
+
+        _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(bookingsList).Object);
+        _contextMock.Setup(c => c.Wallets).Returns(MockDbSetHelper.CreateMockDbSet(walletsList).Object);
+        _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var studentUserId = booking.StudentProfile.UserId;
+        var command = new CancelBookingCommand(booking.Id, studentUserId, UserRole.Student, "Emergency cancel");
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Status.Should().Be(BookingStatus.Cancelled);
+
+        // 1. Transaction state transitioned to Refunded
+        transaction.Status.Should().Be(TransactionStatus.Refunded);
+        transaction.RefundedAt.Should().NotBeNull();
+
+        // 2. Tutor wallet pending balance decremented
+        tutorWallet.PendingBalance.Should().Be(0m);
+
+        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_WhenBookingDoesNotExist_ShouldThrowNotFoundException()
     {
         // Arrange
