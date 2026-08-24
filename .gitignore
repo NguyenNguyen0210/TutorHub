@@ -76,10 +76,15 @@ docker-compose.override.yml
 # =====================
 node_modules/
 frontend/node_modules/
+src/frontend/node_modules/
 frontend/dist/
+src/frontend/dist/
 frontend/.next/
+src/frontend/.next/
 frontend/build/
+src/frontend/build/
 frontend/.turbo/
+src/frontend/.turbo/
 .npm/
 .yarn/
 *.log
