@@ -9,6 +9,7 @@ using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 using TutorHub.Domain.UnitTests.Common.Builders;
 using Xunit;
+using RefreshTokenEntity = TutorHub.Domain.Entities.RefreshToken;
 
 namespace TutorHub.Application.UnitTests.Features.Auth.Login;
 
@@ -39,7 +40,7 @@ public class LoginCommandHandlerTests
             .Build();
 
         var usersList = new List<User> { user };
-        var refreshTokensList = new List<RefreshToken>();
+        var refreshTokensList = new List<RefreshTokenEntity>();
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
         _contextMock.Setup(c => c.RefreshTokens).Returns(MockDbSetHelper.CreateMockDbSet(refreshTokensList).Object);
