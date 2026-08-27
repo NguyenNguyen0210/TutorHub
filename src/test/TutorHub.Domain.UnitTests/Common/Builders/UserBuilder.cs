@@ -5,10 +5,12 @@ namespace TutorHub.Domain.UnitTests.Common.Builders;
 
 public class UserBuilder
 {
+    private static readonly DateTime DefaultCreatedAt = new(2030, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
     private Guid _id = Guid.NewGuid();
-    private string _email = "testuser@example.com";
+    private string? _email;
     private string _passwordHash = "$2a$11$mocked_password_hash_value_12345";
-    private string _fullName = "Nguyen Van A";
+    private string _fullName = "Test User";
     private string? _phone = "0987654321";
     private UserRole _role = UserRole.Student;
     private bool _isActive = true;
@@ -39,6 +41,12 @@ public class UserBuilder
         return this;
     }
 
+    public UserBuilder WithPhone(string? phone)
+    {
+        _phone = phone;
+        return this;
+    }
+
     public UserBuilder WithRole(UserRole role)
     {
         _role = role;
@@ -65,10 +73,18 @@ public class UserBuilder
 
     public User Build()
     {
+        var email = _email ?? (_role switch
+        {
+            UserRole.Student => "student@example.com",
+            UserRole.Tutor => "tutor@example.com",
+            UserRole.Admin => "admin@example.com",
+            _ => "user@example.com"
+        });
+
         return new User
         {
             Id = _id,
-            Email = _email,
+            Email = email,
             PasswordHash = _passwordHash,
             FullName = _fullName,
             Phone = _phone,
@@ -76,7 +92,7 @@ public class UserBuilder
             IsActive = _isActive,
             TutorProfile = _tutorProfile,
             StudentProfile = _studentProfile,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DefaultCreatedAt
         };
     }
 }
