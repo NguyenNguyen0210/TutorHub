@@ -483,6 +483,72 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.ToTable("Transactions");
                 });
 
+            modelBuilder.Entity("TutorHub.Domain.Entities.TutorApplication", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Bio")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Education")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("ExperienceYears")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReviewedByAdminId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TeachingMode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewedByAdminId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId", "Status");
+
+                    b.ToTable("TutorApplications");
+                });
+
             modelBuilder.Entity("TutorHub.Domain.Entities.TutorProfile", b =>
                 {
                     b.Property<Guid>("Id")
@@ -520,21 +586,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasPrecision(3, 2)
                         .HasColumnType("numeric(3,2)");
 
-                    b.Property<string>("RejectionReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ReviewedByAdminId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<string>("TeachingMode")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -547,10 +598,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ReviewedByAdminId");
-
-                    b.HasIndex("Status");
 
                     b.HasIndex("UserId")
                         .IsUnique();
@@ -779,7 +826,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
-                        .WithMany("Bookings")
+                        .WithMany()
                         .HasForeignKey("TutorProfileId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -899,7 +946,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("Booking");
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.TutorProfile", b =>
+            modelBuilder.Entity("TutorHub.Domain.Entities.TutorApplication", b =>
                 {
                     b.HasOne("TutorHub.Domain.Entities.User", "ReviewedByAdmin")
                         .WithMany()
@@ -907,12 +954,23 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TutorHub.Domain.Entities.User", "User")
-                        .WithOne("TutorProfile")
-                        .HasForeignKey("TutorHub.Domain.Entities.TutorProfile", "UserId")
+                        .WithMany("TutorApplications")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("ReviewedByAdmin");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.TutorProfile", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.User", "User")
+                        .WithOne("TutorProfile")
+                        .HasForeignKey("TutorHub.Domain.Entities.TutorProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -993,8 +1051,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 {
                     b.Navigation("AvailabilitySlots");
 
-                    b.Navigation("Bookings");
-
                     b.Navigation("TutorSubjects");
 
                     b.Navigation("Wallet");
@@ -1005,6 +1061,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("MediaUploaded");
 
                     b.Navigation("StudentProfile");
+
+                    b.Navigation("TutorApplications");
 
                     b.Navigation("TutorProfile");
                 });

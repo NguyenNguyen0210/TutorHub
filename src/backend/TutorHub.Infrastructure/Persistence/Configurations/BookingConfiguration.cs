@@ -59,7 +59,7 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(b => b.TutorProfile)
-            .WithMany(t => t.Bookings)
+            .WithMany()
             .HasForeignKey(b => b.TutorProfileId)
             .OnDelete(DeleteBehavior.Restrict);
 

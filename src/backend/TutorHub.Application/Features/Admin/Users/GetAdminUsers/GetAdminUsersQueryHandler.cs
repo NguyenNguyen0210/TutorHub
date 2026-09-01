@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Admin.Users.DTOs;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Admin.Users.GetAdminUsers;
 
@@ -58,7 +59,11 @@ public class GetAdminUsersQueryHandler : IRequestHandler<GetAdminUsersQuery, Pag
                 u.Role,
                 u.Status,
                 u.CreatedAt,
-                u.TutorProfile != null ? u.TutorProfile.Status : null
+                u.TutorApplications
+                    .OrderBy(a => a.Status == TutorApplicationStatus.Approved ? 0 : a.Status == TutorApplicationStatus.Pending ? 1 : 2)
+                    .ThenByDescending(a => a.SubmittedAt)
+                    .Select(a => a.Status.ToString())
+                    .FirstOrDefault()
             ))
             .ToListAsync(cancellationToken);
 

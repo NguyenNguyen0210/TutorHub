@@ -9,6 +9,7 @@ public interface IAppDbContext
     DbSet<User> Users { get; }
     DbSet<StudentProfile> StudentProfiles { get; }
     DbSet<TutorProfile> TutorProfiles { get; }
+    DbSet<TutorApplication> TutorApplications { get; }
     DbSet<Category> Categories { get; }
     DbSet<Subject> Subjects { get; }
     DbSet<TutorSubject> TutorSubjects { get; }

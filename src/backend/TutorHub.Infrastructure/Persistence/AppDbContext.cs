@@ -14,6 +14,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<StudentProfile> StudentProfiles => Set<StudentProfile>();
     public DbSet<TutorProfile> TutorProfiles => Set<TutorProfile>();
+    public DbSet<TutorApplication> TutorApplications => Set<TutorApplication>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Subject> Subjects => Set<Subject>();
     public DbSet<TutorSubject> TutorSubjects => Set<TutorSubject>();

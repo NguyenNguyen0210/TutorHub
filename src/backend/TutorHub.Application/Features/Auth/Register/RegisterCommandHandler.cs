@@ -46,37 +46,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
             CreatedAt = DateTime.UtcNow
         };
 
-        if (request.Role == UserRole.Tutor)
-        {
-            var tutorProfileId = Guid.NewGuid();
-            var tutorProfile = new TutorProfile
-            {
-                Id = tutorProfileId,
-                UserId = userId,
-                Bio = string.Empty,
-                Education = string.Empty,
-                ExperienceYears = 0,
-                HourlyRate = 0,
-                TeachingMode = TeachingMode.Online,
-                Status = TutorProfileStatus.Draft,
-                RatingAvg = 0,
-                TotalReviews = 0
-            };
-
-            var wallet = new Wallet
-            {
-                Id = Guid.NewGuid(),
-                TutorProfileId = tutorProfileId,
-                PendingBalance = 0,
-                AvailableBalance = 0,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            user.TutorProfile = tutorProfile;
-            _context.TutorProfiles.Add(tutorProfile);
-            _context.Wallets.Add(wallet);
-        }
-        else if (request.Role == UserRole.Student)
+        if (request.Role == UserRole.Student)
         {
             var studentProfileId = Guid.NewGuid();
             var studentProfile = new StudentProfile

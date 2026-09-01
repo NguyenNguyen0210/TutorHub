@@ -49,6 +49,13 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
                     .AsNoTracking()
                     .CountAsync(b => b.TutorProfileId == tutorProfile.Id && b.Status == BookingStatus.Completed, cancellationToken);
 
+                var latestApplication = await _context.TutorApplications
+                    .AsNoTracking()
+                    .Where(a => a.UserId == user.Id)
+                    .OrderBy(a => a.Status == TutorApplicationStatus.Approved ? 0 : a.Status == TutorApplicationStatus.Pending ? 1 : 2)
+                    .ThenByDescending(a => a.SubmittedAt)
+                    .FirstOrDefaultAsync(cancellationToken);
+
                 tutorProfileDto = new AdminUserTutorProfileDto(
                     Id: tutorProfile.Id,
                     Bio: tutorProfile.Bio,
@@ -57,7 +64,7 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
                     HourlyRate: tutorProfile.HourlyRate,
                     TeachingMode: tutorProfile.TeachingMode,
                     Address: tutorProfile.Address,
-                    Status: tutorProfile.Status,
+                    LatestApplicationStatus: latestApplication?.Status.ToString(),
                     RatingAvg: tutorProfile.RatingAvg,
                     TotalReviews: tutorProfile.TotalReviews,
                     WalletBalance: tutorProfile.Wallet?.AvailableBalance,

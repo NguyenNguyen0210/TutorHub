@@ -14,7 +14,6 @@ public class TutorProfileBuilder
     private string _education = "B.Sc. in Mathematics Education";
     private TeachingMode _teachingMode = TeachingMode.Both;
     private string? _address = "123 Nguyen Trai, District 1, HCMC";
-    private TutorProfileStatus _status = TutorProfileStatus.Verified;
     private decimal _ratingAvg = 5.0m;
     private int _totalReviews = 10;
 
@@ -49,12 +48,6 @@ public class TutorProfileBuilder
         return this;
     }
 
-    public TutorProfileBuilder WithStatus(TutorProfileStatus status)
-    {
-        _status = status;
-        return this;
-    }
-
     public TutorProfileBuilder WithRatings(decimal ratingAvg, int totalReviews)
     {
         _ratingAvg = ratingAvg;
@@ -81,12 +74,10 @@ public class TutorProfileBuilder
             Education = _education,
             TeachingMode = _teachingMode,
             Address = _address,
-            Status = _status,
             RatingAvg = _ratingAvg,
             TotalReviews = _totalReviews,
             TutorSubjects = new List<TutorSubject>(),
-            AvailabilitySlots = new List<AvailabilitySlot>(),
-            Bookings = new List<Booking>()
+            AvailabilitySlots = new List<AvailabilitySlot>()
         };
     }
 }

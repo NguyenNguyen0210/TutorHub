@@ -2,12 +2,13 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
-using TutorHub.Application.Features.Admin.Tutors.DTOs;
+using TutorHub.Application.Features.Admin.TutorApplications.DTOs;
 using TutorHub.Application.Features.Tutors.DTOs;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Admin.Tutors.GetAdminTutors;
 
-public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, PagedResult<AdminTutorDto>>
+public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, PagedResult<AdminTutorProfileDto>>
 {
     private readonly IAppDbContext _context;
 
@@ -16,11 +17,12 @@ public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, P
         _context = context;
     }
 
-    public async Task<PagedResult<AdminTutorDto>> Handle(GetAdminTutorsQuery request, CancellationToken cancellationToken)
+    public async Task<PagedResult<AdminTutorProfileDto>> Handle(GetAdminTutorsQuery request, CancellationToken cancellationToken)
     {
         var query = _context.TutorProfiles
             .AsNoTracking()
             .Include(t => t.User)
+                .ThenInclude(u => u.TutorApplications)
             .Include(t => t.TutorSubjects)
                 .ThenInclude(ts => ts.Subject)
                     .ThenInclude(s => s.Category)
@@ -28,7 +30,7 @@ public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, P
 
         if (request.Status.HasValue)
         {
-            query = query.Where(t => t.Status == request.Status.Value);
+            query = query.Where(t => t.User.TutorApplications.Any(a => a.Status == request.Status.Value));
         }
 
         if (!string.IsNullOrWhiteSpace(request.Search))
@@ -46,12 +48,11 @@ public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, P
         var items = await query
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(t => new AdminTutorDto(
+            .Select(t => new AdminTutorProfileDto(
                 t.Id,
                 t.UserId,
                 t.User.FullName,
                 t.User.Email,
-                t.User.Phone,
                 t.User.AvatarUrl,
                 t.Bio,
                 t.Education,
@@ -59,10 +60,11 @@ public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, P
                 t.HourlyRate,
                 t.TeachingMode.ToString(),
                 t.Address,
-                t.Status.ToString(),
-                t.RejectionReason,
-                t.ReviewedByAdminId,
-                t.ReviewedAt,
+                t.User.TutorApplications
+                    .OrderBy(a => a.Status == TutorApplicationStatus.Approved ? 0 : a.Status == TutorApplicationStatus.Pending ? 1 : 2)
+                    .ThenByDescending(a => a.SubmittedAt)
+                    .Select(a => a.Status.ToString())
+                    .FirstOrDefault() ?? "Unknown",
                 t.RatingAvg,
                 t.TotalReviews,
                 t.User.CreatedAt,
@@ -78,6 +80,6 @@ public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, P
             ))
             .ToListAsync(cancellationToken);
 
-        return new PagedResult<AdminTutorDto>(items, totalCount, request.PageNumber, request.PageSize);
+        return new PagedResult<AdminTutorProfileDto>(items, totalCount, request.PageNumber, request.PageSize);
     }
 }

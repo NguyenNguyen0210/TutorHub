@@ -13,9 +13,10 @@ using TutorHub.Application.Features.Reviews.DTOs;
 using TutorHub.Application.Features.Reviews.GetTutorReviews;
 using TutorHub.Application.Features.Tutors.DTOs;
 using TutorHub.Application.Features.Tutors.GetMyProfile;
+using TutorHub.Application.Features.Tutors.GetMyTutorApplication;
 using TutorHub.Application.Features.Tutors.GetTutorById;
 using TutorHub.Application.Features.Tutors.GetTutors;
-using TutorHub.Application.Features.Tutors.SubmitProfileReview;
+using TutorHub.Application.Features.Tutors.SubmitTutorApplication;
 using TutorHub.Application.Features.Tutors.UpdateMyProfile;
 using TutorHub.Application.Features.Tutors.UpdateMySubjects;
 using TutorHub.Domain.Enums;
@@ -116,11 +117,60 @@ public class TutorsController : ControllerBase
     }
 
     /// <summary>
+    /// Submit a new tutor application for admin review (Tutor only).
+    /// </summary>
+    [Authorize(Roles = "Tutor")]
+    [HttpPost("me/application")]
+    [ProducesResponseType(typeof(ApiResponse<TutorApplicationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SubmitTutorApplication(
+        [FromBody] SubmitTutorApplicationRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!Enum.TryParse<TeachingMode>(request.TeachingMode, true, out var parsedMode))
+        {
+            throw new BadRequestException("Teaching mode must be Online, Offline, or Both.");
+        }
+
+        var userId = GetCurrentUserId();
+        var command = new SubmitTutorApplicationCommand(
+            UserId: userId,
+            Bio: request.Bio,
+            Education: request.Education,
+            ExperienceYears: request.ExperienceYears,
+            TeachingMode: parsedMode,
+            Address: request.Address,
+            Latitude: request.Latitude,
+            Longitude: request.Longitude
+        );
+
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<TutorApplicationDto>.SuccessResult(result, "Tutor application submitted successfully."));
+    }
+
+    /// <summary>
+    /// Get the current tutor application status and details (Tutor only).
+    /// </summary>
+    [Authorize(Roles = "Tutor")]
+    [HttpGet("me/application")]
+    [ProducesResponseType(typeof(ApiResponse<TutorApplicationDto?>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMyTutorApplication(CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var query = new GetMyTutorApplicationQuery(userId);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<TutorApplicationDto?>.SuccessResult(result, "Current tutor application retrieved successfully."));
+    }
+
+    /// <summary>
     /// Get the profile details of the authenticated tutor (Tutor only).
     /// </summary>
     [Authorize(Roles = "Tutor")]
     [HttpGet("me")]
-    [ProducesResponseType(typeof(ApiResponse<TutorProfileDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<TutorMyProfileDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMyProfile(CancellationToken cancellationToken)
@@ -128,7 +178,7 @@ public class TutorsController : ControllerBase
         var userId = GetCurrentUserId();
         var query = new GetMyProfileQuery(userId);
         var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<TutorProfileDto>.SuccessResult(result, "Current tutor profile retrieved successfully."));
+        return Ok(ApiResponse<TutorMyProfileDto>.SuccessResult(result, "Current tutor profile retrieved successfully."));
     }
 
     /// <summary>
@@ -137,7 +187,7 @@ public class TutorsController : ControllerBase
     /// </summary>
     [Authorize(Roles = "Tutor")]
     [HttpPatch("me")]
-    [ProducesResponseType(typeof(ApiResponse<TutorProfileDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<TutorMyProfileDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -172,7 +222,7 @@ public class TutorsController : ControllerBase
         );
 
         var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<TutorProfileDto>.SuccessResult(result, "Tutor profile updated successfully."));
+        return Ok(ApiResponse<TutorMyProfileDto>.SuccessResult(result, "Tutor profile updated successfully."));
     }
 
     /// <summary>
@@ -192,23 +242,6 @@ public class TutorsController : ControllerBase
         var command = new UpdateMySubjectsCommand(userId, request.Subjects);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<List<TutorSubjectDto>>.SuccessResult(result, "Tutor subjects updated successfully."));
-    }
-
-    /// <summary>
-    /// Submit tutor profile for admin review (Tutor only).
-    /// </summary>
-    [Authorize(Roles = "Tutor")]
-    [HttpPost("me/submit-review")]
-    [ProducesResponseType(typeof(ApiResponse<TutorProfileDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> SubmitProfileReview(CancellationToken cancellationToken)
-    {
-        var userId = GetCurrentUserId();
-        var command = new SubmitProfileReviewCommand(userId);
-        var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<TutorProfileDto>.SuccessResult(result, "Tutor profile submitted for review successfully."));
     }
 
     /// <summary>

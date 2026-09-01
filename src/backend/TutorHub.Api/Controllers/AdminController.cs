@@ -21,11 +21,11 @@ using TutorHub.Application.Features.Admin.Subjects.GetAdminSubjects;
 using TutorHub.Application.Features.Admin.Subjects.UpdateSubject;
 using TutorHub.Application.Features.Admin.Transactions.DTOs;
 using TutorHub.Application.Features.Admin.Transactions.GetAdminTransactions;
-using TutorHub.Application.Features.Admin.Tutors.ApproveTutor;
-using TutorHub.Application.Features.Admin.Tutors.DTOs;
+using TutorHub.Application.Features.Admin.TutorApplications.ApproveTutorApplication;
+using TutorHub.Application.Features.Admin.TutorApplications.DTOs;
+using TutorHub.Application.Features.Admin.TutorApplications.GetAdminTutorApplications;
+using TutorHub.Application.Features.Admin.TutorApplications.RejectTutorApplication;
 using TutorHub.Application.Features.Admin.Tutors.GetAdminTutors;
-using TutorHub.Application.Features.Admin.Tutors.RejectTutor;
-using TutorHub.Application.Features.Admin.Tutors.SuspendTutor;
 using TutorHub.Application.Features.Admin.Users.DTOs;
 using TutorHub.Application.Features.Admin.Users.GetAdminUserById;
 using TutorHub.Application.Features.Admin.Users.GetAdminUsers;
@@ -56,14 +56,76 @@ public class AdminController : ControllerBase
     }
 
     /// <summary>
+    /// Get paginated list of tutor applications with status and search filters (Admin only).
+    /// </summary>
+    [HttpGet("tutor-applications")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<AdminTutorApplicationListItemDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAdminTutorApplications(
+        [FromQuery] TutorApplicationStatus? status,
+        [FromQuery] string? search,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetAdminTutorApplicationsQuery(
+            Status: status,
+            Search: search,
+            PageNumber: pageNumber,
+            PageSize: pageSize
+        );
+
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<AdminTutorApplicationListItemDto>>.SuccessResult(result, "Admin tutor applications list retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Approve a pending tutor application (Admin only).
+    /// </summary>
+    [HttpPost("tutor-applications/{id:guid}/approve")]
+    [ProducesResponseType(typeof(ApiResponse<AdminTutorApplicationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ApproveTutorApplication([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        var adminId = GetCurrentUserId();
+        var command = new ApproveTutorApplicationCommand(id, adminId);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<AdminTutorApplicationDto>.SuccessResult(result, "Tutor application approved successfully."));
+    }
+
+    /// <summary>
+    /// Reject a tutor application with a reason (Admin only).
+    /// </summary>
+    [HttpPost("tutor-applications/{id:guid}/reject")]
+    [ProducesResponseType(typeof(ApiResponse<AdminTutorApplicationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RejectTutorApplication(
+        [FromRoute] Guid id,
+        [FromBody] RejectTutorApplicationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var adminId = GetCurrentUserId();
+        var command = new RejectTutorApplicationCommand(id, adminId, request.Reason);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<AdminTutorApplicationDto>.SuccessResult(result, "Tutor application rejected successfully."));
+    }
+
+    /// <summary>
     /// Get paginated list of tutor profiles with status and search filters (Admin only).
     /// </summary>
     [HttpGet("tutors")]
-    [ProducesResponseType(typeof(ApiResponse<PagedResult<AdminTutorDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<AdminTutorProfileDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAdminTutors(
-        [FromQuery] TutorProfileStatus? status,
+        [FromQuery] TutorApplicationStatus? status,
         [FromQuery] string? search,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
@@ -77,64 +139,7 @@ public class AdminController : ControllerBase
         );
 
         var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<PagedResult<AdminTutorDto>>.SuccessResult(result, "Admin tutors list retrieved successfully."));
-    }
-
-    /// <summary>
-    /// Approve a pending tutor profile (Admin only).
-    /// </summary>
-    [HttpPost("tutors/{id:guid}/approve")]
-    [ProducesResponseType(typeof(ApiResponse<AdminTutorDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ApproveTutor([FromRoute] Guid id, CancellationToken cancellationToken)
-    {
-        var adminId = GetCurrentUserId();
-        var command = new ApproveTutorCommand(id, adminId);
-        var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<AdminTutorDto>.SuccessResult(result, "Tutor profile approved successfully."));
-    }
-
-    /// <summary>
-    /// Reject a tutor profile with a reason (Admin only).
-    /// </summary>
-    [HttpPost("tutors/{id:guid}/reject")]
-    [ProducesResponseType(typeof(ApiResponse<AdminTutorDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> RejectTutor(
-        [FromRoute] Guid id,
-        [FromBody] AdminReviewRequest request,
-        CancellationToken cancellationToken)
-    {
-        var adminId = GetCurrentUserId();
-        var command = new RejectTutorCommand(id, adminId, request.Reason);
-        var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<AdminTutorDto>.SuccessResult(result, "Tutor profile rejected successfully."));
-    }
-
-    /// <summary>
-    /// Suspend a tutor profile with a reason (Admin only).
-    /// </summary>
-    [HttpPost("tutors/{id:guid}/suspend")]
-    [ProducesResponseType(typeof(ApiResponse<AdminTutorDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> SuspendTutor(
-        [FromRoute] Guid id,
-        [FromBody] AdminReviewRequest request,
-        CancellationToken cancellationToken)
-    {
-        var adminId = GetCurrentUserId();
-        var command = new SuspendTutorCommand(id, adminId, request.Reason);
-        var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<AdminTutorDto>.SuccessResult(result, "Tutor profile suspended successfully."));
+        return Ok(ApiResponse<PagedResult<AdminTutorProfileDto>>.SuccessResult(result, "Admin tutors list retrieved successfully."));
     }
 
     /// <summary>

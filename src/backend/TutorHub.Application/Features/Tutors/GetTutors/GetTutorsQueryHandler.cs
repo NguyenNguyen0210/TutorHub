@@ -24,7 +24,8 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
             .Include(t => t.TutorSubjects)
                 .ThenInclude(ts => ts.Subject)
                     .ThenInclude(s => s.Category)
-            .Where(t => t.Status == TutorProfileStatus.Verified && t.User.Status == AccountStatus.Active);
+            .Where(t => t.User.Status == AccountStatus.Active &&
+                        t.User.TutorApplications.Any(a => a.Status == TutorApplicationStatus.Approved));
 
         // Filter by Subject
         if (request.SubjectId.HasValue)
@@ -32,7 +33,7 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
             query = query.Where(t => t.TutorSubjects.Any(ts => ts.SubjectId == request.SubjectId.Value && ts.IsActive));
         }
 
-        // Filter by Price range
+        // Filter by Price range (legacy hourly rate)
         if (request.MinPrice.HasValue)
         {
             query = query.Where(t => t.HourlyRate >= request.MinPrice.Value);
