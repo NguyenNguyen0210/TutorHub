@@ -15,6 +15,7 @@ using TutorHub.Application.Features.Admin.Reports.DTOs;
 using TutorHub.Application.Features.Admin.Reports.GetAdminReportById;
 using TutorHub.Application.Features.Admin.Reports.GetAdminReports;
 using TutorHub.Application.Features.Admin.Reports.ResolveReport;
+using TutorHub.Application.Features.Admin.Services.AdminForceUnpublishService;
 using TutorHub.Application.Features.Admin.Subjects.CreateSubject;
 using TutorHub.Application.Features.Admin.Subjects.DeleteSubject;
 using TutorHub.Application.Features.Admin.Subjects.GetAdminSubjects;
@@ -26,6 +27,7 @@ using TutorHub.Application.Features.Admin.TutorApplications.DTOs;
 using TutorHub.Application.Features.Admin.TutorApplications.GetAdminTutorApplications;
 using TutorHub.Application.Features.Admin.TutorApplications.RejectTutorApplication;
 using TutorHub.Application.Features.Admin.Tutors.GetAdminTutors;
+using TutorHub.Application.Features.Tutors.Services.DTOs;
 using TutorHub.Application.Features.Admin.Users.DTOs;
 using TutorHub.Application.Features.Admin.Users.GetAdminUserById;
 using TutorHub.Application.Features.Admin.Users.GetAdminUsers;
@@ -546,6 +548,24 @@ public class AdminController : ControllerBase
         var query = new GetAdminTransactionsQuery(search, status, fromDate, toDate, pageNumber, pageSize);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<AdminTransactionDto>>.SuccessResult(result, "Transactions retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Force unpublish a violating service offering from the platform (Admin only).
+    /// </summary>
+    [HttpPost("services/{serviceId:guid}/force-unpublish")]
+    [ProducesResponseType(typeof(ApiResponse<ServiceDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ForceUnpublishService(
+        [FromRoute] Guid serviceId,
+        CancellationToken cancellationToken)
+    {
+        var adminId = GetCurrentUserId();
+        var command = new AdminForceUnpublishServiceCommand(serviceId, adminId);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service force-unpublished successfully by administrator."));
     }
 
     private Guid GetCurrentUserId()

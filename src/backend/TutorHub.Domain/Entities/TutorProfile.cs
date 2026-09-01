@@ -34,6 +34,9 @@ public class TutorProfile
     public ICollection<TutorSubject> TutorSubjects { get; set; }
         = new List<TutorSubject>();
 
+    public ICollection<Service> Services { get; set; }
+        = new List<Service>();
+
     public ICollection<AvailabilitySlot> AvailabilitySlots { get; set; }
         = new List<AvailabilitySlot>();
 

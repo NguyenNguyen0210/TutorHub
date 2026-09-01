@@ -16,6 +16,14 @@ using TutorHub.Application.Features.Tutors.GetMyProfile;
 using TutorHub.Application.Features.Tutors.GetMyTutorApplication;
 using TutorHub.Application.Features.Tutors.GetTutorById;
 using TutorHub.Application.Features.Tutors.GetTutors;
+using TutorHub.Application.Features.Tutors.Services.CreateService;
+using TutorHub.Application.Features.Tutors.Services.DTOs;
+using TutorHub.Application.Features.Tutors.Services.GetMyServiceById;
+using TutorHub.Application.Features.Tutors.Services.GetMyServices;
+using TutorHub.Application.Features.Tutors.Services.GetTutorServices;
+using TutorHub.Application.Features.Tutors.Services.PublishService;
+using TutorHub.Application.Features.Tutors.Services.UnpublishService;
+using TutorHub.Application.Features.Tutors.Services.UpdateService;
 using TutorHub.Application.Features.Tutors.SubmitTutorApplication;
 using TutorHub.Application.Features.Tutors.UpdateMyProfile;
 using TutorHub.Application.Features.Tutors.UpdateMySubjects;
@@ -295,6 +303,179 @@ public class TutorsController : ControllerBase
         var command = new DeleteAvailabilitySlotCommand(id, userId);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<bool>.SuccessResult(result, "Availability slot deleted successfully."));
+    }
+
+    /// <summary>
+    /// Create a new tutoring service offering (Tutor only). Created in Draft status.
+    /// </summary>
+    [Authorize(Roles = "Tutor")]
+    [HttpPost("me/services")]
+    [ProducesResponseType(typeof(ApiResponse<ServiceDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CreateService(
+        [FromBody] CreateServiceRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!Enum.TryParse<TeachingMode>(request.TeachingMode, true, out var parsedMode))
+        {
+            throw new BadRequestException("Teaching mode must be Online, Offline, or Both.");
+        }
+
+        var userId = GetCurrentUserId();
+        var command = new CreateServiceCommand(
+            UserId: userId,
+            SubjectId: request.SubjectId,
+            Title: request.Title,
+            Description: request.Description,
+            LearningScope: request.LearningScope,
+            ExpectedOutcome: request.ExpectedOutcome,
+            TotalSessions: request.TotalSessions,
+            SessionDurationMinutes: request.SessionDurationMinutes,
+            Price: request.Price,
+            TeachingMode: parsedMode,
+            TrialLessonUrl: request.TrialLessonUrl
+        );
+
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service offering created successfully in Draft status."));
+    }
+
+    /// <summary>
+    /// Get all service offerings owned by the authenticated tutor across all statuses (Tutor only).
+    /// </summary>
+    [Authorize(Roles = "Tutor")]
+    [HttpGet("me/services")]
+    [ProducesResponseType(typeof(ApiResponse<List<ServiceDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMyServices(
+        [FromQuery] ServiceStatus? status,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var query = new GetMyServicesQuery(userId, status);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<List<ServiceDto>>.SuccessResult(result, "Your service offerings retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Get details of a specific service offering owned by the authenticated tutor (Tutor only).
+    /// </summary>
+    [Authorize(Roles = "Tutor")]
+    [HttpGet("me/services/{serviceId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<ServiceDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMyServiceById(
+        [FromRoute] Guid serviceId,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var query = new GetMyServiceByIdQuery(serviceId, userId);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service details retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Update a service offering owned by the authenticated tutor (Tutor only).
+    /// For published services, commercial terms cannot be modified directly (unpublish first).
+    /// </summary>
+    [Authorize(Roles = "Tutor")]
+    [HttpPatch("me/services/{serviceId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<ServiceDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateService(
+        [FromRoute] Guid serviceId,
+        [FromBody] UpdateServiceRequest request,
+        CancellationToken cancellationToken)
+    {
+        TeachingMode? teachingMode = null;
+        if (!string.IsNullOrWhiteSpace(request.TeachingMode))
+        {
+            if (!Enum.TryParse<TeachingMode>(request.TeachingMode, true, out var parsedMode))
+            {
+                throw new BadRequestException("Teaching mode must be Online, Offline, or Both.");
+            }
+            teachingMode = parsedMode;
+        }
+
+        var userId = GetCurrentUserId();
+        var command = new UpdateServiceCommand(
+            ServiceId: serviceId,
+            UserId: userId,
+            Title: request.Title,
+            Description: request.Description,
+            LearningScope: request.LearningScope,
+            ExpectedOutcome: request.ExpectedOutcome,
+            TotalSessions: request.TotalSessions,
+            SessionDurationMinutes: request.SessionDurationMinutes,
+            Price: request.Price,
+            TeachingMode: teachingMode,
+            TrialLessonUrl: request.TrialLessonUrl
+        );
+
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service offering updated successfully."));
+    }
+
+    /// <summary>
+    /// Publish a draft or unpublished service to make it publicly discoverable on the marketplace (Tutor only).
+    /// </summary>
+    [Authorize(Roles = "Tutor")]
+    [HttpPost("me/services/{serviceId:guid}/publish")]
+    [ProducesResponseType(typeof(ApiResponse<ServiceDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> PublishService(
+        [FromRoute] Guid serviceId,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var command = new PublishServiceCommand(serviceId, userId);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service published successfully to the marketplace."));
+    }
+
+    /// <summary>
+    /// Unpublish an active service to hide it from the public marketplace (Tutor only).
+    /// </summary>
+    [Authorize(Roles = "Tutor")]
+    [HttpPost("me/services/{serviceId:guid}/unpublish")]
+    [ProducesResponseType(typeof(ApiResponse<ServiceDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UnpublishService(
+        [FromRoute] Guid serviceId,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var command = new UnpublishServiceCommand(serviceId, userId);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service unpublished successfully."));
+    }
+
+    /// <summary>
+    /// Get all published service offerings of a specific tutor (Public).
+    /// </summary>
+    [HttpGet("{id:guid}/services")]
+    [ProducesResponseType(typeof(ApiResponse<List<ServiceSummaryDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetTutorServices(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken)
+    {
+        var query = new GetTutorServicesQuery(id);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<List<ServiceSummaryDto>>.SuccessResult(result, "Tutor's published services retrieved successfully."));
     }
 
     private Guid GetCurrentUserId()

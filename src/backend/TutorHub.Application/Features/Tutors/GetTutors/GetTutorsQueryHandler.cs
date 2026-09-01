@@ -18,30 +18,34 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
 
     public async Task<PagedResult<TutorSummaryDto>> Handle(GetTutorsQuery request, CancellationToken cancellationToken)
     {
+        // Marketplace visibility: Approved Application + Active User + At least one Published Service
         var query = _context.TutorProfiles
             .AsNoTracking()
             .Include(t => t.User)
             .Include(t => t.TutorSubjects)
                 .ThenInclude(ts => ts.Subject)
                     .ThenInclude(s => s.Category)
+            .Include(t => t.Services)
             .Where(t => t.User.Status == AccountStatus.Active &&
-                        t.User.TutorApplications.Any(a => a.Status == TutorApplicationStatus.Approved));
+                        t.User.TutorApplications.Any(a => a.Status == TutorApplicationStatus.Approved) &&
+                        t.Services.Any(s => s.Status == ServiceStatus.Published));
 
-        // Filter by Subject
+        // Filter by Subject (either registered or offered via published service)
         if (request.SubjectId.HasValue)
         {
-            query = query.Where(t => t.TutorSubjects.Any(ts => ts.SubjectId == request.SubjectId.Value && ts.IsActive));
+            query = query.Where(t => t.Services.Any(s => s.Status == ServiceStatus.Published && s.SubjectId == request.SubjectId.Value) ||
+                                     t.TutorSubjects.Any(ts => ts.SubjectId == request.SubjectId.Value && ts.IsActive));
         }
 
-        // Filter by Price range (legacy hourly rate)
+        // Existential Price filter over published Services
         if (request.MinPrice.HasValue)
         {
-            query = query.Where(t => t.HourlyRate >= request.MinPrice.Value);
+            query = query.Where(t => t.Services.Any(s => s.Status == ServiceStatus.Published && s.Price >= request.MinPrice.Value));
         }
 
         if (request.MaxPrice.HasValue)
         {
-            query = query.Where(t => t.HourlyRate <= request.MaxPrice.Value);
+            query = query.Where(t => t.Services.Any(s => s.Status == ServiceStatus.Published && s.Price <= request.MaxPrice.Value));
         }
 
         // Filter by Teaching Mode
@@ -56,12 +60,15 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
             query = query.Where(t => t.RatingAvg >= request.MinRating.Value);
         }
 
-        // Search by keyword (tutor full name, subject name, or category name)
+        // Search by keyword (tutor full name, service title, subject name, or category name)
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim().ToLower();
             query = query.Where(t =>
                 t.User.FullName.ToLower().Contains(search) ||
+                t.Services.Any(s => s.Status == ServiceStatus.Published && (
+                    s.Title.ToLower().Contains(search) ||
+                    s.Subject.Name.ToLower().Contains(search))) ||
                 t.TutorSubjects.Any(ts => ts.IsActive && (
                     ts.Subject.Name.ToLower().Contains(search) ||
                     ts.Subject.Category.Name.ToLower().Contains(search))));
@@ -70,8 +77,8 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
         // Sorting
         query = request.SortBy?.ToLower() switch
         {
-            "price_asc" => query.OrderBy(t => t.HourlyRate),
-            "price_desc" => query.OrderByDescending(t => t.HourlyRate),
+            "price_asc" => query.OrderBy(t => t.Services.Where(s => s.Status == ServiceStatus.Published).Min(s => s.Price)),
+            "price_desc" => query.OrderByDescending(t => t.Services.Where(s => s.Status == ServiceStatus.Published).Max(s => s.Price)),
             "reviews" => query.OrderByDescending(t => t.TotalReviews).ThenByDescending(t => t.RatingAvg),
             _ => query.OrderByDescending(t => t.RatingAvg).ThenByDescending(t => t.TotalReviews)
         };

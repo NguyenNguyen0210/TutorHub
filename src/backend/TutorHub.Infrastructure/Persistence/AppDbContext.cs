@@ -18,6 +18,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Subject> Subjects => Set<Subject>();
     public DbSet<TutorSubject> TutorSubjects => Set<TutorSubject>();
+    public DbSet<Service> Services => Set<Service>();
     public DbSet<AvailabilitySlot> AvailabilitySlots => Set<AvailabilitySlot>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<Transaction> Transactions => Set<Transaction>();

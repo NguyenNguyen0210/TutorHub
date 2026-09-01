@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Tutors.DTOs;
+using TutorHub.Application.Features.Tutors.Services.DTOs;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Tutors.GetTutorById;
@@ -28,6 +29,8 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
             .Include(t => t.TutorSubjects)
                 .ThenInclude(ts => ts.Subject)
                     .ThenInclude(s => s.Category)
+            .Include(t => t.Services)
+                .ThenInclude(s => s.Subject)
             .FirstOrDefaultAsync(t => t.Id == request.TutorProfileId, cancellationToken);
 
         if (tutor == null)
@@ -61,6 +64,20 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
             ))
             .ToList();
 
+        var services = tutor.Services
+            .Where(s => isOwner || isAdmin || s.Status == ServiceStatus.Published)
+            .Select(s => new ServiceSummaryDto(
+                s.Id,
+                s.Title,
+                s.Subject.Name,
+                s.TotalSessions,
+                s.SessionDurationMinutes,
+                s.Price,
+                s.TeachingMode.ToString(),
+                !string.IsNullOrWhiteSpace(s.TrialLessonUrl)
+            ))
+            .ToList();
+
         return new TutorProfileDto(
             Id: tutor.Id,
             UserId: tutor.UserId,
@@ -75,7 +92,8 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
             Longitude: tutor.Longitude,
             RatingAvg: tutor.RatingAvg,
             TotalReviews: tutor.TotalReviews,
-            Subjects: subjects
+            Subjects: subjects,
+            Services: services
         );
     }
 }

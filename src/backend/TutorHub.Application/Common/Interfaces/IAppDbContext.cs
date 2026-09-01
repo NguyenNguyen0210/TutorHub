@@ -13,6 +13,7 @@ public interface IAppDbContext
     DbSet<Category> Categories { get; }
     DbSet<Subject> Subjects { get; }
     DbSet<TutorSubject> TutorSubjects { get; }
+    DbSet<Service> Services { get; }
     DbSet<AvailabilitySlot> AvailabilitySlots { get; }
     DbSet<Booking> Bookings { get; }
     DbSet<Transaction> Transactions { get; }

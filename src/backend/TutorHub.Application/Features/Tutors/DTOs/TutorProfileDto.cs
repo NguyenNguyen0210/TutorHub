@@ -1,3 +1,5 @@
+using TutorHub.Application.Features.Tutors.Services.DTOs;
+
 namespace TutorHub.Application.Features.Tutors.DTOs;
 
 public record TutorProfileDto(
@@ -14,5 +16,6 @@ public record TutorProfileDto(
     double? Longitude,
     decimal RatingAvg,
     int TotalReviews,
-    List<TutorSubjectDto> Subjects
+    List<TutorSubjectDto> Subjects,
+    List<ServiceSummaryDto> Services
 );
