@@ -9,7 +9,7 @@ public record AdminUserSummaryDto(
     string? Phone,
     string? AvatarUrl,
     UserRole Role,
-    bool IsActive,
+    AccountStatus Status,
     DateTime CreatedAt,
     TutorProfileStatus? TutorStatus = null
 );

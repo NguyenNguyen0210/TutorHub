@@ -3,6 +3,7 @@ using FluentAssertions;
 using Moq;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Security;
 using TutorHub.Application.Features.Auth.Login;
 using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
@@ -125,23 +126,23 @@ public class LoginCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenUserIsInactive_ShouldThrowUnauthorizedException()
+    public async Task Handle_WhenUserIsSuspended_ShouldThrowUnauthorizedException()
     {
         // Arrange
-        var inactiveUser = new UserBuilder()
-            .WithEmail("inactive@example.com")
-            .WithActive(false)
+        var suspendedUser = new UserBuilder()
+            .WithEmail("suspended@example.com")
+            .WithStatus(AccountStatus.Suspended)
             .Build();
 
-        var usersList = new List<User> { inactiveUser };
+        var usersList = new List<User> { suspendedUser };
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
 
         _passwordHasherMock
-            .Setup(h => h.VerifyPassword("Password123!", inactiveUser.PasswordHash))
+            .Setup(h => h.VerifyPassword("Password123!", suspendedUser.PasswordHash))
             .Returns(true);
 
-        var command = new LoginCommand("inactive@example.com", "Password123!");
+        var command = new LoginCommand("suspended@example.com", "Password123!");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -149,9 +150,40 @@ public class LoginCommandHandlerTests
         // Assert
         var ex = await act.Should().ThrowAsync<UnauthorizedException>();
         ex.Which.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        ex.Which.Errors.Should().Contain("Your account has been deactivated. Please contact support.");
+        ex.Which.Errors.Should().Contain("Your account has been suspended. Please contact support.");
 
         _jwtServiceMock.Verify(j => j.GenerateAccessToken(It.IsAny<User>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
-}
+
+    [Fact]
+    public async Task Handle_WhenUserIsBanned_ShouldThrowUnauthorizedException()
+    {
+        // Arrange
+        var bannedUser = new UserBuilder()
+            .WithEmail("banned@example.com")
+            .WithStatus(AccountStatus.Banned)
+            .Build();
+
+        var usersList = new List<User> { bannedUser };
+
+        _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
+
+        _passwordHasherMock
+            .Setup(h => h.VerifyPassword("Password123!", bannedUser.PasswordHash))
+            .Returns(true);
+
+        var command = new LoginCommand("banned@example.com", "Password123!");
+
+        // Act
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        var ex = await act.Should().ThrowAsync<UnauthorizedException>();
+        ex.Which.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        ex.Which.Errors.Should().Contain("Your account has been banned.");
+
+        _jwtServiceMock.Verify(j => j.GenerateAccessToken(It.IsAny<User>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
+        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+}

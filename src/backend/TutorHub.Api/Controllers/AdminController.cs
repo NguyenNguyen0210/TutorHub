@@ -29,7 +29,9 @@ using TutorHub.Application.Features.Admin.Tutors.SuspendTutor;
 using TutorHub.Application.Features.Admin.Users.DTOs;
 using TutorHub.Application.Features.Admin.Users.GetAdminUserById;
 using TutorHub.Application.Features.Admin.Users.GetAdminUsers;
-using TutorHub.Application.Features.Admin.Users.SetUserStatus;
+using TutorHub.Application.Features.Admin.Users.SuspendUser;
+using TutorHub.Application.Features.Admin.Users.ReactivateUser;
+using TutorHub.Application.Features.Admin.Users.BanUser;
 using TutorHub.Application.Features.Admin.Withdrawals.ApproveWithdrawal;
 using TutorHub.Application.Features.Admin.Withdrawals.GetAdminWithdrawals;
 using TutorHub.Application.Features.Admin.Withdrawals.RejectWithdrawal;
@@ -432,12 +434,12 @@ public class AdminController : ControllerBase
     public async Task<IActionResult> GetUsers(
         [FromQuery] string? search,
         [FromQuery] UserRole? role,
-        [FromQuery] bool? isActive,
+        [FromQuery] AccountStatus? status,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetAdminUsersQuery(search, role, isActive, pageNumber, pageSize);
+        var query = new GetAdminUsersQuery(search, role, status, pageNumber, pageSize);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<AdminUserSummaryDto>>.SuccessResult(result, "Users retrieved successfully."));
     }
@@ -458,24 +460,65 @@ public class AdminController : ControllerBase
     }
 
     /// <summary>
-    /// Set user account active status (Activate or Deactivate) with session revocation (Admin only).
+    /// Suspend a user account with session revocation and audit logging (Admin only).
     /// </summary>
-    [HttpPatch("users/{id:guid}/status")]
+    [HttpPost("users/{id:guid}/suspend")]
     [ProducesResponseType(typeof(ApiResponse<AdminUserSummaryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> SetUserStatus(
+    public async Task<IActionResult> SuspendUser(
         [FromRoute] Guid id,
-        [FromBody] SetUserStatusRequest request,
+        [FromBody] SuspendUserRequest request,
         CancellationToken cancellationToken)
     {
         var adminId = GetCurrentUserId();
-        var command = new SetUserStatusCommand(id, adminId, request.IsActive, request.Reason);
+        var command = new SuspendUserCommand(id, adminId, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<AdminUserSummaryDto>.SuccessResult(result, "User status updated successfully."));
+        return Ok(ApiResponse<AdminUserSummaryDto>.SuccessResult(result, "User account suspended successfully."));
+    }
+
+    /// <summary>
+    /// Reactivate a suspended user account with audit logging (Admin only).
+    /// </summary>
+    [HttpPost("users/{id:guid}/reactivate")]
+    [ProducesResponseType(typeof(ApiResponse<AdminUserSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ReactivateUser(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken)
+    {
+        var adminId = GetCurrentUserId();
+        var command = new ReactivateUserCommand(id, adminId);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<AdminUserSummaryDto>.SuccessResult(result, "User account reactivated successfully."));
+    }
+
+    /// <summary>
+    /// Ban a user account with session revocation and audit logging (Admin only).
+    /// </summary>
+    [HttpPost("users/{id:guid}/ban")]
+    [ProducesResponseType(typeof(ApiResponse<AdminUserSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> BanUser(
+        [FromRoute] Guid id,
+        [FromBody] BanUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var adminId = GetCurrentUserId();
+        var command = new BanUserCommand(id, adminId, request.Reason);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<AdminUserSummaryDto>.SuccessResult(result, "User account banned successfully."));
     }
 
     /// <summary>

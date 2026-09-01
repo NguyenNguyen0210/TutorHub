@@ -48,7 +48,7 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
             .Include(t => t.AvailabilitySlots)
             .FirstOrDefaultAsync(t => t.Id == request.TutorProfileId, cancellationToken);
 
-        if (tutor == null || tutor.Status != TutorProfileStatus.Verified || !tutor.User.IsActive)
+        if (tutor == null || tutor.Status != TutorProfileStatus.Verified || tutor.User.Status != AccountStatus.Active)
         {
             throw new BadRequestException("The selected tutor profile is not active or verified.");
         }

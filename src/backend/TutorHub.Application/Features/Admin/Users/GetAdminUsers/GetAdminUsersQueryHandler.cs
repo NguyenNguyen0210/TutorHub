@@ -35,10 +35,10 @@ public class GetAdminUsersQueryHandler : IRequestHandler<GetAdminUsersQuery, Pag
             query = query.Where(u => u.Role == request.Role.Value);
         }
 
-        // 3. IsActive Filter
-        if (request.IsActive.HasValue)
+        // 3. Status Filter
+        if (request.Status.HasValue)
         {
-            query = query.Where(u => u.IsActive == request.IsActive.Value);
+            query = query.Where(u => u.Status == request.Status.Value);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -56,7 +56,7 @@ public class GetAdminUsersQueryHandler : IRequestHandler<GetAdminUsersQuery, Pag
                 u.Phone,
                 u.AvatarUrl,
                 u.Role,
-                u.IsActive,
+                u.Status,
                 u.CreatedAt,
                 u.TutorProfile != null ? u.TutorProfile.Status : null
             ))

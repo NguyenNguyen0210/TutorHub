@@ -39,9 +39,14 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
             throw new UnauthorizedException("Invalid email or password.");
         }
 
-        if (!user.IsActive)
+        if (user.Status == AccountStatus.Suspended)
         {
-            throw new UnauthorizedException("Your account has been deactivated. Please contact support.");
+            throw new UnauthorizedException("Your account has been suspended. Please contact support.");
+        }
+
+        if (user.Status == AccountStatus.Banned)
+        {
+            throw new UnauthorizedException("Your account has been banned.");
         }
 
         Guid? tutorProfileId = user.TutorProfile?.Id;

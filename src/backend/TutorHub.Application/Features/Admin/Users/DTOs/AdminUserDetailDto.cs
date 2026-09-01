@@ -9,7 +9,7 @@ public record AdminUserDetailDto(
     string? Phone,
     string? AvatarUrl,
     UserRole Role,
-    bool IsActive,
+    AccountStatus Status,
     DateTime CreatedAt,
     AdminUserTutorProfileDto? TutorProfile,
     AdminUserStudentProfileDto? StudentProfile,

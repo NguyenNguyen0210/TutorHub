@@ -60,9 +60,14 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
             throw new UnauthorizedException("Refresh token has expired. Please log in again.");
         }
 
-        if (!existingToken.User.IsActive)
+        if (existingToken.User.Status == Domain.Enums.AccountStatus.Suspended)
         {
-            throw new UnauthorizedException("Your account has been deactivated.");
+            throw new UnauthorizedException("Your account has been suspended. Please contact support.");
+        }
+
+        if (existingToken.User.Status == Domain.Enums.AccountStatus.Banned)
+        {
+            throw new UnauthorizedException("Your account has been banned.");
         }
 
         // Generate new Access Token & new Refresh Token

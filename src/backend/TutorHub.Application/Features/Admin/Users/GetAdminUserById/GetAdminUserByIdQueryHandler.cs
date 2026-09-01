@@ -118,7 +118,7 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
             Phone: user.Phone,
             AvatarUrl: user.AvatarUrl,
             Role: user.Role,
-            IsActive: user.IsActive,
+            Status: user.Status,
             CreatedAt: user.CreatedAt,
             TutorProfile: tutorProfileDto,
             StudentProfile: studentProfileDto,

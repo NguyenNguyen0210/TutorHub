@@ -11,10 +11,7 @@
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="FluentAssertions" Version="8.10.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-<<<<<<< HEAD
     <PackageReference Include="MockQueryable.Moq" Version="7.0.3" />
-=======
->>>>>>> 5ec18f8 (refactor(structure): reorganize repository layout into src/backend, src/frontend, and src/test)
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
@@ -27,10 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\backend\TutorHub.Application\TutorHub.Application.csproj" />
     <ProjectReference Include="..\..\backend\TutorHub.Domain\TutorHub.Domain.csproj" />
-<<<<<<< HEAD
     <ProjectReference Include="..\TutorHub.Domain.UnitTests\TutorHub.Domain.UnitTests.csproj" />
-=======
->>>>>>> 5ec18f8 (refactor(structure): reorganize repository layout into src/backend, src/frontend, and src/test)
   </ItemGroup>
 
 </Project>

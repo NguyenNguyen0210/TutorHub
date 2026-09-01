@@ -36,8 +36,11 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(50)
             .IsRequired();
 
-        builder.Property(u => u.IsActive)
-            .IsRequired();
+        builder.Property(u => u.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired()
+            .HasDefaultValue(TutorHub.Domain.Enums.AccountStatus.Active);
 
         builder.Property(u => u.CreatedAt)
             .IsRequired();

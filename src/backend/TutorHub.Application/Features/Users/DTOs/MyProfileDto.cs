@@ -9,6 +9,6 @@ public record MyProfileDto(
     string? Phone,
     string? AvatarUrl,
     UserRole Role,
-    bool IsActive,
+    AccountStatus Status,
     DateTime CreatedAt
 );
