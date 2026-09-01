@@ -20,14 +20,14 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
         // 1. Grouped Users Metrics
         var userGroup = await _context.Users
             .AsNoTracking()
-            .GroupBy(u => new { u.Role, u.IsActive })
-            .Select(g => new { g.Key.Role, g.Key.IsActive, Count = g.Count() })
+            .GroupBy(u => new { u.Role, u.Status })
+            .Select(g => new { g.Key.Role, g.Key.Status, Count = g.Count() })
             .ToListAsync(cancellationToken);
 
         int totalUsers = userGroup.Sum(g => g.Count);
         int totalStudents = userGroup.Where(g => g.Role == UserRole.Student).Sum(g => g.Count);
         int totalTutors = userGroup.Where(g => g.Role == UserRole.Tutor).Sum(g => g.Count);
-        int activeUsers = userGroup.Where(g => g.IsActive).Sum(g => g.Count);
+        int activeUsers = userGroup.Where(g => g.Status == AccountStatus.Active).Sum(g => g.Count);
 
         var usersStats = new UserStatsDto(
             TotalUsers: totalUsers,

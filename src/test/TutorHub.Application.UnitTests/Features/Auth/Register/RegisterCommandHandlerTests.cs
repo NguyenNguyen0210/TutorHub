@@ -3,6 +3,7 @@ using FluentAssertions;
 using Moq;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Security;
 using TutorHub.Application.Features.Auth.Register;
 using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
@@ -61,6 +62,7 @@ public class RegisterCommandHandlerTests
         // Password security contract: Never stored in plaintext
         createdUser.PasswordHash.Should().NotBe(rawPassword);
         createdUser.PasswordHash.Should().Be(hashedPassword);
+        createdUser.Status.Should().Be(AccountStatus.Active);
 
         studentProfilesList.Should().ContainSingle(s => s.UserId == createdUser.Id);
         _passwordHasherMock.Verify(h => h.HashPassword(rawPassword), Times.Once);
@@ -99,6 +101,7 @@ public class RegisterCommandHandlerTests
         // Verify side effects
         usersList.Should().ContainSingle(u => u.Email == "newtutor@example.com");
         var createdUser = usersList.Single();
+        createdUser.Status.Should().Be(AccountStatus.Active);
 
         tutorProfilesList.Should().ContainSingle(t => t.UserId == createdUser.Id && t.Status == TutorProfileStatus.Draft);
         var createdTutorProfile = tutorProfilesList.Single();

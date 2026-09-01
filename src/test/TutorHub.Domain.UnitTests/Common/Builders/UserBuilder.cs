@@ -13,7 +13,7 @@ public class UserBuilder
     private string _fullName = "Test User";
     private string? _phone = "0987654321";
     private UserRole _role = UserRole.Student;
-    private bool _isActive = true;
+    private AccountStatus _status = AccountStatus.Active;
     private TutorProfile? _tutorProfile;
     private StudentProfile? _studentProfile;
 
@@ -53,9 +53,9 @@ public class UserBuilder
         return this;
     }
 
-    public UserBuilder WithActive(bool isActive)
+    public UserBuilder WithStatus(AccountStatus status)
     {
-        _isActive = isActive;
+        _status = status;
         return this;
     }
 
@@ -89,7 +89,7 @@ public class UserBuilder
             FullName = _fullName,
             Phone = _phone,
             Role = _role,
-            IsActive = _isActive,
+            Status = _status,
             TutorProfile = _tutorProfile,
             StudentProfile = _studentProfile,
             CreatedAt = DefaultCreatedAt

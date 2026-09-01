@@ -24,7 +24,7 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
             .Include(t => t.TutorSubjects)
                 .ThenInclude(ts => ts.Subject)
                     .ThenInclude(s => s.Category)
-            .Where(t => t.Status == TutorProfileStatus.Verified && t.User.IsActive);
+            .Where(t => t.Status == TutorProfileStatus.Verified && t.User.Status == AccountStatus.Active);
 
         // Filter by Subject
         if (request.SubjectId.HasValue)

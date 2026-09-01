@@ -3,6 +3,7 @@ using FluentAssertions;
 using Moq;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Security;
 using TutorHub.Application.Features.Auth.ChangePassword;
 using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;

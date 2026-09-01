@@ -3,6 +3,7 @@ using FluentAssertions;
 using Moq;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Security;
 using TutorHub.Application.Features.Auth.RefreshToken;
 using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
@@ -185,16 +186,16 @@ public class RefreshTokenCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldThrowUnauthorized_WhenUserIsInactive()
+    public async Task Handle_ShouldThrowUnauthorized_WhenUserIsSuspended()
     {
         // Arrange
-        var inactiveUser = new UserBuilder().WithActive(false).Build();
+        var suspendedUser = new UserBuilder().WithStatus(AccountStatus.Suspended).Build();
         var token = new Domain.Entities.RefreshToken
         {
             Id = Guid.NewGuid(),
-            UserId = inactiveUser.Id,
-            User = inactiveUser,
-            Token = "valid-token-inactive-user",
+            UserId = suspendedUser.Id,
+            User = suspendedUser,
+            Token = "valid-token-suspended-user",
             ExpiresAt = DateTime.UtcNow.AddDays(3),
             CreatedAt = DateTime.UtcNow.AddDays(-1),
             RevokedAt = null
@@ -203,14 +204,45 @@ public class RefreshTokenCommandHandlerTests
         var tokensList = new List<Domain.Entities.RefreshToken> { token };
         _contextMock.Setup(c => c.RefreshTokens).Returns(MockDbSetHelper.CreateMockDbSet(tokensList).Object);
 
-        var command = new RefreshTokenCommand("valid-token-inactive-user");
+        var command = new RefreshTokenCommand("valid-token-suspended-user");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
 
         // Assert
         var ex = await act.Should().ThrowAsync<UnauthorizedException>();
-        ex.Which.Errors.Should().Contain("Your account has been deactivated.");
+        ex.Which.Errors.Should().Contain("Your account has been suspended. Please contact support.");
+
+        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldThrowUnauthorized_WhenUserIsBanned()
+    {
+        // Arrange
+        var bannedUser = new UserBuilder().WithStatus(AccountStatus.Banned).Build();
+        var token = new Domain.Entities.RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = bannedUser.Id,
+            User = bannedUser,
+            Token = "valid-token-banned-user",
+            ExpiresAt = DateTime.UtcNow.AddDays(3),
+            CreatedAt = DateTime.UtcNow.AddDays(-1),
+            RevokedAt = null
+        };
+
+        var tokensList = new List<Domain.Entities.RefreshToken> { token };
+        _contextMock.Setup(c => c.RefreshTokens).Returns(MockDbSetHelper.CreateMockDbSet(tokensList).Object);
+
+        var command = new RefreshTokenCommand("valid-token-banned-user");
+
+        // Act
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        var ex = await act.Should().ThrowAsync<UnauthorizedException>();
+        ex.Which.Errors.Should().Contain("Your account has been banned.");
 
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }

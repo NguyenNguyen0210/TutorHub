@@ -8,7 +8,7 @@ namespace TutorHub.Application.Features.Admin.Users.GetAdminUsers;
 public record GetAdminUsersQuery(
     string? Search = null,
     UserRole? Role = null,
-    bool? IsActive = null,
+    AccountStatus? Status = null,
     int PageNumber = 1,
     int PageSize = 10
 ) : IRequest<PagedResult<AdminUserSummaryDto>>;

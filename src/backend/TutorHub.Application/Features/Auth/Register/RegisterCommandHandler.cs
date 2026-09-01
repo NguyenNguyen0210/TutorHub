@@ -42,7 +42,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
             FullName = request.FullName.Trim(),
             Phone = request.Phone?.Trim(),
             Role = request.Role,
-            IsActive = true,
+            Status = AccountStatus.Active,
             CreatedAt = DateTime.UtcNow
         };
 
