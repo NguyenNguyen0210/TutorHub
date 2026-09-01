@@ -46,7 +46,16 @@ public class Booking
     public DateTime CreatedAt { get; set; }
 
 
+    // Service reference & Commercial Snapshot (Sprint 4 Service-based commerce)
+    public Guid? ServiceId { get; set; }
+    public Service? Service { get; set; }
+    public decimal TotalPrice { get; set; }
+    public int TotalSessions { get; set; }
+    public int SessionDurationMinutes { get; set; }
+    public TeachingMode TeachingMode { get; set; }
+
     // Relationships
+    public Enrollment? Enrollment { get; set; }
     public Transaction? Transaction { get; set; }
 
     public ICollection<Review> Reviews { get; set; }
