@@ -8,6 +8,7 @@ using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Sessions.DTOs;
 using TutorHub.Application.Features.Sessions.GetMySessions;
 using TutorHub.Application.Features.Sessions.ScheduleSession;
+using TutorHub.Application.Features.Sessions.SubmitAttendance;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Api.Controllers;
@@ -49,6 +50,34 @@ public class SessionsController : ControllerBase
 
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<SessionDto>.SuccessResult(result, "Session scheduled successfully."));
+    }
+
+    /// <summary>
+    /// Dual attendance verification (Student or Tutor participant).
+    /// Matching attendance automatically completes session and releases progressive escrow payout.
+    /// </summary>
+    [Authorize]
+    [HttpPost("{id:guid}/attendance")]
+    [ProducesResponseType(typeof(ApiResponse<SessionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SubmitAttendance(
+        [FromRoute] Guid id,
+        [FromBody] SubmitAttendanceRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var command = new SubmitAttendanceCommand(
+            UserId: userId,
+            SessionId: id,
+            Outcome: request.Outcome
+        );
+
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<SessionDto>.SuccessResult(result, "Attendance verification submitted successfully."));
     }
 
     /// <summary>

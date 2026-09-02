@@ -51,7 +51,10 @@ public class GetEnrollmentByIdQueryHandler : IRequestHandler<GetEnrollmentByIdQu
             IsPayoutReleased: s.IsPayoutReleased,
             CreatedAt: s.CreatedAt,
             CompletedAt: s.CompletedAt,
-            CancelledAt: s.CancelledAt
+            CancelledAt: s.CancelledAt,
+            StudentAttendance: s.StudentAttendance,
+            TutorAttendance: s.TutorAttendance,
+            HasAttendanceConflict: s.HasAttendanceConflict
         )).ToList();
 
         return new EnrollmentDto(

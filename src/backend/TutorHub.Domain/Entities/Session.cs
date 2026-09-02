@@ -31,6 +31,13 @@ public class Session
     public DateTime? CompletedAt { get; private set; }
     public DateTime? CancelledAt { get; private set; }
 
+    // --- Dual Attendance Verification ---
+    public AttendanceStatus? StudentAttendance { get; private set; }
+    public DateTime? StudentAttendanceSubmittedAt { get; private set; }
+    public AttendanceStatus? TutorAttendance { get; private set; }
+    public DateTime? TutorAttendanceSubmittedAt { get; private set; }
+    public bool HasAttendanceConflict { get; private set; } = false;
+
     // --- Payout linkage (used for idempotency by Application layer) ---
     // Application layer uses this to verify payout has not been done
     public bool IsPayoutReleased { get; private set; } = false;
@@ -39,6 +46,69 @@ public class Session
     // =======================================================
     // Domain Methods
     // =======================================================
+
+    /// <summary>
+    /// Records attendance outcome submitted by the Student participant.
+    /// Only allowed when session is Scheduled and has ended (EndAt <= now).
+    /// </summary>
+    public void SubmitStudentAttendance(AttendanceStatus outcome, DateTime now)
+    {
+        if (Status != SessionStatus.Scheduled)
+        {
+            throw new InvalidOperationException(
+                $"Cannot submit attendance for a session in '{Status}' status.");
+        }
+
+        if (EndAt.HasValue && EndAt.Value > now)
+        {
+            throw new InvalidOperationException(
+                "Cannot submit attendance before the session has ended.");
+        }
+
+        StudentAttendance = outcome;
+        StudentAttendanceSubmittedAt = now;
+        UpdatedAt = now;
+        EvaluateAttendanceResolution();
+    }
+
+    /// <summary>
+    /// Records attendance outcome submitted by the Tutor participant.
+    /// Only allowed when session is Scheduled and has ended (EndAt <= now).
+    /// </summary>
+    public void SubmitTutorAttendance(AttendanceStatus outcome, DateTime now)
+    {
+        if (Status != SessionStatus.Scheduled)
+        {
+            throw new InvalidOperationException(
+                $"Cannot submit attendance for a session in '{Status}' status.");
+        }
+
+        if (EndAt.HasValue && EndAt.Value > now)
+        {
+            throw new InvalidOperationException(
+                "Cannot submit attendance before the session has ended.");
+        }
+
+        TutorAttendance = outcome;
+        TutorAttendanceSubmittedAt = now;
+        UpdatedAt = now;
+        EvaluateAttendanceResolution();
+    }
+
+    private void EvaluateAttendanceResolution()
+    {
+        if (StudentAttendance.HasValue && TutorAttendance.HasValue)
+        {
+            if (StudentAttendance == AttendanceStatus.Attended && TutorAttendance == AttendanceStatus.Attended)
+            {
+                HasAttendanceConflict = false;
+            }
+            else
+            {
+                HasAttendanceConflict = true;
+            }
+        }
+    }
 
     /// <summary>
     /// Sets or updates the schedule for this Session.
