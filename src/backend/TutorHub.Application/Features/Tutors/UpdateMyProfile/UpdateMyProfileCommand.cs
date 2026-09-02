@@ -17,4 +17,4 @@ public record UpdateMyProfileCommand(
     string? Address = null,
     double? Latitude = null,
     double? Longitude = null
-) : IRequest<TutorProfileDto>;
+) : IRequest<TutorMyProfileDto>;

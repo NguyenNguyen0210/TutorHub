@@ -22,7 +22,15 @@ public class GetTutorAvailabilityQueryHandler : IRequestHandler<GetTutorAvailabi
             .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == request.TutorProfileId, cancellationToken);
 
-        if (tutor == null || tutor.Status != TutorProfileStatus.Verified)
+        if (tutor == null)
+        {
+            throw new NotFoundException("TutorProfile", request.TutorProfileId);
+        }
+
+        var isApprovedTutor = await _context.TutorApplications
+            .AnyAsync(a => a.UserId == tutor.UserId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
+
+        if (!isApprovedTutor)
         {
             throw new NotFoundException("TutorProfile", request.TutorProfileId);
         }

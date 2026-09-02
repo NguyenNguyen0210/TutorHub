@@ -129,6 +129,12 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
 
+                    b.Property<Guid?>("ServiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SessionDurationMinutes")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("StartAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -143,14 +149,28 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("SubjectId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("TeachingMode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
+
+                    b.Property<decimal>("TotalPrice")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<int>("TotalSessions")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("TutorProfileId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ServiceId");
 
                     b.HasIndex("Status");
 
@@ -192,6 +212,85 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Categories");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.Enrollment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancelledBy")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CompletedSessions")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ServiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SessionDurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("StudentProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TeachingMode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("TotalPrice")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<int>("TotalSessions")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TutorProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .IsUnique();
+
+                    b.HasIndex("ServiceId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("SubjectId");
+
+                    b.HasIndex("StudentProfileId", "Status");
+
+                    b.HasIndex("TutorProfileId", "Status");
+
+                    b.ToTable("Enrollments");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Media", b =>
@@ -388,6 +487,130 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TutorHub.Domain.Entities.Service", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
+
+                    b.Property<string>("ExpectedOutcome")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("LearningScope")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<int>("SessionDurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TeachingMode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("TotalSessions")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TrialLessonUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("TutorProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubjectId", "Status");
+
+                    b.HasIndex("TutorProfileId", "Status");
+
+                    b.ToTable("Services");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.Session", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("EarningAmount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<DateTime?>("EndAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsPayoutReleased")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SessionNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("StartAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EnrollmentId", "SessionNumber")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "StartAt");
+
+                    b.ToTable("Sessions", t =>
+                        {
+                            t.HasCheckConstraint("CK_Session_Schedule", "\"StartAt\" IS NULL OR \"EndAt\" IS NULL OR \"StartAt\" < \"EndAt\"");
+                        });
+                });
+
             modelBuilder.Entity("TutorHub.Domain.Entities.StudentProfile", b =>
                 {
                     b.Property<Guid>("Id")
@@ -470,6 +693,9 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("ReleasedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("SessionId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -480,7 +706,77 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasIndex("BookingId")
                         .IsUnique();
 
+                    b.HasIndex("SessionId")
+                        .IsUnique()
+                        .HasFilter("\"SessionId\" IS NOT NULL");
+
                     b.ToTable("Transactions");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.TutorApplication", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Bio")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Education")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("ExperienceYears")
+                        .HasColumnType("integer");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReviewedByAdminId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TeachingMode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewedByAdminId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId", "Status");
+
+                    b.ToTable("TutorApplications");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.TutorProfile", b =>
@@ -520,21 +816,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasPrecision(3, 2)
                         .HasColumnType("numeric(3,2)");
 
-                    b.Property<string>("RejectionReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ReviewedByAdminId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<string>("TeachingMode")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -547,10 +828,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ReviewedByAdminId");
-
-                    b.HasIndex("Status");
 
                     b.HasIndex("UserId")
                         .IsUnique();
@@ -766,6 +1043,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Booking", b =>
                 {
+                    b.HasOne("TutorHub.Domain.Entities.Service", "Service")
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TutorHub.Domain.Entities.StudentProfile", "StudentProfile")
                         .WithMany("Bookings")
                         .HasForeignKey("StudentProfileId")
@@ -779,10 +1061,55 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
-                        .WithMany("Bookings")
+                        .WithMany()
                         .HasForeignKey("TutorProfileId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Service");
+
+                    b.Navigation("StudentProfile");
+
+                    b.Navigation("Subject");
+
+                    b.Navigation("TutorProfile");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.Enrollment", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.Booking", "Booking")
+                        .WithOne("Enrollment")
+                        .HasForeignKey("TutorHub.Domain.Entities.Enrollment", "BookingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TutorHub.Domain.Entities.Service", "Service")
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TutorHub.Domain.Entities.StudentProfile", "StudentProfile")
+                        .WithMany()
+                        .HasForeignKey("StudentProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TutorHub.Domain.Entities.Subject", "Subject")
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
+                        .WithMany()
+                        .HasForeignKey("TutorProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("Service");
 
                     b.Navigation("StudentProfile");
 
@@ -866,6 +1193,36 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("ReviewerUser");
                 });
 
+            modelBuilder.Entity("TutorHub.Domain.Entities.Service", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.Subject", "Subject")
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
+                        .WithMany("Services")
+                        .HasForeignKey("TutorProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Subject");
+
+                    b.Navigation("TutorProfile");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.Session", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.Enrollment", "Enrollment")
+                        .WithMany("Sessions")
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Enrollment");
+                });
+
             modelBuilder.Entity("TutorHub.Domain.Entities.StudentProfile", b =>
                 {
                     b.HasOne("TutorHub.Domain.Entities.User", "User")
@@ -896,10 +1253,17 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("TutorHub.Domain.Entities.Session", "Session")
+                        .WithOne("Transaction")
+                        .HasForeignKey("TutorHub.Domain.Entities.Transaction", "SessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Booking");
+
+                    b.Navigation("Session");
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.TutorProfile", b =>
+            modelBuilder.Entity("TutorHub.Domain.Entities.TutorApplication", b =>
                 {
                     b.HasOne("TutorHub.Domain.Entities.User", "ReviewedByAdmin")
                         .WithMany()
@@ -907,12 +1271,23 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TutorHub.Domain.Entities.User", "User")
-                        .WithOne("TutorProfile")
-                        .HasForeignKey("TutorHub.Domain.Entities.TutorProfile", "UserId")
+                        .WithMany("TutorApplications")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("ReviewedByAdmin");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.TutorProfile", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.User", "User")
+                        .WithOne("TutorProfile")
+                        .HasForeignKey("TutorHub.Domain.Entities.TutorProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -967,6 +1342,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Booking", b =>
                 {
+                    b.Navigation("Enrollment");
+
                     b.Navigation("Reports");
 
                     b.Navigation("Reviews");
@@ -977,6 +1354,16 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TutorHub.Domain.Entities.Category", b =>
                 {
                     b.Navigation("Subjects");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.Enrollment", b =>
+                {
+                    b.Navigation("Sessions");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.Session", b =>
+                {
+                    b.Navigation("Transaction");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.StudentProfile", b =>
@@ -993,7 +1380,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 {
                     b.Navigation("AvailabilitySlots");
 
-                    b.Navigation("Bookings");
+                    b.Navigation("Services");
 
                     b.Navigation("TutorSubjects");
 
@@ -1005,6 +1392,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("MediaUploaded");
 
                     b.Navigation("StudentProfile");
+
+                    b.Navigation("TutorApplications");
 
                     b.Navigation("TutorProfile");
                 });

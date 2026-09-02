@@ -14,11 +14,15 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<StudentProfile> StudentProfiles => Set<StudentProfile>();
     public DbSet<TutorProfile> TutorProfiles => Set<TutorProfile>();
+    public DbSet<TutorApplication> TutorApplications => Set<TutorApplication>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Subject> Subjects => Set<Subject>();
     public DbSet<TutorSubject> TutorSubjects => Set<TutorSubject>();
+    public DbSet<Service> Services => Set<Service>();
     public DbSet<AvailabilitySlot> AvailabilitySlots => Set<AvailabilitySlot>();
     public DbSet<Booking> Bookings => Set<Booking>();
+    public DbSet<Enrollment> Enrollments => Set<Enrollment>();
+    public DbSet<Session> Sessions => Set<Session>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Wallet> Wallets => Set<Wallet>();
     public DbSet<Withdrawal> Withdrawals => Set<Withdrawal>();

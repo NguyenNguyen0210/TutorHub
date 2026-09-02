@@ -29,7 +29,7 @@ public record AdminUserTutorProfileDto(
     decimal HourlyRate,
     TeachingMode TeachingMode,
     string? Address,
-    TutorProfileStatus Status,
+    string? LatestApplicationStatus,
     decimal RatingAvg,
     int TotalReviews,
     decimal? WalletBalance,

@@ -9,11 +9,15 @@ public interface IAppDbContext
     DbSet<User> Users { get; }
     DbSet<StudentProfile> StudentProfiles { get; }
     DbSet<TutorProfile> TutorProfiles { get; }
+    DbSet<TutorApplication> TutorApplications { get; }
     DbSet<Category> Categories { get; }
     DbSet<Subject> Subjects { get; }
     DbSet<TutorSubject> TutorSubjects { get; }
+    DbSet<Service> Services { get; }
     DbSet<AvailabilitySlot> AvailabilitySlots { get; }
     DbSet<Booking> Bookings { get; }
+    DbSet<Enrollment> Enrollments { get; }
+    DbSet<Session> Sessions { get; }
     DbSet<Transaction> Transactions { get; }
     DbSet<Wallet> Wallets { get; }
     DbSet<Withdrawal> Withdrawals { get; }

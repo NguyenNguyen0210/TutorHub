@@ -21,37 +21,63 @@ VALUES
     ('66666666-2222-2222-2222-111111111111', '66666666-1111-1111-1111-111111111111')
 ON CONFLICT ("Id") DO NOTHING;
 
--- 3. TUTOR PROFILES
+-- 3. TUTOR APPLICATIONS
+INSERT INTO "TutorApplications" (
+    "Id", "UserId", "Bio", "Education", "ExperienceYears", "TeachingMode", 
+    "Address", "Latitude", "Longitude", "Status", "SubmittedAt", 
+    "RejectionReason", "ReviewedByAdminId", "ReviewedAt"
+)
+VALUES
+    (
+        '22222222-aaaa-aaaa-aaaa-111111111111', '22222222-1111-1111-1111-111111111111',
+        'Thầy giáo chuyên luyện thi THPT Quốc Gia môn Toán với 5 năm kinh nghiệm. Phương pháp giảng dạy trực quan, dễ hiểu.',
+        'Cử nhân Sư phạm Toán - ĐH Sư phạm Hà Nội', 5, 'Both',
+        '123 Đường Cầu Giấy, Quận Cầu Giấy, Hà Nội', 21.0333, 105.7833, 'Approved', NOW(),
+        NULL, '11111111-1111-1111-1111-111111111111', NOW()
+    ),
+    (
+        '33333333-aaaa-aaaa-aaaa-111111111111', '33333333-1111-1111-1111-111111111111',
+        'Giảng viên Tiếng Anh IELTS 8.0, chuyên luyện giao tiếp phản xạ và chiến thuật phòng thi.',
+        'Thạc sĩ Ngôn ngữ Anh - ĐH Ngoại Thương', 4, 'Online',
+        NULL, NULL, NULL, 'Approved', NOW(),
+        NULL, '11111111-1111-1111-1111-111111111111', NOW()
+    ),
+    (
+        '44444444-aaaa-aaaa-aaaa-111111111111', '44444444-1111-1111-1111-111111111111',
+        'Kỹ sư phần mềm & Gia sư Vật lý. Hướng dẫn lập trình C# .NET và tư duy giải toán vật lý.',
+        'Kỹ sư CNTT - ĐH Bách Khoa Hà Nội', 2, 'Online',
+        NULL, NULL, NULL, 'Pending', NOW(),
+        NULL, NULL, NULL
+    )
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 4. TUTOR PROFILES (Created upon application approval)
 INSERT INTO "TutorProfiles" (
     "Id", "UserId", "Bio", "Education", "ExperienceYears", "HourlyRate", 
-    "TeachingMode", "Address", "Latitude", "Longitude", "Status", 
-    "RejectionReason", "ReviewedByAdminId", "ReviewedAt", "RatingAvg", "TotalReviews"
+    "TeachingMode", "Address", "Latitude", "Longitude", "RatingAvg", "TotalReviews"
 )
 VALUES
     (
         '22222222-2222-2222-2222-111111111111', '22222222-1111-1111-1111-111111111111',
         'Thầy giáo chuyên luyện thi THPT Quốc Gia môn Toán với 5 năm kinh nghiệm. Phương pháp giảng dạy trực quan, dễ hiểu.',
         'Cử nhân Sư phạm Toán - ĐH Sư phạm Hà Nội', 5, 200000.00,
-        'Both', '123 Đường Cầu Giấy, Quận Cầu Giấy, Hà Nội', 21.0333, 105.7833, 'Verified',
-        NULL, '11111111-1111-1111-1111-111111111111', NOW(), 5.00, 1
+        'Both', '123 Đường Cầu Giấy, Quận Cầu Giấy, Hà Nội', 21.0333, 105.7833, 5.00, 1
     ),
     (
         '33333333-2222-2222-2222-111111111111', '33333333-1111-1111-1111-111111111111',
         'Giảng viên Tiếng Anh IELTS 8.0, chuyên luyện giao tiếp phản xạ và chiến thuật phòng thi.',
         'Thạc sĩ Ngôn ngữ Anh - ĐH Ngoại Thương', 4, 250000.00,
-        'Online', NULL, NULL, NULL, 'Verified',
-        NULL, '11111111-1111-1111-1111-111111111111', NOW(), 5.00, 1
+        'Online', NULL, NULL, NULL, 5.00, 1
     ),
     (
         '44444444-2222-2222-2222-111111111111', '44444444-1111-1111-1111-111111111111',
         'Kỹ sư phần mềm & Gia sư Vật lý. Hướng dẫn lập trình C# .NET và tư duy giải toán vật lý.',
         'Kỹ sư CNTT - ĐH Bách Khoa Hà Nội', 2, 180000.00,
-        'Online', NULL, NULL, NULL, 'PendingReview',
-        NULL, NULL, NULL, 0.00, 0
+        'Online', NULL, NULL, NULL, 0.00, 0
     )
 ON CONFLICT ("Id") DO NOTHING;
 
--- 4. WALLETS (1-1 with TutorProfiles)
+-- 5. WALLETS (1-1 with TutorProfiles)
 INSERT INTO "Wallets" ("Id", "TutorProfileId", "PendingBalance", "AvailableBalance", "UpdatedAt")
 VALUES
     ('22222222-3333-3333-3333-111111111111', '22222222-2222-2222-2222-111111111111', 0.00, 360000.00, NOW()),

@@ -40,9 +40,21 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.Property(t => t.CreatedAt)
             .IsRequired();
 
+        // Foreign keys & Relationships
         builder.HasOne(t => t.Booking)
             .WithOne(b => b.Transaction)
             .HasForeignKey<Transaction>(t => t.BookingId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(t => t.Session)
+            .WithOne(s => s.Transaction)
+            .HasForeignKey<Transaction>(t => t.SessionId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Partial unique index: a session can have at most one payout transaction
+        builder.HasIndex(t => t.SessionId)
+            .IsUnique()
+            .HasFilter("\"SessionId\" IS NOT NULL");
     }
 }

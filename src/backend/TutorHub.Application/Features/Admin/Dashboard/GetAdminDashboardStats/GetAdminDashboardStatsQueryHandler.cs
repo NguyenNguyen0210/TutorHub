@@ -36,18 +36,18 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
             ActiveUsers: activeUsers
         );
 
-        // 2. Grouped Tutors Metrics
-        var tutorGroup = await _context.TutorProfiles
+        // 2. Grouped Tutors Metrics (based on TutorApplications & User status)
+        var applicationGroup = await _context.TutorApplications
             .AsNoTracking()
-            .GroupBy(t => t.Status)
+            .GroupBy(a => a.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToListAsync(cancellationToken);
 
-        int verifiedTutors = tutorGroup.FirstOrDefault(g => g.Status == TutorProfileStatus.Verified)?.Count ?? 0;
-        int pendingReviewTutors = tutorGroup.FirstOrDefault(g => g.Status == TutorProfileStatus.PendingReview)?.Count ?? 0;
-        int draftTutors = tutorGroup.FirstOrDefault(g => g.Status == TutorProfileStatus.Draft)?.Count ?? 0;
-        int rejectedTutors = tutorGroup.FirstOrDefault(g => g.Status == TutorProfileStatus.Rejected)?.Count ?? 0;
-        int suspendedTutors = tutorGroup.FirstOrDefault(g => g.Status == TutorProfileStatus.Suspended)?.Count ?? 0;
+        int verifiedTutors = applicationGroup.FirstOrDefault(g => g.Status == TutorApplicationStatus.Approved)?.Count ?? 0;
+        int pendingReviewTutors = applicationGroup.FirstOrDefault(g => g.Status == TutorApplicationStatus.Pending)?.Count ?? 0;
+        int draftTutors = 0;
+        int rejectedTutors = applicationGroup.FirstOrDefault(g => g.Status == TutorApplicationStatus.Rejected)?.Count ?? 0;
+        int suspendedTutors = userGroup.Where(g => g.Role == UserRole.Tutor && g.Status == AccountStatus.Suspended).Sum(g => g.Count);
 
         var tutorsStats = new TutorStatsDto(
             VerifiedTutors: verifiedTutors,

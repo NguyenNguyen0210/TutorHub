@@ -13,8 +13,6 @@ public class TutorProfileConfiguration : IEntityTypeConfiguration<TutorProfile>
         builder.HasIndex(t => t.UserId)
             .IsUnique();
 
-        builder.HasIndex(t => t.Status);
-
         builder.Property(t => t.Bio)
             .IsRequired()
             .HasMaxLength(2000);
@@ -23,6 +21,10 @@ public class TutorProfileConfiguration : IEntityTypeConfiguration<TutorProfile>
             .IsRequired()
             .HasMaxLength(1000);
 
+        builder.Property(t => t.ExperienceYears)
+            .IsRequired();
+
+        // Legacy — to be removed in Sprint 3 when Service module is built
         builder.Property(t => t.HourlyRate)
             .HasPrecision(10, 2)
             .IsRequired();
@@ -33,14 +35,6 @@ public class TutorProfileConfiguration : IEntityTypeConfiguration<TutorProfile>
             .IsRequired();
 
         builder.Property(t => t.Address)
-            .HasMaxLength(500);
-
-        builder.Property(t => t.Status)
-            .HasConversion<string>()
-            .HasMaxLength(50)
-            .IsRequired();
-
-        builder.Property(t => t.RejectionReason)
             .HasMaxLength(500);
 
         builder.Property(t => t.RatingAvg)
@@ -54,10 +48,5 @@ public class TutorProfileConfiguration : IEntityTypeConfiguration<TutorProfile>
             .WithOne(u => u.TutorProfile)
             .HasForeignKey<TutorProfile>(t => t.UserId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasOne(t => t.ReviewedByAdmin)
-            .WithMany()
-            .HasForeignKey(t => t.ReviewedByAdminId)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 }

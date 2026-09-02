@@ -15,7 +15,7 @@ public class TutorProfile
     public string Education { get; set; } = default!;
     public int ExperienceYears { get; set; }
 
-    // Default hourly rate
+    // Default hourly rate (Legacy compatibility field - to be replaced by Service in Sprint 3)
     public decimal HourlyRate { get; set; }
 
     // Teaching mode
@@ -26,17 +26,6 @@ public class TutorProfile
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
 
-    // Profile review lifecycle
-    public TutorProfileStatus Status { get; set; }
-        = TutorProfileStatus.Draft;
-
-    public string? RejectionReason { get; set; }
-
-    public Guid? ReviewedByAdminId { get; set; }
-    public User? ReviewedByAdmin { get; set; }
-
-    public DateTime? ReviewedAt { get; set; }
-
     // Denormalized review statistics
     public decimal RatingAvg { get; set; } = 0;
     public int TotalReviews { get; set; } = 0;
@@ -45,12 +34,11 @@ public class TutorProfile
     public ICollection<TutorSubject> TutorSubjects { get; set; }
         = new List<TutorSubject>();
 
+    public ICollection<Service> Services { get; set; }
+        = new List<Service>();
+
     public ICollection<AvailabilitySlot> AvailabilitySlots { get; set; }
         = new List<AvailabilitySlot>();
-
-    public ICollection<Booking> Bookings { get; set; }
-        = new List<Booking>();
-
 
     public Wallet? Wallet { get; set; }
 }

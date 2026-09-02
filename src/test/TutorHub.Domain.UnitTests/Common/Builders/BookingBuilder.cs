@@ -26,9 +26,45 @@ public class BookingBuilder
     private string? _cancellationReason;
     private Transaction? _transaction;
 
+    private Guid? _serviceId;
+    private Service? _service;
+    private decimal _totalPrice = 200_000m;
+    private int _totalSessions = 1;
+    private int _sessionDurationMinutes = 60;
+    private TeachingMode _teachingMode = TeachingMode.Online;
+    private Enrollment? _enrollment;
+
     public BookingBuilder WithId(Guid id)
     {
         _id = id;
+        return this;
+    }
+
+    public BookingBuilder WithService(Service service)
+    {
+        _service = service;
+        _serviceId = service.Id;
+        return this;
+    }
+
+    public BookingBuilder WithServiceId(Guid serviceId)
+    {
+        _serviceId = serviceId;
+        return this;
+    }
+
+    public BookingBuilder WithSnapshot(decimal totalPrice, int totalSessions = 1, int sessionDurationMinutes = 60, TeachingMode teachingMode = TeachingMode.Online)
+    {
+        _totalPrice = totalPrice;
+        _totalSessions = totalSessions;
+        _sessionDurationMinutes = sessionDurationMinutes;
+        _teachingMode = teachingMode;
+        return this;
+    }
+
+    public BookingBuilder WithEnrollment(Enrollment enrollment)
+    {
+        _enrollment = enrollment;
         return this;
     }
 
@@ -133,6 +169,13 @@ public class BookingBuilder
             CancelledBy = _cancelledBy,
             CancellationReason = _cancellationReason,
             CreatedAt = DefaultCreatedAt,
+            ServiceId = _serviceId,
+            Service = _service,
+            TotalPrice = _totalPrice,
+            TotalSessions = _totalSessions,
+            SessionDurationMinutes = _sessionDurationMinutes,
+            TeachingMode = _teachingMode,
+            Enrollment = _enrollment,
             Transaction = _transaction,
             Reviews = new List<Review>(),
             Reports = new List<Report>()

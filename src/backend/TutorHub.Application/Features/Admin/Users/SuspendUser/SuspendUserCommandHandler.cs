@@ -27,7 +27,7 @@ public class SuspendUserCommandHandler : IRequestHandler<SuspendUserCommand, Adm
 
         // 2. Find target user
         var user = await _context.Users
-            .Include(u => u.TutorProfile)
+            .Include(u => u.TutorApplications)
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 
         if (user == null)
@@ -47,8 +47,9 @@ public class SuspendUserCommandHandler : IRequestHandler<SuspendUserCommand, Adm
             }
         }
 
-        // 4. Domain state transition
         var previousStatus = user.Status;
+
+        // 4. Domain state transition (enforces state validity)
         try
         {
             user.Suspend();
@@ -58,11 +59,10 @@ public class SuspendUserCommandHandler : IRequestHandler<SuspendUserCommand, Adm
             throw new ConflictException(ex.Message);
         }
 
+        // 5. Active Refresh Tokens Revocation (Side-effect)
         var nowUtc = DateTime.UtcNow;
-
-        // 5. Active Refresh Tokens Revocation
         var activeTokens = await _context.RefreshTokens
-            .Where(rt => rt.UserId == user.Id && rt.RevokedAt == null)
+            .Where(t => t.UserId == user.Id && t.RevokedAt == null && t.ExpiresAt > nowUtc)
             .ToListAsync(cancellationToken);
 
         foreach (var token in activeTokens)
@@ -70,7 +70,7 @@ public class SuspendUserCommandHandler : IRequestHandler<SuspendUserCommand, Adm
             token.RevokedAt = nowUtc;
         }
 
-        // 6. Audit Trail
+        // 6. Audit Trail Logging (Side-effect)
         var auditLog = new AccountStatusAuditLog
         {
             Id = Guid.NewGuid(),
@@ -86,6 +86,12 @@ public class SuspendUserCommandHandler : IRequestHandler<SuspendUserCommand, Adm
 
         await _context.SaveChangesAsync(cancellationToken);
 
+        var latestAppStatus = user.TutorApplications
+            .OrderBy(a => a.Status == TutorApplicationStatus.Approved ? 0 : a.Status == TutorApplicationStatus.Pending ? 1 : 2)
+            .ThenByDescending(a => a.SubmittedAt)
+            .Select(a => a.Status.ToString())
+            .FirstOrDefault();
+
         return new AdminUserSummaryDto(
             Id: user.Id,
             Email: user.Email,
@@ -95,7 +101,7 @@ public class SuspendUserCommandHandler : IRequestHandler<SuspendUserCommand, Adm
             Role: user.Role,
             Status: user.Status,
             CreatedAt: user.CreatedAt,
-            TutorStatus: user.TutorProfile?.Status
+            TutorApplicationStatus: latestAppStatus
         );
     }
 }
