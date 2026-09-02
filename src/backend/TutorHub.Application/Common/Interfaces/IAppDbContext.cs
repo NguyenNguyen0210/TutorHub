@@ -16,6 +16,8 @@ public interface IAppDbContext
     DbSet<Service> Services { get; }
     DbSet<AvailabilitySlot> AvailabilitySlots { get; }
     DbSet<Booking> Bookings { get; }
+    DbSet<Enrollment> Enrollments { get; }
+    DbSet<Session> Sessions { get; }
     DbSet<Transaction> Transactions { get; }
     DbSet<Wallet> Wallets { get; }
     DbSet<Withdrawal> Withdrawals { get; }

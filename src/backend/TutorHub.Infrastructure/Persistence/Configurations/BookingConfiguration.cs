@@ -46,13 +46,29 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.Property(b => b.CreatedAt)
             .IsRequired();
 
-        // Index for checking schedule conflict during booking
+        // Snapshot fields (Sprint 4)
+        builder.Property(b => b.TotalPrice)
+            .HasPrecision(12, 2)
+            .IsRequired();
+
+        builder.Property(b => b.TotalSessions)
+            .IsRequired();
+
+        builder.Property(b => b.SessionDurationMinutes)
+            .IsRequired();
+
+        builder.Property(b => b.TeachingMode)
+            .HasConversion<string>()
+            .HasMaxLength(50)
+            .IsRequired();
+
+        // Indexes
         builder.HasIndex(b => new { b.TutorProfileId, b.StartAt, b.EndAt, b.Status });
-
         builder.HasIndex(b => new { b.StudentProfileId, b.Status });
-
         builder.HasIndex(b => b.Status);
+        builder.HasIndex(b => b.ServiceId);
 
+        // Relationships
         builder.HasOne(b => b.StudentProfile)
             .WithMany(s => s.Bookings)
             .HasForeignKey(b => b.StudentProfileId)
@@ -66,6 +82,12 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.HasOne(b => b.Subject)
             .WithMany()
             .HasForeignKey(b => b.SubjectId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(b => b.Service)
+            .WithMany()
+            .HasForeignKey(b => b.ServiceId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

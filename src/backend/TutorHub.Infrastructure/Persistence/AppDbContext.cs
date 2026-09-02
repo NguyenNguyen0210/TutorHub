@@ -21,6 +21,8 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Service> Services => Set<Service>();
     public DbSet<AvailabilitySlot> AvailabilitySlots => Set<AvailabilitySlot>();
     public DbSet<Booking> Bookings => Set<Booking>();
+    public DbSet<Enrollment> Enrollments => Set<Enrollment>();
+    public DbSet<Session> Sessions => Set<Session>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Wallet> Wallets => Set<Wallet>();
     public DbSet<Withdrawal> Withdrawals => Set<Withdrawal>();
