@@ -37,7 +37,10 @@ using TutorHub.Application.Features.Admin.Users.BanUser;
 using TutorHub.Application.Features.Admin.Withdrawals.ApproveWithdrawal;
 using TutorHub.Application.Features.Admin.Withdrawals.GetAdminWithdrawals;
 using TutorHub.Application.Features.Admin.Withdrawals.RejectWithdrawal;
+using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Categories.DTOs;
+using TutorHub.Application.Features.Enrollments.AdminCancelEnrollment;
+using TutorHub.Application.Features.Enrollments.DTOs;
 using TutorHub.Application.Features.Reports.DTOs;
 using TutorHub.Application.Features.Subjects.DTOs;
 using TutorHub.Application.Features.Wallets.DTOs;
@@ -566,6 +569,28 @@ public class AdminController : ControllerBase
         var command = new AdminForceUnpublishServiceCommand(serviceId, adminId);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service force-unpublished successfully by administrator."));
+    }
+
+    /// <summary>
+    /// Administrative emergency cancellation of an active learning contract (Admin only).
+    /// Uncompleted sessions are cancelled and refunded from Escrow. Completed sessions are preserved.
+    /// </summary>
+    [HttpPost("enrollments/{id:guid}/cancel")]
+    [ProducesResponseType(typeof(ApiResponse<EnrollmentDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AdminCancelEnrollment(
+        [FromRoute] Guid id,
+        [FromBody] AdminCancelEnrollmentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var adminId = GetCurrentUserId();
+        var command = new AdminCancelEnrollmentCommand(adminId, UserRole.Admin, id, request.Reason);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<EnrollmentDto>.SuccessResult(result, "Enrollment administratively cancelled successfully."));
     }
 
     private Guid GetCurrentUserId()
