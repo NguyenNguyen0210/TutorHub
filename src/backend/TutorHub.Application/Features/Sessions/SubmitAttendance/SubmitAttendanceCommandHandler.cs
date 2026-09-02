@@ -125,6 +125,23 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
             _context.Transactions.Add(payoutTx);
             session.Transaction = payoutTx;
 
+            // Record WalletTransaction ledger entry (DEC-WD-004)
+            var ledgerEntry = new WalletTransaction
+            {
+                Id = Guid.NewGuid(),
+                WalletId = wallet.Id,
+                Type = WalletTransactionType.SessionPayoutCredit,
+                Amount = netPayout,
+                BalanceAfter = wallet.AvailableBalance,
+                Description = $"Payout released for Session #{session.SessionNumber}",
+                CreatedAt = now
+            };
+
+            if (_context.WalletTransactions != null)
+            {
+                _context.WalletTransactions.Add(ledgerEntry);
+            }
+
             // Explicit DB Transaction
             if (_context.Database?.ProviderName != null)
             {

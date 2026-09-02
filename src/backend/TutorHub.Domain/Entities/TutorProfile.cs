@@ -27,6 +27,27 @@ public class TutorProfile
     public decimal RatingAvg { get; set; } = 0;
     public int TotalReviews { get; set; } = 0;
 
+    // Default Payout Bank Destination (DEC-WD-002)
+    public string? BankName { get; set; }
+    public string? BankCode { get; set; }
+    public string? AccountNumber { get; set; }
+    public string? AccountHolderName { get; set; }
+
+    public void SetPayoutAccount(string bankName, string accountNumber, string accountHolderName, string? bankCode = null)
+    {
+        if (string.IsNullOrWhiteSpace(bankName))
+            throw new ArgumentException("Bank name cannot be empty.", nameof(bankName));
+        if (string.IsNullOrWhiteSpace(accountNumber))
+            throw new ArgumentException("Account number cannot be empty.", nameof(accountNumber));
+        if (string.IsNullOrWhiteSpace(accountHolderName))
+            throw new ArgumentException("Account holder name cannot be empty.", nameof(accountHolderName));
+
+        BankName = bankName.Trim();
+        BankCode = string.IsNullOrWhiteSpace(bankCode) ? null : bankCode.Trim().ToUpperInvariant();
+        AccountNumber = accountNumber.Trim();
+        AccountHolderName = accountHolderName.Trim().ToUpperInvariant();
+    }
+
     // Domain relationships
     public ICollection<TutorSubject> TutorSubjects { get; set; }
         = new List<TutorSubject>();

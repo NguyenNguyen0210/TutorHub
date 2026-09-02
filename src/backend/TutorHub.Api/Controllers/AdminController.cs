@@ -36,9 +36,12 @@ using TutorHub.Application.Features.Admin.Users.GetAdminUsers;
 using TutorHub.Application.Features.Admin.Users.SuspendUser;
 using TutorHub.Application.Features.Admin.Users.ReactivateUser;
 using TutorHub.Application.Features.Admin.Users.BanUser;
-using TutorHub.Application.Features.Admin.Withdrawals.ApproveWithdrawal;
+using TutorHub.Application.Features.Admin.Withdrawals.CompleteWithdrawal;
+using TutorHub.Application.Features.Admin.Withdrawals.DTOs;
+using TutorHub.Application.Features.Admin.Withdrawals.FailWithdrawal;
+using TutorHub.Application.Features.Admin.Withdrawals.GetAdminWithdrawalById;
 using TutorHub.Application.Features.Admin.Withdrawals.GetAdminWithdrawals;
-using TutorHub.Application.Features.Admin.Withdrawals.RejectWithdrawal;
+using TutorHub.Application.Features.Admin.Withdrawals.ProcessWithdrawal;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Categories.DTOs;
 using TutorHub.Application.Features.Enrollments.AdminCancelEnrollment;
@@ -173,25 +176,59 @@ public class AdminController : ControllerBase
     }
 
     /// <summary>
-    /// Approve a pending withdrawal request and mark payout completed (Admin only).
+    /// Get withdrawal details by ID (Admin only).
     /// </summary>
+    [HttpGet("withdrawals/{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<WithdrawalDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAdminWithdrawalById([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        var query = new GetAdminWithdrawalByIdQuery(id);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<WithdrawalDto>.SuccessResult(result, "Withdrawal details retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Mark a pending withdrawal request as Processing (Admin only).
+    /// </summary>
+    [HttpPost("withdrawals/{id:guid}/process")]
+    [ProducesResponseType(typeof(ApiResponse<WithdrawalDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ProcessWithdrawal([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        var adminId = GetCurrentUserId();
+        var command = new ProcessWithdrawalCommand(id, adminId);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<WithdrawalDto>.SuccessResult(result, "Withdrawal marked as Processing."));
+    }
+
+    /// <summary>
+    /// Complete a processing withdrawal request and finalize payout (Admin only).
+    /// </summary>
+    [HttpPost("withdrawals/{id:guid}/complete")]
     [HttpPost("withdrawals/{id:guid}/approve")]
     [ProducesResponseType(typeof(ApiResponse<WithdrawalDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> ApproveWithdrawal([FromRoute] Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> CompleteWithdrawal([FromRoute] Guid id, CancellationToken cancellationToken)
     {
         var adminId = GetCurrentUserId();
-        var command = new ApproveWithdrawalCommand(id, adminId);
+        var command = new CompleteWithdrawalCommand(id, adminId);
         var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<WithdrawalDto>.SuccessResult(result, "Withdrawal approved and completed successfully."));
+        return Ok(ApiResponse<WithdrawalDto>.SuccessResult(result, "Withdrawal completed successfully."));
     }
 
     /// <summary>
-    /// Reject a pending withdrawal request and refund amount to tutor's available balance (Admin only).
+    /// Mark a processing withdrawal as Failed and atomically restore amount to tutor's available balance (Admin only).
     /// </summary>
+    [HttpPost("withdrawals/{id:guid}/fail")]
     [HttpPost("withdrawals/{id:guid}/reject")]
     [ProducesResponseType(typeof(ApiResponse<WithdrawalDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -199,15 +236,15 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> RejectWithdrawal(
+    public async Task<IActionResult> FailWithdrawal(
         [FromRoute] Guid id,
-        [FromBody] RejectWithdrawalRequest request,
+        [FromBody] FailWithdrawalRequest request,
         CancellationToken cancellationToken)
     {
         var adminId = GetCurrentUserId();
-        var command = new RejectWithdrawalCommand(id, adminId, request.Reason);
+        var command = new FailWithdrawalCommand(id, adminId, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<WithdrawalDto>.SuccessResult(result, "Withdrawal rejected and amount refunded to tutor's wallet."));
+        return Ok(ApiResponse<WithdrawalDto>.SuccessResult(result, "Withdrawal marked as Failed and amount restored to tutor's wallet."));
     }
 
     /// <summary>

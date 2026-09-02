@@ -26,6 +26,7 @@ public interface IAppDbContext
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<Media> Media { get; }
     DbSet<AccountStatusAuditLog> AccountStatusAuditLogs { get; }
+    DbSet<WalletTransaction> WalletTransactions { get; }
 
     DatabaseFacade Database { get; }
 

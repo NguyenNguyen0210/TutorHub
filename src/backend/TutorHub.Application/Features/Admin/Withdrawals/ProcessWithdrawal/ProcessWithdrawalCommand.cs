@@ -5,21 +5,24 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Wallets.DTOs;
 using TutorHub.Domain.Enums;
 
-namespace TutorHub.Application.Features.Admin.Withdrawals.ApproveWithdrawal;
+namespace TutorHub.Application.Features.Admin.Withdrawals.ProcessWithdrawal;
 
-public class ApproveWithdrawalCommandHandler : IRequestHandler<ApproveWithdrawalCommand, WithdrawalDto>
+public record ProcessWithdrawalCommand(Guid WithdrawalId, Guid AdminId) : IRequest<WithdrawalDto>;
+
+public class ProcessWithdrawalCommandHandler : IRequestHandler<ProcessWithdrawalCommand, WithdrawalDto>
 {
     private readonly IAppDbContext _context;
 
-    public ApproveWithdrawalCommandHandler(IAppDbContext context)
+    public ProcessWithdrawalCommandHandler(IAppDbContext context)
     {
         _context = context;
     }
 
-    public async Task<WithdrawalDto> Handle(ApproveWithdrawalCommand request, CancellationToken cancellationToken)
+    public async Task<WithdrawalDto> Handle(ProcessWithdrawalCommand request, CancellationToken cancellationToken)
     {
         var withdrawal = await _context.Withdrawals
             .Include(w => w.Wallet).ThenInclude(wall => wall.TutorProfile).ThenInclude(tp => tp.User)
+            .Include(w => w.ProcessingStartedByAdmin)
             .Include(w => w.ProcessedByAdmin)
             .FirstOrDefaultAsync(w => w.Id == request.WithdrawalId, cancellationToken);
 
@@ -28,20 +31,20 @@ public class ApproveWithdrawalCommandHandler : IRequestHandler<ApproveWithdrawal
             throw new NotFoundException("Withdrawal", request.WithdrawalId);
         }
 
-        // State Transition Guard: Only Pending withdrawals can be approved
+        // Strict State Transition Guard (DEC-WD-003, INV-WD-004): Only Pending can transition to Processing
         if (withdrawal.Status != WithdrawalStatus.Pending)
         {
-            throw new ConflictException($"Cannot approve withdrawal in '{withdrawal.Status}' status.");
+            throw new ConflictException($"Cannot mark withdrawal as Processing from '{withdrawal.Status}' status. Must be in Pending status.");
         }
 
         var admin = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.AdminId, cancellationToken);
-        var now = DateTime.UtcNow;
+        if (admin == null)
+        {
+            throw new UnauthorizedException("Admin user not found.");
+        }
 
-        // Transition to Completed. Do NOT deduct wallet AvailableBalance again (already deducted on creation).
-        withdrawal.Status = WithdrawalStatus.Completed;
-        withdrawal.ProcessedAt = now;
-        withdrawal.ProcessedByAdminId = request.AdminId;
-        withdrawal.ProcessedByAdmin = admin;
+        withdrawal.MarkProcessing(request.AdminId);
+        withdrawal.ProcessingStartedByAdmin = admin;
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -54,14 +57,18 @@ public class ApproveWithdrawalCommandHandler : IRequestHandler<ApproveWithdrawal
             Amount: withdrawal.Amount,
             Status: withdrawal.Status,
             BankName: withdrawal.BankName,
+            BankCode: withdrawal.BankCode,
             AccountNumber: withdrawal.AccountNumber,
             AccountHolderName: withdrawal.AccountHolderName,
             Note: withdrawal.Note,
             RequestedAt: withdrawal.RequestedAt,
+            ProcessingStartedAt: withdrawal.ProcessingStartedAt,
+            ProcessingStartedByAdminId: withdrawal.ProcessingStartedByAdminId,
+            ProcessingStartedByAdminName: admin.FullName,
             ProcessedAt: withdrawal.ProcessedAt,
             ProcessedByAdminId: withdrawal.ProcessedByAdminId,
-            ProcessedByAdminName: admin?.FullName,
-            RejectionReason: withdrawal.RejectionReason
+            ProcessedByAdminName: withdrawal.ProcessedByAdmin?.FullName,
+            FailureReason: withdrawal.FailureReason
         );
     }
 }

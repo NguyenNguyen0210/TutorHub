@@ -39,6 +39,18 @@ public class TutorProfileConfiguration : IEntityTypeConfiguration<TutorProfile>
         builder.Property(t => t.TotalReviews)
             .IsRequired();
 
+        builder.Property(t => t.BankName)
+            .HasMaxLength(100);
+
+        builder.Property(t => t.BankCode)
+            .HasMaxLength(20);
+
+        builder.Property(t => t.AccountNumber)
+            .HasMaxLength(50);
+
+        builder.Property(t => t.AccountHolderName)
+            .HasMaxLength(150);
+
         builder.HasOne(t => t.User)
             .WithOne(u => u.TutorProfile)
             .HasForeignKey<TutorProfile>(t => t.UserId)

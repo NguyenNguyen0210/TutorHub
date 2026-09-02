@@ -21,6 +21,7 @@ public class GetAdminWithdrawalsQueryHandler : IRequestHandler<GetAdminWithdrawa
         var query = _context.Withdrawals
             .AsNoTracking()
             .Include(w => w.Wallet).ThenInclude(wall => wall.TutorProfile).ThenInclude(tp => tp.User)
+            .Include(w => w.ProcessingStartedByAdmin)
             .Include(w => w.ProcessedByAdmin)
             .AsQueryable();
 
@@ -46,14 +47,18 @@ public class GetAdminWithdrawalsQueryHandler : IRequestHandler<GetAdminWithdrawa
                 w.Amount,
                 w.Status,
                 w.BankName,
+                w.BankCode,
                 w.AccountNumber,
                 w.AccountHolderName,
                 w.Note,
                 w.RequestedAt,
+                w.ProcessingStartedAt,
+                w.ProcessingStartedByAdminId,
+                w.ProcessingStartedByAdmin != null ? w.ProcessingStartedByAdmin.FullName : null,
                 w.ProcessedAt,
                 w.ProcessedByAdminId,
                 w.ProcessedByAdmin != null ? w.ProcessedByAdmin.FullName : null,
-                w.RejectionReason
+                w.FailureReason
             ))
             .ToListAsync(cancellationToken);
 

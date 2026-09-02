@@ -8,6 +8,9 @@ using TutorHub.Application.Features.Wallets.CreateWithdrawal;
 using TutorHub.Application.Features.Wallets.DTOs;
 using TutorHub.Application.Features.Wallets.GetMyWallet;
 using TutorHub.Application.Features.Wallets.GetMyWithdrawals;
+using TutorHub.Application.Features.Wallets.GetWalletStatement;
+using TutorHub.Application.Features.Wallets.PayoutAccount.GetPayoutAccount;
+using TutorHub.Application.Features.Wallets.PayoutAccount.UpdatePayoutAccount;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Api.Controllers;
@@ -42,6 +45,7 @@ public class WalletsController : ControllerBase
     /// <summary>
     /// Submit a new withdrawal request to payout bank account (Tutor only).
     /// </summary>
+    [HttpPost("withdrawals")]
     [HttpPost("withdraw")]
     [ProducesResponseType(typeof(ApiResponse<WithdrawalDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -56,6 +60,7 @@ public class WalletsController : ControllerBase
             UserId: userId,
             Amount: request.Amount,
             BankName: request.BankName,
+            BankCode: request.BankCode,
             AccountNumber: request.AccountNumber,
             AccountHolderName: request.AccountHolderName,
             Note: request.Note
@@ -92,6 +97,70 @@ public class WalletsController : ControllerBase
 
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<WithdrawalDto>>.SuccessResult(result, "Withdrawals history retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Get default payout bank account destination for authenticated tutor (Tutor only).
+    /// </summary>
+    [HttpGet("payout-account")]
+    [ProducesResponseType(typeof(ApiResponse<TutorPayoutAccountDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetPayoutAccount(CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _sender.Send(new GetPayoutAccountQuery(userId), cancellationToken);
+
+        return Ok(ApiResponse<TutorPayoutAccountDto>.SuccessResult(result, "Payout bank account retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Update default payout bank account destination for authenticated tutor (Tutor only).
+    /// </summary>
+    [HttpPut("payout-account")]
+    [ProducesResponseType(typeof(ApiResponse<TutorPayoutAccountDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdatePayoutAccount(
+        [FromBody] UpdatePayoutAccountRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var command = new UpdatePayoutAccountCommand(
+            UserId: userId,
+            BankName: request.BankName,
+            BankCode: request.BankCode,
+            AccountNumber: request.AccountNumber,
+            AccountHolderName: request.AccountHolderName
+        );
+
+        var result = await _sender.Send(command, cancellationToken);
+
+        return Ok(ApiResponse<TutorPayoutAccountDto>.SuccessResult(result, "Payout bank account updated successfully."));
+    }
+
+    /// <summary>
+    /// Get paginated financial ledger statement for authenticated tutor (Tutor only).
+    /// </summary>
+    [HttpGet("statement")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<WalletTransactionDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetWalletStatement(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = GetCurrentUserId();
+        var query = new GetWalletStatementQuery(
+            UserId: userId,
+            PageNumber: pageNumber,
+            PageSize: pageSize
+        );
+
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<WalletTransactionDto>>.SuccessResult(result, "Wallet statement retrieved successfully."));
     }
 
     private Guid GetCurrentUserId()

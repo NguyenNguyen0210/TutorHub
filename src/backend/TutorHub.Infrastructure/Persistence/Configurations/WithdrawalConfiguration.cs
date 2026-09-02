@@ -28,6 +28,9 @@ public class WithdrawalConfiguration : IEntityTypeConfiguration<Withdrawal>
             .HasMaxLength(100)
             .IsRequired();
 
+        builder.Property(w => w.BankCode)
+            .HasMaxLength(20);
+
         builder.Property(w => w.AccountNumber)
             .HasMaxLength(50)
             .IsRequired();
@@ -42,7 +45,9 @@ public class WithdrawalConfiguration : IEntityTypeConfiguration<Withdrawal>
         builder.Property(w => w.RequestedAt)
             .IsRequired();
 
-        builder.Property(w => w.RejectionReason)
+        builder.Property(w => w.ProcessingStartedAt);
+
+        builder.Property(w => w.FailureReason)
             .HasMaxLength(500);
 
         builder.HasIndex(w => new { w.WalletId, w.Status });
@@ -52,6 +57,11 @@ public class WithdrawalConfiguration : IEntityTypeConfiguration<Withdrawal>
             .WithMany(wallet => wallet.Withdrawals)
             .HasForeignKey(w => w.WalletId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(w => w.ProcessingStartedByAdmin)
+            .WithMany()
+            .HasForeignKey(w => w.ProcessingStartedByAdminId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(w => w.ProcessedByAdmin)
             .WithMany()

@@ -11,12 +11,16 @@ public record WithdrawalDto(
     decimal Amount,
     WithdrawalStatus Status,
     string BankName,
+    string? BankCode,
     string AccountNumber,
     string AccountHolderName,
     string? Note,
     DateTime RequestedAt,
+    DateTime? ProcessingStartedAt,
+    Guid? ProcessingStartedByAdminId,
+    string? ProcessingStartedByAdminName,
     DateTime? ProcessedAt,
     Guid? ProcessedByAdminId,
     string? ProcessedByAdminName,
-    string? RejectionReason
+    string? FailureReason
 );

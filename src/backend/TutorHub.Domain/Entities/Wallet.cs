@@ -18,4 +18,7 @@ public class Wallet
     // Relationships
     public ICollection<Withdrawal> Withdrawals { get; set; }
         = new List<Withdrawal>();
+
+    public ICollection<WalletTransaction> WalletTransactions { get; set; }
+        = new List<WalletTransaction>();
 }
