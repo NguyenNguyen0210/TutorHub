@@ -1,3 +1,5 @@
+using TutorHub.Application.Features.Reviews.AdminModerateReview;
+using TutorHub.Application.Features.Reviews.DTOs;
 using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -591,6 +593,27 @@ public class AdminController : ControllerBase
         var command = new AdminCancelEnrollmentCommand(adminId, UserRole.Admin, id, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<EnrollmentDto>.SuccessResult(result, "Enrollment administratively cancelled successfully."));
+    }
+
+    /// <summary>
+    /// Moderate and remove a violating review from the platform (Admin only).
+    /// </summary>
+    [HttpDelete("reviews/{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<ReviewDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ModerateReview(
+        [FromRoute] Guid id,
+        [FromBody] AdminModerateReviewRequest request,
+        CancellationToken cancellationToken)
+    {
+        var adminId = GetCurrentUserId();
+        var command = new AdminModerateReviewCommand(id, adminId, request.Reason);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<ReviewDto>.SuccessResult(result, "Review removed successfully by administrator."));
     }
 
     private Guid GetCurrentUserId()

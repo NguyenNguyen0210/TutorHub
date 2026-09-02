@@ -201,10 +201,6 @@ public class BookingsController : ControllerBase
         return Ok(ApiResponse<BookingDto>.SuccessResult(result, "Booking cancelled successfully. Refund processed according to cancellation policy."));
     }
 
-    /// <summary>
-    /// Mark a confirmed booking as completed after the session finishes (Student / Tutor / Admin).
-    /// </summary>
-    [Authorize]
     private Guid GetCurrentUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");

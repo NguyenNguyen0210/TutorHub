@@ -1,4 +1,4 @@
-using TutorHub.Domain.Enums;
+﻿using TutorHub.Domain.Enums;
 
 namespace TutorHub.Domain.Entities;
 
@@ -48,6 +48,9 @@ public class Enrollment
 
     // --- Sessions ---
     public ICollection<Session> Sessions { get; set; } = new List<Session>();
+
+    // --- Review (1:0..1) ---
+    public Review? Review { get; set; }
 
     // =======================================================
     // Domain Methods
@@ -110,7 +113,7 @@ public class Enrollment
             session.CancelFromEnrollment();
         }
 
-        // Refund = TotalPrice − sum of EarningAmounts of completed sessions only
+        // Refund = TotalPrice - sum of EarningAmounts of completed sessions only
         var earnedAmount = Sessions
             .Where(s => s.Status == SessionStatus.Completed)
             .Sum(s => s.EarningAmount);

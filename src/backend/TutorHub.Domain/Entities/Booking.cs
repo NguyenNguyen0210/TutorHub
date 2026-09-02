@@ -1,4 +1,4 @@
-using TutorHub.Domain.Enums;
+﻿using TutorHub.Domain.Enums;
 
 namespace TutorHub.Domain.Entities;
 
@@ -48,9 +48,6 @@ public class Booking
     // Relationships
     public Enrollment? Enrollment { get; set; }
     public Transaction? Transaction { get; set; }
-
-    public ICollection<Review> Reviews { get; set; }
-        = new List<Review>();
 
     public ICollection<Report> Reports { get; set; }
         = new List<Report>();
