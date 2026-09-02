@@ -5,18 +5,12 @@ namespace TutorHub.Domain.UnitTests.Common.Builders;
 
 public class BookingBuilder
 {
-    private static readonly DateTime DefaultStartAt = new(2030, 1, 10, 10, 0, 0, DateTimeKind.Utc);
-    private static readonly DateTime DefaultEndAt = new(2030, 1, 10, 11, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime DefaultCreatedAt = new(2030, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     private Guid _id = Guid.NewGuid();
     private StudentProfile? _studentProfile;
     private TutorProfile? _tutorProfile;
     private Subject? _subject;
-    private DateTime _startAt = DefaultStartAt;
-    private DateTime _endAt = DefaultEndAt;
-    private decimal _hourlyRate = 200_000m;
-    private decimal? _totalAmount;
     private BookingStatus _status = BookingStatus.Pending;
     private DateTime? _holdingExpiresAt;
     private DateTime? _confirmedAt;
@@ -44,6 +38,10 @@ public class BookingBuilder
     {
         _service = service;
         _serviceId = service.Id;
+        _totalPrice = service.Price;
+        _totalSessions = service.TotalSessions;
+        _sessionDurationMinutes = service.SessionDurationMinutes;
+        _teachingMode = service.TeachingMode;
         return this;
     }
 
@@ -83,20 +81,6 @@ public class BookingBuilder
     public BookingBuilder WithSubject(Subject subject)
     {
         _subject = subject;
-        return this;
-    }
-
-    public BookingBuilder WithSchedule(DateTime startAt, DateTime endAt)
-    {
-        _startAt = startAt;
-        _endAt = endAt;
-        return this;
-    }
-
-    public BookingBuilder WithPricing(decimal hourlyRate, decimal? totalAmount = null)
-    {
-        _hourlyRate = hourlyRate;
-        _totalAmount = totalAmount;
         return this;
     }
 
@@ -145,9 +129,6 @@ public class BookingBuilder
         var tutor = _tutorProfile ?? new TutorProfileBuilder().Build();
         var subject = _subject ?? new SubjectBuilder().Build();
 
-        var durationHours = (decimal)(_endAt - _startAt).TotalHours;
-        var totalAmount = _totalAmount ?? (_hourlyRate * (durationHours > 0 ? durationHours : 1m));
-
         var booking = new Booking
         {
             Id = _id,
@@ -157,10 +138,6 @@ public class BookingBuilder
             TutorProfile = tutor,
             SubjectId = subject.Id,
             Subject = subject,
-            StartAt = _startAt,
-            EndAt = _endAt,
-            HourlyRate = _hourlyRate,
-            TotalAmount = totalAmount,
             Status = _status,
             HoldingExpiresAt = _holdingExpiresAt,
             ConfirmedAt = _confirmedAt,
@@ -180,12 +157,6 @@ public class BookingBuilder
             Reviews = new List<Review>(),
             Reports = new List<Report>()
         };
-
-        if (_transaction != null)
-        {
-            _transaction.BookingId = booking.Id;
-            _transaction.Booking = booking;
-        }
 
         return booking;
     }

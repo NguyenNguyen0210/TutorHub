@@ -16,8 +16,8 @@ public class BuilderSanityTests
         booking.Should().NotBeNull();
         booking.Id.Should().NotBeEmpty();
         booking.Status.Should().Be(BookingStatus.Pending);
-        booking.HourlyRate.Should().Be(200_000m);
-        booking.TotalAmount.Should().Be(200_000m);
+        booking.TotalPrice.Should().Be(200_000m);
+        booking.TotalSessions.Should().Be(1);
         booking.StudentProfile.Should().NotBeNull();
         booking.StudentProfile.User.Should().NotBeNull();
         booking.StudentProfile.User.Role.Should().Be(UserRole.Student);

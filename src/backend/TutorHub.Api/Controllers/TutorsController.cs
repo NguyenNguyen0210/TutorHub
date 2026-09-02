@@ -222,7 +222,6 @@ public class TutorsController : ControllerBase
             Bio: request.Bio,
             Education: request.Education,
             ExperienceYears: request.ExperienceYears,
-            HourlyRate: request.HourlyRate,
             TeachingMode: teachingMode,
             Address: request.Address,
             Latitude: request.Latitude,

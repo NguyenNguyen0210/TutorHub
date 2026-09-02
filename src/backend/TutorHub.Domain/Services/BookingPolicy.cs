@@ -74,31 +74,16 @@ public static class BookingPolicy
         // If cancelled by Tutor or System: 100% refund
         if (actor == CancelledBy.Tutor || actor == CancelledBy.System)
         {
-            return (100, booking.TotalAmount, 0);
+            return (100, booking.TotalPrice, 0);
         }
 
         // If cancelled by Student when still Pending: 100% refund
         if (booking.Status == BookingStatus.Pending)
         {
-            return (100, booking.TotalAmount, 0);
+            return (100, booking.TotalPrice, 0);
         }
 
-        // If cancelled by Student when Confirmed:
-        // Before 24h of StartAt: 100% refund
-        if (booking.StartAt - now >= TimeSpan.FromHours(24))
-        {
-            return (100, booking.TotalAmount, 0);
-        }
-
-        // Within 24h of StartAt: 50% refund, 50% paid to tutor
-        var refundAmount = Math.Round(booking.TotalAmount * 0.5m, 2);
-        var payoutAmount = booking.TotalAmount - refundAmount;
-
-        return (50, refundAmount, payoutAmount);
-    }
-
-    public static bool CanComplete(Booking booking, DateTime now)
-    {
-        return booking.Status == BookingStatus.Confirmed && now >= booking.EndAt;
+        // Default: 100% refund for unactivated bookings
+        return (100, booking.TotalPrice, 0);
     }
 }

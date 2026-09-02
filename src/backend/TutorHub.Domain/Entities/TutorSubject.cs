@@ -10,7 +10,5 @@ public class TutorSubject
     public Guid SubjectId { get; set; }
     public Subject Subject { get; set; } = default!;
 
-    public decimal? OverridePrice { get; set; }
-
     public bool IsActive { get; set; } = true;
 }

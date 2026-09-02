@@ -41,243 +41,88 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
             _context.StudentProfiles.Add(student);
         }
 
-        var now = DateTime.UtcNow;
+        // 2. Load Service Offering with TutorProfile.User and Subject
+        var service = await _context.Services
+            .Include(s => s.TutorProfile).ThenInclude(t => t.User)
+            .Include(s => s.Subject)
+            .FirstOrDefaultAsync(s => s.Id == request.ServiceId, cancellationToken);
 
-        // 2. Service-based booking flow (Sprint 4)
-        if (request.ServiceId.HasValue)
+        if (service == null)
         {
-            var service = await _context.Services
-                .Include(s => s.TutorProfile).ThenInclude(t => t.User)
-                .Include(s => s.Subject)
-                .FirstOrDefaultAsync(s => s.Id == request.ServiceId.Value, cancellationToken);
-
-            if (service == null)
-            {
-                throw new NotFoundException("Service", request.ServiceId.Value);
-            }
-
-            // Validate service status
-            if (service.Status != ServiceStatus.Published)
-            {
-                throw new BadRequestException("The selected service is not published.");
-            }
-
-            // Validate tutor account status
-            if (service.TutorProfile.User.Status != AccountStatus.Active)
-            {
-                throw new BadRequestException("The selected tutor profile is not active or verified.");
-            }
-
-            // Validate tutor application approval
-            var isApproved = await _context.TutorApplications
-                .AnyAsync(a => a.UserId == service.TutorProfile.UserId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
-
-            if (!isApproved)
-            {
-                throw new BadRequestException("The selected tutor profile is not active or verified.");
-            }
-
-            // Prevent self-booking
-            if (service.TutorProfile.UserId == request.UserId)
-            {
-                throw new BadRequestException("Tutors cannot book their own services.");
-            }
-
-            // Validate subject is active
-            if (!service.Subject.IsActive)
-            {
-                throw new BadRequestException("The selected subject is not active.");
-            }
-
-            var serviceBooking = new Booking
-            {
-                Id = Guid.NewGuid(),
-                StudentProfileId = student.Id,
-                StudentProfile = student,
-                TutorProfileId = service.TutorProfileId,
-                TutorProfile = service.TutorProfile,
-                SubjectId = service.SubjectId,
-                Subject = service.Subject,
-                ServiceId = service.Id,
-                Service = service,
-                TotalPrice = service.Price,
-                TotalSessions = service.TotalSessions,
-                SessionDurationMinutes = service.SessionDurationMinutes,
-                TeachingMode = service.TeachingMode,
-                // Legacy fields for backward compatibility
-                StartAt = now,
-                EndAt = now.AddMinutes(service.SessionDurationMinutes),
-                HourlyRate = service.TotalSessions > 0 ? service.Price / service.TotalSessions : service.Price,
-                TotalAmount = service.Price,
-                Status = BookingStatus.Holding,
-                HoldingExpiresAt = now.AddMinutes(15),
-                CreatedAt = now
-            };
-
-            _context.Bookings.Add(serviceBooking);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            return new BookingDto(
-                Id: serviceBooking.Id,
-                StudentProfileId: student.Id,
-                StudentName: student.User.FullName,
-                StudentEmail: student.User.Email,
-                StudentPhone: student.User.Phone,
-                TutorProfileId: service.TutorProfileId,
-                TutorName: service.TutorProfile.User.FullName,
-                TutorEmail: service.TutorProfile.User.Email,
-                TutorPhone: service.TutorProfile.User.Phone,
-                SubjectId: service.SubjectId,
-                SubjectName: service.Subject.Name,
-                StartAt: serviceBooking.StartAt,
-                EndAt: serviceBooking.EndAt,
-                HourlyRate: serviceBooking.HourlyRate,
-                TotalAmount: serviceBooking.TotalAmount,
-                Status: serviceBooking.Status,
-                HoldingExpiresAt: serviceBooking.HoldingExpiresAt,
-                ConfirmedAt: serviceBooking.ConfirmedAt,
-                CompletedAt: serviceBooking.CompletedAt,
-                CancelledAt: serviceBooking.CancelledAt,
-                CancelledBy: serviceBooking.CancelledBy,
-                CancellationReason: serviceBooking.CancellationReason,
-                CreatedAt: serviceBooking.CreatedAt,
-                Transaction: null,
-                ServiceId: service.Id,
-                TotalPrice: serviceBooking.TotalPrice,
-                TotalSessions: serviceBooking.TotalSessions,
-                SessionDurationMinutes: serviceBooking.SessionDurationMinutes,
-                TeachingMode: serviceBooking.TeachingMode,
-                Enrollment: null
-            );
+            throw new NotFoundException("Service", request.ServiceId);
         }
 
-        // 3. Legacy single-session booking flow
-        var tutorProfileId = request.TutorProfileId!.Value;
-        var subjectId = request.SubjectId!.Value;
-        var startAt = request.StartAt!.Value;
-        var endAt = request.EndAt!.Value;
-
-        var tutor = await _context.TutorProfiles
-            .Include(t => t.User)
-            .Include(t => t.TutorSubjects)
-            .Include(t => t.AvailabilitySlots)
-            .FirstOrDefaultAsync(t => t.Id == tutorProfileId, cancellationToken);
-
-        if (tutor == null || tutor.User.Status != AccountStatus.Active)
+        // 3. Invariant Validations
+        if (service.Status != ServiceStatus.Published)
         {
-            throw new BadRequestException("The selected tutor profile is not active or verified.");
+            throw new BadRequestException("Only published services can be booked.");
         }
 
-        var isApprovedTutor = await _context.TutorApplications
-            .AnyAsync(a => a.UserId == tutor.UserId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
+        var isTutorApproved = await _context.TutorApplications
+            .AnyAsync(a => a.UserId == service.TutorProfile.UserId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
 
-        if (!isApprovedTutor)
+        if (!isTutorApproved)
         {
-            throw new BadRequestException("The selected tutor profile is not active or verified.");
+            throw new BadRequestException("The tutor offering this service is not approved.");
         }
 
-        if (tutor.UserId == request.UserId)
+        if (service.TutorProfile.User.Status != AccountStatus.Active)
+        {
+            throw new ForbiddenException("The tutor's account is currently not active.");
+        }
+
+        if (student.UserId == service.TutorProfile.UserId)
         {
             throw new BadRequestException("Tutors cannot book their own services.");
         }
 
-        var tutorSubject = tutor.TutorSubjects.FirstOrDefault(ts => ts.SubjectId == subjectId && ts.IsActive);
-        if (tutorSubject == null)
-        {
-            throw new BadRequestException("The selected tutor does not teach this subject.");
-        }
-
-        var subject = await _context.Subjects.FirstOrDefaultAsync(s => s.Id == subjectId, cancellationToken);
-        if (subject == null || !subject.IsActive)
-        {
-            throw new NotFoundException("Subject", subjectId);
-        }
-
-        var dayOfWeek = startAt.DayOfWeek;
-        var startLocalTime = TimeOnly.FromDateTime(startAt);
-        var endLocalTime = TimeOnly.FromDateTime(endAt);
-
-        var isWithinAvailability = tutor.AvailabilitySlots.Any(s =>
-            s.IsActive &&
-            s.DayOfWeek == dayOfWeek &&
-            s.StartTime <= startLocalTime &&
-            s.EndTime >= endLocalTime);
-
-        if (!isWithinAvailability)
-        {
-            throw new BadRequestException("The requested booking time falls outside of the tutor's weekly availability schedule.");
-        }
-
-        var hasConflict = await _context.Bookings
-            .AnyAsync(b => b.TutorProfileId == tutor.Id &&
-                           b.StartAt < endAt && startAt < b.EndAt &&
-                           (b.Status == BookingStatus.Pending ||
-                            b.Status == BookingStatus.Confirmed ||
-                            b.Status == BookingStatus.Completed ||
-                            (b.Status == BookingStatus.Holding && b.HoldingExpiresAt.HasValue && b.HoldingExpiresAt.Value > DateTime.UtcNow)),
-                      cancellationToken);
-
-        if (hasConflict)
-        {
-            throw new ConflictException("The selected time slot has already been booked or is currently held by another student.");
-        }
-
-        var hourlyRate = tutorSubject.OverridePrice ?? tutor.HourlyRate;
-        var durationHours = (decimal)(endAt - startAt).TotalHours;
-        var totalAmount = Math.Round(durationHours * hourlyRate, 2);
-
-        var legacyBooking = new Booking
+        // 4. Pure Service Checkout Holding Snapshot (15m expiration lock)
+        var now = DateTime.UtcNow;
+        var booking = new Booking
         {
             Id = Guid.NewGuid(),
             StudentProfileId = student.Id,
-            TutorProfileId = tutor.Id,
-            SubjectId = subject.Id,
-            StartAt = startAt,
-            EndAt = endAt,
-            HourlyRate = hourlyRate,
-            TotalAmount = totalAmount,
-            TotalPrice = totalAmount,
-            TotalSessions = 1,
-            SessionDurationMinutes = (int)(endAt - startAt).TotalMinutes,
-            TeachingMode = TeachingMode.Online,
+            TutorProfileId = service.TutorProfileId,
+            SubjectId = service.SubjectId,
+            ServiceId = service.Id,
+            TotalPrice = service.Price,
+            TotalSessions = service.TotalSessions,
+            SessionDurationMinutes = service.SessionDurationMinutes,
+            TeachingMode = service.TeachingMode,
             Status = BookingStatus.Holding,
             HoldingExpiresAt = now.AddMinutes(15),
             CreatedAt = now
         };
 
-        _context.Bookings.Add(legacyBooking);
+        _context.Bookings.Add(booking);
         await _context.SaveChangesAsync(cancellationToken);
 
         return new BookingDto(
-            Id: legacyBooking.Id,
+            Id: booking.Id,
             StudentProfileId: student.Id,
             StudentName: student.User.FullName,
             StudentEmail: student.User.Email,
             StudentPhone: student.User.Phone,
-            TutorProfileId: tutor.Id,
-            TutorName: tutor.User.FullName,
-            TutorEmail: tutor.User.Email,
-            TutorPhone: tutor.User.Phone,
-            SubjectId: subject.Id,
-            SubjectName: subject.Name,
-            StartAt: legacyBooking.StartAt,
-            EndAt: legacyBooking.EndAt,
-            HourlyRate: legacyBooking.HourlyRate,
-            TotalAmount: legacyBooking.TotalAmount,
-            Status: legacyBooking.Status,
-            HoldingExpiresAt: legacyBooking.HoldingExpiresAt,
-            ConfirmedAt: legacyBooking.ConfirmedAt,
-            CompletedAt: legacyBooking.CompletedAt,
-            CancelledAt: legacyBooking.CancelledAt,
-            CancelledBy: legacyBooking.CancelledBy,
-            CancellationReason: legacyBooking.CancellationReason,
-            CreatedAt: legacyBooking.CreatedAt,
+            TutorProfileId: service.TutorProfileId,
+            TutorName: service.TutorProfile.User.FullName,
+            TutorEmail: service.TutorProfile.User.Email,
+            TutorPhone: service.TutorProfile.User.Phone,
+            SubjectId: service.SubjectId,
+            SubjectName: service.Subject.Name,
+            Status: booking.Status,
+            HoldingExpiresAt: booking.HoldingExpiresAt,
+            ConfirmedAt: booking.ConfirmedAt,
+            CompletedAt: booking.CompletedAt,
+            CancelledAt: booking.CancelledAt,
+            CancelledBy: booking.CancelledBy,
+            CancellationReason: booking.CancellationReason,
+            CreatedAt: booking.CreatedAt,
             Transaction: null,
-            ServiceId: null,
-            TotalPrice: legacyBooking.TotalPrice,
-            TotalSessions: legacyBooking.TotalSessions,
-            SessionDurationMinutes: legacyBooking.SessionDurationMinutes,
-            TeachingMode: legacyBooking.TeachingMode,
+            ServiceId: service.Id,
+            TotalPrice: booking.TotalPrice,
+            TotalSessions: booking.TotalSessions,
+            SessionDurationMinutes: booking.SessionDurationMinutes,
+            TeachingMode: booking.TeachingMode,
             Enrollment: null
         );
     }

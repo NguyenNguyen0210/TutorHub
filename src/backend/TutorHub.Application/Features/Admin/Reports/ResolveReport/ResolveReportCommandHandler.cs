@@ -104,9 +104,9 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
             TutorName: tutorUser?.FullName ?? string.Empty,
             SubjectId: booking.SubjectId,
             SubjectName: booking.Subject?.Name ?? string.Empty,
-            StartAt: booking.StartAt,
-            EndAt: booking.EndAt,
-            TotalAmount: booking.TotalAmount,
+            ServiceId: booking.ServiceId,
+            TotalPrice: booking.TotalPrice,
+            TotalSessions: booking.TotalSessions,
             Status: booking.Status,
             CreatedAt: booking.CreatedAt
         );

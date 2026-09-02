@@ -59,7 +59,6 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
                 ts.Subject.Name,
                 ts.Subject.CategoryId,
                 ts.Subject.Category.Name,
-                ts.OverridePrice,
                 ts.IsActive
             ))
             .ToList();

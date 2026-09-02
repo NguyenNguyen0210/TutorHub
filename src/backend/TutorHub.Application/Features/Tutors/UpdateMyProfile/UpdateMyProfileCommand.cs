@@ -12,7 +12,6 @@ public record UpdateMyProfileCommand(
     string? Bio = null,
     string? Education = null,
     int? ExperienceYears = null,
-    decimal? HourlyRate = null,
     TeachingMode? TeachingMode = null,
     string? Address = null,
     double? Latitude = null,

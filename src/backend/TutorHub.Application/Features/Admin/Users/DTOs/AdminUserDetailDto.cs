@@ -26,7 +26,6 @@ public record AdminUserTutorProfileDto(
     string Bio,
     string Education,
     int ExperienceYears,
-    decimal HourlyRate,
     TeachingMode TeachingMode,
     string? Address,
     string? LatestApplicationStatus,
@@ -47,8 +46,7 @@ public record AdminUserRecentBookingDto(
     string SubjectName,
     string OtherPartyName,
     BookingStatus Status,
-    decimal TotalAmount,
-    DateTime StartAt,
-    DateTime EndAt,
+    decimal TotalPrice,
+    int TotalSessions,
     DateTime CreatedAt
 );

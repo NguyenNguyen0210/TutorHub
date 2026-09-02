@@ -48,7 +48,6 @@ public class UpdateMySubjectsCommandHandler : IRequestHandler<UpdateMySubjectsCo
         {
             if (existingTutorSubjectsMap.TryGetValue(item.SubjectId, out var existingTs))
             {
-                existingTs.OverridePrice = item.OverridePrice;
                 existingTs.IsActive = item.IsActive;
             }
             else
@@ -58,7 +57,6 @@ public class UpdateMySubjectsCommandHandler : IRequestHandler<UpdateMySubjectsCo
                     Id = Guid.NewGuid(),
                     TutorProfileId = tutor.Id,
                     SubjectId = item.SubjectId,
-                    OverridePrice = item.OverridePrice,
                     IsActive = item.IsActive
                 };
                 _context.TutorSubjects.Add(newTs);
@@ -89,7 +87,6 @@ public class UpdateMySubjectsCommandHandler : IRequestHandler<UpdateMySubjectsCo
                 ts.Subject.Name,
                 ts.Subject.CategoryId,
                 ts.Subject.Category.Name,
-                ts.OverridePrice,
                 ts.IsActive
             ))
             .ToList();

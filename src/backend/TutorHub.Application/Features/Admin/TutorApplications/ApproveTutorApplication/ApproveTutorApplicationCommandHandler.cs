@@ -54,7 +54,6 @@ public class ApproveTutorApplicationCommandHandler
             Address = application.Address,
             Latitude = application.Latitude,
             Longitude = application.Longitude,
-            HourlyRate = 0, // Legacy field — set to 0 until Service module in Sprint 3
             RatingAvg = 0,
             TotalReviews = 0
         };

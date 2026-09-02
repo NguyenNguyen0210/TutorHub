@@ -55,19 +55,17 @@ public class GetTutorAvailabilityQueryHandler : IRequestHandler<GetTutorAvailabi
             .OrderBy(a => a.StartTime)
             .ToListAsync(cancellationToken);
 
-        // Fetch active bookings in range
+        // Fetch active scheduled sessions in range
         var startDateTimeUtc = fromDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var endDateTimeUtc = toDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
 
-        var activeBookings = await _context.Bookings
+        var activeSessions = await _context.Sessions
             .AsNoTracking()
-            .Where(b => b.TutorProfileId == tutor.Id &&
-                        b.StartAt <= endDateTimeUtc && b.EndAt >= startDateTimeUtc &&
-                        (b.Status == BookingStatus.Confirmed ||
-                         b.Status == BookingStatus.Pending ||
-                         b.Status == BookingStatus.Completed ||
-                         (b.Status == BookingStatus.Holding && b.HoldingExpiresAt.HasValue && b.HoldingExpiresAt.Value > DateTime.UtcNow)))
-            .OrderBy(b => b.StartAt)
+            .Where(s => s.Enrollment.TutorProfileId == tutor.Id &&
+                        s.Status == SessionStatus.Scheduled &&
+                        s.StartAt.HasValue && s.EndAt.HasValue &&
+                        s.StartAt.Value <= endDateTimeUtc && s.EndAt.Value >= startDateTimeUtc)
+            .OrderBy(s => s.StartAt)
             .ToListAsync(cancellationToken);
 
         var nowTime = TimeOnly.FromDateTime(DateTime.UtcNow);
@@ -94,26 +92,26 @@ public class GetTutorAvailabilityQueryHandler : IRequestHandler<GetTutorAvailabi
             // Initial available intervals for this day
             var availableIntervals = daySlots.Select(s => (Start: s.StartTime, End: s.EndTime)).ToList();
 
-            // Find bookings on this specific calendar date
+            // Find sessions on this specific calendar date
             var dayStartUtc = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
             var dayEndUtc = date.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
 
-            var dayBookings = activeBookings
-                .Where(b => b.StartAt < dayEndUtc && b.EndAt > dayStartUtc)
+            var daySessions = activeSessions
+                .Where(s => s.StartAt!.Value < dayEndUtc && s.EndAt!.Value > dayStartUtc)
                 .ToList();
 
             var bookedSlots = new List<TimeRangeDto>();
 
-            foreach (var booking in dayBookings)
+            foreach (var session in daySessions)
             {
-                // Clamp booking start/end to this day
-                var bStart = booking.StartAt < dayStartUtc ? TimeOnly.MinValue : TimeOnly.FromDateTime(booking.StartAt);
-                var bEnd = booking.EndAt > dayEndUtc ? TimeOnly.MaxValue : TimeOnly.FromDateTime(booking.EndAt);
+                // Clamp session start/end to this day
+                var sStart = session.StartAt!.Value < dayStartUtc ? TimeOnly.MinValue : TimeOnly.FromDateTime(session.StartAt.Value);
+                var sEnd = session.EndAt!.Value > dayEndUtc ? TimeOnly.MaxValue : TimeOnly.FromDateTime(session.EndAt.Value);
 
-                bookedSlots.Add(new TimeRangeDto(bStart, bEnd));
+                bookedSlots.Add(new TimeRangeDto(sStart, sEnd));
 
-                // Subtract booking interval from available intervals
-                availableIntervals = SubtractInterval(availableIntervals, bStart, bEnd);
+                // Subtract session interval from available intervals
+                availableIntervals = SubtractInterval(availableIntervals, sStart, sEnd);
             }
 
             // Filter out past time if current date is today

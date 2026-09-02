@@ -20,10 +20,6 @@ public class UpdateMyProfileCommandValidator : AbstractValidator<UpdateMyProfile
             .LessThanOrEqualTo(60).When(x => x.ExperienceYears.HasValue)
             .WithMessage("Experience years cannot exceed 60.");
 
-        RuleFor(x => x.HourlyRate)
-            .GreaterThanOrEqualTo(0).When(x => x.HourlyRate.HasValue)
-            .WithMessage("Hourly rate must be 0 or greater.");
-
         RuleFor(x => x.TeachingMode)
             .IsInEnum().When(x => x.TeachingMode.HasValue)
             .WithMessage("Valid teaching mode is required.");

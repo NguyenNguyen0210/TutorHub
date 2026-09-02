@@ -100,20 +100,6 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
             throw new ConflictException("The tutor already has another scheduled session during this time slot.");
         }
 
-        var now = DateTime.UtcNow;
-        var hasBookingConflict = await _context.Bookings
-            .AnyAsync(b => b.TutorProfileId == tutorProfileId &&
-                           b.StartAt < request.EndAt && request.StartAt < b.EndAt &&
-                           (b.Status == BookingStatus.Confirmed ||
-                            b.Status == BookingStatus.Pending ||
-                            (b.Status == BookingStatus.Holding && b.HoldingExpiresAt.HasValue && b.HoldingExpiresAt.Value > now)),
-                      cancellationToken);
-
-        if (hasBookingConflict)
-        {
-            throw new ConflictException("The tutor already has another scheduled booking during this time slot.");
-        }
-
         // 8. Domain state transition
         session.Schedule(request.StartAt, request.EndAt);
         await _context.SaveChangesAsync(cancellationToken);

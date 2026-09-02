@@ -217,10 +217,6 @@ public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, Booki
                 TutorPhone: booking.TutorProfile.User.Phone,
                 SubjectId: booking.SubjectId,
                 SubjectName: booking.Subject.Name,
-                StartAt: booking.StartAt,
-                EndAt: booking.EndAt,
-                HourlyRate: booking.HourlyRate,
-                TotalAmount: booking.TotalAmount,
                 Status: booking.Status,
                 HoldingExpiresAt: booking.HoldingExpiresAt,
                 ConfirmedAt: booking.ConfirmedAt,
@@ -248,92 +244,7 @@ public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, Booki
                 Enrollment: enrollmentDto
             );
         }
-        else
-        {
-            // --- Legacy single-session booking payment flow ---
-            booking.Status = BookingStatus.Pending;
-            booking.HoldingExpiresAt = null;
 
-            var transactionEntity = new Transaction
-            {
-                Id = Guid.NewGuid(),
-                BookingId = booking.Id,
-                SessionId = null,
-                Amount = booking.TotalAmount,
-                Status = TransactionStatus.Held,
-                CommissionRate = 0,
-                CommissionAmount = 0,
-                PayoutAmount = booking.TotalAmount,
-                PaymentGatewayRef = request.PaymentMethod ?? "Mock",
-                CreatedAt = now
-            };
-
-            _context.Transactions.Add(transactionEntity);
-            booking.Transaction = transactionEntity;
-
-            var wallet = await _context.Wallets
-                .FirstOrDefaultAsync(w => w.TutorProfileId == booking.TutorProfileId, cancellationToken);
-
-            if (wallet == null)
-            {
-                wallet = new Wallet
-                {
-                    Id = Guid.NewGuid(),
-                    TutorProfileId = booking.TutorProfileId,
-                    PendingBalance = booking.TotalAmount,
-                    AvailableBalance = 0,
-                    UpdatedAt = now
-                };
-                _context.Wallets.Add(wallet);
-            }
-            else
-            {
-                wallet.PendingBalance += booking.TotalAmount;
-                wallet.UpdatedAt = now;
-            }
-
-            return new BookingDto(
-                Id: booking.Id,
-                StudentProfileId: booking.StudentProfileId,
-                StudentName: booking.StudentProfile.User.FullName,
-                StudentEmail: booking.StudentProfile.User.Email,
-                StudentPhone: booking.StudentProfile.User.Phone,
-                TutorProfileId: booking.TutorProfileId,
-                TutorName: booking.TutorProfile.User.FullName,
-                TutorEmail: booking.TutorProfile.User.Email,
-                TutorPhone: booking.TutorProfile.User.Phone,
-                SubjectId: booking.SubjectId,
-                SubjectName: booking.Subject.Name,
-                StartAt: booking.StartAt,
-                EndAt: booking.EndAt,
-                HourlyRate: booking.HourlyRate,
-                TotalAmount: booking.TotalAmount,
-                Status: booking.Status,
-                HoldingExpiresAt: booking.HoldingExpiresAt,
-                ConfirmedAt: booking.ConfirmedAt,
-                CompletedAt: booking.CompletedAt,
-                CancelledAt: booking.CancelledAt,
-                CancelledBy: booking.CancelledBy,
-                CancellationReason: booking.CancellationReason,
-                CreatedAt: booking.CreatedAt,
-                Transaction: new TransactionDto(
-                    Id: transactionEntity.Id,
-                    Amount: transactionEntity.Amount,
-                    Status: transactionEntity.Status,
-                    CommissionRate: transactionEntity.CommissionRate,
-                    CommissionAmount: transactionEntity.CommissionAmount,
-                    PayoutAmount: transactionEntity.PayoutAmount,
-                    CreatedAt: transactionEntity.CreatedAt,
-                    ReleasedAt: transactionEntity.ReleasedAt,
-                    RefundedAt: transactionEntity.RefundedAt
-                ),
-                ServiceId: null,
-                TotalPrice: booking.TotalPrice,
-                TotalSessions: booking.TotalSessions,
-                SessionDurationMinutes: booking.SessionDurationMinutes,
-                TeachingMode: booking.TeachingMode,
-                Enrollment: null
-            );
-        }
+        throw new InvalidOperationException("Booking is missing ServiceId commercial reference.");
     }
 }

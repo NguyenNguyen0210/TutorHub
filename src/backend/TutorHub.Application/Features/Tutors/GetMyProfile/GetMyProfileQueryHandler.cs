@@ -46,7 +46,6 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, Tutor
                 ts.Subject.Name,
                 ts.Subject.CategoryId,
                 ts.Subject.Category.Name,
-                ts.OverridePrice,
                 ts.IsActive
             ))
             .ToList();
@@ -65,7 +64,6 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, Tutor
             Address: tutor.Address,
             Latitude: tutor.Latitude,
             Longitude: tutor.Longitude,
-            HourlyRate: tutor.HourlyRate,
             RatingAvg: tutor.RatingAvg,
             TotalReviews: tutor.TotalReviews,
             Subjects: subjects,

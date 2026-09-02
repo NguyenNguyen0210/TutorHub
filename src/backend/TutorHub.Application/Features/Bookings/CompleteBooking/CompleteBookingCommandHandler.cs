@@ -50,12 +50,6 @@ public class CompleteBookingCommandHandler : IRequestHandler<CompleteBookingComm
             throw new ConflictException($"Cannot complete booking in '{booking.Status}' status. Booking must be Confirmed.");
         }
 
-        // 3. Validate timing: session must be finished
-        if (now < booking.EndAt)
-        {
-            throw new BadRequestException($"Cannot mark booking as completed before the session ends ({booking.EndAt:yyyy-MM-dd HH:mm} UTC).");
-        }
-
         // 4. Mark as Completed & Release Held Payment to Tutor
         booking.Status = BookingStatus.Completed;
         booking.CompletedAt = now;
@@ -81,7 +75,7 @@ public class CompleteBookingCommandHandler : IRequestHandler<CompleteBookingComm
             }
             else
             {
-                wallet.PendingBalance = Math.Max(0, wallet.PendingBalance - booking.TotalAmount);
+                wallet.PendingBalance = Math.Max(0, wallet.PendingBalance - booking.TotalPrice);
                 wallet.AvailableBalance += booking.Transaction.PayoutAmount;
                 wallet.UpdatedAt = now;
             }
@@ -101,10 +95,6 @@ public class CompleteBookingCommandHandler : IRequestHandler<CompleteBookingComm
             TutorPhone: booking.TutorProfile.User.Phone,
             SubjectId: booking.SubjectId,
             SubjectName: booking.Subject.Name,
-            StartAt: booking.StartAt,
-            EndAt: booking.EndAt,
-            HourlyRate: booking.HourlyRate,
-            TotalAmount: booking.TotalAmount,
             Status: booking.Status,
             HoldingExpiresAt: booking.HoldingExpiresAt,
             ConfirmedAt: booking.ConfirmedAt,
@@ -123,7 +113,13 @@ public class CompleteBookingCommandHandler : IRequestHandler<CompleteBookingComm
                 CreatedAt: booking.Transaction.CreatedAt,
                 ReleasedAt: booking.Transaction.ReleasedAt,
                 RefundedAt: booking.Transaction.RefundedAt
-            )
+            ),
+            ServiceId: booking.ServiceId,
+            TotalPrice: booking.TotalPrice,
+            TotalSessions: booking.TotalSessions,
+            SessionDurationMinutes: booking.SessionDurationMinutes,
+            TeachingMode: booking.TeachingMode,
+            Enrollment: null
         );
     }
 }

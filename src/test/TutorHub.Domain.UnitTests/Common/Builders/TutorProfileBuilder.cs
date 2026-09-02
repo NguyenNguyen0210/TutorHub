@@ -9,7 +9,6 @@ public class TutorProfileBuilder
     private User? _user;
     private Guid? _userId;
     private string _bio = "Experienced educator with 5+ years of teaching experience.";
-    private decimal _hourlyRate = 200_000m;
     private int _experienceYears = 5;
     private string _education = "B.Sc. in Mathematics Education";
     private TeachingMode _teachingMode = TeachingMode.Both;
@@ -42,12 +41,6 @@ public class TutorProfileBuilder
         return this;
     }
 
-    public TutorProfileBuilder WithHourlyRate(decimal hourlyRate)
-    {
-        _hourlyRate = hourlyRate;
-        return this;
-    }
-
     public TutorProfileBuilder WithRatings(decimal ratingAvg, int totalReviews)
     {
         _ratingAvg = ratingAvg;
@@ -69,7 +62,6 @@ public class TutorProfileBuilder
             UserId = user.Id,
             User = user,
             Bio = _bio,
-            HourlyRate = _hourlyRate,
             ExperienceYears = _experienceYears,
             Education = _education,
             TeachingMode = _teachingMode,

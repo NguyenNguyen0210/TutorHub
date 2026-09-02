@@ -82,10 +82,6 @@ public class ConfirmBookingCommandHandler : IRequestHandler<ConfirmBookingComman
             TutorPhone: booking.TutorProfile.User.Phone,
             SubjectId: booking.SubjectId,
             SubjectName: booking.Subject.Name,
-            StartAt: booking.StartAt,
-            EndAt: booking.EndAt,
-            HourlyRate: booking.HourlyRate,
-            TotalAmount: booking.TotalAmount,
             Status: booking.Status,
             HoldingExpiresAt: booking.HoldingExpiresAt,
             ConfirmedAt: booking.ConfirmedAt,
@@ -104,7 +100,13 @@ public class ConfirmBookingCommandHandler : IRequestHandler<ConfirmBookingComman
                 CreatedAt: booking.Transaction.CreatedAt,
                 ReleasedAt: booking.Transaction.ReleasedAt,
                 RefundedAt: booking.Transaction.RefundedAt
-            )
+            ),
+            ServiceId: booking.ServiceId,
+            TotalPrice: booking.TotalPrice,
+            TotalSessions: booking.TotalSessions,
+            SessionDurationMinutes: booking.SessionDurationMinutes,
+            TeachingMode: booking.TeachingMode,
+            Enrollment: null
         );
     }
 }

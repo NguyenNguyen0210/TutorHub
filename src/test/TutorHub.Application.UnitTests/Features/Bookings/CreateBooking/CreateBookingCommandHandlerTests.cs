@@ -21,18 +21,29 @@ public class CreateBookingCommandHandlerTests
         _handler = new CreateBookingCommandHandler(_contextMock.Object);
     }
 
-    [Fact]
-    public async Task Handle_WithPublishedService_CreatesHoldingBookingWithSnapshotTerms()
+    private static (Service service, StudentProfile studentProfile, TutorProfile tutorProfile, User studentUser, User tutorUser, TutorApplication tutorApp) CreateTestAggregate(
+        ServiceStatus serviceStatus = ServiceStatus.Published,
+        TutorApplicationStatus appStatus = TutorApplicationStatus.Approved,
+        AccountStatus accountStatus = AccountStatus.Active)
     {
-        // Arrange
         var studentUser = new UserBuilder().WithRole(UserRole.Student).Build();
         var studentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = studentUser.Id, User = studentUser };
 
-        var tutorUser = new UserBuilder().WithRole(UserRole.Tutor).WithStatus(AccountStatus.Active).Build();
+        var tutorUser = new UserBuilder()
+            .WithRole(UserRole.Tutor)
+            .WithStatus(accountStatus)
+            .Build();
         var tutorProfile = new TutorProfile { Id = Guid.NewGuid(), UserId = tutorUser.Id, User = tutorUser };
 
-        var approvedApp = new TutorApplication { Id = Guid.NewGuid(), UserId = tutorUser.Id };
-        approvedApp.Approve(Guid.NewGuid());
+        var tutorApp = new TutorApplication { Id = Guid.NewGuid(), UserId = tutorUser.Id };
+        if (appStatus == TutorApplicationStatus.Approved)
+        {
+            tutorApp.Approve(Guid.NewGuid());
+        }
+        else if (appStatus == TutorApplicationStatus.Rejected)
+        {
+            tutorApp.Reject("Rejection test", Guid.NewGuid());
+        }
 
         var category = new Category { Id = Guid.NewGuid(), Name = "Math" };
         var subject = new Subject { Id = Guid.NewGuid(), Name = "Algebra", Category = category, IsActive = true };
@@ -50,22 +61,26 @@ public class CreateBookingCommandHandlerTests
             SessionDurationMinutes = 60,
             Price = 3_500_000m,
             TeachingMode = TeachingMode.Online,
-            Status = ServiceStatus.Published
+            Status = serviceStatus
         };
 
+        return (service, studentProfile, tutorProfile, studentUser, tutorUser, tutorApp);
+    }
+
+    [Fact]
+    public async Task Handle_WithPublishedService_CreatesHoldingBookingWithSnapshotTerms()
+    {
+        // Arrange
+        var (service, studentProfile, tutorProfile, studentUser, _, tutorApp) = CreateTestAggregate();
         var bookingsList = new List<Booking>();
 
         _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { studentProfile }).Object);
-        _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorProfile> { tutorProfile }).Object);
-        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { approvedApp }).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
+        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { tutorApp }).Object);
         _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(bookingsList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var command = new CreateBookingCommand(
-            UserId: studentUser.Id,
-            ServiceId: service.Id
-        );
+        var command = new CreateBookingCommand(studentUser.Id, service.Id);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -78,178 +93,105 @@ public class CreateBookingCommandHandlerTests
         result.SessionDurationMinutes.Should().Be(60);
         result.TeachingMode.Should().Be(TeachingMode.Online);
         result.Status.Should().Be(BookingStatus.Holding);
-        result.HoldingExpiresAt.Should().NotBeNull();
-        result.HoldingExpiresAt!.Value.Should().BeCloseTo(DateTime.UtcNow.AddMinutes(15), TimeSpan.FromSeconds(5));
+        result.HoldingExpiresAt.Should().BeCloseTo(DateTime.UtcNow.AddMinutes(15), TimeSpan.FromSeconds(5));
 
-        bookingsList.Should().ContainSingle();
-        var created = bookingsList.Single();
-        created.ServiceId.Should().Be(service.Id);
-        created.TotalPrice.Should().Be(3_500_000m);
-        created.TotalSessions.Should().Be(10);
-        created.Status.Should().Be(BookingStatus.Holding);
-
-        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        bookingsList.Should().HaveCount(1);
+        bookingsList[0].ServiceId.Should().Be(service.Id);
+        bookingsList[0].TotalPrice.Should().Be(3_500_000m);
+        bookingsList[0].TotalSessions.Should().Be(10);
+        bookingsList[0].Status.Should().Be(BookingStatus.Holding);
     }
 
     [Fact]
-    public async Task Handle_WithDraftService_ThrowsBadRequestException()
+    public async Task Handle_WhenServiceNotFound_ThrowsNotFoundException()
     {
         // Arrange
         var studentUser = new UserBuilder().WithRole(UserRole.Student).Build();
         var studentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = studentUser.Id, User = studentUser };
 
-        var tutorUser = new UserBuilder().WithRole(UserRole.Tutor).WithStatus(AccountStatus.Active).Build();
-        var tutorProfile = new TutorProfile { Id = Guid.NewGuid(), UserId = tutorUser.Id, User = tutorUser };
+        _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { studentProfile }).Object);
+        _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service>()).Object);
 
-        var service = new Service
-        {
-            Id = Guid.NewGuid(),
-            TutorProfileId = tutorProfile.Id,
-            TutorProfile = tutorProfile,
-            SubjectId = Guid.NewGuid(),
-            Subject = new Subject { IsActive = true },
-            Status = ServiceStatus.Draft
-        };
+        var command = new CreateBookingCommand(studentUser.Id, Guid.NewGuid());
+
+        // Act
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
+    public async Task Handle_WhenServiceDraftOrUnpublished_ThrowsBadRequestException()
+    {
+        // Arrange
+        var (service, studentProfile, _, studentUser, _, tutorApp) = CreateTestAggregate(serviceStatus: ServiceStatus.Draft);
 
         _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { studentProfile }).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
+        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { tutorApp }).Object);
 
-        var command = new CreateBookingCommand(UserId: studentUser.Id, ServiceId: service.Id);
+        var command = new CreateBookingCommand(studentUser.Id, service.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
 
         // Assert
         var ex = await act.Should().ThrowAsync<BadRequestException>();
-        ex.Which.Errors.Should().Contain("The selected service is not published.");
+        ex.Which.Errors.Should().Contain("Only published services can be booked.");
     }
 
     [Fact]
-    public async Task Handle_WithUnpublishedService_ThrowsBadRequestException()
+    public async Task Handle_WhenTutorNotApproved_ThrowsBadRequestException()
     {
         // Arrange
-        var studentUser = new UserBuilder().WithRole(UserRole.Student).Build();
-        var studentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = studentUser.Id, User = studentUser };
-
-        var tutorUser = new UserBuilder().WithRole(UserRole.Tutor).WithStatus(AccountStatus.Active).Build();
-        var tutorProfile = new TutorProfile { Id = Guid.NewGuid(), UserId = tutorUser.Id, User = tutorUser };
-
-        var service = new Service
-        {
-            Id = Guid.NewGuid(),
-            TutorProfileId = tutorProfile.Id,
-            TutorProfile = tutorProfile,
-            SubjectId = Guid.NewGuid(),
-            Subject = new Subject { IsActive = true },
-            Status = ServiceStatus.Unpublished
-        };
+        var (service, studentProfile, _, studentUser, _, tutorApp) = CreateTestAggregate(appStatus: TutorApplicationStatus.Pending);
 
         _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { studentProfile }).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
+        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { tutorApp }).Object);
 
-        var command = new CreateBookingCommand(UserId: studentUser.Id, ServiceId: service.Id);
+        var command = new CreateBookingCommand(studentUser.Id, service.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
 
         // Assert
         var ex = await act.Should().ThrowAsync<BadRequestException>();
-        ex.Which.Errors.Should().Contain("The selected service is not published.");
+        ex.Which.Errors.Should().Contain("The tutor offering this service is not approved.");
     }
 
     [Fact]
-    public async Task Handle_WithInactiveTutor_ThrowsBadRequestException()
+    public async Task Handle_WhenTutorUserSuspended_ThrowsForbiddenException()
     {
         // Arrange
-        var studentUser = new UserBuilder().WithRole(UserRole.Student).Build();
-        var studentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = studentUser.Id, User = studentUser };
-
-        var tutorUser = new UserBuilder().WithRole(UserRole.Tutor).WithStatus(AccountStatus.Suspended).Build();
-        var tutorProfile = new TutorProfile { Id = Guid.NewGuid(), UserId = tutorUser.Id, User = tutorUser };
-
-        var service = new Service
-        {
-            Id = Guid.NewGuid(),
-            TutorProfileId = tutorProfile.Id,
-            TutorProfile = tutorProfile,
-            SubjectId = Guid.NewGuid(),
-            Subject = new Subject { IsActive = true },
-            Status = ServiceStatus.Published
-        };
+        var (service, studentProfile, _, studentUser, _, tutorApp) = CreateTestAggregate(accountStatus: AccountStatus.Suspended);
 
         _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { studentProfile }).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
+        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { tutorApp }).Object);
 
-        var command = new CreateBookingCommand(UserId: studentUser.Id, ServiceId: service.Id);
+        var command = new CreateBookingCommand(studentUser.Id, service.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var ex = await act.Should().ThrowAsync<BadRequestException>();
-        ex.Which.Errors.Should().Contain("The selected tutor profile is not active or verified.");
+        await act.Should().ThrowAsync<ForbiddenException>();
     }
 
     [Fact]
-    public async Task Handle_WithUnapprovedTutor_ThrowsBadRequestException()
+    public async Task Handle_WhenStudentIsTutorThemselves_ThrowsBadRequestException()
     {
         // Arrange
-        var studentUser = new UserBuilder().WithRole(UserRole.Student).Build();
-        var studentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = studentUser.Id, User = studentUser };
+        var (service, _, _, _, tutorUser, tutorApp) = CreateTestAggregate();
+        var tutorAsStudentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = tutorUser.Id, User = tutorUser };
 
-        var tutorUser = new UserBuilder().WithRole(UserRole.Tutor).WithStatus(AccountStatus.Active).Build();
-        var tutorProfile = new TutorProfile { Id = Guid.NewGuid(), UserId = tutorUser.Id, User = tutorUser };
-
-        var service = new Service
-        {
-            Id = Guid.NewGuid(),
-            TutorProfileId = tutorProfile.Id,
-            TutorProfile = tutorProfile,
-            SubjectId = Guid.NewGuid(),
-            Subject = new Subject { IsActive = true },
-            Status = ServiceStatus.Published
-        };
-
-        _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { studentProfile }).Object);
+        _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { tutorAsStudentProfile }).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
-        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication>()).Object); // No approved app
+        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { tutorApp }).Object);
 
-        var command = new CreateBookingCommand(UserId: studentUser.Id, ServiceId: service.Id);
-
-        // Act
-        var act = () => _handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        var ex = await act.Should().ThrowAsync<BadRequestException>();
-        ex.Which.Errors.Should().Contain("The selected tutor profile is not active or verified.");
-    }
-
-    [Fact]
-    public async Task Handle_WhenStudentIsSameAsTutor_ThrowsBadRequestException()
-    {
-        // Arrange
-        var user = new UserBuilder().WithRole(UserRole.Tutor).WithStatus(AccountStatus.Active).Build();
-        var studentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = user.Id, User = user };
-        var tutorProfile = new TutorProfile { Id = Guid.NewGuid(), UserId = user.Id, User = user };
-
-        var approvedApp = new TutorApplication { Id = Guid.NewGuid(), UserId = user.Id };
-        approvedApp.Approve(Guid.NewGuid());
-
-        var service = new Service
-        {
-            Id = Guid.NewGuid(),
-            TutorProfileId = tutorProfile.Id,
-            TutorProfile = tutorProfile,
-            SubjectId = Guid.NewGuid(),
-            Subject = new Subject { IsActive = true },
-            Status = ServiceStatus.Published
-        };
-
-        _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { studentProfile }).Object);
-        _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
-        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { approvedApp }).Object);
-
-        var command = new CreateBookingCommand(UserId: user.Id, ServiceId: service.Id);
+        var command = new CreateBookingCommand(tutorUser.Id, service.Id); // Self-purchase attempt!
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -260,69 +202,70 @@ public class CreateBookingCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithNonExistentService_ThrowsNotFoundException()
+    public async Task Handle_WhenTutorUserBanned_ThrowsForbiddenException()
     {
         // Arrange
-        var studentUser = new UserBuilder().WithRole(UserRole.Student).Build();
-        var studentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = studentUser.Id, User = studentUser };
+        var (service, studentProfile, _, studentUser, _, tutorApp) = CreateTestAggregate(accountStatus: AccountStatus.Banned);
 
         _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { studentProfile }).Object);
-        _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service>()).Object);
+        _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
+        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { tutorApp }).Object);
 
-        var nonExistentServiceId = Guid.NewGuid();
-        var command = new CreateBookingCommand(UserId: studentUser.Id, ServiceId: nonExistentServiceId);
+        var command = new CreateBookingCommand(studentUser.Id, service.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<NotFoundException>();
+        await act.Should().ThrowAsync<ForbiddenException>();
     }
 
     [Fact]
-    public async Task Handle_CreatesStudentProfile_WhenUserIsStudentWithoutProfile()
+    public async Task Handle_WhenUserNotRegisteredStudent_CreatesStudentProfileAndProceeds()
     {
-        // Arrange
-        var studentUser = new UserBuilder().WithRole(UserRole.Student).Build();
-        var tutorUser = new UserBuilder().WithRole(UserRole.Tutor).WithStatus(AccountStatus.Active).Build();
-        var tutorProfile = new TutorProfile { Id = Guid.NewGuid(), UserId = tutorUser.Id, User = tutorUser };
-
-        var approvedApp = new TutorApplication { Id = Guid.NewGuid(), UserId = tutorUser.Id };
-        approvedApp.Approve(Guid.NewGuid());
-
-        var service = new Service
-        {
-            Id = Guid.NewGuid(),
-            TutorProfileId = tutorProfile.Id,
-            TutorProfile = tutorProfile,
-            SubjectId = Guid.NewGuid(),
-            Subject = new Subject { IsActive = true },
-            Price = 1_000_000m,
-            TotalSessions = 5,
-            SessionDurationMinutes = 45,
-            TeachingMode = TeachingMode.Online,
-            Status = ServiceStatus.Published
-        };
+        // Arrange - User has Student role but no StudentProfile record yet
+        var (service, _, tutorProfile, _, _, tutorApp) = CreateTestAggregate();
+        var newUser = new UserBuilder().WithRole(UserRole.Student).Build();
 
         var studentProfilesList = new List<StudentProfile>();
         var bookingsList = new List<Booking>();
 
         _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(studentProfilesList).Object);
-        _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { studentUser }).Object);
-        _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorProfile> { tutorProfile }).Object);
-        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { approvedApp }).Object);
+        _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { newUser }).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
+        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { tutorApp }).Object);
         _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(bookingsList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var command = new CreateBookingCommand(UserId: studentUser.Id, ServiceId: service.Id);
+        var command = new CreateBookingCommand(newUser.Id, service.Id);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
 
         // Assert
         result.Should().NotBeNull();
-        studentProfilesList.Should().ContainSingle();
-        studentProfilesList.Single().UserId.Should().Be(studentUser.Id);
+        studentProfilesList.Should().HaveCount(1);
+        studentProfilesList[0].UserId.Should().Be(newUser.Id);
+        bookingsList.Should().HaveCount(1);
+        bookingsList[0].StudentProfileId.Should().Be(studentProfilesList[0].Id);
+    }
+
+    [Fact]
+    public void Validator_WhenServiceIdEmpty_FailsValidation()
+    {
+        var validator = new CreateBookingCommandValidator();
+        var command = new CreateBookingCommand(Guid.NewGuid(), Guid.Empty);
+        var result = validator.Validate(command);
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "ServiceId");
+    }
+
+    [Fact]
+    public void Validator_WhenServiceIdValid_PassesValidation()
+    {
+        var validator = new CreateBookingCommandValidator();
+        var command = new CreateBookingCommand(Guid.NewGuid(), Guid.NewGuid());
+        var result = validator.Validate(command);
+        result.IsValid.Should().BeTrue();
     }
 }

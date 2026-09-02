@@ -25,10 +25,9 @@ public class CancelBookingCommandHandlerTests
     [Fact]
     public async Task Handle_WhenStudentCancelsPendingBooking_ShouldCancelAndSave()
     {
-        // Arrange - Setup a pending booking starting 2 days in the future
+        // Arrange - Setup a pending booking
         var booking = new BookingBuilder()
             .WithStatus(BookingStatus.Pending)
-            .WithSchedule(DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(2).AddHours(1))
             .Build();
 
         var studentUserId = booking.StudentProfile.UserId;
@@ -67,8 +66,7 @@ public class CancelBookingCommandHandlerTests
 
         var booking = new BookingBuilder()
             .WithStatus(BookingStatus.Confirmed)
-            .WithPricing(200_000m, 200_000m)
-            .WithSchedule(DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(2).AddHours(1))
+            .WithSnapshot(200_000m)
             .WithTransaction(transaction)
             .Build();
 

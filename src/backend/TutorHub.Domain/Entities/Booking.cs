@@ -18,18 +18,18 @@ public class Booking
     public Guid SubjectId { get; set; }
     public Subject Subject { get; set; } = default!;
 
-    // Schedule
-    public DateTime StartAt { get; set; }
-    public DateTime EndAt { get; set; }
-
-    // Pricing
-    public decimal HourlyRate { get; set; }
-    public decimal TotalAmount { get; set; }
+    // Commercial Terms Snapshot from Service
+    public Guid? ServiceId { get; set; }
+    public Service? Service { get; set; }
+    public decimal TotalPrice { get; set; }
+    public int TotalSessions { get; set; }
+    public int SessionDurationMinutes { get; set; }
+    public TeachingMode TeachingMode { get; set; }
 
     // Lifecycle
     public BookingStatus Status { get; set; }
 
-    // Temporary holding
+    // Temporary holding (15m checkout lock)
     public DateTime? HoldingExpiresAt { get; set; }
 
     // Confirmation
@@ -44,15 +44,6 @@ public class Booking
     public string? CancellationReason { get; set; }
 
     public DateTime CreatedAt { get; set; }
-
-
-    // Service reference & Commercial Snapshot (Sprint 4 Service-based commerce)
-    public Guid? ServiceId { get; set; }
-    public Service? Service { get; set; }
-    public decimal TotalPrice { get; set; }
-    public int TotalSessions { get; set; }
-    public int SessionDurationMinutes { get; set; }
-    public TeachingMode TeachingMode { get; set; }
 
     // Relationships
     public Enrollment? Enrollment { get; set; }

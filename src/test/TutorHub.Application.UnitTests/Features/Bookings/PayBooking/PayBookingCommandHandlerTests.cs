@@ -459,14 +459,14 @@ public class PayBookingCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_LegacyBooking_MaintainsLegacyBehaviorWithoutEnrollment()
+    public async Task Handle_WhenBookingMissingServiceId_ThrowsInvalidOperationException()
     {
-        // Arrange - Legacy booking without ServiceId
+        // Arrange - Invalid booking without ServiceId
         var studentUser = new UserBuilder().WithRole(UserRole.Student).Build();
         var studentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = studentUser.Id, User = studentUser };
         var tutorProfile = new TutorProfile { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), User = new UserBuilder().Build() };
 
-        var legacyBooking = new Booking
+        var invalidBooking = new Booking
         {
             Id = Guid.NewGuid(),
             StudentProfileId = studentProfile.Id,
@@ -475,32 +475,23 @@ public class PayBookingCommandHandlerTests
             TutorProfile = tutorProfile,
             SubjectId = Guid.NewGuid(),
             Subject = new Subject { IsActive = true },
-            ServiceId = null, // Legacy
-            HourlyRate = 200_000m,
-            TotalAmount = 400_000m,
+            ServiceId = null,
+            TotalPrice = 400_000m,
+            TotalSessions = 2,
             Status = BookingStatus.Holding,
             HoldingExpiresAt = DateTime.UtcNow.AddMinutes(10),
             CreatedAt = DateTime.UtcNow
         };
 
-        var transactionsList = new List<Transaction>();
-        var enrollmentsList = new List<Enrollment>();
+        _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(new List<Booking> { invalidBooking }).Object);
 
-        _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(new List<Booking> { legacyBooking }).Object);
-        _contextMock.Setup(c => c.Transactions).Returns(MockDbSetHelper.CreateMockDbSet(transactionsList).Object);
-        _contextMock.Setup(c => c.Enrollments).Returns(MockDbSetHelper.CreateMockDbSet(enrollmentsList).Object);
-        _contextMock.Setup(c => c.Wallets).Returns(MockDbSetHelper.CreateMockDbSet(new List<Wallet>()).Object);
-        _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
-
-        var command = new PayBookingCommand(BookingId: legacyBooking.Id, UserId: studentUser.Id, PaymentMethod: "VNPAY");
+        var command = new PayBookingCommand(BookingId: invalidBooking.Id, UserId: studentUser.Id, PaymentMethod: "VNPAY");
 
         // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        var act = () => _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        result.Status.Should().Be(BookingStatus.Pending, "Legacy booking transitions to Pending awaiting tutor confirmation");
-        result.Enrollment.Should().BeNull("Legacy booking does not create Enrollment");
-        enrollmentsList.Should().BeEmpty("No enrollment created for legacy booking");
-        legacyBooking.Status.Should().Be(BookingStatus.Pending);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Booking is missing ServiceId commercial reference.");
     }
 }

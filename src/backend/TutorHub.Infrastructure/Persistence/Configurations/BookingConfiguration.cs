@@ -12,24 +12,8 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
 
         builder.ToTable(t =>
         {
-            t.HasCheckConstraint("CK_Booking_TimeRange", "\"StartAt\" < \"EndAt\"");
-            t.HasCheckConstraint("CK_Booking_Price", "\"HourlyRate\" >= 0 AND \"TotalAmount\" >= 0");
+            t.HasCheckConstraint("CK_Booking_TotalPrice", "\"TotalPrice\" >= 0 AND \"TotalSessions\" > 0 AND \"SessionDurationMinutes\" > 0");
         });
-
-        builder.Property(b => b.StartAt)
-
-            .IsRequired();
-
-        builder.Property(b => b.EndAt)
-            .IsRequired();
-
-        builder.Property(b => b.HourlyRate)
-            .HasPrecision(10, 2)
-            .IsRequired();
-
-        builder.Property(b => b.TotalAmount)
-            .HasPrecision(10, 2)
-            .IsRequired();
 
         builder.Property(b => b.Status)
             .HasConversion<string>()
@@ -46,7 +30,7 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.Property(b => b.CreatedAt)
             .IsRequired();
 
-        // Snapshot fields (Sprint 4)
+        // Snapshot fields (Sprint 4 Service-based commerce)
         builder.Property(b => b.TotalPrice)
             .HasPrecision(12, 2)
             .IsRequired();
@@ -63,7 +47,7 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
             .IsRequired();
 
         // Indexes
-        builder.HasIndex(b => new { b.TutorProfileId, b.StartAt, b.EndAt, b.Status });
+        builder.HasIndex(b => new { b.TutorProfileId, b.Status });
         builder.HasIndex(b => new { b.StudentProfileId, b.Status });
         builder.HasIndex(b => b.Status);
         builder.HasIndex(b => b.ServiceId);

@@ -6,6 +6,5 @@ public record TutorSubjectDto(
     string SubjectName,
     Guid CategoryId,
     string CategoryName,
-    decimal? OverridePrice,
     bool IsActive
 );

@@ -71,7 +71,7 @@ public class ProcessBookingTimeoutsCommandHandler : IRequestHandler<ProcessBooki
 
                     if (wallet != null)
                     {
-                        wallet.PendingBalance = Math.Max(0, wallet.PendingBalance - booking.TotalAmount);
+                        wallet.PendingBalance = Math.Max(0, wallet.PendingBalance - booking.TotalPrice);
                         wallet.UpdatedAt = now;
                     }
                 }

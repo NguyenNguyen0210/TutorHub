@@ -61,7 +61,6 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
                     Bio: tutorProfile.Bio,
                     Education: tutorProfile.Education,
                     ExperienceYears: tutorProfile.ExperienceYears,
-                    HourlyRate: tutorProfile.HourlyRate,
                     TeachingMode: tutorProfile.TeachingMode,
                     Address: tutorProfile.Address,
                     LatestApplicationStatus: latestApplication?.Status.ToString(),
@@ -91,7 +90,7 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
                 var totalSpent = await _context.Bookings
                     .AsNoTracking()
                     .Where(b => b.StudentProfileId == studentProfile.Id && b.Status == BookingStatus.Completed)
-                    .SumAsync(b => b.TotalAmount, cancellationToken);
+                    .SumAsync(b => b.TotalPrice, cancellationToken);
 
                 studentProfileDto = new AdminUserStudentProfileDto(
                     TotalBookingsAsStudent: totalBookingsAsStudent,
@@ -111,9 +110,8 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
                 b.Subject.Name,
                 b.StudentProfile.UserId == user.Id ? b.TutorProfile.User.FullName : b.StudentProfile.User.FullName,
                 b.Status,
-                b.TotalAmount,
-                b.StartAt,
-                b.EndAt,
+                b.TotalPrice,
+                b.TotalSessions,
                 b.CreatedAt
             ))
             .ToListAsync(cancellationToken);

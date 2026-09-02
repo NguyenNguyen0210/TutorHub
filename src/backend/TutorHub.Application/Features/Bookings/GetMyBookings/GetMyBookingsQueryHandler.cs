@@ -41,17 +41,17 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Pag
             query = query.Where(b => b.Status == request.Status.Value);
         }
 
-        // Filter by date range
+        // Filter by date range (created date)
         if (request.FromDate.HasValue)
         {
             var fromUtc = request.FromDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            query = query.Where(b => b.StartAt >= fromUtc);
+            query = query.Where(b => b.CreatedAt >= fromUtc);
         }
 
         if (request.ToDate.HasValue)
         {
             var toUtc = request.ToDate.Value.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
-            query = query.Where(b => b.StartAt <= toUtc);
+            query = query.Where(b => b.CreatedAt <= toUtc);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -60,7 +60,7 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Pag
         var pageSize = request.PageSize < 1 ? 10 : (request.PageSize > 50 ? 50 : request.PageSize);
 
         var items = await query
-            .OrderByDescending(b => b.StartAt)
+            .OrderByDescending(b => b.CreatedAt)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .Select(b => new BookingSummaryDto(
@@ -71,9 +71,9 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Pag
                 b.TutorProfile.User.FullName,
                 b.SubjectId,
                 b.Subject.Name,
-                b.StartAt,
-                b.EndAt,
-                b.TotalAmount,
+                b.ServiceId,
+                b.TotalPrice,
+                b.TotalSessions,
                 b.Status,
                 b.CreatedAt
             ))

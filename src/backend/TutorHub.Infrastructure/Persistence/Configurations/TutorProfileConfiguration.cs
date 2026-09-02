@@ -24,11 +24,6 @@ public class TutorProfileConfiguration : IEntityTypeConfiguration<TutorProfile>
         builder.Property(t => t.ExperienceYears)
             .IsRequired();
 
-        // Legacy — to be removed in Sprint 3 when Service module is built
-        builder.Property(t => t.HourlyRate)
-            .HasPrecision(10, 2)
-            .IsRequired();
-
         builder.Property(t => t.TeachingMode)
             .HasConversion<string>()
             .HasMaxLength(50)

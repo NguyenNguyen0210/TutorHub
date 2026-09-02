@@ -96,7 +96,6 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
                 t.Bio,
                 t.Education,
                 t.ExperienceYears,
-                t.HourlyRate,
                 t.TeachingMode.ToString(),
                 t.Address,
                 t.RatingAvg,

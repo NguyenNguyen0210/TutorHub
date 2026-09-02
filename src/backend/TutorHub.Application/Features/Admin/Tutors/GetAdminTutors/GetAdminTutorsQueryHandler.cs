@@ -57,7 +57,6 @@ public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, P
                 t.Bio,
                 t.Education,
                 t.ExperienceYears,
-                t.HourlyRate,
                 t.TeachingMode.ToString(),
                 t.Address,
                 t.User.TutorApplications
@@ -74,7 +73,6 @@ public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, P
                     ts.Subject.Name,
                     ts.Subject.CategoryId,
                     ts.Subject.Category.Name,
-                    ts.OverridePrice,
                     ts.IsActive
                 )).ToList()
             ))

@@ -15,7 +15,6 @@ public record TutorMyProfileDto(
     string? Address,
     double? Latitude,
     double? Longitude,
-    decimal HourlyRate,
     decimal RatingAvg,
     int TotalReviews,
     List<TutorSubjectDto> Subjects,

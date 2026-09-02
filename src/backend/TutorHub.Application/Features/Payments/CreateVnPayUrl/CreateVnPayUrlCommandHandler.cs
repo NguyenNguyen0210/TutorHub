@@ -57,8 +57,8 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
 
         // 5. Initialize/Update Transaction attempt with financial snapshot
         const decimal commissionRate = 0.10m; // 10% standard platform fee
-        var commissionAmount = Math.Round(booking.TotalAmount * commissionRate, 2);
-        var payoutAmount = booking.TotalAmount - commissionAmount;
+        var commissionAmount = Math.Round(booking.TotalPrice * commissionRate, 2);
+        var payoutAmount = booking.TotalPrice - commissionAmount;
 
         if (booking.Transaction == null)
         {
@@ -66,7 +66,7 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
             {
                 Id = Guid.NewGuid(),
                 BookingId = booking.Id,
-                Amount = booking.TotalAmount,
+                Amount = booking.TotalPrice,
                 Status = TransactionStatus.Held, // Pre-allocated, state confirmed on IPN
                 CommissionRate = commissionRate,
                 CommissionAmount = commissionAmount,
@@ -79,7 +79,7 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
         else
         {
             booking.Transaction.PaymentGatewayRef = merchantRef;
-            booking.Transaction.Amount = booking.TotalAmount;
+            booking.Transaction.Amount = booking.TotalPrice;
             booking.Transaction.CommissionRate = commissionRate;
             booking.Transaction.CommissionAmount = commissionAmount;
             booking.Transaction.PayoutAmount = payoutAmount;
@@ -90,7 +90,7 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
         // 6. Build VNPay payment URL
         var paymentReq = new VnPayPaymentRequest(
             MerchantReference: merchantRef,
-            Amount: booking.TotalAmount,
+            Amount: booking.TotalPrice,
             OrderInfo: $"Thanh toan buoi hoc {booking.Subject.Name} #{booking.Id.ToString()[..8]}",
             IpAddress: request.IpAddress,
             CreatedAt: now,

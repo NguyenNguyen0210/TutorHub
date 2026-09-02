@@ -15,9 +15,6 @@ public class TutorProfile
     public string Education { get; set; } = default!;
     public int ExperienceYears { get; set; }
 
-    // Default hourly rate (Legacy compatibility field - to be replaced by Service in Sprint 3)
-    public decimal HourlyRate { get; set; }
-
     // Teaching mode
     public TeachingMode TeachingMode { get; set; }
 

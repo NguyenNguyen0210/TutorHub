@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Bookings.CancelBooking;
-using TutorHub.Application.Features.Bookings.CompleteBooking;
 using TutorHub.Application.Features.Bookings.ConfirmBooking;
 using TutorHub.Application.Features.Bookings.CreateBooking;
 using TutorHub.Application.Features.Bookings.DTOs;
@@ -13,9 +12,6 @@ using TutorHub.Application.Features.Bookings.GetBookingById;
 using TutorHub.Application.Features.Bookings.GetMyBookings;
 using TutorHub.Application.Features.Bookings.PayBooking;
 using TutorHub.Application.Features.Bookings.RejectBooking;
-using TutorHub.Application.Features.Reviews.CreateReview;
-using TutorHub.Application.Features.Reviews.DTOs;
-using TutorHub.Application.Features.Reviews.GetBookingReviews;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Api.Controllers;
@@ -32,7 +28,7 @@ public class BookingsController : ControllerBase
     }
 
     /// <summary>
-    /// Create a new 1-on-1 booking with a 15-minute temporary hold (Student only).
+    /// Create a new service package booking with a 15-minute temporary checkout hold (Student only).
     /// </summary>
     [Authorize(Roles = "Student")]
     [HttpPost]
@@ -47,18 +43,14 @@ public class BookingsController : ControllerBase
         var userId = GetCurrentUserId();
         var command = new CreateBookingCommand(
             UserId: userId,
-            ServiceId: request.ServiceId,
-            TutorProfileId: request.TutorProfileId,
-            SubjectId: request.SubjectId,
-            StartAt: request.StartAt,
-            EndAt: request.EndAt
+            ServiceId: request.ServiceId
         );
 
         var result = await _sender.Send(command, cancellationToken);
 
         return StatusCode(
             StatusCodes.Status201Created,
-            ApiResponse<BookingDto>.SuccessResult(result, "Booking created successfully. Please complete payment within 15 minutes to secure your slot.")
+            ApiResponse<BookingDto>.SuccessResult(result, "Booking created successfully. Please complete payment within 15 minutes to secure your package.")
         );
     }
 
@@ -213,73 +205,6 @@ public class BookingsController : ControllerBase
     /// Mark a confirmed booking as completed after the session finishes (Student / Tutor / Admin).
     /// </summary>
     [Authorize]
-    [HttpPost("{id:guid}/complete")]
-    [ProducesResponseType(typeof(ApiResponse<BookingDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> CompleteBooking(
-        [FromRoute] Guid id,
-        CancellationToken cancellationToken)
-    {
-        var userId = GetCurrentUserId();
-        var role = GetCurrentUserRole();
-
-        var command = new CompleteBookingCommand(id, userId, role);
-        var result = await _sender.Send(command, cancellationToken);
-
-        return Ok(ApiResponse<BookingDto>.SuccessResult(result, "Booking marked as completed successfully. Payment released to tutor."));
-    }
-
-    /// <summary>
-    /// Submit a review for a completed booking (Student or Tutor participant).
-    /// </summary>
-    [Authorize]
-    [HttpPost("{id:guid}/reviews")]
-    [ProducesResponseType(typeof(ApiResponse<BookingReviewDto>), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> CreateReview(
-        [FromRoute] Guid id,
-        [FromBody] CreateReviewRequest request,
-        CancellationToken cancellationToken)
-    {
-        var userId = GetCurrentUserId();
-        var command = new CreateReviewCommand(id, userId, request.Rating, request.Comment);
-        var result = await _sender.Send(command, cancellationToken);
-
-        return StatusCode(
-            StatusCodes.Status201Created,
-            ApiResponse<BookingReviewDto>.SuccessResult(result, "Review submitted successfully.")
-        );
-    }
-
-    /// <summary>
-    /// Get reviews for a specific booking (Booking participants or Admin).
-    /// </summary>
-    [Authorize]
-    [HttpGet("{id:guid}/reviews")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<BookingReviewDto>>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetBookingReviews(
-        [FromRoute] Guid id,
-        CancellationToken cancellationToken)
-    {
-        var userId = GetCurrentUserId();
-        var role = GetCurrentUserRole();
-        var query = new GetBookingReviewsQuery(id, userId, role);
-        var result = await _sender.Send(query, cancellationToken);
-
-        return Ok(ApiResponse<IReadOnlyList<BookingReviewDto>>.SuccessResult(result, "Booking reviews retrieved successfully."));
-    }
-
     private Guid GetCurrentUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
