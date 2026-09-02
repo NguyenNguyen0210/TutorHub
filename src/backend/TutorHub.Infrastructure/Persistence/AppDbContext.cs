@@ -32,6 +32,12 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Media> Media => Set<Media>();
     public DbSet<AccountStatusAuditLog> AccountStatusAuditLogs => Set<AccountStatusAuditLog>();
     public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+    public DbSet<Message> Messages => Set<Message>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<EmailDelivery> EmailDeliveries => Set<EmailDelivery>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

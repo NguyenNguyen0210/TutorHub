@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
@@ -85,7 +86,22 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
                 RefundedAt = now
             };
             _context.Transactions.Add(refundTx);
+
+            // Enqueue RefundCreated Outbox Message (DEC-S7-001, DEC-S7-002)
+            _context.AddOutboxMessage(new RefundCreatedEvent(
+                enrollment.Id,
+                enrollment.StudentProfile.UserId,
+                new MoneyDto(refundAmount),
+                refundTx.Id));
         }
+
+        // Enqueue EnrollmentCancelled Outbox Message (DEC-S7-001, DEC-S7-002)
+        _context.AddOutboxMessage(new EnrollmentCancelledEvent(
+            enrollment.Id,
+            enrollment.StudentProfile.UserId,
+            enrollment.TutorProfile.UserId,
+            request.AdminUserId,
+            request.Reason));
 
         // 5. Explicit DB Transaction
         if (_context.Database?.ProviderName != null)

@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Reports.DTOs;
@@ -68,6 +69,15 @@ public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, R
         };
 
         _context.Reports.Add(report);
+
+        var targetUserId = isStudent ? booking.TutorProfile.UserId : booking.StudentProfile.UserId;
+
+        // Enqueue ReportCreated Outbox Message (DEC-S7-001, DEC-S7-002)
+        _context.AddOutboxMessage(new ReportCreatedEvent(
+            report.Id,
+            request.UserId,
+            targetUserId,
+            report.Description));
 
         // 4. Save changes with Unique Constraint protection
         try

@@ -11,6 +11,7 @@ using TutorHub.Application.Common.Storage;
 using TutorHub.Infrastructure.Authentication;
 using TutorHub.Infrastructure.BackgroundServices;
 using TutorHub.Infrastructure.Persistence;
+using TutorHub.Infrastructure.Services;
 using TutorHub.Infrastructure.Services.Storage;
 using TutorHub.Infrastructure.Services.VnPay;
 
@@ -70,9 +71,20 @@ public static class InfrastructureServiceCollectionExtensions
         });
 
         services.AddScoped<IObjectStorageService, CloudflareR2ObjectStorageService>();
+        services.AddScoped<IFileStorage, LocalFileStorage>();
+        services.AddScoped<IEmailSender, LoggingEmailSender>();
+        services.AddScoped<INotificationService, SignalRNotificationService>();
+        services.AddScoped<IChatNotificationService, SignalRChatNotificationService>();
+
+        services.AddSignalR();
 
         // Background Workers
         services.AddHostedService<BookingTimeoutBackgroundService>();
+        services.AddHostedService<OutboxDispatcherJob>();
+        services.AddHostedService<EmailDeliveryJob>();
+        services.AddHostedService<SessionReminderJob>();
+        services.AddHostedService<AttendanceReminderJob>();
+        services.AddHostedService<AttendanceVerificationJob>();
 
         return services;
     }

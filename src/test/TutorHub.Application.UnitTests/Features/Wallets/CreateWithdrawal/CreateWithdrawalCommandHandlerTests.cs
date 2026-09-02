@@ -87,7 +87,7 @@ public class CreateWithdrawalCommandHandlerTests
         transactions[0].BalanceAfter.Should().Be(700_000m);
 
         _publisherMock.Verify(
-            p => p.Publish(It.Is<WithdrawalRequestedEvent>(e => e.Amount == 300_000m && e.TutorUserId == user.Id), It.IsAny<CancellationToken>()),
+            p => p.Publish(It.Is<WithdrawalRequestedEvent>(e => e.Amount.Amount == 300_000m && e.TutorUserId == user.Id), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }

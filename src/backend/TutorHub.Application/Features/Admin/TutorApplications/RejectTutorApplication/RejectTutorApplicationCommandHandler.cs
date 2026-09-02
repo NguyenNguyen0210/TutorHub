@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Admin.TutorApplications.DTOs;
@@ -29,6 +30,12 @@ public class RejectTutorApplicationCommandHandler
 
         // Domain invariant — throws if not Pending, or reason is empty
         application.Reject(request.Reason, request.AdminId);
+
+        // Enqueue Outbox Message in same DB transaction (DEC-S7-001, DEC-S7-002)
+        _context.AddOutboxMessage(new TutorApplicationRejectedEvent(
+            application.Id,
+            application.UserId,
+            request.Reason));
 
         await _context.SaveChangesAsync(cancellationToken);
 

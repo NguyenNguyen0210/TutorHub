@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\backend\TutorHub.Application\TutorHub.Application.csproj" />
     <ProjectReference Include="..\..\backend\TutorHub.Domain\TutorHub.Domain.csproj" />
+    <ProjectReference Include="..\..\backend\TutorHub.Infrastructure\TutorHub.Infrastructure.csproj" />
     <ProjectReference Include="..\TutorHub.Domain.UnitTests\TutorHub.Domain.UnitTests.csproj" />
   </ItemGroup>
 

@@ -139,11 +139,18 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
 
         _context.WalletTransactions.Add(ledgerEntry);
 
+        // Enqueue Outbox Message in same DB transaction (DEC-S7-012, SP7-INT-001)
+        _context.AddOutboxMessage(new WithdrawalRequestedEvent(
+            withdrawal.Id,
+            tutor.Id,
+            tutor.UserId,
+            new MoneyDto(withdrawal.Amount)));
+
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Publish business event strictly post-commit (DEC-WD-006)
+        // Optional in-process event publish
         await _publisher.Publish(
-            new WithdrawalRequestedEvent(withdrawal.Id, tutor.Id, tutor.UserId, withdrawal.Amount),
+            new WithdrawalRequestedEvent(withdrawal.Id, tutor.Id, tutor.UserId, new MoneyDto(withdrawal.Amount)),
             cancellationToken
         );
 

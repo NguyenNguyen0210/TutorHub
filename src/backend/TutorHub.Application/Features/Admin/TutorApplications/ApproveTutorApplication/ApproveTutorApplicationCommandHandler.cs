@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Admin.TutorApplications.DTOs;
@@ -67,13 +68,20 @@ public class ApproveTutorApplicationCommandHandler
             UpdatedAt = DateTime.UtcNow
         };
 
+        _context.TutorProfiles.Add(profile);
+        _context.Wallets.Add(wallet);
+
+        // Enqueue Outbox Message in same DB transaction (DEC-S7-001, DEC-S7-002)
+        _context.AddOutboxMessage(new TutorApplicationApprovedEvent(
+            application.Id,
+            application.UserId,
+            request.AdminId));
+
         if (_context.Database?.ProviderName != null)
         {
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                _context.TutorProfiles.Add(profile);
-                _context.Wallets.Add(wallet);
                 await _context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
             }
@@ -85,8 +93,6 @@ public class ApproveTutorApplicationCommandHandler
         }
         else
         {
-            _context.TutorProfiles.Add(profile);
-            _context.Wallets.Add(wallet);
             await _context.SaveChangesAsync(cancellationToken);
         }
 

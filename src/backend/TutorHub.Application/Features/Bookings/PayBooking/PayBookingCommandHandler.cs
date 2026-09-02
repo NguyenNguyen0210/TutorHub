@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
@@ -168,6 +169,20 @@ public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, Booki
                 wallet.PendingBalance += booking.TotalPrice;
                 wallet.UpdatedAt = now;
             }
+
+            // Enqueue Outbox Messages in same DB transaction (DEC-S7-001, DEC-S7-002)
+            _context.AddOutboxMessage(new PaymentSucceededEvent(
+                booking.Id,
+                booking.StudentProfile.UserId,
+                new MoneyDto(booking.TotalPrice),
+                enrollment.Id));
+
+            _context.AddOutboxMessage(new EnrollmentActivatedEvent(
+                enrollment.Id,
+                enrollment.StudentProfileId,
+                enrollment.TutorProfileId,
+                booking.StudentProfile.UserId,
+                booking.TutorProfile.UserId));
 
             var sessionDtos = enrollment.Sessions.OrderBy(s => s.SessionNumber).Select(s => new SessionDto(
                 Id: s.Id,

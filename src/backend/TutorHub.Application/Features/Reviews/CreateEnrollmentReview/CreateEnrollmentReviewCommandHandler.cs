@@ -1,5 +1,6 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Reviews.DTOs;
@@ -88,6 +89,15 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
             tutorProfile.TotalReviews = allRatings.Count;
             tutorProfile.RatingAvg = Math.Round((decimal)allRatings.Average(), 2);
         }
+
+        // Enqueue ReviewCreated Outbox Message (DEC-S7-001, DEC-S7-002)
+        _context.AddOutboxMessage(new ReviewCreatedEvent(
+            review.Id,
+            enrollment.Id,
+            enrollment.TutorProfileId,
+            enrollment.TutorProfile.UserId,
+            enrollment.StudentProfile.UserId,
+            review.Rating));
 
         await _context.SaveChangesAsync(cancellationToken);
 

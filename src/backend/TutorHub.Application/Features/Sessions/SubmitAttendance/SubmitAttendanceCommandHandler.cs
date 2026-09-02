@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
@@ -142,6 +143,23 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
                 _context.WalletTransactions.Add(ledgerEntry);
             }
 
+            // Enqueue SessionCompleted & EarningCreated Outbox Messages (DEC-S7-001, DEC-S7-002, DEC-S7-018)
+            _context.AddOutboxMessage(new SessionCompletedEvent(
+                session.Id,
+                session.EnrollmentId,
+                session.Enrollment.StudentProfile.UserId,
+                session.Enrollment.TutorProfile.UserId,
+                new MoneyDto(gross)));
+
+            _context.AddOutboxMessage(new EarningCreatedEvent(
+                session.Id,
+                session.Enrollment.TutorProfileId,
+                session.Enrollment.TutorProfile.UserId,
+                new MoneyDto(gross),
+                new MoneyDto(commissionAmount),
+                new MoneyDto(netPayout),
+                payoutTx.Id));
+
             // Explicit DB Transaction
             if (_context.Database?.ProviderName != null)
             {
@@ -164,6 +182,18 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
         }
         else
         {
+            if (session.HasAttendanceConflict)
+            {
+                // Enqueue AttendanceConflictDetected Outbox Message (DEC-S7-001, DEC-S7-002)
+                _context.AddOutboxMessage(new AttendanceConflictDetectedEvent(
+                    session.Id,
+                    session.EnrollmentId,
+                    session.Enrollment.StudentProfile.UserId,
+                    session.Enrollment.TutorProfile.UserId,
+                    session.StudentAttendance?.ToString() ?? "None",
+                    session.TutorAttendance?.ToString() ?? "None"));
+            }
+
             // Pending counterpart or Conflict flagged: Save attendance state without payout release
             await _context.SaveChangesAsync(cancellationToken);
         }

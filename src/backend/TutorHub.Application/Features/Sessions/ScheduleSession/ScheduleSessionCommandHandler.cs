@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
@@ -102,6 +103,16 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
 
         // 8. Domain state transition
         session.Schedule(request.StartAt, request.EndAt);
+
+        // Enqueue Outbox Message in same DB transaction (DEC-S7-001, DEC-S7-002)
+        _context.AddOutboxMessage(new SessionScheduledEvent(
+            session.Id,
+            session.EnrollmentId,
+            session.Enrollment.StudentProfile.UserId,
+            session.Enrollment.TutorProfile.UserId,
+            request.StartAt,
+            request.EndAt));
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return new SessionDto(

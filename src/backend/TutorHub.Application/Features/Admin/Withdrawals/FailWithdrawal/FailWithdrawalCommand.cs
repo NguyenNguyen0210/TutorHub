@@ -109,6 +109,14 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
 
         _context.WalletTransactions.Add(adjustmentEntry);
 
+        // Enqueue Outbox Message in same DB transaction (DEC-S7-012, SP7-INT-001)
+        _context.AddOutboxMessage(new WithdrawalFailedEvent(
+            withdrawal.Id,
+            withdrawal.Wallet.TutorProfileId,
+            withdrawal.Wallet.TutorProfile.UserId,
+            new MoneyDto(withdrawal.Amount),
+            withdrawal.FailureReason!));
+
         await _context.SaveChangesAsync(cancellationToken);
 
         // Publish business event strictly post-commit (DEC-WD-006)
@@ -117,7 +125,7 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
                 withdrawal.Id,
                 withdrawal.Wallet.TutorProfileId,
                 withdrawal.Wallet.TutorProfile.UserId,
-                withdrawal.Amount,
+                new MoneyDto(withdrawal.Amount),
                 withdrawal.FailureReason!
             ),
             cancellationToken

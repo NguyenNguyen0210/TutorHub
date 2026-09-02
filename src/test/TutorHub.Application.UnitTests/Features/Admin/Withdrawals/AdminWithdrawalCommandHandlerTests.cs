@@ -115,7 +115,7 @@ public class AdminWithdrawalCommandHandlerTests
         result.ProcessedAt.Should().NotBeNull();
 
         _publisherMock.Verify(
-            p => p.Publish(It.Is<WithdrawalCompletedEvent>(e => e.WithdrawalId == withdrawal.Id && e.Amount == 300_000m), It.IsAny<CancellationToken>()),
+            p => p.Publish(It.Is<WithdrawalCompletedEvent>(e => e.WithdrawalId == withdrawal.Id && e.Amount.Amount == 300_000m), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -173,7 +173,7 @@ public class AdminWithdrawalCommandHandlerTests
         ledgerEntries[0].BalanceAfter.Should().Be(800_000m);
 
         _publisherMock.Verify(
-            p => p.Publish(It.Is<WithdrawalFailedEvent>(e => e.WithdrawalId == withdrawal.Id && e.Amount == 300_000m), It.IsAny<CancellationToken>()),
+            p => p.Publish(It.Is<WithdrawalFailedEvent>(e => e.WithdrawalId == withdrawal.Id && e.Amount.Amount == 300_000m), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }

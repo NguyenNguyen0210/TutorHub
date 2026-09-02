@@ -31,7 +31,9 @@ public class Session
     public DateTime? CompletedAt { get; private set; }
     public DateTime? CancelledAt { get; private set; }
 
-    // --- Dual Attendance Verification ---
+    // --- Dual Attendance Verification & Verification Window (Sprint 7) ---
+    public DateTime? AttendanceVerificationOpenedAt { get; private set; }
+    public DateTime? AttendanceVerificationDueAt { get; private set; }
     public AttendanceStatus? StudentAttendance { get; private set; }
     public DateTime? StudentAttendanceSubmittedAt { get; private set; }
     public AttendanceStatus? TutorAttendance { get; private set; }
@@ -46,6 +48,25 @@ public class Session
     // =======================================================
     // Domain Methods
     // =======================================================
+
+    /// <summary>
+    /// Opens the attendance verification window (DEC-S7-014). Atomic domain transition.
+    /// Only succeeds if window has not been opened yet and session has ended.
+    /// </summary>
+    public bool TryOpenAttendanceVerificationWindow(DateTime now, TimeSpan windowDuration)
+    {
+        if (Status != SessionStatus.Scheduled)
+            return false;
+        if (!EndAt.HasValue || EndAt.Value > now)
+            return false;
+        if (AttendanceVerificationOpenedAt.HasValue)
+            return false; // Already opened
+
+        AttendanceVerificationOpenedAt = now;
+        AttendanceVerificationDueAt = now.Add(windowDuration);
+        UpdatedAt = now;
+        return true;
+    }
 
     /// <summary>
     /// Records attendance outcome submitted by the Student participant.
@@ -108,6 +129,12 @@ public class Session
                 HasAttendanceConflict = true;
             }
         }
+    }
+
+    public void FlagAttendanceConflict()
+    {
+        HasAttendanceConflict = true;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     /// <summary>

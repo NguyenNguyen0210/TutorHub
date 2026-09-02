@@ -653,6 +653,48 @@ public class AdminController : ControllerBase
         return Ok(ApiResponse<ReviewDto>.SuccessResult(result, "Review removed successfully by administrator."));
     }
 
+    /// <summary>
+    /// Admin: Inspect conversations with operational access reason (DEC-S7-016).
+    /// </summary>
+    [HttpGet("conversations")]
+    [ProducesResponseType(typeof(ApiResponse<TutorHub.Application.Features.Conversations.DTOs.CursorPagedResult<TutorHub.Application.Features.Conversations.DTOs.ConversationDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> AdminGetConversations(
+        [FromQuery] string operationalReason,
+        [FromQuery] string? cursor,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new TutorHub.Application.Features.Admin.Conversations.AdminGetConversations.AdminGetConversationsQuery(
+            operationalReason, cursor, pageSize);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<TutorHub.Application.Features.Conversations.DTOs.CursorPagedResult<TutorHub.Application.Features.Conversations.DTOs.ConversationDto>>.SuccessResult(result));
+    }
+
+    /// <summary>
+    /// Admin: Inspect messages in a conversation with operational access reason (DEC-S7-016).
+    /// </summary>
+    [HttpGet("conversations/{id:guid}/messages")]
+    [ProducesResponseType(typeof(ApiResponse<TutorHub.Application.Features.Conversations.DTOs.CursorPagedResult<TutorHub.Application.Features.Conversations.DTOs.MessageDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AdminGetConversationMessages(
+        [FromRoute] Guid id,
+        [FromQuery] string operationalReason,
+        [FromQuery] string? cursor,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new TutorHub.Application.Features.Admin.Conversations.AdminGetConversationMessages.AdminGetConversationMessagesQuery(
+            id, operationalReason, cursor, pageSize);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<TutorHub.Application.Features.Conversations.DTOs.CursorPagedResult<TutorHub.Application.Features.Conversations.DTOs.MessageDto>>.SuccessResult(result));
+    }
+
     private Guid GetCurrentUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");

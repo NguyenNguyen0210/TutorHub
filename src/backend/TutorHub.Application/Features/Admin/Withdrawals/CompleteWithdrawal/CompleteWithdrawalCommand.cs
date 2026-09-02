@@ -51,6 +51,13 @@ public class CompleteWithdrawalCommandHandler : IRequestHandler<CompleteWithdraw
         withdrawal.Complete(request.AdminId);
         withdrawal.ProcessedByAdmin = admin;
 
+        // Enqueue Outbox Message in same DB transaction (DEC-S7-012, SP7-INT-001)
+        _context.AddOutboxMessage(new WithdrawalCompletedEvent(
+            withdrawal.Id,
+            withdrawal.Wallet.TutorProfileId,
+            withdrawal.Wallet.TutorProfile.UserId,
+            new MoneyDto(withdrawal.Amount)));
+
         await _context.SaveChangesAsync(cancellationToken);
 
         // Publish business event strictly post-commit (DEC-WD-006)
@@ -59,7 +66,7 @@ public class CompleteWithdrawalCommandHandler : IRequestHandler<CompleteWithdraw
                 withdrawal.Id,
                 withdrawal.Wallet.TutorProfileId,
                 withdrawal.Wallet.TutorProfile.UserId,
-                withdrawal.Amount
+                new MoneyDto(withdrawal.Amount)
             ),
             cancellationToken
         );
