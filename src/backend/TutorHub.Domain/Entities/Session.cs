@@ -34,6 +34,7 @@ public class Session
     // --- Payout linkage (used for idempotency by Application layer) ---
     // Application layer uses this to verify payout has not been done
     public bool IsPayoutReleased { get; private set; } = false;
+    public Transaction? Transaction { get; set; }
 
     // =======================================================
     // Domain Methods

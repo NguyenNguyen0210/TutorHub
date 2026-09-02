@@ -43,6 +43,7 @@ public class Enrollment
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; private set; }
     public DateTime? CancelledAt { get; private set; }
+    public CancelledBy? CancelledBy { get; private set; }
     public string? CancellationReason { get; private set; }
 
     // --- Sessions ---
@@ -90,7 +91,7 @@ public class Enrollment
     /// Calculates refundable amount based on unearned sessions.
     /// Returns the RefundAmount to be processed by the Application layer.
     /// </summary>
-    public decimal Cancel(string reason)
+    public decimal Cancel(string reason, CancelledBy? cancelledBy = null)
     {
         if (Status != EnrollmentStatus.Active)
         {
@@ -101,6 +102,7 @@ public class Enrollment
         Status = EnrollmentStatus.Cancelled;
         CancelledAt = DateTime.UtcNow;
         CancellationReason = reason;
+        CancelledBy = cancelledBy;
 
         // Cancel all non-completed sessions
         foreach (var session in Sessions.Where(s => s.Status != SessionStatus.Completed))

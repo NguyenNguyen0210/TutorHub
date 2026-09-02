@@ -212,6 +212,22 @@ public class EnrollmentTests
         enrollment.CancelledAt.Should().NotBeNull();
         enrollment.CancelledAt!.Value.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(2));
         enrollment.CancellationReason.Should().Be("Schedule conflict");
+        enrollment.CancelledBy.Should().BeNull();
+    }
+
+    [Fact]
+    public void Cancel_WithCancelledBy_SetsCancelledByCorrectly()
+    {
+        // Arrange
+        var enrollment = CreateEnrollmentWithSessions(totalPrice: 1_000_000m, totalSessions: 3);
+
+        // Act
+        var refund = enrollment.Cancel("Tutor unable to teach", CancelledBy.Tutor);
+
+        // Assert
+        enrollment.Status.Should().Be(EnrollmentStatus.Cancelled);
+        enrollment.CancellationReason.Should().Be("Tutor unable to teach");
+        enrollment.CancelledBy.Should().Be(CancelledBy.Tutor);
     }
 
     [Fact]
