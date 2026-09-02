@@ -5,8 +5,9 @@ namespace TutorHub.Application.Features.Bookings.CreateBooking;
 
 public record CreateBookingCommand(
     Guid UserId,
-    Guid TutorProfileId,
-    Guid SubjectId,
-    DateTime StartAt,
-    DateTime EndAt
+    Guid? ServiceId = null,
+    Guid? TutorProfileId = null,
+    Guid? SubjectId = null,
+    DateTime? StartAt = null,
+    DateTime? EndAt = null
 ) : IRequest<BookingDto>;

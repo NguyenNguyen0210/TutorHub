@@ -26,5 +26,11 @@ public record BookingDto(
     CancelledBy? CancelledBy,
     string? CancellationReason,
     DateTime CreatedAt,
-    TransactionDto? Transaction
+    TransactionDto? Transaction,
+    Guid? ServiceId = null,
+    decimal TotalPrice = 0,
+    int TotalSessions = 1,
+    int SessionDurationMinutes = 60,
+    TeachingMode TeachingMode = TeachingMode.Online,
+    EnrollmentDto? Enrollment = null
 );

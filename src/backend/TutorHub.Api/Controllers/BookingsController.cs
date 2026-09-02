@@ -47,6 +47,7 @@ public class BookingsController : ControllerBase
         var userId = GetCurrentUserId();
         var command = new CreateBookingCommand(
             UserId: userId,
+            ServiceId: request.ServiceId,
             TutorProfileId: request.TutorProfileId,
             SubjectId: request.SubjectId,
             StartAt: request.StartAt,
