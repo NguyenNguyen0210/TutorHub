@@ -1,4 +1,4 @@
-using TutorHub.Domain.Entities;
+﻿using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Domain.UnitTests.Common.Builders;
@@ -177,7 +177,6 @@ public class BookingBuilder
             TeachingMode = _teachingMode,
             Enrollment = _enrollment,
             Transaction = _transaction,
-            Reviews = new List<Review>(),
             Reports = new List<Report>()
         };
 

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TutorHub.Domain.Entities;
 
@@ -16,37 +16,38 @@ public class ReviewConfiguration : IEntityTypeConfiguration<Review>
         });
 
         builder.Property(r => r.Rating)
-
             .IsRequired();
 
         builder.Property(r => r.Comment)
             .HasMaxLength(2000);
 
-        builder.Property(r => r.IsPublic)
-            .IsRequired();
+        builder.Property(r => r.TutorReply)
+            .HasMaxLength(2000);
+
+        builder.Property(r => r.IsRemoved)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(r => r.RemovalReason)
+            .HasMaxLength(500);
 
         builder.Property(r => r.CreatedAt)
             .IsRequired();
 
-        builder.HasIndex(r => new { r.BookingId, r.ReviewerUserId })
+        // 1 Review per Enrollment (Single Source of Truth)
+        builder.HasIndex(r => r.EnrollmentId)
             .IsUnique();
 
-        builder.HasIndex(r => r.RevieweeUserId);
+        builder.HasIndex(r => r.IsRemoved);
 
-        builder.HasOne(r => r.Booking)
-            .WithMany(b => b.Reviews)
-            .HasForeignKey(r => r.BookingId)
+        builder.HasOne(r => r.Enrollment)
+            .WithOne(e => e.Review)
+            .HasForeignKey<Review>(r => r.EnrollmentId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(r => r.ReviewerUser)
+        builder.HasOne(r => r.RemovedByAdmin)
             .WithMany()
-            .HasForeignKey(r => r.ReviewerUserId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-
-        builder.HasOne(r => r.RevieweeUser)
-            .WithMany()
-            .HasForeignKey(r => r.RevieweeUserId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .HasForeignKey(r => r.RemovedByAdminId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

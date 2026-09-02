@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -29,8 +29,8 @@ public class GetTutorReviewsQueryHandler : IRequestHandler<GetTutorReviewsQuery,
 
         var query = _context.Reviews
             .AsNoTracking()
-            .Include(r => r.ReviewerUser)
-            .Where(r => r.RevieweeUserId == tutor.UserId && r.IsPublic);
+            .Include(r => r.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(s => s.User)
+            .Where(r => r.Enrollment != null && r.Enrollment.TutorProfileId == request.TutorProfileId && !r.IsRemoved);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
@@ -43,9 +43,13 @@ public class GetTutorReviewsQueryHandler : IRequestHandler<GetTutorReviewsQuery,
             .Take(pageSize)
             .Select(r => new TutorPublicReviewDto(
                 r.Id,
-                r.ReviewerUser.FullName,
+                r.EnrollmentId,
+                r.Enrollment.StudentProfile.User.FullName,
+                r.Enrollment.StudentProfile.User.AvatarUrl,
                 r.Rating,
                 r.Comment,
+                r.TutorReply,
+                r.TutorRepliedAt,
                 r.CreatedAt
             ))
             .ToListAsync(cancellationToken);
