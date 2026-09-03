@@ -149,6 +149,8 @@ var app = builder.Build();
 
 app.UseExceptionHandler(_ => { });
 
+app.UseMiddleware<TutorHub.Api.Middlewares.CorrelationIdMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

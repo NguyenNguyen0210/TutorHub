@@ -37,6 +37,7 @@ public interface IAppDbContext
     DbSet<DisputeEvidence> DisputeEvidences { get; }
     DbSet<PlatformSetting> PlatformSettings { get; }
     DbSet<PlatformSettingVersion> PlatformSettingVersions { get; }
+    DbSet<AuditLog> AuditLogs { get; }
 
     DatabaseFacade Database { get; }
 

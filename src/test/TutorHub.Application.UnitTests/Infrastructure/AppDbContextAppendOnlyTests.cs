@@ -72,4 +72,68 @@ public class AppDbContextAppendOnlyTests
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*append-only*");
     }
+
+    [Fact]
+    public async Task SaveChangesAsync_WhenModifyingAuditLog_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new AppDbContext(options);
+
+        var log = new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            Action = "DisputeResolved",
+            EntityName = "Dispute",
+            EntityId = Guid.NewGuid().ToString(),
+            CorrelationId = "corr-123",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        context.AuditLogs.Add(log);
+        await context.SaveChangesAsync();
+
+        // Act: Attempt to tamper with audit log
+        log.Action = "TamperedAction";
+
+        // Assert: Throws InvalidOperationException per INV-LEDGER-006
+        var act = () => context.SaveChangesAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*AuditLog records are append-only*");
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_WhenDeletingAuditLog_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new AppDbContext(options);
+
+        var log = new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            Action = "PlatformFeeUpdated",
+            EntityName = "PlatformSetting",
+            EntityId = "PlatformFeeRate",
+            CorrelationId = "corr-456",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        context.AuditLogs.Add(log);
+        await context.SaveChangesAsync();
+
+        // Act: Attempt to delete audit log
+        context.AuditLogs.Remove(log);
+
+        // Assert: Throws InvalidOperationException per INV-LEDGER-006
+        var act = () => context.SaveChangesAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*AuditLog records are append-only*");
+    }
 }

@@ -75,6 +75,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IEmailSender, LoggingEmailSender>();
         services.AddScoped<INotificationService, SignalRNotificationService>();
         services.AddScoped<IChatNotificationService, SignalRChatNotificationService>();
+        services.AddScoped<IAuditLogService, AuditLogService>();
 
         services.AddSignalR();
 

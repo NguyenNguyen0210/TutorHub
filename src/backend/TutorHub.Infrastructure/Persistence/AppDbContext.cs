@@ -42,6 +42,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<DisputeEvidence> DisputeEvidences => Set<DisputeEvidence>();
     public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();
     public DbSet<PlatformSettingVersion> PlatformSettingVersions => Set<PlatformSettingVersion>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -52,6 +53,15 @@ public class AppDbContext : DbContext, IAppDbContext
         if (modifiedTransactions.Count > 0)
         {
             throw new InvalidOperationException("Transaction records are append-only and cannot be modified or deleted.");
+        }
+
+        // Enforce append-only on AuditLog (DEC-S8-005, INV-LEDGER-006)
+        var modifiedAuditLogs = ChangeTracker.Entries<AuditLog>()
+            .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
+            .ToList();
+        if (modifiedAuditLogs.Count > 0)
+        {
+            throw new InvalidOperationException("AuditLog records are append-only and cannot be modified or deleted.");
         }
 
         return base.SaveChangesAsync(cancellationToken);
