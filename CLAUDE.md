@@ -1,7 +1,7 @@
 # CLAUDE.md — TutorHub Developer Guide & Repository Invariants
 
-> **TutorHub** là nền tảng marketplace kết nối Gia Sư và Học Viên trực tuyến.  
-> Hệ thống hỗ trợ đặt lịch giữ chỗ 15 phút, thanh toán bảo chứng (Escrow Wallet), tích hợp cổng thực tế **VNPay 2.1.0** và quản trị Admin toàn diện.
+> **TutorHub** là nền tảng marketplace kết nối Gia Sư (Tutor) và Học Viên (Student) trực tuyến theo mô hình **Service / Package-based Learning**.  
+> Hệ thống hỗ trợ đặt mua gói dịch vụ (15 phút checkout hold), phân rã hợp đồng học tập (**Enrollment**) thành các buổi học (**Sessions**), đối soát điểm danh 2 chiều (**Attendance Verification Window**), giải ngân từng buổi vào ví bảo chứng (**Escrow Wallet**), thanh toán thực tế **VNPay 2.1.0**, Realtime **SignalR**, **Transactional Outbox** (24 sự kiện), công cụ giải quyết tranh chấp 2 giai đoạn (**Dispute Engine**), và sổ cái kiểm toán bất biến (**Central Audit Log**).
 
 ---
 
@@ -11,7 +11,8 @@
 * **Framework:** ASP.NET Core Web API (.NET 8)
 * **Database & ORM:** PostgreSQL 16 (`Npgsql.EntityFrameworkCore.PostgreSQL 8.0.11`), EF Core 8.0.11
 * **Architecture Patterns:** Clean Architecture + CQRS + Vertical Slice Architecture
-* **Libraries:** MediatR 12.4.1, FluentValidation 11.11.0, BCrypt.Net-Next 4.0.3, System.IdentityModel.Tokens.Jwt 8.0.1, Swashbuckle.AspNetCore 6.6.2
+* **Libraries:** MediatR 12.4.1, FluentValidation 11.11.0, BCrypt.Net-Next 4.0.3, System.IdentityModel.Tokens.Jwt 8.0.1, Swashbuckle.AspNetCore 6.6.2, AWSSDK.S3 3.7.400 (Cloudflare R2)
+* **Realtime & Messaging:** ASP.NET Core SignalR (`/hubs/chat`, `/hubs/notifications`), Transactional Outbox Pattern
 * **DevOps:** Docker, Docker Compose
 
 ---
@@ -25,7 +26,7 @@ dotnet run --project src/backend/TutorHub.Api
 # Build Solution (Strict Zero Warning Policy)
 dotnet build src/backend/TutorHub.sln
 
-# Run Test Suite (Unit Tests & Integration Tests)
+# Run Test Suite (398 Unit Tests - 100% Deterministic Pass)
 dotnet test src/backend/TutorHub.sln
 
 # Run Docker Environment (Postgres + API Container)
@@ -37,45 +38,69 @@ Stop-Process -Name "TutorHub.Api" -Force -ErrorAction SilentlyContinue
 
 ---
 
-## 🏛️ Kiến Trúc Hệ Thống (Thứ gì nằm ở đâu và vì sao)
+## 🏛️ Kiến Trúc Hệ Thống (Mô Hình Nghiệp Vụ Mới)
 
-* `src/backend/TutorHub.Domain/`: **Cốt lõi độc lập**. Chứa Entities (`User`, `TutorProfile`, `Booking`, `Transaction`, `Wallet`...), Enums, và Business Policies. Tuyệt đối không phụ thuộc vào bất kỳ layer hay thư viện bên ngoài nào.
-* `src/backend/TutorHub.Application/`: **Nghiệp vụ ứng dụng**. Tổ chức theo **Vertical Slice Architecture** (`Features/{Module}/{FeatureName}/`). Mỗi slice chứa `Command/Query`, `Validator`, `Handler`, và `DTOs`. Chứa Abstractions (`IAppDbContext`, `IVnPayService`, `IObjectStorageService`, `IJwtService`).
-* `src/backend/TutorHub.Infrastructure/`: **Triển khai kỹ thuật**. Chứa `AppDbContext`, `JwtService`, `BcryptPasswordHasher`, `VnPayService` (HMAC SHA512), `CloudflareR2ObjectStorageService`, và `BookingTimeoutBackgroundService`.
-* `src/backend/TutorHub.Api/`: **Giao tiếp ngoại vi (Thin Controllers)**. Tiếp nhận HTTP request, trích xuất Claims, dispatch qua `ISender.Send()`, và trả về `ApiResponse<T>`.
-* `src/frontend/`: **Giao diện người dùng Client**. Nơi chứa ứng dụng Frontend kết nối tới Backend API.
-* `src/test/`: **Kiểm thử tự động**. Chứa `TutorHub.Domain.UnitTests`, `TutorHub.Application.UnitTests`, v.v.
+```text
+Service Offering (Tutor tạo gói học: giá, số buổi, thời lượng, trial)
+       ↓ (Student chọn gói)
+Booking Checkout (Tạm giữ thanh toán 15 phút - Holding)
+       ↓ (VNPay IPN / Mock Pay)
+Enrollment (Hợp đồng học tập trung tâm - Snapshot PlatformFeeRate & FeePolicyVersion)
+       ↓ (EnrollmentSessionAllocator tự động sinh N Sessions)
+Sessions (Unscheduled → Scheduled trong AvailabilitySlots của Tutor)
+       ↓ (Học xong: Mở Attendance Window 24h)
+Attendance Verification (Student & Tutor cùng xác nhận 2 chiều)
+       ↓ (AttendanceVerificationJob tự động duyệt hoặc gắn cờ Conflict)
+Wallet Payout Release (Giải ngân SessionPayoutCredit cho từng buổi hoàn thành)
+       ↓ (Nếu có khiếu nại)
+Dispute Engine (Pre-release Escrow hold hoặc Post-release Balance hold)
+       ↓ (Admin phân xử bằng công thức cân đối phí sàn bất biến)
+Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + AuditLog)
+```
+
+### Phân Bổ Mã Nguồn:
+* `src/backend/TutorHub.Domain/`: **Domain Cốt Lõi Độc Lập**. Entities (`User`, `TutorProfile`, `StudentProfile`, `Service`, `Booking`, `Enrollment`, `Session`, `Wallet`, `Transaction`, `Dispute`, `PlatformSetting`, `AuditLog`), Enums, Allocators (`EnrollmentSessionAllocator`), và Domain Invariants.
+* `src/backend/TutorHub.Application/`: **Nghiệp Vụ Ứng Dụng (Vertical Slice / CQRS)**. Chia theo feature (`Features/{Module}/{FeatureName}/`). Chứa `Command/Query`, `Validator`, `Handler`, `DTOs`, Business Events, và Abstractions (`IAppDbContext`, `IAuditLogService`, `IVnPayService`, `IObjectStorageService`, `IJwtService`).
+* `src/backend/TutorHub.Infrastructure/`: **Hạ Tầng Kỹ Thuật**. `AppDbContext` (interceptor bảo vệ sổ cái bất biến), Background Jobs (`BookingTimeoutBackgroundService`, `OutboxDispatcherJob`, `EmailDeliveryJob`, `SessionReminderJob`, `AttendanceReminderJob`, `AttendanceVerificationJob`), VNPay SHA512, Cloudflare R2, và SignalR hubs.
+* `src/backend/TutorHub.Api/`: **Giao Tiếp Ngoại Vi (Thin Controllers)**. Controller chỉ dispatch MediatR, Middlewares (`CorrelationIdMiddleware`, `GlobalExceptionHandler`).
+* `docs/`: **Baseline Nghiệp Vụ Chuẩn**. `prd.md` (PRD v1.0 Baseline Frozen), `functional-requirements.md` (FR v1.0 - 50 Chương), `user-stories.md` (US v1.0).
+* `src/test/`: **Kiểm Thử Tự Động**. `TutorHub.Domain.UnitTests` (122 tests), `TutorHub.Application.UnitTests` (276 tests) — Tổng 398 tests.
 
 ---
 
-## 📐 Code Conventions Thực Tế Trong Codebase
+## 📐 Code Conventions & Best Practices
 
 1. **Envelope Response:** Mọi endpoint thành công phải trả về `ApiResponse<T>.SuccessResult(data, message)`.
-2. **Exception Handling:** Không bắt exception trong Controller. Ném các domain exception có cấu trúc (`NotFoundException`, `BadRequestException`, `ConflictException`, `ForbiddenException`, `UnauthorizedException`), `GlobalExceptionHandler` sẽ tự động map ra HTTP status code và JSON chuẩn.
+2. **Exception Handling:** Không `try-catch` trong Controller. Ném các domain exception có cấu trúc (`NotFoundException`, `BadRequestException`, `ConflictException`, `ForbiddenException`, `UnauthorizedException`). `GlobalExceptionHandler` sẽ tự động map ra HTTP status code và ProblemDetails JSON.
 3. **DTOs:** Sử dụng C# positional `record` bất biến (Immutable).
-4. **Validation:** Viết class kế thừa `AbstractValidator<TCommand/Query>` trong cùng thư mục slice. Pipeline Behavior sẽ tự động validate trước khi vào Handler.
-5. **Timezone Rule:** Toàn bộ dữ liệu ngày giờ lưu trong DB là **Strict UTC** (`DateTime.UtcNow`). Chỉ chuyển đổi UTC+7 khi giao tiếp với định dạng ngày của VNPay.
-6. **Pagination:** Sử dụng `PagedResult<T>` với sắp xếp deterministic bắt buộc: `.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id)`.
+4. **Validation:** Kế thừa `AbstractValidator<TCommand/Query>` trong cùng thư mục slice. MediatR Validation Pipeline Behavior tự động validate trước khi vào Handler.
+5. **Timezone Rule:** Toàn bộ dữ liệu ngày giờ lưu trong DB là **Strict UTC** (`DateTime.UtcNow`). Chỉ chuyển đổi sang Timezone `Asia/Ho_Chi_Minh` khi hiển thị hoặc đối soát khung giờ `AvailabilitySlot` của gia sư.
+6. **Correlation Tracing:** `CorrelationIdMiddleware` tự động sinh hoặc forward header `X-Correlation-ID`. Mọi thao tác quản trị tài chính, tranh chấp, cấu hình sàn đều ghi vào `AuditLog` kèm `CorrelationId`.
+7. **Deterministic Pagination:** Sử dụng `PagedResult<T>` với sắp xếp deterministic: `.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id)`.
 
 ---
 
-## 🚫 LUẬT CỨNG [ĐIỀU KHÔNG ĐƯỢC PHÁ]
+## 🚫 LUẬT CỨNG BẤT BIẾN [ĐIỀU KHÔNG ĐƯỢC PHÁ]
 
 * ⛔ **1. Không bao giờ tắt `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`:** Mọi commit phải build thành công với **0 Warnings, 0 Errors**.
-* ⛔ **2. Không viết business logic trong Controller:** Controller chỉ được làm 3 việc: Lấy input/claims ➔ Dispatch MediatR ➔ Trả `Ok(ApiResponse)`.
-* ⛔ **3. Background Service không được bypass Application layer:** Background worker chỉ đóng vai trò timer scheduler kích hoạt `ISender.Send(new Command())`. Không thao tác Entity trực tiếp trong Worker.
-* ⛔ **4. Không được dùng `BookingId` làm `vnp_TxnRef` trên cổng VNPay:** Phải luôn sinh mã `MerchantReference` độc lập (`THB...`) để cho phép học viên thanh toán lại nếu lần trước thất bại.
-* ⛔ **5. VNPay Return URL là Read-Only:** Tuyệt đối không được thay đổi trạng thái database hay cộng tiền ví trong Return URL. Mọi mutation tài chính bắt buộc phải nằm trong **IPN Webhook** và bọc trong **Database Transaction**.
-* ⛔ **6. Không bao giờ cộng `TotalAmount` thô vào ví Gia sư:** Tiền giải ngân cho gia sư bắt buộc phải là `PayoutAmount` (sau khi đã trừ hoa hồng sàn `CommissionAmount`). Thỏa mãn bất biến: `GrossAmount = CommissionAmount + PayoutAmount`.
-* ⛔ **7. Bảo vệ an toàn Admin:** Không cho phép Admin tự vô hiệu hóa tài khoản của chính mình (`409 Conflict`), và không cho phép vô hiệu hóa Admin đang active cuối cùng.
-* ⛔ **8. Không commit secret key thật lên Git:** Toàn bộ Secret/Password phải dùng Environment Variables hoặc `appsettings.Development.json` local.
+* ⛔ **2. Mô hình Booking là Package-based (Không quay lại Single-slot Booking):** `Booking` bắt buộc phải tham chiếu đến `ServiceId` (`DEC-S8-020`). Thanh toán thành công kích hoạt `Enrollment` và sinh $N$ `Session`. Tuyệt đối không tạo booking đơn lẻ ngoài gói dịch vụ.
+* ⛔ **3. Sổ Cái Tài Chính & Audit Log là Append-Only (`INV-LEDGER-006`, `INV-LEDGER-007`):** `AppDbContext.SaveChangesAsync` chặn đứng mọi hành vi `Modified` hoặc `Deleted` đối với `AuditLog` và các giao dịch đã quyết toán (`Transaction.Status == Released || Succeeded`). Mọi điều chỉnh tài chính phải là transaction mới (`StudentRefund`, `PlatformFeeReversal`).
+* ⛔ **4. Cấm Chaining Transaction (`DEC-S8-030`):** Mọi giao dịch điều chỉnh (`StudentRefund`, `PlatformFeeReversal`) phải trỏ trực tiếp về giao dịch giải ngân gốc (`RelatedTransaction.Type == SessionPayoutCredit`), cấm trỏ bắc cầu vào một adjustment khác.
+* ⛔ **5. Bất Biến Rút Tiền Khả Dụng (`DEC-WD-001`, `DEC-S8-001`):** Gia sư chỉ được rút tiền tối đa bằng `WithdrawableBalance = AvailableBalance - HeldBalance`. Không được rút vào phần tiền đang bị giữ do tranh chấp (`HeldBalance`).
+* ⛔ **6. Bất Biến Tranh Chấp Không Giữ Tiền Một Phần (`DEC-S8-028`, `INV-DISP-008`):** Trong tranh chấp sau giải ngân (Post-release), nếu `WithdrawableBalance < MaxTutorRecovery`, hệ thống **phải giữ 0 đồng** (`HeldAmount = 0`) và chuyển Dispute sang trạng thái `RequiresAdminFinancialIntervention`. Tuyệt đối không giữ một phần làm sai lệch hạn mức và phá vỡ tính sở hữu tiền ví.
+* ⛔ **7. Công Thức Cân Đối Phí Sàn Chuẩn (`DEC-S8-025`, `Mandatory Patch B`):**
+  $$\text{StudentRefund} \equiv \text{TutorNetRecovery} + \text{PlatformFeeReversal}$$
+  Thu hồi từ ví gia sư không bao giờ được vượt quá số tiền gia sư thực nhận từ buổi học đó. Phí sàn được hoàn tương ứng theo tỷ lệ snapshot.
+* ⛔ **8. Vòng Đời Hoàn Tiền Ngoại Vi (`DEC-S8-032`, `INV-REFUND-004`):** Khi Admin phân xử hoàn tiền cho học viên, `StudentRefund` bắt đầu ở trạng thái `Pending`. Chỉ chuyển sang `Succeeded` khi cổng thanh toán xác nhận thành công. Nếu cổng thất bại (`Failed`), nghĩa vụ tài chính nội bộ vẫn giữ nguyên (`SettlementRequired = true`) để Admin xử lý offline, không được rollback tiền ví gia sư.
+* ⛔ **9. Snapshot Phí Sàn Bất Biến (`DEC-S8-020`):** `Enrollment` snapshot cố định `PlatformFeeRate` và `FeePolicyVersion` tại thời điểm tạo. Việc Admin thay đổi phí sàn toàn hệ thống (`PlatformSetting`) chỉ áp dụng cho các hợp đồng tạo mới sau đó, không hồi tố hợp đồng cũ.
+* ⛔ **10. Khóa Tài Nguyên Có Thứ Tự Tránh Deadlock (`DEC-S8-027`):** Mọi nghiệp vụ có tranh chấp và ví phải khóa tài nguyên theo thứ tự: $\text{Dispute} \prec \text{Wallet (FOR UPDATE)} \prec \text{Transaction}$.
+* ⛔ **11. VNPay Return URL là Read-Only:** Tuyệt đối không cập nhật trạng thái đơn hàng hay cộng tiền ví trong Return URL. Mọi mutation tài chính bắt buộc phải nằm trong **IPN Webhook** và bọc trong **Database Transaction**.
 
 ---
 
-## ⚠️ Các Bẫy Mà Engineer Mới Sẽ Dính Ngay Tuần Đầu
+## ⚠️ Các Bẫy Kỹ Thuật Thường Gặp Cần Tránh
 
-1. **Bẫy lọc ngày (Date Filtering Bug):** Khi lọc `fromDate` đến `toDate`, nếu viết `CreatedAt <= toDate` sẽ làm mất toàn bộ giao dịch phát sinh trong ngày `toDate` sau 00:00:00. **Luôn dùng Half-Open Interval:** `CreatedAt >= fromDate.Date && CreatedAt < toDate.Date.AddDays(1)`.
-2. **Bẫy trạng thái Booking sau thanh toán:** Sau khi thanh toán thành công (Mock hoặc VNPay IPN), `Booking.Status` chuyển sang **`Pending`** (chờ gia sư bấm nhận lớp), **KHÔNG PHẢI** chuyển thẳng sang `Confirmed`.
-3. **Bẫy nhân đôi SaveChanges khi tạo StudentProfile:** Trong `CreateBookingCommandHandler`, không gọi `SaveChangesAsync` tức thời khi vừa tạo mới `StudentProfile`. Hãy để EF Core tự tracking và commit chung trong 1 lần lưu duy nhất ở cuối handler.
-4. **Bẫy đơn vị tiền VNPay (* 100):** VNPay yêu cầu số tiền nhân 100 (`Amount * 100`). Khi nhận IPN về, phải chia 100 (`vnp_Amount / 100`) trước khi so sánh với `Transaction.Amount`.
-5. **Bẫy Swagger SchemaId Conflict:** Khi các DTO ở các slice khác nhau có cùng tên (vd: `UpdateProfileRequest`), không đổi tên bừa bãi. Hệ thống đã cấu hình `CustomSchemaIds(type => type.ToString().Replace("+", "."))` trong `Program.cs`.
+1. **Bẫy lọc ngày (Date Filtering Bug):** Khi lọc `fromDate` đến `toDate`, luôn dùng khoảng nửa mở (Half-Open Interval): `CreatedAt >= fromDate.Date && CreatedAt < toDate.Date.AddDays(1)`.
+2. **Bẫy đơn vị tiền VNPay (* 100):** VNPay yêu cầu số tiền nhân 100 (`Amount * 100`). Khi nhận IPN về, phải chia 100 (`vnp_Amount / 100`) trước khi so sánh với `Transaction.Amount`.
+3. **Bẫy kiểm tra giờ rảnh Gia sư:** Giờ bắt đầu và kết thúc của Session lưu ở UTC. Phải convert sang `Asia/Ho_Chi_Minh` trước khi kiểm tra `DayOfWeek`, `StartTime`, `EndTime` trong bảng `AvailabilitySlots`.
+4. **Bẫy kiểm tra file đính kèm & bằng chứng (`DEC-S8-018`):** Dung lượng tối đa 10MB và bắt buộc kiểm tra MIME Type whitelist (`image/jpeg`, `image/png`, `image/webp`, `application/pdf`, `text/plain`).
