@@ -47,6 +47,7 @@ public class OutboxDispatcherJob : BackgroundService
         [BusinessEventTypes.EarningCreated] = typeof(EarningCreatedEvent),
         [BusinessEventTypes.RefundCreated] = typeof(RefundCreatedEvent),
         [BusinessEventTypes.RefundCompleted] = typeof(RefundCompletedEvent),
+        [BusinessEventTypes.RefundFailed] = typeof(RefundFailedEvent),
         [BusinessEventTypes.WithdrawalRequested] = typeof(WithdrawalRequestedEvent),
         [BusinessEventTypes.WithdrawalCompleted] = typeof(WithdrawalCompletedEvent),
         [BusinessEventTypes.WithdrawalFailed] = typeof(WithdrawalFailedEvent),

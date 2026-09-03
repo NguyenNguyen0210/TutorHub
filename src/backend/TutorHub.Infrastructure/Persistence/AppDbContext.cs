@@ -38,6 +38,22 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<EmailDelivery> EmailDeliveries => Set<EmailDelivery>();
+    public DbSet<Dispute> Disputes => Set<Dispute>();
+    public DbSet<DisputeEvidence> DisputeEvidences => Set<DisputeEvidence>();
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        // Enforce append-only on Transaction (DEC-S8-030, INV-LEDGER-007)
+        var modifiedTransactions = ChangeTracker.Entries<Transaction>()
+            .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
+            .ToList();
+        if (modifiedTransactions.Count > 0)
+        {
+            throw new InvalidOperationException("Transaction records are append-only and cannot be modified or deleted.");
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

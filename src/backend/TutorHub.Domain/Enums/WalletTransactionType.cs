@@ -4,5 +4,9 @@ public enum WalletTransactionType
 {
     SessionPayoutCredit,
     WithdrawalDebit,
-    WithdrawalFailedAdjustmentCredit
+    WithdrawalFailedAdjustmentCredit,
+    DisputeHoldReservationDebit,
+    DisputeHoldReleaseCredit,
+    DisputeRecoveryDebit
 }
+

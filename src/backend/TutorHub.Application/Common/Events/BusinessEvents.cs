@@ -331,6 +331,25 @@ public record RefundCompletedEvent(
     public Guid AggregateId => TransactionId;
 }
 
+public record RefundFailedEvent(
+    Guid EnrollmentId,
+    Guid StudentUserId,
+    MoneyDto Amount,
+    Guid TransactionId,
+    string Reason,
+    Guid EventId = default,
+    int EventVersion = 1,
+    DateTime OccurredAt = default
+) : IBusinessEvent
+{
+    public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
+    public string EventType => BusinessEventTypes.RefundFailed;
+    public int EventVersion { get; init; } = EventVersion;
+    public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
+    public string AggregateType => "Transaction";
+    public Guid AggregateId => TransactionId;
+}
+
 public record WithdrawalRequestedEvent(
     Guid WithdrawalId,
     Guid TutorProfileId,

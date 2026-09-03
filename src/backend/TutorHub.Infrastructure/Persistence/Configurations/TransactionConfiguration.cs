@@ -10,11 +10,13 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
     {
         builder.HasKey(t => t.Id);
 
-        builder.HasIndex(t => t.BookingId)
-            .IsUnique();
-
         builder.Property(t => t.Amount)
             .HasPrecision(10, 2)
+            .IsRequired();
+
+        builder.Property(t => t.Type)
+            .HasConversion<string>()
+            .HasMaxLength(50)
             .IsRequired();
 
         builder.Property(t => t.Status)
@@ -37,13 +39,16 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.Property(t => t.PaymentGatewayRef)
             .HasMaxLength(256);
 
+        builder.Property(t => t.Description)
+            .HasMaxLength(500);
+
         builder.Property(t => t.CreatedAt)
             .IsRequired();
 
         // Foreign keys & Relationships
         builder.HasOne(t => t.Booking)
-            .WithOne(b => b.Transaction)
-            .HasForeignKey<Transaction>(t => t.BookingId)
+            .WithMany()
+            .HasForeignKey(t => t.BookingId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(t => t.Session)
@@ -52,9 +57,19 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(t => t.RelatedTransaction)
+            .WithMany()
+            .HasForeignKey(t => t.RelatedTransactionId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(t => t.BookingId);
+        builder.HasIndex(t => t.DisputeId);
+        builder.HasIndex(t => t.RelatedTransactionId);
+
         // Partial unique index: a session can have at most one payout transaction
         builder.HasIndex(t => t.SessionId)
             .IsUnique()
-            .HasFilter("\"SessionId\" IS NOT NULL");
+            .HasFilter("\"SessionId\" IS NOT NULL AND \"Type\" = 'SessionPayoutCredit'");
     }
 }

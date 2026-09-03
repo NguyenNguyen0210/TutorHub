@@ -96,8 +96,8 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
             throw new BadRequestException("Tutor wallet not found.");
         }
 
-        // Concurrency-safe stateful balance verification (DEC-WD-001)
-        if (wallet.AvailableBalance < request.Amount)
+        // Concurrency-safe stateful balance verification (DEC-WD-001, DEC-S8-001)
+        if (wallet.WithdrawableBalance < request.Amount)
         {
             throw new BadRequestException("Insufficient available balance.");
         }

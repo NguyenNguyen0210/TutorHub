@@ -12,6 +12,8 @@ public class WalletTransaction
     public Guid? WithdrawalId { get; set; }
     public Withdrawal? Withdrawal { get; set; }
 
+    public Guid? DisputeId { get; set; }
+
     public WalletTransactionType Type { get; set; }
     public decimal Amount { get; set; }
     public decimal BalanceAfter { get; set; }

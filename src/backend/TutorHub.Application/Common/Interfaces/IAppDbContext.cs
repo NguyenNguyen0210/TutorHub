@@ -33,6 +33,8 @@ public interface IAppDbContext
     DbSet<InboxMessage> InboxMessages { get; }
     DbSet<Notification> Notifications { get; }
     DbSet<EmailDelivery> EmailDeliveries { get; }
+    DbSet<Dispute> Disputes { get; }
+    DbSet<DisputeEvidence> DisputeEvidences { get; }
 
     DatabaseFacade Database { get; }
 

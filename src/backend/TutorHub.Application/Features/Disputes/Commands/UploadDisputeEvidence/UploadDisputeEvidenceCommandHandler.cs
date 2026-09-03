@@ -1,0 +1,77 @@
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Exceptions;
+using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Features.Disputes.DTOs;
+using TutorHub.Domain.Entities;
+using TutorHub.Domain.Enums;
+
+namespace TutorHub.Application.Features.Disputes.Commands.UploadDisputeEvidence;
+
+public class UploadDisputeEvidenceCommandHandler : IRequestHandler<UploadDisputeEvidenceCommand, DisputeEvidenceDto>
+{
+    private readonly IAppDbContext _context;
+
+    public UploadDisputeEvidenceCommandHandler(IAppDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<DisputeEvidenceDto> Handle(UploadDisputeEvidenceCommand request, CancellationToken cancellationToken)
+    {
+        var dispute = await _context.Disputes
+            .FirstOrDefaultAsync(d => d.Id == request.DisputeId, cancellationToken);
+
+        if (dispute == null)
+        {
+            throw new NotFoundException(nameof(Dispute), request.DisputeId);
+        }
+
+        // Must be participant or admin
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UploadedByUserId, cancellationToken);
+        if (user == null)
+        {
+            throw new NotFoundException(nameof(User), request.UploadedByUserId);
+        }
+
+        var isParticipant = dispute.InitiatorUserId == request.UploadedByUserId || dispute.RespondentUserId == request.UploadedByUserId;
+        var isAdmin = user.Role == UserRole.Admin;
+
+        if (!isParticipant && !isAdmin)
+        {
+            throw new ForbiddenException("You do not have permission to upload evidence for this dispute.");
+        }
+
+        if (dispute.Status == DisputeStatus.Resolved || dispute.Status == DisputeStatus.Dismissed)
+        {
+            throw new BadRequestException("Cannot upload evidence for a closed dispute.");
+        }
+
+        var evidence = new DisputeEvidence
+        {
+            Id = Guid.NewGuid(),
+            DisputeId = dispute.Id,
+            UploadedByUserId = request.UploadedByUserId,
+            FileName = request.FileName,
+            FileUrl = request.FileUrl,
+            ContentType = request.ContentType,
+            FileSizeBytes = request.FileSizeBytes,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.DisputeEvidences.Add(evidence);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new DisputeEvidenceDto
+        {
+            Id = evidence.Id,
+            DisputeId = evidence.DisputeId,
+            UploadedByUserId = evidence.UploadedByUserId,
+            FileName = evidence.FileName,
+            FileUrl = evidence.FileUrl,
+            ContentType = evidence.ContentType,
+            FileSizeBytes = evidence.FileSizeBytes,
+            CreatedAt = evidence.CreatedAt
+        };
+    }
+}

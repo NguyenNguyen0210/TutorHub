@@ -26,6 +26,7 @@ public static class BusinessEventTypes
     public const string EarningCreated = "EarningCreated";
     public const string RefundCreated = "RefundCreated";
     public const string RefundCompleted = "RefundCompleted";
+    public const string RefundFailed = "RefundFailed";
     public const string WithdrawalRequested = "WithdrawalRequested";
     public const string WithdrawalCompleted = "WithdrawalCompleted";
     public const string WithdrawalFailed = "WithdrawalFailed";

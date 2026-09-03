@@ -16,6 +16,8 @@ public class Transaction
     // Payment
     public decimal Amount { get; set; }
 
+    public TransactionType Type { get; set; } = TransactionType.BookingPayment;
+
     public TransactionStatus Status { get; set; }
 
     // Platform commission
@@ -27,6 +29,13 @@ public class Transaction
     public decimal PayoutAmount { get; set; }
 
     public string? PaymentGatewayRef { get; set; }
+
+    // Linkages for dispute resolution & explicit adjustments (DEC-S8-025, DEC-S8-030)
+    public Guid? DisputeId { get; set; }
+    public Guid? RelatedTransactionId { get; set; }
+    public Transaction? RelatedTransaction { get; set; }
+    public string? Description { get; set; }
+    public bool SettlementRequired { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

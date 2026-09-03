@@ -45,6 +45,12 @@ public class Session
     public bool IsPayoutReleased { get; private set; } = false;
     public Transaction? Transaction { get; set; }
 
+    // --- Dispute resolution override fields (DEC-S8-004) ---
+    public string? ResolutionNotes { get; private set; }
+    public string? ResolutionSource { get; private set; }
+    public Guid? ResolvedByAdminId { get; private set; }
+    public DateTime? AttendanceVerifiedAt { get; private set; }
+
     // =======================================================
     // Domain Methods
     // =======================================================
@@ -190,6 +196,25 @@ public class Session
         IsPayoutReleased = true;
         CompletedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Exceptional admin resolution for attendance disputes (DEC-S8-004).
+    /// </summary>
+    public void ResolveAttendanceByAdmin(Guid adminId, string resolutionNotes, string resolutionSource, DateTime now, bool releasePayout = false)
+    {
+        ResolvedByAdminId = adminId;
+        ResolutionNotes = resolutionNotes;
+        ResolutionSource = resolutionSource;
+        AttendanceVerifiedAt = now;
+        HasAttendanceConflict = false;
+        Status = SessionStatus.Completed;
+        CompletedAt = now;
+        UpdatedAt = now;
+        if (releasePayout)
+        {
+            IsPayoutReleased = true;
+        }
     }
 
     /// <summary>
