@@ -73,5 +73,15 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
             .HasForeignKey(b => b.ServiceId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(b => b.CustomAgreement)
+            .WithMany()
+            .HasForeignKey(b => b.CustomAgreementId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(b => b.CustomAgreementId)
+            .IsUnique()
+            .HasFilter("\"CustomAgreementId\" IS NOT NULL");
     }
 }

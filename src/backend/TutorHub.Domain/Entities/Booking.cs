@@ -1,4 +1,4 @@
-﻿using TutorHub.Domain.Enums;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Domain.Entities;
 
@@ -18,9 +18,12 @@ public class Booking
     public Guid SubjectId { get; set; }
     public Subject Subject { get; set; } = default!;
 
-    // Commercial Terms Snapshot from Service
+    // Commercial Terms Snapshot from Service or CustomAgreement (INV-AGREE-008, INV-AGREE-009)
     public Guid? ServiceId { get; set; }
     public Service? Service { get; set; }
+
+    public Guid? CustomAgreementId { get; set; }
+    public CustomAgreement? CustomAgreement { get; set; }
     public decimal TotalPrice { get; set; }
     public int TotalSessions { get; set; }
     public int SessionDurationMinutes { get; set; }

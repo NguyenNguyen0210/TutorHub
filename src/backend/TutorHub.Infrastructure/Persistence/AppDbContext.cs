@@ -44,6 +44,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();
     public DbSet<PlatformSettingVersion> PlatformSettingVersions => Set<PlatformSettingVersion>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<CustomAgreement> CustomAgreements => Set<CustomAgreement>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
