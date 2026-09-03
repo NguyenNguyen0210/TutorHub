@@ -1189,7 +1189,6 @@ Supported dispute categories include:
 - Cancellation.
 - Financial issue.
 - Service issue.
-- Trust & Safety issue.
 
 ---
 

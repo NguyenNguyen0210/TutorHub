@@ -484,7 +484,6 @@ Dispute có thể phát sinh từ:
 * Cancellation.
 * Financial issue.
 * Service issue.
-* Trust & Safety issue.
 
 Flow:
 
