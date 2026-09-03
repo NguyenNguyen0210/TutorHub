@@ -1385,9 +1385,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("BookingId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("BookingId1")
-                        .HasColumnType("uuid");
-
                     b.Property<decimal>("CommissionAmount")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
@@ -1441,9 +1438,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BookingId");
-
-                    b.HasIndex("BookingId1")
+                    b.HasIndex("BookingId")
                         .IsUnique();
 
                     b.HasIndex("DisputeId");
@@ -2215,14 +2210,10 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TutorHub.Domain.Entities.Transaction", b =>
                 {
                     b.HasOne("TutorHub.Domain.Entities.Booking", "Booking")
-                        .WithMany()
-                        .HasForeignKey("BookingId")
+                        .WithOne("Transaction")
+                        .HasForeignKey("TutorHub.Domain.Entities.Transaction", "BookingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("TutorHub.Domain.Entities.Booking", null)
-                        .WithOne("Transaction")
-                        .HasForeignKey("TutorHub.Domain.Entities.Transaction", "BookingId1");
 
                     b.HasOne("TutorHub.Domain.Entities.Transaction", "RelatedTransaction")
                         .WithMany()

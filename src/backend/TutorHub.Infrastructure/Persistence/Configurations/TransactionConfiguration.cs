@@ -47,8 +47,8 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
 
         // Foreign keys & Relationships
         builder.HasOne(t => t.Booking)
-            .WithMany()
-            .HasForeignKey(t => t.BookingId)
+            .WithOne(b => b.Transaction)
+            .HasForeignKey<Transaction>(t => t.BookingId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(t => t.Session)
