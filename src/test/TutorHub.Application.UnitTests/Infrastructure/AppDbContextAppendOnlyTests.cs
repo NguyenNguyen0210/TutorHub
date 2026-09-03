@@ -23,22 +23,22 @@ public class AppDbContextAppendOnlyTests
         {
             Id = Guid.NewGuid(),
             BookingId = Guid.NewGuid(),
-            Type = TransactionType.BookingPayment,
+            Type = TransactionType.SessionPayoutCredit,
             Amount = 100_000m,
-            Status = TransactionStatus.Pending,
+            Status = TransactionStatus.Released,
             CreatedAt = DateTime.UtcNow
         };
 
         context.Transactions.Add(tx);
         await context.SaveChangesAsync();
 
-        // Act: Attempt to modify existing transaction
-        tx.Status = TransactionStatus.Succeeded;
+        // Act: Attempt to modify settled transaction to Refunded (DEC-S8-030)
+        tx.Status = TransactionStatus.Refunded;
 
         // Assert: Throws InvalidOperationException per INV-LEDGER-007
         var act = () => context.SaveChangesAsync();
         await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*append-only*");
+            .WithMessage("*immutable*");
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class AppDbContextAppendOnlyTests
         // Assert: Throws InvalidOperationException per INV-LEDGER-007
         var act = () => context.SaveChangesAsync();
         await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*append-only*");
+            .WithMessage("*cannot be deleted*");
     }
 
     [Fact]
@@ -135,5 +135,48 @@ public class AppDbContextAppendOnlyTests
         var act = () => context.SaveChangesAsync();
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*AuditLog records are append-only*");
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_WhenAdjustmentPointsToNonEarningTransaction_ThrowsInvalidOperationException()
+    {
+        // Arrange (DEC-S8-030 Anti-Chaining Test: Adjustment chained to another adjustment)
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new AppDbContext(options);
+
+        var firstAdjustment = new Transaction
+        {
+            Id = Guid.NewGuid(),
+            BookingId = Guid.NewGuid(),
+            Type = TransactionType.StudentRefund,
+            Amount = 100_000m,
+            Status = TransactionStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Transactions.Add(firstAdjustment);
+        await context.SaveChangesAsync();
+
+        // Act: Attempt to chain a second adjustment to the first adjustment (not SessionPayoutCredit)
+        var chainedAdjustment = new Transaction
+        {
+            Id = Guid.NewGuid(),
+            BookingId = firstAdjustment.BookingId,
+            RelatedTransactionId = firstAdjustment.Id,
+            RelatedTransaction = firstAdjustment,
+            Type = TransactionType.PlatformFeeReversal,
+            Amount = 0m,
+            CommissionAmount = 10_000m,
+            Status = TransactionStatus.Succeeded,
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Transactions.Add(chainedAdjustment);
+
+        // Assert: Throws InvalidOperationException per INV-LEDGER-007
+        var act = () => context.SaveChangesAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*chaining is forbidden*");
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Domain.Entities;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Infrastructure.Persistence;
 
@@ -46,13 +47,46 @@ public class AppDbContext : DbContext, IAppDbContext
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // Enforce append-only on Transaction (DEC-S8-030, INV-LEDGER-007)
-        var modifiedTransactions = ChangeTracker.Entries<Transaction>()
-            .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
+        // Enforce append-only / immutability on Transaction (DEC-S8-030, INV-LEDGER-007)
+        var deletedTransactions = ChangeTracker.Entries<Transaction>()
+            .Where(e => e.State == EntityState.Deleted)
             .ToList();
-        if (modifiedTransactions.Count > 0)
+        if (deletedTransactions.Count > 0)
         {
-            throw new InvalidOperationException("Transaction records are append-only and cannot be modified or deleted.");
+            throw new InvalidOperationException("Transaction records cannot be deleted.");
+        }
+
+        var modifiedTerminalTransactions = ChangeTracker.Entries<Transaction>()
+            .Where(e => e.State == EntityState.Modified)
+            .Where(e =>
+            {
+                var origStatus = (TransactionStatus)e.OriginalValues[nameof(Transaction.Status)]!;
+                var origType = (TransactionType)e.OriginalValues[nameof(Transaction.Type)]!;
+                // Historical earnings & fee reversals are strictly immutable
+                if (origType == TransactionType.SessionPayoutCredit || origType == TransactionType.PlatformFeeReversal)
+                    return true;
+                // Terminal statuses (Released, Succeeded) cannot be modified
+                return origStatus == TransactionStatus.Released || origStatus == TransactionStatus.Succeeded;
+            })
+            .ToList();
+
+        if (modifiedTerminalTransactions.Count > 0)
+        {
+            throw new InvalidOperationException("Settled historical financial records are immutable and cannot be modified.");
+        }
+
+        // Anti-chaining validation (DEC-S8-030, INV-LEDGER-007)
+        var addedAdjustments = ChangeTracker.Entries<Transaction>()
+            .Where(e => e.State == EntityState.Added && e.Entity.RelatedTransactionId.HasValue)
+            .ToList();
+
+        foreach (var entry in addedAdjustments)
+        {
+            if (entry.Entity.RelatedTransaction != null &&
+                entry.Entity.RelatedTransaction.Type != TransactionType.SessionPayoutCredit)
+            {
+                throw new InvalidOperationException("Financial adjustments must point directly to the original earning transaction; chaining is forbidden.");
+            }
         }
 
         // Enforce append-only on AuditLog (DEC-S8-005, INV-LEDGER-006)
