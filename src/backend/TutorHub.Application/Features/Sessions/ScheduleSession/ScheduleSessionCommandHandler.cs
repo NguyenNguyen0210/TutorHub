@@ -87,8 +87,17 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
             throw new BadRequestException("The requested session time falls outside of the tutor's weekly availability schedule.");
         }
 
-        // 7. Tutor-Scoped Concurrency & Overlap Protection
+        // 7. Tutor-Scoped Concurrency & Overlap Protection (INV-AVAIL-008)
         var tutorProfileId = session.Enrollment.TutorProfileId;
+
+        if (_context.Database?.ProviderName != null &&
+            _context.Database.ProviderName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
+        {
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM \"TutorProfiles\" WHERE \"Id\" = {tutorProfileId} FOR UPDATE;",
+                cancellationToken);
+        }
+
         var hasSessionConflict = await _context.Sessions
             .AnyAsync(s => s.Id != session.Id &&
                            s.Enrollment.TutorProfileId == tutorProfileId &&

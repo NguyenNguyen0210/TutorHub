@@ -9,6 +9,7 @@ using TutorHub.Application.Features.Availability.DeleteAvailabilitySlot;
 using TutorHub.Application.Features.Availability.DTOs;
 using TutorHub.Application.Features.Availability.GetMyAvailabilitySlots;
 using TutorHub.Application.Features.Availability.GetTutorAvailability;
+using TutorHub.Application.Features.Availability.SetWeeklySchedule;
 using TutorHub.Application.Features.Reviews.DTOs;
 using TutorHub.Application.Features.Reviews.GetTutorReviews;
 using TutorHub.Application.Features.Tutors.DTOs;
@@ -302,6 +303,27 @@ public class TutorsController : ControllerBase
         var command = new DeleteAvailabilitySlotCommand(id, userId);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<bool>.SuccessResult(result, "Availability slot deleted successfully."));
+    }
+
+    /// <summary>
+    /// Atomically synchronize the tutor's entire weekly recurring availability schedule (Tutor only - INV-AVAIL-006).
+    /// Fails fast with 409 Conflict if any future scheduled session would be left uncovered.
+    /// </summary>
+    [Authorize(Roles = "Tutor")]
+    [HttpPut("me/availability-schedule")]
+    [ProducesResponseType(typeof(ApiResponse<List<AvailabilitySlotDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SetWeeklySchedule(
+        [FromBody] SetWeeklyScheduleRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var command = new SetWeeklyScheduleCommand(userId, request.Schedule);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<List<AvailabilitySlotDto>>.SuccessResult(result, "Weekly availability schedule synchronized successfully."));
     }
 
     /// <summary>
