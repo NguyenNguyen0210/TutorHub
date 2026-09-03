@@ -506,3 +506,22 @@ public record MessageSentEvent(
     public string AggregateType => "Conversation";
     public Guid AggregateId => ConversationId;
 }
+
+public record PlatformSettingChangedEvent(
+    string SettingKey,
+    string OldValue,
+    string NewValue,
+    int Version,
+    Guid ChangedByAdminId,
+    Guid EventId = default,
+    int EventVersion = 1,
+    DateTime OccurredAt = default
+) : IBusinessEvent
+{
+    public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
+    public string EventType => BusinessEventTypes.PlatformSettingChanged;
+    public int EventVersion { get; init; } = EventVersion;
+    public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
+    public string AggregateType => "PlatformSetting";
+    public Guid AggregateId => Guid.Empty;
+}

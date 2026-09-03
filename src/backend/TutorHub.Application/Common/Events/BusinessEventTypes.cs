@@ -36,6 +36,7 @@ public static class BusinessEventTypes
     public const string DisputeCreated = "DisputeCreated";
     public const string DisputeResolved = "DisputeResolved";
     public const string ReportCreated = "ReportCreated";
+    public const string PlatformSettingChanged = "PlatformSettingChanged";
 
     // Communication Domain Event (Separate from 24 Core Business Events - INV-EVENT-009)
     public const string MessageSent = "MessageSent";

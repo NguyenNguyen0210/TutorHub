@@ -1,4 +1,4 @@
-﻿using TutorHub.Domain.Enums;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Domain.Entities;
 
@@ -32,6 +32,10 @@ public class Enrollment
     public int TotalSessions { get; set; }
     public int SessionDurationMinutes { get; set; }
     public TeachingMode TeachingMode { get; set; }
+
+    // --- Platform Fee Snapshot (DEC-S8-020) ---
+    public decimal PlatformFeeRate { get; set; } = 0.10m;
+    public int FeePolicyVersion { get; set; } = 1;
 
     // --- Progress (mutable, tracks completion) ---
     public int CompletedSessions { get; private set; } = 0;

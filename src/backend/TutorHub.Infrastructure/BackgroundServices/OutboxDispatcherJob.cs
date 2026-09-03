@@ -57,6 +57,7 @@ public class OutboxDispatcherJob : BackgroundService
         [BusinessEventTypes.DisputeCreated] = typeof(DisputeCreatedEvent),
         [BusinessEventTypes.DisputeResolved] = typeof(DisputeResolvedEvent),
         [BusinessEventTypes.ReportCreated] = typeof(ReportCreatedEvent),
+        [BusinessEventTypes.PlatformSettingChanged] = typeof(PlatformSettingChangedEvent),
 
         // Communication
         [BusinessEventTypes.MessageSent] = typeof(MessageSentEvent)

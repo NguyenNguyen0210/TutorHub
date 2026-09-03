@@ -35,6 +35,8 @@ public interface IAppDbContext
     DbSet<EmailDelivery> EmailDeliveries { get; }
     DbSet<Dispute> Disputes { get; }
     DbSet<DisputeEvidence> DisputeEvidences { get; }
+    DbSet<PlatformSetting> PlatformSettings { get; }
+    DbSet<PlatformSettingVersion> PlatformSettingVersions { get; }
 
     DatabaseFacade Database { get; }
 
