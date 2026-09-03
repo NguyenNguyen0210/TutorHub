@@ -22,7 +22,8 @@ public class ReportsController : ControllerBase
     }
 
     /// <summary>
-    /// Submit a dispute report for a specific booking (Booking participant only).
+    /// Submit a conduct or policy violation report for a booking (Booking participant only).
+    /// Note: For financial or session issues, please submit a formal dispute via POST /api/v1/disputes.
     /// </summary>
     [HttpPost("api/v1/bookings/{id:guid}/reports")]
     [ProducesResponseType(typeof(ApiResponse<ReportSummaryDto>), StatusCodes.Status201Created)]
@@ -48,7 +49,7 @@ public class ReportsController : ControllerBase
 
         return StatusCode(
             StatusCodes.Status201Created,
-            ApiResponse<ReportSummaryDto>.SuccessResult(result, "Dispute report submitted successfully and is awaiting admin review.")
+            ApiResponse<ReportSummaryDto>.SuccessResult(result, "Violation report submitted successfully and is awaiting Trust & Safety review.")
         );
     }
 

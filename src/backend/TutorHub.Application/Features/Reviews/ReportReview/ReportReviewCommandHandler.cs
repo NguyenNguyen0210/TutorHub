@@ -1,5 +1,6 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Reports.DTOs;
@@ -20,7 +21,7 @@ public class ReportReviewCommandHandler : IRequestHandler<ReportReviewCommand, R
     public async Task<ReportSummaryDto> Handle(ReportReviewCommand request, CancellationToken cancellationToken)
     {
         var review = await _context.Reviews
-            .Include(r => r.Enrollment)
+            .Include(r => r.Enrollment).ThenInclude(e => e.StudentProfile)
             .FirstOrDefaultAsync(r => r.Id == request.ReviewId, cancellationToken);
 
         if (review == null)
@@ -41,10 +42,15 @@ public class ReportReviewCommandHandler : IRequestHandler<ReportReviewCommand, R
             throw new NotFoundException("User", request.UserId);
         }
 
+        var reportedUserId = review.Enrollment?.StudentProfile?.UserId;
+
         var report = new Report
         {
             Id = Guid.NewGuid(),
-            BookingId = review.Enrollment.BookingId,
+            BookingId = review.Enrollment?.BookingId,
+            ReportType = TrustReportType.ReviewViolation,
+            TargetId = review.Id.ToString(),
+            ReportedUserId = reportedUserId,
             ReporterUserId = request.UserId,
             Description = $"[Review Violation Report - ReviewId: {review.Id}] {request.Description.Trim()}",
             EvidenceUrl = string.IsNullOrWhiteSpace(request.EvidenceUrl) ? null : request.EvidenceUrl.Trim(),
@@ -53,11 +59,24 @@ public class ReportReviewCommandHandler : IRequestHandler<ReportReviewCommand, R
         };
 
         _context.Reports.Add(report);
+
+        if (reportedUserId.HasValue)
+        {
+            _context.AddOutboxMessage(new TutorHub.Application.Common.Events.ReportCreatedEvent(
+                report.Id,
+                reporter.Id,
+                reportedUserId.Value,
+                report.Description));
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return new ReportSummaryDto(
             Id: report.Id,
             BookingId: report.BookingId,
+            ReportType: report.ReportType,
+            ReportedUserId: report.ReportedUserId,
+            TargetId: report.TargetId,
             ReporterUserId: report.ReporterUserId,
             ReporterName: reporter.FullName,
             ReporterRole: reporter.Role.ToString(),

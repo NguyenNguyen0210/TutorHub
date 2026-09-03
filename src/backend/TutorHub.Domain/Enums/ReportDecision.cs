@@ -4,6 +4,7 @@ public enum ReportDecision
 {
     Dismissed,
     WarningIssued,
-    RefundStudent,
-    SuspendUser
+    SuspendUser,
+    BanUser,
+    RemoveContent
 }

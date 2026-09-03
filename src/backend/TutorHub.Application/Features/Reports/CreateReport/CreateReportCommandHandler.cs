@@ -57,10 +57,15 @@ public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, R
         var reporterUser = isStudent ? booking.StudentProfile.User : booking.TutorProfile.User;
         var reporterRole = isStudent ? "Student" : "Tutor";
 
+        var targetUserId = isStudent ? booking.TutorProfile.UserId : booking.StudentProfile.UserId;
+
         var report = new Report
         {
             Id = Guid.NewGuid(),
             BookingId = booking.Id,
+            ReportType = TrustReportType.UserConduct,
+            TargetId = booking.Id.ToString(),
+            ReportedUserId = targetUserId,
             ReporterUserId = request.UserId,
             Description = request.Description.Trim(),
             EvidenceUrl = string.IsNullOrWhiteSpace(request.EvidenceUrl) ? null : request.EvidenceUrl.Trim(),
@@ -69,8 +74,6 @@ public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, R
         };
 
         _context.Reports.Add(report);
-
-        var targetUserId = isStudent ? booking.TutorProfile.UserId : booking.StudentProfile.UserId;
 
         // Enqueue ReportCreated Outbox Message (DEC-S7-001, DEC-S7-002)
         _context.AddOutboxMessage(new ReportCreatedEvent(
@@ -97,8 +100,11 @@ public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, R
         return new ReportSummaryDto(
             Id: report.Id,
             BookingId: report.BookingId,
+            ReportType: report.ReportType,
+            ReportedUserId: report.ReportedUserId,
+            TargetId: report.TargetId,
             ReporterUserId: report.ReporterUserId,
-            ReporterName: reporterUser.FullName,
+            ReporterName: reporterUser?.FullName ?? string.Empty,
             ReporterRole: reporterRole,
             Description: report.Description,
             EvidenceUrl: report.EvidenceUrl,

@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Moq;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -73,8 +73,15 @@ public class ReportReviewCommandHandlerTests
     [Fact]
     public async Task Handle_WhenValidReport_ShouldCreateReportRecordInTrustAndSafety()
     {
-        // Arrange
-        var enrollment = new Enrollment { Id = Guid.NewGuid(), BookingId = Guid.NewGuid() };
+        var studentUser = new UserBuilder().Build();
+        var studentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = studentUser.Id, User = studentUser };
+        var enrollment = new Enrollment
+        {
+            Id = Guid.NewGuid(),
+            BookingId = Guid.NewGuid(),
+            StudentProfileId = studentProfile.Id,
+            StudentProfile = studentProfile
+        };
         var review = new Review
         {
             Id = Guid.NewGuid(),
@@ -98,6 +105,9 @@ public class ReportReviewCommandHandlerTests
         result.ReporterUserId.Should().Be(reporter.Id);
         result.ReporterName.Should().Be("John Doe");
         result.ReporterRole.Should().Be("Tutor");
+        result.ReportType.Should().Be(TrustReportType.ReviewViolation);
+        result.TargetId.Should().Be(review.Id.ToString());
+        result.ReportedUserId.Should().Be(studentProfile.UserId);
         result.Status.Should().Be(ReportStatus.Open);
         result.EvidenceUrl.Should().Be("https://evidence.com/screenshot.png");
         result.Description.Should().Contain("[Review Violation Report - ReviewId:");

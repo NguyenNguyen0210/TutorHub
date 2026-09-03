@@ -21,8 +21,8 @@ public class GetAdminReportsQueryHandler : IRequestHandler<GetAdminReportsQuery,
         var query = _context.Reports
             .AsNoTracking()
             .Include(r => r.ReporterUser)
-            .Include(r => r.Booking).ThenInclude(b => b.StudentProfile)
-            .Include(r => r.Booking).ThenInclude(b => b.TutorProfile)
+            .Include(r => r.Booking).ThenInclude(b => b!.StudentProfile)
+            .Include(r => r.Booking).ThenInclude(b => b!.TutorProfile)
             .AsQueryable();
 
         if (request.Status.HasValue)
@@ -42,9 +42,14 @@ public class GetAdminReportsQueryHandler : IRequestHandler<GetAdminReportsQuery,
             .Select(r => new ReportSummaryDto(
                 r.Id,
                 r.BookingId,
+                r.ReportType,
+                r.ReportedUserId,
+                r.TargetId,
                 r.ReporterUserId,
                 r.ReporterUser.FullName,
-                r.ReporterUserId == r.Booking.StudentProfile.UserId ? "Student" : "Tutor",
+                r.Booking != null
+                    ? (r.ReporterUserId == r.Booking.StudentProfile.UserId ? "Student" : "Tutor")
+                    : r.ReporterUser.Role.ToString(),
                 r.Description,
                 r.EvidenceUrl,
                 r.Status,

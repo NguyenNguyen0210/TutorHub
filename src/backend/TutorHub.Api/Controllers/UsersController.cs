@@ -63,6 +63,35 @@ public class UsersController : ControllerBase
         return Ok(ApiResponse<MyProfileDto>.SuccessResult(result, "Profile updated successfully."));
     }
 
+    /// <summary>
+    /// Report another user for conduct, harassment, or platform violations (FR-TRUST-001).
+    /// </summary>
+    [HttpPost("{id:guid}/report")]
+    [ProducesResponseType(typeof(ApiResponse<TutorHub.Application.Features.Reports.DTOs.ReportSummaryDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ReportUser(
+        [FromRoute] Guid id,
+        [FromBody] ReportUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var reporterId = GetCurrentUserId();
+        var command = new TutorHub.Application.Features.Reports.ReportUser.ReportUserCommand(
+            ReporterUserId: reporterId,
+            TargetUserId: id,
+            Reason: request.Reason,
+            EvidenceUrl: request.EvidenceUrl
+        );
+
+        var result = await _sender.Send(command, cancellationToken);
+
+        return StatusCode(
+            StatusCodes.Status201Created,
+            ApiResponse<TutorHub.Application.Features.Reports.DTOs.ReportSummaryDto>.SuccessResult(result, "User reported successfully. Our Trust & Safety team will investigate.")
+        );
+    }
+
     private Guid GetCurrentUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
@@ -73,3 +102,8 @@ public class UsersController : ControllerBase
         return userId;
     }
 }
+
+public record ReportUserRequest(
+    string Reason,
+    string? EvidenceUrl = null
+);
