@@ -11,10 +11,12 @@ namespace TutorHub.Application.Features.Admin.Users.ReactivateUser;
 public class ReactivateUserCommandHandler : IRequestHandler<ReactivateUserCommand, AdminUserSummaryDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IAuditLogService _auditLogService;
 
-    public ReactivateUserCommandHandler(IAppDbContext context)
+    public ReactivateUserCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
     {
         _context = context;
+        _auditLogService = auditLogService;
     }
 
     public async Task<AdminUserSummaryDto> Handle(ReactivateUserCommand request, CancellationToken cancellationToken)
@@ -42,19 +44,15 @@ public class ReactivateUserCommandHandler : IRequestHandler<ReactivateUserComman
 
         var nowUtc = DateTime.UtcNow;
 
-        // 3. Audit Trail
-        var auditLog = new AccountStatusAuditLog
-        {
-            Id = Guid.NewGuid(),
-            TargetUserId = user.Id,
-            AdminUserId = request.AdminId,
-            PreviousStatus = previousStatus,
-            NewStatus = user.Status,
-            Reason = "Reactivated by administrator",
-            Timestamp = nowUtc
-        };
-
-        _context.AccountStatusAuditLogs.Add(auditLog);
+        // 3. Central Append-Only Audit Trail Logging
+        await _auditLogService.LogAsync(
+            action: "USER_REACTIVATED",
+            entityName: "User",
+            entityId: user.Id.ToString(),
+            userId: request.AdminId,
+            oldValues: new { status = previousStatus.ToString() },
+            newValues: new { status = user.Status.ToString(), reason = "Reactivated by administrator" },
+            cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
 

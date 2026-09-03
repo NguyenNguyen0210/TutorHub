@@ -31,7 +31,6 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Media> Media => Set<Media>();
-    public DbSet<AccountStatusAuditLog> AccountStatusAuditLogs => Set<AccountStatusAuditLog>();
     public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<Message> Messages => Set<Message>();

@@ -14,11 +14,12 @@ namespace TutorHub.Application.UnitTests.Features.Admin.Users.BanUser;
 public class BanUserCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly Mock<IAuditLogService> _auditLogServiceMock = new();
     private readonly BanUserCommandHandler _handler;
 
     public BanUserCommandHandlerTests()
     {
-        _handler = new BanUserCommandHandler(_contextMock.Object);
+        _handler = new BanUserCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
     }
 
     [Theory]
@@ -34,7 +35,6 @@ public class BanUserCommandHandlerTests
             .Build();
 
         var usersList = new List<User> { targetUser };
-        var auditLogsList = new List<AccountStatusAuditLog>();
         var activeToken = new RefreshToken
         {
             Id = Guid.NewGuid(),
@@ -47,7 +47,6 @@ public class BanUserCommandHandlerTests
         var tokensList = new List<RefreshToken> { activeToken };
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
-        _contextMock.Setup(c => c.AccountStatusAuditLogs).Returns(MockDbSetHelper.CreateMockDbSet(auditLogsList).Object);
         _contextMock.Setup(c => c.RefreshTokens).Returns(MockDbSetHelper.CreateMockDbSet(tokensList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
@@ -64,14 +63,18 @@ public class BanUserCommandHandlerTests
         // Token revocation
         activeToken.RevokedAt.Should().NotBeNull();
 
-        // Audit Trail check
-        auditLogsList.Should().ContainSingle();
-        var log = auditLogsList.Single();
-        log.TargetUserId.Should().Be(targetUser.Id);
-        log.AdminUserId.Should().Be(adminId);
-        log.PreviousStatus.Should().Be(initialStatus);
-        log.NewStatus.Should().Be(AccountStatus.Banned);
-        log.Reason.Should().Be("Severe fraud violations");
+        // Central Audit Trail check
+        _auditLogServiceMock.Verify(a => a.LogAsync(
+            "USER_BANNED",
+            "User",
+            targetUser.Id.ToString(),
+            adminId,
+            It.IsAny<object>(),
+            It.IsAny<object>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Once);
 
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }

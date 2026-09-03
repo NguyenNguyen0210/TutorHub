@@ -14,11 +14,12 @@ namespace TutorHub.Application.UnitTests.Features.Admin.Users.ReactivateUser;
 public class ReactivateUserCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly Mock<IAuditLogService> _auditLogServiceMock = new();
     private readonly ReactivateUserCommandHandler _handler;
 
     public ReactivateUserCommandHandlerTests()
     {
-        _handler = new ReactivateUserCommandHandler(_contextMock.Object);
+        _handler = new ReactivateUserCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
     }
 
     [Fact]
@@ -32,10 +33,8 @@ public class ReactivateUserCommandHandlerTests
             .Build();
 
         var usersList = new List<User> { suspendedUser };
-        var auditLogsList = new List<AccountStatusAuditLog>();
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
-        _contextMock.Setup(c => c.AccountStatusAuditLogs).Returns(MockDbSetHelper.CreateMockDbSet(auditLogsList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var command = new ReactivateUserCommand(suspendedUser.Id, adminId);
@@ -48,13 +47,18 @@ public class ReactivateUserCommandHandlerTests
         result.Status.Should().Be(AccountStatus.Active);
         suspendedUser.Status.Should().Be(AccountStatus.Active);
 
-        // Audit Trail check
-        auditLogsList.Should().ContainSingle();
-        var log = auditLogsList.Single();
-        log.TargetUserId.Should().Be(suspendedUser.Id);
-        log.AdminUserId.Should().Be(adminId);
-        log.PreviousStatus.Should().Be(AccountStatus.Suspended);
-        log.NewStatus.Should().Be(AccountStatus.Active);
+        // Central Audit Trail check
+        _auditLogServiceMock.Verify(a => a.LogAsync(
+            "USER_REACTIVATED",
+            "User",
+            suspendedUser.Id.ToString(),
+            adminId,
+            It.IsAny<object>(),
+            It.IsAny<object>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Once);
 
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }

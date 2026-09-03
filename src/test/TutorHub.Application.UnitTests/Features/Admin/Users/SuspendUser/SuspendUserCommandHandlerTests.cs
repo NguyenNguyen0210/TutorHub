@@ -14,11 +14,12 @@ namespace TutorHub.Application.UnitTests.Features.Admin.Users.SuspendUser;
 public class SuspendUserCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly Mock<IAuditLogService> _auditLogServiceMock = new();
     private readonly SuspendUserCommandHandler _handler;
 
     public SuspendUserCommandHandlerTests()
     {
-        _handler = new SuspendUserCommandHandler(_contextMock.Object);
+        _handler = new SuspendUserCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
     }
 
     [Fact]
@@ -32,7 +33,6 @@ public class SuspendUserCommandHandlerTests
             .Build();
 
         var usersList = new List<User> { targetUser };
-        var auditLogsList = new List<AccountStatusAuditLog>();
         var activeToken = new RefreshToken
         {
             Id = Guid.NewGuid(),
@@ -45,7 +45,6 @@ public class SuspendUserCommandHandlerTests
         var tokensList = new List<RefreshToken> { activeToken };
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
-        _contextMock.Setup(c => c.AccountStatusAuditLogs).Returns(MockDbSetHelper.CreateMockDbSet(auditLogsList).Object);
         _contextMock.Setup(c => c.RefreshTokens).Returns(MockDbSetHelper.CreateMockDbSet(tokensList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
@@ -62,14 +61,18 @@ public class SuspendUserCommandHandlerTests
         // Token revocation
         activeToken.RevokedAt.Should().NotBeNull();
 
-        // Audit Trail check
-        auditLogsList.Should().ContainSingle();
-        var log = auditLogsList.Single();
-        log.TargetUserId.Should().Be(targetUser.Id);
-        log.AdminUserId.Should().Be(adminId);
-        log.PreviousStatus.Should().Be(AccountStatus.Active);
-        log.NewStatus.Should().Be(AccountStatus.Suspended);
-        log.Reason.Should().Be("Repeated policy violations");
+        // Central Audit Trail check
+        _auditLogServiceMock.Verify(a => a.LogAsync(
+            "USER_SUSPENDED",
+            "User",
+            targetUser.Id.ToString(),
+            adminId,
+            It.IsAny<object>(),
+            It.IsAny<object>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Once);
 
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
