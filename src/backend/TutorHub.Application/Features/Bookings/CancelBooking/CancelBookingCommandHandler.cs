@@ -5,7 +5,6 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
-using TutorHub.Domain.Services;
 
 namespace TutorHub.Application.Features.Bookings.CancelBooking;
 
@@ -53,20 +52,17 @@ public class CancelBookingCommandHandler : IRequestHandler<CancelBookingCommand,
 
         var now = DateTime.UtcNow;
 
-        // 2. Validate cancellation eligibility via Domain Policy
-        if (!BookingPolicy.CanCancel(booking, actor))
+        // 2. Validate cancellation eligibility via Domain entity
+        if (!booking.CanCancel(actor))
         {
             throw new ConflictException($"Cannot cancel booking in '{booking.Status}' status.");
         }
 
-        // 3. Calculate refund via Domain Policy
-        var (refundPercentage, refundAmount, payoutAmount) = BookingPolicy.CalculateRefund(actor, booking, now);
+        // 3. Calculate refund via Domain entity
+        var (refundPercentage, refundAmount, payoutAmount) = booking.CalculateRefund(actor);
 
-        // 4. Update Booking
-        booking.Status = BookingStatus.Cancelled;
-        booking.CancelledBy = actor;
-        booking.CancellationReason = request.Reason;
-        booking.CancelledAt = now;
+        // 4. Update Booking via domain transition
+        booking.Cancel(actor, request.Reason, now);
 
         // 5. Update Transaction & Tutor Wallet if payment was held
         if (booking.Transaction != null && booking.Transaction.Status == TransactionStatus.Held)
