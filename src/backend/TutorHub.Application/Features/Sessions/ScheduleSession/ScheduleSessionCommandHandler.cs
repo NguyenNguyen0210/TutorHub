@@ -4,6 +4,7 @@ using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
+using TutorHub.Application.Features.Sessions.Common;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Sessions.ScheduleSession;
@@ -50,79 +51,64 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
         }
 
         // 4. Validate UTC DateTimeKind contract
-        if (request.StartAt.Kind != DateTimeKind.Utc || request.EndAt.Kind != DateTimeKind.Utc)
-        {
-            throw new BadRequestException("StartAt and EndAt must be in UTC format (ISO 8601 with Z).");
-        }
+        SessionSchedulingValidationPolicy.ValidateUtc(request.StartAt, request.EndAt);
 
         // 5. Invariant: Exact Duration Match (No rounding)
-        var duration = request.EndAt - request.StartAt;
-        if (duration != TimeSpan.FromMinutes(session.Enrollment.SessionDurationMinutes))
-        {
-            throw new BadRequestException($"Session duration must be exactly {session.Enrollment.SessionDurationMinutes} minutes according to the purchased service package.");
-        }
+        SessionSchedulingValidationPolicy.ValidateDuration(request.StartAt, request.EndAt, session.Enrollment.SessionDurationMinutes);
 
         // 6. Timezone conversion to Canonical Timezone (Asia/Ho_Chi_Minh) & Availability check
-        var canonicalTimeZone = TimeZoneInfo.FindSystemTimeZoneById(OperatingSystem.IsWindows() ? "SE Asia Standard Time" : "Asia/Ho_Chi_Minh");
-        var startLocal = TimeZoneInfo.ConvertTimeFromUtc(request.StartAt, canonicalTimeZone);
-        var endLocal = TimeZoneInfo.ConvertTimeFromUtc(request.EndAt, canonicalTimeZone);
+        SessionSchedulingValidationPolicy.ValidateTutorAvailability(request.StartAt, request.EndAt, session.Enrollment.TutorProfile.AvailabilitySlots);
 
-        if (startLocal.Date != endLocal.Date)
-        {
-            throw new BadRequestException("Sessions crossing midnight are not supported.");
-        }
-
-        var dayOfWeek = startLocal.DayOfWeek;
-        var startLocalTime = TimeOnly.FromDateTime(startLocal);
-        var endLocalTime = TimeOnly.FromDateTime(endLocal);
-
-        var isWithinAvailability = session.Enrollment.TutorProfile.AvailabilitySlots.Any(s =>
-            s.IsActive &&
-            s.DayOfWeek == dayOfWeek &&
-            startLocalTime >= s.StartTime &&
-            endLocalTime <= s.EndTime);
-
-        if (!isWithinAvailability)
-        {
-            throw new BadRequestException("The requested session time falls outside of the tutor's weekly availability schedule.");
-        }
-
-        // 7. Tutor-Scoped Concurrency & Overlap Protection (INV-AVAIL-008)
+        // 7. Tutor-Scoped Concurrency & Overlap Protection (INV-AVAIL-008, INV-RESCHED-010)
         var tutorProfileId = session.Enrollment.TutorProfileId;
 
+        Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction = null;
         if (_context.Database?.ProviderName != null &&
             _context.Database.ProviderName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
         {
+            transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             await _context.Database.ExecuteSqlInterpolatedAsync(
                 $"SELECT 1 FROM \"TutorProfiles\" WHERE \"Id\" = {tutorProfileId} FOR UPDATE;",
                 cancellationToken);
         }
 
-        var hasSessionConflict = await _context.Sessions
-            .AnyAsync(s => s.Id != session.Id &&
-                           s.Enrollment.TutorProfileId == tutorProfileId &&
-                           s.Status == SessionStatus.Scheduled &&
-                           s.StartAt < request.EndAt && request.StartAt < s.EndAt,
-                      cancellationToken);
-
-        if (hasSessionConflict)
+        try
         {
-            throw new ConflictException("The tutor already has another scheduled session during this time slot.");
+            await SessionSchedulingValidationPolicy.CheckTutorSessionOverlapAsync(
+                tutorProfileId,
+                session.Id,
+                request.StartAt,
+                request.EndAt,
+                _context,
+                cancellationToken);
+
+            // 8. Domain state transition
+            session.Schedule(request.StartAt, request.EndAt);
+
+            // Enqueue Outbox Message in same DB transaction (DEC-S7-001, DEC-S7-002)
+            _context.AddOutboxMessage(new SessionScheduledEvent(
+                session.Id,
+                session.EnrollmentId,
+                session.Enrollment.StudentProfile.UserId,
+                session.Enrollment.TutorProfile.UserId,
+                request.StartAt,
+                request.EndAt));
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            if (transaction != null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
         }
-
-        // 8. Domain state transition
-        session.Schedule(request.StartAt, request.EndAt);
-
-        // Enqueue Outbox Message in same DB transaction (DEC-S7-001, DEC-S7-002)
-        _context.AddOutboxMessage(new SessionScheduledEvent(
-            session.Id,
-            session.EnrollmentId,
-            session.Enrollment.StudentProfile.UserId,
-            session.Enrollment.TutorProfile.UserId,
-            request.StartAt,
-            request.EndAt));
-
-        await _context.SaveChangesAsync(cancellationToken);
+        catch
+        {
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+            }
+            throw;
+        }
 
         return new SessionDto(
             Id: session.Id,

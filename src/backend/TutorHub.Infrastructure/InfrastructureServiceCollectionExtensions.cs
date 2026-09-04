@@ -37,6 +37,7 @@ public static class InfrastructureServiceCollectionExtensions
             .ValidateOnStart();
 
         // Authentication & Security Services
+        services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IJwtService, JwtService>();
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();

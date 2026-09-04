@@ -22,7 +22,7 @@ public class AuditLogService : IAuditLogService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task LogAsync(
+    public Task LogAsync(
         string action,
         string entityName,
         string entityId,
@@ -75,6 +75,6 @@ public class AuditLogService : IAuditLogService
         };
 
         _context.AuditLogs.Add(log);
-        await _context.SaveChangesAsync(cancellationToken);
+        return Task.CompletedTask;
     }
 }

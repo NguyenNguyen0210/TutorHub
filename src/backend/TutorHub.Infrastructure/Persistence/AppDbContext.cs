@@ -44,6 +44,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<PlatformSettingVersion> PlatformSettingVersions => Set<PlatformSettingVersion>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<CustomAgreement> CustomAgreements => Set<CustomAgreement>();
+    public DbSet<SessionRescheduleRequest> SessionRescheduleRequests => Set<SessionRescheduleRequest>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

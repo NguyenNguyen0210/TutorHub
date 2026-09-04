@@ -38,6 +38,7 @@ public interface IAppDbContext
     DbSet<PlatformSettingVersion> PlatformSettingVersions { get; }
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<CustomAgreement> CustomAgreements { get; }
+    DbSet<SessionRescheduleRequest> SessionRescheduleRequests { get; }
 
     DatabaseFacade Database { get; }
 

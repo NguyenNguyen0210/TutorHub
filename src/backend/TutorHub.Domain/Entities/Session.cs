@@ -50,6 +50,7 @@ public class Session
     public string? ResolutionSource { get; private set; }
     public Guid? ResolvedByAdminId { get; private set; }
     public DateTime? AttendanceVerifiedAt { get; private set; }
+    public ICollection<SessionRescheduleRequest> RescheduleRequests { get; set; } = new List<SessionRescheduleRequest>();
 
     // =======================================================
     // Domain Methods
@@ -172,6 +173,28 @@ public class Session
         EndAt = endAt;
         Status = SessionStatus.Scheduled;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Mutates the schedule of an already Scheduled session following counterparty acceptance (INV-RESCHED-002).
+    /// </summary>
+    public void Reschedule(DateTime newStartAt, DateTime newEndAt, DateTime now)
+    {
+        if (Status != SessionStatus.Scheduled || !StartAt.HasValue || !EndAt.HasValue)
+        {
+            throw new InvalidOperationException(
+                $"Cannot reschedule a session in '{Status}' status. Session must be Scheduled with an existing schedule.");
+        }
+
+        if (newEndAt <= newStartAt)
+        {
+            throw new InvalidOperationException(
+                "Session EndAt must be after StartAt.");
+        }
+
+        StartAt = newStartAt;
+        EndAt = newEndAt;
+        UpdatedAt = now;
     }
 
     /// <summary>

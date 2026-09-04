@@ -179,13 +179,18 @@ public record SessionRescheduledEvent(
     Guid EnrollmentId,
     Guid StudentUserId,
     Guid TutorUserId,
-    DateTime OldStartAt,
+    DateTime PreviousStartAt,
+    DateTime PreviousEndAt,
     DateTime NewStartAt,
+    DateTime NewEndAt,
+    Guid RescheduleRequestId,
+    Guid AcceptedByUserId,
     Guid EventId = default,
     int EventVersion = 1,
     DateTime OccurredAt = default
 ) : IBusinessEvent
 {
+    public DateTime OldStartAt => PreviousStartAt; // Backwards-compatible alias
     public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
     public string EventType => BusinessEventTypes.SessionRescheduled;
     public int EventVersion { get; init; } = EventVersion;
