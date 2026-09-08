@@ -33,11 +33,15 @@ public class Enrollment
     public int SessionDurationMinutes { get; set; }
     public TeachingMode TeachingMode { get; set; }
 
+    // --- Platform Fee Snapshot (DEC-S8-020) ---
+    public decimal PlatformFeeRate { get; set; } = 0.10m;
+    public int FeePolicyVersion { get; set; } = 1;
+
     // --- Progress (mutable, tracks completion) ---
     public int CompletedSessions { get; private set; } = 0;
 
-    // --- Lifecycle ---
-    public EnrollmentStatus Status { get; private set; } = EnrollmentStatus.Active;
+    // --- Lifecycle (F-15: Pending → Active → Completed / Cancelled) ---
+    public EnrollmentStatus Status { get; private set; } = EnrollmentStatus.Pending;
 
     // --- Timestamps ---
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -49,9 +53,27 @@ public class Enrollment
     // --- Sessions ---
     public ICollection<Session> Sessions { get; set; } = new List<Session>();
 
+    // --- Review (1:0..1) ---
+    public Review? Review { get; set; }
+
     // =======================================================
     // Domain Methods
     // =======================================================
+
+    /// <summary>
+    /// Activates a Pending enrollment after payment escrow is recorded (F-15).
+    /// Only valid from Pending.
+    /// </summary>
+    public void Activate()
+    {
+        if (Status != EnrollmentStatus.Pending)
+        {
+            throw new InvalidOperationException(
+                $"Cannot activate an enrollment in '{Status}' status. Only Pending enrollments can be activated.");
+        }
+
+        Status = EnrollmentStatus.Active;
+    }
 
     /// <summary>
     /// Records that a specific Session has been completed.
@@ -88,12 +110,13 @@ public class Enrollment
 
     /// <summary>
     /// Cancels the Enrollment and all remaining (non-Completed) sessions.
+    /// Valid from Pending (before activation) or Active.
     /// Calculates refundable amount based on unearned sessions.
     /// Returns the RefundAmount to be processed by the Application layer.
     /// </summary>
     public decimal Cancel(string reason, CancelledBy? cancelledBy = null)
     {
-        if (Status != EnrollmentStatus.Active)
+        if (Status != EnrollmentStatus.Active && Status != EnrollmentStatus.Pending)
         {
             throw new InvalidOperationException(
                 $"Cannot cancel an enrollment in '{Status}' status.");
@@ -110,7 +133,7 @@ public class Enrollment
             session.CancelFromEnrollment();
         }
 
-        // Refund = TotalPrice − sum of EarningAmounts of completed sessions only
+        // Refund = TotalPrice - sum of EarningAmounts of completed sessions only
         var earnedAmount = Sessions
             .Where(s => s.Status == SessionStatus.Completed)
             .Sum(s => s.EarningAmount);

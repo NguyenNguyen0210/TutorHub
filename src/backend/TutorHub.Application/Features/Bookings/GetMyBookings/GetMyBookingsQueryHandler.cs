@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Bookings.DTOs;
@@ -25,7 +26,9 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Pag
             .Include(b => b.Subject)
             .AsQueryable();
 
-        // Filter by user role & ownership
+        // Filter by user role & ownership. Any other role is rejected:
+        // this endpoint is scoped to the caller's own bookings (route locked
+        // to Student/Tutor); there is intentionally no unfiltered fall-through.
         if (request.Role == UserRole.Student)
         {
             query = query.Where(b => b.StudentProfile.UserId == request.UserId);
@@ -34,6 +37,10 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Pag
         {
             query = query.Where(b => b.TutorProfile.UserId == request.UserId);
         }
+        else
+        {
+            throw new ForbiddenException("Only students and tutors can view bookings through this endpoint.");
+        }
 
         // Filter by status
         if (request.Status.HasValue)
@@ -41,17 +48,17 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Pag
             query = query.Where(b => b.Status == request.Status.Value);
         }
 
-        // Filter by date range
+        // Filter by date range (created date)
         if (request.FromDate.HasValue)
         {
             var fromUtc = request.FromDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            query = query.Where(b => b.StartAt >= fromUtc);
+            query = query.Where(b => b.CreatedAt >= fromUtc);
         }
 
         if (request.ToDate.HasValue)
         {
             var toUtc = request.ToDate.Value.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
-            query = query.Where(b => b.StartAt <= toUtc);
+            query = query.Where(b => b.CreatedAt <= toUtc);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -60,9 +67,13 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Pag
         var pageSize = request.PageSize < 1 ? 10 : (request.PageSize > 50 ? 50 : request.PageSize);
 
         var items = await query
-            .OrderByDescending(b => b.StartAt)
+            .OrderByDescending(b => b.CreatedAt)
+            .ThenBy(b => b.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
+            // NOTE: kept inline (not BookingMapper) — this projection is translated
+            // to SQL and EF cannot translate static mapper calls. (ResolveReport /
+            // GetAdminReportById keep their own null-tolerant variants.)
             .Select(b => new BookingSummaryDto(
                 b.Id,
                 b.StudentProfileId,
@@ -71,9 +82,9 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Pag
                 b.TutorProfile.User.FullName,
                 b.SubjectId,
                 b.Subject.Name,
-                b.StartAt,
-                b.EndAt,
-                b.TotalAmount,
+                b.ServiceId,
+                b.TotalPrice,
+                b.TotalSessions,
                 b.Status,
                 b.CreatedAt
             ))

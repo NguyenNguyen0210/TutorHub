@@ -822,6 +822,11 @@ Session contains or references:
 - Affected users are notified.
 - Session cancellation is recorded.
 
+### v1.1: F-19 single-session gate (no finance)
+
+- Participant-only cancel of `Unscheduled` or future-`Scheduled` sessions with a mandatory reason.
+- Escrow untouched; the enrollment pro-rata formula absorbs the amount on complete/cancel.
+
 ---
 
 ## US-SESSION-008 — Conduct Session
@@ -1353,6 +1358,11 @@ Tutor Cannot Continue
 - Tutor No-show is recorded as an Attendance Outcome.
 - It does not become a Session Status.
 
+### v1.1: strikes (both roles)
+
+- A self-recorded `Absent` earns one strike in a rolling 30-day window; silence is never judged.
+- 2+ in-window strikes with the latest under 7 days old freezes new bookings.
+
 ---
 
 ## US-NOSHOW-002 — Prevent Earning for Tutor No-show
@@ -1518,6 +1528,11 @@ Supported outcomes:
 - Tutor wins.
 - Partial adjustment.
 - No action.
+
+### v1.1: fast-track + anti-spam
+
+- Pre-release escrow only: one side `Attended` + other silent > 3 days past due + ≥ 1 evidence → template resolve (tutor-claim pays out, student-claim refunds).
+- Dispute `Description` ≥ 20 chars; financial resolution requires ≥ 1 evidence (dismissal exempt).
 
 ---
 
@@ -1927,6 +1942,7 @@ SessionCompleted
 EarningCreated
 RefundCreated
 RefundCompleted
+RefundFailed (v1.1)
 WithdrawalRequested
 WithdrawalCompleted
 WithdrawalFailed
@@ -1949,6 +1965,8 @@ ReviewCreated
 DisputeCreated
 DisputeResolved
 ReportCreated
+PlatformSettingChanged (v1.1)
+MessageSent (v1.1, realtime fan-out)
 ```
 
 ---
@@ -2698,7 +2716,7 @@ Các User Stories dưới đây **không nên được coi là implementation-re
 - Calculation basis.
 - Per-earning vs Enrollment basis.
 - Rounding.
-- Policy versioning.
+- ~~Policy versioning~~ — v1.1 DECIDED: `PlatformSetting` + `PlatformSettingVersion` history with per-Enrollment snapshot (non-retroactive).
 
 ### Makeup Session
 

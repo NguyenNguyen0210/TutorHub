@@ -57,7 +57,6 @@ public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, P
                 t.Bio,
                 t.Education,
                 t.ExperienceYears,
-                t.HourlyRate,
                 t.TeachingMode.ToString(),
                 t.Address,
                 t.User.TutorApplications
@@ -68,13 +67,14 @@ public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, P
                 t.RatingAvg,
                 t.TotalReviews,
                 t.User.CreatedAt,
+                // NOTE: kept inline (not TutorSubjectMapper) — this projection is
+                // translated to SQL and EF cannot translate static mapper calls.
                 t.TutorSubjects.Select(ts => new TutorSubjectDto(
                     ts.Id,
                     ts.SubjectId,
                     ts.Subject.Name,
                     ts.Subject.CategoryId,
                     ts.Subject.Category.Name,
-                    ts.OverridePrice,
                     ts.IsActive
                 )).ToList()
             ))

@@ -68,10 +68,10 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
             .ToListAsync(cancellationToken);
 
         int totalBookings = bookingGroup.Sum(g => g.Count);
-        int pendingBookings = bookingGroup.FirstOrDefault(g => g.Status == BookingStatus.Pending)?.Count ?? 0;
-        int confirmedBookings = bookingGroup.FirstOrDefault(g => g.Status == BookingStatus.Confirmed)?.Count ?? 0;
-        int completedBookings = bookingGroup.FirstOrDefault(g => g.Status == BookingStatus.Completed)?.Count ?? 0;
+        // Wave 3: Holding / Paid / Cancelled / Expired are the only states.
+        int paidBookings = bookingGroup.FirstOrDefault(g => g.Status == BookingStatus.Paid)?.Count ?? 0;
         int cancelledBookings = bookingGroup.FirstOrDefault(g => g.Status == BookingStatus.Cancelled)?.Count ?? 0;
+        int expiredBookings = bookingGroup.FirstOrDefault(g => g.Status == BookingStatus.Expired)?.Count ?? 0;
 
         // Accurate active holding bookings (within 15 minutes window)
         int holdingBookings = await _context.Bookings
@@ -81,10 +81,9 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
         var bookingsStats = new BookingStatsDto(
             TotalBookings: totalBookings,
             HoldingBookings: holdingBookings,
-            PendingBookings: pendingBookings,
-            ConfirmedBookings: confirmedBookings,
-            CompletedBookings: completedBookings,
-            CancelledBookings: cancelledBookings
+            PaidBookings: paidBookings,
+            CancelledBookings: cancelledBookings,
+            ExpiredBookings: expiredBookings
         );
 
         // 4. Financial & GMV Metrics (Held = In Escrow, Released = Completed & Paid to Tutor, Refunded = Returned to Student)

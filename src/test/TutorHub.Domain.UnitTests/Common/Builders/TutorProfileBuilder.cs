@@ -9,13 +9,11 @@ public class TutorProfileBuilder
     private User? _user;
     private Guid? _userId;
     private string _bio = "Experienced educator with 5+ years of teaching experience.";
-    private decimal _hourlyRate = 200_000m;
     private int _experienceYears = 5;
     private string _education = "B.Sc. in Mathematics Education";
     private TeachingMode _teachingMode = TeachingMode.Both;
     private string? _address = "123 Nguyen Trai, District 1, HCMC";
-    private decimal _ratingAvg = 5.0m;
-    private int _totalReviews = 10;
+    private readonly List<int> _ratings = Enumerable.Repeat(5, 10).ToList();
 
     public TutorProfileBuilder WithId(Guid id)
     {
@@ -42,16 +40,17 @@ public class TutorProfileBuilder
         return this;
     }
 
-    public TutorProfileBuilder WithHourlyRate(decimal hourlyRate)
-    {
-        _hourlyRate = hourlyRate;
-        return this;
-    }
-
     public TutorProfileBuilder WithRatings(decimal ratingAvg, int totalReviews)
     {
-        _ratingAvg = ratingAvg;
-        _totalReviews = totalReviews;
+        // F-23: stats are domain-owned; rebuild a rating set that reproduces
+        // the requested average as closely as integers allow.
+        _ratings.Clear();
+        var rounded = Math.Max(1, Math.Min(5, (int)Math.Round(ratingAvg)));
+        for (var i = 0; i < Math.Max(0, totalReviews); i++)
+        {
+            _ratings.Add(rounded);
+        }
+
         return this;
     }
 
@@ -63,21 +62,21 @@ public class TutorProfileBuilder
             .WithFullName("Default Tutor")
             .Build();
 
-        return new TutorProfile
+        var profile = new TutorProfile
         {
             Id = _id,
             UserId = user.Id,
             User = user,
             Bio = _bio,
-            HourlyRate = _hourlyRate,
             ExperienceYears = _experienceYears,
             Education = _education,
             TeachingMode = _teachingMode,
             Address = _address,
-            RatingAvg = _ratingAvg,
-            TotalReviews = _totalReviews,
             TutorSubjects = new List<TutorSubject>(),
             AvailabilitySlots = new List<AvailabilitySlot>()
         };
+        profile.ApplyReview(_ratings);
+
+        return profile;
     }
 }

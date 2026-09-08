@@ -263,4 +263,76 @@ public class SessionTests
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("Cannot cancel a completed session.");
     }
+
+    [Fact]
+    public void SubmitStudentAttendance_WhenSessionHasEnded_RecordsAttendance()
+    {
+        // Arrange
+        var session = new Session();
+        var pastStart = DateTime.UtcNow.AddHours(-2);
+        var pastEnd = DateTime.UtcNow.AddHours(-1);
+        session.Schedule(pastStart, pastEnd);
+        var now = DateTime.UtcNow;
+
+        // Act
+        session.SubmitStudentAttendance(AttendanceStatus.Attended, now);
+
+        // Assert
+        session.StudentAttendance.Should().Be(AttendanceStatus.Attended);
+        session.StudentAttendanceSubmittedAt.Should().Be(now);
+    }
+
+    [Fact]
+    public void SubmitStudentAttendance_BeforeSessionEnd_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var session = new Session();
+        var futureStart = DateTime.UtcNow.AddHours(1);
+        var futureEnd = DateTime.UtcNow.AddHours(2);
+        session.Schedule(futureStart, futureEnd);
+
+        // Act
+        var act = () => session.SubmitStudentAttendance(AttendanceStatus.Attended, DateTime.UtcNow);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Cannot submit attendance before the session has ended.");
+    }
+
+    [Fact]
+    public void SubmitAttendance_WhenBothAttended_NoConflictFlagged()
+    {
+        // Arrange
+        var session = new Session();
+        var pastStart = DateTime.UtcNow.AddHours(-2);
+        var pastEnd = DateTime.UtcNow.AddHours(-1);
+        session.Schedule(pastStart, pastEnd);
+        var now = DateTime.UtcNow;
+
+        // Act
+        session.SubmitStudentAttendance(AttendanceStatus.Attended, now);
+        session.SubmitTutorAttendance(AttendanceStatus.Attended, now);
+
+        // Assert
+        session.HasAttendanceConflict.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SubmitAttendance_WhenStudentAbsentAndTutorAttended_FlagsConflict()
+    {
+        // Arrange
+        var session = new Session();
+        var pastStart = DateTime.UtcNow.AddHours(-2);
+        var pastEnd = DateTime.UtcNow.AddHours(-1);
+        session.Schedule(pastStart, pastEnd);
+        var now = DateTime.UtcNow;
+
+        // Act
+        session.SubmitStudentAttendance(AttendanceStatus.Absent, now);
+        session.SubmitTutorAttendance(AttendanceStatus.Attended, now);
+
+        // Assert
+        session.HasAttendanceConflict.Should().BeTrue();
+    }
 }
+

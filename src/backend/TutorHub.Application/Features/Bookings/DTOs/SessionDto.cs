@@ -13,5 +13,8 @@ public record SessionDto(
     bool IsPayoutReleased,
     DateTime CreatedAt,
     DateTime? CompletedAt,
-    DateTime? CancelledAt
+    DateTime? CancelledAt,
+    AttendanceStatus? StudentAttendance = null,
+    AttendanceStatus? TutorAttendance = null,
+    bool HasAttendanceConflict = false
 );

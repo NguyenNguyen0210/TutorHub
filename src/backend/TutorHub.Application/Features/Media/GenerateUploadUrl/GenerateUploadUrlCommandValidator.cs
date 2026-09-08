@@ -1,19 +1,14 @@
 using FluentValidation;
+using TutorHub.Application.Common.Files;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Media.GenerateUploadUrl;
 
 public class GenerateUploadUrlCommandValidator : AbstractValidator<GenerateUploadUrlCommand>
 {
-    private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".jpg", ".jpeg", ".png", ".webp", ".pdf"
-    };
+    private static readonly HashSet<string> AllowedExtensions = new(UploadLimits.MediaExtensions, StringComparer.OrdinalIgnoreCase);
 
-    private static readonly HashSet<string> AllowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "image/jpeg", "image/png", "image/webp", "application/pdf"
-    };
+    private static readonly HashSet<string> AllowedContentTypes = new(UploadLimits.MediaMimeTypes, StringComparer.OrdinalIgnoreCase);
 
     public GenerateUploadUrlCommandValidator()
     {
@@ -30,11 +25,11 @@ public class GenerateUploadUrlCommandValidator : AbstractValidator<GenerateUploa
             .WithMessage("Only Tutors and Admins can upload certificates.");
 
         RuleFor(x => x)
-            .Must(x => !x.EstimatedSize.HasValue || x.MediaType != MediaType.Avatar || x.EstimatedSize.Value <= 5 * 1024 * 1024)
+            .Must(x => !x.EstimatedSize.HasValue || x.MediaType != MediaType.Avatar || x.EstimatedSize.Value <= UploadLimits.MediaAvatarMaxBytes)
             .WithMessage("Avatar file size must not exceed 5MB.");
 
         RuleFor(x => x)
-            .Must(x => !x.EstimatedSize.HasValue || x.EstimatedSize.Value <= 20 * 1024 * 1024)
+            .Must(x => !x.EstimatedSize.HasValue || x.EstimatedSize.Value <= UploadLimits.MediaPresignedMaxBytes)
             .WithMessage("File size must not exceed 20MB.");
     }
 

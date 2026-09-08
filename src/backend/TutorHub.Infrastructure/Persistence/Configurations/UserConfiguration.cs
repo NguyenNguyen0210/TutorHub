@@ -44,5 +44,11 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.CreatedAt)
             .IsRequired();
+
+        builder.Property(u => u.AbsentStrikes)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.ToTable(t => t.HasCheckConstraint("CK_User_NonNegativeStrikes", "\"AbsentStrikes\" >= 0"));
     }
 }

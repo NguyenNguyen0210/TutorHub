@@ -1,7 +1,9 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Security;
 using TutorHub.Application.Features.Auth.DTOs;
 using TutorHub.Domain.Entities;
 
@@ -11,13 +13,16 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
 {
     private readonly IAppDbContext _context;
     private readonly IJwtService _jwtService;
+    private readonly AuthTokenLifetimeOptions _lifetimes;
 
     public RefreshTokenCommandHandler(
         IAppDbContext context,
-        IJwtService jwtService)
+        IJwtService jwtService,
+        IOptions<AuthTokenLifetimeOptions> lifetimeOptions)
     {
         _context = context;
         _jwtService = jwtService;
+        _lifetimes = lifetimeOptions.Value;
     }
 
     public async Task<RefreshTokenResponseDto> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
@@ -87,14 +92,14 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
             Id = Guid.NewGuid(),
             UserId = existingToken.UserId,
             Token = newRawRefreshToken,
-            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            ExpiresAt = DateTime.UtcNow.AddDays(_lifetimes.RefreshTokenExpirationDays),
             CreatedAt = DateTime.UtcNow
         };
 
         _context.RefreshTokens.Add(newRefreshTokenEntity);
         await _context.SaveChangesAsync(cancellationToken);
 
-        var expiresAt = DateTime.UtcNow.AddMinutes(15);
+        var expiresAt = DateTime.UtcNow.AddMinutes(_lifetimes.AccessTokenExpirationMinutes);
 
         return new RefreshTokenResponseDto(
             AccessToken: newAccessToken,

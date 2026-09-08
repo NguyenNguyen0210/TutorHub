@@ -1,9 +1,23 @@
 # TutorHub — Product Requirements Document (PRD)
 
-**Version:** 1.0
-**Status:** Final / Business Baseline Frozen
+**Version:** 1.1
+**Status:** Final / Business Baseline Frozen (v1.0 baseline + v1.1 implementation deltas below)
 **Product:** TutorHub
 **Document Type:** Product Requirements Document
+
+## Changelog v1.0 → v1.1 (owner-approved implementation deltas)
+
+| # | Area | Delta |
+|---|---|---|
+| 1 | Checkout | Booking entity made explicit: `Holding` (15m) → `Pending`; `ServiceId` nullable for CustomAgreement path (hidden `Unpublished` snapshot Service) |
+| 2 | Enrollment | `Pending → Active` activation step made explicit (was implied) |
+| 3 | Custom Agreement | Status machine + `ExpiresAt` + `Booking.CustomAgreementId` linkage documented |
+| 4 | Trial | Implemented as `Service.TrialLessonUrl` (external URL), no TrialLesson entity |
+| 5 | No-show | Strikes: rolling 30-day window, 2+ strikes + latest < 7 days freezes new bookings; silence never judged |
+| 6 | Dispute | Fast-track template (pre-release, one-sided Attended + > 3d silence + ≥ 1 evidence); filing needs Description ≥ 20 chars; financial resolve needs ≥ 1 evidence |
+| 7 | Cancellation | Single-session cancel gate (no finance) vs enrollment pro-rata cancel distinguished |
+| 8 | Fees | `PlatformFeeRate`/`FeePolicyVersion` snapshot per Enrollment, non-retroactive (FR-OPEN-008 versioning decided) |
+| 9 | Events | 26 core events + `MessageSent` (`RefundFailed`, `PlatformSettingChanged` added) |
 
 ---
 
@@ -290,10 +304,17 @@ Tutor có thể:
 Sau khi Student accept và payment thành công:
 
 ```text
-Service
-→ Enrollment
-→ Active
+Service / CustomAgreement
+→ Booking (Holding 15m → Pending)
+→ Enrollment (Pending → Active)
+→ N Sessions
 ```
+
+### v1.1: Booking checkout (trước đây ngầm định)
+
+- Accept tạo **Booking** `Holding` với `HoldingExpiresAt = now + 15 phút`; quá hạn không pay → Booking hết hiệu lực, không sinh Enrollment.
+- Booking thanh toán xong sang `Pending` (chuẩn duy nhất cho cả mock và VNPay IPN; `Paid` chỉ còn hàng lịch sử).
+- Booking tham chiếu `ServiceId`, hoặc `CustomAgreementId` kèm hidden `Service (Unpublished)` snapshot khi deal custom không gắn Service gốc.
 
 Tutor bắt đầu thực hiện Service.
 
@@ -420,6 +441,11 @@ Attendance được xác nhận bởi cả:
 
 No-show là **Attendance Outcome**, không phải Session Status.
 
+### v1.1: no-show strikes
+
+- `Absent` tự bấm = tự thú vắng → 1 strike; im lặng không bao giờ bị quy vắng.
+- Strikes tích trong cửa sổ 30 ngày trượt; 2+ strikes và lần mới nhất dưới 7 ngày → đóng băng booking mới.
+
 ---
 
 ## 7.7. Financial Integrity
@@ -484,7 +510,6 @@ Dispute có thể phát sinh từ:
 * Cancellation.
 * Financial issue.
 * Service issue.
-* Trust & Safety issue.
 
 Flow:
 
@@ -495,6 +520,11 @@ Issue
 → Admin Investigation
 → Resolution
 ```
+
+### v1.1: anti-spam + fast-track
+
+- Mở dispute cần `Description` ≥ 20 ký tự; resolve có tiền cần ≥ 1 evidence (bác đơn không tiền được miễn).
+- Fast-track (chỉ escrow pre-release): một bên `Attended` + bên kia im lặng quá 3 ngày sau hạn verify + ≥ 1 evidence → template: tutor-claim giải ngân net, student-claim hoàn full.
 
 ---
 
@@ -533,11 +563,16 @@ Nó được tạo sau quá trình trao đổi và trước Enrollment.
 
 ```text
 Chat
-→ Custom Agreement
-→ Accept
-→ Payment
+→ Custom Agreement (Proposed, ExpiresAt)
+→ Accept / Reject / Cancel / Expired
+→ Checkout → Booking (Holding) → Payment
 → Enrollment
 ```
+
+### v1.1
+
+- Status machine: `Proposed → Accepted | Rejected | Cancelled | Expired`; checkout chỉ từ `Accepted`, idempotent theo `CustomAgreementId`.
+- Booking custom có thể thiếu `ServiceId` gốc — lúc đó sinh hidden `Service (Unpublished)` snapshot để giữ bất biến package.
 
 ---
 
@@ -588,6 +623,10 @@ Tutor tạo Learning Record.
 Student có quyền xem nhưng không trực tiếp sửa.
 
 Learning Record không quyết định việc release earning.
+
+### v1.1
+
+- Write-once cho Session `Completed` (một bản mỗi Session, `Content ≤ 2000`); sai thì Admin xóa theo mẫu moderation rồi ghi lại. Không có Learning Record entity riêng rẽ ngoài Session.
 
 ---
 
@@ -652,6 +691,10 @@ Service phải giúp Student hiểu:
 Trial Lesson có thể public và được Student xem trước.
 
 Trial Lesson không tạo Trial Enrollment hoặc Trial Session.
+
+### v1.1
+
+- Triển khai là `Service.TrialLessonUrl` (URL ngoài, optional); không có TrialLesson entity/table.
 
 ---
 
@@ -800,9 +843,10 @@ Tutor có:
 
 * Pending earnings.
 * Available balance.
+* Held balance (tiền giữ do dispute đang mở).
 * Withdrawal history.
 
-Chỉ Available Balance mới có thể withdraw.
+Chỉ `Withdrawable = Available − Held` mới có thể withdraw (DEC-WD-001).
 
 ---
 
@@ -1013,6 +1057,7 @@ Các event chính gồm:
 * EarningCreated.
 * RefundCreated.
 * RefundCompleted.
+* RefundFailed (v1.1).
 * WithdrawalRequested.
 * WithdrawalCompleted.
 * WithdrawalFailed.
@@ -1023,6 +1068,8 @@ Các event chính gồm:
 * DisputeCreated.
 * DisputeResolved.
 * ReportCreated.
+* PlatformSettingChanged (v1.1).
+* MessageSent (v1.1, realtime fan-out).
 
 ---
 
@@ -1260,6 +1307,10 @@ Admin có thể configure:
 Policy changes áp dụng cho transactions mới theo rule tương ứng.
 
 Historical transactions không bị thay đổi retroactively.
+
+### v1.1: fee versioning decided
+
+Phí sàn versioned qua `PlatformSetting` + `PlatformSettingVersion`; mỗi Enrollment snapshot `PlatformFeeRate` + `FeePolicyVersion` tại lúc tạo. Các policy còn lại (cancellation/refund/withdrawal/review) vẫn mở.
 
 ---
 

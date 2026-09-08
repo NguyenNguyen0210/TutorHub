@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Admin.TutorApplications.DTOs;
@@ -54,9 +55,6 @@ public class ApproveTutorApplicationCommandHandler
             Address = application.Address,
             Latitude = application.Latitude,
             Longitude = application.Longitude,
-            HourlyRate = 0, // Legacy field — set to 0 until Service module in Sprint 3
-            RatingAvg = 0,
-            TotalReviews = 0
         };
 
         var wallet = new Wallet
@@ -68,27 +66,25 @@ public class ApproveTutorApplicationCommandHandler
             UpdatedAt = DateTime.UtcNow
         };
 
-        if (_context.Database?.ProviderName != null)
+        _context.TutorProfiles.Add(profile);
+        _context.Wallets.Add(wallet);
+
+        // Enqueue Outbox Message in same DB transaction (DEC-S7-001, DEC-S7-002)
+        _context.AddOutboxMessage(new TutorApplicationApprovedEvent(
+            application.Id,
+            application.UserId,
+            request.AdminId));
+
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            try
-            {
-                _context.TutorProfiles.Add(profile);
-                _context.Wallets.Add(wallet);
-                await _context.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
-            }
-            catch
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
-            }
-        }
-        else
-        {
-            _context.TutorProfiles.Add(profile);
-            _context.Wallets.Add(wallet);
             await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
         }
 
         return AdminTutorApplicationDto.From(application);

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Domain.Entities;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Infrastructure.Persistence;
 
@@ -30,7 +31,97 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Media> Media => Set<Media>();
-    public DbSet<AccountStatusAuditLog> AccountStatusAuditLogs => Set<AccountStatusAuditLog>();
+    public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+    public DbSet<Message> Messages => Set<Message>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<EmailDelivery> EmailDeliveries => Set<EmailDelivery>();
+    public DbSet<Dispute> Disputes => Set<Dispute>();
+    public DbSet<DisputeEvidence> DisputeEvidences => Set<DisputeEvidence>();
+    public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();
+    public DbSet<PlatformSettingVersion> PlatformSettingVersions => Set<PlatformSettingVersion>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<CustomAgreement> CustomAgreements => Set<CustomAgreement>();
+    public DbSet<SessionRescheduleRequest> SessionRescheduleRequests => Set<SessionRescheduleRequest>();
+    public DbSet<LearningRecord> LearningRecords => Set<LearningRecord>();
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        // Enforce append-only / immutability on Transaction (DEC-S8-030, INV-LEDGER-007)
+        var deletedTransactions = ChangeTracker.Entries<Transaction>()
+            .Where(e => e.State == EntityState.Deleted)
+            .ToList();
+        if (deletedTransactions.Count > 0)
+        {
+            var ids = string.Join(",", deletedTransactions.Select(e => e.Entity.Id));
+            throw new InvalidOperationException($"Transaction records cannot be deleted. Ids: {ids}.");
+        }
+
+        var modifiedTerminalTransactions = ChangeTracker.Entries<Transaction>()
+            .Where(e => e.State == EntityState.Modified)
+            .Where(e =>
+            {
+                var origStatus = (TransactionStatus)e.OriginalValues[nameof(Transaction.Status)]!;
+                var origType = (TransactionType)e.OriginalValues[nameof(Transaction.Type)]!;
+                // Historical earnings & fee reversals are strictly immutable
+                if (origType == TransactionType.SessionPayoutCredit || origType == TransactionType.PlatformFeeReversal)
+                    return true;
+                // Terminal statuses (Released, Succeeded) cannot be modified
+                return origStatus == TransactionStatus.Released || origStatus == TransactionStatus.Succeeded;
+            })
+            .ToList();
+
+        if (modifiedTerminalTransactions.Count > 0)
+        {
+            var ids = string.Join(",", modifiedTerminalTransactions.Select(e => e.Entity.Id));
+            var props = string.Join(";", modifiedTerminalTransactions.SelectMany(e =>
+                e.Properties.Where(p => p.IsModified).Select(p => $"{e.Entity.Id.ToString()[..8]}.{p.Metadata.Name}='{p.CurrentValue}'(was '{p.OriginalValue}')")));
+            throw new InvalidOperationException($"Settled historical financial records are immutable and cannot be modified. Ids: {ids}. Props: {props}.");
+        }
+
+        // Anti-chaining validation (DEC-S8-030, INV-LEDGER-007)
+        var addedAdjustments = ChangeTracker.Entries<Transaction>()
+            .Where(e => e.State == EntityState.Added && e.Entity.RelatedTransactionId.HasValue)
+            .ToList();
+
+        foreach (var entry in addedAdjustments)
+        {
+            TransactionType? relatedType = entry.Entity.RelatedTransaction?.Type;
+            if (relatedType == null)
+            {
+                var relatedId = entry.Entity.RelatedTransactionId!.Value;
+                relatedType = Transactions
+                    .AsNoTracking()
+                    .Where(t => t.Id == relatedId)
+                    .Select(t => (TransactionType?)t.Type)
+                    .FirstOrDefault();
+                if (relatedType == null)
+                {
+                    var tracked = ChangeTracker.Entries<Transaction>()
+                        .FirstOrDefault(e => e.Entity.Id == relatedId);
+                    relatedType = tracked?.Entity.Type;
+                }
+            }
+
+            if (relatedType == null || relatedType != TransactionType.SessionPayoutCredit)
+            {
+                throw new InvalidOperationException("Financial adjustments must point directly to the original earning transaction; chaining is forbidden.");
+            }
+        }
+
+        // Enforce append-only on AuditLog (DEC-S8-005, INV-LEDGER-006)
+        var modifiedAuditLogs = ChangeTracker.Entries<AuditLog>()
+            .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
+            .ToList();
+        if (modifiedAuditLogs.Count > 0)
+        {
+            throw new InvalidOperationException("AuditLog records are append-only and cannot be modified or deleted.");
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -25,7 +25,21 @@ public interface IAppDbContext
     DbSet<Report> Reports { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<Media> Media { get; }
-    DbSet<AccountStatusAuditLog> AccountStatusAuditLogs { get; }
+    DbSet<WalletTransaction> WalletTransactions { get; }
+    DbSet<Conversation> Conversations { get; }
+    DbSet<Message> Messages { get; }
+    DbSet<OutboxMessage> OutboxMessages { get; }
+    DbSet<InboxMessage> InboxMessages { get; }
+    DbSet<Notification> Notifications { get; }
+    DbSet<EmailDelivery> EmailDeliveries { get; }
+    DbSet<Dispute> Disputes { get; }
+    DbSet<DisputeEvidence> DisputeEvidences { get; }
+    DbSet<PlatformSetting> PlatformSettings { get; }
+    DbSet<PlatformSettingVersion> PlatformSettingVersions { get; }
+    DbSet<AuditLog> AuditLogs { get; }
+    DbSet<CustomAgreement> CustomAgreements { get; }
+    DbSet<SessionRescheduleRequest> SessionRescheduleRequests { get; }
+    DbSet<LearningRecord> LearningRecords { get; }
 
     DatabaseFacade Database { get; }
 

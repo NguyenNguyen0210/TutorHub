@@ -26,10 +26,9 @@ public record TutorStatsDto(
 public record BookingStatsDto(
     int TotalBookings,
     int HoldingBookings,
-    int PendingBookings,
-    int ConfirmedBookings,
-    int CompletedBookings,
-    int CancelledBookings
+    int PaidBookings,
+    int CancelledBookings,
+    int ExpiredBookings
 );
 
 public record FinancialStatsDto(

@@ -1,12 +1,13 @@
 using FluentValidation;
+using TutorHub.Application.Common.Files;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Media.UploadMedia;
 
 public class UploadMediaCommandValidator : AbstractValidator<UploadMediaCommand>
 {
-    private const long MaxFileSizeInBytes = 5 * 1024 * 1024; // 5 MB
-    private static readonly string[] AllowedExtensions = [".jpg", ".jpeg", ".png", ".webp", ".pdf"];
+    private const long MaxFileSizeInBytes = UploadLimits.MediaMaxBytes;
+    private static readonly string[] AllowedExtensions = UploadLimits.MediaExtensions;
 
     public UploadMediaCommandValidator()
     {

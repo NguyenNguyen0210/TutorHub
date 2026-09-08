@@ -13,10 +13,6 @@ public class UpdateMySubjectsCommandValidator : AbstractValidator<UpdateMySubjec
         {
             subject.RuleFor(s => s.SubjectId)
                 .NotEmpty().WithMessage("Subject ID is required.");
-
-            subject.RuleFor(s => s.OverridePrice)
-                .GreaterThanOrEqualTo(0).When(s => s.OverridePrice.HasValue)
-                .WithMessage("Override price must be 0 or greater.");
         });
     }
 }

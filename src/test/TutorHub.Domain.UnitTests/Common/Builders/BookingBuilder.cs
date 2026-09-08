@@ -1,30 +1,24 @@
-using TutorHub.Domain.Entities;
+﻿using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Domain.UnitTests.Common.Builders;
 
 public class BookingBuilder
 {
-    private static readonly DateTime DefaultStartAt = new(2030, 1, 10, 10, 0, 0, DateTimeKind.Utc);
-    private static readonly DateTime DefaultEndAt = new(2030, 1, 10, 11, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime DefaultCreatedAt = new(2030, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     private Guid _id = Guid.NewGuid();
     private StudentProfile? _studentProfile;
     private TutorProfile? _tutorProfile;
     private Subject? _subject;
-    private DateTime _startAt = DefaultStartAt;
-    private DateTime _endAt = DefaultEndAt;
-    private decimal _hourlyRate = 200_000m;
-    private decimal? _totalAmount;
-    private BookingStatus _status = BookingStatus.Pending;
+    private BookingStatus _status = BookingStatus.Paid;
     private DateTime? _holdingExpiresAt;
     private DateTime? _confirmedAt;
     private DateTime? _completedAt;
     private DateTime? _cancelledAt;
     private CancelledBy? _cancelledBy;
     private string? _cancellationReason;
-    private Transaction? _transaction;
+    private readonly List<Transaction> _transactions = new();
 
     private Guid? _serviceId;
     private Service? _service;
@@ -44,6 +38,10 @@ public class BookingBuilder
     {
         _service = service;
         _serviceId = service.Id;
+        _totalPrice = service.Price;
+        _totalSessions = service.TotalSessions;
+        _sessionDurationMinutes = service.SessionDurationMinutes;
+        _teachingMode = service.TeachingMode;
         return this;
     }
 
@@ -86,20 +84,6 @@ public class BookingBuilder
         return this;
     }
 
-    public BookingBuilder WithSchedule(DateTime startAt, DateTime endAt)
-    {
-        _startAt = startAt;
-        _endAt = endAt;
-        return this;
-    }
-
-    public BookingBuilder WithPricing(decimal hourlyRate, decimal? totalAmount = null)
-    {
-        _hourlyRate = hourlyRate;
-        _totalAmount = totalAmount;
-        return this;
-    }
-
     public BookingBuilder WithStatus(BookingStatus status)
     {
         _status = status;
@@ -135,7 +119,11 @@ public class BookingBuilder
 
     public BookingBuilder WithTransaction(Transaction? transaction)
     {
-        _transaction = transaction;
+        if (transaction != null)
+        {
+            _transactions.Add(transaction);
+        }
+
         return this;
     }
 
@@ -144,9 +132,6 @@ public class BookingBuilder
         var student = _studentProfile ?? new StudentProfileBuilder().Build();
         var tutor = _tutorProfile ?? new TutorProfileBuilder().Build();
         var subject = _subject ?? new SubjectBuilder().Build();
-
-        var durationHours = (decimal)(_endAt - _startAt).TotalHours;
-        var totalAmount = _totalAmount ?? (_hourlyRate * (durationHours > 0 ? durationHours : 1m));
 
         var booking = new Booking
         {
@@ -157,10 +142,6 @@ public class BookingBuilder
             TutorProfile = tutor,
             SubjectId = subject.Id,
             Subject = subject,
-            StartAt = _startAt,
-            EndAt = _endAt,
-            HourlyRate = _hourlyRate,
-            TotalAmount = totalAmount,
             Status = _status,
             HoldingExpiresAt = _holdingExpiresAt,
             ConfirmedAt = _confirmedAt,
@@ -176,16 +157,9 @@ public class BookingBuilder
             SessionDurationMinutes = _sessionDurationMinutes,
             TeachingMode = _teachingMode,
             Enrollment = _enrollment,
-            Transaction = _transaction,
-            Reviews = new List<Review>(),
+            Transactions = _transactions,
             Reports = new List<Report>()
         };
-
-        if (_transaction != null)
-        {
-            _transaction.BookingId = booking.Id;
-            _transaction.Booking = booking;
-        }
 
         return booking;
     }

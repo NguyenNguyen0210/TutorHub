@@ -514,9 +514,14 @@ System SHALL allow Student to accept a published Standard Service.
 
 ```text
 View Service
-→ Accept
-→ Payment
+→ Accept (Booking created in Holding, 15-minute checkout lock)
+→ Payment (Booking → Pending; escrow held)
 ```
+
+### Business Rule (v1.1: Booking checkout made explicit)
+
+- Accepting a Service creates a **Booking** in `Holding` status with `HoldingExpiresAt = now + 15 minutes`; unpaid Holding bookings expire via background job and never create an Enrollment.
+- A Booking references a `ServiceId`, or a `CustomAgreementId` together with a hidden `Unpublished` Service snapshot (DEC-S8-020). Single-slot bookings outside a package are forbidden.
 
 ---
 
@@ -555,9 +560,15 @@ Student and Tutor SHALL NOT intentionally bypass TutorHub payment for transactio
 After successful payment:
 
 ```text
-Payment Succeeded
-→ Enrollment Activated
+Payment Succeeded (Booking → Pending)
+→ Enrollment created in Pending with fee snapshot
+→ Enrollment Activated (Pending → Active) + N Sessions spawned
 ```
+
+### Business Rule (v1.1)
+
+- Both mock and VNPay IPN paths converge on Booking `Pending` (F-16: `Paid` kept for historical rows only).
+- The Enrollment snapshots `PlatformFeeRate` + `FeePolicyVersion` from `PlatformSetting` at creation (DEC-S8-020); later fee changes apply to new contracts only.
 
 ### Acceptance Criteria
 
@@ -719,7 +730,10 @@ System SHALL support Session cancellation where permitted by policy.
 
 Cancellation SHALL produce appropriate business and financial consequences.
 
----
+### Business Rule (v1.1: F-19 single-session gate, no finance)
+
+- A participant may cancel a single Session only from `Unscheduled`, or from `Scheduled` with a future start time; a reason is required.
+- Single-session cancellation moves NO money: escrow stays held and the existing enrollment pro-rata formula absorbs the amount on complete/cancel. Session-level finance awaits the cancel/refund matrix (FR-OPEN-002/003).
 
 # 15. Session Delivery
 
@@ -1125,6 +1139,12 @@ Student may return to the marketplace and find another Tutor independently.
 
 System SHALL support recording Tutor No-show as an Attendance Outcome.
 
+### Business Rule (v1.1: no-show strikes)
+
+- A self-recorded `Absent` outcome earns the submitter one strike. Silence is never judged.
+- Strikes accumulate in a rolling 30-day window (`AbsentStrikes`, `StrikeWindowStart`, `LastAbsentAt`).
+- 2+ strikes in-window with the latest under 7 days old freezes new bookings (`IsBookingBlocked`).
+
 ---
 
 ## FR-NOSHOW-002 — Tutor Earning
@@ -1189,7 +1209,11 @@ Supported dispute categories include:
 - Cancellation.
 - Financial issue.
 - Service issue.
-- Trust & Safety issue.
+
+### Business Rule (v1.1: anti-spam filing)
+
+- `Description` of at least 20 characters is required.
+- Financial resolutions require at least one uploaded evidence before Admin may resolve (dismissal without financial change exempt).
 
 ---
 
@@ -1235,6 +1259,10 @@ Admin SHALL be able to resolve a Dispute using one of the supported outcomes:
 - Tutor wins.
 - Partial adjustment.
 - No action.
+
+### Fast-track template (v1.1)
+
+For pre-release escrow only, Admin may fast-track when exactly one side submitted `Attended`, the other stayed silent more than 3 days past the verification due date, and at least one evidence exists. Tutor-claim releases the net payout; student-claim refunds in full. Post-release disputes always use full investigation.
 
 ---
 
@@ -1498,6 +1526,7 @@ System SHALL support:
 - `EarningCreated`
 - `RefundCreated`
 - `RefundCompleted`
+- `RefundFailed` (v1.1)
 - `WithdrawalRequested`
 - `WithdrawalCompleted`
 - `WithdrawalFailed`
@@ -1512,6 +1541,8 @@ System SHALL support:
 - `DisputeCreated`
 - `DisputeResolved`
 - `ReportCreated`
+- `PlatformSettingChanged` (v1.1)
+- `MessageSent` (v1.1, realtime fan-out; excluded from the 26 core financial counts)
 
 ---
 
@@ -1684,6 +1715,10 @@ Admin SHALL be able to configure the Review Window.
 Policy changes SHALL apply according to the applicable rule for new transactions.
 
 Historical transactions SHALL NOT be retroactively changed solely because platform policy has changed.
+
+### Status (v1.1: decided for fees)
+
+Fee versioning is DECIDED and implemented: `PlatformSetting` + `PlatformSettingVersion` history; each Enrollment snapshots `PlatformFeeRate` + `FeePolicyVersion` at creation (DEC-S8-020). Remaining policy values (cancellation/refund/withdrawal/review rules) stay open under FR-OPEN-002/003/007.
 
 ---
 
@@ -2153,6 +2188,10 @@ Cần xác định:
 - Whether fee applies per earning or enrollment.
 - Rounding rule.
 - Policy version applied to transaction.
+
+### Status (v1.1: versioning decided, basis open)
+
+DECIDED: per-earning fee with `PlatformSetting` + `PlatformSettingVersion` history and per-Enrollment snapshot (`PlatformFeeRate`, `FeePolicyVersion`, non-retroactive). OPEN: percentage vs fixed, exact basis/rounding — see D-08.
 
 ---
 

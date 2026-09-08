@@ -31,14 +31,120 @@ public class Session
     public DateTime? CompletedAt { get; private set; }
     public DateTime? CancelledAt { get; private set; }
 
+    // --- Dual Attendance Verification & Verification Window (Sprint 7) ---
+    public DateTime? AttendanceVerificationOpenedAt { get; private set; }
+    public DateTime? AttendanceVerificationDueAt { get; private set; }
+    public AttendanceStatus? StudentAttendance { get; private set; }
+    public DateTime? StudentAttendanceSubmittedAt { get; private set; }
+    public AttendanceStatus? TutorAttendance { get; private set; }
+    public DateTime? TutorAttendanceSubmittedAt { get; private set; }
+    public bool HasAttendanceConflict { get; private set; } = false;
+
     // --- Payout linkage (used for idempotency by Application layer) ---
-    // Application layer uses this to verify payout has not been done
+    // Application layer uses this to verify payout has not been done.
+    // NOTE: there is intentionally NO Transaction navigation here. A session
+    // owns many transactions (payout + refunds/reversals); a 1:1 nav made EF
+    // sever earlier dependents when a second one was added (P0 HOTFIX).
     public bool IsPayoutReleased { get; private set; } = false;
-    public Transaction? Transaction { get; set; }
+
+    // --- Dispute resolution override fields (DEC-S8-004) ---
+    public string? ResolutionNotes { get; private set; }
+    public string? ResolutionSource { get; private set; }
+    public Guid? ResolvedByAdminId { get; private set; }
+    public DateTime? AttendanceVerifiedAt { get; private set; }
+    public ICollection<SessionRescheduleRequest> RescheduleRequests { get; set; } = new List<SessionRescheduleRequest>();
 
     // =======================================================
     // Domain Methods
     // =======================================================
+
+    /// <summary>
+    /// Opens the attendance verification window (DEC-S7-014). Atomic domain transition.
+    /// Only succeeds if window has not been opened yet and session has ended.
+    /// </summary>
+    public bool TryOpenAttendanceVerificationWindow(DateTime now, TimeSpan windowDuration)
+    {
+        if (Status != SessionStatus.Scheduled)
+            return false;
+        if (!EndAt.HasValue || EndAt.Value > now)
+            return false;
+        if (AttendanceVerificationOpenedAt.HasValue)
+            return false; // Already opened
+
+        AttendanceVerificationOpenedAt = now;
+        AttendanceVerificationDueAt = now.Add(windowDuration);
+        UpdatedAt = now;
+        return true;
+    }
+
+    /// <summary>
+    /// Records attendance outcome submitted by the Student participant.
+    /// Only allowed when session is Scheduled and has ended (EndAt <= now).
+    /// </summary>
+    public void SubmitStudentAttendance(AttendanceStatus outcome, DateTime now)
+    {
+        if (Status != SessionStatus.Scheduled)
+        {
+            throw new InvalidOperationException(
+                $"Cannot submit attendance for a session in '{Status}' status.");
+        }
+
+        if (EndAt.HasValue && EndAt.Value > now)
+        {
+            throw new InvalidOperationException(
+                "Cannot submit attendance before the session has ended.");
+        }
+
+        StudentAttendance = outcome;
+        StudentAttendanceSubmittedAt = now;
+        UpdatedAt = now;
+        EvaluateAttendanceResolution();
+    }
+
+    /// <summary>
+    /// Records attendance outcome submitted by the Tutor participant.
+    /// Only allowed when session is Scheduled and has ended (EndAt <= now).
+    /// </summary>
+    public void SubmitTutorAttendance(AttendanceStatus outcome, DateTime now)
+    {
+        if (Status != SessionStatus.Scheduled)
+        {
+            throw new InvalidOperationException(
+                $"Cannot submit attendance for a session in '{Status}' status.");
+        }
+
+        if (EndAt.HasValue && EndAt.Value > now)
+        {
+            throw new InvalidOperationException(
+                "Cannot submit attendance before the session has ended.");
+        }
+
+        TutorAttendance = outcome;
+        TutorAttendanceSubmittedAt = now;
+        UpdatedAt = now;
+        EvaluateAttendanceResolution();
+    }
+
+    private void EvaluateAttendanceResolution()
+    {
+        if (StudentAttendance.HasValue && TutorAttendance.HasValue)
+        {
+            if (StudentAttendance == AttendanceStatus.Attended && TutorAttendance == AttendanceStatus.Attended)
+            {
+                HasAttendanceConflict = false;
+            }
+            else
+            {
+                HasAttendanceConflict = true;
+            }
+        }
+    }
+
+    public void FlagAttendanceConflict()
+    {
+        HasAttendanceConflict = true;
+        UpdatedAt = DateTime.UtcNow;
+    }
 
     /// <summary>
     /// Sets or updates the schedule for this Session.
@@ -72,6 +178,28 @@ public class Session
     }
 
     /// <summary>
+    /// Mutates the schedule of an already Scheduled session following counterparty acceptance (INV-RESCHED-002).
+    /// </summary>
+    public void Reschedule(DateTime newStartAt, DateTime newEndAt, DateTime now)
+    {
+        if (Status != SessionStatus.Scheduled || !StartAt.HasValue || !EndAt.HasValue)
+        {
+            throw new InvalidOperationException(
+                $"Cannot reschedule a session in '{Status}' status. Session must be Scheduled with an existing schedule.");
+        }
+
+        if (newEndAt <= newStartAt)
+        {
+            throw new InvalidOperationException(
+                "Session EndAt must be after StartAt.");
+        }
+
+        StartAt = newStartAt;
+        EndAt = newEndAt;
+        UpdatedAt = now;
+    }
+
+    /// <summary>
     /// Marks the session as completed and flags payout as released.
     /// Can only be called once. Throws if not Scheduled or already processed.
     /// </summary>
@@ -93,6 +221,72 @@ public class Session
         IsPayoutReleased = true;
         CompletedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Exceptional admin resolution for attendance disputes (DEC-S8-004).
+    /// </summary>
+    public void ResolveAttendanceByAdmin(Guid adminId, string resolutionNotes, string resolutionSource, DateTime now, bool releasePayout = false)
+    {
+        if (Status != SessionStatus.Scheduled)
+        {
+            throw new InvalidOperationException(
+                $"Only Scheduled sessions can be resolved by admin. Current status: '{Status}'.");
+        }
+
+        ResolvedByAdminId = adminId;
+        ResolutionNotes = resolutionNotes;
+        ResolutionSource = resolutionSource;
+        AttendanceVerifiedAt = now;
+        HasAttendanceConflict = false;
+        Status = SessionStatus.Completed;
+        CompletedAt = now;
+        UpdatedAt = now;
+        if (releasePayout)
+        {
+            IsPayoutReleased = true;
+        }
+    }
+
+    /// <summary>
+    /// Cancels a single session on participant request (F-19 gate, no finance).
+    /// Valid from Unscheduled, or from Scheduled whose start time is still in the future.
+    /// Escrow is untouched: the session's EarningAmount stays held until the
+    /// enrollment completes or is cancelled, when the existing pro-rata formula absorbs it.
+    /// </summary>
+    public void CancelSingle(string reason, DateTime now)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new ArgumentException("Cancellation reason is required.", nameof(reason));
+        }
+
+        if (Status == SessionStatus.Completed)
+        {
+            throw new InvalidOperationException("Cannot cancel a completed session.");
+        }
+
+        if (Status == SessionStatus.Cancelled)
+        {
+            throw new InvalidOperationException("Session is already cancelled.");
+        }
+
+        if (Status == SessionStatus.Scheduled && StartAt.HasValue && StartAt.Value <= now)
+        {
+            throw new InvalidOperationException("Cannot cancel a session that has already started.");
+        }
+
+        if (Status != SessionStatus.Unscheduled && Status != SessionStatus.Scheduled)
+        {
+            throw new InvalidOperationException(
+                $"Cannot cancel a session in '{Status}' status.");
+        }
+
+        Status = SessionStatus.Cancelled;
+        CancelledAt = now;
+        UpdatedAt = now;
+        ResolutionNotes = reason.Trim();
+        ResolutionSource = "SingleSessionCancel";
     }
 
     /// <summary>

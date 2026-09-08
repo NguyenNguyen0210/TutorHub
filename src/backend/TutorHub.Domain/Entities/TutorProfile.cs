@@ -15,9 +15,6 @@ public class TutorProfile
     public string Education { get; set; } = default!;
     public int ExperienceYears { get; set; }
 
-    // Default hourly rate (Legacy compatibility field - to be replaced by Service in Sprint 3)
-    public decimal HourlyRate { get; set; }
-
     // Teaching mode
     public TeachingMode TeachingMode { get; set; }
 
@@ -26,9 +23,46 @@ public class TutorProfile
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
 
-    // Denormalized review statistics
-    public decimal RatingAvg { get; set; } = 0;
-    public int TotalReviews { get; set; } = 0;
+    // Denormalized review statistics (F-23: mutated only via ApplyReview).
+    public decimal RatingAvg { get; private set; } = 0;
+    public int TotalReviews { get; private set; } = 0;
+
+    /// <summary>
+    /// Recomputes denormalized stats from the full rating set (F-23).
+    /// </summary>
+    public void ApplyReview(IReadOnlyCollection<int> allRatings)
+    {
+        if (allRatings == null || allRatings.Count == 0)
+        {
+            RatingAvg = 0;
+            TotalReviews = 0;
+            return;
+        }
+
+        TotalReviews = allRatings.Count;
+        RatingAvg = Math.Round((decimal)allRatings.Average(), 2);
+    }
+
+    // Default Payout Bank Destination (DEC-WD-002)
+    public string? BankName { get; set; }
+    public string? BankCode { get; set; }
+    public string? AccountNumber { get; set; }
+    public string? AccountHolderName { get; set; }
+
+    public void SetPayoutAccount(string bankName, string accountNumber, string accountHolderName, string? bankCode = null)
+    {
+        if (string.IsNullOrWhiteSpace(bankName))
+            throw new ArgumentException("Bank name cannot be empty.", nameof(bankName));
+        if (string.IsNullOrWhiteSpace(accountNumber))
+            throw new ArgumentException("Account number cannot be empty.", nameof(accountNumber));
+        if (string.IsNullOrWhiteSpace(accountHolderName))
+            throw new ArgumentException("Account holder name cannot be empty.", nameof(accountHolderName));
+
+        BankName = bankName.Trim();
+        BankCode = string.IsNullOrWhiteSpace(bankCode) ? null : bankCode.Trim().ToUpperInvariant();
+        AccountNumber = accountNumber.Trim();
+        AccountHolderName = accountHolderName.Trim().ToUpperInvariant();
+    }
 
     // Domain relationships
     public ICollection<TutorSubject> TutorSubjects { get; set; }

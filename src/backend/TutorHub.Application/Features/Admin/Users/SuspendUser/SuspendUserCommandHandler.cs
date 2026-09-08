@@ -11,10 +11,12 @@ namespace TutorHub.Application.Features.Admin.Users.SuspendUser;
 public class SuspendUserCommandHandler : IRequestHandler<SuspendUserCommand, AdminUserSummaryDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IAuditLogService _auditLogService;
 
-    public SuspendUserCommandHandler(IAppDbContext context)
+    public SuspendUserCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
     {
         _context = context;
+        _auditLogService = auditLogService;
     }
 
     public async Task<AdminUserSummaryDto> Handle(SuspendUserCommand request, CancellationToken cancellationToken)
@@ -70,19 +72,15 @@ public class SuspendUserCommandHandler : IRequestHandler<SuspendUserCommand, Adm
             token.RevokedAt = nowUtc;
         }
 
-        // 6. Audit Trail Logging (Side-effect)
-        var auditLog = new AccountStatusAuditLog
-        {
-            Id = Guid.NewGuid(),
-            TargetUserId = user.Id,
-            AdminUserId = request.AdminId,
-            PreviousStatus = previousStatus,
-            NewStatus = user.Status,
-            Reason = request.Reason,
-            Timestamp = nowUtc
-        };
-
-        _context.AccountStatusAuditLogs.Add(auditLog);
+        // 6. Central Append-Only Audit Trail Logging
+        await _auditLogService.LogAsync(
+            action: "USER_SUSPENDED",
+            entityName: "User",
+            entityId: user.Id.ToString(),
+            userId: request.AdminId,
+            oldValues: new { status = previousStatus.ToString() },
+            newValues: new { status = user.Status.ToString(), reason = request.Reason },
+            cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
 

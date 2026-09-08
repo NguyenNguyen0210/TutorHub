@@ -7,7 +7,6 @@ public record UpdateMyProfileRequest(
     string? Bio = null,
     string? Education = null,
     int? ExperienceYears = null,
-    decimal? HourlyRate = null,
     string? TeachingMode = null,
     string? Address = null,
     double? Latitude = null,

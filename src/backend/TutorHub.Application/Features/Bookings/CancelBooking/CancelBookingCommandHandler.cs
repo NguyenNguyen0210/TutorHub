@@ -5,7 +5,6 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
-using TutorHub.Domain.Services;
 
 namespace TutorHub.Application.Features.Bookings.CancelBooking;
 
@@ -24,7 +23,6 @@ public class CancelBookingCommandHandler : IRequestHandler<CancelBookingCommand,
             .Include(b => b.StudentProfile).ThenInclude(s => s.User)
             .Include(b => b.TutorProfile).ThenInclude(t => t.User)
             .Include(b => b.Subject)
-            .Include(b => b.Transaction)
             .FirstOrDefaultAsync(b => b.Id == request.BookingId, cancellationToken);
 
         if (booking == null)
@@ -53,32 +51,31 @@ public class CancelBookingCommandHandler : IRequestHandler<CancelBookingCommand,
 
         var now = DateTime.UtcNow;
 
-        // 2. Validate cancellation eligibility via Domain Policy
-        if (!BookingPolicy.CanCancel(booking, actor))
+        // 2. Validate cancellation eligibility via Domain entity
+        if (!booking.CanCancel(actor))
         {
             throw new ConflictException($"Cannot cancel booking in '{booking.Status}' status.");
         }
 
-        // 3. Calculate refund via Domain Policy
-        var (refundPercentage, refundAmount, payoutAmount) = BookingPolicy.CalculateRefund(actor, booking, now);
+        // 3. Calculate refund via Domain entity
+        var (refundPercentage, refundAmount, payoutAmount) = booking.CalculateRefund(actor);
 
-        // 4. Update Booking
-        booking.Status = BookingStatus.Cancelled;
-        booking.CancelledBy = actor;
-        booking.CancellationReason = request.Reason;
-        booking.CancelledAt = now;
+        // 4. Update Booking via domain transition
+        booking.Cancel(actor, request.Reason, now);
 
         // 5. Update Transaction & Tutor Wallet if payment was held
-        if (booking.Transaction != null && booking.Transaction.Status == TransactionStatus.Held)
+        var paymentTx = await _context.GetPaymentTransactionAsync(booking.Id, cancellationToken);
+
+        if (paymentTx != null && paymentTx.Status == TransactionStatus.Held)
         {
-            booking.Transaction.Status = TransactionStatus.Refunded;
-            booking.Transaction.RefundedAt = now;
-            booking.Transaction.PayoutAmount = payoutAmount;
+            paymentTx.Status = TransactionStatus.Refunded;
+            paymentTx.RefundedAt = now;
+            paymentTx.PayoutAmount = payoutAmount;
 
             var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.TutorProfileId == booking.TutorProfileId, cancellationToken);
             if (wallet != null)
             {
-                wallet.PendingBalance = Math.Max(0, wallet.PendingBalance - booking.TotalAmount);
+                wallet.PendingBalance = Math.Max(0, wallet.PendingBalance - booking.TotalPrice);
                 if (payoutAmount > 0)
                 {
                     wallet.AvailableBalance += payoutAmount;
@@ -89,41 +86,7 @@ public class CancelBookingCommandHandler : IRequestHandler<CancelBookingCommand,
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new BookingDto(
-            Id: booking.Id,
-            StudentProfileId: booking.StudentProfileId,
-            StudentName: booking.StudentProfile.User.FullName,
-            StudentEmail: booking.StudentProfile.User.Email,
-            StudentPhone: booking.StudentProfile.User.Phone,
-            TutorProfileId: booking.TutorProfileId,
-            TutorName: booking.TutorProfile.User.FullName,
-            TutorEmail: booking.TutorProfile.User.Email,
-            TutorPhone: booking.TutorProfile.User.Phone,
-            SubjectId: booking.SubjectId,
-            SubjectName: booking.Subject.Name,
-            StartAt: booking.StartAt,
-            EndAt: booking.EndAt,
-            HourlyRate: booking.HourlyRate,
-            TotalAmount: booking.TotalAmount,
-            Status: booking.Status,
-            HoldingExpiresAt: booking.HoldingExpiresAt,
-            ConfirmedAt: booking.ConfirmedAt,
-            CompletedAt: booking.CompletedAt,
-            CancelledAt: booking.CancelledAt,
-            CancelledBy: booking.CancelledBy,
-            CancellationReason: booking.CancellationReason,
-            CreatedAt: booking.CreatedAt,
-            Transaction: booking.Transaction == null ? null : new TransactionDto(
-                Id: booking.Transaction.Id,
-                Amount: booking.Transaction.Amount,
-                Status: booking.Transaction.Status,
-                CommissionRate: booking.Transaction.CommissionRate,
-                CommissionAmount: booking.Transaction.CommissionAmount,
-                PayoutAmount: booking.Transaction.PayoutAmount,
-                CreatedAt: booking.Transaction.CreatedAt,
-                ReleasedAt: booking.Transaction.ReleasedAt,
-                RefundedAt: booking.Transaction.RefundedAt
-            )
-        );
+        // F-23 (Đợt 4): centralized mapping.
+        return BookingMapper.ToDto(booking, BookingMapper.ToTransactionDto(paymentTx));
     }
 }

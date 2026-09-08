@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Tutors.DTOs;
@@ -69,6 +70,10 @@ public class SubmitTutorApplicationCommandHandler
         };
 
         _context.TutorApplications.Add(application);
+
+        // Enqueue Outbox Message in same DB transaction (DEC-S7-001, DEC-S7-002)
+        _context.AddOutboxMessage(new TutorApplicationSubmittedEvent(application.Id, application.UserId));
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return TutorApplicationDto.From(application);

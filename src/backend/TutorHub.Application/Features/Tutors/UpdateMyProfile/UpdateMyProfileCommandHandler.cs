@@ -70,11 +70,6 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
             tutor.ExperienceYears = request.ExperienceYears.Value;
         }
 
-        if (request.HourlyRate.HasValue)
-        {
-            tutor.HourlyRate = request.HourlyRate.Value;
-        }
-
         if (request.TeachingMode.HasValue)
         {
             tutor.TeachingMode = request.TeachingMode.Value;
@@ -107,15 +102,7 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
             .FirstOrDefaultAsync(cancellationToken);
 
         var subjects = tutor.TutorSubjects
-            .Select(ts => new TutorSubjectDto(
-                ts.Id,
-                ts.SubjectId,
-                ts.Subject.Name,
-                ts.Subject.CategoryId,
-                ts.Subject.Category.Name,
-                ts.OverridePrice,
-                ts.IsActive
-            ))
+            .Select(ts => TutorSubjectMapper.ToDto(ts))
             .ToList();
 
         return new TutorMyProfileDto(
@@ -132,7 +119,6 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
             Address: tutor.Address,
             Latitude: tutor.Latitude,
             Longitude: tutor.Longitude,
-            HourlyRate: tutor.HourlyRate,
             RatingAvg: tutor.RatingAvg,
             TotalReviews: tutor.TotalReviews,
             Subjects: subjects,

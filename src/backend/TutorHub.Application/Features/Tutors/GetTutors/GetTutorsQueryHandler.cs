@@ -74,20 +74,23 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
                     ts.Subject.Category.Name.ToLower().Contains(search))));
         }
 
-        // Sorting
+        // Sorting (deterministic: business key first, Id tiebreaker last per repo convention)
         query = request.SortBy?.ToLower() switch
         {
-            "price_asc" => query.OrderBy(t => t.Services.Where(s => s.Status == ServiceStatus.Published).Min(s => s.Price)),
-            "price_desc" => query.OrderByDescending(t => t.Services.Where(s => s.Status == ServiceStatus.Published).Max(s => s.Price)),
-            "reviews" => query.OrderByDescending(t => t.TotalReviews).ThenByDescending(t => t.RatingAvg),
-            _ => query.OrderByDescending(t => t.RatingAvg).ThenByDescending(t => t.TotalReviews)
+            "price_asc" => query.OrderBy(t => t.Services.Where(s => s.Status == ServiceStatus.Published).Min(s => s.Price)).ThenBy(t => t.Id),
+            "price_desc" => query.OrderByDescending(t => t.Services.Where(s => s.Status == ServiceStatus.Published).Max(s => s.Price)).ThenBy(t => t.Id),
+            "reviews" => query.OrderByDescending(t => t.TotalReviews).ThenByDescending(t => t.RatingAvg).ThenBy(t => t.Id),
+            _ => query.OrderByDescending(t => t.RatingAvg).ThenByDescending(t => t.TotalReviews).ThenBy(t => t.Id)
         };
 
         var totalCount = await query.CountAsync(cancellationToken);
 
+        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+        var pageSize = request.PageSize < 1 ? 10 : (request.PageSize > 100 ? 100 : request.PageSize);
+
         var items = await query
-            .Skip((request.PageNumber - 1) * request.PageSize)
-            .Take(request.PageSize)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .Select(t => new TutorSummaryDto(
                 t.Id,
                 t.UserId,
@@ -96,7 +99,6 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
                 t.Bio,
                 t.Education,
                 t.ExperienceYears,
-                t.HourlyRate,
                 t.TeachingMode.ToString(),
                 t.Address,
                 t.RatingAvg,
@@ -105,6 +107,6 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
             ))
             .ToListAsync(cancellationToken);
 
-        return new PagedResult<TutorSummaryDto>(items, totalCount, request.PageNumber, request.PageSize);
+        return new PagedResult<TutorSummaryDto>(items, totalCount, pageNumber, pageSize);
     }
 }

@@ -11,6 +11,7 @@ using TutorHub.Application.Common.Storage;
 using TutorHub.Infrastructure.Authentication;
 using TutorHub.Infrastructure.BackgroundServices;
 using TutorHub.Infrastructure.Persistence;
+using TutorHub.Infrastructure.Services;
 using TutorHub.Infrastructure.Services.Storage;
 using TutorHub.Infrastructure.Services.VnPay;
 
@@ -35,7 +36,14 @@ public static class InfrastructureServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        // Auth token lifetimes (F-06): same "Jwt" section, consumed by
+        // Login/RefreshToken handlers so persisted expiries match signing.
+        services.AddOptions<AuthTokenLifetimeOptions>()
+            .BindConfiguration(AuthTokenLifetimeOptions.SectionName)
+            .ValidateOnStart();
+
         // Authentication & Security Services
+        services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IJwtService, JwtService>();
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -70,9 +78,21 @@ public static class InfrastructureServiceCollectionExtensions
         });
 
         services.AddScoped<IObjectStorageService, CloudflareR2ObjectStorageService>();
+        services.AddScoped<IFileStorage, LocalFileStorage>();
+        services.AddScoped<IEmailSender, LogOnlyEmailSender>();
+        services.AddScoped<INotificationService, SignalRNotificationService>();
+        services.AddScoped<IChatNotificationService, SignalRChatNotificationService>();
+        services.AddScoped<IAuditLogService, AuditLogService>();
+
+        services.AddSignalR();
 
         // Background Workers
         services.AddHostedService<BookingTimeoutBackgroundService>();
+        services.AddHostedService<OutboxDispatcherJob>();
+        services.AddHostedService<EmailDeliveryJob>();
+        services.AddHostedService<SessionReminderJob>();
+        services.AddHostedService<AttendanceReminderJob>();
+        services.AddHostedService<AttendanceVerificationJob>();
 
         return services;
     }

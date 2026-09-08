@@ -44,9 +44,10 @@ public class GetMyWalletQueryHandler : IRequestHandler<GetMyWalletQuery, WalletD
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        // Calculate total pending withdrawals
+        // Calculate total pending/processing withdrawals
         var pendingWithdrawal = await _context.Withdrawals
-            .Where(w => w.WalletId == wallet.Id && w.Status == WithdrawalStatus.Pending)
+            .Where(w => w.WalletId == wallet.Id &&
+                       (w.Status == WithdrawalStatus.Pending || w.Status == WithdrawalStatus.Processing))
             .SumAsync(w => (decimal?)w.Amount, cancellationToken) ?? 0;
 
         var totalBalance = wallet.PendingBalance + wallet.AvailableBalance + pendingWithdrawal;
