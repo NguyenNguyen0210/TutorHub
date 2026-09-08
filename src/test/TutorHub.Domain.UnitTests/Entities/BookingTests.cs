@@ -5,9 +5,11 @@ using Xunit;
 
 namespace TutorHub.Domain.UnitTests.Entities;
 
+// Wave 3: package-model lifecycle is Holding → Paid → Cancelled / Expired.
+// Pending/Confirmed/Completed legacy states are gone.
 public class BookingTests
 {
-    private static Booking CreateTestBooking(BookingStatus status = BookingStatus.Pending, decimal price = 1_000_000m)
+    private static Booking CreateTestBooking(BookingStatus status = BookingStatus.Paid, decimal price = 1_000_000m)
     {
         return new Booking
         {
@@ -26,8 +28,7 @@ public class BookingTests
 
     [Theory]
     [InlineData(BookingStatus.Holding)]
-    [InlineData(BookingStatus.Pending)]
-    [InlineData(BookingStatus.Confirmed)]
+    [InlineData(BookingStatus.Paid)]
     public void CanCancel_WhenStudentCancelsActiveBooking_ReturnsTrue(BookingStatus status)
     {
         // Arrange
@@ -41,9 +42,8 @@ public class BookingTests
     }
 
     [Theory]
-    [InlineData(BookingStatus.Pending)]
-    [InlineData(BookingStatus.Confirmed)]
-    public void CanCancel_WhenTutorCancelsPendingOrConfirmed_ReturnsTrue(BookingStatus status)
+    [InlineData(BookingStatus.Paid)]
+    public void CanCancel_WhenTutorCancelsPaidBooking_ReturnsTrue(BookingStatus status)
     {
         // Arrange
         var booking = CreateTestBooking(status);
@@ -69,7 +69,6 @@ public class BookingTests
     }
 
     [Theory]
-    [InlineData(BookingStatus.Completed)]
     [InlineData(BookingStatus.Cancelled)]
     [InlineData(BookingStatus.Expired)]
     public void CanCancel_WhenBookingAlreadyTerminal_ReturnsFalse(BookingStatus terminalStatus)
@@ -99,10 +98,10 @@ public class BookingTests
     }
 
     [Fact]
-    public void CalculateRefund_WhenPending_ReturnsFullAmount()
+    public void CalculateRefund_WhenPaid_ReturnsFullAmount()
     {
         // Arrange
-        var booking = CreateTestBooking(BookingStatus.Pending, 2_000_000m);
+        var booking = CreateTestBooking(BookingStatus.Paid, 2_000_000m);
 
         // Act
         var (percentage, amount, payout) = booking.CalculateRefund(CancelledBy.Student);
@@ -117,7 +116,7 @@ public class BookingTests
     public void Cancel_WhenEligible_UpdatesStatusAndCancellationDetails()
     {
         // Arrange
-        var booking = CreateTestBooking(BookingStatus.Pending);
+        var booking = CreateTestBooking(BookingStatus.Paid);
         var now = DateTime.UtcNow;
 
         // Act
@@ -134,14 +133,14 @@ public class BookingTests
     public void Cancel_WhenNotEligible_ThrowsInvalidOperationException()
     {
         // Arrange
-        var booking = CreateTestBooking(BookingStatus.Completed);
+        var booking = CreateTestBooking(BookingStatus.Expired);
         var now = DateTime.UtcNow;
 
         // Act
-        var act = () => booking.Cancel(CancelledBy.Student, "Try cancel completed", now);
+        var act = () => booking.Cancel(CancelledBy.Student, "Try cancel expired", now);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("Cannot cancel booking in 'Completed' status.");
+            .WithMessage("Cannot cancel booking in 'Expired' status.");
     }
 }

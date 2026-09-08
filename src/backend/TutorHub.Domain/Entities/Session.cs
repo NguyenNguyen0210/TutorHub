@@ -41,9 +41,11 @@ public class Session
     public bool HasAttendanceConflict { get; private set; } = false;
 
     // --- Payout linkage (used for idempotency by Application layer) ---
-    // Application layer uses this to verify payout has not been done
+    // Application layer uses this to verify payout has not been done.
+    // NOTE: there is intentionally NO Transaction navigation here. A session
+    // owns many transactions (payout + refunds/reversals); a 1:1 nav made EF
+    // sever earlier dependents when a second one was added (P0 HOTFIX).
     public bool IsPayoutReleased { get; private set; } = false;
-    public Transaction? Transaction { get; set; }
 
     // --- Dispute resolution override fields (DEC-S8-004) ---
     public string? ResolutionNotes { get; private set; }
@@ -226,6 +228,12 @@ public class Session
     /// </summary>
     public void ResolveAttendanceByAdmin(Guid adminId, string resolutionNotes, string resolutionSource, DateTime now, bool releasePayout = false)
     {
+        if (Status != SessionStatus.Scheduled)
+        {
+            throw new InvalidOperationException(
+                $"Only Scheduled sessions can be resolved by admin. Current status: '{Status}'.");
+        }
+
         ResolvedByAdminId = adminId;
         ResolutionNotes = resolutionNotes;
         ResolutionSource = resolutionSource;
@@ -238,6 +246,47 @@ public class Session
         {
             IsPayoutReleased = true;
         }
+    }
+
+    /// <summary>
+    /// Cancels a single session on participant request (F-19 gate, no finance).
+    /// Valid from Unscheduled, or from Scheduled whose start time is still in the future.
+    /// Escrow is untouched: the session's EarningAmount stays held until the
+    /// enrollment completes or is cancelled, when the existing pro-rata formula absorbs it.
+    /// </summary>
+    public void CancelSingle(string reason, DateTime now)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new ArgumentException("Cancellation reason is required.", nameof(reason));
+        }
+
+        if (Status == SessionStatus.Completed)
+        {
+            throw new InvalidOperationException("Cannot cancel a completed session.");
+        }
+
+        if (Status == SessionStatus.Cancelled)
+        {
+            throw new InvalidOperationException("Session is already cancelled.");
+        }
+
+        if (Status == SessionStatus.Scheduled && StartAt.HasValue && StartAt.Value <= now)
+        {
+            throw new InvalidOperationException("Cannot cancel a session that has already started.");
+        }
+
+        if (Status != SessionStatus.Unscheduled && Status != SessionStatus.Scheduled)
+        {
+            throw new InvalidOperationException(
+                $"Cannot cancel a session in '{Status}' status.");
+        }
+
+        Status = SessionStatus.Cancelled;
+        CancelledAt = now;
+        UpdatedAt = now;
+        ResolutionNotes = reason.Trim();
+        ResolutionSource = "SingleSessionCancel";
     }
 
     /// <summary>

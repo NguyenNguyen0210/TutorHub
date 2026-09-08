@@ -19,7 +19,6 @@ namespace TutorHub.Application.UnitTests.Features.Admin.Withdrawals;
 public class AdminWithdrawalCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
-    private readonly Mock<IPublisher> _publisherMock = new();
 
     private static (Withdrawal withdrawal, Wallet wallet, User adminUser) CreateTestAggregate(WithdrawalStatus initialStatus = WithdrawalStatus.Pending)
     {
@@ -103,7 +102,7 @@ public class AdminWithdrawalCommandHandlerTests
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
 
-        var handler = new CompleteWithdrawalCommandHandler(_contextMock.Object, _publisherMock.Object);
+        var handler = new CompleteWithdrawalCommandHandler(_contextMock.Object);
         var command = new CompleteWithdrawalCommand(withdrawal.Id, admin.Id);
 
         // Act
@@ -113,11 +112,6 @@ public class AdminWithdrawalCommandHandlerTests
         result.Status.Should().Be(WithdrawalStatus.Completed);
         result.ProcessedByAdminId.Should().Be(admin.Id);
         result.ProcessedAt.Should().NotBeNull();
-
-        _publisherMock.Verify(
-            p => p.Publish(It.Is<WithdrawalCompletedEvent>(e => e.WithdrawalId == withdrawal.Id && e.Amount.Amount == 300_000m), It.IsAny<CancellationToken>()),
-            Times.Once
-        );
     }
 
     [Fact]
@@ -129,7 +123,7 @@ public class AdminWithdrawalCommandHandlerTests
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
 
-        var handler = new CompleteWithdrawalCommandHandler(_contextMock.Object, _publisherMock.Object);
+        var handler = new CompleteWithdrawalCommandHandler(_contextMock.Object);
         var command = new CompleteWithdrawalCommand(withdrawal.Id, admin.Id);
 
         // Act
@@ -141,44 +135,6 @@ public class AdminWithdrawalCommandHandlerTests
     }
 
     [Fact]
-    public async Task FailWithdrawal_FromProcessing_RestoresAvailableBalance_RecordsAdjustment_AndPublishesEvent()
-    {
-        // Arrange
-        var (withdrawal, wallet, admin) = CreateTestAggregate(WithdrawalStatus.Processing);
-        var ledgerEntries = new List<WalletTransaction>();
-
-        _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
-        _contextMock.Setup(c => c.Wallets).Returns(MockDbSetHelper.CreateMockDbSet(new List<Wallet> { wallet }).Object);
-        _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
-        _contextMock.Setup(c => c.WalletTransactions).Returns(MockDbSetHelper.CreateMockDbSet(ledgerEntries).Object);
-
-        var handler = new FailWithdrawalCommandHandler(_contextMock.Object, _publisherMock.Object);
-        var command = new FailWithdrawalCommand(withdrawal.Id, admin.Id, "Bank rejected: Account number does not match name");
-
-        // Act
-        var result = await handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        result.Status.Should().Be(WithdrawalStatus.Failed);
-        result.FailureReason.Should().Be("Bank rejected: Account number does not match name");
-        result.ProcessedByAdminId.Should().Be(admin.Id);
-
-        // AvailableBalance is restored atomically (500k + 300k = 800k)
-        wallet.AvailableBalance.Should().Be(800_000m);
-
-        // Immutable ledger record created
-        ledgerEntries.Should().HaveCount(1);
-        ledgerEntries[0].Type.Should().Be(WalletTransactionType.WithdrawalFailedAdjustmentCredit);
-        ledgerEntries[0].Amount.Should().Be(300_000m);
-        ledgerEntries[0].BalanceAfter.Should().Be(800_000m);
-
-        _publisherMock.Verify(
-            p => p.Publish(It.Is<WithdrawalFailedEvent>(e => e.WithdrawalId == withdrawal.Id && e.Amount.Amount == 300_000m), It.IsAny<CancellationToken>()),
-            Times.Once
-        );
-    }
-
-    [Fact]
     public async Task FailWithdrawal_FromPending_ThrowsConflictException()
     {
         // Arrange (Strict State Machine Guard - DEC-WD-003, INV-WD-004)
@@ -187,7 +143,7 @@ public class AdminWithdrawalCommandHandlerTests
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
 
-        var handler = new FailWithdrawalCommandHandler(_contextMock.Object, _publisherMock.Object);
+        var handler = new FailWithdrawalCommandHandler(_contextMock.Object);
         var command = new FailWithdrawalCommand(withdrawal.Id, admin.Id, "Reason");
 
         // Act

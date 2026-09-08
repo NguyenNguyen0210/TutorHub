@@ -7,6 +7,7 @@ using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 using TutorHub.Infrastructure.BackgroundServices;
+using TutorHub.Infrastructure.Services;
 using Xunit;
 
 namespace TutorHub.Application.UnitTests.Features.Notifications;
@@ -48,7 +49,7 @@ public class EmailDeliveryJobTests
         var emailList = new List<EmailDelivery> { email };
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailList).Object);
 
-        var job = new EmailDeliveryJob(_scopeFactoryMock.Object, _loggerMock.Object);
+        var job = new EmailDeliveryJob(_scopeFactoryMock.Object, _loggerMock.Object, new SystemClock());
 
         // Act
         var processedCount = await job.ProcessPendingEmailsBatchAsync(CancellationToken.None);
@@ -89,7 +90,7 @@ public class EmailDeliveryJobTests
             .Setup(s => s.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("SMTP connection refused"));
 
-        var job = new EmailDeliveryJob(_scopeFactoryMock.Object, _loggerMock.Object);
+        var job = new EmailDeliveryJob(_scopeFactoryMock.Object, _loggerMock.Object, new SystemClock());
 
         // Act
         var processedCount = await job.ProcessPendingEmailsBatchAsync(CancellationToken.None);
@@ -129,7 +130,7 @@ public class EmailDeliveryJobTests
             .Setup(s => s.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Mailbox not found"));
 
-        var job = new EmailDeliveryJob(_scopeFactoryMock.Object, _loggerMock.Object);
+        var job = new EmailDeliveryJob(_scopeFactoryMock.Object, _loggerMock.Object, new SystemClock());
 
         // Act
         var processedCount = await job.ProcessPendingEmailsBatchAsync(CancellationToken.None);

@@ -36,6 +36,12 @@ public static class InfrastructureServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        // Auth token lifetimes (F-06): same "Jwt" section, consumed by
+        // Login/RefreshToken handlers so persisted expiries match signing.
+        services.AddOptions<AuthTokenLifetimeOptions>()
+            .BindConfiguration(AuthTokenLifetimeOptions.SectionName)
+            .ValidateOnStart();
+
         // Authentication & Security Services
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IJwtService, JwtService>();
@@ -73,7 +79,7 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddScoped<IObjectStorageService, CloudflareR2ObjectStorageService>();
         services.AddScoped<IFileStorage, LocalFileStorage>();
-        services.AddScoped<IEmailSender, LoggingEmailSender>();
+        services.AddScoped<IEmailSender, LogOnlyEmailSender>();
         services.AddScoped<INotificationService, SignalRNotificationService>();
         services.AddScoped<IChatNotificationService, SignalRChatNotificationService>();
         services.AddScoped<IAuditLogService, AuditLogService>();

@@ -683,6 +683,36 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.ToTable("InboxMessages", (string)null);
                 });
 
+            modelBuilder.Entity("TutorHub.Domain.Entities.LearningRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TutorProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId")
+                        .IsUnique();
+
+                    b.HasIndex("TutorProfileId");
+
+                    b.ToTable("LearningRecords");
+                });
+
             modelBuilder.Entity("TutorHub.Domain.Entities.Media", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1496,10 +1526,13 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BookingId")
-                        .IsUnique();
+                    b.HasIndex("BookingId");
 
                     b.HasIndex("DisputeId");
+
+                    b.HasIndex("PaymentGatewayRef")
+                        .IsUnique()
+                        .HasFilter("\"PaymentGatewayRef\" IS NOT NULL");
 
                     b.HasIndex("RelatedTransactionId");
 
@@ -1675,6 +1708,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("AbsentStrikes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("AvatarUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -1691,6 +1729,9 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("LastAbsentAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -1713,12 +1754,18 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasDefaultValue("Active");
 
+                    b.Property<DateTime?>("StrikeWindowStart")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", t =>
+                        {
+                            t.HasCheckConstraint("CK_User_NonNegativeStrikes", "\"AbsentStrikes\" >= 0");
+                        });
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Wallet", b =>
@@ -2100,6 +2147,25 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("TutorProfile");
                 });
 
+            modelBuilder.Entity("TutorHub.Domain.Entities.LearningRecord", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.Session", "Session")
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
+                        .WithMany()
+                        .HasForeignKey("TutorProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+
+                    b.Navigation("TutorProfile");
+                });
+
             modelBuilder.Entity("TutorHub.Domain.Entities.Media", b =>
                 {
                     b.HasOne("TutorHub.Domain.Entities.User", "UploadedByUser")
@@ -2291,8 +2357,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TutorHub.Domain.Entities.Transaction", b =>
                 {
                     b.HasOne("TutorHub.Domain.Entities.Booking", "Booking")
-                        .WithOne("Transaction")
-                        .HasForeignKey("TutorHub.Domain.Entities.Transaction", "BookingId")
+                        .WithMany("Transactions")
+                        .HasForeignKey("BookingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2302,8 +2368,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TutorHub.Domain.Entities.Session", "Session")
-                        .WithOne("Transaction")
-                        .HasForeignKey("TutorHub.Domain.Entities.Transaction", "SessionId")
+                        .WithMany()
+                        .HasForeignKey("SessionId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Booking");
@@ -2421,7 +2487,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.Navigation("Reports");
 
-                    b.Navigation("Transaction");
+                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Category", b =>
@@ -2454,8 +2520,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TutorHub.Domain.Entities.Session", b =>
                 {
                     b.Navigation("RescheduleRequests");
-
-                    b.Navigation("Transaction");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.StudentProfile", b =>

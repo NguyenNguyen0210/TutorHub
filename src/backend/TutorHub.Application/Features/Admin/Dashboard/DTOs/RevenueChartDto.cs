@@ -10,7 +10,7 @@ public record RevenueChartDto(
 public record RevenueChartDataPointDto(
     string Month,
     int TotalBookings,
-    int CompletedBookings,
+    int PaidBookings,
     decimal TotalGmv,
     decimal NetGmv,
     decimal PlatformRevenue,

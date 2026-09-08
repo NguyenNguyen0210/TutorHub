@@ -23,9 +23,25 @@ public class TutorProfile
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
 
-    // Denormalized review statistics
-    public decimal RatingAvg { get; set; } = 0;
-    public int TotalReviews { get; set; } = 0;
+    // Denormalized review statistics (F-23: mutated only via ApplyReview).
+    public decimal RatingAvg { get; private set; } = 0;
+    public int TotalReviews { get; private set; } = 0;
+
+    /// <summary>
+    /// Recomputes denormalized stats from the full rating set (F-23).
+    /// </summary>
+    public void ApplyReview(IReadOnlyCollection<int> allRatings)
+    {
+        if (allRatings == null || allRatings.Count == 0)
+        {
+            RatingAvg = 0;
+            TotalReviews = 0;
+            return;
+        }
+
+        TotalReviews = allRatings.Count;
+        RatingAvg = Math.Round((decimal)allRatings.Average(), 2);
+    }
 
     // Default Payout Bank Destination (DEC-WD-002)
     public string? BankName { get; set; }

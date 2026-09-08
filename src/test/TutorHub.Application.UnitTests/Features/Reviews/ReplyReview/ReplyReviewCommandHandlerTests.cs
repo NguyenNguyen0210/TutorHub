@@ -55,13 +55,10 @@ public class ReplyReviewCommandHandlerTests
             TutorProfileId = tutorProfile.Id
         };
 
-        var review = new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = enrollment.Id,
-            Enrollment = enrollment,
-            Rating = 5
-        };
+        // F-23: content via factory.
+        var review = Review.Create(enrollment.Id, 5, null);
+        review.Id = Guid.NewGuid();
+        review.Enrollment = enrollment;
         _reviews.Add(review);
 
         var differentUserId = Guid.NewGuid();
@@ -93,13 +90,9 @@ public class ReplyReviewCommandHandlerTests
             TutorProfileId = tutorProfile.Id
         };
 
-        var review = new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = enrollment.Id,
-            Enrollment = enrollment,
-            Rating = 1
-        };
+        var review = Review.Create(enrollment.Id, 1, null);
+        review.Id = Guid.NewGuid();
+        review.Enrollment = enrollment;
         review.RemoveByAdmin("Violates policy", Guid.NewGuid());
         _reviews.Add(review);
 
@@ -131,14 +124,9 @@ public class ReplyReviewCommandHandlerTests
             TutorProfileId = tutorProfile.Id
         };
 
-        var review = new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = enrollment.Id,
-            Enrollment = enrollment,
-            Rating = 5,
-            Comment = "Loved the classes!"
-        };
+        var review = Review.Create(enrollment.Id, 5, "Loved the classes!");
+        review.Id = Guid.NewGuid();
+        review.Enrollment = enrollment;
         _reviews.Add(review);
 
         var command = new ReplyReviewCommand(review.Id, tutorUser.Id, "Thank you, Alice! Wishing you all the best.");

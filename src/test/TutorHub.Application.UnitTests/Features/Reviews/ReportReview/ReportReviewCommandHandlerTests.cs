@@ -47,13 +47,10 @@ public class ReportReviewCommandHandlerTests
     {
         // Arrange
         var enrollment = new Enrollment { Id = Guid.NewGuid(), BookingId = Guid.NewGuid() };
-        var review = new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = enrollment.Id,
-            Enrollment = enrollment,
-            Rating = 1
-        };
+        // F-23: content via factory.
+        var review = Review.Create(enrollment.Id, 1, null);
+        review.Id = Guid.NewGuid();
+        review.Enrollment = enrollment;
         review.RemoveByAdmin("Already removed", Guid.NewGuid());
         _reviews.Add(review);
 
@@ -82,14 +79,9 @@ public class ReportReviewCommandHandlerTests
             StudentProfileId = studentProfile.Id,
             StudentProfile = studentProfile
         };
-        var review = new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = enrollment.Id,
-            Enrollment = enrollment,
-            Rating = 1,
-            Comment = "Bad comment"
-        };
+        var review = Review.Create(enrollment.Id, 1, "Bad comment");
+        review.Id = Guid.NewGuid();
+        review.Enrollment = enrollment;
         _reviews.Add(review);
 
         var reporter = new UserBuilder().WithFullName("John Doe").WithRole(UserRole.Tutor).Build();

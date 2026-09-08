@@ -45,6 +45,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<CustomAgreement> CustomAgreements => Set<CustomAgreement>();
     public DbSet<SessionRescheduleRequest> SessionRescheduleRequests => Set<SessionRescheduleRequest>();
+    public DbSet<LearningRecord> LearningRecords => Set<LearningRecord>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -54,7 +55,8 @@ public class AppDbContext : DbContext, IAppDbContext
             .ToList();
         if (deletedTransactions.Count > 0)
         {
-            throw new InvalidOperationException("Transaction records cannot be deleted.");
+            var ids = string.Join(",", deletedTransactions.Select(e => e.Entity.Id));
+            throw new InvalidOperationException($"Transaction records cannot be deleted. Ids: {ids}.");
         }
 
         var modifiedTerminalTransactions = ChangeTracker.Entries<Transaction>()
@@ -73,7 +75,10 @@ public class AppDbContext : DbContext, IAppDbContext
 
         if (modifiedTerminalTransactions.Count > 0)
         {
-            throw new InvalidOperationException("Settled historical financial records are immutable and cannot be modified.");
+            var ids = string.Join(",", modifiedTerminalTransactions.Select(e => e.Entity.Id));
+            var props = string.Join(";", modifiedTerminalTransactions.SelectMany(e =>
+                e.Properties.Where(p => p.IsModified).Select(p => $"{e.Entity.Id.ToString()[..8]}.{p.Metadata.Name}='{p.CurrentValue}'(was '{p.OriginalValue}')")));
+            throw new InvalidOperationException($"Settled historical financial records are immutable and cannot be modified. Ids: {ids}. Props: {props}.");
         }
 
         // Anti-chaining validation (DEC-S8-030, INV-LEDGER-007)
@@ -83,8 +88,24 @@ public class AppDbContext : DbContext, IAppDbContext
 
         foreach (var entry in addedAdjustments)
         {
-            if (entry.Entity.RelatedTransaction != null &&
-                entry.Entity.RelatedTransaction.Type != TransactionType.SessionPayoutCredit)
+            TransactionType? relatedType = entry.Entity.RelatedTransaction?.Type;
+            if (relatedType == null)
+            {
+                var relatedId = entry.Entity.RelatedTransactionId!.Value;
+                relatedType = Transactions
+                    .AsNoTracking()
+                    .Where(t => t.Id == relatedId)
+                    .Select(t => (TransactionType?)t.Type)
+                    .FirstOrDefault();
+                if (relatedType == null)
+                {
+                    var tracked = ChangeTracker.Entries<Transaction>()
+                        .FirstOrDefault(e => e.Entity.Id == relatedId);
+                    relatedType = tracked?.Entity.Type;
+                }
+            }
+
+            if (relatedType == null || relatedType != TransactionType.SessionPayoutCredit)
             {
                 throw new InvalidOperationException("Financial adjustments must point directly to the original earning transaction; chaining is forbidden.");
             }

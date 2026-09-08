@@ -21,32 +21,25 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
 
     public async Task<DisputeDto> Handle(AdminResolveDisputeCommand request, CancellationToken cancellationToken)
     {
-        var isNpgsql = _context.Database?.ProviderName != null &&
-                       _context.Database.ProviderName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase);
+        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
 
-        // 1. Lock Dispute (Lock Order Level 1 - DEC-S8-027)
-        Dispute? dispute;
-        if (isNpgsql)
+        try
         {
-            dispute = await _context.Disputes
-                .FromSqlInterpolated($"SELECT * FROM \"Disputes\" WHERE \"Id\" = {request.DisputeId} FOR UPDATE")
-                .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(sp => sp.User)
-                .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(tp => tp.User)
-                .Include(d => d.InitiatorUser)
-                .Include(d => d.RespondentUser)
-                .Include(d => d.Evidences)
-                .FirstOrDefaultAsync(cancellationToken);
-        }
-        else
-        {
-            dispute = await _context.Disputes
-                .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(sp => sp.User)
-                .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(tp => tp.User)
-                .Include(d => d.InitiatorUser)
-                .Include(d => d.RespondentUser)
-                .Include(d => d.Evidences)
-                .FirstOrDefaultAsync(d => d.Id == request.DisputeId, cancellationToken);
-        }
+        // 1. Lock Dispute (Lock Order Level 1 - DEC-S8-027).
+        // NOTE: locked via separate SELECT ... FOR UPDATE (not FromSql entity
+        // query) because the Disputes xmin row-version breaks FromSql+Include
+        // composition on Npgsql ("column t.xmin does not exist").
+        await _context.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"Disputes\" WHERE \"Id\" = {request.DisputeId} FOR UPDATE",
+            cancellationToken);
+
+        var dispute = await _context.Disputes
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(sp => sp.User)
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(tp => tp.User)
+            .Include(d => d.InitiatorUser)
+            .Include(d => d.RespondentUser)
+            .Include(d => d.Evidences)
+            .FirstOrDefaultAsync(d => d.Id == request.DisputeId, cancellationToken);
 
         if (dispute == null)
         {
@@ -59,23 +52,22 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             throw new ConflictException($"Dispute is already closed in status '{dispute.Status}'.");
         }
 
+        // Anti-spam guard (Q3): financial resolutions require at least one uploaded evidence.
+        // Dismissal without financial change is exempt.
+        if (request.Decision != DisputeResolutionDecision.DismissedNoFinancialChange &&
+            (dispute.Evidences == null || dispute.Evidences.Count == 0))
+        {
+            throw new ConflictException("Cannot resolve a dispute with financial consequences before at least one evidence is uploaded.");
+        }
+
         var session = dispute.Session;
         var enrollment = session.Enrollment;
         var now = DateTime.UtcNow;
 
         // 2. Lock Wallet (Lock Order Level 4 - DEC-S8-027)
-        Wallet? tutorWallet;
-        if (isNpgsql)
-        {
-            tutorWallet = await _context.Wallets
-                .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {enrollment.TutorProfileId} FOR UPDATE")
-                .FirstOrDefaultAsync(cancellationToken);
-        }
-        else
-        {
-            tutorWallet = await _context.Wallets
-                .FirstOrDefaultAsync(w => w.TutorProfileId == enrollment.TutorProfileId, cancellationToken);
-        }
+        var tutorWallet = await _context.Wallets
+            .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {enrollment.TutorProfileId} FOR UPDATE")
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (tutorWallet == null)
         {
@@ -107,6 +99,8 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             dispute.ReleaseFinancialHold(request.AdminUserId, now);
 
             await _context.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+
             return MapToDto(dispute, session);
         }
 
@@ -117,7 +111,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             // Stage A: Pre-Release (Pending Escrow) - DEC-S8-003, DEC-S8-025
             // =========================================================================
             var gross = session.EarningAmount;
-            var feeRate = 0.10m; // standard platform fee rate
+            var feeRate = enrollment.PlatformFeeRate > 0 ? enrollment.PlatformFeeRate : 0.10m;
 
             decimal studentRefund = 0m;
             decimal tutorGrossRelease = 0m;
@@ -148,8 +142,8 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             // Update tutor wallet if tutor receives earning
             if (tutorNetPayout > 0)
             {
-                tutorWallet.AvailableBalance += tutorNetPayout;
-                tutorWallet.UpdatedAt = now;
+                // F-23: guarded domain math.
+                tutorWallet.CreditAvailable(tutorNetPayout, now);
 
                 _context.WalletTransactions.Add(new WalletTransaction
                 {
@@ -164,44 +158,31 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                 });
 
                 // Record SessionPayoutCredit
-                var payoutTx = new Transaction
-                {
-                    Id = Guid.NewGuid(),
-                    BookingId = enrollment.BookingId,
-                    SessionId = session.Id,
-                    DisputeId = dispute.Id,
-                    Type = TransactionType.SessionPayoutCredit,
-                    Amount = tutorGrossRelease,
-                    CommissionRate = feeRate,
-                    CommissionAmount = platformFee,
-                    PayoutAmount = tutorNetPayout,
-                    PaymentGatewayRef = "DisputeEscrowRelease",
-                    Status = TransactionStatus.Released,
-                    CreatedAt = now,
-                    ReleasedAt = now
-                };
+                var payoutTx = Transaction.CreatePayout(
+                    bookingId: enrollment.BookingId,
+                    sessionId: session.Id,
+                    disputeId: dispute.Id,
+                    gross: tutorGrossRelease,
+                    feeRate: feeRate,
+                    feeAmount: platformFee,
+                    netPayout: tutorNetPayout,
+                    paymentGatewayRef: $"DisputeEscrowRelease-{session.Id:N}",
+                    now: now);
                 _context.Transactions.Add(payoutTx);
-                session.Transaction = payoutTx;
             }
 
             // Record Student Refund if student receives refund (Status = Pending per DEC-S8-032)
             if (studentRefund > 0)
             {
-                var refundTx = new Transaction
-                {
-                    Id = Guid.NewGuid(),
-                    BookingId = enrollment.BookingId,
-                    SessionId = session.Id,
-                    DisputeId = dispute.Id,
-                    Type = TransactionType.StudentRefund,
-                    Amount = studentRefund,
-                    CommissionRate = 0,
-                    CommissionAmount = 0,
-                    PayoutAmount = 0,
-                    PaymentGatewayRef = "DisputeEscrowRefund",
-                    Status = TransactionStatus.Pending,
-                    CreatedAt = now
-                };
+                var refundTx = Transaction.CreateRefund(
+                    bookingId: enrollment.BookingId,
+                    sessionId: session.Id,
+                    disputeId: dispute.Id,
+                    originalPayout: null,
+                    amount: studentRefund,
+                    paymentGatewayRef: $"DisputeEscrowRefund-{dispute.Id:N}",
+                    description: $"Pre-release escrow refund for Session #{session.SessionNumber}",
+                    now: now);
                 _context.Transactions.Add(refundTx);
 
                 _context.AddOutboxMessage(new RefundCreatedEvent(
@@ -221,22 +202,21 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             // Stage B: Post-Release (Available Balance) - DEC-S8-025, INV-DISP-007
             // =========================================================================
             // 3. Lock Original Transaction (Lock Order Level 5 - DEC-S8-027)
-            Transaction? originalTx;
-            if (isNpgsql)
-            {
-                originalTx = await _context.Transactions
-                    .FromSqlInterpolated($"SELECT * FROM \"Transactions\" WHERE \"SessionId\" = {session.Id} AND \"Type\" = 'SessionPayoutCredit' FOR UPDATE")
-                    .FirstOrDefaultAsync(cancellationToken);
-            }
-            else
-            {
-                originalTx = await _context.Transactions
-                    .FirstOrDefaultAsync(t => t.SessionId == session.Id && t.Type == TransactionType.SessionPayoutCredit, cancellationToken);
-            }
+            var originalTx = await _context.Transactions
+                .FromSqlInterpolated($"SELECT * FROM \"Transactions\" WHERE \"SessionId\" = {session.Id} AND \"Type\" = 'SessionPayoutCredit' FOR UPDATE")
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (originalTx == null)
             {
                 throw new BadRequestException("Original session earning transaction was not found.");
+            }
+
+            // F-22 service-layer enforcement (mirrors the SaveChangesAsync anti-chain
+            // guard): adjustments must point at the original earning, never at another
+            // adjustment. Fail fast with 409 instead of surfacing InvalidOperation.
+            if (originalTx.Type != TransactionType.SessionPayoutCredit)
+            {
+                throw new ConflictException("Original session earning transaction is not a payout record; chaining adjustments is forbidden.");
             }
 
             var originalGross = originalTx.Amount;
@@ -288,12 +268,18 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                 var tutorNetRecovery = originalTutorNet - tutorFinalNet;
                 var platformFeeReversal = originalPlatformFee - platformFinalFee;
 
-                // Insufficient reserve guard (DEC-S8-026)
+                // Insufficient reserve guard (DEC-S8-026).
+                // Note: HeldBalance already includes this dispute's reserved hold, so the
+                // check is against AvailableBalance (which contains the hold), not
+                // WithdrawableBalance (hold creation in CreateDispute already enforces
+                // Withdrawable >= maxRecovery per DEC-S8-028).
                 if (tutorWallet.AvailableBalance < tutorNetRecovery)
                 {
                     dispute.MarkRequiresAdminFinancialIntervention(
                         $"Tutor available balance ({tutorWallet.AvailableBalance:N0} VND) is insufficient for required recovery ({tutorNetRecovery:N0} VND).");
                     await _context.SaveChangesAsync(cancellationToken);
+                    await tx.CommitAsync(cancellationToken);
+
                     return MapToDto(dispute, session);
                 }
 
@@ -334,41 +320,28 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                     });
                 }
 
-                // Create explicit adjustments (Historical originalTx remains 100% immutable - DEC-S8-030)
-                var refundTx = new Transaction
-                {
-                    Id = Guid.NewGuid(),
-                    BookingId = enrollment.BookingId,
-                    SessionId = session.Id,
-                    DisputeId = dispute.Id,
-                    RelatedTransactionId = originalTx.Id,
-                    Type = TransactionType.StudentRefund,
-                    Amount = studentRefund,
-                    CommissionRate = 0,
-                    CommissionAmount = 0,
-                    PayoutAmount = 0,
-                    PaymentGatewayRef = "DisputePostReleaseRefund",
-                    Status = TransactionStatus.Pending, // DEC-S8-032
-                    CreatedAt = now
-                };
+                // Create explicit adjustments (Historical originalTx remains 100% immutable - DEC-S8-030).
+                // F-23: factories re-validate the no-chaining rule (throws ArgumentException).
+                var refundTx = Transaction.CreateRefund(
+                    bookingId: enrollment.BookingId,
+                    sessionId: session.Id,
+                    disputeId: dispute.Id,
+                    originalPayout: originalTx,
+                    amount: studentRefund,
+                    paymentGatewayRef: $"DisputePostReleaseRefund-{dispute.Id:N}",
+                    description: $"Post-release dispute refund for Session #{session.SessionNumber}",
+                    now: now);
                 _context.Transactions.Add(refundTx);
 
-                var feeReversalTx = new Transaction
-                {
-                    Id = Guid.NewGuid(),
-                    BookingId = enrollment.BookingId,
-                    SessionId = session.Id,
-                    DisputeId = dispute.Id,
-                    RelatedTransactionId = originalTx.Id,
-                    Type = TransactionType.PlatformFeeReversal,
-                    Amount = 0,
-                    CommissionRate = appliedRate,
-                    CommissionAmount = platformFeeReversal,
-                    PayoutAmount = 0,
-                    PaymentGatewayRef = "DisputeFeeReversal",
-                    Status = TransactionStatus.Succeeded, // DEC-S8-035: internal accounting committed
-                    CreatedAt = now
-                };
+                var feeReversalTx = Transaction.CreateFeeReversal(
+                    bookingId: enrollment.BookingId,
+                    sessionId: session.Id,
+                    disputeId: dispute.Id,
+                    originalPayout: originalTx,
+                    feeRate: appliedRate,
+                    feeReversalAmount: platformFeeReversal,
+                    paymentGatewayRef: $"DisputeFeeReversal-{dispute.Id:N}",
+                    now: now);
                 _context.Transactions.Add(feeReversalTx);
 
                 _context.AddOutboxMessage(new RefundCreatedEvent(
@@ -391,8 +364,15 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             request.Decision.ToString()));
 
         await _context.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
 
         return MapToDto(dispute, session);
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     private static DisputeDto MapToDto(Dispute dispute, Session session)

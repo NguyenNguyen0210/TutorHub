@@ -7,6 +7,10 @@ using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Sessions.DTOs;
 using TutorHub.Application.Features.Sessions.GetMySessions;
+using TutorHub.Application.Features.LearningRecords.CreateLearningRecord;
+using TutorHub.Application.Features.LearningRecords.DTOs;
+using TutorHub.Application.Features.LearningRecords.GetLearningRecord;
+using TutorHub.Application.Features.Sessions.CancelSession;
 using TutorHub.Application.Features.Sessions.Reschedule.AcceptReschedule;
 using TutorHub.Application.Features.Sessions.Reschedule.DTOs;
 using TutorHub.Application.Features.Sessions.Reschedule.GetRescheduleRequests;
@@ -203,6 +207,85 @@ public class SessionsController : ControllerBase
     }
 
     /// <summary>
+    /// Cancel a single session (Student or Tutor participant, F-19 gate, no finance).
+    /// Only Unscheduled or future Scheduled sessions. Escrow stays held; the existing
+    /// enrollment pro-rata formula absorbs the amount on complete/cancel.
+    /// </summary>
+    [Authorize]
+    [HttpPost("{id:guid}/cancel")]
+    [ProducesResponseType(typeof(ApiResponse<SessionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CancelSession(
+        [FromRoute] Guid id,
+        [FromBody] CancelSessionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var command = new CancelSessionCommand(
+            UserId: userId,
+            SessionId: id,
+            Reason: request.Reason
+        );
+
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<SessionDto>.SuccessResult(result, "Session cancelled successfully."));
+    }
+
+    /// <summary>
+    /// Write the learning record for a completed session (Tutor only, F-14, write-once).
+    /// </summary>
+    [Authorize(Roles = "Tutor")]
+    [HttpPost("{id:guid}/learning-record")]
+    [ProducesResponseType(typeof(ApiResponse<LearningRecordDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CreateLearningRecord(
+        [FromRoute] Guid id,
+        [FromBody] CreateLearningRecordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var command = new CreateLearningRecordCommand(
+            UserId: userId,
+            SessionId: id,
+            Content: request.Content
+        );
+
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<LearningRecordDto>.SuccessResult(result, "Learning record created successfully."));
+    }
+
+    /// <summary>
+    /// Get the learning record of a session (Student or Tutor participant, read-only).
+    /// </summary>
+    [Authorize]
+    [HttpGet("{id:guid}/learning-record")]
+    [ProducesResponseType(typeof(ApiResponse<LearningRecordDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetLearningRecord(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        var query = new GetLearningRecordQuery(
+            UserId: userId,
+            SessionId: id
+        );
+
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<LearningRecordDto?>.SuccessResult(result, "Learning record retrieved successfully."));
+    }
+
+    /// <summary>
     /// Get reschedule proposal history for a session (Student or Tutor participant).
     /// </summary>
     [Authorize]
@@ -224,6 +307,10 @@ public class SessionsController : ControllerBase
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<List<SessionRescheduleRequestDto>>.SuccessResult(result, "Reschedule requests retrieved successfully."));
     }
+
+    public record CreateLearningRecordRequest(
+        string Content
+    );
 
     private Guid GetCurrentUserId()
     {

@@ -11,31 +11,39 @@ using TutorHub.Infrastructure;
 using TutorHub.Infrastructure.Authentication;
 using TutorHub.Infrastructure.Hubs;
 
-// Load .env file searching upward from working directory up to repository root
-var searchDir = new DirectoryInfo(Directory.GetCurrentDirectory());
-while (searchDir != null)
+var builder = WebApplication.CreateBuilder(args);
+
+// F-25: .env loader is Development-only and never overrides real environment
+// variables (container/CI secrets always win).
+if (builder.Environment.IsDevelopment())
 {
-    var dotenv = Path.Combine(searchDir.FullName, ".env");
-    if (File.Exists(dotenv))
+    var searchDir = new DirectoryInfo(Directory.GetCurrentDirectory());
+    while (searchDir != null)
     {
-        foreach (var line in File.ReadAllLines(dotenv))
+        var dotenv = Path.Combine(searchDir.FullName, ".env");
+        if (File.Exists(dotenv))
         {
-            var trimmed = line.Trim();
-            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith('#')) continue;
-            var parts = trimmed.Split('=', 2);
-            if (parts.Length == 2)
+            foreach (var line in File.ReadAllLines(dotenv))
             {
-                var key = parts[0].Trim();
-                var val = parts[1].Trim().Trim('"', '\'');
-                Environment.SetEnvironmentVariable(key, val);
+                var trimmed = line.Trim();
+                if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith('#')) continue;
+                var parts = trimmed.Split('=', 2);
+                if (parts.Length == 2)
+                {
+                    var key = parts[0].Trim();
+                    if (Environment.GetEnvironmentVariable(key) == null)
+                    {
+                        var val = parts[1].Trim().Trim('"', '\'');
+                        Environment.SetEnvironmentVariable(key, val);
+                    }
+                }
             }
+            break;
         }
-        break;
+        searchDir = searchDir.Parent;
     }
-    searchDir = searchDir.Parent;
 }
 
-var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 
 // Add Layers
@@ -66,7 +74,8 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
     .Configure<IOptions<JwtOptions>>((options, jwtOptions) =>
     {
         var jwt = jwtOptions.Value;
-        options.RequireHttpsMetadata = false;
+        // F-25: HTTPS metadata only skippable in Development (local HTTP).
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.SaveToken = true;
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -145,7 +154,12 @@ builder.Services.AddSwaggerGen(c =>
     }
 });
 
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
+
+// F-25: liveness probe backing the docker-compose /health check.
+app.MapHealthChecks("/health");
 
 app.UseExceptionHandler(_ => { });
 

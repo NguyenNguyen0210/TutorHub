@@ -7,6 +7,7 @@ using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 using TutorHub.Infrastructure.BackgroundServices;
+using TutorHub.Infrastructure.Services;
 using Xunit;
 
 namespace TutorHub.Application.UnitTests.Features.Reminders;
@@ -66,7 +67,7 @@ public class SessionReminderJobTests
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 
-        var job = new SessionReminderJob(_scopeFactoryMock.Object, _loggerMock.Object);
+        var job = new SessionReminderJob(_scopeFactoryMock.Object, _loggerMock.Object, new SystemClock());
 
         // Act
         var count = await job.ProcessDueSessionRemindersAsync(CancellationToken.None);
@@ -122,7 +123,7 @@ public class SessionReminderJobTests
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(existingNotifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(new List<EmailDelivery>()).Object);
 
-        var job = new SessionReminderJob(_scopeFactoryMock.Object, _loggerMock.Object);
+        var job = new SessionReminderJob(_scopeFactoryMock.Object, _loggerMock.Object, new SystemClock());
 
         // Act
         var count = await job.ProcessDueSessionRemindersAsync(CancellationToken.None);

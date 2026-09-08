@@ -17,12 +17,16 @@ public class EmailDeliveryJob : BackgroundService
     public const int LeaseDurationSeconds = 60;
     public const int MaxRetries = 5;
 
+    private readonly IClock _clock;
+
     public EmailDeliveryJob(
         IServiceScopeFactory scopeFactory,
-        ILogger<EmailDeliveryJob> logger)
+        ILogger<EmailDeliveryJob> logger,
+        IClock clock)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _clock = clock;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -59,7 +63,7 @@ public class EmailDeliveryJob : BackgroundService
         var dbContext = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
         var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         var candidateIds = await dbContext.EmailDeliveries
             .Where(e => (e.Status == EmailDeliveryStatus.Pending ||
@@ -142,7 +146,7 @@ public class EmailDeliveryJob : BackgroundService
             var idempotencyKey = $"email:{delivery.Id}";
             await emailSender.SendEmailAsync(delivery.ToEmail, delivery.Subject, delivery.Body, idempotencyKey, cancellationToken);
 
-            var now = DateTime.UtcNow;
+            var now = _clock.UtcNow;
             if (delivery.LockedBy == _workerId && delivery.Status == EmailDeliveryStatus.Processing)
             {
                 delivery.Status = EmailDeliveryStatus.Sent;
@@ -156,7 +160,7 @@ public class EmailDeliveryJob : BackgroundService
         {
             _logger.LogError(ex, "Failed sending email delivery {DeliveryId} to {ToEmail}", delivery.Id, delivery.ToEmail);
 
-            var now = DateTime.UtcNow;
+            var now = _clock.UtcNow;
             if (delivery.LockedBy == _workerId && delivery.Status == EmailDeliveryStatus.Processing)
             {
                 delivery.RetryCount++;

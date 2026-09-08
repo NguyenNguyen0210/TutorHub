@@ -49,8 +49,12 @@ public class Booking
     public DateTime CreatedAt { get; set; }
 
     // Relationships
+    // P0 HOTFIX: a booking owns MANY transactions (initial payment + per-session
+    // payouts + refunds/reversals). The previous 1:1 mapping + unique index made
+    // the 2nd payout of any package fail and corrupted tracking via orphan deletion.
     public Enrollment? Enrollment { get; set; }
-    public Transaction? Transaction { get; set; }
+    public ICollection<Transaction> Transactions { get; set; }
+        = new List<Transaction>();
 
     public ICollection<Report> Reports { get; set; }
         = new List<Report>();
@@ -61,19 +65,22 @@ public class Booking
 
     public bool CanCancel(CancelledBy actor)
     {
-        if (Status == BookingStatus.Completed || Status == BookingStatus.Cancelled || Status == BookingStatus.Expired)
+        // Wave 3: only Holding (unpaid hold) and Paid (pre-learning) are
+        // cancellable at booking level. Post-learning changes go through
+        // Enrollment.Cancel / Dispute instead.
+        if (Status == BookingStatus.Cancelled || Status == BookingStatus.Expired)
         {
             return false;
         }
 
         if (actor == Enums.CancelledBy.Tutor)
         {
-            return Status == BookingStatus.Pending || Status == BookingStatus.Confirmed;
+            return Status == BookingStatus.Paid;
         }
 
         if (actor == Enums.CancelledBy.Student)
         {
-            return Status == BookingStatus.Holding || Status == BookingStatus.Pending || Status == BookingStatus.Confirmed;
+            return Status == BookingStatus.Holding || Status == BookingStatus.Paid;
         }
 
         return true; // Admin / System

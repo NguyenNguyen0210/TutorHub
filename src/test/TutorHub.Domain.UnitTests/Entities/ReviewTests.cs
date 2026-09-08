@@ -7,16 +7,36 @@ namespace TutorHub.Domain.UnitTests.Entities;
 public class ReviewTests
 {
     [Fact]
+    public void Create_WithValidData_ShouldSetFields()
+    {
+        // Act
+        var review = Review.Create(Guid.NewGuid(), 5, "Excellent tutor, explains concepts very clearly.");
+
+        // Assert
+        review.Id.Should().NotBeEmpty();
+        review.Rating.Should().Be(5);
+        review.Comment.Should().Be("Excellent tutor, explains concepts very clearly.");
+        review.IsRemoved.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(6)]
+    public void Create_WithOutOfRangeRating_ShouldThrowArgumentException(int invalidRating)
+    {
+        // Act
+        var act = () => Review.Create(Guid.NewGuid(), invalidRating, "Comment");
+
+        // Assert
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*between 1 and 5*");
+    }
+
+    [Fact]
     public void SetTutorReply_WhenValidReply_ShouldSetTutorReplyAndTimestamp()
     {
         // Arrange
-        var review = new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = Guid.NewGuid(),
-            Rating = 5,
-            Comment = "Excellent tutor, explains concepts very clearly."
-        };
+        var review = Review.Create(Guid.NewGuid(), 5, "Excellent tutor, explains concepts very clearly.");
 
         // Act
         review.SetTutorReply("Thank you for your feedback! It was great working with you.");
@@ -34,12 +54,7 @@ public class ReviewTests
     public void SetTutorReply_WhenEmptyOrWhitespace_ShouldThrowArgumentException(string? invalidReply)
     {
         // Arrange
-        var review = new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = Guid.NewGuid(),
-            Rating = 4
-        };
+        var review = Review.Create(Guid.NewGuid(), 4, null);
 
         // Act
         var act = () => review.SetTutorReply(invalidReply!);
@@ -53,12 +68,7 @@ public class ReviewTests
     public void SetTutorReply_WhenReviewIsRemoved_ShouldThrowInvalidOperationException()
     {
         // Arrange
-        var review = new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = Guid.NewGuid(),
-            Rating = 1
-        };
+        var review = Review.Create(Guid.NewGuid(), 1, null);
         review.RemoveByAdmin("Inappropriate content", Guid.NewGuid());
 
         // Act
@@ -73,13 +83,7 @@ public class ReviewTests
     public void RemoveByAdmin_WhenValidReason_ShouldSetRemovalMetadataAndIsRemoved()
     {
         // Arrange
-        var review = new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = Guid.NewGuid(),
-            Rating = 1,
-            Comment = "Spam review"
-        };
+        var review = Review.Create(Guid.NewGuid(), 1, "Spam review");
         var adminId = Guid.NewGuid();
 
         // Act
@@ -100,12 +104,7 @@ public class ReviewTests
     public void RemoveByAdmin_WhenEmptyReason_ShouldThrowArgumentException(string? invalidReason)
     {
         // Arrange
-        var review = new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = Guid.NewGuid(),
-            Rating = 3
-        };
+        var review = Review.Create(Guid.NewGuid(), 3, null);
 
         // Act
         var act = () => review.RemoveByAdmin(invalidReason!, Guid.NewGuid());
@@ -119,12 +118,7 @@ public class ReviewTests
     public void RemoveByAdmin_WhenAlreadyRemoved_ShouldThrowInvalidOperationException()
     {
         // Arrange
-        var review = new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = Guid.NewGuid(),
-            Rating = 2
-        };
+        var review = Review.Create(Guid.NewGuid(), 2, null);
         var adminId = Guid.NewGuid();
         review.RemoveByAdmin("First removal", adminId);
 

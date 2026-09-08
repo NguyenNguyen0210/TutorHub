@@ -45,9 +45,10 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
                     .Select(ts => new AdminUserSubjectDto(ts.SubjectId, ts.Subject.Name))
                     .ToList();
 
-                var totalCompletedSessions = await _context.Bookings
+                // Wave 3: progress lives on Session, not Booking.
+                var totalCompletedSessions = await _context.Sessions
                     .AsNoTracking()
-                    .CountAsync(b => b.TutorProfileId == tutorProfile.Id && b.Status == BookingStatus.Completed, cancellationToken);
+                    .CountAsync(s => s.Enrollment.TutorProfileId == tutorProfile.Id && s.Status == SessionStatus.Completed, cancellationToken);
 
                 var latestApplication = await _context.TutorApplications
                     .AsNoTracking()
@@ -89,7 +90,7 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
 
                 var totalSpent = await _context.Bookings
                     .AsNoTracking()
-                    .Where(b => b.StudentProfileId == studentProfile.Id && b.Status == BookingStatus.Completed)
+                    .Where(b => b.StudentProfileId == studentProfile.Id && b.Status == BookingStatus.Paid)
                     .SumAsync(b => b.TotalPrice, cancellationToken);
 
                 studentProfileDto = new AdminUserStudentProfileDto(

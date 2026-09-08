@@ -140,22 +140,6 @@ public class MediaController : ControllerBase
     }
 
     /// <summary>
-    /// Get fresh access URL for a media file (alias for /download-url).
-    /// </summary>
-    [Authorize]
-    [HttpGet("{id}/url")]
-    [ProducesResponseType(typeof(ApiResponse<MediaDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetMediaUrl(
-        Guid id,
-        CancellationToken cancellationToken = default)
-    {
-        return await HandleGetMediaUrl(id, cancellationToken);
-    }
-
-    /// <summary>
     /// Soft delete media record in database and delete physical object from Cloudflare R2 storage.
     /// </summary>
     [Authorize]
@@ -213,6 +197,6 @@ public class MediaController : ControllerBase
         {
             return role;
         }
-        return UserRole.Student;
+        throw new UnauthorizedException("User role is invalid or missing from token.");
     }
 }

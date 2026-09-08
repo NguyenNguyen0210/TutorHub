@@ -10,6 +10,7 @@ using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 using TutorHub.Infrastructure.BackgroundServices;
+using TutorHub.Infrastructure.Services;
 using Xunit;
 
 namespace TutorHub.Application.UnitTests.Features.Outbox;
@@ -59,7 +60,7 @@ public class OutboxDispatcherJobTests
         var outboxList = new List<OutboxMessage> { outboxMessage };
         _dbContextMock.Setup(c => c.OutboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(outboxList).Object);
 
-        var job = new OutboxDispatcherJob(_scopeFactoryMock.Object, _loggerMock.Object);
+        var job = new OutboxDispatcherJob(_scopeFactoryMock.Object, _loggerMock.Object, new SystemClock());
 
         // Act
         var processedCount = await job.ProcessPendingMessagesBatchAsync(CancellationToken.None);
@@ -106,7 +107,7 @@ public class OutboxDispatcherJobTests
             .Setup(p => p.Publish(It.IsAny<object>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Simulated transient transport failure"));
 
-        var job = new OutboxDispatcherJob(_scopeFactoryMock.Object, _loggerMock.Object);
+        var job = new OutboxDispatcherJob(_scopeFactoryMock.Object, _loggerMock.Object, new SystemClock());
 
         // Act
         var processedCount = await job.ProcessPendingMessagesBatchAsync(CancellationToken.None);
@@ -152,7 +153,7 @@ public class OutboxDispatcherJobTests
             .Setup(p => p.Publish(It.IsAny<object>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Fatal error"));
 
-        var job = new OutboxDispatcherJob(_scopeFactoryMock.Object, _loggerMock.Object);
+        var job = new OutboxDispatcherJob(_scopeFactoryMock.Object, _loggerMock.Object, new SystemClock());
 
         // Act
         var processedCount = await job.ProcessPendingMessagesBatchAsync(CancellationToken.None);
@@ -182,7 +183,7 @@ public class OutboxDispatcherJobTests
         var outboxList = new List<OutboxMessage> { outboxMessage };
         _dbContextMock.Setup(c => c.OutboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(outboxList).Object);
 
-        var job = new OutboxDispatcherJob(_scopeFactoryMock.Object, _loggerMock.Object);
+        var job = new OutboxDispatcherJob(_scopeFactoryMock.Object, _loggerMock.Object, new SystemClock());
 
         // Act
         var processedCount = await job.ProcessPendingMessagesBatchAsync(CancellationToken.None);

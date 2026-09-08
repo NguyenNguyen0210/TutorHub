@@ -18,7 +18,9 @@ public class CreateBookingCommandHandlerTests
 
     public CreateBookingCommandHandlerTests()
     {
-        _handler = new CreateBookingCommandHandler(_contextMock.Object);
+        _handler = new CreateBookingCommandHandler(
+            _contextMock.Object,
+            Mock.Of<TutorHub.Application.Common.Interfaces.IClock>(c => c.UtcNow == new DateTime(2026, 9, 6, 0, 0, 0, DateTimeKind.Utc)));
     }
 
     private static (Service service, StudentProfile studentProfile, TutorProfile tutorProfile, User studentUser, User tutorUser, TutorApplication tutorApp) CreateTestAggregate(
@@ -93,7 +95,8 @@ public class CreateBookingCommandHandlerTests
         result.SessionDurationMinutes.Should().Be(60);
         result.TeachingMode.Should().Be(TeachingMode.Online);
         result.Status.Should().Be(BookingStatus.Holding);
-        result.HoldingExpiresAt.Should().BeCloseTo(DateTime.UtcNow.AddMinutes(15), TimeSpan.FromSeconds(5));
+        // Frozen clock (see ctor): holding = frozen now + 15m.
+        result.HoldingExpiresAt.Should().Be(new DateTime(2026, 9, 6, 0, 15, 0, DateTimeKind.Utc));
 
         bookingsList.Should().HaveCount(1);
         bookingsList[0].ServiceId.Should().Be(service.Id);

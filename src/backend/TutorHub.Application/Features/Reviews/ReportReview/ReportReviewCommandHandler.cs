@@ -44,19 +44,23 @@ public class ReportReviewCommandHandler : IRequestHandler<ReportReviewCommand, R
 
         var reportedUserId = review.Enrollment?.StudentProfile?.UserId;
 
-        var report = new Report
+        Report report;
+        try
         {
-            Id = Guid.NewGuid(),
-            BookingId = review.Enrollment?.BookingId,
-            ReportType = TrustReportType.ReviewViolation,
-            TargetId = review.Id.ToString(),
-            ReportedUserId = reportedUserId,
-            ReporterUserId = request.UserId,
-            Description = $"[Review Violation Report - ReviewId: {review.Id}] {request.Description.Trim()}",
-            EvidenceUrl = string.IsNullOrWhiteSpace(request.EvidenceUrl) ? null : request.EvidenceUrl.Trim(),
-            Status = ReportStatus.Open,
-            CreatedAt = DateTime.UtcNow
-        };
+            // F-23: validated construction lives in the domain.
+            report = Report.Create(
+                reporterUserId: request.UserId,
+                reportType: TrustReportType.ReviewViolation,
+                description: $"[Review Violation Report - ReviewId: {review.Id}] {request.Description}",
+                bookingId: review.Enrollment?.BookingId,
+                reportedUserId: reportedUserId,
+                targetId: review.Id.ToString(),
+                evidenceUrl: request.EvidenceUrl);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new BadRequestException(ex.Message);
+        }
 
         _context.Reports.Add(report);
 

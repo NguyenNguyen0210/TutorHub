@@ -39,10 +39,11 @@ public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, R
             throw new ForbiddenException("You do not have permission to report this booking.");
         }
 
-        // 2. Check booking eligibility (Only Confirmed, Completed, or Cancelled bookings can be reported)
-        if (booking.Status == BookingStatus.Holding || booking.Status == BookingStatus.Pending)
+        // 2. Check booking eligibility (Wave 3: anything except an unpaid Holding
+        // can be reported; learning progress lives on Enrollment).
+        if (booking.Status == BookingStatus.Holding)
         {
-            throw new BadRequestException("Reports can only be created for Confirmed, Completed, or Cancelled bookings.");
+            throw new BadRequestException("Reports can only be created for paid or cancelled bookings.");
         }
 
         // 3. Application-level check for duplicate report
@@ -59,19 +60,23 @@ public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, R
 
         var targetUserId = isStudent ? booking.TutorProfile.UserId : booking.StudentProfile.UserId;
 
-        var report = new Report
+        Report report;
+        try
         {
-            Id = Guid.NewGuid(),
-            BookingId = booking.Id,
-            ReportType = TrustReportType.UserConduct,
-            TargetId = booking.Id.ToString(),
-            ReportedUserId = targetUserId,
-            ReporterUserId = request.UserId,
-            Description = request.Description.Trim(),
-            EvidenceUrl = string.IsNullOrWhiteSpace(request.EvidenceUrl) ? null : request.EvidenceUrl.Trim(),
-            Status = ReportStatus.Open,
-            CreatedAt = DateTime.UtcNow
-        };
+            // F-23: validated construction lives in the domain.
+            report = Report.Create(
+                reporterUserId: request.UserId,
+                reportType: TrustReportType.UserConduct,
+                description: request.Description,
+                bookingId: booking.Id,
+                reportedUserId: targetUserId,
+                targetId: booking.Id.ToString(),
+                evidenceUrl: request.EvidenceUrl);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new BadRequestException(ex.Message);
+        }
 
         _context.Reports.Add(report);
 

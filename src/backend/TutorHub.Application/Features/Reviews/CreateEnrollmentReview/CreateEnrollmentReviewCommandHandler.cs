@@ -60,15 +60,18 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
             throw new ConflictException("A review has already been submitted for this enrollment.");
         }
 
-        var review = new Review
+        Review review;
+        try
         {
-            Id = Guid.NewGuid(),
-            EnrollmentId = enrollment.Id,
-            Enrollment = enrollment,
-            Rating = request.Rating,
-            Comment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment.Trim(),
-            CreatedAt = now
-        };
+            // F-23: validated construction lives in the domain (also enforces 1-5 range).
+            review = Review.Create(enrollment.Id, request.Rating, request.Comment);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new BadRequestException(ex.Message);
+        }
+
+        review.Enrollment = enrollment;
 
         // 5. Rating Aggregation / Projection (DEC-REV-007)
         var existingRatings = await _context.Reviews
@@ -86,8 +89,8 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
 
         if (tutorProfile != null)
         {
-            tutorProfile.TotalReviews = allRatings.Count;
-            tutorProfile.RatingAvg = Math.Round((decimal)allRatings.Average(), 2);
+            // F-23: denormalized stats owned by the domain.
+            tutorProfile.ApplyReview(allRatings);
         }
 
         // Enqueue ReviewCreated Outbox Message (DEC-S7-001, DEC-S7-002)
@@ -102,19 +105,12 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
         await _context.SaveChangesAsync(cancellationToken);
 
         var studentUser = enrollment.StudentProfile.User;
-        return new ReviewDto(
-            Id: review.Id,
-            EnrollmentId: enrollment.Id,
-            TutorProfileId: enrollment.TutorProfileId,
-            ReviewerUserId: studentUser.Id,
-            StudentName: studentUser.FullName,
-            StudentAvatarUrl: studentUser.AvatarUrl,
-            Rating: review.Rating,
-            Comment: review.Comment,
-            TutorReply: review.TutorReply,
-            TutorRepliedAt: review.TutorRepliedAt,
-            IsRemoved: review.IsRemoved,
-            CreatedAt: review.CreatedAt
-        );
+        // F-23 (Đợt 4): centralized mapping.
+        return ReviewMapper.ToDto(
+            review,
+            enrollment.TutorProfileId,
+            studentUser.Id,
+            studentUser.FullName,
+            studentUser.AvatarUrl);
     }
 }

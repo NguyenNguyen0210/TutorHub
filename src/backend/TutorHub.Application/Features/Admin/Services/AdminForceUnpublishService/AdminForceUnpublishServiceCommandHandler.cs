@@ -9,10 +9,12 @@ namespace TutorHub.Application.Features.Admin.Services.AdminForceUnpublishServic
 public class AdminForceUnpublishServiceCommandHandler : IRequestHandler<AdminForceUnpublishServiceCommand, ServiceDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IAuditLogService _auditLogService;
 
-    public AdminForceUnpublishServiceCommandHandler(IAppDbContext context)
+    public AdminForceUnpublishServiceCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
     {
         _context = context;
+        _auditLogService = auditLogService;
     }
 
     public async Task<ServiceDto> Handle(AdminForceUnpublishServiceCommand request, CancellationToken cancellationToken)
@@ -29,6 +31,15 @@ public class AdminForceUnpublishServiceCommandHandler : IRequestHandler<AdminFor
 
         // Domain state transition — throws if Draft or already Unpublished
         service.Unpublish();
+
+        await _auditLogService.LogAsync(
+            action: "SERVICE_FORCE_UNPUBLISHED",
+            entityName: "Service",
+            entityId: service.Id.ToString(),
+            userId: request.AdminId,
+            oldValues: new { status = "Published" },
+            newValues: new { status = service.Status.ToString() },
+            cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
 

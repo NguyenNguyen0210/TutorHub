@@ -55,8 +55,6 @@ public class ApproveTutorApplicationCommandHandler
             Address = application.Address,
             Latitude = application.Latitude,
             Longitude = application.Longitude,
-            RatingAvg = 0,
-            TotalReviews = 0
         };
 
         var wallet = new Wallet
@@ -77,23 +75,16 @@ public class ApproveTutorApplicationCommandHandler
             application.UserId,
             request.AdminId));
 
-        if (_context.Database?.ProviderName != null)
-        {
-            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            try
-            {
-                await _context.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
-            }
-            catch
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
-            }
-        }
-        else
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
         {
             await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
         }
 
         return AdminTutorApplicationDto.From(application);

@@ -104,12 +104,8 @@ public class GetEnrollmentReviewQueryHandlerTests
         var tutorUser = new UserBuilder().WithRole(UserRole.Tutor).Build();
         var tutorProfile = new TutorProfile { Id = Guid.NewGuid(), UserId = tutorUser.Id, User = tutorUser };
 
-        var review = new Review
-        {
-            Id = Guid.NewGuid(),
-            Rating = 5,
-            Comment = "Excellent!"
-        };
+        // F-23: content via factory.
+        var review = Review.Create(Guid.NewGuid(), 5, "Excellent!");
         review.SetTutorReply("Thanks Alice!");
 
         var enrollment = new Enrollment

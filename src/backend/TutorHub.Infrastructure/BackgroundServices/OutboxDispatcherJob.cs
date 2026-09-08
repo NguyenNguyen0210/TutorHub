@@ -68,12 +68,16 @@ public class OutboxDispatcherJob : BackgroundService
         PropertyNameCaseInsensitive = true
     };
 
+    private readonly IClock _clock;
+
     public OutboxDispatcherJob(
         IServiceScopeFactory scopeFactory,
-        ILogger<OutboxDispatcherJob> logger)
+        ILogger<OutboxDispatcherJob> logger,
+        IClock clock)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _clock = clock;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -110,7 +114,7 @@ public class OutboxDispatcherJob : BackgroundService
         var dbContext = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
         var publisher = scope.ServiceProvider.GetRequiredService<IPublisher>();
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         // 1. Query pending messages eligible for lease
         var candidateIds = await dbContext.OutboxMessages
@@ -212,7 +216,7 @@ public class OutboxDispatcherJob : BackgroundService
             await publisher.Publish(eventObj, handlerCts.Token);
 
             // Mark completed safely with token check (INV-EVENT-011, INV-EVENT-012)
-            var completeNow = DateTime.UtcNow;
+            var completeNow = _clock.UtcNow;
             if (message.LockedBy == _workerId && message.Status == OutboxMessageStatus.Processing)
             {
                 message.Status = OutboxMessageStatus.Processed;
@@ -226,7 +230,7 @@ public class OutboxDispatcherJob : BackgroundService
         {
             _logger.LogError(ex, "Failed dispatching OutboxMessage {EventId} of type {EventType}", message.EventId, message.EventType);
 
-            var failNow = DateTime.UtcNow;
+            var failNow = _clock.UtcNow;
             if (message.LockedBy == _workerId && message.Status == OutboxMessageStatus.Processing)
             {
                 message.RetryCount++;

@@ -44,18 +44,14 @@ public class RejectSessionRescheduleCommandHandlerTests
             Id = Guid.NewGuid(),
             UserId = tutorUser.Id,
             User = tutorUser,
-            AvailabilitySlots = new List<AvailabilitySlot>
-            {
-                new AvailabilitySlot
-                {
-                    Id = Guid.NewGuid(),
-                    DayOfWeek = availabilityDay,
-                    StartTime = new TimeOnly(availStartHour, 0),
-                    EndTime = new TimeOnly(availEndHour, 0),
-                    IsActive = true
-                }
-            }
+            AvailabilitySlots = new List<AvailabilitySlot>()
         };
+        // F-23: slots via factory (Id auto-generated).
+        tutorProfile.AvailabilitySlots.Add(AvailabilitySlot.Create(
+            tutorProfile.Id,
+            availabilityDay,
+            new TimeOnly(availStartHour, 0),
+            new TimeOnly(availEndHour, 0)));
 
         var enrollment = new Enrollment
         {
@@ -71,6 +67,9 @@ public class RejectSessionRescheduleCommandHandlerTests
             SessionDurationMinutes = durationMinutes,
             TeachingMode = TeachingMode.Online
         };
+
+        // F-15: lifecycle tests run against Active enrollments.
+        enrollment.Activate();
 
         var session = new Session
         {

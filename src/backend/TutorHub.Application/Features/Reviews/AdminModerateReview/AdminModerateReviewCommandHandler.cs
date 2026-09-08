@@ -49,28 +49,19 @@ public class AdminModerateReviewCommandHandler : IRequestHandler<AdminModerateRe
 
         if (tutorProfile != null)
         {
-            tutorProfile.TotalReviews = remainingRatings.Count;
-            tutorProfile.RatingAvg = remainingRatings.Count > 0
-                ? Math.Round((decimal)remainingRatings.Average(), 2)
-                : 0;
+            // F-23: denormalized stats owned by the domain.
+            tutorProfile.ApplyReview(remainingRatings);
         }
 
         await _context.SaveChangesAsync(cancellationToken);
 
         var studentUser = review.Enrollment.StudentProfile.User;
-        return new ReviewDto(
-            Id: review.Id,
-            EnrollmentId: review.EnrollmentId,
-            TutorProfileId: review.Enrollment.TutorProfileId,
-            ReviewerUserId: studentUser.Id,
-            StudentName: studentUser.FullName,
-            StudentAvatarUrl: studentUser.AvatarUrl,
-            Rating: review.Rating,
-            Comment: review.Comment,
-            TutorReply: review.TutorReply,
-            TutorRepliedAt: review.TutorRepliedAt,
-            IsRemoved: review.IsRemoved,
-            CreatedAt: review.CreatedAt
-        );
+        // F-23 (Đợt 4): centralized mapping.
+        return ReviewMapper.ToDto(
+            review,
+            review.Enrollment.TutorProfileId,
+            studentUser.Id,
+            studentUser.FullName,
+            studentUser.AvatarUrl);
     }
 }

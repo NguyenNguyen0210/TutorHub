@@ -44,19 +44,12 @@ public class ReplyReviewCommandHandler : IRequestHandler<ReplyReviewCommand, Rev
         await _context.SaveChangesAsync(cancellationToken);
 
         var studentUser = review.Enrollment.StudentProfile.User;
-        return new ReviewDto(
-            Id: review.Id,
-            EnrollmentId: review.EnrollmentId,
-            TutorProfileId: review.Enrollment.TutorProfileId,
-            ReviewerUserId: studentUser.Id,
-            StudentName: studentUser.FullName,
-            StudentAvatarUrl: studentUser.AvatarUrl,
-            Rating: review.Rating,
-            Comment: review.Comment,
-            TutorReply: review.TutorReply,
-            TutorRepliedAt: review.TutorRepliedAt,
-            IsRemoved: review.IsRemoved,
-            CreatedAt: review.CreatedAt
-        );
+        // F-23 (Đợt 4): centralized mapping.
+        return ReviewMapper.ToDto(
+            review,
+            review.Enrollment.TutorProfileId,
+            studentUser.Id,
+            studentUser.FullName,
+            studentUser.AvatarUrl);
     }
 }

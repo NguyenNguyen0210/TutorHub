@@ -46,6 +46,7 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
         var admin = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.AdminId, cancellationToken);
 
         // 2. Pure Trust & Safety Enforcement (FR-TRUST-004) - Zero Financial Mutation
+        // Uses domain transitions + revokes refresh tokens so suspend/ban takes effect immediately.
         if (report.ReportedUserId.HasValue)
         {
             var reportedUser = await _context.Users
@@ -53,13 +54,40 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
 
             if (reportedUser != null)
             {
-                if (request.Decision == ReportDecision.SuspendUser)
+                try
                 {
-                    reportedUser.Status = AccountStatus.Suspended;
+                    if (request.Decision == ReportDecision.SuspendUser)
+                    {
+                        reportedUser.Suspend();
+                    }
+                    else if (request.Decision == ReportDecision.BanUser)
+                    {
+                        reportedUser.Ban();
+                    }
                 }
-                else if (request.Decision == ReportDecision.BanUser)
+                catch (InvalidOperationException ex)
                 {
-                    reportedUser.Status = AccountStatus.Banned;
+                    throw new ConflictException(ex.Message);
+                }
+
+                if (request.Decision == ReportDecision.SuspendUser || request.Decision == ReportDecision.BanUser)
+                {
+                    var activeTokens = await _context.RefreshTokens
+                        .Where(t => t.UserId == reportedUser.Id && t.RevokedAt == null && t.ExpiresAt > now)
+                        .ToListAsync(cancellationToken);
+                    foreach (var token in activeTokens)
+                    {
+                        token.RevokedAt = now;
+                    }
+
+                    await _auditLogService.LogAsync(
+                        action: request.Decision == ReportDecision.SuspendUser ? "USER_SUSPENDED" : "USER_BANNED",
+                        entityName: "User",
+                        entityId: reportedUser.Id.ToString(),
+                        userId: request.AdminId,
+                        oldValues: new { source = "TrustReport", reportId = report.Id },
+                        newValues: new { status = reportedUser.Status.ToString(), reportId = report.Id },
+                        cancellationToken: cancellationToken);
                 }
             }
         }
@@ -78,12 +106,20 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
             }
         }
 
-        // 4. Mark Report Resolved
-        report.Status = ReportStatus.Resolved;
-        report.AdminDecision = request.Decision;
-        report.Resolution = request.Resolution.Trim();
-        report.ResolvedAt = now;
-        report.ResolvedByAdminId = request.AdminId;
+        // 4. Mark Report Resolved (F-23: domain transition).
+        try
+        {
+            report.Resolve(request.Decision, request.Resolution, request.AdminId);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new BadRequestException(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new ConflictException(ex.Message);
+        }
+
         report.ResolvedByAdmin = admin;
 
         // 5. Central Append-Only Audit Logging (INV-LEDGER-006)

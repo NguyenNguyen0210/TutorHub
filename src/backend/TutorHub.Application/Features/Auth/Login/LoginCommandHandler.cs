@@ -1,7 +1,9 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Security;
 using TutorHub.Application.Features.Auth.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
@@ -14,15 +16,18 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
     private readonly IAppDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtService _jwtService;
+    private readonly AuthTokenLifetimeOptions _lifetimes;
 
     public LoginCommandHandler(
         IAppDbContext context,
         IPasswordHasher passwordHasher,
-        IJwtService jwtService)
+        IJwtService jwtService,
+        IOptions<AuthTokenLifetimeOptions> lifetimeOptions)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _jwtService = jwtService;
+        _lifetimes = lifetimeOptions.Value;
     }
 
     public async Task<AuthResponseDto> Handle(LoginCommand request, CancellationToken cancellationToken)
@@ -60,7 +65,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
             Id = Guid.NewGuid(),
             UserId = user.Id,
             Token = rawRefreshToken,
-            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            ExpiresAt = DateTime.UtcNow.AddDays(_lifetimes.RefreshTokenExpirationDays),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -89,7 +94,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
             AccessToken: accessToken,
             RefreshToken: rawRefreshToken,
             TokenType: "Bearer",
-            ExpiresIn: 15 * 60,
+            ExpiresIn: _lifetimes.AccessTokenExpirationMinutes * 60,
             User: userDto
         );
     }

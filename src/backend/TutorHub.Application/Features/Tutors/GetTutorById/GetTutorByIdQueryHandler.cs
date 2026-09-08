@@ -53,14 +53,7 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
 
         var subjects = tutor.TutorSubjects
             .Where(ts => isOwner || isAdmin || ts.IsActive)
-            .Select(ts => new TutorSubjectDto(
-                ts.Id,
-                ts.SubjectId,
-                ts.Subject.Name,
-                ts.Subject.CategoryId,
-                ts.Subject.Category.Name,
-                ts.IsActive
-            ))
+            .Select(ts => TutorSubjectMapper.ToDto(ts))
             .ToList();
 
         var services = tutor.Services

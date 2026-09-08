@@ -21,6 +21,11 @@ public class User
     public AccountStatus Status { get; set; } = AccountStatus.Active;
     public DateTime CreatedAt { get; set; }
 
+    // No-show discipline (Q1b): rolling 30-day window of recorded absences.
+    public int AbsentStrikes { get; set; }
+    public DateTime? StrikeWindowStart { get; set; }
+    public DateTime? LastAbsentAt { get; set; }
+
     // Profiles
     public TutorProfile? TutorProfile { get; set; }
     public StudentProfile? StudentProfile { get; set; }
@@ -65,5 +70,43 @@ public class User
         if (Status == AccountStatus.Banned)
             throw new InvalidOperationException("Account is already banned.");
         Status = AccountStatus.Banned;
+    }
+
+    /// <summary>
+    /// Records a no-show absence (Q1b). Strikes accumulate in a rolling 30-day
+    /// window; a strike older than the window resets the counter.
+    /// </summary>
+    public void RecordAbsentStrike(DateTime now)
+    {
+        if (!StrikeWindowStart.HasValue || (now - StrikeWindowStart.Value).TotalDays > 30)
+        {
+            AbsentStrikes = 1;
+            StrikeWindowStart = now;
+        }
+        else
+        {
+            AbsentStrikes++;
+        }
+
+        LastAbsentAt = now;
+    }
+
+    /// <summary>
+    /// Booking freeze (Q1b): 2+ strikes in the active window and the latest
+    /// strike less than 7 days ago blocks new bookings.
+    /// </summary>
+    public bool IsBookingBlocked(DateTime now)
+    {
+        if (AbsentStrikes < 2)
+        {
+            return false;
+        }
+
+        if (!StrikeWindowStart.HasValue || (now - StrikeWindowStart.Value).TotalDays > 30)
+        {
+            return false;
+        }
+
+        return LastAbsentAt.HasValue && (now - LastAbsentAt.Value).TotalDays < 7;
     }
 }

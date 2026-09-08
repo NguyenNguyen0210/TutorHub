@@ -40,43 +40,7 @@ public class GetEnrollmentByIdQueryHandler : IRequestHandler<GetEnrollmentByIdQu
             throw new ForbiddenException("You do not have permission to view this enrollment.");
         }
 
-        var sessionDtos = enrollment.Sessions.OrderBy(s => s.SessionNumber).Select(s => new SessionDto(
-            Id: s.Id,
-            EnrollmentId: s.EnrollmentId,
-            SessionNumber: s.SessionNumber,
-            EarningAmount: s.EarningAmount,
-            StartAt: s.StartAt,
-            EndAt: s.EndAt,
-            Status: s.Status,
-            IsPayoutReleased: s.IsPayoutReleased,
-            CreatedAt: s.CreatedAt,
-            CompletedAt: s.CompletedAt,
-            CancelledAt: s.CancelledAt,
-            StudentAttendance: s.StudentAttendance,
-            TutorAttendance: s.TutorAttendance,
-            HasAttendanceConflict: s.HasAttendanceConflict
-        )).ToList();
-
-        return new EnrollmentDto(
-            Id: enrollment.Id,
-            BookingId: enrollment.BookingId,
-            StudentProfileId: enrollment.StudentProfileId,
-            TutorProfileId: enrollment.TutorProfileId,
-            ServiceId: enrollment.ServiceId,
-            SubjectId: enrollment.SubjectId,
-            SubjectName: enrollment.Subject.Name,
-            TotalPrice: enrollment.TotalPrice,
-            TotalSessions: enrollment.TotalSessions,
-            CompletedSessions: enrollment.CompletedSessions,
-            SessionDurationMinutes: enrollment.SessionDurationMinutes,
-            TeachingMode: enrollment.TeachingMode,
-            Status: enrollment.Status,
-            CreatedAt: enrollment.CreatedAt,
-            CompletedAt: enrollment.CompletedAt,
-            CancelledAt: enrollment.CancelledAt,
-            CancelledBy: enrollment.CancelledBy,
-            CancellationReason: enrollment.CancellationReason,
-            Sessions: sessionDtos
-        );
+        // F-23 (Đợt 4): centralized mapping.
+        return EnrollmentMapper.ToDto(enrollment, enrollment.Subject.Name);
     }
 }

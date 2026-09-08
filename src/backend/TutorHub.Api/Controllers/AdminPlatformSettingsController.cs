@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.PlatformSettings.Commands.AdminUpdatePlatformFee;
+using TutorHub.Application.Features.PlatformSettings.Commands.AdminUpsertPlatformSetting;
 using TutorHub.Application.Features.PlatformSettings.DTOs;
 using TutorHub.Application.Features.PlatformSettings.Queries.AdminGetPlatformRevenueAnalytics;
 using TutorHub.Application.Features.PlatformSettings.Queries.AdminGetPlatformSettings;
@@ -55,6 +56,33 @@ public class AdminPlatformSettingsController : ControllerBase
     }
 
     /// <summary>
+    /// Admin: Upsert a generic versioned platform policy (F-17 plumbing).
+    /// Allowed keys: VerificationWindowHours, ReviewWindowDays, CancellationPolicy,
+    /// RefundRules, WithdrawalRules. Values stay opaque until D-01..D-08 decide semantics.
+    /// </summary>
+    [HttpPut("platform-settings/{key}")]
+    [ProducesResponseType(typeof(ApiResponse<PlatformSettingDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpsertPlatformSetting(
+        [FromRoute] string key,
+        [FromBody] UpsertPlatformSettingRequest request,
+        CancellationToken cancellationToken)
+    {
+        var adminId = GetCurrentUserId();
+        var command = new AdminUpsertPlatformSettingCommand(
+            Key: key,
+            Value: request.Value,
+            AdminUserId: adminId,
+            Reason: request.Reason
+        );
+
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<PlatformSettingDto>.SuccessResult(result, "Platform setting updated successfully."));
+    }
+
+    /// <summary>
     /// Admin: Platform revenue analytics with net dispute fee reconciliation.
     /// </summary>
     [HttpGet("analytics/platform-revenue")]
@@ -78,5 +106,10 @@ public class AdminPlatformSettingsController : ControllerBase
 
 public record UpdatePlatformFeeRequest(
     decimal NewFeeRate,
+    string Reason
+);
+
+public record UpsertPlatformSettingRequest(
+    string Value,
     string Reason
 );

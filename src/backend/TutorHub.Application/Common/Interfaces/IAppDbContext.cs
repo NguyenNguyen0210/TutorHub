@@ -39,6 +39,7 @@ public interface IAppDbContext
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<CustomAgreement> CustomAgreements { get; }
     DbSet<SessionRescheduleRequest> SessionRescheduleRequests { get; }
+    DbSet<LearningRecord> LearningRecords { get; }
 
     DatabaseFacade Database { get; }
 

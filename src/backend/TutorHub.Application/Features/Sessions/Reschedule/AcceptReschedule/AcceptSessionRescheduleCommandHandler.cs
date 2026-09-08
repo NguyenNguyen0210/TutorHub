@@ -90,16 +90,10 @@ public class AcceptSessionRescheduleCommandHandler : IRequestHandler<AcceptSessi
 
         // 7. Authoritative Concurrency Boundary with Shared Row Lock (INV-RESCHED-010)
         var tutorProfileId = session.Enrollment.TutorProfileId;
-        Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction = null;
-
-        if (_context.Database?.ProviderName != null &&
-            _context.Database.ProviderName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
-        {
-            transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            await _context.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT 1 FROM \"TutorProfiles\" WHERE \"Id\" = {tutorProfileId} FOR UPDATE;",
-                cancellationToken);
-        }
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        await _context.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"TutorProfiles\" WHERE \"Id\" = {tutorProfileId} FOR UPDATE;",
+            cancellationToken);
 
         try
         {
@@ -153,33 +147,15 @@ public class AcceptSessionRescheduleCommandHandler : IRequestHandler<AcceptSessi
                 cancellationToken: cancellationToken);
 
             await _context.SaveChangesAsync(cancellationToken);
-
-            if (transaction != null)
-            {
-                await transaction.CommitAsync(cancellationToken);
-            }
+            await transaction.CommitAsync(cancellationToken);
         }
         catch
         {
-            if (transaction != null)
-            {
-                await transaction.RollbackAsync(cancellationToken);
-            }
+            await transaction.RollbackAsync(cancellationToken);
             throw;
         }
 
-        return new SessionDto(
-            Id: session.Id,
-            EnrollmentId: session.EnrollmentId,
-            SessionNumber: session.SessionNumber,
-            EarningAmount: session.EarningAmount,
-            StartAt: session.StartAt,
-            EndAt: session.EndAt,
-            Status: session.Status,
-            IsPayoutReleased: session.IsPayoutReleased,
-            CreatedAt: session.CreatedAt,
-            CompletedAt: session.CompletedAt,
-            CancelledAt: session.CancelledAt
-        );
+        // F-23 (Đợt 4): centralized mapping.
+        return SessionMapper.ToDto(session);
     }
 }

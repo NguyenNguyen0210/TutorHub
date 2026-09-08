@@ -12,17 +12,19 @@ namespace TutorHub.Application.Features.Sessions.SubmitAttendance;
 public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCommand, SessionDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public SubmitAttendanceCommandHandler(IAppDbContext context)
+    public SubmitAttendanceCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<SessionDto> Handle(SubmitAttendanceCommand request, CancellationToken cancellationToken)
     {
         var session = await _context.Sessions
-            .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
-            .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
+            .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(sp => sp.User)
+            .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(tp => tp.User)
             .Include(s => s.Enrollment).ThenInclude(e => e.Sessions)
             .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
 
@@ -62,7 +64,7 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
             throw new ConflictException("Cannot submit attendance for a cancelled session.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         // 4. Validate Time Window: Only allowed after session has ended
         if (session.EndAt.HasValue && session.EndAt.Value > now)
@@ -80,6 +82,16 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
             session.SubmitTutorAttendance(request.Outcome, now);
         }
 
+        // 5b. No-show discipline (Q1b): a self-recorded Absent is an admission
+        // of absence and earns the submitter a strike. Silence is never judged.
+        if (request.Outcome == AttendanceStatus.Absent)
+        {
+            var absentUser = isStudent
+                ? session.Enrollment.StudentProfile.User
+                : session.Enrollment.TutorProfile.User;
+            absentUser?.RecordAbsentStrike(now);
+        }
+
         // 6. Resolution & Financial Earning Release
         // Invariant: Both sides must submit Attended to trigger Session.Complete() and escrow release
         if (session.StudentAttendance == AttendanceStatus.Attended &&
@@ -88,9 +100,9 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
             session.Complete();
             session.Enrollment.RecordCompletedSession(session.Id);
 
-            // Progressive Earning Calculation: Gross - 10% Platform Fee = Net
+            // Progressive Earning Calculation: Gross - snapshot PlatformFeeRate = Net (DEC-S8-020)
             var gross = session.EarningAmount;
-            var commissionRate = 0.10m; // 10% baseline commission
+            var commissionRate = session.Enrollment.PlatformFeeRate > 0 ? session.Enrollment.PlatformFeeRate : 0.10m;
             var commissionAmount = Math.Round(gross * commissionRate, 0);
             var netPayout = gross - commissionAmount;
 
@@ -104,27 +116,23 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
                 throw new InvalidOperationException("Financial invariant violated: Pending escrow balance is insufficient for session earning release.");
             }
 
-            wallet.PendingBalance -= gross;
-            wallet.AvailableBalance += netPayout;
-            wallet.UpdatedAt = now;
+            // F-23: guarded domain math (throws InvalidOperationException on violation).
+            wallet.DebitPending(gross, now);
+            wallet.CreditAvailable(netPayout, now);
 
-            var payoutTx = new Transaction
-            {
-                Id = Guid.NewGuid(),
-                BookingId = session.Enrollment.BookingId,
-                SessionId = session.Id,
-                Amount = gross,
-                CommissionRate = commissionRate,
-                CommissionAmount = commissionAmount,
-                PayoutAmount = netPayout,
-                PaymentGatewayRef = "EscrowRelease",
-                Status = TransactionStatus.Released,
-                CreatedAt = now,
-                ReleasedAt = now
-            };
+            var payoutTx = Transaction.CreatePayout(
+                bookingId: session.Enrollment.BookingId,
+                sessionId: session.Id,
+                disputeId: null,
+                gross: gross,
+                feeRate: commissionRate,
+                feeAmount: commissionAmount,
+                netPayout: netPayout,
+                // F-10: gateway refs are unique per attempt (partial unique index).
+                paymentGatewayRef: $"EscrowRelease-{session.Id:N}",
+                now: now);
 
             _context.Transactions.Add(payoutTx);
-            session.Transaction = payoutTx;
 
             // Record WalletTransaction ledger entry (DEC-WD-004)
             var ledgerEntry = new WalletTransaction
@@ -161,23 +169,16 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
                 payoutTx.Id));
 
             // Explicit DB Transaction
-            if (_context.Database?.ProviderName != null)
-            {
-                await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
-                try
-                {
-                    await _context.SaveChangesAsync(cancellationToken);
-                    await tx.CommitAsync(cancellationToken);
-                }
-                catch
-                {
-                    await tx.RollbackAsync(cancellationToken);
-                    throw;
-                }
-            }
-            else
+            await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
                 await _context.SaveChangesAsync(cancellationToken);
+                await tx.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await tx.RollbackAsync(cancellationToken);
+                throw;
             }
         }
         else
@@ -198,21 +199,7 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        return new SessionDto(
-            Id: session.Id,
-            EnrollmentId: session.EnrollmentId,
-            SessionNumber: session.SessionNumber,
-            EarningAmount: session.EarningAmount,
-            StartAt: session.StartAt,
-            EndAt: session.EndAt,
-            Status: session.Status,
-            IsPayoutReleased: session.IsPayoutReleased,
-            CreatedAt: session.CreatedAt,
-            CompletedAt: session.CompletedAt,
-            CancelledAt: session.CancelledAt,
-            StudentAttendance: session.StudentAttendance,
-            TutorAttendance: session.TutorAttendance,
-            HasAttendanceConflict: session.HasAttendanceConflict
-        );
+        // F-23 (Đợt 4): centralized mapping.
+        return SessionMapper.ToDto(session);
     }
 }

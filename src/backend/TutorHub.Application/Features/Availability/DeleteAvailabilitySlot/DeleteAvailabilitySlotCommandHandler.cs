@@ -33,14 +33,10 @@ public class DeleteAvailabilitySlotCommandHandler : IRequestHandler<DeleteAvaila
             throw new NotFoundException("AvailabilitySlot", request.SlotId);
         }
 
-        // 1. Acquire PostgreSQL row-level lock on TutorProfile when running on Npgsql (INV-AVAIL-008)
-        if (_context.Database?.ProviderName != null &&
-            _context.Database.ProviderName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
-        {
-            await _context.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT 1 FROM \"TutorProfiles\" WHERE \"Id\" = {tutor.Id} FOR UPDATE;",
-                cancellationToken);
-        }
+        // 1. Acquire row-level lock on TutorProfile (FOR UPDATE - INV-AVAIL-008)
+        await _context.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"TutorProfiles\" WHERE \"Id\" = {tutor.Id} FOR UPDATE;",
+            cancellationToken);
 
         // 2. Fetch concrete future scheduled sessions for this tutor (INV-AVAIL-005)
         var nowUtc = DateTime.UtcNow;

@@ -11,14 +11,14 @@ public class BookingBuilder
     private StudentProfile? _studentProfile;
     private TutorProfile? _tutorProfile;
     private Subject? _subject;
-    private BookingStatus _status = BookingStatus.Pending;
+    private BookingStatus _status = BookingStatus.Paid;
     private DateTime? _holdingExpiresAt;
     private DateTime? _confirmedAt;
     private DateTime? _completedAt;
     private DateTime? _cancelledAt;
     private CancelledBy? _cancelledBy;
     private string? _cancellationReason;
-    private Transaction? _transaction;
+    private readonly List<Transaction> _transactions = new();
 
     private Guid? _serviceId;
     private Service? _service;
@@ -119,7 +119,11 @@ public class BookingBuilder
 
     public BookingBuilder WithTransaction(Transaction? transaction)
     {
-        _transaction = transaction;
+        if (transaction != null)
+        {
+            _transactions.Add(transaction);
+        }
+
         return this;
     }
 
@@ -153,7 +157,7 @@ public class BookingBuilder
             SessionDurationMinutes = _sessionDurationMinutes,
             TeachingMode = _teachingMode,
             Enrollment = _enrollment,
-            Transaction = _transaction,
+            Transactions = _transactions,
             Reports = new List<Report>()
         };
 

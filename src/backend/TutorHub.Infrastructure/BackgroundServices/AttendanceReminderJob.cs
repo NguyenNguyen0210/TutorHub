@@ -13,13 +13,16 @@ public class AttendanceReminderJob : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<AttendanceReminderJob> _logger;
+    private readonly IClock _clock;
 
     public AttendanceReminderJob(
         IServiceScopeFactory scopeFactory,
-        ILogger<AttendanceReminderJob> logger)
+        ILogger<AttendanceReminderJob> logger,
+        IClock clock)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _clock = clock;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -52,7 +55,7 @@ public class AttendanceReminderJob : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         // Invariant DEC-S7-022: Reminders only for sessions with an actively opened verification window
         var activeSessions = await dbContext.Sessions

@@ -12,16 +12,18 @@ namespace TutorHub.Application.Features.Wallets.CreateWithdrawal;
 public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCommand, WithdrawalDto>
 {
     private readonly IAppDbContext _context;
-    private readonly IPublisher _publisher;
 
-    public CreateWithdrawalCommandHandler(IAppDbContext context, IPublisher publisher)
+    public CreateWithdrawalCommandHandler(IAppDbContext context)
     {
         _context = context;
-        _publisher = publisher;
     }
 
     public async Task<WithdrawalDto> Handle(CreateWithdrawalCommand request, CancellationToken cancellationToken)
     {
+        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
         var tutor = await _context.TutorProfiles
             .Include(t => t.User)
             .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
@@ -76,35 +78,31 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
 
         var now = DateTime.UtcNow;
 
-        // Execute with PostgreSQL row-level locking (FOR UPDATE) when supported
-        Wallet? wallet;
-        if (_context.Database?.ProviderName != null &&
-            _context.Database.ProviderName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
-        {
-            wallet = await _context.Wallets
-                .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {tutor.Id} FOR UPDATE")
-                .FirstOrDefaultAsync(cancellationToken);
-        }
-        else
-        {
-            wallet = await _context.Wallets
-                .FirstOrDefaultAsync(w => w.TutorProfileId == tutor.Id, cancellationToken);
-        }
+        // Row-level locking (FOR UPDATE)
+        var wallet = await _context.Wallets
+            .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {tutor.Id} FOR UPDATE")
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (wallet == null)
         {
             throw new BadRequestException("Tutor wallet not found.");
         }
 
-        // Concurrency-safe stateful balance verification (DEC-WD-001, DEC-S8-001)
-        if (wallet.WithdrawableBalance < request.Amount)
+        // Concurrency-safe stateful balance verification (DEC-WD-001, DEC-S8-001).
+        // F-23: guarded domain math maps to 400 via the catch below.
+        try
         {
-            throw new BadRequestException("Insufficient available balance.");
+            // Deduct available balance immediately (DEC-WD-007)
+            wallet.DebitAvailableForWithdrawal(request.Amount, now);
         }
-
-        // Deduct available balance immediately (DEC-WD-007)
-        wallet.AvailableBalance -= request.Amount;
-        wallet.UpdatedAt = now;
+        catch (InvalidOperationException ex)
+        {
+            throw new BadRequestException(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new BadRequestException(ex.Message);
+        }
 
         // Create pending withdrawal with immutable bank snapshot (DEC-WD-002, DEC-WD-003)
         var withdrawal = new Withdrawal
@@ -147,12 +145,10 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
             new MoneyDto(withdrawal.Amount)));
 
         await _context.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
 
-        // Optional in-process event publish
-        await _publisher.Publish(
-            new WithdrawalRequestedEvent(withdrawal.Id, tutor.Id, tutor.UserId, new MoneyDto(withdrawal.Amount)),
-            cancellationToken
-        );
+        // F-24: outbox-only delivery. OutboxDispatcherJob is the single
+        // delivery path; no direct in-process publish (duplicate EventIds).
 
         return new WithdrawalDto(
             Id: withdrawal.Id,
@@ -176,5 +172,11 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
             ProcessedByAdminName: null,
             FailureReason: withdrawal.FailureReason
         );
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 }

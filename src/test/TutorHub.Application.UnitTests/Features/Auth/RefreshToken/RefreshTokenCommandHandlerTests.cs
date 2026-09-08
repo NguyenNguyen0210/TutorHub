@@ -1,5 +1,6 @@
 using System.Net;
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using Moq;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -23,7 +24,8 @@ public class RefreshTokenCommandHandlerTests
     {
         _handler = new RefreshTokenCommandHandler(
             _contextMock.Object,
-            _jwtServiceMock.Object);
+            _jwtServiceMock.Object,
+            Options.Create(new AuthTokenLifetimeOptions()));
     }
 
     [Fact]

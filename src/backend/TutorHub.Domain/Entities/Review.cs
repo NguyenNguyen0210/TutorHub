@@ -8,10 +8,10 @@ public class Review
     public Guid EnrollmentId { get; set; }
     public Enrollment Enrollment { get; set; } = default!;
 
-    // --- Content ---
-    public int Rating { get; set; }
+    // --- Content (F-23: set once via Create) ---
+    public int Rating { get; private set; }
 
-    public string? Comment { get; set; }
+    public string? Comment { get; private set; }
 
     // --- Tutor Feedback ---
     public string? TutorReply { get; private set; }
@@ -27,6 +27,23 @@ public class Review
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // --- Domain State Machine Methods ---
+    public static Review Create(Guid enrollmentId, int rating, string? comment)
+    {
+        if (enrollmentId == Guid.Empty)
+            throw new ArgumentException("Enrollment is required.", nameof(enrollmentId));
+        if (rating < 1 || rating > 5)
+            throw new ArgumentException("Rating must be between 1 and 5.", nameof(rating));
+
+        return new Review
+        {
+            Id = Guid.NewGuid(),
+            EnrollmentId = enrollmentId,
+            Rating = rating,
+            Comment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim(),
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+
     public void SetTutorReply(string replyText)
     {
         if (string.IsNullOrWhiteSpace(replyText))

@@ -17,11 +17,13 @@ public class CheckoutCustomAgreementCommandHandlerTests
 
     private readonly List<CustomAgreement> _agreements = new();
     private readonly List<Booking> _bookings = new();
+    private readonly List<Service> _services = new();
 
     public CheckoutCustomAgreementCommandHandlerTests()
     {
         _contextMock.Setup(c => c.CustomAgreements).Returns(MockDbSetHelper.CreateMockDbSet(_agreements).Object);
         _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(_bookings).Object);
+        _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(_services).Object);
 
         _handler = new CheckoutCustomAgreementCommandHandler(_contextMock.Object);
     }

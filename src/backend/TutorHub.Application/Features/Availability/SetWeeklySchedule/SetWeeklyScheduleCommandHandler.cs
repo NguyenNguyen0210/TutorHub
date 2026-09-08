@@ -20,6 +20,10 @@ public class SetWeeklyScheduleCommandHandler : IRequestHandler<SetWeeklySchedule
 
     public async Task<List<AvailabilitySlotDto>> Handle(SetWeeklyScheduleCommand request, CancellationToken cancellationToken)
     {
+        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
         var tutor = await _context.TutorProfiles
             .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
 
@@ -28,14 +32,10 @@ public class SetWeeklyScheduleCommandHandler : IRequestHandler<SetWeeklySchedule
             throw new NotFoundException("Tutor profile not found for this user account.");
         }
 
-        // 1. Acquire PostgreSQL row-level lock on TutorProfile when running on Npgsql (INV-AVAIL-008)
-        if (_context.Database?.ProviderName != null &&
-            _context.Database.ProviderName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
-        {
-            await _context.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT 1 FROM \"TutorProfiles\" WHERE \"Id\" = {tutor.Id} FOR UPDATE;",
-                cancellationToken);
-        }
+        // 1. Acquire row-level lock on TutorProfile (FOR UPDATE - INV-AVAIL-008)
+        await _context.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"TutorProfiles\" WHERE \"Id\" = {tutor.Id} FOR UPDATE;",
+            cancellationToken);
 
         // 2. Fetch concrete future scheduled sessions for this tutor (INV-AVAIL-005)
         var nowUtc = DateTime.UtcNow;
@@ -64,19 +64,23 @@ public class SetWeeklyScheduleCommandHandler : IRequestHandler<SetWeeklySchedule
         var newSlots = request.Schedule
             .OrderBy(s => s.DayOfWeek)
             .ThenBy(s => s.StartTime)
-            .Select(s => new AvailabilitySlot
+            .Select(s =>
             {
-                Id = Guid.NewGuid(),
-                TutorProfileId = tutor.Id,
-                DayOfWeek = s.DayOfWeek,
-                StartTime = s.StartTime,
-                EndTime = s.EndTime,
-                IsActive = true
+                // F-23: validated construction lives in the domain.
+                try
+                {
+                    return AvailabilitySlot.Create(tutor.Id, s.DayOfWeek, s.StartTime, s.EndTime);
+                }
+                catch (ArgumentException ex)
+                {
+                    throw new BadRequestException(ex.Message);
+                }
             })
             .ToList();
 
         _context.AvailabilitySlots.AddRange(newSlots);
         await _context.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
 
         return newSlots.Select(s => new AvailabilitySlotDto(
             s.Id,
@@ -86,5 +90,11 @@ public class SetWeeklyScheduleCommandHandler : IRequestHandler<SetWeeklySchedule
             s.EndTime,
             s.IsActive
         )).ToList();
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 }

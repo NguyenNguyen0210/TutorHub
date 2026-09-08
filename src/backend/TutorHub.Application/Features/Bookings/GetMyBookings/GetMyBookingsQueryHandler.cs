@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Bookings.DTOs;
@@ -25,7 +26,9 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Pag
             .Include(b => b.Subject)
             .AsQueryable();
 
-        // Filter by user role & ownership
+        // Filter by user role & ownership. Any other role is rejected:
+        // this endpoint is scoped to the caller's own bookings (route locked
+        // to Student/Tutor); there is intentionally no unfiltered fall-through.
         if (request.Role == UserRole.Student)
         {
             query = query.Where(b => b.StudentProfile.UserId == request.UserId);
@@ -33,6 +36,10 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Pag
         else if (request.Role == UserRole.Tutor)
         {
             query = query.Where(b => b.TutorProfile.UserId == request.UserId);
+        }
+        else
+        {
+            throw new ForbiddenException("Only students and tutors can view bookings through this endpoint.");
         }
 
         // Filter by status
@@ -61,8 +68,12 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Pag
 
         var items = await query
             .OrderByDescending(b => b.CreatedAt)
+            .ThenBy(b => b.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
+            // NOTE: kept inline (not BookingMapper) — this projection is translated
+            // to SQL and EF cannot translate static mapper calls. (ResolveReport /
+            // GetAdminReportById keep their own null-tolerant variants.)
             .Select(b => new BookingSummaryDto(
                 b.Id,
                 b.StudentProfileId,

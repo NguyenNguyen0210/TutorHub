@@ -20,6 +20,10 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
 
     public async Task<DisputeDto> Handle(CreateDisputeCommand request, CancellationToken cancellationToken)
     {
+        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
         var session = await _context.Sessions
             .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(sp => sp.User)
             .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(tp => tp.User)
@@ -89,19 +93,9 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
             var maxTutorRecovery = originalTx?.PayoutAmount ?? session.EarningAmount;
 
             // Concurrency-safe atomic wallet lock before reading balances (DEC-S8-028, INV-CONCURRENCY-003)
-            Wallet? tutorWallet;
-            if (_context.Database?.ProviderName != null &&
-                _context.Database.ProviderName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
-            {
-                tutorWallet = await _context.Wallets
-                    .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {session.Enrollment.TutorProfileId} FOR UPDATE")
-                    .FirstOrDefaultAsync(cancellationToken);
-            }
-            else
-            {
-                tutorWallet = await _context.Wallets
-                    .FirstOrDefaultAsync(w => w.TutorProfileId == session.Enrollment.TutorProfileId, cancellationToken);
-            }
+            var tutorWallet = await _context.Wallets
+                .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {session.Enrollment.TutorProfileId} FOR UPDATE")
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (tutorWallet != null)
             {
@@ -109,9 +103,8 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
 
                 if (withdrawableBalance >= maxTutorRecovery)
                 {
-                    // Full BalanceHold allocated atomically
-                    tutorWallet.HeldBalance += maxTutorRecovery;
-                    tutorWallet.UpdatedAt = now;
+                    // Full BalanceHold allocated atomically (F-23: guarded domain math).
+                    tutorWallet.Hold(maxTutorRecovery, now);
                     dispute.SetFinancialHold(maxTutorRecovery, FinancialHoldType.BalanceHold, FinancialHoldStatus.Active, now);
 
                     // Record ledger transaction entry
@@ -148,6 +141,7 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
             respondentUserId));
 
         await _context.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
 
         var initiatorName = request.InitiatorUserId == studentUserId
             ? session.Enrollment.StudentProfile.User?.FullName ?? "Student"
@@ -177,5 +171,11 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
             CreatedAt = dispute.CreatedAt,
             AdminNotes = dispute.AdminNotes
         };
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 }

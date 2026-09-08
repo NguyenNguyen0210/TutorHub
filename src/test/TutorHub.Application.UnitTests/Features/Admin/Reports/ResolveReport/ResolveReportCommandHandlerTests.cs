@@ -19,12 +19,14 @@ public class ResolveReportCommandHandlerTests
     private readonly List<Report> _reports = new();
     private readonly List<User> _users = new();
     private readonly List<Review> _reviews = new();
+    private readonly List<RefreshToken> _refreshTokens = new();
 
     public ResolveReportCommandHandlerTests()
     {
         _contextMock.Setup(c => c.Reports).Returns(MockDbSetHelper.CreateMockDbSet(_reports).Object);
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(_users).Object);
         _contextMock.Setup(c => c.Reviews).Returns(MockDbSetHelper.CreateMockDbSet(_reviews).Object);
+        _contextMock.Setup(c => c.RefreshTokens).Returns(MockDbSetHelper.CreateMockDbSet(_refreshTokens).Object);
 
         _handler = new ResolveReportCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
     }
@@ -129,13 +131,9 @@ public class ResolveReportCommandHandlerTests
     [Fact]
     public async Task Handle_WhenDecidingRemoveContent_OnReviewReport_ShouldRemoveReview()
     {
-        var review = new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = Guid.NewGuid(),
-            Rating = 1,
-            Comment = "Extremely offensive words"
-        };
+        // F-23: content via factory.
+        var review = Review.Create(Guid.NewGuid(), 1, "Extremely offensive words");
+        review.Id = Guid.NewGuid();
         _reviews.Add(review);
 
         var admin = new User { Id = Guid.NewGuid(), FullName = "Admin User", Role = UserRole.Admin };

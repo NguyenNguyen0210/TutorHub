@@ -25,6 +25,7 @@ using TutorHub.Application.Features.Tutors.Services.GetTutorServices;
 using TutorHub.Application.Features.Tutors.Services.PublishService;
 using TutorHub.Application.Features.Tutors.Services.UnpublishService;
 using TutorHub.Application.Features.Tutors.Services.UpdateService;
+using TutorHub.Application.Features.Tutors.ResubmitTutorApplication;
 using TutorHub.Application.Features.Tutors.SubmitTutorApplication;
 using TutorHub.Application.Features.Tutors.UpdateMyProfile;
 using TutorHub.Application.Features.Tutors.UpdateMySubjects;
@@ -157,6 +158,41 @@ public class TutorsController : ControllerBase
 
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<TutorApplicationDto>.SuccessResult(result, "Tutor application submitted successfully."));
+    }
+
+    /// <summary>
+    /// Resubmit a tutor application after rejection (Tutor only, F-18).
+    /// Creates a new Pending application; blocked while Pending or Approved.
+    /// </summary>
+    [Authorize(Roles = "Tutor")]
+    [HttpPost("me/application/resubmit")]
+    [ProducesResponseType(typeof(ApiResponse<TutorApplicationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ResubmitTutorApplication(
+        [FromBody] SubmitTutorApplicationRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!Enum.TryParse<TeachingMode>(request.TeachingMode, true, out var parsedMode))
+        {
+            throw new BadRequestException("Teaching mode must be Online, Offline, or Both.");
+        }
+
+        var userId = GetCurrentUserId();
+        var command = new ResubmitTutorApplicationCommand(
+            UserId: userId,
+            Bio: request.Bio,
+            Education: request.Education,
+            ExperienceYears: request.ExperienceYears,
+            TeachingMode: parsedMode,
+            Address: request.Address,
+            Latitude: request.Latitude,
+            Longitude: request.Longitude
+        );
+
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<TutorApplicationDto>.SuccessResult(result, "Tutor application resubmitted successfully."));
     }
 
     /// <summary>

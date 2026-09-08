@@ -7,6 +7,7 @@ using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 using TutorHub.Infrastructure.BackgroundServices;
+using TutorHub.Infrastructure.Services;
 using Xunit;
 
 namespace TutorHub.Application.UnitTests.Features.Reminders;
@@ -60,7 +61,7 @@ public class AttendanceReminderJobTests
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 
-        var job = new AttendanceReminderJob(_scopeFactoryMock.Object, _loggerMock.Object);
+        var job = new AttendanceReminderJob(_scopeFactoryMock.Object, _loggerMock.Object, new SystemClock());
 
         // Act
         var count = await job.ProcessDueAttendanceRemindersAsync(CancellationToken.None);
@@ -107,7 +108,7 @@ public class AttendanceReminderJobTests
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 
-        var job = new AttendanceReminderJob(_scopeFactoryMock.Object, _loggerMock.Object);
+        var job = new AttendanceReminderJob(_scopeFactoryMock.Object, _loggerMock.Object, new SystemClock());
 
         // Act
         var count = await job.ProcessDueAttendanceRemindersAsync(CancellationToken.None);

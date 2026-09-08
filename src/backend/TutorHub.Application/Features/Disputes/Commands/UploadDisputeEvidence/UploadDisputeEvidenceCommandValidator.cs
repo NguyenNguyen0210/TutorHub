@@ -1,17 +1,11 @@
 using FluentValidation;
+using TutorHub.Application.Common.Files;
 
 namespace TutorHub.Application.Features.Disputes.Commands.UploadDisputeEvidence;
 
 public class UploadDisputeEvidenceCommandValidator : AbstractValidator<UploadDisputeEvidenceCommand>
 {
-    private static readonly HashSet<string> AllowedMimeTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-        "application/pdf",
-        "text/plain"
-    };
+    private static readonly HashSet<string> AllowedMimeTypes = new(UploadLimits.EvidenceMimeTypes, StringComparer.OrdinalIgnoreCase);
 
     public UploadDisputeEvidenceCommandValidator()
     {
@@ -22,7 +16,7 @@ public class UploadDisputeEvidenceCommandValidator : AbstractValidator<UploadDis
 
         RuleFor(x => x.FileSizeBytes)
             .GreaterThan(0).WithMessage("File size must be greater than 0.")
-            .LessThanOrEqualTo(10 * 1024 * 1024).WithMessage("File size cannot exceed 10MB.");
+            .LessThanOrEqualTo(UploadLimits.EvidenceMaxBytes).WithMessage("File size cannot exceed 10MB.");
 
         RuleFor(x => x.ContentType)
             .NotEmpty()

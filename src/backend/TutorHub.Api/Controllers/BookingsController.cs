@@ -5,13 +5,11 @@ using Microsoft.AspNetCore.Mvc;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Bookings.CancelBooking;
-using TutorHub.Application.Features.Bookings.ConfirmBooking;
 using TutorHub.Application.Features.Bookings.CreateBooking;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Bookings.GetBookingById;
 using TutorHub.Application.Features.Bookings.GetMyBookings;
 using TutorHub.Application.Features.Bookings.PayBooking;
-using TutorHub.Application.Features.Bookings.RejectBooking;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Api.Controllers;
@@ -78,9 +76,9 @@ public class BookingsController : ControllerBase
     }
 
     /// <summary>
-    /// Get paginated list of bookings for the authenticated user (Student/Tutor/Admin).
+    /// Get paginated list of bookings for the authenticated user (Student/Tutor only).
     /// </summary>
-    [Authorize]
+    [Authorize(Roles = "Student,Tutor")]
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<BookingSummaryDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -129,51 +127,6 @@ public class BookingsController : ControllerBase
         var result = await _sender.Send(query, cancellationToken);
 
         return Ok(ApiResponse<BookingDto>.SuccessResult(result, "Booking details retrieved successfully."));
-    }
-
-    /// <summary>
-    /// Confirm a pending booking within 24 hours of payment (Tutor only).
-    /// </summary>
-    [Authorize(Roles = "Tutor")]
-    [HttpPost("{id:guid}/confirm")]
-    [ProducesResponseType(typeof(ApiResponse<BookingDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> ConfirmBooking(
-        [FromRoute] Guid id,
-        CancellationToken cancellationToken)
-    {
-        var userId = GetCurrentUserId();
-        var command = new ConfirmBookingCommand(id, userId);
-        var result = await _sender.Send(command, cancellationToken);
-
-        return Ok(ApiResponse<BookingDto>.SuccessResult(result, "Booking confirmed successfully."));
-    }
-
-    /// <summary>
-    /// Reject a pending booking with a reason and process 100% refund (Tutor only).
-    /// </summary>
-    [Authorize(Roles = "Tutor")]
-    [HttpPost("{id:guid}/reject")]
-    [ProducesResponseType(typeof(ApiResponse<BookingDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> RejectBooking(
-        [FromRoute] Guid id,
-        [FromBody] RejectBookingRequest request,
-        CancellationToken cancellationToken)
-    {
-        var userId = GetCurrentUserId();
-        var command = new RejectBookingCommand(id, userId, request.Reason);
-        var result = await _sender.Send(command, cancellationToken);
-
-        return Ok(ApiResponse<BookingDto>.SuccessResult(result, "Booking rejected and full refund processed."));
     }
 
     /// <summary>

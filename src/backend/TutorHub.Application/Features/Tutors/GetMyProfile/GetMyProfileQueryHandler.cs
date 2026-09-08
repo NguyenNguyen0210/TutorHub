@@ -40,14 +40,7 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, Tutor
             .FirstOrDefaultAsync(cancellationToken);
 
         var subjects = tutor.TutorSubjects
-            .Select(ts => new TutorSubjectDto(
-                ts.Id,
-                ts.SubjectId,
-                ts.Subject.Name,
-                ts.Subject.CategoryId,
-                ts.Subject.Category.Name,
-                ts.IsActive
-            ))
+            .Select(ts => TutorSubjectMapper.ToDto(ts))
             .ToList();
 
         return new TutorMyProfileDto(

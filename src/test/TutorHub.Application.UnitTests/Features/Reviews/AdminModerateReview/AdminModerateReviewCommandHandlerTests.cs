@@ -61,13 +61,10 @@ public class AdminModerateReviewCommandHandlerTests
         };
         _enrollments.Add(enrollment);
 
-        var review = new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = enrollment.Id,
-            Enrollment = enrollment,
-            Rating = 1
-        };
+        // F-23: content set via factory; moderation via domain method.
+        var review = Review.Create(enrollment.Id, 1, null);
+        review.Id = Guid.NewGuid();
+        review.Enrollment = enrollment;
         review.RemoveByAdmin("Already removed reason", Guid.NewGuid());
         _reviews.Add(review);
 
@@ -93,10 +90,10 @@ public class AdminModerateReviewCommandHandlerTests
         {
             Id = Guid.NewGuid(),
             UserId = tutorUser.Id,
-            User = tutorUser,
-            RatingAvg = 3.0m,
-            TotalReviews = 2
+            User = tutorUser
         };
+        // F-23: stats owned by domain (prior ratings 5 + 1 → avg 3.0 x2).
+        tutorProfile.ApplyReview(new List<int> { 5, 1 });
         _tutorProfiles.Add(tutorProfile);
 
         // Review 1: Rating 5 (Valid, will remain)
@@ -108,13 +105,9 @@ public class AdminModerateReviewCommandHandlerTests
             TutorProfileId = tutorProfile.Id
         };
         _enrollments.Add(enrollment1);
-        var review1 = new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = enrollment1.Id,
-            Enrollment = enrollment1,
-            Rating = 5
-        };
+        var review1 = Review.Create(enrollment1.Id, 5, null);
+        review1.Id = Guid.NewGuid();
+        review1.Enrollment = enrollment1;
         _reviews.Add(review1);
 
         // Review 2: Rating 1 (To be removed by moderation)
@@ -126,13 +119,9 @@ public class AdminModerateReviewCommandHandlerTests
             TutorProfileId = tutorProfile.Id
         };
         _enrollments.Add(enrollment2);
-        var review2 = new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = enrollment2.Id,
-            Enrollment = enrollment2,
-            Rating = 1
-        };
+        var review2 = Review.Create(enrollment2.Id, 1, null);
+        review2.Id = Guid.NewGuid();
+        review2.Enrollment = enrollment2;
         _reviews.Add(review2);
 
         var adminId = Guid.NewGuid();

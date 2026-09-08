@@ -36,19 +36,22 @@ public class ReportUserCommandHandler : IRequestHandler<ReportUserCommand, Repor
             throw new NotFoundException("User", request.TargetUserId);
         }
 
-        var report = new Report
+        Report report;
+        try
         {
-            Id = Guid.NewGuid(),
-            BookingId = null,
-            ReportType = TrustReportType.UserConduct,
-            TargetId = targetUser.Id.ToString(),
-            ReportedUserId = targetUser.Id,
-            ReporterUserId = reporter.Id,
-            Description = request.Reason.Trim(),
-            EvidenceUrl = string.IsNullOrWhiteSpace(request.EvidenceUrl) ? null : request.EvidenceUrl.Trim(),
-            Status = ReportStatus.Open,
-            CreatedAt = DateTime.UtcNow
-        };
+            // F-23: validated construction lives in the domain.
+            report = Report.Create(
+                reporterUserId: reporter.Id,
+                reportType: TrustReportType.UserConduct,
+                description: request.Reason,
+                reportedUserId: targetUser.Id,
+                targetId: targetUser.Id.ToString(),
+                evidenceUrl: request.EvidenceUrl);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new BadRequestException(ex.Message);
+        }
 
         _context.Reports.Add(report);
 

@@ -1,10 +1,11 @@
 using FluentValidation;
+using TutorHub.Application.Common.Interfaces;
 
 namespace TutorHub.Application.Features.Sessions.ScheduleSession;
 
 public class ScheduleSessionCommandValidator : AbstractValidator<ScheduleSessionCommand>
 {
-    public ScheduleSessionCommandValidator()
+    public ScheduleSessionCommandValidator(IClock clock)
     {
         RuleFor(x => x.SessionId)
             .NotEmpty().WithMessage("SessionId is required.");
@@ -13,7 +14,7 @@ public class ScheduleSessionCommandValidator : AbstractValidator<ScheduleSession
             .NotEmpty().WithMessage("StartAt is required.")
             .Must(startAt => startAt.Kind == DateTimeKind.Utc)
             .WithMessage("StartAt must be in UTC format (ISO 8601 with Z).")
-            .Must(startAt => startAt > DateTime.UtcNow)
+            .Must(startAt => startAt > clock.UtcNow)
             .WithMessage("Session start time must be in the future.");
 
         RuleFor(x => x.EndAt)

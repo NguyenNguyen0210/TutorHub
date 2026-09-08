@@ -46,7 +46,6 @@ public class WalletsController : ControllerBase
     /// Submit a new withdrawal request to payout bank account (Tutor only).
     /// </summary>
     [HttpPost("withdrawals")]
-    [HttpPost("withdraw")]
     [ProducesResponseType(typeof(ApiResponse<WithdrawalDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]

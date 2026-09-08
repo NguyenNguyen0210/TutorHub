@@ -48,16 +48,15 @@ public class CheckoutCustomAgreementCommandHandler : IRequestHandler<CheckoutCus
             .Include(b => b.StudentProfile).ThenInclude(s => s.User)
             .Include(b => b.TutorProfile).ThenInclude(t => t.User)
             .Include(b => b.Subject)
-            .Include(b => b.Transaction)
             .FirstOrDefaultAsync(b => b.CustomAgreementId == agreement.Id, cancellationToken);
 
         var now = DateTime.UtcNow;
 
         if (existingBooking != null)
         {
-            if (existingBooking.Status == BookingStatus.Paid ||
-                existingBooking.Status == BookingStatus.Confirmed ||
-                existingBooking.Status == BookingStatus.Completed)
+            // Wave 3: Paid is the only post-payment state; learning progress
+            // lives on Enrollment, so a Paid booking means "already ordered".
+            if (existingBooking.Status == BookingStatus.Paid)
             {
                 throw new ConflictException("This custom agreement has already been paid and ordered.");
             }
@@ -78,11 +77,34 @@ public class CheckoutCustomAgreementCommandHandler : IRequestHandler<CheckoutCus
         }
 
         // 4. Create Canonical Booking with Immutable Commercial Terms Snapshot (INV-AGREE-008, INV-AGREE-010)
+        // DEC-S8-020: Enrollment.ServiceId is required, so a custom agreement without a
+        // linked Service gets a hidden Unpublished snapshot Service (never listed publicly).
+        Guid? bookingServiceId = agreement.ServiceId;
+        if (!bookingServiceId.HasValue)
+        {
+            var hiddenService = new Service
+            {
+                Id = Guid.NewGuid(),
+                TutorProfileId = agreement.TutorProfileId,
+                SubjectId = agreement.SubjectId,
+                Title = $"[Custom] {agreement.Title}",
+                Description = agreement.Description,
+                TotalSessions = agreement.TotalSessions,
+                SessionDurationMinutes = agreement.SessionDurationMinutes,
+                Price = agreement.TotalPrice,
+                TeachingMode = agreement.TeachingMode,
+                Status = ServiceStatus.Unpublished,
+                CreatedAt = now
+            };
+            _context.Services.Add(hiddenService);
+            bookingServiceId = hiddenService.Id;
+        }
+
         var booking = new Booking
         {
             Id = Guid.NewGuid(),
             CustomAgreementId = agreement.Id,
-            ServiceId = agreement.ServiceId,
+            ServiceId = bookingServiceId,
             StudentProfileId = agreement.StudentProfileId,
             TutorProfileId = agreement.TutorProfileId,
             SubjectId = agreement.SubjectId,
@@ -108,33 +130,7 @@ public class CheckoutCustomAgreementCommandHandler : IRequestHandler<CheckoutCus
 
     private static BookingDto MapToDto(Booking b)
     {
-        return new BookingDto(
-            Id: b.Id,
-            StudentProfileId: b.StudentProfileId,
-            StudentName: b.StudentProfile?.User?.FullName ?? string.Empty,
-            StudentEmail: b.StudentProfile?.User?.Email ?? string.Empty,
-            StudentPhone: b.StudentProfile?.User?.Phone,
-            TutorProfileId: b.TutorProfileId,
-            TutorName: b.TutorProfile?.User?.FullName ?? string.Empty,
-            TutorEmail: b.TutorProfile?.User?.Email ?? string.Empty,
-            TutorPhone: b.TutorProfile?.User?.Phone,
-            SubjectId: b.SubjectId,
-            SubjectName: b.Subject?.Name ?? string.Empty,
-            Status: b.Status,
-            HoldingExpiresAt: b.HoldingExpiresAt,
-            ConfirmedAt: b.ConfirmedAt,
-            CompletedAt: b.CompletedAt,
-            CancelledAt: b.CancelledAt,
-            CancelledBy: b.CancelledBy,
-            CancellationReason: b.CancellationReason,
-            CreatedAt: b.CreatedAt,
-            Transaction: null,
-            ServiceId: b.ServiceId,
-            TotalPrice: b.TotalPrice,
-            TotalSessions: b.TotalSessions,
-            SessionDurationMinutes: b.SessionDurationMinutes,
-            TeachingMode: b.TeachingMode,
-            Enrollment: null
-        );
+        // F-23 (Đợt 4): centralized mapping (all call paths load full navs above).
+        return BookingMapper.ToDto(b, transaction: null);
     }
 }

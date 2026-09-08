@@ -211,7 +211,6 @@ public class AdminController : ControllerBase
     /// Complete a processing withdrawal request and finalize payout (Admin only).
     /// </summary>
     [HttpPost("withdrawals/{id:guid}/complete")]
-    [HttpPost("withdrawals/{id:guid}/approve")]
     [ProducesResponseType(typeof(ApiResponse<WithdrawalDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
@@ -229,7 +228,6 @@ public class AdminController : ControllerBase
     /// Mark a processing withdrawal as Failed and atomically restore amount to tutor's available balance (Admin only).
     /// </summary>
     [HttpPost("withdrawals/{id:guid}/fail")]
-    [HttpPost("withdrawals/{id:guid}/reject")]
     [ProducesResponseType(typeof(ApiResponse<WithdrawalDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]

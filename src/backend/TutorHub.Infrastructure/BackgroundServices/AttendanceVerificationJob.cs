@@ -12,13 +12,16 @@ public class AttendanceVerificationJob : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<AttendanceVerificationJob> _logger;
+    private readonly IClock _clock;
 
     public AttendanceVerificationJob(
         IServiceScopeFactory scopeFactory,
-        ILogger<AttendanceVerificationJob> logger)
+        ILogger<AttendanceVerificationJob> logger,
+        IClock clock)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _clock = clock;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -51,7 +54,7 @@ public class AttendanceVerificationJob : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         var count = 0;
 
         // 1. Open verification window for ended sessions (DEC-S7-021, INV-EVENT-014)

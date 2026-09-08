@@ -13,10 +13,12 @@ namespace TutorHub.Application.Features.Bookings.PayBooking;
 public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, BookingDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public PayBookingCommandHandler(IAppDbContext context)
+    public PayBookingCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<BookingDto> Handle(PayBookingCommand request, CancellationToken cancellationToken)
@@ -25,7 +27,6 @@ public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, Booki
             .Include(b => b.StudentProfile).ThenInclude(s => s.User)
             .Include(b => b.TutorProfile).ThenInclude(t => t.User)
             .Include(b => b.Subject)
-            .Include(b => b.Transaction)
             .Include(b => b.Enrollment).ThenInclude(e => e!.Sessions)
             .FirstOrDefaultAsync(b => b.Id == request.BookingId, cancellationToken);
 
@@ -40,7 +41,7 @@ public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, Booki
             throw new ForbiddenException("You do not have permission to pay for this booking.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         // 2. State & Double-Payment Protection Validation
         if (booking.Status != BookingStatus.Holding)
@@ -48,40 +49,28 @@ public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, Booki
             throw new ConflictException($"Cannot pay for booking in '{booking.Status}' status.");
         }
 
-        // 3. Holding Expiry Check
+        // 3. Holding Expiry Check (F-23: domain transition, not field sets).
         if (booking.HoldingExpiresAt.HasValue && now >= booking.HoldingExpiresAt.Value)
         {
-            booking.Status = BookingStatus.Cancelled;
-            booking.CancelledBy = CancelledBy.System;
-            booking.CancellationReason = "HoldingExpired";
-            booking.CancelledAt = now;
+            booking.Cancel(CancelledBy.System, "HoldingExpired", now);
             await _context.SaveChangesAsync(cancellationToken);
 
             throw new BadRequestException("The 15-minute holding period for this booking has expired. Please create a new booking.");
         }
 
         // 4. Atomic Execution: Service-based Booking vs Legacy Booking
-        if (_context.Database?.ProviderName != null)
-        {
-            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            try
-            {
-                var result = await ProcessPaymentInternalAsync(booking, request, now, cancellationToken);
-                await _context.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
-                return result;
-            }
-            catch
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
-            }
-        }
-        else
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
         {
             var result = await ProcessPaymentInternalAsync(booking, request, now, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
             return result;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
         }
     }
 
@@ -94,6 +83,8 @@ public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, Booki
         if (booking.ServiceId.HasValue)
         {
             // --- Service-based flow (Sprint 4) ---
+            // Wave 3: Paid is the single canonical post-payment state.
+            // Learning progress lives on Enrollment/Session from here on.
             booking.Status = BookingStatus.Paid;
             booking.HoldingExpiresAt = null;
 
@@ -108,14 +99,26 @@ public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, Booki
                 CommissionRate = 0,
                 CommissionAmount = 0,
                 PayoutAmount = booking.TotalPrice,
-                PaymentGatewayRef = request.PaymentMethod ?? "Mock",
+                // F-10: gateway refs must be unique per attempt (partial unique
+                // index on PaymentGatewayRef) — suffix with the booking id.
+                PaymentGatewayRef = $"{request.PaymentMethod ?? "Mock"}-{booking.Id:N}",
                 CreatedAt = now
             };
 
             _context.Transactions.Add(paymentTx);
-            booking.Transaction = paymentTx;
 
-            // Invariant: Enrollment snapshots 100% FROM BOOKING
+            // Invariant: Enrollment snapshots 100% FROM BOOKING + live PlatformFeeRate (DEC-S8-020)
+            var feeRate = 0.10m;
+            var feeVersion = 1;
+            var feeSetting = await _context.PlatformSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Key == "PlatformFeeRate", cancellationToken);
+            if (feeSetting != null && decimal.TryParse(feeSetting.Value, out var parsedRate) && parsedRate >= 0 && parsedRate < 1)
+            {
+                feeRate = parsedRate;
+                feeVersion = feeSetting.CurrentVersion;
+            }
+
             var enrollment = new Enrollment
             {
                 Id = Guid.NewGuid(),
@@ -128,6 +131,8 @@ public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, Booki
                 TotalSessions = booking.TotalSessions,
                 SessionDurationMinutes = booking.SessionDurationMinutes,
                 TeachingMode = booking.TeachingMode,
+                PlatformFeeRate = feeRate,
+                FeePolicyVersion = feeVersion,
                 CreatedAt = now
             };
 
@@ -147,6 +152,8 @@ public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, Booki
 
             _context.Enrollments.Add(enrollment);
             booking.Enrollment = enrollment;
+            // F-15: activate at the end of the paid flow, once escrow + sessions exist.
+            enrollment.Activate();
 
             // Synchronize Tutor Wallet PendingBalance (Escrow hold)
             var wallet = await _context.Wallets
@@ -158,17 +165,15 @@ public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, Booki
                 {
                     Id = Guid.NewGuid(),
                     TutorProfileId = booking.TutorProfileId,
-                    PendingBalance = booking.TotalPrice,
+                    PendingBalance = 0,
                     AvailableBalance = 0,
                     UpdatedAt = now
                 };
                 _context.Wallets.Add(wallet);
             }
-            else
-            {
-                wallet.PendingBalance += booking.TotalPrice;
-                wallet.UpdatedAt = now;
-            }
+
+            // F-23: guarded domain math.
+            wallet.CreditPending(booking.TotalPrice, now);
 
             // Enqueue Outbox Messages in same DB transaction (DEC-S7-001, DEC-S7-002)
             _context.AddOutboxMessage(new PaymentSucceededEvent(
@@ -184,80 +189,13 @@ public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, Booki
                 booking.StudentProfile.UserId,
                 booking.TutorProfile.UserId));
 
-            var sessionDtos = enrollment.Sessions.OrderBy(s => s.SessionNumber).Select(s => new SessionDto(
-                Id: s.Id,
-                EnrollmentId: s.EnrollmentId,
-                SessionNumber: s.SessionNumber,
-                EarningAmount: s.EarningAmount,
-                StartAt: s.StartAt,
-                EndAt: s.EndAt,
-                Status: s.Status,
-                IsPayoutReleased: s.IsPayoutReleased,
-                CreatedAt: s.CreatedAt,
-                CompletedAt: s.CompletedAt,
-                CancelledAt: s.CancelledAt
-            )).ToList();
+            // F-23 (Đợt 4): centralized mapping.
+            var enrollmentDto = EnrollmentMapper.ToDto(enrollment, booking.Subject.Name);
 
-            var enrollmentDto = new EnrollmentDto(
-                Id: enrollment.Id,
-                BookingId: enrollment.BookingId,
-                StudentProfileId: enrollment.StudentProfileId,
-                TutorProfileId: enrollment.TutorProfileId,
-                ServiceId: enrollment.ServiceId,
-                SubjectId: enrollment.SubjectId,
-                SubjectName: booking.Subject.Name,
-                TotalPrice: enrollment.TotalPrice,
-                TotalSessions: enrollment.TotalSessions,
-                CompletedSessions: enrollment.CompletedSessions,
-                SessionDurationMinutes: enrollment.SessionDurationMinutes,
-                TeachingMode: enrollment.TeachingMode,
-                Status: enrollment.Status,
-                CreatedAt: enrollment.CreatedAt,
-                CompletedAt: enrollment.CompletedAt,
-                CancelledAt: enrollment.CancelledAt,
-                CancelledBy: enrollment.CancelledBy,
-                CancellationReason: enrollment.CancellationReason,
-                Sessions: sessionDtos
-            );
-
-            return new BookingDto(
-                Id: booking.Id,
-                StudentProfileId: booking.StudentProfileId,
-                StudentName: booking.StudentProfile.User.FullName,
-                StudentEmail: booking.StudentProfile.User.Email,
-                StudentPhone: booking.StudentProfile.User.Phone,
-                TutorProfileId: booking.TutorProfileId,
-                TutorName: booking.TutorProfile.User.FullName,
-                TutorEmail: booking.TutorProfile.User.Email,
-                TutorPhone: booking.TutorProfile.User.Phone,
-                SubjectId: booking.SubjectId,
-                SubjectName: booking.Subject.Name,
-                Status: booking.Status,
-                HoldingExpiresAt: booking.HoldingExpiresAt,
-                ConfirmedAt: booking.ConfirmedAt,
-                CompletedAt: booking.CompletedAt,
-                CancelledAt: booking.CancelledAt,
-                CancelledBy: booking.CancelledBy,
-                CancellationReason: booking.CancellationReason,
-                CreatedAt: booking.CreatedAt,
-                Transaction: new TransactionDto(
-                    Id: paymentTx.Id,
-                    Amount: paymentTx.Amount,
-                    Status: paymentTx.Status,
-                    CommissionRate: paymentTx.CommissionRate,
-                    CommissionAmount: paymentTx.CommissionAmount,
-                    PayoutAmount: paymentTx.PayoutAmount,
-                    CreatedAt: paymentTx.CreatedAt,
-                    ReleasedAt: paymentTx.ReleasedAt,
-                    RefundedAt: paymentTx.RefundedAt
-                ),
-                ServiceId: booking.ServiceId,
-                TotalPrice: booking.TotalPrice,
-                TotalSessions: booking.TotalSessions,
-                SessionDurationMinutes: booking.SessionDurationMinutes,
-                TeachingMode: booking.TeachingMode,
-                Enrollment: enrollmentDto
-            );
+            return BookingMapper.ToDto(
+                booking,
+                BookingMapper.ToTransactionDto(paymentTx),
+                enrollmentDto);
         }
 
         throw new InvalidOperationException("Booking is missing ServiceId commercial reference.");

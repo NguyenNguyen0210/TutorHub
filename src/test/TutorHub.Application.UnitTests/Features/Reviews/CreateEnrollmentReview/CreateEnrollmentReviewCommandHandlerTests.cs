@@ -125,6 +125,9 @@ public class CreateEnrollmentReviewCommandHandlerTests
             TotalSessions = 1
         };
 
+        // F-15: Active lifecycle required before recording completion.
+        enrollment.Activate();
+
         var session = new Session { Id = Guid.NewGuid(), EnrollmentId = enrollment.Id, SessionNumber = 1 };
         session.Schedule(DateTime.UtcNow.AddDays(-40), DateTime.UtcNow.AddDays(-40).AddHours(1));
         session.Complete();
@@ -167,6 +170,9 @@ public class CreateEnrollmentReviewCommandHandlerTests
             TotalSessions = 1
         };
 
+        // F-15: Active lifecycle required before recording completion.
+        enrollment.Activate();
+
         var session = new Session { Id = Guid.NewGuid(), EnrollmentId = enrollment.Id, SessionNumber = 1 };
         session.Schedule(DateTime.UtcNow.AddHours(-2), DateTime.UtcNow.AddHours(-1));
         session.Complete();
@@ -174,13 +180,9 @@ public class CreateEnrollmentReviewCommandHandlerTests
         enrollment.RecordCompletedSession(session.Id); // Transitions to Completed
         _enrollments.Add(enrollment);
 
-        _reviews.Add(new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = enrollment.Id,
-            Rating = 5,
-            Comment = "Existing review"
-        });
+        var existingReview = Review.Create(enrollment.Id, 5, "Existing review");
+        existingReview.Id = Guid.NewGuid();
+        _reviews.Add(existingReview);
 
         var command = new CreateEnrollmentReviewCommand(enrollment.Id, studentUser.Id, 4, "Second review attempt");
 
@@ -204,10 +206,10 @@ public class CreateEnrollmentReviewCommandHandlerTests
         {
             Id = Guid.NewGuid(),
             UserId = tutorUser.Id,
-            User = tutorUser,
-            RatingAvg = 4.0m,
-            TotalReviews = 1
+            User = tutorUser
         };
+        // F-23: stats owned by domain — seed via ApplyReview (prior 4.0 x1).
+        tutorProfile.ApplyReview(new List<int> { 4 });
         _tutorProfiles.Add(tutorProfile);
 
         // An existing previous review for another completed enrollment of the same tutor
@@ -220,13 +222,10 @@ public class CreateEnrollmentReviewCommandHandlerTests
         };
         _enrollments.Add(prevEnrollment);
 
-        _reviews.Add(new Review
-        {
-            Id = Guid.NewGuid(),
-            EnrollmentId = prevEnrollment.Id,
-            Enrollment = prevEnrollment,
-            Rating = 4
-        });
+        var prevReview = Review.Create(prevEnrollment.Id, 4, null);
+        prevReview.Id = Guid.NewGuid();
+        prevReview.Enrollment = prevEnrollment;
+        _reviews.Add(prevReview);
 
         var enrollment = new Enrollment
         {
@@ -237,6 +236,9 @@ public class CreateEnrollmentReviewCommandHandlerTests
             TutorProfile = tutorProfile,
             TotalSessions = 1
         };
+
+        // F-15: Active lifecycle required before recording completion.
+        enrollment.Activate();
 
         var session = new Session { Id = Guid.NewGuid(), EnrollmentId = enrollment.Id, SessionNumber = 1 };
         session.Schedule(DateTime.UtcNow.AddHours(-2), DateTime.UtcNow.AddHours(-1));

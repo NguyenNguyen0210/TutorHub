@@ -11,10 +11,12 @@ namespace TutorHub.Application.Features.Bookings.CreateBooking;
 public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand, BookingDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public CreateBookingCommandHandler(IAppDbContext context)
+    public CreateBookingCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<BookingDto> Handle(CreateBookingCommand request, CancellationToken cancellationToken)
@@ -76,8 +78,15 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
             throw new BadRequestException("Tutors cannot book their own services.");
         }
 
+        // 3b. No-show freeze (Q1b): 2+ strikes in 30 days with the latest under 7 days old.
+        // StudentProfile.User is always loaded above (Include) or attached at creation.
+        var now = _clock.UtcNow;
+        if (student.User.IsBookingBlocked(now))
+        {
+            throw new ForbiddenException("Booking is temporarily frozen due to repeated no-show absences. Please try again after the freeze period.");
+        }
+
         // 4. Pure Service Checkout Holding Snapshot (15m expiration lock)
-        var now = DateTime.UtcNow;
         var booking = new Booking
         {
             Id = Guid.NewGuid(),
@@ -97,33 +106,10 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new BookingDto(
-            Id: booking.Id,
-            StudentProfileId: student.Id,
-            StudentName: student.User.FullName,
-            StudentEmail: student.User.Email,
-            StudentPhone: student.User.Phone,
-            TutorProfileId: service.TutorProfileId,
-            TutorName: service.TutorProfile.User.FullName,
-            TutorEmail: service.TutorProfile.User.Email,
-            TutorPhone: service.TutorProfile.User.Phone,
-            SubjectId: service.SubjectId,
-            SubjectName: service.Subject.Name,
-            Status: booking.Status,
-            HoldingExpiresAt: booking.HoldingExpiresAt,
-            ConfirmedAt: booking.ConfirmedAt,
-            CompletedAt: booking.CompletedAt,
-            CancelledAt: booking.CancelledAt,
-            CancelledBy: booking.CancelledBy,
-            CancellationReason: booking.CancellationReason,
-            CreatedAt: booking.CreatedAt,
-            Transaction: null,
-            ServiceId: service.Id,
-            TotalPrice: booking.TotalPrice,
-            TotalSessions: booking.TotalSessions,
-            SessionDurationMinutes: booking.SessionDurationMinutes,
-            TeachingMode: booking.TeachingMode,
-            Enrollment: null
-        );
+        // F-23 (Đợt 4): centralized mapping (attach loaded navs first).
+        booking.StudentProfile = student;
+        booking.TutorProfile = service.TutorProfile;
+        booking.Subject = service.Subject;
+        return BookingMapper.ToDto(booking, transaction: null);
     }
 }

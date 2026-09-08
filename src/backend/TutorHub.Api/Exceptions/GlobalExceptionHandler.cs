@@ -40,6 +40,17 @@ public class GlobalExceptionHandler : IExceptionHandler
                 appEx.Message,
                 appEx.Errors
             ),
+            // Domain state guards surface as 409 so expected conflicts never leak as 500.
+            InvalidOperationException invalidOp => (
+                HttpStatusCode.Conflict,
+                invalidOp.Message,
+                new List<string> { invalidOp.Message }
+            ),
+            ArgumentException argEx => (
+                HttpStatusCode.BadRequest,
+                argEx.Message,
+                new List<string> { argEx.Message }
+            ),
             _ => (
                 HttpStatusCode.InternalServerError,
                 "An unexpected internal server error occurred.",

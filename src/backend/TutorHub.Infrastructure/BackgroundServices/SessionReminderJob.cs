@@ -13,13 +13,16 @@ public class SessionReminderJob : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<SessionReminderJob> _logger;
+    private readonly IClock _clock;
 
     public SessionReminderJob(
         IServiceScopeFactory scopeFactory,
-        ILogger<SessionReminderJob> logger)
+        ILogger<SessionReminderJob> logger,
+        IClock clock)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _clock = clock;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -52,7 +55,7 @@ public class SessionReminderJob : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         var reminderThreshold = now.AddHours(24);
 
         // Due-based query recovering from scheduler downtime (FR-NOTIF-004)

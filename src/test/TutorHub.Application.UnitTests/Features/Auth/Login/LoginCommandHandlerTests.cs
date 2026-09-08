@@ -1,5 +1,6 @@
 using System.Net;
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using Moq;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -26,7 +27,8 @@ public class LoginCommandHandlerTests
         _handler = new LoginCommandHandler(
             _contextMock.Object,
             _passwordHasherMock.Object,
-            _jwtServiceMock.Object);
+            _jwtServiceMock.Object,
+            Options.Create(new AuthTokenLifetimeOptions()));
     }
 
     [Fact]

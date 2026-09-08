@@ -44,6 +44,9 @@ public class GetSessionRescheduleRequestsQueryHandlerTests
             TeachingMode = TeachingMode.Online
         };
 
+        // F-15: Active lifecycle (harmless for read-only history query).
+        enrollment.Activate();
+
         var session = new Session
         {
             Id = Guid.NewGuid(),

@@ -56,11 +56,35 @@ public class ChatHub : Hub<IChatClient>
     public async Task SendTyping(Guid conversationId)
     {
         var currentUserId = GetCurrentUserId();
-        if (currentUserId != null)
+        if (currentUserId == null)
         {
-            await Clients.OthersInGroup($"conversation_{conversationId}")
-                .UserTyping(conversationId, currentUserId.Value);
+            throw new HubException("User is not authenticated.");
         }
+
+        // Same participant-or-Admin gate as JoinConversation: group membership
+        // alone must not authorize broadcasts.
+        var conversation = await _dbContext.Conversations
+            .Include(c => c.StudentProfile)
+            .Include(c => c.TutorProfile)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == conversationId);
+
+        if (conversation == null)
+        {
+            throw new HubException("Conversation not found.");
+        }
+
+        var isAdmin = Context.User?.IsInRole(UserRole.Admin.ToString()) ?? false;
+        var isParticipant = conversation.StudentProfile.UserId == currentUserId.Value ||
+                            conversation.TutorProfile.UserId == currentUserId.Value;
+
+        if (!isParticipant && !isAdmin)
+        {
+            throw new HubException("You do not have access to this conversation.");
+        }
+
+        await Clients.OthersInGroup($"conversation_{conversationId}")
+            .UserTyping(conversationId, currentUserId.Value);
     }
 
     private Guid? GetCurrentUserId()

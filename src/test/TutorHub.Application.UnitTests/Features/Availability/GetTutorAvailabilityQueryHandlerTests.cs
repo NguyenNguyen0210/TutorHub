@@ -50,16 +50,12 @@ public class GetTutorAvailabilityQueryHandlerTests
         var targetDate = DateOnly.FromDateTime(localNow).AddDays(3);
         var targetDayOfWeek = targetDate.DayOfWeek;
 
-        // Tutor available 13:00 - 17:00 local time
-        _availabilitySlots.Add(new AvailabilitySlot
-        {
-            Id = Guid.NewGuid(),
-            TutorProfileId = tutor.Id,
-            DayOfWeek = targetDayOfWeek,
-            StartTime = new TimeOnly(13, 0),
-            EndTime = new TimeOnly(17, 0),
-            IsActive = true
-        });
+        // Tutor available 13:00 - 17:00 local time (F-23: factory).
+        _availabilitySlots.Add(AvailabilitySlot.Create(
+            tutor.Id,
+            targetDayOfWeek,
+            new TimeOnly(13, 0),
+            new TimeOnly(17, 0)));
 
         // Scheduled session at 14:00 - 15:30 local time on targetDate
         // Vietnam is UTC+7: Local 14:00 = UTC 07:00
