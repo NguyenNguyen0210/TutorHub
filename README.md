@@ -4,10 +4,10 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16.0-4169E1?style=flat&logo=postgresql)](https://www.postgresql.org/)
 [![EF Core](https://img.shields.io/badge/EF%20Core-8.0-512BD4?style=flat)](https://learn.microsoft.com/ef/core/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker)](https://www.docker.com/)
-[![Swagger](https://img.shields.io/badge/OpenAPI-Swagger-85EA2D?style=flat&logo=swagger)](http://localhost:5000/swagger)
-[![Tests](https://img.shields.io/badge/Tests-398%20Passed%20(100%25)-success?style=flat&logo=xunit)](http://localhost:5000)
+[![Swagger](https://img.shields.io/badge/OpenAPI-Swagger-85EA2D?style=flat&logo=swagger)](http://localhost:5129/swagger)
+[![Tests](https://img.shields.io/badge/Tests-406%20Passed%20(100%25)-success?style=flat&logo=xunit)](http://localhost:5129)
 
-**TutorHub** là hệ thống backend RESTful API chuyên nghiệp cho nền tảng marketplace kết nối Gia Sư (Tutor) và Học Viên (Student). Hệ thống được thiết kế theo kiến trúc **Clean Architecture kết hợp Vertical Slice Architecture và CQRS (MediatR)**, vận hành trên mô hình **Service / Package-based Learning**, tích hợp cơ chế giữ chỗ checkout 15 phút, kích hoạt hợp đồng học tập (**Enrollment**), phân rã buổi học (**Sessions**), đối soát điểm danh 2 chiều (**Attendance Verification Window**), giải ngân theo từng buổi vào ví bảo chứng (**Escrow Wallet**), thanh toán thực tế **VNPay 2.1.0**, trao đổi thời gian thực **SignalR**, **Transactional Outbox** (24 sự kiện), công cụ phân xử tranh chấp 2 giai đoạn (**Dispute Engine**), và sổ cái kiểm toán bất biến (**Central Audit Log**).
+**TutorHub** là hệ thống backend RESTful API chuyên nghiệp cho nền tảng marketplace kết nối Gia Sư (Tutor) và Học Viên (Student). Hệ thống được thiết kế theo kiến trúc **Clean Architecture kết hợp Vertical Slice Architecture và CQRS (MediatR)**, vận hành trên mô hình **Service / Package-based Learning**, tích hợp cơ chế giữ chỗ checkout 15 phút, kích hoạt hợp đồng học tập (**Enrollment**), phân rã buổi học (**Sessions**), đối soát điểm danh 2 chiều (**Attendance Verification Window**), giải ngân theo từng buổi vào ví bảo chứng (**Escrow Wallet**), thanh toán thực tế **VNPay 2.1.0**, trao đổi thời gian thực **SignalR**, **Transactional Outbox** (26 sự kiện + MessageSent), công cụ phân xử tranh chấp 2 giai đoạn (**Dispute Engine**), và sổ cái kiểm toán bất biến (**Central Audit Log**).
 
 ---
 
@@ -64,7 +64,7 @@
    - Máy trạng thái hoàn tiền ngoại vi (`Pending` $\rightarrow$ `Succeeded` | `Failed`).
 8. **Nhắn tin & Thông báo thời gian thực (Messaging, Outbox & SignalR):**
    - Hội thoại 1-1 chính danh kèm file đính kèm (giới hạn 10MB, kiểm tra whitelist định dạng an toàn).
-   - Transactional Outbox xử lý tin cậy 24 loại sự kiện doanh nghiệp với cơ chế lease claim và dead-letter.
+    - Transactional Outbox xử lý tin cậy 26 loại sự kiện doanh nghiệp + MessageSent với cơ chế lease claim và dead-letter.
    - Trung tâm thông báo đa kênh (In-App và Email Background Job với retry exponential backoff).
    - SignalR realtime hub cho tin nhắn chat và thông báo đẩy tức thời.
 9. **Quản trị toàn diện & Sổ cái kiểm toán (Governance & Central Audit Log):**
@@ -93,13 +93,14 @@ TutorHub/
 │   ├── frontend/                       # Mã nguồn ứng dụng Client Frontend
 │   │   └── README.md
 │   │
-│   └── test/                           # Kiểm thử tự động (Unit Tests & Integration Tests)
-│       ├── TutorHub.Domain.UnitTests/      # 122 Tests (Domain invariants, allocators, entities)
-│       └── TutorHub.Application.UnitTests/ # 276 Tests (CQRS handlers, background jobs, audit integrity)
+│   └── test/                           # Kiểm thử tự động (159 + 240 + 7 = 406 executed cases)
+│       ├── TutorHub.Domain.UnitTests/          # 159 cases (Domain invariants, allocators, entities)
+│       ├── TutorHub.Application.UnitTests/     # 240 cases (CQRS handlers, background jobs, audit integrity)
+│       └── TutorHub.Api.IntegrationTests/      # 7 cases (Postgres: withdrawal, pay→enrollment, dispute settlement)
 │
-├── docs/                               # Bộ tài liệu kỹ thuật chuẩn (Frozen Baseline)
-│   ├── prd.md                          # Product Requirements Document v1.0
-│   ├── functional-requirements.md      # Functional Requirements v1.0 (50 Chương)
+├── docs/                               # Bộ tài liệu kỹ thuật chuẩn
+│   ├── prd.md                          # Product Requirements Document v1.1 (changelog đầu file)
+│   ├── functional-requirements.md      # Functional Requirements v1.0 (53 Chương)
 │   └── user-stories.md                 # User Stories v1.0
 │
 ├── docker-compose.yml                  # Cấu hình khởi chạy Docker PostgreSQL & Backend Container
@@ -132,7 +133,7 @@ docker-compose up -d --build
 dotnet build src/backend/TutorHub.sln
 ```
 
-#### Bước 2: Chạy bộ kiểm thử (Test Suite — 398/398 Passed)
+#### Bước 2: Chạy bộ kiểm thử (Test Suite — 406 Passed: 159 Domain + 240 Application + 7 Integration)
 ```bash
 dotnet test src/backend/TutorHub.sln
 ```
@@ -141,7 +142,7 @@ dotnet test src/backend/TutorHub.sln
 ```bash
 dotnet run --project src/backend/TutorHub.Api
 ```
-Truy cập Swagger UI tại: `http://localhost:5000/swagger` (hoặc `https://localhost:7000/swagger`).
+Truy cập Swagger UI tại: `http://localhost:5129/swagger` (hoặc `https://localhost:7200/swagger`) theo `launchSettings.json` (Docker: `http://localhost:8080/swagger`).
 
 ---
 

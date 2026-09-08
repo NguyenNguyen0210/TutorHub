@@ -5,5 +5,5 @@ Thư mục chứa mã nguồn ứng dụng Client Frontend của TutorHub (React
 ---
 
 ## 🚀 Hướng Dẫn Cài Đặt & Phát Triển
-* **API Base URL:** `http://localhost:5000/api/v1` (hoặc `http://localhost:8080/api/v1` khi chạy Docker)
-* **Swagger OpenAPI:** `http://localhost:5000/swagger`
+* **API Base URL:** `http://localhost:5129/api/v1` (hoặc `http://localhost:8080/api/v1` khi chạy Docker)
+* **Swagger OpenAPI:** `http://localhost:5129/swagger`

@@ -1,7 +1,9 @@
 # CLAUDE.md — TutorHub Developer Guide & Repository Invariants
 
 > **TutorHub** là nền tảng marketplace kết nối Gia Sư (Tutor) và Học Viên (Student) trực tuyến theo mô hình **Service / Package-based Learning**.  
-> Hệ thống hỗ trợ đặt mua gói dịch vụ (15 phút checkout hold), phân rã hợp đồng học tập (**Enrollment**) thành các buổi học (**Sessions**), đối soát điểm danh 2 chiều (**Attendance Verification Window**), giải ngân từng buổi vào ví bảo chứng (**Escrow Wallet**), thanh toán thực tế **VNPay 2.1.0**, Realtime **SignalR**, **Transactional Outbox** (24 sự kiện), công cụ giải quyết tranh chấp 2 giai đoạn (**Dispute Engine**), và sổ cái kiểm toán bất biến (**Central Audit Log**).
+> Hệ thống hỗ trợ đặt mua gói dịch vụ (15 phút checkout hold), phân rã hợp đồng học tập (**Enrollment**) thành các buổi học (**Sessions**), đối soát điểm danh 2 chiều (**Attendance Verification Window**), giải ngân từng buổi vào ví bảo chứng (**Escrow Wallet**), thanh toán thực tế **VNPay 2.1.0**, Realtime **SignalR**, **Transactional Outbox** (26 sự kiện + MessageSent), công cụ giải quyết tranh chấp 2 giai đoạn (**Dispute Engine**), và sổ cái kiểm toán bất biến (**Central Audit Log**).
+>
+> **Auth policy (F-08, owner-accepted):** Suspended/Banned được chặn ở login/refresh; access token đang bay được tôn trọng tới hết hạn (tối đa 15 phút).
 
 ---
 
@@ -64,7 +66,7 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
 * `src/backend/TutorHub.Infrastructure/`: **Hạ Tầng Kỹ Thuật**. `AppDbContext` (interceptor bảo vệ sổ cái bất biến), Background Jobs (`BookingTimeoutBackgroundService`, `OutboxDispatcherJob`, `EmailDeliveryJob`, `SessionReminderJob`, `AttendanceReminderJob`, `AttendanceVerificationJob`), VNPay SHA512, Cloudflare R2, và SignalR hubs.
 * `src/backend/TutorHub.Api/`: **Giao Tiếp Ngoại Vi (Thin Controllers)**. Controller chỉ dispatch MediatR, Middlewares (`CorrelationIdMiddleware`, `GlobalExceptionHandler`).
 * `docs/`: **Baseline Nghiệp Vụ Chuẩn**. `prd.md` (PRD v1.0 Baseline Frozen), `functional-requirements.md` (FR v1.0 - 50 Chương), `user-stories.md` (US v1.0).
-* `src/test/`: **Kiểm Thử Tự Động**. `TutorHub.Domain.UnitTests` (122 tests), `TutorHub.Application.UnitTests` (276 tests) — Tổng 398 tests.
+* `src/test/`: **Kiểm Thử Tự Động** (406 executed cases). `TutorHub.Domain.UnitTests` (159), `TutorHub.Application.UnitTests` (240), `TutorHub.Api.IntegrationTests` (7, Postgres container).
 
 ---
 
@@ -83,7 +85,7 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
 ## 🚫 LUẬT CỨNG BẤT BIẾN [ĐIỀU KHÔNG ĐƯỢC PHÁ]
 
 * ⛔ **1. Không bao giờ tắt `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`:** Mọi commit phải build thành công với **0 Warnings, 0 Errors**.
-* ⛔ **2. Mô hình Booking là Package-based (Không quay lại Single-slot Booking):** `Booking` bắt buộc phải tham chiếu đến `ServiceId` (`DEC-S8-020`). Thanh toán thành công kích hoạt `Enrollment` và sinh $N$ `Session`. Tuyệt đối không tạo booking đơn lẻ ngoài gói dịch vụ.
+* ⛔ **2. Mô hình Booking là Package-based (Không quay lại Single-slot Booking):** `Booking` tham chiếu `ServiceId`, hoặc `CustomAgreementId` đi kèm hidden `Service (Unpublished)` snapshot (`DEC-S8-020`). Thanh toán thành công kích hoạt `Enrollment` (qua `Pending → Active`) và sinh $N$ `Session`. Tuyệt đối không tạo booking đơn lẻ ngoài gói dịch vụ.
 * ⛔ **3. Sổ Cái Tài Chính & Audit Log là Append-Only (`INV-LEDGER-006`, `INV-LEDGER-007`):** `AppDbContext.SaveChangesAsync` chặn đứng mọi hành vi `Modified` hoặc `Deleted` đối với `AuditLog` và các giao dịch đã quyết toán (`Transaction.Status == Released || Succeeded`). Mọi điều chỉnh tài chính phải là transaction mới (`StudentRefund`, `PlatformFeeReversal`).
 * ⛔ **4. Cấm Chaining Transaction (`DEC-S8-030`):** Mọi giao dịch điều chỉnh (`StudentRefund`, `PlatformFeeReversal`) phải trỏ trực tiếp về giao dịch giải ngân gốc (`RelatedTransaction.Type == SessionPayoutCredit`), cấm trỏ bắc cầu vào một adjustment khác.
 * ⛔ **5. Bất Biến Rút Tiền Khả Dụng (`DEC-WD-001`, `DEC-S8-001`):** Gia sư chỉ được rút tiền tối đa bằng `WithdrawableBalance = AvailableBalance - HeldBalance`. Không được rút vào phần tiền đang bị giữ do tranh chấp (`HeldBalance`).
