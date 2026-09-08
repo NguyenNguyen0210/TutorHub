@@ -10,18 +10,21 @@ public class ProcessBookingTimeoutsCommandHandler : IRequestHandler<ProcessBooki
 {
     private readonly IAppDbContext _context;
     private readonly ILogger<ProcessBookingTimeoutsCommandHandler> _logger;
+    private readonly IClock _clock;
 
     public ProcessBookingTimeoutsCommandHandler(
         IAppDbContext context,
-        ILogger<ProcessBookingTimeoutsCommandHandler> logger)
+        ILogger<ProcessBookingTimeoutsCommandHandler> logger,
+        IClock clock)
     {
         _context = context;
         _logger = logger;
+        _clock = clock;
     }
 
     public async Task<int> Handle(ProcessBookingTimeoutsCommand request, CancellationToken cancellationToken)
     {
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         var processedCount = 0;
 
         // 1. Expire Holding Bookings (Past 15-minute window)
@@ -44,40 +47,9 @@ public class ProcessBookingTimeoutsCommandHandler : IRequestHandler<ProcessBooki
             processedCount += expiredHoldingBookings.Count;
         }
 
-        // 2. Expire Pending Bookings (Past 24-hour tutor confirmation window)
-        var expiredPendingBookings = await _context.Bookings
-            .Include(b => b.Transaction)
-            .Where(b => b.Status == BookingStatus.Pending &&
-                        b.CreatedAt.AddHours(24) <= now)
-            .ToListAsync(cancellationToken);
-
-        if (expiredPendingBookings.Count > 0)
-        {
-            _logger.LogInformation("Found {Count} expired pending bookings to refund and cancel.", expiredPendingBookings.Count);
-            foreach (var booking in expiredPendingBookings)
-            {
-                booking.Status = BookingStatus.Cancelled;
-                booking.CancelledBy = CancelledBy.System;
-                booking.CancellationReason = "TutorConfirmationTimeout";
-                booking.CancelledAt = now;
-
-                if (booking.Transaction != null && booking.Transaction.Status == TransactionStatus.Held)
-                {
-                    booking.Transaction.Status = TransactionStatus.Refunded;
-                    booking.Transaction.RefundedAt = now;
-
-                    var wallet = await _context.Wallets
-                        .FirstOrDefaultAsync(w => w.TutorProfileId == booking.TutorProfileId, cancellationToken);
-
-                    if (wallet != null)
-                    {
-                        wallet.PendingBalance = Math.Max(0, wallet.PendingBalance - booking.TotalAmount);
-                        wallet.UpdatedAt = now;
-                    }
-                }
-            }
-            processedCount += expiredPendingBookings.Count;
-        }
+        // Wave 3: the 24-hour tutor-confirmation expiry is gone with the
+        // Confirm/Reject flow. Paid bookings never expire here; only the
+        // 15-minute Holding window above is enforced.
 
         if (processedCount > 0)
         {

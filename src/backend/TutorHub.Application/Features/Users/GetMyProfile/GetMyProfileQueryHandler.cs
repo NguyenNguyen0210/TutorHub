@@ -33,7 +33,7 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, MyPro
             user.Phone,
             user.AvatarUrl,
             user.Role,
-            user.IsActive,
+            user.Status,
             user.CreatedAt
         );
     }

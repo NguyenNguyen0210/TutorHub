@@ -8,7 +8,6 @@ public record TutorSummaryDto(
     string Bio,
     string Education,
     int ExperienceYears,
-    decimal HourlyRate,
     string TeachingMode,
     string? Address,
     decimal RatingAvg,

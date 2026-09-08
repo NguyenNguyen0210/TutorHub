@@ -45,19 +45,26 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
                     .Select(ts => new AdminUserSubjectDto(ts.SubjectId, ts.Subject.Name))
                     .ToList();
 
-                var totalCompletedSessions = await _context.Bookings
+                // Wave 3: progress lives on Session, not Booking.
+                var totalCompletedSessions = await _context.Sessions
                     .AsNoTracking()
-                    .CountAsync(b => b.TutorProfileId == tutorProfile.Id && b.Status == BookingStatus.Completed, cancellationToken);
+                    .CountAsync(s => s.Enrollment.TutorProfileId == tutorProfile.Id && s.Status == SessionStatus.Completed, cancellationToken);
+
+                var latestApplication = await _context.TutorApplications
+                    .AsNoTracking()
+                    .Where(a => a.UserId == user.Id)
+                    .OrderBy(a => a.Status == TutorApplicationStatus.Approved ? 0 : a.Status == TutorApplicationStatus.Pending ? 1 : 2)
+                    .ThenByDescending(a => a.SubmittedAt)
+                    .FirstOrDefaultAsync(cancellationToken);
 
                 tutorProfileDto = new AdminUserTutorProfileDto(
                     Id: tutorProfile.Id,
                     Bio: tutorProfile.Bio,
                     Education: tutorProfile.Education,
                     ExperienceYears: tutorProfile.ExperienceYears,
-                    HourlyRate: tutorProfile.HourlyRate,
                     TeachingMode: tutorProfile.TeachingMode,
                     Address: tutorProfile.Address,
-                    Status: tutorProfile.Status,
+                    LatestApplicationStatus: latestApplication?.Status.ToString(),
                     RatingAvg: tutorProfile.RatingAvg,
                     TotalReviews: tutorProfile.TotalReviews,
                     WalletBalance: tutorProfile.Wallet?.AvailableBalance,
@@ -83,8 +90,8 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
 
                 var totalSpent = await _context.Bookings
                     .AsNoTracking()
-                    .Where(b => b.StudentProfileId == studentProfile.Id && b.Status == BookingStatus.Completed)
-                    .SumAsync(b => b.TotalAmount, cancellationToken);
+                    .Where(b => b.StudentProfileId == studentProfile.Id && b.Status == BookingStatus.Paid)
+                    .SumAsync(b => b.TotalPrice, cancellationToken);
 
                 studentProfileDto = new AdminUserStudentProfileDto(
                     TotalBookingsAsStudent: totalBookingsAsStudent,
@@ -104,9 +111,8 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
                 b.Subject.Name,
                 b.StudentProfile.UserId == user.Id ? b.TutorProfile.User.FullName : b.StudentProfile.User.FullName,
                 b.Status,
-                b.TotalAmount,
-                b.StartAt,
-                b.EndAt,
+                b.TotalPrice,
+                b.TotalSessions,
                 b.CreatedAt
             ))
             .ToListAsync(cancellationToken);
@@ -118,7 +124,7 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
             Phone: user.Phone,
             AvatarUrl: user.AvatarUrl,
             Role: user.Role,
-            IsActive: user.IsActive,
+            Status: user.Status,
             CreatedAt: user.CreatedAt,
             TutorProfile: tutorProfileDto,
             StudentProfile: studentProfileDto,

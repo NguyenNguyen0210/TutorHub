@@ -39,15 +39,16 @@ public class CreateAvailabilitySlotCommandHandler : IRequestHandler<CreateAvaila
             throw new BadRequestException($"The requested slot ({request.StartTime:HH\\:mm} - {request.EndTime:HH\\:mm}) overlaps with an existing availability slot on {request.DayOfWeek}.");
         }
 
-        var newSlot = new AvailabilitySlot
+        AvailabilitySlot newSlot;
+        try
         {
-            Id = Guid.NewGuid(),
-            TutorProfileId = tutor.Id,
-            DayOfWeek = request.DayOfWeek,
-            StartTime = request.StartTime,
-            EndTime = request.EndTime,
-            IsActive = true
-        };
+            // F-23: validated construction lives in the domain.
+            newSlot = AvailabilitySlot.Create(tutor.Id, request.DayOfWeek, request.StartTime, request.EndTime);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new BadRequestException(ex.Message);
+        }
 
         _context.AvailabilitySlots.Add(newSlot);
         await _context.SaveChangesAsync(cancellationToken);

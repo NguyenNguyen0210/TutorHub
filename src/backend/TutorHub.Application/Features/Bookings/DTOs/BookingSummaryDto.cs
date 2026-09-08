@@ -10,9 +10,9 @@ public record BookingSummaryDto(
     string TutorName,
     Guid SubjectId,
     string SubjectName,
-    DateTime StartAt,
-    DateTime EndAt,
-    decimal TotalAmount,
+    Guid? ServiceId,
+    decimal TotalPrice,
+    int TotalSessions,
     BookingStatus Status,
     DateTime CreatedAt
 );

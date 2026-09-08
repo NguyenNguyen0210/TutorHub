@@ -15,9 +15,9 @@ public class BuilderSanityTests
         // Assert
         booking.Should().NotBeNull();
         booking.Id.Should().NotBeEmpty();
-        booking.Status.Should().Be(BookingStatus.Pending);
-        booking.HourlyRate.Should().Be(200_000m);
-        booking.TotalAmount.Should().Be(200_000m);
+        booking.Status.Should().Be(BookingStatus.Paid);
+        booking.TotalPrice.Should().Be(200_000m);
+        booking.TotalSessions.Should().Be(1);
         booking.StudentProfile.Should().NotBeNull();
         booking.StudentProfile.User.Should().NotBeNull();
         booking.StudentProfile.User.Role.Should().Be(UserRole.Student);
@@ -25,7 +25,7 @@ public class BuilderSanityTests
         booking.TutorProfile.User.Should().NotBeNull();
         booking.TutorProfile.User.Role.Should().Be(UserRole.Tutor);
         booking.Subject.Should().NotBeNull();
-        booking.Transaction.Should().BeNull(); // Transaction is optional
+        booking.Transactions.Should().BeEmpty(); // P0 HOTFIX: 1:N, starts empty
     }
 
     [Fact]
@@ -33,11 +33,11 @@ public class BuilderSanityTests
     {
         // Act
         var booking = new BookingBuilder()
-            .WithStatus(BookingStatus.Confirmed)
+            .WithStatus(BookingStatus.Paid)
             .Build();
 
         // Assert
-        booking.Status.Should().Be(BookingStatus.Confirmed);
+        booking.Status.Should().Be(BookingStatus.Paid);
     }
 
     [Fact]

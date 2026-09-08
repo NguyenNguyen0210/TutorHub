@@ -83,12 +83,13 @@ public class GetAdminRevenueChartQueryHandler : IRequestHandler<GetAdminRevenueC
             decimal tutorPayouts = releasedTx.Sum(t => t.PayoutAmount);
 
             int totalBookings = monthBk.Count;
-            int completedBookings = monthBk.Count(b => b.Status == BookingStatus.Completed);
+            // Wave 3: learning progress lives on Enrollment/Session; chart counts paid bookings.
+            int paidBookings = monthBk.Count(b => b.Status == BookingStatus.Paid);
 
             return new RevenueChartDataPointDto(
                 Month: month,
                 TotalBookings: totalBookings,
-                CompletedBookings: completedBookings,
+                PaidBookings: paidBookings,
                 TotalGmv: totalGmv,
                 NetGmv: netGmv,
                 PlatformRevenue: platformRevenue,

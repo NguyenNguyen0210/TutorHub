@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Reports.DTOs;
@@ -38,10 +39,11 @@ public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, R
             throw new ForbiddenException("You do not have permission to report this booking.");
         }
 
-        // 2. Check booking eligibility (Only Confirmed, Completed, or Cancelled bookings can be reported)
-        if (booking.Status == BookingStatus.Holding || booking.Status == BookingStatus.Pending)
+        // 2. Check booking eligibility (Wave 3: anything except an unpaid Holding
+        // can be reported; learning progress lives on Enrollment).
+        if (booking.Status == BookingStatus.Holding)
         {
-            throw new BadRequestException("Reports can only be created for Confirmed, Completed, or Cancelled bookings.");
+            throw new BadRequestException("Reports can only be created for paid or cancelled bookings.");
         }
 
         // 3. Application-level check for duplicate report
@@ -56,18 +58,34 @@ public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, R
         var reporterUser = isStudent ? booking.StudentProfile.User : booking.TutorProfile.User;
         var reporterRole = isStudent ? "Student" : "Tutor";
 
-        var report = new Report
+        var targetUserId = isStudent ? booking.TutorProfile.UserId : booking.StudentProfile.UserId;
+
+        Report report;
+        try
         {
-            Id = Guid.NewGuid(),
-            BookingId = booking.Id,
-            ReporterUserId = request.UserId,
-            Description = request.Description.Trim(),
-            EvidenceUrl = string.IsNullOrWhiteSpace(request.EvidenceUrl) ? null : request.EvidenceUrl.Trim(),
-            Status = ReportStatus.Open,
-            CreatedAt = DateTime.UtcNow
-        };
+            // F-23: validated construction lives in the domain.
+            report = Report.Create(
+                reporterUserId: request.UserId,
+                reportType: TrustReportType.UserConduct,
+                description: request.Description,
+                bookingId: booking.Id,
+                reportedUserId: targetUserId,
+                targetId: booking.Id.ToString(),
+                evidenceUrl: request.EvidenceUrl);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new BadRequestException(ex.Message);
+        }
 
         _context.Reports.Add(report);
+
+        // Enqueue ReportCreated Outbox Message (DEC-S7-001, DEC-S7-002)
+        _context.AddOutboxMessage(new ReportCreatedEvent(
+            report.Id,
+            request.UserId,
+            targetUserId,
+            report.Description));
 
         // 4. Save changes with Unique Constraint protection
         try
@@ -87,8 +105,11 @@ public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, R
         return new ReportSummaryDto(
             Id: report.Id,
             BookingId: report.BookingId,
+            ReportType: report.ReportType,
+            ReportedUserId: report.ReportedUserId,
+            TargetId: report.TargetId,
             ReporterUserId: report.ReporterUserId,
-            ReporterName: reporterUser.FullName,
+            ReporterName: reporterUser?.FullName ?? string.Empty,
             ReporterRole: reporterRole,
             Description: report.Description,
             EvidenceUrl: report.EvidenceUrl,

@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
@@ -12,10 +13,12 @@ namespace TutorHub.Application.Features.Bookings.PayBooking;
 public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, BookingDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public PayBookingCommandHandler(IAppDbContext context)
+    public PayBookingCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<BookingDto> Handle(PayBookingCommand request, CancellationToken cancellationToken)
@@ -24,7 +27,7 @@ public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, Booki
             .Include(b => b.StudentProfile).ThenInclude(s => s.User)
             .Include(b => b.TutorProfile).ThenInclude(t => t.User)
             .Include(b => b.Subject)
-            .Include(b => b.Transaction)
+            .Include(b => b.Enrollment).ThenInclude(e => e!.Sessions)
             .FirstOrDefaultAsync(b => b.Id == request.BookingId, cancellationToken);
 
         if (booking == null)
@@ -38,103 +41,163 @@ public class PayBookingCommandHandler : IRequestHandler<PayBookingCommand, Booki
             throw new ForbiddenException("You do not have permission to pay for this booking.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
-        // 2. State & Expiration Validation
+        // 2. State & Double-Payment Protection Validation
         if (booking.Status != BookingStatus.Holding)
         {
             throw new ConflictException($"Cannot pay for booking in '{booking.Status}' status.");
         }
 
+        // 3. Holding Expiry Check (F-23: domain transition, not field sets).
         if (booking.HoldingExpiresAt.HasValue && now >= booking.HoldingExpiresAt.Value)
         {
-            // Lazy expiration handling
-            booking.Status = BookingStatus.Cancelled;
-            booking.CancelledBy = CancelledBy.System;
-            booking.CancellationReason = "HoldingExpired";
-            booking.CancelledAt = now;
+            booking.Cancel(CancelledBy.System, "HoldingExpired", now);
             await _context.SaveChangesAsync(cancellationToken);
 
             throw new BadRequestException("The 15-minute holding period for this booking has expired. Please create a new booking.");
         }
 
-        // 3. Transition to Pending & Create Held Transaction
-        booking.Status = BookingStatus.Pending;
-        booking.HoldingExpiresAt = null;
-
-        var transaction = new Transaction
+        // 4. Atomic Execution: Service-based Booking vs Legacy Booking
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
         {
-            Id = Guid.NewGuid(),
-            BookingId = booking.Id,
-            Amount = booking.TotalAmount,
-            Status = TransactionStatus.Held,
-            CommissionRate = 0,
-            CommissionAmount = 0,
-            PayoutAmount = booking.TotalAmount,
-            PaymentGatewayRef = request.PaymentMethod ?? "Mock",
-            CreatedAt = now
-        };
-
-        _context.Transactions.Add(transaction);
-        booking.Transaction = transaction;
-
-        // 4. Synchronize Tutor Wallet PendingBalance
-        var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.TutorProfileId == booking.TutorProfileId, cancellationToken);
-        if (wallet == null)
+            var result = await ProcessPaymentInternalAsync(booking, request, now, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return result;
+        }
+        catch
         {
-            wallet = new Wallet
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    private async Task<BookingDto> ProcessPaymentInternalAsync(
+        Booking booking,
+        PayBookingCommand request,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        if (booking.ServiceId.HasValue)
+        {
+            // --- Service-based flow (Sprint 4) ---
+            // Wave 3: Paid is the single canonical post-payment state.
+            // Learning progress lives on Enrollment/Session from here on.
+            booking.Status = BookingStatus.Paid;
+            booking.HoldingExpiresAt = null;
+
+            // Invariant: Initial Payment Transaction has SessionId = null (Held escrow)
+            var paymentTx = new Transaction
             {
                 Id = Guid.NewGuid(),
-                TutorProfileId = booking.TutorProfileId,
-                PendingBalance = booking.TotalAmount,
-                AvailableBalance = 0,
-                UpdatedAt = now
+                BookingId = booking.Id,
+                SessionId = null,
+                Amount = booking.TotalPrice,
+                Status = TransactionStatus.Held,
+                CommissionRate = 0,
+                CommissionAmount = 0,
+                PayoutAmount = booking.TotalPrice,
+                // F-10: gateway refs must be unique per attempt (partial unique
+                // index on PaymentGatewayRef) — suffix with the booking id.
+                PaymentGatewayRef = $"{request.PaymentMethod ?? "Mock"}-{booking.Id:N}",
+                CreatedAt = now
             };
-            _context.Wallets.Add(wallet);
-        }
-        else
-        {
-            wallet.PendingBalance += booking.TotalAmount;
-            wallet.UpdatedAt = now;
+
+            _context.Transactions.Add(paymentTx);
+
+            // Invariant: Enrollment snapshots 100% FROM BOOKING + live PlatformFeeRate (DEC-S8-020)
+            var feeRate = 0.10m;
+            var feeVersion = 1;
+            var feeSetting = await _context.PlatformSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Key == "PlatformFeeRate", cancellationToken);
+            if (feeSetting != null && decimal.TryParse(feeSetting.Value, out var parsedRate) && parsedRate >= 0 && parsedRate < 1)
+            {
+                feeRate = parsedRate;
+                feeVersion = feeSetting.CurrentVersion;
+            }
+
+            var enrollment = new Enrollment
+            {
+                Id = Guid.NewGuid(),
+                BookingId = booking.Id,
+                StudentProfileId = booking.StudentProfileId,
+                TutorProfileId = booking.TutorProfileId,
+                ServiceId = booking.ServiceId.Value,
+                SubjectId = booking.SubjectId,
+                TotalPrice = booking.TotalPrice,
+                TotalSessions = booking.TotalSessions,
+                SessionDurationMinutes = booking.SessionDurationMinutes,
+                TeachingMode = booking.TeachingMode,
+                PlatformFeeRate = feeRate,
+                FeePolicyVersion = feeVersion,
+                CreatedAt = now
+            };
+
+            // Invariant: Generate N Unscheduled Sessions with immutable allocated earning amount
+            var allocations = EnrollmentSessionAllocator.Allocate(booking.TotalPrice, booking.TotalSessions);
+            for (var i = 0; i < booking.TotalSessions; i++)
+            {
+                enrollment.Sessions.Add(new Session
+                {
+                    Id = Guid.NewGuid(),
+                    EnrollmentId = enrollment.Id,
+                    SessionNumber = i + 1,
+                    EarningAmount = allocations[i],
+                    CreatedAt = now
+                });
+            }
+
+            _context.Enrollments.Add(enrollment);
+            booking.Enrollment = enrollment;
+            // F-15: activate at the end of the paid flow, once escrow + sessions exist.
+            enrollment.Activate();
+
+            // Synchronize Tutor Wallet PendingBalance (Escrow hold)
+            var wallet = await _context.Wallets
+                .FirstOrDefaultAsync(w => w.TutorProfileId == booking.TutorProfileId, cancellationToken);
+
+            if (wallet == null)
+            {
+                wallet = new Wallet
+                {
+                    Id = Guid.NewGuid(),
+                    TutorProfileId = booking.TutorProfileId,
+                    PendingBalance = 0,
+                    AvailableBalance = 0,
+                    UpdatedAt = now
+                };
+                _context.Wallets.Add(wallet);
+            }
+
+            // F-23: guarded domain math.
+            wallet.CreditPending(booking.TotalPrice, now);
+
+            // Enqueue Outbox Messages in same DB transaction (DEC-S7-001, DEC-S7-002)
+            _context.AddOutboxMessage(new PaymentSucceededEvent(
+                booking.Id,
+                booking.StudentProfile.UserId,
+                new MoneyDto(booking.TotalPrice),
+                enrollment.Id));
+
+            _context.AddOutboxMessage(new EnrollmentActivatedEvent(
+                enrollment.Id,
+                enrollment.StudentProfileId,
+                enrollment.TutorProfileId,
+                booking.StudentProfile.UserId,
+                booking.TutorProfile.UserId));
+
+            // F-23 (Đợt 4): centralized mapping.
+            var enrollmentDto = EnrollmentMapper.ToDto(enrollment, booking.Subject.Name);
+
+            return BookingMapper.ToDto(
+                booking,
+                BookingMapper.ToTransactionDto(paymentTx),
+                enrollmentDto);
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return new BookingDto(
-            Id: booking.Id,
-            StudentProfileId: booking.StudentProfileId,
-            StudentName: booking.StudentProfile.User.FullName,
-            StudentEmail: booking.StudentProfile.User.Email,
-            StudentPhone: booking.StudentProfile.User.Phone,
-            TutorProfileId: booking.TutorProfileId,
-            TutorName: booking.TutorProfile.User.FullName,
-            TutorEmail: booking.TutorProfile.User.Email,
-            TutorPhone: booking.TutorProfile.User.Phone,
-            SubjectId: booking.SubjectId,
-            SubjectName: booking.Subject.Name,
-            StartAt: booking.StartAt,
-            EndAt: booking.EndAt,
-            HourlyRate: booking.HourlyRate,
-            TotalAmount: booking.TotalAmount,
-            Status: booking.Status,
-            HoldingExpiresAt: booking.HoldingExpiresAt,
-            ConfirmedAt: booking.ConfirmedAt,
-            CompletedAt: booking.CompletedAt,
-            CancelledAt: booking.CancelledAt,
-            CancelledBy: booking.CancelledBy,
-            CancellationReason: booking.CancellationReason,
-            CreatedAt: booking.CreatedAt,
-            Transaction: new TransactionDto(
-                Id: transaction.Id,
-                Amount: transaction.Amount,
-                Status: transaction.Status,
-                CommissionRate: transaction.CommissionRate,
-                CommissionAmount: transaction.CommissionAmount,
-                PayoutAmount: transaction.PayoutAmount,
-                CreatedAt: transaction.CreatedAt,
-                ReleasedAt: transaction.ReleasedAt,
-                RefundedAt: transaction.RefundedAt
-            )
-        );
+        throw new InvalidOperationException("Booking is missing ServiceId commercial reference.");
     }
 }

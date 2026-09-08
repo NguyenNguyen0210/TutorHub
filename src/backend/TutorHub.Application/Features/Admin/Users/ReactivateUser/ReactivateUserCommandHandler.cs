@@ -1,0 +1,77 @@
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Exceptions;
+using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Features.Admin.Users.DTOs;
+using TutorHub.Domain.Entities;
+using TutorHub.Domain.Enums;
+
+namespace TutorHub.Application.Features.Admin.Users.ReactivateUser;
+
+public class ReactivateUserCommandHandler : IRequestHandler<ReactivateUserCommand, AdminUserSummaryDto>
+{
+    private readonly IAppDbContext _context;
+    private readonly IAuditLogService _auditLogService;
+
+    public ReactivateUserCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    {
+        _context = context;
+        _auditLogService = auditLogService;
+    }
+
+    public async Task<AdminUserSummaryDto> Handle(ReactivateUserCommand request, CancellationToken cancellationToken)
+    {
+        // 1. Find target user
+        var user = await _context.Users
+            .Include(u => u.TutorApplications)
+            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+
+        if (user == null)
+        {
+            throw new NotFoundException("User", request.UserId);
+        }
+
+        // 2. Domain state transition (enforces Suspended -> Active)
+        var previousStatus = user.Status;
+        try
+        {
+            user.Reactivate();
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new ConflictException(ex.Message);
+        }
+
+        var nowUtc = DateTime.UtcNow;
+
+        // 3. Central Append-Only Audit Trail Logging
+        await _auditLogService.LogAsync(
+            action: "USER_REACTIVATED",
+            entityName: "User",
+            entityId: user.Id.ToString(),
+            userId: request.AdminId,
+            oldValues: new { status = previousStatus.ToString() },
+            newValues: new { status = user.Status.ToString(), reason = "Reactivated by administrator" },
+            cancellationToken: cancellationToken);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var latestAppStatus = user.TutorApplications
+            .OrderBy(a => a.Status == TutorApplicationStatus.Approved ? 0 : a.Status == TutorApplicationStatus.Pending ? 1 : 2)
+            .ThenByDescending(a => a.SubmittedAt)
+            .Select(a => a.Status.ToString())
+            .FirstOrDefault();
+
+        return new AdminUserSummaryDto(
+            Id: user.Id,
+            Email: user.Email,
+            FullName: user.FullName,
+            Phone: user.Phone,
+            AvatarUrl: user.AvatarUrl,
+            Role: user.Role,
+            Status: user.Status,
+            CreatedAt: user.CreatedAt,
+            TutorApplicationStatus: latestAppStatus
+        );
+    }
+}

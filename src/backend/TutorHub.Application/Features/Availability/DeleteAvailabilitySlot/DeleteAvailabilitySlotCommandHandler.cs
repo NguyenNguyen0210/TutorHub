@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Availability.DeleteAvailabilitySlot;
 
@@ -32,6 +33,34 @@ public class DeleteAvailabilitySlotCommandHandler : IRequestHandler<DeleteAvaila
             throw new NotFoundException("AvailabilitySlot", request.SlotId);
         }
 
+        // 1. Acquire row-level lock on TutorProfile (FOR UPDATE - INV-AVAIL-008)
+        await _context.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"TutorProfiles\" WHERE \"Id\" = {tutor.Id} FOR UPDATE;",
+            cancellationToken);
+
+        // 2. Fetch concrete future scheduled sessions for this tutor (INV-AVAIL-005)
+        var nowUtc = DateTime.UtcNow;
+        var futureScheduledSessions = await _context.Sessions
+            .Where(s => s.Enrollment.TutorProfileId == tutor.Id &&
+                        s.Status == SessionStatus.Scheduled &&
+                        s.StartAt.HasValue && s.StartAt.Value >= nowUtc)
+            .ToListAsync(cancellationToken);
+
+        // 3. Evaluate proposed schedule excluding the slot to be deleted
+        var currentSlots = await _context.AvailabilitySlots
+            .Where(a => a.TutorProfileId == tutor.Id && a.IsActive)
+            .ToListAsync(cancellationToken);
+
+        var proposedSchedule = currentSlots
+            .Where(s => s.Id != slot.Id)
+            .Select(s => (s.DayOfWeek, s.StartTime, s.EndTime))
+            .ToList();
+
+        Availability.Common.AvailabilityMutationPolicy.EnsureNoFutureScheduledSessionsUncovered(
+            proposedSchedule,
+            futureScheduledSessions);
+
+        // 4. Delete the slot and persist
         _context.AvailabilitySlots.Remove(slot);
         await _context.SaveChangesAsync(cancellationToken);
 

@@ -20,14 +20,14 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
         // 1. Grouped Users Metrics
         var userGroup = await _context.Users
             .AsNoTracking()
-            .GroupBy(u => new { u.Role, u.IsActive })
-            .Select(g => new { g.Key.Role, g.Key.IsActive, Count = g.Count() })
+            .GroupBy(u => new { u.Role, u.Status })
+            .Select(g => new { g.Key.Role, g.Key.Status, Count = g.Count() })
             .ToListAsync(cancellationToken);
 
         int totalUsers = userGroup.Sum(g => g.Count);
         int totalStudents = userGroup.Where(g => g.Role == UserRole.Student).Sum(g => g.Count);
         int totalTutors = userGroup.Where(g => g.Role == UserRole.Tutor).Sum(g => g.Count);
-        int activeUsers = userGroup.Where(g => g.IsActive).Sum(g => g.Count);
+        int activeUsers = userGroup.Where(g => g.Status == AccountStatus.Active).Sum(g => g.Count);
 
         var usersStats = new UserStatsDto(
             TotalUsers: totalUsers,
@@ -36,18 +36,18 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
             ActiveUsers: activeUsers
         );
 
-        // 2. Grouped Tutors Metrics
-        var tutorGroup = await _context.TutorProfiles
+        // 2. Grouped Tutors Metrics (based on TutorApplications & User status)
+        var applicationGroup = await _context.TutorApplications
             .AsNoTracking()
-            .GroupBy(t => t.Status)
+            .GroupBy(a => a.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToListAsync(cancellationToken);
 
-        int verifiedTutors = tutorGroup.FirstOrDefault(g => g.Status == TutorProfileStatus.Verified)?.Count ?? 0;
-        int pendingReviewTutors = tutorGroup.FirstOrDefault(g => g.Status == TutorProfileStatus.PendingReview)?.Count ?? 0;
-        int draftTutors = tutorGroup.FirstOrDefault(g => g.Status == TutorProfileStatus.Draft)?.Count ?? 0;
-        int rejectedTutors = tutorGroup.FirstOrDefault(g => g.Status == TutorProfileStatus.Rejected)?.Count ?? 0;
-        int suspendedTutors = tutorGroup.FirstOrDefault(g => g.Status == TutorProfileStatus.Suspended)?.Count ?? 0;
+        int verifiedTutors = applicationGroup.FirstOrDefault(g => g.Status == TutorApplicationStatus.Approved)?.Count ?? 0;
+        int pendingReviewTutors = applicationGroup.FirstOrDefault(g => g.Status == TutorApplicationStatus.Pending)?.Count ?? 0;
+        int draftTutors = 0;
+        int rejectedTutors = applicationGroup.FirstOrDefault(g => g.Status == TutorApplicationStatus.Rejected)?.Count ?? 0;
+        int suspendedTutors = userGroup.Where(g => g.Role == UserRole.Tutor && g.Status == AccountStatus.Suspended).Sum(g => g.Count);
 
         var tutorsStats = new TutorStatsDto(
             VerifiedTutors: verifiedTutors,
@@ -68,10 +68,10 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
             .ToListAsync(cancellationToken);
 
         int totalBookings = bookingGroup.Sum(g => g.Count);
-        int pendingBookings = bookingGroup.FirstOrDefault(g => g.Status == BookingStatus.Pending)?.Count ?? 0;
-        int confirmedBookings = bookingGroup.FirstOrDefault(g => g.Status == BookingStatus.Confirmed)?.Count ?? 0;
-        int completedBookings = bookingGroup.FirstOrDefault(g => g.Status == BookingStatus.Completed)?.Count ?? 0;
+        // Wave 3: Holding / Paid / Cancelled / Expired are the only states.
+        int paidBookings = bookingGroup.FirstOrDefault(g => g.Status == BookingStatus.Paid)?.Count ?? 0;
         int cancelledBookings = bookingGroup.FirstOrDefault(g => g.Status == BookingStatus.Cancelled)?.Count ?? 0;
+        int expiredBookings = bookingGroup.FirstOrDefault(g => g.Status == BookingStatus.Expired)?.Count ?? 0;
 
         // Accurate active holding bookings (within 15 minutes window)
         int holdingBookings = await _context.Bookings
@@ -81,10 +81,9 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
         var bookingsStats = new BookingStatsDto(
             TotalBookings: totalBookings,
             HoldingBookings: holdingBookings,
-            PendingBookings: pendingBookings,
-            ConfirmedBookings: confirmedBookings,
-            CompletedBookings: completedBookings,
-            CancelledBookings: cancelledBookings
+            PaidBookings: paidBookings,
+            CancelledBookings: cancelledBookings,
+            ExpiredBookings: expiredBookings
         );
 
         // 4. Financial & GMV Metrics (Held = In Escrow, Released = Completed & Paid to Tutor, Refunded = Returned to Student)

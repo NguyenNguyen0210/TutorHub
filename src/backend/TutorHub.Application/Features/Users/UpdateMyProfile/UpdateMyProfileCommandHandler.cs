@@ -50,7 +50,7 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
         // 3. AvatarUrl Normalization (empty / whitespace to null)
         user.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
 
-        // Note: Protected fields (Email, Role, PasswordHash, IsActive, CreatedAt) remain strictly untouched.
+        // Note: Protected fields (Email, Role, PasswordHash, Status, CreatedAt) remain strictly untouched.
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -61,7 +61,7 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
             user.Phone,
             user.AvatarUrl,
             user.Role,
-            user.IsActive,
+            user.Status,
             user.CreatedAt
         );
     }

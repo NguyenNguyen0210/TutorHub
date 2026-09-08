@@ -10,6 +10,14 @@ public class ReportConfiguration : IEntityTypeConfiguration<Report>
     {
         builder.HasKey(r => r.Id);
 
+        builder.Property(r => r.ReportType)
+            .HasConversion<string>()
+            .HasMaxLength(50)
+            .IsRequired();
+
+        builder.Property(r => r.TargetId)
+            .HasMaxLength(200);
+
         builder.Property(r => r.Description)
             .IsRequired()
             .HasMaxLength(2000);
@@ -32,15 +40,24 @@ public class ReportConfiguration : IEntityTypeConfiguration<Report>
         builder.Property(r => r.CreatedAt)
             .IsRequired();
 
-        builder.HasIndex(r => r.Status);
-
-        builder.HasIndex(r => new { r.BookingId, r.ReporterUserId })
-            .IsUnique();
+        // Foreign keys
+        builder.Property(r => r.BookingId)
+            .IsRequired(false);
 
         builder.HasOne(r => r.Booking)
             .WithMany(b => b.Reports)
             .HasForeignKey(r => r.BookingId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.Property(r => r.ReportedUserId)
+            .IsRequired(false);
+
+        builder.HasOne(r => r.ReportedUser)
+            .WithMany()
+            .HasForeignKey(r => r.ReportedUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(r => r.ReporterUser)
             .WithMany()
@@ -51,5 +68,12 @@ public class ReportConfiguration : IEntityTypeConfiguration<Report>
             .WithMany()
             .HasForeignKey(r => r.ResolvedByAdminId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Moderation querying indexes
+        builder.HasIndex(r => r.Status);
+        builder.HasIndex(r => r.ReportType);
+        builder.HasIndex(r => r.ReportedUserId);
+        builder.HasIndex(r => r.ReporterUserId);
+        builder.HasIndex(r => r.CreatedAt);
     }
 }

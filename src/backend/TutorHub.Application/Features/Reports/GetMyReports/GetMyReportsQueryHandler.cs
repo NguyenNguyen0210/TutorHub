@@ -33,6 +33,9 @@ public class GetMyReportsQueryHandler : IRequestHandler<GetMyReportsQuery, Paged
             .Select(r => new UserReportDetailDto(
                 r.Id,
                 r.BookingId,
+                r.ReportType,
+                r.ReportedUserId,
+                r.TargetId,
                 r.Description,
                 r.EvidenceUrl,
                 r.Status,

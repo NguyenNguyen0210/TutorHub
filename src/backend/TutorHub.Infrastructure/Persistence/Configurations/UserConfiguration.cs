@@ -36,10 +36,19 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(50)
             .IsRequired();
 
-        builder.Property(u => u.IsActive)
-            .IsRequired();
+        builder.Property(u => u.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired()
+            .HasDefaultValue(TutorHub.Domain.Enums.AccountStatus.Active);
 
         builder.Property(u => u.CreatedAt)
             .IsRequired();
+
+        builder.Property(u => u.AbsentStrikes)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.ToTable(t => t.HasCheckConstraint("CK_User_NonNegativeStrikes", "\"AbsentStrikes\" >= 0"));
     }
 }

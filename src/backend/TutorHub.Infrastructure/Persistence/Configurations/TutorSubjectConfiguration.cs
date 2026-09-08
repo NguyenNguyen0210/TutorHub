@@ -13,9 +13,6 @@ public class TutorSubjectConfiguration : IEntityTypeConfiguration<TutorSubject>
         builder.HasIndex(ts => new { ts.TutorProfileId, ts.SubjectId })
             .IsUnique();
 
-        builder.Property(ts => ts.OverridePrice)
-            .HasPrecision(10, 2);
-
         builder.Property(ts => ts.IsActive)
             .IsRequired();
 

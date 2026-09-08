@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Domain.UnitTests",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Application.UnitTests", "..\test\TutorHub.Application.UnitTests\TutorHub.Application.UnitTests.csproj", "{36D9DDAB-5133-44BE-A231-B601B4314BB8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Api.IntegrationTests", "..\test\TutorHub.Api.IntegrationTests\TutorHub.Api.IntegrationTests.csproj", "{1335D63A-31BA-4393-8598-F92792B70227}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,18 @@ Global
 		{36D9DDAB-5133-44BE-A231-B601B4314BB8}.Release|x64.Build.0 = Release|Any CPU
 		{36D9DDAB-5133-44BE-A231-B601B4314BB8}.Release|x86.ActiveCfg = Release|Any CPU
 		{36D9DDAB-5133-44BE-A231-B601B4314BB8}.Release|x86.Build.0 = Release|Any CPU
+		{1335D63A-31BA-4393-8598-F92792B70227}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1335D63A-31BA-4393-8598-F92792B70227}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1335D63A-31BA-4393-8598-F92792B70227}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1335D63A-31BA-4393-8598-F92792B70227}.Debug|x64.Build.0 = Debug|Any CPU
+		{1335D63A-31BA-4393-8598-F92792B70227}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1335D63A-31BA-4393-8598-F92792B70227}.Debug|x86.Build.0 = Debug|Any CPU
+		{1335D63A-31BA-4393-8598-F92792B70227}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1335D63A-31BA-4393-8598-F92792B70227}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1335D63A-31BA-4393-8598-F92792B70227}.Release|x64.ActiveCfg = Release|Any CPU
+		{1335D63A-31BA-4393-8598-F92792B70227}.Release|x64.Build.0 = Release|Any CPU
+		{1335D63A-31BA-4393-8598-F92792B70227}.Release|x86.ActiveCfg = Release|Any CPU
+		{1335D63A-31BA-4393-8598-F92792B70227}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

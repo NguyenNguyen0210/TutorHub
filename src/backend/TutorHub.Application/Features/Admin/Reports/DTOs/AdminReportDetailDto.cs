@@ -5,7 +5,12 @@ namespace TutorHub.Application.Features.Admin.Reports.DTOs;
 
 public record AdminReportDetailDto(
     Guid Id,
-    Guid BookingId,
+    Guid? BookingId,
+    TrustReportType ReportType,
+    Guid? ReportedUserId,
+    string? ReportedUserName,
+    string? ReportedUserEmail,
+    string? TargetId,
     Guid ReporterUserId,
     string ReporterName,
     string ReporterRole,
@@ -18,11 +23,11 @@ public record AdminReportDetailDto(
     string? ResolvedByAdminName,
     DateTime CreatedAt,
     DateTime? ResolvedAt,
-    BookingSummaryDto Booking,
-    string StudentName,
-    string StudentEmail,
+    BookingSummaryDto? Booking,
+    string? StudentName,
+    string? StudentEmail,
     string? StudentPhone,
-    string TutorName,
-    string TutorEmail,
+    string? TutorName,
+    string? TutorEmail,
     string? TutorPhone
 );

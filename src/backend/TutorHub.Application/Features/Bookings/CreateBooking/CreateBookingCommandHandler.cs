@@ -11,10 +11,12 @@ namespace TutorHub.Application.Features.Bookings.CreateBooking;
 public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand, BookingDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public CreateBookingCommandHandler(IAppDbContext context)
+    public CreateBookingCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<BookingDto> Handle(CreateBookingCommand request, CancellationToken cancellationToken)
@@ -41,78 +43,61 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
             _context.StudentProfiles.Add(student);
         }
 
-        // 2. Fetch and validate TutorProfile
-        var tutor = await _context.TutorProfiles
-            .Include(t => t.User)
-            .Include(t => t.TutorSubjects)
-            .Include(t => t.AvailabilitySlots)
-            .FirstOrDefaultAsync(t => t.Id == request.TutorProfileId, cancellationToken);
+        // 2. Load Service Offering with TutorProfile.User and Subject
+        var service = await _context.Services
+            .Include(s => s.TutorProfile).ThenInclude(t => t.User)
+            .Include(s => s.Subject)
+            .FirstOrDefaultAsync(s => s.Id == request.ServiceId, cancellationToken);
 
-        if (tutor == null || tutor.Status != TutorProfileStatus.Verified || !tutor.User.IsActive)
+        if (service == null)
         {
-            throw new BadRequestException("The selected tutor profile is not active or verified.");
+            throw new NotFoundException("Service", request.ServiceId);
         }
 
-        // 3. Verify Tutor teaches the specified subject
-        var tutorSubject = tutor.TutorSubjects.FirstOrDefault(ts => ts.SubjectId == request.SubjectId && ts.IsActive);
-        if (tutorSubject == null)
+        // 3. Invariant Validations
+        if (service.Status != ServiceStatus.Published)
         {
-            throw new BadRequestException("The selected tutor does not teach this subject.");
+            throw new BadRequestException("Only published services can be booked.");
         }
 
-        var subject = await _context.Subjects.FirstOrDefaultAsync(s => s.Id == request.SubjectId, cancellationToken);
-        if (subject == null || !subject.IsActive)
+        var isTutorApproved = await _context.TutorApplications
+            .AnyAsync(a => a.UserId == service.TutorProfile.UserId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
+
+        if (!isTutorApproved)
         {
-            throw new NotFoundException("Subject", request.SubjectId);
+            throw new BadRequestException("The tutor offering this service is not approved.");
         }
 
-        // 4. Validate booking falls within tutor's weekly availability
-        var dayOfWeek = request.StartAt.DayOfWeek;
-        var startLocalTime = TimeOnly.FromDateTime(request.StartAt);
-        var endLocalTime = TimeOnly.FromDateTime(request.EndAt);
-
-        var isWithinAvailability = tutor.AvailabilitySlots.Any(s =>
-            s.IsActive &&
-            s.DayOfWeek == dayOfWeek &&
-            s.StartTime <= startLocalTime &&
-            s.EndTime >= endLocalTime);
-
-        if (!isWithinAvailability)
+        if (service.TutorProfile.User.Status != AccountStatus.Active)
         {
-            throw new BadRequestException("The requested booking time falls outside of the tutor's weekly availability schedule.");
+            throw new ForbiddenException("The tutor's account is currently not active.");
         }
 
-        // 5. Concurrency & Overlap check (Active Bookings)
-        var hasConflict = await _context.Bookings
-            .AnyAsync(b => b.TutorProfileId == tutor.Id &&
-                           b.StartAt < request.EndAt && request.StartAt < b.EndAt &&
-                           (b.Status == BookingStatus.Pending ||
-                            b.Status == BookingStatus.Confirmed ||
-                            b.Status == BookingStatus.Completed ||
-                            (b.Status == BookingStatus.Holding && b.HoldingExpiresAt.HasValue && b.HoldingExpiresAt.Value > DateTime.UtcNow)),
-                      cancellationToken);
-
-        if (hasConflict)
+        if (student.UserId == service.TutorProfile.UserId)
         {
-            throw new ConflictException("The selected time slot has already been booked or is currently held by another student.");
+            throw new BadRequestException("Tutors cannot book their own services.");
         }
 
-        // 6. Calculate total amount
-        var hourlyRate = tutorSubject.OverridePrice ?? tutor.HourlyRate;
-        var durationHours = (decimal)(request.EndAt - request.StartAt).TotalHours;
-        var totalAmount = Math.Round(durationHours * hourlyRate, 2);
+        // 3b. No-show freeze (Q1b): 2+ strikes in 30 days with the latest under 7 days old.
+        // StudentProfile.User is always loaded above (Include) or attached at creation.
+        var now = _clock.UtcNow;
+        if (student.User.IsBookingBlocked(now))
+        {
+            throw new ForbiddenException("Booking is temporarily frozen due to repeated no-show absences. Please try again after the freeze period.");
+        }
 
-        var now = DateTime.UtcNow;
+        // 4. Pure Service Checkout Holding Snapshot (15m expiration lock)
         var booking = new Booking
         {
             Id = Guid.NewGuid(),
             StudentProfileId = student.Id,
-            TutorProfileId = tutor.Id,
-            SubjectId = subject.Id,
-            StartAt = request.StartAt,
-            EndAt = request.EndAt,
-            HourlyRate = hourlyRate,
-            TotalAmount = totalAmount,
+            TutorProfileId = service.TutorProfileId,
+            SubjectId = service.SubjectId,
+            ServiceId = service.Id,
+            TotalPrice = service.Price,
+            TotalSessions = service.TotalSessions,
+            SessionDurationMinutes = service.SessionDurationMinutes,
+            TeachingMode = service.TeachingMode,
             Status = BookingStatus.Holding,
             HoldingExpiresAt = now.AddMinutes(15),
             CreatedAt = now
@@ -121,31 +106,10 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new BookingDto(
-            Id: booking.Id,
-            StudentProfileId: student.Id,
-            StudentName: student.User.FullName,
-            StudentEmail: student.User.Email,
-            StudentPhone: student.User.Phone,
-            TutorProfileId: tutor.Id,
-            TutorName: tutor.User.FullName,
-            TutorEmail: tutor.User.Email,
-            TutorPhone: tutor.User.Phone,
-            SubjectId: subject.Id,
-            SubjectName: subject.Name,
-            StartAt: booking.StartAt,
-            EndAt: booking.EndAt,
-            HourlyRate: booking.HourlyRate,
-            TotalAmount: booking.TotalAmount,
-            Status: booking.Status,
-            HoldingExpiresAt: booking.HoldingExpiresAt,
-            ConfirmedAt: booking.ConfirmedAt,
-            CompletedAt: booking.CompletedAt,
-            CancelledAt: booking.CancelledAt,
-            CancelledBy: booking.CancelledBy,
-            CancellationReason: booking.CancellationReason,
-            CreatedAt: booking.CreatedAt,
-            Transaction: null
-        );
+        // F-23 (Đợt 4): centralized mapping (attach loaded navs first).
+        booking.StudentProfile = student;
+        booking.TutorProfile = service.TutorProfile;
+        booking.Subject = service.Subject;
+        return BookingMapper.ToDto(booking, transaction: null);
     }
 }

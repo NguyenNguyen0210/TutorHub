@@ -22,16 +22,28 @@ public class GetTutorAvailabilityQueryHandler : IRequestHandler<GetTutorAvailabi
             .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == request.TutorProfileId, cancellationToken);
 
-        if (tutor == null || tutor.Status != TutorProfileStatus.Verified)
+        if (tutor == null)
         {
             throw new NotFoundException("TutorProfile", request.TutorProfileId);
         }
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var fromDate = request.FromDate ?? today;
-        if (fromDate < today)
+        var isApprovedTutor = await _context.TutorApplications
+            .AnyAsync(a => a.UserId == tutor.UserId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
+
+        if (!isApprovedTutor)
         {
-            fromDate = today;
+            throw new NotFoundException("TutorProfile", request.TutorProfileId);
+        }
+
+        var canonicalTimeZone = TimeZoneInfo.FindSystemTimeZoneById(OperatingSystem.IsWindows() ? "SE Asia Standard Time" : "Asia/Ho_Chi_Minh");
+        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, canonicalTimeZone);
+        var todayLocal = DateOnly.FromDateTime(nowLocal);
+        var nowTime = TimeOnly.FromDateTime(nowLocal);
+
+        var fromDate = request.FromDate ?? todayLocal;
+        if (fromDate < todayLocal)
+        {
+            fromDate = todayLocal;
         }
 
         var toDate = request.ToDate ?? fromDate.AddDays(7);
@@ -40,29 +52,28 @@ public class GetTutorAvailabilityQueryHandler : IRequestHandler<GetTutorAvailabi
             toDate = fromDate.AddDays(7);
         }
 
-        // Fetch tutor's active weekly availability slots
+        // Fetch tutor's active weekly availability slots (configured in localized canonical timezone)
         var weeklySlots = await _context.AvailabilitySlots
             .AsNoTracking()
             .Where(a => a.TutorProfileId == tutor.Id && a.IsActive)
             .OrderBy(a => a.StartTime)
             .ToListAsync(cancellationToken);
 
-        // Fetch active bookings in range
-        var startDateTimeUtc = fromDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-        var endDateTimeUtc = toDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+        // Convert localized date boundaries to UTC for querying persisted sessions
+        var startDateTimeLocal = fromDate.ToDateTime(TimeOnly.MinValue);
+        var endDateTimeLocal = toDate.ToDateTime(TimeOnly.MaxValue);
+        var startDateTimeUtc = TimeZoneInfo.ConvertTimeToUtc(startDateTimeLocal, canonicalTimeZone);
+        var endDateTimeUtc = TimeZoneInfo.ConvertTimeToUtc(endDateTimeLocal, canonicalTimeZone);
 
-        var activeBookings = await _context.Bookings
+        var activeSessions = await _context.Sessions
             .AsNoTracking()
-            .Where(b => b.TutorProfileId == tutor.Id &&
-                        b.StartAt <= endDateTimeUtc && b.EndAt >= startDateTimeUtc &&
-                        (b.Status == BookingStatus.Confirmed ||
-                         b.Status == BookingStatus.Pending ||
-                         b.Status == BookingStatus.Completed ||
-                         (b.Status == BookingStatus.Holding && b.HoldingExpiresAt.HasValue && b.HoldingExpiresAt.Value > DateTime.UtcNow)))
-            .OrderBy(b => b.StartAt)
+            .Where(s => s.Enrollment.TutorProfileId == tutor.Id &&
+                        s.Status == SessionStatus.Scheduled &&
+                        s.StartAt.HasValue && s.EndAt.HasValue &&
+                        s.StartAt.Value <= endDateTimeUtc && s.EndAt.Value >= startDateTimeUtc)
+            .OrderBy(s => s.StartAt)
             .ToListAsync(cancellationToken);
 
-        var nowTime = TimeOnly.FromDateTime(DateTime.UtcNow);
         var daysResult = new List<DailyAvailabilityDto>();
 
         for (var date = fromDate; date <= toDate; date = date.AddDays(1))
@@ -83,33 +94,36 @@ public class GetTutorAvailabilityQueryHandler : IRequestHandler<GetTutorAvailabi
                 continue;
             }
 
-            // Initial available intervals for this day
+            // Initial available intervals for this day (in tutor local time)
             var availableIntervals = daySlots.Select(s => (Start: s.StartTime, End: s.EndTime)).ToList();
 
-            // Find bookings on this specific calendar date
-            var dayStartUtc = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            var dayEndUtc = date.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
-
-            var dayBookings = activeBookings
-                .Where(b => b.StartAt < dayEndUtc && b.EndAt > dayStartUtc)
-                .ToList();
-
+            // Find sessions that overlap with this calendar date in local canonical timezone
             var bookedSlots = new List<TimeRangeDto>();
 
-            foreach (var booking in dayBookings)
+            foreach (var session in activeSessions)
             {
-                // Clamp booking start/end to this day
-                var bStart = booking.StartAt < dayStartUtc ? TimeOnly.MinValue : TimeOnly.FromDateTime(booking.StartAt);
-                var bEnd = booking.EndAt > dayEndUtc ? TimeOnly.MaxValue : TimeOnly.FromDateTime(booking.EndAt);
+                var sStartLocal = TimeZoneInfo.ConvertTimeFromUtc(session.StartAt!.Value, canonicalTimeZone);
+                var sEndLocal = TimeZoneInfo.ConvertTimeFromUtc(session.EndAt!.Value, canonicalTimeZone);
 
-                bookedSlots.Add(new TimeRangeDto(bStart, bEnd));
+                var sessionStartDate = DateOnly.FromDateTime(sStartLocal);
+                var sessionEndDate = DateOnly.FromDateTime(sEndLocal);
 
-                // Subtract booking interval from available intervals
-                availableIntervals = SubtractInterval(availableIntervals, bStart, bEnd);
+                // Check if session touches this calendar date
+                if (sessionStartDate <= date && sessionEndDate >= date)
+                {
+                    var sStart = sessionStartDate < date ? TimeOnly.MinValue : TimeOnly.FromDateTime(sStartLocal);
+                    var sEnd = sessionEndDate > date ? TimeOnly.MaxValue : TimeOnly.FromDateTime(sEndLocal);
+
+                    if (sStart < sEnd)
+                    {
+                        bookedSlots.Add(new TimeRangeDto(sStart, sEnd));
+                        availableIntervals = SubtractInterval(availableIntervals, sStart, sEnd);
+                    }
+                }
             }
 
             // Filter out past time if current date is today
-            if (date == today)
+            if (date == todayLocal)
             {
                 availableIntervals = availableIntervals
                     .Where(i => i.End > nowTime)

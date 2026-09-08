@@ -3,6 +3,7 @@ using FluentAssertions;
 using Moq;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Security;
 using TutorHub.Application.Features.Auth.Register;
 using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
@@ -61,6 +62,7 @@ public class RegisterCommandHandlerTests
         // Password security contract: Never stored in plaintext
         createdUser.PasswordHash.Should().NotBe(rawPassword);
         createdUser.PasswordHash.Should().Be(hashedPassword);
+        createdUser.Status.Should().Be(AccountStatus.Active);
 
         studentProfilesList.Should().ContainSingle(s => s.UserId == createdUser.Id);
         _passwordHasherMock.Verify(h => h.HashPassword(rawPassword), Times.Once);
@@ -68,7 +70,7 @@ public class RegisterCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldRegisterTutorAndWallet_WhenRequestIsValid()
+    public async Task Handle_ShouldRegisterTutor_WithoutCreatingProfileOrWallet_WhenRequestIsValid()
     {
         // Arrange
         const string rawPassword = "TutorPassword123!";
@@ -96,14 +98,14 @@ public class RegisterCommandHandlerTests
         result.Should().NotBeNull();
         result.Role.Should().Be("Tutor");
 
-        // Verify side effects
+        // Verify side effects: User is created with Active status, but no TutorProfile and no Wallet
         usersList.Should().ContainSingle(u => u.Email == "newtutor@example.com");
         var createdUser = usersList.Single();
+        createdUser.Status.Should().Be(AccountStatus.Active);
+        createdUser.Role.Should().Be(UserRole.Tutor);
 
-        tutorProfilesList.Should().ContainSingle(t => t.UserId == createdUser.Id && t.Status == TutorProfileStatus.Draft);
-        var createdTutorProfile = tutorProfilesList.Single();
-
-        walletsList.Should().ContainSingle(w => w.TutorProfileId == createdTutorProfile.Id && w.PendingBalance == 0 && w.AvailableBalance == 0);
+        tutorProfilesList.Should().BeEmpty();
+        walletsList.Should().BeEmpty();
 
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }

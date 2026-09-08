@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 using Amazon.Runtime;
 using Amazon.S3;
 using Microsoft.EntityFrameworkCore;
@@ -12,17 +11,9 @@ using TutorHub.Application.Common.Storage;
 using TutorHub.Infrastructure.Authentication;
 using TutorHub.Infrastructure.BackgroundServices;
 using TutorHub.Infrastructure.Persistence;
+using TutorHub.Infrastructure.Services;
 using TutorHub.Infrastructure.Services.Storage;
 using TutorHub.Infrastructure.Services.VnPay;
-=======
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using TutorHub.Application.Common.Interfaces;
-using TutorHub.Infrastructure.Authentication;
-using TutorHub.Infrastructure.BackgroundServices;
-using TutorHub.Infrastructure.Persistence;
->>>>>>> 5ec18f8 (refactor(structure): reorganize repository layout into src/backend, src/frontend, and src/test)
 
 namespace TutorHub.Infrastructure;
 
@@ -40,22 +31,24 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
 
         // JWT Options Pattern Configuration
-<<<<<<< HEAD
         services.AddOptions<JwtOptions>()
             .BindConfiguration(JwtOptions.SectionName)
             .ValidateDataAnnotations()
             .ValidateOnStart();
-=======
-        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
->>>>>>> 5ec18f8 (refactor(structure): reorganize repository layout into src/backend, src/frontend, and src/test)
+
+        // Auth token lifetimes (F-06): same "Jwt" section, consumed by
+        // Login/RefreshToken handlers so persisted expiries match signing.
+        services.AddOptions<AuthTokenLifetimeOptions>()
+            .BindConfiguration(AuthTokenLifetimeOptions.SectionName)
+            .ValidateOnStart();
 
         // Authentication & Security Services
+        services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IJwtService, JwtService>();
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         // VNPay Payment Gateway Services
-<<<<<<< HEAD
         services.AddOptions<VnPayOptions>()
             .BindConfiguration(VnPayOptions.SectionName)
             .ValidateDataAnnotations()
@@ -85,17 +78,21 @@ public static class InfrastructureServiceCollectionExtensions
         });
 
         services.AddScoped<IObjectStorageService, CloudflareR2ObjectStorageService>();
-=======
-        services.Configure<Services.VnPay.VnPayOptions>(configuration.GetSection(Services.VnPay.VnPayOptions.SectionName));
-        services.AddScoped<IVnPayService, Services.VnPay.VnPayService>();
+        services.AddScoped<IFileStorage, LocalFileStorage>();
+        services.AddScoped<IEmailSender, LogOnlyEmailSender>();
+        services.AddScoped<INotificationService, SignalRNotificationService>();
+        services.AddScoped<IChatNotificationService, SignalRChatNotificationService>();
+        services.AddScoped<IAuditLogService, AuditLogService>();
 
-        // AWS S3 Cloud Storage Services
-        services.Configure<Services.Storage.AwsS3Options>(configuration.GetSection(Services.Storage.AwsS3Options.SectionName));
-        services.AddScoped<IStorageService, Services.Storage.AwsS3StorageService>();
->>>>>>> 5ec18f8 (refactor(structure): reorganize repository layout into src/backend, src/frontend, and src/test)
+        services.AddSignalR();
 
         // Background Workers
         services.AddHostedService<BookingTimeoutBackgroundService>();
+        services.AddHostedService<OutboxDispatcherJob>();
+        services.AddHostedService<EmailDeliveryJob>();
+        services.AddHostedService<SessionReminderJob>();
+        services.AddHostedService<AttendanceReminderJob>();
+        services.AddHostedService<AttendanceVerificationJob>();
 
         return services;
     }

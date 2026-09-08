@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Features.Bookings;
 using TutorHub.Application.Features.Payments.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
@@ -12,11 +13,13 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
 {
     private readonly IAppDbContext _context;
     private readonly IVnPayService _vnPayService;
+    private readonly IClock _clock;
 
-    public CreateVnPayUrlCommandHandler(IAppDbContext context, IVnPayService vnPayService)
+    public CreateVnPayUrlCommandHandler(IAppDbContext context, IVnPayService vnPayService, IClock clock)
     {
         _context = context;
         _vnPayService = vnPayService;
+        _clock = clock;
     }
 
     public async Task<VnPayPaymentUrlDto> Handle(CreateVnPayUrlCommand request, CancellationToken cancellationToken)
@@ -24,7 +27,6 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
         var booking = await _context.Bookings
             .Include(b => b.StudentProfile)
             .Include(b => b.Subject)
-            .Include(b => b.Transaction)
             .FirstOrDefaultAsync(b => b.Id == request.BookingId, cancellationToken);
 
         if (booking == null)
@@ -45,7 +47,7 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
         }
 
         // 3. Expiration validation
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         if (!booking.HoldingExpiresAt.HasValue || booking.HoldingExpiresAt.Value <= now)
         {
             throw new BadRequestException("Booking holding time has expired. Please create a new booking.");
@@ -55,18 +57,27 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
         var merchantRef = $"THB{now:yyMMddHHmmss}{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
         var expireAt = booking.HoldingExpiresAt.Value;
 
-        // 5. Initialize/Update Transaction attempt with financial snapshot
-        const decimal commissionRate = 0.10m; // 10% standard platform fee
-        var commissionAmount = Math.Round(booking.TotalAmount * commissionRate, 2);
-        var payoutAmount = booking.TotalAmount - commissionAmount;
+        // 5. Initialize/Update Transaction attempt with financial snapshot (DEC-S8-020 live fee)
+        var commissionRate = 0.10m;
+        var feeSetting = await _context.PlatformSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Key == "PlatformFeeRate", cancellationToken);
+        if (feeSetting != null && decimal.TryParse(feeSetting.Value, out var parsedFee) && parsedFee >= 0 && parsedFee < 1)
+        {
+            commissionRate = parsedFee;
+        }
+        var commissionAmount = Math.Round(booking.TotalPrice * commissionRate, 2);
+        var payoutAmount = booking.TotalPrice - commissionAmount;
 
-        if (booking.Transaction == null)
+        var paymentTx = await _context.GetPaymentTransactionAsync(booking.Id, cancellationToken);
+
+        if (paymentTx == null)
         {
             var transaction = new Transaction
             {
                 Id = Guid.NewGuid(),
                 BookingId = booking.Id,
-                Amount = booking.TotalAmount,
+                Amount = booking.TotalPrice,
                 Status = TransactionStatus.Held, // Pre-allocated, state confirmed on IPN
                 CommissionRate = commissionRate,
                 CommissionAmount = commissionAmount,
@@ -78,11 +89,11 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
         }
         else
         {
-            booking.Transaction.PaymentGatewayRef = merchantRef;
-            booking.Transaction.Amount = booking.TotalAmount;
-            booking.Transaction.CommissionRate = commissionRate;
-            booking.Transaction.CommissionAmount = commissionAmount;
-            booking.Transaction.PayoutAmount = payoutAmount;
+            paymentTx.PaymentGatewayRef = merchantRef;
+            paymentTx.Amount = booking.TotalPrice;
+            paymentTx.CommissionRate = commissionRate;
+            paymentTx.CommissionAmount = commissionAmount;
+            paymentTx.PayoutAmount = payoutAmount;
         }
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -90,7 +101,7 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
         // 6. Build VNPay payment URL
         var paymentReq = new VnPayPaymentRequest(
             MerchantReference: merchantRef,
-            Amount: booking.TotalAmount,
+            Amount: booking.TotalPrice,
             OrderInfo: $"Thanh toan buoi hoc {booking.Subject.Name} #{booking.Id.ToString()[..8]}",
             IpAddress: request.IpAddress,
             CreatedAt: now,

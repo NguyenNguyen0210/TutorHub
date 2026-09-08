@@ -4,7 +4,10 @@ namespace TutorHub.Application.Features.Reports.DTOs;
 
 public record UserReportDetailDto(
     Guid Id,
-    Guid BookingId,
+    Guid? BookingId,
+    TrustReportType ReportType,
+    Guid? ReportedUserId,
+    string? TargetId,
     string Description,
     string? EvidenceUrl,
     ReportStatus Status,
