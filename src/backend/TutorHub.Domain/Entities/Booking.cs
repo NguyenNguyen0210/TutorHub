@@ -102,4 +102,26 @@ public class Booking
         CancellationReason = reason;
         CancelledAt = now;
     }
+
+    /// <summary>
+    /// Revives a booking that the system auto-cancelled when the checkout hold
+    /// expired, when a successful gateway IPN arrives after expiry. Only system
+    /// cancellations may be revived so a deliberate user/tutor cancellation is
+    /// never silently overturned (FR-PAY-003, PRD §12.1).
+    /// </summary>
+    public void ReactivateForPayment(DateTime now)
+    {
+        if (Status != BookingStatus.Cancelled || CancelledBy != Enums.CancelledBy.System)
+        {
+            throw new InvalidOperationException(
+                "Only system-expired (HoldingExpired) bookings can be reactivated for payment.");
+        }
+
+        Status = BookingStatus.Paid;
+        HoldingExpiresAt = null;
+        CancelledAt = null;
+        CancelledBy = null;
+        CancellationReason = null;
+        ConfirmedAt = now;
+    }
 }

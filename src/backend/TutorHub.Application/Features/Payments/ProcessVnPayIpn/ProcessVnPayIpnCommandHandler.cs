@@ -1,10 +1,13 @@
 using System.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Enrollments.Common;
 using TutorHub.Application.Features.Payments.DTOs;
+using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Payments.ProcessVnPayIpn;
@@ -14,17 +17,20 @@ public class ProcessVnPayIpnCommandHandler : IRequestHandler<ProcessVnPayIpnComm
     private readonly IAppDbContext _context;
     private readonly IVnPayService _vnPayService;
     private readonly IEnrollmentActivationService _activationService;
+    private readonly IAuditLogService _auditLogService;
     private readonly ILogger<ProcessVnPayIpnCommandHandler> _logger;
 
     public ProcessVnPayIpnCommandHandler(
         IAppDbContext context,
         IVnPayService vnPayService,
         IEnrollmentActivationService activationService,
+        IAuditLogService auditLogService,
         ILogger<ProcessVnPayIpnCommandHandler> logger)
     {
         _context = context;
         _vnPayService = vnPayService;
         _activationService = activationService;
+        _auditLogService = auditLogService;
         _logger = logger;
     }
 
@@ -122,11 +128,11 @@ public class ProcessVnPayIpnCommandHandler : IRequestHandler<ProcessVnPayIpnComm
                 return new VnPayIpnResponseDto("04", "Invalid amount");
             }
 
-            // 7. Idempotency Guard
+            // 7. A non-Holding booking may still hold captured money (late IPN).
             if (transaction.Booking.Status != BookingStatus.Holding)
             {
-                _logger.LogInformation("VNPay IPN: Order already processed. Current Status={Status}", transaction.Booking.Status);
-                return new VnPayIpnResponseDto("02", "Order already confirmed");
+                return await HandleNonHoldingBookingAsync(
+                    transaction, txnRef, transactionNo, responseCode, transactionStatus, dbTx, cancellationToken);
             }
 
             var now = DateTime.UtcNow;
@@ -172,6 +178,98 @@ public class ProcessVnPayIpnCommandHandler : IRequestHandler<ProcessVnPayIpnComm
             await dbTx.CommitAsync(cancellationToken);
             return new VnPayIpnResponseDto("00", "Confirm Success");
         });
+    }
+
+    private async Task<VnPayIpnResponseDto> HandleNonHoldingBookingAsync(
+        Transaction transaction,
+        string txnRef,
+        string? transactionNo,
+        string? responseCode,
+        string? transactionStatus,
+        IDbContextTransaction dbTx,
+        CancellationToken cancellationToken)
+    {
+        var booking = transaction.Booking;
+
+        // A failure notification captured no money; acknowledge without mutation.
+        if (responseCode != "00" || transactionStatus != "00")
+        {
+            await dbTx.CommitAsync(cancellationToken);
+            return new VnPayIpnResponseDto("00", "Confirm Success");
+        }
+
+        var alreadyActivated = booking.Status == BookingStatus.Paid
+            || await _context.Enrollments.AnyAsync(e => e.BookingId == booking.Id, cancellationToken);
+        if (alreadyActivated)
+        {
+            _logger.LogInformation("VNPay IPN: Order already processed. Current Status={Status}", booking.Status);
+            await dbTx.CommitAsync(cancellationToken);
+            return new VnPayIpnResponseDto("02", "Order already confirmed");
+        }
+
+        var now = DateTime.UtcNow;
+        transaction.Status = TransactionStatus.Held;
+        transaction.PaymentGatewayRef = $"{txnRef}|{transactionNo}";
+
+        if (booking.CancelledBy == CancelledBy.System)
+        {
+            // The 15-minute hold expired and a background job cancelled the booking,
+            // but the student did pay. Honor the payment intent: revive + activate.
+            booking.ReactivateForPayment(now);
+
+            if (booking.ServiceId.HasValue)
+            {
+                await _activationService.ActivateAsync(booking, now, cancellationToken);
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex) when (IsDuplicateEnrollmentViolation(ex))
+            {
+                await dbTx.RollbackAsync(cancellationToken);
+                return new VnPayIpnResponseDto("02", "Order already confirmed");
+            }
+
+            await dbTx.CommitAsync(cancellationToken);
+            _logger.LogInformation("VNPay IPN: late payment revived expired Booking #{BookingId}.", booking.Id);
+            return new VnPayIpnResponseDto("00", "Confirm Success");
+        }
+
+        // Cancelled by student/tutor/admin: money was captured but no service will
+        // be delivered. Record an explicit refund obligation (DEC-S8-032).
+        var refundTx = Transaction.CreateRefund(
+            bookingId: booking.Id,
+            sessionId: null,
+            disputeId: null,
+            originalPayout: null,
+            amount: transaction.Amount,
+            paymentGatewayRef: $"LateIpnRefund-{transaction.Id:N}",
+            description: "Late VNPay IPN for a cancelled booking; refund required.",
+            now: now);
+        refundTx.SettlementRequired = true;
+        _context.Transactions.Add(refundTx);
+
+        _context.AddOutboxMessage(new RefundCreatedEvent(
+            booking.Id,
+            booking.StudentProfile.UserId,
+            new MoneyDto(transaction.Amount),
+            refundTx.Id));
+
+        await _auditLogService.LogAsync(
+            action: "LateIpnRefundRequired",
+            entityName: "Transaction",
+            entityId: refundTx.Id.ToString(),
+            userId: booking.StudentProfile.UserId,
+            oldValues: new { BookingStatus = booking.Status.ToString() },
+            newValues: new { RefundAmount = transaction.Amount, SettlementRequired = true },
+            cancellationToken: cancellationToken);
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await dbTx.CommitAsync(cancellationToken);
+        _logger.LogInformation("VNPay IPN: captured payment on cancelled Booking #{BookingId} flagged for refund.", booking.Id);
+        return new VnPayIpnResponseDto("00", "Confirm Success");
     }
 
     private static bool IsDuplicateEnrollmentViolation(DbUpdateException ex)

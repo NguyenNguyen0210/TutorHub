@@ -152,4 +152,54 @@ public class BookingTests
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("Cannot cancel booking in 'Expired' status.");
     }
+
+    [Fact]
+    public void ReactivateForPayment_WhenSystemExpired_ReactivatesToPaid()
+    {
+        // Arrange
+        var booking = CreateTestBooking(BookingStatus.Cancelled);
+        booking.CancelledBy = CancelledBy.System;
+        booking.CancellationReason = "HoldingExpired";
+        booking.CancelledAt = DateTime.UtcNow;
+        booking.HoldingExpiresAt = DateTime.UtcNow.AddMinutes(-1);
+        var now = DateTime.UtcNow;
+
+        // Act
+        booking.ReactivateForPayment(now);
+
+        // Assert
+        booking.Status.Should().Be(BookingStatus.Paid);
+        booking.CancelledBy.Should().BeNull();
+        booking.CancellationReason.Should().BeNull();
+        booking.CancelledAt.Should().BeNull();
+        booking.HoldingExpiresAt.Should().BeNull();
+        booking.ConfirmedAt.Should().Be(now);
+    }
+
+    [Fact]
+    public void ReactivateForPayment_WhenCancelledByStudent_Throws()
+    {
+        // Arrange
+        var booking = CreateTestBooking(BookingStatus.Cancelled);
+        booking.CancelledBy = CancelledBy.Student;
+
+        // Act
+        var act = () => booking.ReactivateForPayment(DateTime.UtcNow);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void ReactivateForPayment_WhenNotCancelled_Throws()
+    {
+        // Arrange
+        var booking = CreateTestBooking(BookingStatus.Holding);
+
+        // Act
+        var act = () => booking.ReactivateForPayment(DateTime.UtcNow);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>();
+    }
 }
