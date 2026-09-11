@@ -28,7 +28,6 @@ public class BookingTests
 
     [Theory]
     [InlineData(BookingStatus.Holding)]
-    [InlineData(BookingStatus.Paid)]
     public void CanCancel_WhenStudentCancelsActiveBooking_ReturnsTrue(BookingStatus status)
     {
         // Arrange
@@ -41,18 +40,30 @@ public class BookingTests
         result.Should().BeTrue();
     }
 
-    [Theory]
-    [InlineData(BookingStatus.Paid)]
-    public void CanCancel_WhenTutorCancelsPaidBooking_ReturnsTrue(BookingStatus status)
+    [Fact]
+    public void CanCancel_WhenStudentCancelsPaidBooking_ReturnsFalse()
     {
         // Arrange
-        var booking = CreateTestBooking(status);
+        var booking = CreateTestBooking(BookingStatus.Paid);
+
+        // Act
+        var result = booking.CanCancel(CancelledBy.Student);
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CanCancel_WhenTutorCancelsPaidBooking_ReturnsFalse()
+    {
+        // Arrange
+        var booking = CreateTestBooking(BookingStatus.Paid);
 
         // Act
         var result = booking.CanCancel(CancelledBy.Tutor);
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -98,25 +109,23 @@ public class BookingTests
     }
 
     [Fact]
-    public void CalculateRefund_WhenPaid_ReturnsFullAmount()
+    public void CalculateRefund_WhenPaid_ThrowsInvalidOperation()
     {
         // Arrange
         var booking = CreateTestBooking(BookingStatus.Paid, 2_000_000m);
 
         // Act
-        var (percentage, amount, payout) = booking.CalculateRefund(CancelledBy.Student);
+        var act = () => booking.CalculateRefund(CancelledBy.Student);
 
         // Assert
-        percentage.Should().Be(100);
-        amount.Should().Be(2_000_000m);
-        payout.Should().Be(0);
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
     public void Cancel_WhenEligible_UpdatesStatusAndCancellationDetails()
     {
         // Arrange
-        var booking = CreateTestBooking(BookingStatus.Paid);
+        var booking = CreateTestBooking(BookingStatus.Holding);
         var now = DateTime.UtcNow;
 
         // Act
