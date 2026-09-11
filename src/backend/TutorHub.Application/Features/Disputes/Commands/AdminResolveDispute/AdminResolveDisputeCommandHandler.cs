@@ -136,6 +136,14 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                     break;
             }
 
+            // DEC-S8-025 / money conservation: the pre-release earning still sits in the
+            // tutor wallet's Pending escrow. Remove the session's gross slice before any
+            // split; otherwise a tutor win creates money and a student win strands escrow.
+            if (studentRefund > 0 || tutorGrossRelease > 0)
+            {
+                tutorWallet.DebitPending(gross, now);
+            }
+
             decimal platformFee = Math.Round(tutorGrossRelease * feeRate, MidpointRounding.AwayFromZero);
             decimal tutorNetPayout = tutorGrossRelease - platformFee;
 

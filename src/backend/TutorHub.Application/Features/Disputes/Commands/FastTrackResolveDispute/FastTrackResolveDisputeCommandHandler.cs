@@ -110,6 +110,10 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
             var gross = session.EarningAmount;
             var feeRate = enrollment.PlatformFeeRate > 0 ? enrollment.PlatformFeeRate : 0.10m;
 
+            // Pre-release escrow: remove the session's gross slice before splitting so
+            // money is conserved (mirrors AdminResolveDispute Stage A, DEC-S8-025).
+            tutorWallet.DebitPending(gross, now);
+
             DisputeResolutionDecision decision;
             if (tutorClaims)
             {
@@ -118,8 +122,7 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
                 var platformFee = Math.Round(gross * feeRate, MidpointRounding.AwayFromZero);
                 var tutorNetPayout = gross - platformFee;
 
-                tutorWallet.AvailableBalance += tutorNetPayout;
-                tutorWallet.UpdatedAt = now;
+                tutorWallet.CreditAvailable(tutorNetPayout, now);
 
                 _context.WalletTransactions.Add(new WalletTransaction
                 {
