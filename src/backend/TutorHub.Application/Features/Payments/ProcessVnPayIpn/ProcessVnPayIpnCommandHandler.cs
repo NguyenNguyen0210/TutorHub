@@ -2,12 +2,10 @@ using System.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Features.Enrollments.Common;
 using TutorHub.Application.Features.Payments.DTOs;
-using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
-using TutorHub.Domain.Services;
 
 namespace TutorHub.Application.Features.Payments.ProcessVnPayIpn;
 
@@ -15,15 +13,18 @@ public class ProcessVnPayIpnCommandHandler : IRequestHandler<ProcessVnPayIpnComm
 {
     private readonly IAppDbContext _context;
     private readonly IVnPayService _vnPayService;
+    private readonly IEnrollmentActivationService _activationService;
     private readonly ILogger<ProcessVnPayIpnCommandHandler> _logger;
 
     public ProcessVnPayIpnCommandHandler(
         IAppDbContext context,
         IVnPayService vnPayService,
+        IEnrollmentActivationService activationService,
         ILogger<ProcessVnPayIpnCommandHandler> logger)
     {
         _context = context;
         _vnPayService = vnPayService;
+        _activationService = activationService;
         _logger = logger;
     }
 
@@ -38,8 +39,7 @@ public class ProcessVnPayIpnCommandHandler : IRequestHandler<ProcessVnPayIpnComm
             return new VnPayIpnResponseDto("97", "Invalid Checksum");
         }
 
-        var isValidSignature = _vnPayService.VerifySignature(parameters, secureHash);
-        if (!isValidSignature)
+        if (!_vnPayService.VerifySignature(parameters, secureHash))
         {
             _logger.LogWarning("VNPay IPN rejected: invalid signature checksum.");
             return new VnPayIpnResponseDto("97", "Invalid Checksum");
@@ -79,19 +79,35 @@ public class ProcessVnPayIpnCommandHandler : IRequestHandler<ProcessVnPayIpnComm
         _logger.LogInformation("VNPay IPN received: TxnRef={TxnRef}, Amount={Amount}, ResponseCode={ResponseCode}, Status={Status}",
             txnRef, amount, responseCode, transactionStatus);
 
-        // 5. Atomic DB Transaction with Concurrency Protection
+        // 5. Atomic DB Transaction with row-level serialization of duplicate IPNs.
         var executionStrategy = _context.Database.CreateExecutionStrategy();
 
         return await executionStrategy.ExecuteAsync(async () =>
         {
             using var dbTx = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
 
-            // Exact gateway-ref match (F-10): prefix matching could bind the
-            // wrong order when two merchant refs share a prefix.
+            // Resolve the gateway attempt, then lock its row so concurrent duplicate
+            // or late IPNs are serialized (idempotency + no double credit).
+            var transactionId = await _context.Transactions
+                .AsNoTracking()
+                .Where(t => t.PaymentGatewayRef == txnRef || t.PaymentGatewayRef == $"{txnRef}|{transactionNo}")
+                .Select(t => (Guid?)t.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (transactionId == null)
+            {
+                _logger.LogWarning("VNPay IPN: Order not found for TxnRef={TxnRef}", txnRef);
+                return new VnPayIpnResponseDto("01", "Order not found");
+            }
+
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM \"Transactions\" WHERE \"Id\" = {transactionId.Value} FOR UPDATE",
+                cancellationToken);
+
             var transaction = await _context.Transactions
                 .Include(t => t.Booking).ThenInclude(b => b.StudentProfile).ThenInclude(s => s.User)
                 .Include(t => t.Booking).ThenInclude(b => b.TutorProfile).ThenInclude(t => t.User)
-                .FirstOrDefaultAsync(t => t.PaymentGatewayRef == txnRef || t.PaymentGatewayRef == $"{txnRef}|{transactionNo}", cancellationToken);
+                .FirstOrDefaultAsync(t => t.Id == transactionId.Value, cancellationToken);
 
             if (transaction == null)
             {
@@ -106,7 +122,7 @@ public class ProcessVnPayIpnCommandHandler : IRequestHandler<ProcessVnPayIpnComm
                 return new VnPayIpnResponseDto("04", "Invalid amount");
             }
 
-            // 7. Idempotency Guard (If booking is already finalized or confirmed)
+            // 7. Idempotency Guard
             if (transaction.Booking.Status != BookingStatus.Holding)
             {
                 _logger.LogInformation("VNPay IPN: Order already processed. Current Status={Status}", transaction.Booking.Status);
@@ -121,96 +137,28 @@ public class ProcessVnPayIpnCommandHandler : IRequestHandler<ProcessVnPayIpnComm
                 transaction.Status = TransactionStatus.Held;
                 transaction.PaymentGatewayRef = $"{txnRef}|{transactionNo}";
 
-                // Wave 3: Paid is the single canonical post-payment state.
                 transaction.Booking.Status = BookingStatus.Paid;
                 transaction.Booking.ConfirmedAt = now;
 
-                // Credit Tutor Wallet with PayoutAmount (NOT Gross TotalAmount)
-                var wallet = await _context.Wallets
-                    .FirstOrDefaultAsync(w => w.TutorProfileId == transaction.Booking.TutorProfileId, cancellationToken);
-
-                if (wallet == null)
+                // Shared activation: snapshots fee, spawns N sessions and credits
+                // the GROSS escrow amount.
+                if (transaction.Booking.ServiceId.HasValue)
                 {
-                    wallet = new Wallet
-                    {
-                        Id = Guid.NewGuid(),
-                        TutorProfileId = transaction.Booking.TutorProfileId,
-                        PendingBalance = 0,
-                        AvailableBalance = 0,
-                        UpdatedAt = now
-                    };
-                    _context.Wallets.Add(wallet);
+                    await _activationService.ActivateAsync(transaction.Booking, now, cancellationToken);
                 }
 
-                // F-23: guarded domain math.
-                wallet.CreditPending(transaction.PayoutAmount, now);
-
-                // Activate learning contract once per booking (idempotent, FR-PAY-003).
-                // Late/duplicate IPN after enrollment exists is a no-op success.
-                var enrollmentExists = await _context.Enrollments
-                    .AnyAsync(e => e.BookingId == transaction.BookingId, cancellationToken);
-                if (!enrollmentExists && transaction.Booking.ServiceId.HasValue)
+                try
                 {
-                    var feeSetting = await _context.PlatformSettings
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(s => s.Key == "PlatformFeeRate", cancellationToken);
-                    var feeRate = 0.10m;
-                    var feeVersion = 1;
-                    if (feeSetting != null && decimal.TryParse(feeSetting.Value, out var parsedFee) && parsedFee >= 0 && parsedFee < 1)
-                    {
-                        feeRate = parsedFee;
-                        feeVersion = feeSetting.CurrentVersion;
-                    }
-
-                    var enrollment = new Enrollment
-                    {
-                        Id = Guid.NewGuid(),
-                        BookingId = transaction.BookingId,
-                        StudentProfileId = transaction.Booking.StudentProfileId,
-                        TutorProfileId = transaction.Booking.TutorProfileId,
-                        ServiceId = transaction.Booking.ServiceId.Value,
-                        SubjectId = transaction.Booking.SubjectId,
-                        TotalPrice = transaction.Booking.TotalPrice,
-                        TotalSessions = transaction.Booking.TotalSessions,
-                        SessionDurationMinutes = transaction.Booking.SessionDurationMinutes,
-                        TeachingMode = transaction.Booking.TeachingMode,
-                        PlatformFeeRate = feeRate,
-                        FeePolicyVersion = feeVersion,
-                        CreatedAt = now
-                    };
-
-                    var allocations = EnrollmentSessionAllocator.Allocate(
-                        transaction.Booking.TotalPrice, transaction.Booking.TotalSessions);
-                    for (var i = 0; i < transaction.Booking.TotalSessions; i++)
-                    {
-                        enrollment.Sessions.Add(new Session
-                        {
-                            Id = Guid.NewGuid(),
-                            EnrollmentId = enrollment.Id,
-                            SessionNumber = i + 1,
-                            EarningAmount = allocations[i],
-                            CreatedAt = now
-                        });
-                    }
-
-                    _context.Enrollments.Add(enrollment);
-                    // F-15: escrow + sessions exist inside this IPN transaction → activate.
-                    enrollment.Activate();
-
-                    _context.AddOutboxMessage(new PaymentSucceededEvent(
-                        transaction.BookingId,
-                        transaction.Booking.StudentProfile.UserId,
-                        new MoneyDto(transaction.Booking.TotalPrice),
-                        enrollment.Id));
-                    _context.AddOutboxMessage(new EnrollmentActivatedEvent(
-                        enrollment.Id,
-                        enrollment.StudentProfileId,
-                        enrollment.TutorProfileId,
-                        transaction.Booking.StudentProfile.UserId,
-                        transaction.Booking.TutorProfile.UserId));
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+                catch (DbUpdateException ex) when (IsDuplicateEnrollmentViolation(ex))
+                {
+                    // A concurrent IPN already activated this booking; idempotent success.
+                    await dbTx.RollbackAsync(cancellationToken);
+                    _logger.LogInformation("VNPay IPN: concurrent activation detected for Booking #{BookingId}; treated as already confirmed.", transaction.BookingId);
+                    return new VnPayIpnResponseDto("02", "Order already confirmed");
                 }
 
-                await _context.SaveChangesAsync(cancellationToken);
                 await dbTx.CommitAsync(cancellationToken);
 
                 _logger.LogInformation("VNPay IPN processed successfully: Booking #{BookingId} confirmed, Transaction #{TxId} held.",
@@ -218,13 +166,31 @@ public class ProcessVnPayIpnCommandHandler : IRequestHandler<ProcessVnPayIpnComm
 
                 return new VnPayIpnResponseDto("00", "Confirm Success");
             }
-            else
-            {
-                // Failed payment by user/gateway - acknowledge IPN without money movement
-                _logger.LogInformation("VNPay IPN: Payment failed with code {ResponseCode}", responseCode);
-                await dbTx.CommitAsync(cancellationToken);
-                return new VnPayIpnResponseDto("00", "Confirm Success");
-            }
+
+            // Failed payment by user/gateway - acknowledge IPN without money movement
+            _logger.LogInformation("VNPay IPN: Payment failed with code {ResponseCode}", responseCode);
+            await dbTx.CommitAsync(cancellationToken);
+            return new VnPayIpnResponseDto("00", "Confirm Success");
         });
+    }
+
+    private static bool IsDuplicateEnrollmentViolation(DbUpdateException ex)
+    {
+        var inner = ex.InnerException;
+        if (inner == null)
+        {
+            return false;
+        }
+
+        var msg = inner.Message;
+        var constraint = inner.GetType().GetProperty("ConstraintName")?.GetValue(inner) as string;
+        var sqlState = inner.GetType().GetProperty("SqlState")?.GetValue(inner) as string;
+
+        var isUnique = sqlState == "23505" || msg.Contains("23505", StringComparison.OrdinalIgnoreCase);
+        var isEnrollmentIndex = string.Equals(constraint, "IX_Enrollments_BookingId", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("IX_Enrollments_BookingId", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("Enrollments_BookingId", StringComparison.OrdinalIgnoreCase);
+
+        return isUnique && isEnrollmentIndex;
     }
 }
