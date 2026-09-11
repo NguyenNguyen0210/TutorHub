@@ -1,11 +1,12 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using TutorHub.Application.Features.Bookings.CreateBooking;
-using TutorHub.Application.Features.Bookings.PayBooking;
 using TutorHub.Application.Features.Disputes.Commands.AdminResolveDispute;
 using TutorHub.Application.Features.Disputes.Commands.CreateDispute;
 using TutorHub.Application.Features.Disputes.Commands.FastTrackResolveDispute;
 using TutorHub.Application.Features.Disputes.Commands.UploadDisputeEvidence;
+using TutorHub.Application.Features.Enrollments.Common;
 using TutorHub.Application.Features.Sessions.SubmitAttendance;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
@@ -24,8 +25,17 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
         var (_, tutor, admin) = await SeedHelper.SeedTutorWithWalletAsync(Db);
         var (studentUser, _, service) = await SeedHelper.SeedMarketplaceAsync(Db, tutor, admin.Id);
 
-        var booking = await SendAsync(new CreateBookingCommand(studentUser.Id, service.Id));
-        await SendAsync(new PayBookingCommand(booking.Id, studentUser.Id));
+        var bookingDto = await SendAsync(new CreateBookingCommand(studentUser.Id, service.Id));
+
+        var booking = await Db.Bookings
+            .Include(b => b.StudentProfile)
+            .Include(b => b.TutorProfile)
+            .FirstAsync(b => b.Id == bookingDto.Id);
+
+        var activation = Scope.ServiceProvider.GetRequiredService<IEnrollmentActivationService>();
+        await activation.ActivateAsync(booking, DateTime.UtcNow, CancellationToken.None);
+        booking.Status = BookingStatus.Paid;
+        await Db.SaveChangesAsync();
 
         var session = await Db.Sessions
             .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
