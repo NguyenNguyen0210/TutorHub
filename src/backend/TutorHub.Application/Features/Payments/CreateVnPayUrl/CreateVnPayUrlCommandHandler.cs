@@ -57,18 +57,9 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
         var merchantRef = $"THB{now:yyMMddHHmmss}{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
         var expireAt = booking.HoldingExpiresAt.Value;
 
-        // 5. Initialize/Update Transaction attempt with financial snapshot (DEC-S8-020 live fee)
-        var commissionRate = 0.10m;
-        var feeSetting = await _context.PlatformSettings
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Key == "PlatformFeeRate", cancellationToken);
-        if (feeSetting != null && decimal.TryParse(feeSetting.Value, out var parsedFee) && parsedFee >= 0 && parsedFee < 1)
-        {
-            commissionRate = parsedFee;
-        }
-        var commissionAmount = Math.Round(booking.TotalPrice * commissionRate, 2);
-        var payoutAmount = booking.TotalPrice - commissionAmount;
-
+        // 5. Initialize/Update the gateway attempt. The payment transaction
+        // represents the GROSS escrow amount; the platform fee is only applied
+        // when each session earns out (FR-EARN-003).
         var paymentTx = await _context.GetPaymentTransactionAsync(booking.Id, cancellationToken);
 
         if (paymentTx == null)
@@ -79,9 +70,9 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
                 BookingId = booking.Id,
                 Amount = booking.TotalPrice,
                 Status = TransactionStatus.Held, // Pre-allocated, state confirmed on IPN
-                CommissionRate = commissionRate,
-                CommissionAmount = commissionAmount,
-                PayoutAmount = payoutAmount,
+                CommissionRate = 0,
+                CommissionAmount = 0,
+                PayoutAmount = booking.TotalPrice,
                 PaymentGatewayRef = merchantRef,
                 CreatedAt = now
             };
@@ -91,9 +82,9 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
         {
             paymentTx.PaymentGatewayRef = merchantRef;
             paymentTx.Amount = booking.TotalPrice;
-            paymentTx.CommissionRate = commissionRate;
-            paymentTx.CommissionAmount = commissionAmount;
-            paymentTx.PayoutAmount = payoutAmount;
+            paymentTx.CommissionRate = 0;
+            paymentTx.CommissionAmount = 0;
+            paymentTx.PayoutAmount = booking.TotalPrice;
         }
 
         await _context.SaveChangesAsync(cancellationToken);

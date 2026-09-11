@@ -65,36 +65,29 @@ public class Booking
 
     public bool CanCancel(CancelledBy actor)
     {
-        // Wave 3: only Holding (unpaid hold) and Paid (pre-learning) are
-        // cancellable at booking level. Post-learning changes go through
-        // Enrollment.Cancel / Dispute instead.
-        if (Status == BookingStatus.Cancelled || Status == BookingStatus.Expired)
+        // Booking-level cancellation is only valid for the unpaid 15-minute
+        // Holding checkout. Once Paid, an Enrollment + escrow exist and all
+        // cancellation/refund must go through Enrollment.Cancel (pro-rata) so
+        // sessions and wallet stay consistent (FR-CANCEL-003/004, PRD §8.1).
+        if (Status != BookingStatus.Holding)
         {
             return false;
         }
 
-        if (actor == Enums.CancelledBy.Tutor)
-        {
-            return Status == BookingStatus.Paid;
-        }
-
-        if (actor == Enums.CancelledBy.Student)
-        {
-            return Status == BookingStatus.Holding || Status == BookingStatus.Paid;
-        }
-
-        return true; // Admin / System
+        // The tutor has no action on an unpaid student checkout hold.
+        return actor != Enums.CancelledBy.Tutor;
     }
 
     public (decimal RefundPercentage, decimal RefundAmount, decimal PayoutAmount) CalculateRefund(CancelledBy actor)
     {
-        if (Status == BookingStatus.Holding)
+        if (Status != BookingStatus.Holding)
         {
-            return (0, 0, 0);
+            throw new InvalidOperationException(
+                "Booking-level refund is only valid for an unpaid Holding booking. Use Enrollment cancellation.");
         }
 
-        // If cancelled prior to enrollment activation, unactivated booking gets 100% refund
-        return (100, TotalPrice, 0);
+        // An unpaid holding moved no money.
+        return (0, 0, 0);
     }
 
     public void Cancel(CancelledBy actor, string? reason, DateTime now)
@@ -108,5 +101,27 @@ public class Booking
         CancelledBy = actor;
         CancellationReason = reason;
         CancelledAt = now;
+    }
+
+    /// <summary>
+    /// Revives a booking that the system auto-cancelled when the checkout hold
+    /// expired, when a successful gateway IPN arrives after expiry. Only system
+    /// cancellations may be revived so a deliberate user/tutor cancellation is
+    /// never silently overturned (FR-PAY-003, PRD §12.1).
+    /// </summary>
+    public void ReactivateForPayment(DateTime now)
+    {
+        if (Status != BookingStatus.Cancelled || CancelledBy != Enums.CancelledBy.System)
+        {
+            throw new InvalidOperationException(
+                "Only system-expired (HoldingExpired) bookings can be reactivated for payment.");
+        }
+
+        Status = BookingStatus.Paid;
+        HoldingExpiresAt = null;
+        CancelledAt = null;
+        CancelledBy = null;
+        CancellationReason = null;
+        ConfirmedAt = now;
     }
 }

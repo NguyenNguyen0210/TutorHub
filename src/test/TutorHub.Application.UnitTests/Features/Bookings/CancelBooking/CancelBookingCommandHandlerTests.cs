@@ -23,11 +23,11 @@ public class CancelBookingCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenStudentCancelsPaidBooking_ShouldCancelAndSave()
+    public async Task Handle_WhenStudentCancelsHoldingBooking_ShouldCancelAndSave()
     {
-        // Arrange - Setup a paid booking (Wave 3: Pending/Confirmed/Completed gone)
+        // Arrange - Setup a holding booking
         var booking = new BookingBuilder()
-            .WithStatus(BookingStatus.Paid)
+            .WithStatus(BookingStatus.Holding)
             .Build();
 
         var studentUserId = booking.StudentProfile.UserId;
@@ -58,21 +58,42 @@ public class CancelBookingCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenBookingHasHeldTransaction_ShouldRefundTransactionAndUpdateTutorWallet()
+    public async Task Handle_WhenStudentCancelsPaidBooking_ShouldThrowConflict()
     {
-        // Arrange - Booking with Held transaction (200,000 VND) and tutor wallet having pending balance
+        // Arrange
+        var booking = new BookingBuilder()
+            .WithStatus(BookingStatus.Paid)
+            .Build();
+
+        var studentUserId = booking.StudentProfile.UserId;
+        var bookingsList = new List<Booking> { booking };
+        _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(bookingsList).Object);
+
+        var command = new CancelBookingCommand(booking.Id, studentUserId, UserRole.Student, "Paid cancel");
+
+        // Act
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        var ex = await act.Should().ThrowAsync<ConflictException>();
+        ex.Which.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenHoldingBookingCancelledWithHeldTransaction_ShouldVoidAttemptWithoutWalletChange()
+    {
+        // Arrange
         var bookingId = Guid.NewGuid();
 
         var transaction = new TransactionBuilder()
             .WithBookingId(bookingId)
-            .WithAmount(200_000m)
             .WithStatus(TransactionStatus.Held)
             .Build();
 
         var booking = new BookingBuilder()
             .WithId(bookingId)
-            .WithStatus(BookingStatus.Paid)
-            .WithSnapshot(200_000m)
+            .WithStatus(BookingStatus.Holding)
             .WithTransaction(transaction)
             .Build();
 
@@ -100,12 +121,9 @@ public class CancelBookingCommandHandlerTests
         result.Should().NotBeNull();
         result.Status.Should().Be(BookingStatus.Cancelled);
 
-        // 1. Transaction state transitioned to Refunded
-        transaction.Status.Should().Be(TransactionStatus.Refunded);
-        transaction.RefundedAt.Should().NotBeNull();
-
-        // 2. Tutor wallet pending balance decremented
-        tutorWallet.PendingBalance.Should().Be(0m);
+        booking.Status.Should().Be(BookingStatus.Cancelled);
+        transaction.Status.Should().Be(TransactionStatus.Failed);
+        tutorWallet.PendingBalance.Should().Be(200_000m);
 
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
