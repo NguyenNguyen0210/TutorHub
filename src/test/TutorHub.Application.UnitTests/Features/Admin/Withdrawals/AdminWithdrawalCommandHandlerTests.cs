@@ -19,6 +19,7 @@ namespace TutorHub.Application.UnitTests.Features.Admin.Withdrawals;
 public class AdminWithdrawalCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly Mock<IAuditLogService> _auditLogServiceMock = new();
 
     private static (Withdrawal withdrawal, Wallet wallet, User adminUser) CreateTestAggregate(WithdrawalStatus initialStatus = WithdrawalStatus.Pending)
     {
@@ -62,7 +63,7 @@ public class AdminWithdrawalCommandHandlerTests
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
 
-        var handler = new ProcessWithdrawalCommandHandler(_contextMock.Object);
+        var handler = new ProcessWithdrawalCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
         var command = new ProcessWithdrawalCommand(withdrawal.Id, admin.Id);
 
         // Act
@@ -82,7 +83,7 @@ public class AdminWithdrawalCommandHandlerTests
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
 
-        var handler = new ProcessWithdrawalCommandHandler(_contextMock.Object);
+        var handler = new ProcessWithdrawalCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
         var command = new ProcessWithdrawalCommand(withdrawal.Id, admin.Id);
 
         // Act
@@ -102,7 +103,7 @@ public class AdminWithdrawalCommandHandlerTests
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
 
-        var handler = new CompleteWithdrawalCommandHandler(_contextMock.Object);
+        var handler = new CompleteWithdrawalCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
         var command = new CompleteWithdrawalCommand(withdrawal.Id, admin.Id);
 
         // Act
@@ -123,7 +124,7 @@ public class AdminWithdrawalCommandHandlerTests
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
 
-        var handler = new CompleteWithdrawalCommandHandler(_contextMock.Object);
+        var handler = new CompleteWithdrawalCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
         var command = new CompleteWithdrawalCommand(withdrawal.Id, admin.Id);
 
         // Act
@@ -143,7 +144,7 @@ public class AdminWithdrawalCommandHandlerTests
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
 
-        var handler = new FailWithdrawalCommandHandler(_contextMock.Object);
+        var handler = new FailWithdrawalCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
         var command = new FailWithdrawalCommand(withdrawal.Id, admin.Id, "Reason");
 
         // Act
@@ -173,3 +174,4 @@ public class AdminWithdrawalCommandHandlerTests
         result.Amount.Should().Be(300_000m);
     }
 }
+

@@ -13,10 +13,12 @@ namespace TutorHub.Application.Features.Disputes.Commands.AdminResolveDispute;
 public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDisputeCommand, DisputeDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IAuditLogService _auditLogService;
 
-    public AdminResolveDisputeCommandHandler(IAppDbContext context)
+    public AdminResolveDisputeCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
     {
         _context = context;
+        _auditLogService = auditLogService;
     }
 
     public async Task<DisputeDto> Handle(AdminResolveDisputeCommand request, CancellationToken cancellationToken)
@@ -97,6 +99,15 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
 
             dispute.DismissByAdmin(request.AdminUserId, request.AdminNotes, now);
             dispute.ReleaseFinancialHold(request.AdminUserId, now);
+
+            await _auditLogService.LogAsync(
+                action: "DisputeResolved",
+                entityName: "Dispute",
+                entityId: dispute.Id.ToString(),
+                userId: request.AdminUserId,
+                oldValues: new { Status = "Open" },
+                newValues: new { Status = dispute.Status.ToString(), Decision = request.Decision.ToString(), request.AdminNotes },
+                cancellationToken: cancellationToken);
 
             await _context.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
@@ -285,6 +296,14 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                 {
                     dispute.MarkRequiresAdminFinancialIntervention(
                         $"Tutor available balance ({tutorWallet.AvailableBalance:N0} VND) is insufficient for required recovery ({tutorNetRecovery:N0} VND).");
+                    await _auditLogService.LogAsync(
+                        action: "DisputeRequiresFinancialIntervention",
+                        entityName: "Dispute",
+                        entityId: dispute.Id.ToString(),
+                        userId: request.AdminUserId,
+                        oldValues: new { Status = "UnderReview" },
+                        newValues: new { Status = dispute.Status.ToString(), RequiredRecovery = tutorNetRecovery, AvailableBalance = tutorWallet.AvailableBalance },
+                        cancellationToken: cancellationToken);
                     await _context.SaveChangesAsync(cancellationToken);
                     await tx.CommitAsync(cancellationToken);
 
@@ -369,6 +388,15 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             enrollment.StudentProfile.UserId,
             enrollment.TutorProfile.UserId,
             request.Decision.ToString()));
+
+        await _auditLogService.LogAsync(
+            action: "DisputeResolved",
+            entityName: "Dispute",
+            entityId: dispute.Id.ToString(),
+            userId: request.AdminUserId,
+            oldValues: new { Status = "Open" },
+            newValues: new { Status = dispute.Status.ToString(), Decision = request.Decision.ToString(), request.AdminNotes },
+            cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);

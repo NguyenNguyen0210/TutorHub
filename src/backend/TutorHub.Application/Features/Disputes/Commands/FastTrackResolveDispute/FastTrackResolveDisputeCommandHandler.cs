@@ -15,11 +15,13 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
 
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly IAuditLogService _auditLogService;
 
-    public FastTrackResolveDisputeCommandHandler(IAppDbContext context, IClock clock)
+    public FastTrackResolveDisputeCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
     {
         _context = context;
         _clock = clock;
+        _auditLogService = auditLogService;
     }
 
     public async Task<DisputeDto> Handle(FastTrackResolveDisputeCommand request, CancellationToken cancellationToken)
@@ -192,6 +194,15 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
                 enrollment.StudentProfile.UserId,
                 enrollment.TutorProfile.UserId,
                 decision.ToString()));
+
+            await _auditLogService.LogAsync(
+                action: "DisputeFastTrackResolved",
+                entityName: "Dispute",
+                entityId: dispute.Id.ToString(),
+                userId: request.AdminUserId,
+                oldValues: new { Status = "Open" },
+                newValues: new { Status = dispute.Status.ToString(), Decision = decision.ToString(), request.AdminNotes },
+                cancellationToken: cancellationToken);
 
             await _context.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);

@@ -11,10 +11,12 @@ namespace TutorHub.Application.Features.Admin.Withdrawals.ProcessWithdrawal;
 public class ProcessWithdrawalCommandHandler : IRequestHandler<ProcessWithdrawalCommand, WithdrawalDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IAuditLogService _auditLogService;
 
-    public ProcessWithdrawalCommandHandler(IAppDbContext context)
+    public ProcessWithdrawalCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
     {
         _context = context;
+        _auditLogService = auditLogService;
     }
 
     public async Task<WithdrawalDto> Handle(ProcessWithdrawalCommand request, CancellationToken cancellationToken)
@@ -44,6 +46,15 @@ public class ProcessWithdrawalCommandHandler : IRequestHandler<ProcessWithdrawal
 
         withdrawal.MarkProcessing(request.AdminId);
         withdrawal.ProcessingStartedByAdmin = admin;
+
+        await _auditLogService.LogAsync(
+            action: "WithdrawalProcessingStarted",
+            entityName: "Withdrawal",
+            entityId: withdrawal.Id.ToString(),
+            userId: request.AdminId,
+            oldValues: new { Status = WithdrawalStatus.Pending.ToString() },
+            newValues: new { Status = withdrawal.Status.ToString() },
+            cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
 
