@@ -69,22 +69,18 @@ public class CancelEnrollmentCommandHandler : IRequestHandler<CancelEnrollmentCo
                 wallet.DebitPending(refundAmount, now);
             }
 
-            var refundTx = new Transaction
-            {
-                Id = Guid.NewGuid(),
-                BookingId = enrollment.BookingId,
-                SessionId = null,
-                Amount = refundAmount,
-                Type = TransactionType.StudentRefund,
-                CommissionRate = 0,
-                CommissionAmount = 0,
-                PayoutAmount = 0,
-                PaymentGatewayRef = $"EscrowRefund-{enrollment.Id:N}",
-                Status = TransactionStatus.Refunded,
-                Description = $"Student-cancelled enrollment refund: {request.Reason.Trim()}",
-                CreatedAt = now,
-                RefundedAt = now
-            };
+            // DEC-S8-032 / INV-REFUND-004: refunds start Pending and only settle
+            // via the external provider callback; the obligation is explicit.
+            var refundTx = Transaction.CreateRefund(
+                bookingId: enrollment.BookingId,
+                sessionId: null,
+                disputeId: null,
+                originalPayout: null,
+                amount: refundAmount,
+                paymentGatewayRef: $"EscrowRefund-{enrollment.Id:N}",
+                description: $"Student-cancelled enrollment refund: {request.Reason.Trim()}",
+                now: now);
+            refundTx.SettlementRequired = true;
             _context.Transactions.Add(refundTx);
 
             // Enqueue RefundCreated Outbox Message (DEC-S7-001, DEC-S7-002)

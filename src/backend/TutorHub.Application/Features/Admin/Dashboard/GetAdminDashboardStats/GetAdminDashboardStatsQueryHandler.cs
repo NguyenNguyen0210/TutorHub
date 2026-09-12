@@ -101,11 +101,17 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
 
         var heldTx = transactionGroup.FirstOrDefault(g => g.Status == TransactionStatus.Held);
         var releasedTx = transactionGroup.FirstOrDefault(g => g.Status == TransactionStatus.Released);
-        var refundedTx = transactionGroup.FirstOrDefault(g => g.Status == TransactionStatus.Refunded);
+
+        // Refunds are materialized as StudentRefund transactions and start Pending
+        // until the external provider settles them (DEC-S8-032); count by type so
+        // the obligation is visible regardless of settlement status.
+        decimal refundedAmount = await _context.Transactions
+            .AsNoTracking()
+            .Where(t => t.Type == TransactionType.StudentRefund)
+            .SumAsync(t => (decimal?)t.Amount, cancellationToken) ?? 0;
 
         decimal heldAmount = heldTx?.TotalAmount ?? 0;
         decimal releasedAmount = releasedTx?.TotalAmount ?? 0;
-        decimal refundedAmount = refundedTx?.TotalAmount ?? 0;
 
         decimal totalGmv = heldAmount + releasedAmount + refundedAmount;
         decimal netGmv = heldAmount + releasedAmount;

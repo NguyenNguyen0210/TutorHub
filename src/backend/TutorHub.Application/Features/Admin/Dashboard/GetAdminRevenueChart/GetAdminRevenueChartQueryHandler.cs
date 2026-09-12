@@ -45,6 +45,7 @@ public class GetAdminRevenueChartQueryHandler : IRequestHandler<GetAdminRevenueC
             {
                 t.CreatedAt,
                 t.Status,
+                t.Type,
                 t.Amount,
                 t.CommissionAmount,
                 t.PayoutAmount
@@ -71,7 +72,9 @@ public class GetAdminRevenueChartQueryHandler : IRequestHandler<GetAdminRevenueC
 
             var heldTx = monthTx.Where(t => t.Status == TransactionStatus.Held).ToList();
             var releasedTx = monthTx.Where(t => t.Status == TransactionStatus.Released).ToList();
-            var refundedTx = monthTx.Where(t => t.Status == TransactionStatus.Refunded).ToList();
+            // Refunds are counted by type (StudentRefund), independent of their
+            // Pending/Succeeded settlement state (DEC-S8-032).
+            var refundedTx = monthTx.Where(t => t.Type == TransactionType.StudentRefund).ToList();
 
             decimal heldAmount = heldTx.Sum(t => t.Amount);
             decimal releasedAmount = releasedTx.Sum(t => t.Amount);

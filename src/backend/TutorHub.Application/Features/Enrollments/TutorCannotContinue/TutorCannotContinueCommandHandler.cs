@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
@@ -11,10 +12,12 @@ namespace TutorHub.Application.Features.Enrollments.TutorCannotContinue;
 public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotContinueCommand, EnrollmentDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IAuditLogService _auditLogService;
 
-    public TutorCannotContinueCommandHandler(IAppDbContext context)
+    public TutorCannotContinueCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
     {
         _context = context;
+        _auditLogService = auditLogService;
     }
 
     public async Task<EnrollmentDto> Handle(TutorCannotContinueCommand request, CancellationToken cancellationToken)
@@ -66,24 +69,46 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
                 wallet.DebitPending(refundAmount, now);
             }
 
-            var refundTx = new Transaction
-            {
-                Id = Guid.NewGuid(),
-                BookingId = enrollment.BookingId,
-                SessionId = null,
-                Amount = refundAmount,
-                CommissionRate = 0,
-                CommissionAmount = 0,
-                PayoutAmount = 0,
-                PaymentGatewayRef = $"EscrowRefund-{enrollment.Id:N}",
-                Status = TransactionStatus.Refunded,
-                CreatedAt = now,
-                RefundedAt = now
-            };
+            // DEC-S8-032 / INV-REFUND-004: refunds start Pending and only settle
+            // via the external provider callback; the obligation is explicit.
+            var refundTx = Transaction.CreateRefund(
+                bookingId: enrollment.BookingId,
+                sessionId: null,
+                disputeId: null,
+                originalPayout: null,
+                amount: refundAmount,
+                paymentGatewayRef: $"EscrowRefund-{enrollment.Id:N}",
+                description: $"Tutor-cannot-continue enrollment refund: {request.Reason.Trim()}",
+                now: now);
+            refundTx.SettlementRequired = true;
             _context.Transactions.Add(refundTx);
+
+            // Enqueue RefundCreated Outbox Message (DEC-S7-001, DEC-S7-002)
+            _context.AddOutboxMessage(new RefundCreatedEvent(
+                enrollment.Id,
+                enrollment.StudentProfile.UserId,
+                new MoneyDto(refundAmount),
+                refundTx.Id));
         }
 
-        // 5. Explicit DB Transaction
+        // 5. Audit + notify affected parties (FR-CONTINUE-003, PRD §8.2)
+        await _auditLogService.LogAsync(
+            action: "ENROLLMENT_TUTOR_CANNOT_CONTINUE",
+            entityName: "Enrollment",
+            entityId: enrollment.Id.ToString(),
+            userId: request.UserId,
+            oldValues: new { status = "Active" },
+            newValues: new { status = "Cancelled", reason = request.Reason, refundAmount },
+            cancellationToken: cancellationToken);
+
+        _context.AddOutboxMessage(new EnrollmentCancelledEvent(
+            enrollment.Id,
+            enrollment.StudentProfile.UserId,
+            enrollment.TutorProfile.UserId,
+            request.UserId,
+            request.Reason));
+
+        // 6. Explicit DB Transaction
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
