@@ -79,7 +79,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
         {
             if (dispute.HoldType == FinancialHoldType.BalanceHold && dispute.HeldAmount > 0)
             {
-                tutorWallet.HeldBalance = Math.Max(0, tutorWallet.HeldBalance - dispute.HeldAmount);
+                tutorWallet.ReleaseHold(dispute.HeldAmount, now);
                 tutorWallet.UpdatedAt = now;
 
                 _context.WalletTransactions.Add(new WalletTransaction
@@ -237,7 +237,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                 // Unhold funds completely
                 if (dispute.HeldAmount > 0)
                 {
-                    tutorWallet.HeldBalance = Math.Max(0, tutorWallet.HeldBalance - dispute.HeldAmount);
+                    tutorWallet.ReleaseHold(dispute.HeldAmount, now);
                     tutorWallet.UpdatedAt = now;
 
                     _context.WalletTransactions.Add(new WalletTransaction
@@ -294,10 +294,9 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                 // Deduct from tutor wallet
                 if (dispute.HeldAmount > 0)
                 {
-                    tutorWallet.HeldBalance = Math.Max(0, tutorWallet.HeldBalance - dispute.HeldAmount);
+                    tutorWallet.ReleaseHold(dispute.HeldAmount, now);
                 }
-                tutorWallet.AvailableBalance -= tutorNetRecovery;
-                tutorWallet.UpdatedAt = now;
+                tutorWallet.DebitAvailable(tutorNetRecovery, now);
 
                 _context.WalletTransactions.Add(new WalletTransaction
                 {

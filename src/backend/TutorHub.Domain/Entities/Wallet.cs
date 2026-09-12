@@ -76,7 +76,19 @@ public class Wallet
     {
         if (amount <= 0)
             throw new ArgumentException("Amount must be positive.", nameof(amount));
-        HeldBalance = Math.Max(0, HeldBalance - amount);
+        if (HeldBalance < amount)
+            throw new InvalidOperationException("Cannot release more hold than is currently held.");
+        HeldBalance -= amount;
+        UpdatedAt = now;
+    }
+
+    public void DebitAvailable(decimal amount, DateTime now)
+    {
+        if (amount <= 0)
+            throw new ArgumentException("Amount must be positive.", nameof(amount));
+        if (AvailableBalance < amount)
+            throw new InvalidOperationException("Available balance is insufficient for the required debit.");
+        AvailableBalance -= amount;
         UpdatedAt = now;
     }
 

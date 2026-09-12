@@ -65,12 +65,8 @@ public class CancelEnrollmentCommandHandler : IRequestHandler<CancelEnrollmentCo
 
             if (wallet != null)
             {
-                if (wallet.PendingBalance < refundAmount)
-                {
-                    throw new InvalidOperationException("Financial invariant violated: Pending escrow balance is insufficient for refund deduction.");
-                }
-                wallet.PendingBalance -= refundAmount;
-                wallet.UpdatedAt = now;
+                // Guarded domain debit preserves the pending-escrow invariant.
+                wallet.DebitPending(refundAmount, now);
             }
 
             var refundTx = new Transaction
