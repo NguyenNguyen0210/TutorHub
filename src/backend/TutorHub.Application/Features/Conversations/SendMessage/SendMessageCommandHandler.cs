@@ -13,15 +13,17 @@ namespace TutorHub.Application.Features.Conversations.SendMessage;
 public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, MessageDto>
 {
     private readonly IAppDbContext _dbContext;
+    private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
     private readonly IChatNotificationService? _chatNotificationService;
 
     public SendMessageCommandHandler(
-        IAppDbContext dbContext,
+        IAppDbContext dbContext, IClock clock,
         ICurrentUserService currentUserService,
         IChatNotificationService? chatNotificationService = null)
     {
         _dbContext = dbContext;
+        _clock = clock;
         _currentUserService = currentUserService;
         _chatNotificationService = chatNotificationService;
     }
@@ -66,7 +68,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Mes
             AttachmentName = request.AttachmentName,
             AttachmentContentType = request.AttachmentContentType,
             AttachmentSize = request.AttachmentSize,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _clock.UtcNow
         };
 
         var preview = !string.IsNullOrWhiteSpace(message.Content) 
@@ -94,7 +96,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Mes
                 Preview = preview
             }),
             OccurredAt = message.CreatedAt,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = _clock.UtcNow,
             Status = OutboxMessageStatus.Pending
         });
 

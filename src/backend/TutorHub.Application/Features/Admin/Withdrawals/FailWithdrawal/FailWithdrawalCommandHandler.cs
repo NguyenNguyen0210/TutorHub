@@ -12,10 +12,14 @@ namespace TutorHub.Application.Features.Admin.Withdrawals.FailWithdrawal;
 public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalCommand, WithdrawalDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
+    private readonly IAuditLogService _auditLogService;
 
-    public FailWithdrawalCommandHandler(IAppDbContext context)
+    public FailWithdrawalCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
     {
         _context = context;
+        _clock = clock;
+        _auditLogService = auditLogService;
     }
 
     public async Task<WithdrawalDto> Handle(FailWithdrawalCommand request, CancellationToken cancellationToken)
@@ -45,7 +49,7 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
             throw new UnauthorizedException("Admin user not found.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
 
@@ -91,6 +95,15 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
             withdrawal.Wallet.TutorProfile.UserId,
             new MoneyDto(withdrawal.Amount),
             withdrawal.FailureReason!));
+
+        await _auditLogService.LogAsync(
+            action: "WithdrawalFailed",
+            entityName: "Withdrawal",
+            entityId: withdrawal.Id.ToString(),
+            userId: request.AdminId,
+            oldValues: new { Status = WithdrawalStatus.Processing.ToString() },
+            newValues: new { Status = withdrawal.Status.ToString(), withdrawal.FailureReason },
+            cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);

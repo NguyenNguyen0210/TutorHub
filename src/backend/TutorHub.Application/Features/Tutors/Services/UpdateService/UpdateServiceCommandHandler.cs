@@ -10,10 +10,12 @@ namespace TutorHub.Application.Features.Tutors.Services.UpdateService;
 public class UpdateServiceCommandHandler : IRequestHandler<UpdateServiceCommand, ServiceDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public UpdateServiceCommandHandler(IAppDbContext context)
+    public UpdateServiceCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<ServiceDto> Handle(UpdateServiceCommand request, CancellationToken cancellationToken)
@@ -77,7 +79,7 @@ public class UpdateServiceCommandHandler : IRequestHandler<UpdateServiceCommand,
         if (request.TrialLessonUrl != null)
             service.TrialLessonUrl = request.TrialLessonUrl;
 
-        service.UpdatedAt = DateTime.UtcNow;
+        service.UpdatedAt = _clock.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
 

@@ -81,7 +81,7 @@ public class NotificationQueryAndCommandTests
         var notifications = new List<Notification> { notif };
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
 
-        var handler = new MarkNotificationAsReadCommandHandler(_dbContextMock.Object, _currentUserServiceMock.Object);
+        var handler = new MarkNotificationAsReadCommandHandler(_dbContextMock.Object, StubClock.Instance, _currentUserServiceMock.Object);
 
         // Act
         var result = await handler.Handle(new MarkNotificationAsReadCommand(notif.Id), CancellationToken.None);
@@ -105,7 +105,7 @@ public class NotificationQueryAndCommandTests
         var notifications = new List<Notification> { notif };
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
 
-        var handler = new MarkNotificationAsReadCommandHandler(_dbContextMock.Object, _currentUserServiceMock.Object);
+        var handler = new MarkNotificationAsReadCommandHandler(_dbContextMock.Object, StubClock.Instance, _currentUserServiceMock.Object);
 
         // Act
         var act = () => handler.Handle(new MarkNotificationAsReadCommand(notif.Id), CancellationToken.None);
@@ -128,7 +128,7 @@ public class NotificationQueryAndCommandTests
         var notifications = new List<Notification> { notif1, notif2 };
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
 
-        var handler = new MarkAllNotificationsAsReadCommandHandler(_dbContextMock.Object, _currentUserServiceMock.Object);
+        var handler = new MarkAllNotificationsAsReadCommandHandler(_dbContextMock.Object, StubClock.Instance, _currentUserServiceMock.Object);
 
         // Act
         var count = await handler.Handle(new MarkAllNotificationsAsReadCommand(), CancellationToken.None);

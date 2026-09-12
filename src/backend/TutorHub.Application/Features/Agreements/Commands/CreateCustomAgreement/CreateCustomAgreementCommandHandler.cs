@@ -12,10 +12,12 @@ namespace TutorHub.Application.Features.Agreements.Commands.CreateCustomAgreemen
 public class CreateCustomAgreementCommandHandler : IRequestHandler<CreateCustomAgreementCommand, CustomAgreementDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public CreateCustomAgreementCommandHandler(IAppDbContext context)
+    public CreateCustomAgreementCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<CustomAgreementDto> Handle(CreateCustomAgreementCommand request, CancellationToken cancellationToken)
@@ -105,7 +107,7 @@ public class CreateCustomAgreementCommandHandler : IRequestHandler<CreateCustomA
         }
 
         var validityDays = request.ValidityDays <= 0 ? 7 : request.ValidityDays;
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         // 6. Instantiate Domain Agreement with Immutable Commercial Terms Snapshot (INV-AGREE-007)
         var agreement = new CustomAgreement

@@ -9,16 +9,18 @@ namespace TutorHub.Application.Features.Admin.Dashboard.GetAdminRevenueChart;
 public class GetAdminRevenueChartQueryHandler : IRequestHandler<GetAdminRevenueChartQuery, RevenueChartDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public GetAdminRevenueChartQueryHandler(IAppDbContext context)
+    public GetAdminRevenueChartQueryHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<RevenueChartDto> Handle(GetAdminRevenueChartQuery request, CancellationToken cancellationToken)
     {
         // 1. Calculate Vietnam Timezone Reporting Boundary (UTC+7)
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _clock.UtcNow;
         var nowVn = nowUtc.AddHours(7);
         var currentMonthStartVn = new DateTime(nowVn.Year, nowVn.Month, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
@@ -45,6 +47,7 @@ public class GetAdminRevenueChartQueryHandler : IRequestHandler<GetAdminRevenueC
             {
                 t.CreatedAt,
                 t.Status,
+                t.Type,
                 t.Amount,
                 t.CommissionAmount,
                 t.PayoutAmount
@@ -71,7 +74,9 @@ public class GetAdminRevenueChartQueryHandler : IRequestHandler<GetAdminRevenueC
 
             var heldTx = monthTx.Where(t => t.Status == TransactionStatus.Held).ToList();
             var releasedTx = monthTx.Where(t => t.Status == TransactionStatus.Released).ToList();
-            var refundedTx = monthTx.Where(t => t.Status == TransactionStatus.Refunded).ToList();
+            // Refunds are counted by type (StudentRefund), independent of their
+            // Pending/Succeeded settlement state (DEC-S8-032).
+            var refundedTx = monthTx.Where(t => t.Type == TransactionType.StudentRefund).ToList();
 
             decimal heldAmount = heldTx.Sum(t => t.Amount);
             decimal releasedAmount = releasedTx.Sum(t => t.Amount);

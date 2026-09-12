@@ -11,10 +11,12 @@ namespace TutorHub.Application.Features.Admin.Withdrawals.CompleteWithdrawal;
 public class CompleteWithdrawalCommandHandler : IRequestHandler<CompleteWithdrawalCommand, WithdrawalDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IAuditLogService _auditLogService;
 
-    public CompleteWithdrawalCommandHandler(IAppDbContext context)
+    public CompleteWithdrawalCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
     {
         _context = context;
+        _auditLogService = auditLogService;
     }
 
     public async Task<WithdrawalDto> Handle(CompleteWithdrawalCommand request, CancellationToken cancellationToken)
@@ -46,6 +48,15 @@ public class CompleteWithdrawalCommandHandler : IRequestHandler<CompleteWithdraw
         // Domain State Transition: Complete
         withdrawal.Complete(request.AdminId);
         withdrawal.ProcessedByAdmin = admin;
+
+        await _auditLogService.LogAsync(
+            action: "WithdrawalCompleted",
+            entityName: "Withdrawal",
+            entityId: withdrawal.Id.ToString(),
+            userId: request.AdminId,
+            oldValues: new { Status = WithdrawalStatus.Processing.ToString() },
+            newValues: new { Status = withdrawal.Status.ToString() },
+            cancellationToken: cancellationToken);
 
         // Enqueue Outbox Message in same DB transaction (DEC-S7-012, SP7-INT-001)
         _context.AddOutboxMessage(new WithdrawalCompletedEvent(

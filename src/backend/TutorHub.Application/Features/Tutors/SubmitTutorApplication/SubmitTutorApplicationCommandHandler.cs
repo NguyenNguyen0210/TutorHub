@@ -13,10 +13,12 @@ public class SubmitTutorApplicationCommandHandler
     : IRequestHandler<SubmitTutorApplicationCommand, TutorApplicationDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public SubmitTutorApplicationCommandHandler(IAppDbContext context)
+    public SubmitTutorApplicationCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<TutorApplicationDto> Handle(
@@ -66,7 +68,7 @@ public class SubmitTutorApplicationCommandHandler
             Address = request.Address?.Trim(),
             Latitude = request.Latitude,
             Longitude = request.Longitude,
-            SubmittedAt = DateTime.UtcNow
+            SubmittedAt = _clock.UtcNow
         };
 
         _context.TutorApplications.Add(application);

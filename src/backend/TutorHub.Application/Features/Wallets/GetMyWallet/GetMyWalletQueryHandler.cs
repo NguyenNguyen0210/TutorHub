@@ -30,36 +30,33 @@ public class GetMyWalletQueryHandler : IRequestHandler<GetMyWalletQuery, WalletD
         var wallet = await _context.Wallets
             .FirstOrDefaultAsync(w => w.TutorProfileId == tutor.Id, cancellationToken);
 
-        if (wallet == null)
-        {
-            wallet = new Wallet
-            {
-                Id = Guid.NewGuid(),
-                TutorProfileId = tutor.Id,
-                PendingBalance = 0,
-                AvailableBalance = 0,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _context.Wallets.Add(wallet);
-            await _context.SaveChangesAsync(cancellationToken);
-        }
+        // A missing wallet is a legitimate zero-balance state for a tutor who has
+        // not sold anything yet. This is a read path: never create rows here.
+        var walletId = wallet?.Id ?? Guid.Empty;
+        var pendingBalance = wallet?.PendingBalance ?? 0m;
+        var availableBalance = wallet?.AvailableBalance ?? 0m;
+        var heldBalance = wallet?.HeldBalance ?? 0m;
+        var updatedAt = wallet?.UpdatedAt ?? DateTime.MinValue;
 
         // Calculate total pending/processing withdrawals
         var pendingWithdrawal = await _context.Withdrawals
-            .Where(w => w.WalletId == wallet.Id &&
+            .Where(w => w.WalletId == walletId &&
                        (w.Status == WithdrawalStatus.Pending || w.Status == WithdrawalStatus.Processing))
             .SumAsync(w => (decimal?)w.Amount, cancellationToken) ?? 0;
 
-        var totalBalance = wallet.PendingBalance + wallet.AvailableBalance + pendingWithdrawal;
+        var totalBalance = pendingBalance + availableBalance + pendingWithdrawal;
+        var withdrawableBalance = availableBalance - heldBalance;
 
         return new WalletDto(
-            Id: wallet.Id,
+            Id: walletId,
             TutorProfileId: tutor.Id,
-            PendingBalance: wallet.PendingBalance,
-            AvailableBalance: wallet.AvailableBalance,
+            PendingBalance: pendingBalance,
+            AvailableBalance: availableBalance,
+            HeldBalance: heldBalance,
+            WithdrawableBalance: withdrawableBalance,
             PendingWithdrawal: pendingWithdrawal,
             TotalBalance: totalBalance,
-            UpdatedAt: wallet.UpdatedAt
+            UpdatedAt: updatedAt
         );
     }
 }

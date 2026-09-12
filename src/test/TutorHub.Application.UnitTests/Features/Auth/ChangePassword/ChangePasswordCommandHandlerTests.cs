@@ -22,6 +22,7 @@ public class ChangePasswordCommandHandlerTests
     {
         _handler = new ChangePasswordCommandHandler(
             _contextMock.Object,
+            StubClock.Instance,
             _passwordHasherMock.Object);
     }
 

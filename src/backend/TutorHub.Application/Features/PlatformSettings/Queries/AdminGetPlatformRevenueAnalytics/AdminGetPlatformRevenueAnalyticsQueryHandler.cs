@@ -53,7 +53,7 @@ public class AdminGetPlatformRevenueAnalyticsQueryHandler : IRequestHandler<Admi
             .ToListAsync(cancellationToken);
 
         var unrecognizedPendingFee = pendingSessions.Sum(s =>
-            Math.Round(s.EarningAmount * (s.Enrollment?.PlatformFeeRate ?? 0.10m), MidpointRounding.AwayFromZero));
+            Math.Round(s.EarningAmount * (s.Enrollment?.PlatformFeeRate ?? 0m), 2, MidpointRounding.AwayFromZero));
 
         // 7. Dispute Metrics
         var disputes = await _context.Disputes

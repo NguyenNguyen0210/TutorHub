@@ -105,4 +105,26 @@ public class AdminGetPlatformRevenueAnalyticsQueryHandlerTests
         result.NetRecognizedPlatformRevenue.Should().Be(0m);
         result.UnrecognizedPendingPlatformFee.Should().Be(200_000m); // 2,000,000 * 0.10 in pending escrow
     }
+
+    [Fact]
+    public async Task Handle_ZeroFeeRate_DoesNotApplyFallbackFee()
+    {
+        // Arrange: a legitimate 0% snapshot must stay 0, never coerced to 10%.
+        var pendingSession = new Session
+        {
+            Id = Guid.NewGuid(),
+            EarningAmount = 2_000_000m,
+            Enrollment = new Enrollment { PlatformFeeRate = 0m }
+        };
+
+        _contextMock.Setup(c => c.Transactions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Transaction>()).Object);
+        _contextMock.Setup(c => c.Sessions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Session> { pendingSession }).Object);
+        _contextMock.Setup(c => c.Disputes).Returns(MockDbSetHelper.CreateMockDbSet(new List<Dispute>()).Object);
+
+        // Act
+        var result = await _handler.Handle(new AdminGetPlatformRevenueAnalyticsQuery(), CancellationToken.None);
+
+        // Assert
+        result.UnrecognizedPendingPlatformFee.Should().Be(0m);
+    }
 }

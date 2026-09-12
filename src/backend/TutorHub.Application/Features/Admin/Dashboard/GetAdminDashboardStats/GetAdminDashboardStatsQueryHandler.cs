@@ -9,10 +9,12 @@ namespace TutorHub.Application.Features.Admin.Dashboard.GetAdminDashboardStats;
 public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashboardStatsQuery, AdminDashboardStatsDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public GetAdminDashboardStatsQueryHandler(IAppDbContext context)
+    public GetAdminDashboardStatsQueryHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<AdminDashboardStatsDto> Handle(GetAdminDashboardStatsQuery request, CancellationToken cancellationToken)
@@ -58,7 +60,7 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
         );
 
         // 3. Grouped Bookings Metrics
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _clock.UtcNow;
         var holdingCutoff = nowUtc.AddMinutes(-15);
 
         var bookingGroup = await _context.Bookings
@@ -101,11 +103,17 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
 
         var heldTx = transactionGroup.FirstOrDefault(g => g.Status == TransactionStatus.Held);
         var releasedTx = transactionGroup.FirstOrDefault(g => g.Status == TransactionStatus.Released);
-        var refundedTx = transactionGroup.FirstOrDefault(g => g.Status == TransactionStatus.Refunded);
+
+        // Refunds are materialized as StudentRefund transactions and start Pending
+        // until the external provider settles them (DEC-S8-032); count by type so
+        // the obligation is visible regardless of settlement status.
+        decimal refundedAmount = await _context.Transactions
+            .AsNoTracking()
+            .Where(t => t.Type == TransactionType.StudentRefund)
+            .SumAsync(t => (decimal?)t.Amount, cancellationToken) ?? 0;
 
         decimal heldAmount = heldTx?.TotalAmount ?? 0;
         decimal releasedAmount = releasedTx?.TotalAmount ?? 0;
-        decimal refundedAmount = refundedTx?.TotalAmount ?? 0;
 
         decimal totalGmv = heldAmount + releasedAmount + refundedAmount;
         decimal netGmv = heldAmount + releasedAmount;

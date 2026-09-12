@@ -8,17 +8,19 @@ namespace TutorHub.Application.Features.Media.GenerateUploadUrl;
 public class GenerateUploadUrlCommandHandler : IRequestHandler<GenerateUploadUrlCommand, UploadUrlDto>
 {
     private readonly IObjectStorageService _storageService;
+    private readonly IClock _clock;
 
-    public GenerateUploadUrlCommandHandler(IObjectStorageService storageService)
+    public GenerateUploadUrlCommandHandler(IObjectStorageService storageService, IClock clock)
     {
         _storageService = storageService;
+        _clock = clock;
     }
 
     public async Task<UploadUrlDto> Handle(GenerateUploadUrlCommand request, CancellationToken cancellationToken)
     {
         var extension = Path.GetExtension(request.FileName).ToLowerInvariant();
         var uniqueId = Guid.NewGuid().ToString("N");
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         var objectKey = request.MediaType switch
         {

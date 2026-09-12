@@ -10,10 +10,12 @@ namespace TutorHub.Application.Features.Availability.GetTutorAvailability;
 public class GetTutorAvailabilityQueryHandler : IRequestHandler<GetTutorAvailabilityQuery, TutorAvailabilityDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public GetTutorAvailabilityQueryHandler(IAppDbContext context)
+    public GetTutorAvailabilityQueryHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<TutorAvailabilityDto> Handle(GetTutorAvailabilityQuery request, CancellationToken cancellationToken)
@@ -36,7 +38,7 @@ public class GetTutorAvailabilityQueryHandler : IRequestHandler<GetTutorAvailabi
         }
 
         var canonicalTimeZone = TimeZoneInfo.FindSystemTimeZoneById(OperatingSystem.IsWindows() ? "SE Asia Standard Time" : "Asia/Ho_Chi_Minh");
-        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, canonicalTimeZone);
+        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(_clock.UtcNow, canonicalTimeZone);
         var todayLocal = DateOnly.FromDateTime(nowLocal);
         var nowTime = TimeOnly.FromDateTime(nowLocal);
 

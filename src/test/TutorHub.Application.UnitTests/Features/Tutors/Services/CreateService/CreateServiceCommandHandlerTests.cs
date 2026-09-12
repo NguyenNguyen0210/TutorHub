@@ -18,7 +18,7 @@ public class CreateServiceCommandHandlerTests
 
     public CreateServiceCommandHandlerTests()
     {
-        _handler = new CreateServiceCommandHandler(_contextMock.Object);
+        _handler = new CreateServiceCommandHandler(_contextMock.Object, StubClock.Instance);
     }
 
     [Fact]

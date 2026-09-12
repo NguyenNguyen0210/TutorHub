@@ -9,10 +9,12 @@ namespace TutorHub.Application.Features.Availability.DeleteAvailabilitySlot;
 public class DeleteAvailabilitySlotCommandHandler : IRequestHandler<DeleteAvailabilitySlotCommand, bool>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public DeleteAvailabilitySlotCommandHandler(IAppDbContext context)
+    public DeleteAvailabilitySlotCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<bool> Handle(DeleteAvailabilitySlotCommand request, CancellationToken cancellationToken)
@@ -39,7 +41,7 @@ public class DeleteAvailabilitySlotCommandHandler : IRequestHandler<DeleteAvaila
             cancellationToken);
 
         // 2. Fetch concrete future scheduled sessions for this tutor (INV-AVAIL-005)
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _clock.UtcNow;
         var futureScheduledSessions = await _context.Sessions
             .Where(s => s.Enrollment.TutorProfileId == tutor.Id &&
                         s.Status == SessionStatus.Scheduled &&

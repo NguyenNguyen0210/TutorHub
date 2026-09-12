@@ -18,7 +18,7 @@ public class UpdateServiceCommandHandlerTests
 
     public UpdateServiceCommandHandlerTests()
     {
-        _handler = new UpdateServiceCommandHandler(_contextMock.Object);
+        _handler = new UpdateServiceCommandHandler(_contextMock.Object, StubClock.Instance);
     }
 
     [Fact]

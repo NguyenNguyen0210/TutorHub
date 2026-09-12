@@ -11,13 +11,15 @@ namespace TutorHub.Application.Features.Conversations.GetOrCreateConversation;
 public class GetOrCreateConversationCommandHandler : IRequestHandler<GetOrCreateConversationCommand, ConversationDto>
 {
     private readonly IAppDbContext _dbContext;
+    private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
 
     public GetOrCreateConversationCommandHandler(
-        IAppDbContext dbContext,
+        IAppDbContext dbContext, IClock clock,
         ICurrentUserService currentUserService)
     {
         _dbContext = dbContext;
+        _clock = clock;
         _currentUserService = currentUserService;
     }
 
@@ -115,7 +117,7 @@ public class GetOrCreateConversationCommandHandler : IRequestHandler<GetOrCreate
             StudentProfile = studentProfile!,
             TutorProfileId = tutorProfileId,
             TutorProfile = tutorProfile!,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _clock.UtcNow
         };
 
         _dbContext.Conversations.Add(newConversation);

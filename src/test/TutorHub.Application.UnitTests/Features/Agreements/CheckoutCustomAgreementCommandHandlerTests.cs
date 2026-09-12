@@ -25,7 +25,7 @@ public class CheckoutCustomAgreementCommandHandlerTests
         _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(_bookings).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(_services).Object);
 
-        _handler = new CheckoutCustomAgreementCommandHandler(_contextMock.Object);
+        _handler = new CheckoutCustomAgreementCommandHandler(_contextMock.Object, StubClock.Instance);
     }
 
     [Fact]
@@ -133,6 +133,92 @@ public class CheckoutCustomAgreementCommandHandlerTests
 
         result.Id.Should().Be(existingBooking.Id);
         _bookings.Should().HaveCount(1); // No second booking was created (INV-AGREE-009, INV-AGREE-014)
+    }
+
+    private (User StudentUser, CustomAgreement Agreement) SeedAgreementWithBooking(BookingStatus bookingStatus, DateTime? holdingExpiresAt)
+    {
+        var studentUser = new User { Id = Guid.NewGuid(), FullName = "Student" };
+        var student = new StudentProfile { Id = Guid.NewGuid(), UserId = studentUser.Id, User = studentUser };
+        var tutorUser = new User { Id = Guid.NewGuid(), FullName = "Tutor" };
+        var tutor = new TutorProfile { Id = Guid.NewGuid(), UserId = tutorUser.Id, User = tutorUser };
+        var subject = new Subject { Id = Guid.NewGuid(), Name = "Math" };
+
+        var agreement = new CustomAgreement
+        {
+            Id = Guid.NewGuid(),
+            TutorProfileId = tutor.Id,
+            TutorProfile = tutor,
+            StudentProfileId = student.Id,
+            StudentProfile = student,
+            SubjectId = subject.Id,
+            Subject = subject,
+            TotalPrice = 1_000_000m,
+            TotalSessions = 4,
+            SessionDurationMinutes = 60,
+            TeachingMode = TeachingMode.Online,
+            Status = CustomAgreementStatus.Accepted,
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow
+        };
+        _agreements.Add(agreement);
+
+        _bookings.Add(new Booking
+        {
+            Id = Guid.NewGuid(),
+            CustomAgreementId = agreement.Id,
+            StudentProfileId = student.Id,
+            StudentProfile = student,
+            TutorProfileId = tutor.Id,
+            TutorProfile = tutor,
+            SubjectId = subject.Id,
+            Subject = subject,
+            TotalPrice = 1_000_000m,
+            TotalSessions = 4,
+            SessionDurationMinutes = 60,
+            TeachingMode = TeachingMode.Online,
+            Status = bookingStatus,
+            HoldingExpiresAt = holdingExpiresAt,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        return (studentUser, agreement);
+    }
+
+    [Fact]
+    public async Task Handle_WhenHoldingHasNullExpiry_RefreshesSameBookingWithoutDuplicate()
+    {
+        var (studentUser, agreement) = SeedAgreementWithBooking(BookingStatus.Holding, holdingExpiresAt: null);
+        var command = new CheckoutCustomAgreementCommand(agreement.Id, studentUser.Id);
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        result.Status.Should().Be(BookingStatus.Holding);
+        result.HoldingExpiresAt.Should().BeAfter(DateTime.UtcNow.AddMinutes(14));
+        _bookings.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task Handle_WhenHoldingExpired_RefreshesSameBooking()
+    {
+        var (studentUser, agreement) = SeedAgreementWithBooking(BookingStatus.Holding, DateTime.UtcNow.AddMinutes(-1));
+        var command = new CheckoutCustomAgreementCommand(agreement.Id, studentUser.Id);
+
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        result.HoldingExpiresAt.Should().BeAfter(DateTime.UtcNow.AddMinutes(14));
+        _bookings.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task Handle_WhenExistingBookingCancelled_ThrowsConflictNoDuplicate()
+    {
+        var (studentUser, agreement) = SeedAgreementWithBooking(BookingStatus.Cancelled, DateTime.UtcNow.AddMinutes(-30));
+        var command = new CheckoutCustomAgreementCommand(agreement.Id, studentUser.Id);
+
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        await act.Should().ThrowAsync<ConflictException>();
+        _bookings.Should().HaveCount(1);
     }
 
     [Fact]

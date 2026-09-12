@@ -26,7 +26,7 @@ public class AdminConversationHandlerTests
         _currentUserServiceMock.Setup(c => c.UserId).Returns(Guid.NewGuid());
         _currentUserServiceMock.Setup(c => c.Role).Returns("Student");
 
-        var handler = new AdminGetConversationsQueryHandler(_dbContextMock.Object, _currentUserServiceMock.Object, _loggerMock.Object);
+        var handler = new AdminGetConversationsQueryHandler(_dbContextMock.Object, StubClock.Instance, _currentUserServiceMock.Object, _loggerMock.Object);
 
         // Act
         var act = () => handler.Handle(new AdminGetConversationsQuery("Dispute #123 investigation"), CancellationToken.None);
@@ -44,7 +44,7 @@ public class AdminConversationHandlerTests
         _currentUserServiceMock.Setup(c => c.UserId).Returns(Guid.NewGuid());
         _currentUserServiceMock.Setup(c => c.Role).Returns("Admin");
 
-        var handler = new AdminGetConversationsQueryHandler(_dbContextMock.Object, _currentUserServiceMock.Object, _loggerMock.Object);
+        var handler = new AdminGetConversationsQueryHandler(_dbContextMock.Object, StubClock.Instance, _currentUserServiceMock.Object, _loggerMock.Object);
 
         // Act
         var act = () => handler.Handle(new AdminGetConversationsQuery("abc"), CancellationToken.None);
@@ -73,7 +73,7 @@ public class AdminConversationHandlerTests
         _dbContextMock.Setup(c => c.Conversations).Returns(MockDbSetHelper.CreateMockDbSet(new List<Conversation> { conversation }).Object);
         _dbContextMock.Setup(c => c.Messages).Returns(MockDbSetHelper.CreateMockDbSet(messages).Object);
 
-        var handler = new AdminGetConversationMessagesQueryHandler(_dbContextMock.Object, _currentUserServiceMock.Object, _messagesLoggerMock.Object);
+        var handler = new AdminGetConversationMessagesQueryHandler(_dbContextMock.Object, StubClock.Instance, _currentUserServiceMock.Object, _messagesLoggerMock.Object);
 
         // Act
         var result = await handler.Handle(new AdminGetConversationMessagesQuery(conversation.Id, "Dispute investigation #456"), CancellationToken.None);

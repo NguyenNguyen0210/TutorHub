@@ -68,6 +68,19 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
             throw new BadRequestException("Attendance verification can only be submitted after the session has ended.");
         }
 
+        // One immutable attendance outcome per side (FR-ATT-001/002). Re-submission
+        // is rejected to prevent strike farming and outcome overwrites; corrections
+        // go through Admin/dispute resolution.
+        if (isStudent && session.StudentAttendanceSubmittedAt.HasValue)
+        {
+            throw new ConflictException("You have already submitted attendance for this session.");
+        }
+
+        if (isTutor && session.TutorAttendanceSubmittedAt.HasValue)
+        {
+            throw new ConflictException("You have already submitted attendance for this session.");
+        }
+
         if (isStudent)
         {
             session.SubmitStudentAttendance(request.Outcome, now);
@@ -87,8 +100,18 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
             absentUser?.RecordAbsentStrike(now);
         }
 
+        // FR-DISPUTE-003 / FR-EARN-004 / INV-003: while a dispute is active the
+        // session's escrow must stay locked. Matching attendance is recorded but
+        // the payout is not released until Admin resolves the dispute.
+        var hasActiveDispute = await _context.Disputes
+            .AsNoTracking()
+            .AnyAsync(d => d.SessionId == session.Id
+                && d.Status != DisputeStatus.Resolved
+                && d.Status != DisputeStatus.Dismissed, cancellationToken);
+
         if (session.StudentAttendance == AttendanceStatus.Attended &&
-            session.TutorAttendance == AttendanceStatus.Attended)
+            session.TutorAttendance == AttendanceStatus.Attended &&
+            !hasActiveDispute)
         {
             session.Complete();
             session.Enrollment.RecordCompletedSession(session.Id);

@@ -19,7 +19,7 @@ public class ReactivateUserCommandHandlerTests
 
     public ReactivateUserCommandHandlerTests()
     {
-        _handler = new ReactivateUserCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
+        _handler = new ReactivateUserCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object);
     }
 
     [Fact]

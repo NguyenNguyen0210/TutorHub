@@ -11,12 +11,14 @@ namespace TutorHub.Application.Features.PlatformSettings.Commands.AdminUpdatePla
 public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdatePlatformFeeCommand, PlatformSettingDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
     public const string PlatformFeeKey = "PlatformFeeRate";
 
-    public AdminUpdatePlatformFeeCommandHandler(IAppDbContext context)
+    public AdminUpdatePlatformFeeCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<PlatformSettingDto> Handle(AdminUpdatePlatformFeeCommand request, CancellationToken cancellationToken)
@@ -25,7 +27,7 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
             .Include(s => s.Versions)
             .FirstOrDefaultAsync(s => s.Key == PlatformFeeKey, cancellationToken);
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         var newValueStr = request.NewFeeRate.ToString("F4", CultureInfo.InvariantCulture);
 
         if (setting == null)

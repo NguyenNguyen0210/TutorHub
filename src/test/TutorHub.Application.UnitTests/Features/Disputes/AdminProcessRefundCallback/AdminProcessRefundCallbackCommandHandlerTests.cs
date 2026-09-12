@@ -17,7 +17,7 @@ public class AdminProcessRefundCallbackCommandHandlerTests
 
     public AdminProcessRefundCallbackCommandHandlerTests()
     {
-        _handler = new AdminProcessRefundCallbackCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
+        _handler = new AdminProcessRefundCallbackCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object);
     }
 
     [Fact]
@@ -74,6 +74,59 @@ public class AdminProcessRefundCallbackCommandHandlerTests
             null,
             null,
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenSucceeded_RoutesRefundEventToStudentUserId_NotProfileId()
+    {
+        // Arrange
+        var adminId = Guid.NewGuid();
+        var studentUserId = Guid.NewGuid();
+        var studentProfileId = Guid.NewGuid();
+
+        var studentProfile = new StudentProfile
+        {
+            Id = studentProfileId,
+            UserId = studentUserId
+        };
+        var enrollment = new Enrollment { Id = Guid.NewGuid() };
+        var booking = new Booking
+        {
+            Id = Guid.NewGuid(),
+            StudentProfile = studentProfile,
+            Enrollment = enrollment
+        };
+
+        var refundTx = new Transaction
+        {
+            Id = Guid.NewGuid(),
+            BookingId = booking.Id,
+            Type = TransactionType.StudentRefund,
+            Amount = 500_000m,
+            Status = TransactionStatus.Pending
+        };
+
+        var outbox = new List<OutboxMessage>();
+        _contextMock.Setup(c => c.Transactions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Transaction> { refundTx }).Object);
+        _contextMock.Setup(c => c.Disputes).Returns(MockDbSetHelper.CreateMockDbSet(new List<Dispute>()).Object);
+        _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(new List<Booking> { booking }).Object);
+        _contextMock.Setup(c => c.OutboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(outbox).Object);
+
+        var command = new AdminProcessRefundCallbackCommand(
+            RefundTransactionId: refundTx.Id,
+            Outcome: TransactionStatus.Succeeded,
+            ProviderReference: "PROV-1",
+            FailureReason: null,
+            AdminUserId: adminId);
+
+        // Act
+        await _handler.Handle(command, CancellationToken.None);
+
+        // Assert: outbox event may target the UserId, never the StudentProfile Id.
+        outbox.Should().HaveCount(1);
+        outbox[0].EventType.Should().Be("RefundCompleted");
+        outbox[0].Payload.Should().Contain(studentUserId.ToString());
+        outbox[0].Payload.Should().NotContain(studentProfileId.ToString());
     }
 
     [Fact]

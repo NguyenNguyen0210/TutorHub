@@ -12,10 +12,12 @@ namespace TutorHub.Application.Features.Availability.SetWeeklySchedule;
 public class SetWeeklyScheduleCommandHandler : IRequestHandler<SetWeeklyScheduleCommand, List<AvailabilitySlotDto>>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public SetWeeklyScheduleCommandHandler(IAppDbContext context)
+    public SetWeeklyScheduleCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<List<AvailabilitySlotDto>> Handle(SetWeeklyScheduleCommand request, CancellationToken cancellationToken)
@@ -38,7 +40,7 @@ public class SetWeeklyScheduleCommandHandler : IRequestHandler<SetWeeklySchedule
             cancellationToken);
 
         // 2. Fetch concrete future scheduled sessions for this tutor (INV-AVAIL-005)
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _clock.UtcNow;
         var futureScheduledSessions = await _context.Sessions
             .Where(s => s.Enrollment.TutorProfileId == tutor.Id &&
                         s.Status == SessionStatus.Scheduled &&

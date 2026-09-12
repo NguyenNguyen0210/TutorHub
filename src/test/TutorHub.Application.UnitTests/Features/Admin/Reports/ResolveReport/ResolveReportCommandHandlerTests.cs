@@ -28,7 +28,7 @@ public class ResolveReportCommandHandlerTests
         _contextMock.Setup(c => c.Reviews).Returns(MockDbSetHelper.CreateMockDbSet(_reviews).Object);
         _contextMock.Setup(c => c.RefreshTokens).Returns(MockDbSetHelper.CreateMockDbSet(_refreshTokens).Object);
 
-        _handler = new ResolveReportCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
+        _handler = new ResolveReportCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object);
     }
 
     [Fact]

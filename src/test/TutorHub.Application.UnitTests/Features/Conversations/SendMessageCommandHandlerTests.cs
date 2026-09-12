@@ -45,7 +45,7 @@ public class SendMessageCommandHandlerTests
         _dbContextMock.Setup(c => c.Messages).Returns(MockDbSetHelper.CreateMockDbSet(messagesList).Object);
         _dbContextMock.Setup(c => c.OutboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(outboxList).Object);
 
-        var handler = new SendMessageCommandHandler(_dbContextMock.Object, _currentUserServiceMock.Object);
+        var handler = new SendMessageCommandHandler(_dbContextMock.Object, StubClock.Instance, _currentUserServiceMock.Object);
 
         var command = new SendMessageCommand(conversation.Id, "Hello Tutor!");
 
@@ -93,7 +93,7 @@ public class SendMessageCommandHandlerTests
 
         _dbContextMock.Setup(c => c.Conversations).Returns(MockDbSetHelper.CreateMockDbSet(new List<Conversation> { conversation }).Object);
 
-        var handler = new SendMessageCommandHandler(_dbContextMock.Object, _currentUserServiceMock.Object);
+        var handler = new SendMessageCommandHandler(_dbContextMock.Object, StubClock.Instance, _currentUserServiceMock.Object);
 
         var command = new SendMessageCommand(conversation.Id, "Intruder message");
 

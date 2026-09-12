@@ -13,10 +13,14 @@ namespace TutorHub.Application.Features.Disputes.Commands.AdminResolveDispute;
 public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDisputeCommand, DisputeDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
+    private readonly IAuditLogService _auditLogService;
 
-    public AdminResolveDisputeCommandHandler(IAppDbContext context)
+    public AdminResolveDisputeCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
     {
         _context = context;
+        _clock = clock;
+        _auditLogService = auditLogService;
     }
 
     public async Task<DisputeDto> Handle(AdminResolveDisputeCommand request, CancellationToken cancellationToken)
@@ -62,7 +66,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
 
         var session = dispute.Session;
         var enrollment = session.Enrollment;
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         // 2. Lock Wallet (Lock Order Level 4 - DEC-S8-027)
         var tutorWallet = await _context.Wallets
@@ -79,7 +83,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
         {
             if (dispute.HoldType == FinancialHoldType.BalanceHold && dispute.HeldAmount > 0)
             {
-                tutorWallet.HeldBalance = Math.Max(0, tutorWallet.HeldBalance - dispute.HeldAmount);
+                tutorWallet.ReleaseHold(dispute.HeldAmount, now);
                 tutorWallet.UpdatedAt = now;
 
                 _context.WalletTransactions.Add(new WalletTransaction
@@ -98,6 +102,15 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             dispute.DismissByAdmin(request.AdminUserId, request.AdminNotes, now);
             dispute.ReleaseFinancialHold(request.AdminUserId, now);
 
+            await _auditLogService.LogAsync(
+                action: "DisputeResolved",
+                entityName: "Dispute",
+                entityId: dispute.Id.ToString(),
+                userId: request.AdminUserId,
+                oldValues: new { Status = "Open" },
+                newValues: new { Status = dispute.Status.ToString(), Decision = request.Decision.ToString(), request.AdminNotes },
+                cancellationToken: cancellationToken);
+
             await _context.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
 
@@ -111,7 +124,8 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             // Stage A: Pre-Release (Pending Escrow) - DEC-S8-003, DEC-S8-025
             // =========================================================================
             var gross = session.EarningAmount;
-            var feeRate = enrollment.PlatformFeeRate > 0 ? enrollment.PlatformFeeRate : 0.10m;
+            // Snapshot rate is authoritative; a legitimate 0% must stay 0%.
+            var feeRate = enrollment.PlatformFeeRate;
 
             decimal studentRefund = 0m;
             decimal tutorGrossRelease = 0m;
@@ -144,7 +158,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                 tutorWallet.DebitPending(gross, now);
             }
 
-            decimal platformFee = Math.Round(tutorGrossRelease * feeRate, MidpointRounding.AwayFromZero);
+            decimal platformFee = Math.Round(tutorGrossRelease * feeRate, 2, MidpointRounding.AwayFromZero);
             decimal tutorNetPayout = tutorGrossRelease - platformFee;
 
             // Update tutor wallet if tutor receives earning
@@ -230,14 +244,14 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             var originalGross = originalTx.Amount;
             var originalPlatformFee = originalTx.CommissionAmount;
             var originalTutorNet = originalTx.PayoutAmount;
-            var appliedRate = originalTx.CommissionRate > 0 ? originalTx.CommissionRate : 0.10m;
+            var appliedRate = originalTx.CommissionRate;
 
             if (request.Decision == DisputeResolutionDecision.TutorWinsReleaseEarning)
             {
                 // Unhold funds completely
                 if (dispute.HeldAmount > 0)
                 {
-                    tutorWallet.HeldBalance = Math.Max(0, tutorWallet.HeldBalance - dispute.HeldAmount);
+                    tutorWallet.ReleaseHold(dispute.HeldAmount, now);
                     tutorWallet.UpdatedAt = now;
 
                     _context.WalletTransactions.Add(new WalletTransaction
@@ -270,7 +284,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
 
                 // Canonical Fee & Net Calculation (Mandatory Patch B, DEC-S8-025)
                 var tutorFinalGross = originalGross - studentRefund;
-                var platformFinalFee = Math.Round(tutorFinalGross * appliedRate, MidpointRounding.AwayFromZero);
+                var platformFinalFee = Math.Round(tutorFinalGross * appliedRate, 2, MidpointRounding.AwayFromZero);
                 var tutorFinalNet = tutorFinalGross - platformFinalFee;
 
                 var tutorNetRecovery = originalTutorNet - tutorFinalNet;
@@ -285,6 +299,14 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                 {
                     dispute.MarkRequiresAdminFinancialIntervention(
                         $"Tutor available balance ({tutorWallet.AvailableBalance:N0} VND) is insufficient for required recovery ({tutorNetRecovery:N0} VND).");
+                    await _auditLogService.LogAsync(
+                        action: "DisputeRequiresFinancialIntervention",
+                        entityName: "Dispute",
+                        entityId: dispute.Id.ToString(),
+                        userId: request.AdminUserId,
+                        oldValues: new { Status = "UnderReview" },
+                        newValues: new { Status = dispute.Status.ToString(), RequiredRecovery = tutorNetRecovery, AvailableBalance = tutorWallet.AvailableBalance },
+                        cancellationToken: cancellationToken);
                     await _context.SaveChangesAsync(cancellationToken);
                     await tx.CommitAsync(cancellationToken);
 
@@ -294,10 +316,9 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                 // Deduct from tutor wallet
                 if (dispute.HeldAmount > 0)
                 {
-                    tutorWallet.HeldBalance = Math.Max(0, tutorWallet.HeldBalance - dispute.HeldAmount);
+                    tutorWallet.ReleaseHold(dispute.HeldAmount, now);
                 }
-                tutorWallet.AvailableBalance -= tutorNetRecovery;
-                tutorWallet.UpdatedAt = now;
+                tutorWallet.DebitAvailable(tutorNetRecovery, now);
 
                 _context.WalletTransactions.Add(new WalletTransaction
                 {
@@ -370,6 +391,15 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             enrollment.StudentProfile.UserId,
             enrollment.TutorProfile.UserId,
             request.Decision.ToString()));
+
+        await _auditLogService.LogAsync(
+            action: "DisputeResolved",
+            entityName: "Dispute",
+            entityId: dispute.Id.ToString(),
+            userId: request.AdminUserId,
+            oldValues: new { Status = "Open" },
+            newValues: new { Status = dispute.Status.ToString(), Decision = request.Decision.ToString(), request.AdminNotes },
+            cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);

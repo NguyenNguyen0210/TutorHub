@@ -55,8 +55,66 @@ public class WalletQueryHandlerTests
         // Assert
         result.PendingBalance.Should().Be(1_000_000m);
         result.AvailableBalance.Should().Be(500_000m);
+        result.HeldBalance.Should().Be(0m);
+        result.WithdrawableBalance.Should().Be(500_000m); // Available - Held
         result.PendingWithdrawal.Should().Be(300_000m); // 100k (Pending) + 200k (Processing)
         result.TotalBalance.Should().Be(1_800_000m);    // 1M + 500k + 300k
+    }
+
+    [Fact]
+    public async Task GetMyWallet_WithHeldBalance_ReportsWithdrawableExcludingHeld()
+    {
+        // Arrange
+        var user = new UserBuilder().WithRole(UserRole.Tutor).Build();
+        var tutor = new TutorProfile { Id = Guid.NewGuid(), UserId = user.Id };
+        var wallet = new Wallet
+        {
+            Id = Guid.NewGuid(),
+            TutorProfileId = tutor.Id,
+            PendingBalance = 0m,
+            AvailableBalance = 1_000_000m,
+            HeldBalance = 400_000m,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorProfile> { tutor }).Object);
+        _contextMock.Setup(c => c.Wallets).Returns(MockDbSetHelper.CreateMockDbSet(new List<Wallet> { wallet }).Object);
+        _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal>()).Object);
+
+        var handler = new GetMyWalletQueryHandler(_contextMock.Object);
+
+        // Act
+        var result = await handler.Handle(new GetMyWalletQuery(user.Id), CancellationToken.None);
+
+        // Assert
+        result.HeldBalance.Should().Be(400_000m);
+        result.WithdrawableBalance.Should().Be(600_000m);
+    }
+
+    [Fact]
+    public async Task GetMyWallet_WhenWalletMissing_ReturnsZeroWithoutCreatingRow()
+    {
+        // Arrange
+        var user = new UserBuilder().WithRole(UserRole.Tutor).Build();
+        var tutor = new TutorProfile { Id = Guid.NewGuid(), UserId = user.Id };
+        var wallets = new List<Wallet>();
+
+        _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorProfile> { tutor }).Object);
+        _contextMock.Setup(c => c.Wallets).Returns(MockDbSetHelper.CreateMockDbSet(wallets).Object);
+        _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal>()).Object);
+
+        var handler = new GetMyWalletQueryHandler(_contextMock.Object);
+
+        // Act
+        var result = await handler.Handle(new GetMyWalletQuery(user.Id), CancellationToken.None);
+
+        // Assert: read path must not create a wallet.
+        wallets.Should().BeEmpty();
+        result.PendingBalance.Should().Be(0m);
+        result.AvailableBalance.Should().Be(0m);
+        result.HeldBalance.Should().Be(0m);
+        result.WithdrawableBalance.Should().Be(0m);
+        result.TotalBalance.Should().Be(0m);
     }
 
     [Fact]

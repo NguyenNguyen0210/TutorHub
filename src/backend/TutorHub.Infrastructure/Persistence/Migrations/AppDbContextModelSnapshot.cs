@@ -453,7 +453,10 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("RespondentUserId");
 
-                    b.HasIndex("SessionId");
+                    b.HasIndex("SessionId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Disputes_ActiveSessionId")
+                        .HasFilter("\"Status\" IN ('Open', 'UnderReview', 'RequiresAdminFinancialIntervention', 'RequiresAdminRefundSettlement')");
 
                     b.HasIndex("Status");
 
@@ -1467,15 +1470,15 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("Amount")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("numeric(10,2)");
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
 
                     b.Property<Guid>("BookingId")
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("CommissionAmount")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("numeric(10,2)");
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
 
                     b.Property<decimal>("CommissionRate")
                         .HasPrecision(5, 2)
@@ -1496,8 +1499,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.Property<decimal>("PayoutAmount")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("numeric(10,2)");
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
 
                     b.Property<DateTime?>("RefundedAt")
                         .HasColumnType("timestamp with time zone");

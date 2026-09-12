@@ -12,11 +12,13 @@ namespace TutorHub.Application.Features.Disputes.Commands.AdminProcessRefundCall
 public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminProcessRefundCallbackCommand, RefundCallbackResultDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
 
-    public AdminProcessRefundCallbackCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public AdminProcessRefundCallbackCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
     {
         _context = context;
+        _clock = clock;
         _auditLogService = auditLogService;
     }
 
@@ -40,7 +42,7 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
             throw new ConflictException("Refund has already settled successfully.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         var oldStatus = refundTx.Status;
 
         Dispute? dispute = null;
@@ -52,10 +54,12 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
 
         var booking = await _context.Bookings
             .Include(b => b.Enrollment)
+            .Include(b => b.StudentProfile)
             .FirstOrDefaultAsync(b => b.Id == refundTx.BookingId, cancellationToken);
 
         var enrollmentId = booking?.Enrollment?.Id ?? Guid.Empty;
-        var studentUserId = booking?.StudentProfileId ?? Guid.Empty;
+        // Notifications must target the student's UserId, not the StudentProfile Id.
+        var studentUserId = booking?.StudentProfile?.UserId ?? Guid.Empty;
 
         if (request.Outcome == TransactionStatus.Succeeded)
         {
@@ -109,11 +113,9 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
             newValues: new { Status = refundTx.Status.ToString(), SettlementRequired = refundTx.SettlementRequired, Reason = request.FailureReason },
             cancellationToken: cancellationToken);
 
-        // Note: AppDbContext SaveChangesAsync checks modified Transaction, but refund settlement is updating lifecycle status of an ongoing transaction.
-        // Let's verify: In AppDbContext.SaveChangesAsync, we added:
-        // var modifiedTransactions = ChangeTracker.Entries<Transaction>().Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
-        // Wait! Look at that: If AppDbContext throws when Transaction is modified, can refundTx.Status be modified from Pending to Succeeded/Failed?
-        // Let's check DEC-S8-030 and DEC-S8-032!
+        // Refund settlement mutates an in-flight (Pending) StudentRefund into a
+        // terminal state; the append-only guard in AppDbContext permits this
+        // because the original status is not Released/Succeeded (DEC-S8-032).
         await _context.SaveChangesAsync(cancellationToken);
 
         return new RefundCallbackResultDto

@@ -11,10 +11,12 @@ namespace TutorHub.Application.Features.Tutors.Services.CreateService;
 public class CreateServiceCommandHandler : IRequestHandler<CreateServiceCommand, ServiceDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public CreateServiceCommandHandler(IAppDbContext context)
+    public CreateServiceCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<ServiceDto> Handle(CreateServiceCommand request, CancellationToken cancellationToken)
@@ -64,7 +66,7 @@ public class CreateServiceCommandHandler : IRequestHandler<CreateServiceCommand,
             TeachingMode = request.TeachingMode,
             TrialLessonUrl = request.TrialLessonUrl,
             Status = ServiceStatus.Draft,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _clock.UtcNow
         };
 
         _context.Services.Add(service);
