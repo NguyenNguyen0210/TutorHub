@@ -52,10 +52,12 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
 
         var booking = await _context.Bookings
             .Include(b => b.Enrollment)
+            .Include(b => b.StudentProfile)
             .FirstOrDefaultAsync(b => b.Id == refundTx.BookingId, cancellationToken);
 
         var enrollmentId = booking?.Enrollment?.Id ?? Guid.Empty;
-        var studentUserId = booking?.StudentProfileId ?? Guid.Empty;
+        // Notifications must target the student's UserId, not the StudentProfile Id.
+        var studentUserId = booking?.StudentProfile?.UserId ?? Guid.Empty;
 
         if (request.Outcome == TransactionStatus.Succeeded)
         {

@@ -51,6 +51,15 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
             throw new BadRequestException($"Cannot dispute a session in '{session.Status}' status.");
         }
 
+        // A dispute addresses an issue with a delivery, so the session must have
+        // already taken place (EndAt <= now). Future sessions use cancellation or
+        // reschedule instead (FR-DISPUTE-001, PRD §8.4).
+        var now = DateTime.UtcNow;
+        if (!session.EndAt.HasValue || session.EndAt.Value > now)
+        {
+            throw new BadRequestException("Cannot dispute a session that has not yet taken place.");
+        }
+
         // Active dispute deduplication: only 1 active dispute per session (INV-DISP-001)
         var existingActiveDispute = await _context.Disputes
             .AnyAsync(d => d.SessionId == session.Id &&
@@ -62,7 +71,6 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
             throw new ConflictException("An active dispute already exists for this session.");
         }
 
-        var now = DateTime.UtcNow;
         var dispute = new Dispute
         {
             Id = Guid.NewGuid(),
