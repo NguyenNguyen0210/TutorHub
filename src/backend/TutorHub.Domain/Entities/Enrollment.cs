@@ -99,9 +99,29 @@ public class Enrollment
                 $"Session '{sessionId}' is not in Completed status. Cannot record completion.");
         }
 
-        CompletedSessions = Sessions.Count(s => s.Status == SessionStatus.Completed);
+        EvaluateCompletion();
+    }
 
-        if (CompletedSessions >= TotalSessions)
+    /// <summary>
+    /// Recomputes progress and completes the Enrollment once every Session is
+    /// resolved (Completed or Cancelled) and at least one Session was actually
+    /// delivered. A single cancelled Session must not block completion
+    /// (FR-ENR-005, FR-SESSION-007). An all-cancelled enrollment is an early
+    /// termination and is intentionally NOT auto-completed here; it must go
+    /// through cancellation (FR-OPEN-004).
+    /// </summary>
+    public void EvaluateCompletion()
+    {
+        if (Status != EnrollmentStatus.Active)
+        {
+            return;
+        }
+
+        CompletedSessions = Sessions.Count(s => s.Status == SessionStatus.Completed);
+        var resolvedSessions = Sessions.Count(s =>
+            s.Status == SessionStatus.Completed || s.Status == SessionStatus.Cancelled);
+
+        if (CompletedSessions >= 1 && resolvedSessions >= TotalSessions)
         {
             Status = EnrollmentStatus.Completed;
             CompletedAt = DateTime.UtcNow;
