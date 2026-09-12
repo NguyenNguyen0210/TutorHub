@@ -122,7 +122,8 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             // Stage A: Pre-Release (Pending Escrow) - DEC-S8-003, DEC-S8-025
             // =========================================================================
             var gross = session.EarningAmount;
-            var feeRate = enrollment.PlatformFeeRate > 0 ? enrollment.PlatformFeeRate : 0.10m;
+            // Snapshot rate is authoritative; a legitimate 0% must stay 0%.
+            var feeRate = enrollment.PlatformFeeRate;
 
             decimal studentRefund = 0m;
             decimal tutorGrossRelease = 0m;
@@ -155,7 +156,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                 tutorWallet.DebitPending(gross, now);
             }
 
-            decimal platformFee = Math.Round(tutorGrossRelease * feeRate, MidpointRounding.AwayFromZero);
+            decimal platformFee = Math.Round(tutorGrossRelease * feeRate, 2, MidpointRounding.AwayFromZero);
             decimal tutorNetPayout = tutorGrossRelease - platformFee;
 
             // Update tutor wallet if tutor receives earning
@@ -241,7 +242,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             var originalGross = originalTx.Amount;
             var originalPlatformFee = originalTx.CommissionAmount;
             var originalTutorNet = originalTx.PayoutAmount;
-            var appliedRate = originalTx.CommissionRate > 0 ? originalTx.CommissionRate : 0.10m;
+            var appliedRate = originalTx.CommissionRate;
 
             if (request.Decision == DisputeResolutionDecision.TutorWinsReleaseEarning)
             {
@@ -281,7 +282,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
 
                 // Canonical Fee & Net Calculation (Mandatory Patch B, DEC-S8-025)
                 var tutorFinalGross = originalGross - studentRefund;
-                var platformFinalFee = Math.Round(tutorFinalGross * appliedRate, MidpointRounding.AwayFromZero);
+                var platformFinalFee = Math.Round(tutorFinalGross * appliedRate, 2, MidpointRounding.AwayFromZero);
                 var tutorFinalNet = tutorFinalGross - platformFinalFee;
 
                 var tutorNetRecovery = originalTutorNet - tutorFinalNet;

@@ -110,7 +110,8 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
             }
 
             var gross = session.EarningAmount;
-            var feeRate = enrollment.PlatformFeeRate > 0 ? enrollment.PlatformFeeRate : 0.10m;
+            // Snapshot rate is authoritative; a legitimate 0% must stay 0%.
+            var feeRate = enrollment.PlatformFeeRate;
 
             // Pre-release escrow: remove the session's gross slice before splitting so
             // money is conserved (mirrors AdminResolveDispute Stage A, DEC-S8-025).
@@ -121,7 +122,7 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
             {
                 // Tutor taught, student ghosted: release full net payout.
                 decision = DisputeResolutionDecision.TutorWinsReleaseEarning;
-                var platformFee = Math.Round(gross * feeRate, MidpointRounding.AwayFromZero);
+                var platformFee = Math.Round(gross * feeRate, 2, MidpointRounding.AwayFromZero);
                 var tutorNetPayout = gross - platformFee;
 
                 tutorWallet.CreditAvailable(tutorNetPayout, now);
