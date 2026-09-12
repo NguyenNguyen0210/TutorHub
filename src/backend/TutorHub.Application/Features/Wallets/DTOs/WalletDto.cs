@@ -5,6 +5,8 @@ public record WalletDto(
     Guid TutorProfileId,
     decimal PendingBalance,
     decimal AvailableBalance,
+    decimal HeldBalance,
+    decimal WithdrawableBalance,
     decimal PendingWithdrawal,
     decimal TotalBalance,
     DateTime UpdatedAt
