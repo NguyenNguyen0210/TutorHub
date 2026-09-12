@@ -68,6 +68,19 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
             throw new BadRequestException("Attendance verification can only be submitted after the session has ended.");
         }
 
+        // One immutable attendance outcome per side (FR-ATT-001/002). Re-submission
+        // is rejected to prevent strike farming and outcome overwrites; corrections
+        // go through Admin/dispute resolution.
+        if (isStudent && session.StudentAttendanceSubmittedAt.HasValue)
+        {
+            throw new ConflictException("You have already submitted attendance for this session.");
+        }
+
+        if (isTutor && session.TutorAttendanceSubmittedAt.HasValue)
+        {
+            throw new ConflictException("You have already submitted attendance for this session.");
+        }
+
         if (isStudent)
         {
             session.SubmitStudentAttendance(request.Outcome, now);
