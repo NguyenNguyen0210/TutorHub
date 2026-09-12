@@ -63,6 +63,7 @@ public class LateVnPayIpnTests : IntegrationTestBase
 
     private ProcessVnPayIpnCommandHandler CreateHandler() => new(
         Db,
+        StubIntegrationClock.Instance,
         new AlwaysValidVnPayService(),
         Scope.ServiceProvider.GetRequiredService<IEnrollmentActivationService>(),
         Scope.ServiceProvider.GetRequiredService<IAuditLogService>(),

@@ -12,11 +12,13 @@ namespace TutorHub.Application.Features.Admin.Reports.ResolveReport;
 public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand, AdminReportDetailDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
 
-    public ResolveReportCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public ResolveReportCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
     {
         _context = context;
+        _clock = clock;
         _auditLogService = auditLogService;
     }
 
@@ -42,7 +44,7 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
             throw new ConflictException("Report has already been resolved.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         var admin = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.AdminId, cancellationToken);
 
         // 2. Pure Trust & Safety Enforcement (FR-TRUST-004) - Zero Financial Mutation

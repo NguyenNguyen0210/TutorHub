@@ -12,11 +12,13 @@ namespace TutorHub.Application.Features.Enrollments.TutorCannotContinue;
 public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotContinueCommand, EnrollmentDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
 
-    public TutorCannotContinueCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public TutorCannotContinueCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
     {
         _context = context;
+        _clock = clock;
         _auditLogService = auditLogService;
     }
 
@@ -53,7 +55,7 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
         }
 
         // 3. Domain Cancel with CancelledBy.Tutor
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         var refundAmount = enrollment.Cancel(request.Reason, CancelledBy.Tutor);
 
         // 4. Financial Escrow Adjustment & Refund Record. Lock the tutor wallet

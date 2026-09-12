@@ -23,6 +23,7 @@ public class RegisterCommandHandlerTests
     {
         _handler = new RegisterCommandHandler(
             _contextMock.Object,
+            StubClock.Instance,
             _passwordHasherMock.Object);
     }
 

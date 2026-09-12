@@ -15,19 +15,21 @@ namespace TutorHub.Application.Features.Payments.ProcessVnPayIpn;
 public class ProcessVnPayIpnCommandHandler : IRequestHandler<ProcessVnPayIpnCommand, VnPayIpnResponseDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IVnPayService _vnPayService;
     private readonly IEnrollmentActivationService _activationService;
     private readonly IAuditLogService _auditLogService;
     private readonly ILogger<ProcessVnPayIpnCommandHandler> _logger;
 
     public ProcessVnPayIpnCommandHandler(
-        IAppDbContext context,
+        IAppDbContext context, IClock clock,
         IVnPayService vnPayService,
         IEnrollmentActivationService activationService,
         IAuditLogService auditLogService,
         ILogger<ProcessVnPayIpnCommandHandler> logger)
     {
         _context = context;
+        _clock = clock;
         _vnPayService = vnPayService;
         _activationService = activationService;
         _auditLogService = auditLogService;
@@ -135,7 +137,7 @@ public class ProcessVnPayIpnCommandHandler : IRequestHandler<ProcessVnPayIpnComm
                     transaction, txnRef, transactionNo, responseCode, transactionStatus, dbTx, cancellationToken);
             }
 
-            var now = DateTime.UtcNow;
+            var now = _clock.UtcNow;
 
             // 8. Process Success Status Transition
             if (responseCode == "00" && transactionStatus == "00")
@@ -207,7 +209,7 @@ public class ProcessVnPayIpnCommandHandler : IRequestHandler<ProcessVnPayIpnComm
             return new VnPayIpnResponseDto("02", "Order already confirmed");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         transaction.Status = TransactionStatus.Held;
         transaction.PaymentGatewayRef = $"{txnRef}|{transactionNo}";
 

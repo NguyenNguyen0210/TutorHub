@@ -15,7 +15,7 @@ public class AdminUpdatePlatformFeeCommandHandlerTests
 
     public AdminUpdatePlatformFeeCommandHandlerTests()
     {
-        _handler = new AdminUpdatePlatformFeeCommandHandler(_contextMock.Object);
+        _handler = new AdminUpdatePlatformFeeCommandHandler(_contextMock.Object, StubClock.Instance);
     }
 
     [Fact]

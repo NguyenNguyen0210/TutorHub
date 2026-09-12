@@ -12,11 +12,13 @@ namespace TutorHub.Application.Features.Enrollments.CancelEnrollment;
 public class CancelEnrollmentCommandHandler : IRequestHandler<CancelEnrollmentCommand, EnrollmentDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
 
-    public CancelEnrollmentCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public CancelEnrollmentCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
     {
         _context = context;
+        _clock = clock;
         _auditLogService = auditLogService;
     }
 
@@ -53,7 +55,7 @@ public class CancelEnrollmentCommandHandler : IRequestHandler<CancelEnrollmentCo
         }
 
         // 3. Domain state transition and refund calculation (DEC-C7-REFUND-001)
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         var refundAmount = enrollment.Cancel(request.Reason, CancelledBy.Student);
 
         // 4. Financial Escrow Adjustment & Refund Record (DEC-C7-FINANCE-003).

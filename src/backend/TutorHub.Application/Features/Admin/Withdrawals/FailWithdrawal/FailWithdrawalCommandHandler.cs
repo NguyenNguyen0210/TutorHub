@@ -12,11 +12,13 @@ namespace TutorHub.Application.Features.Admin.Withdrawals.FailWithdrawal;
 public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalCommand, WithdrawalDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
 
-    public FailWithdrawalCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public FailWithdrawalCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
     {
         _context = context;
+        _clock = clock;
         _auditLogService = auditLogService;
     }
 
@@ -47,7 +49,7 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
             throw new UnauthorizedException("Admin user not found.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
 

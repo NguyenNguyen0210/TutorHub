@@ -10,10 +10,12 @@ namespace TutorHub.Application.Features.PlatformSettings.Commands.AdminUpsertPla
 public class AdminUpsertPlatformSettingCommandHandler : IRequestHandler<AdminUpsertPlatformSettingCommand, PlatformSettingDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public AdminUpsertPlatformSettingCommandHandler(IAppDbContext context)
+    public AdminUpsertPlatformSettingCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<PlatformSettingDto> Handle(AdminUpsertPlatformSettingCommand request, CancellationToken cancellationToken)
@@ -28,7 +30,7 @@ public class AdminUpsertPlatformSettingCommandHandler : IRequestHandler<AdminUps
             .Include(s => s.Versions)
             .FirstOrDefaultAsync(s => s.Key == request.Key, cancellationToken);
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         if (setting == null)
         {

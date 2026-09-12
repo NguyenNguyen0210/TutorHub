@@ -11,11 +11,13 @@ namespace TutorHub.Application.Features.Admin.Users.ReactivateUser;
 public class ReactivateUserCommandHandler : IRequestHandler<ReactivateUserCommand, AdminUserSummaryDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
 
-    public ReactivateUserCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public ReactivateUserCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
     {
         _context = context;
+        _clock = clock;
         _auditLogService = auditLogService;
     }
 
@@ -42,7 +44,7 @@ public class ReactivateUserCommandHandler : IRequestHandler<ReactivateUserComman
             throw new ConflictException(ex.Message);
         }
 
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _clock.UtcNow;
 
         // 3. Central Append-Only Audit Trail Logging
         await _auditLogService.LogAsync(

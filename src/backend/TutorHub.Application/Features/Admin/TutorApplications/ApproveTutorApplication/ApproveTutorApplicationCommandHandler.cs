@@ -13,10 +13,12 @@ public class ApproveTutorApplicationCommandHandler
     : IRequestHandler<ApproveTutorApplicationCommand, AdminTutorApplicationDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public ApproveTutorApplicationCommandHandler(IAppDbContext context)
+    public ApproveTutorApplicationCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<AdminTutorApplicationDto> Handle(
@@ -63,7 +65,7 @@ public class ApproveTutorApplicationCommandHandler
             TutorProfileId = tutorProfileId,
             PendingBalance = 0,
             AvailableBalance = 0,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = _clock.UtcNow
         };
 
         _context.TutorProfiles.Add(profile);

@@ -13,11 +13,13 @@ namespace TutorHub.Application.Features.Disputes.Commands.AdminResolveDispute;
 public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDisputeCommand, DisputeDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
 
-    public AdminResolveDisputeCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public AdminResolveDisputeCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
     {
         _context = context;
+        _clock = clock;
         _auditLogService = auditLogService;
     }
 
@@ -64,7 +66,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
 
         var session = dispute.Session;
         var enrollment = session.Enrollment;
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         // 2. Lock Wallet (Lock Order Level 4 - DEC-S8-027)
         var tutorWallet = await _context.Wallets

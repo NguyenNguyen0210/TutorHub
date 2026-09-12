@@ -43,7 +43,7 @@ public class GetOrCreateConversationCommandHandlerTests
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { studentUser, tutorUser }).Object);
         _dbContextMock.Setup(c => c.Conversations).Returns(MockDbSetHelper.CreateMockDbSet(new List<Conversation> { conversation }).Object);
 
-        var handler = new GetOrCreateConversationCommandHandler(_dbContextMock.Object, _currentUserServiceMock.Object);
+        var handler = new GetOrCreateConversationCommandHandler(_dbContextMock.Object, StubClock.Instance, _currentUserServiceMock.Object);
 
         // Act
         var result = await handler.Handle(new GetOrCreateConversationCommand(tutorUser.Id), CancellationToken.None);
@@ -74,7 +74,7 @@ public class GetOrCreateConversationCommandHandlerTests
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { tutorUser, studentUser }).Object);
         _dbContextMock.Setup(c => c.Conversations).Returns(MockDbSetHelper.CreateMockDbSet(conversationsList).Object);
 
-        var handler = new GetOrCreateConversationCommandHandler(_dbContextMock.Object, _currentUserServiceMock.Object);
+        var handler = new GetOrCreateConversationCommandHandler(_dbContextMock.Object, StubClock.Instance, _currentUserServiceMock.Object);
 
         // Act
         var result = await handler.Handle(new GetOrCreateConversationCommand(studentUser.Id), CancellationToken.None);
@@ -93,7 +93,7 @@ public class GetOrCreateConversationCommandHandlerTests
         _currentUserServiceMock.Setup(c => c.IsAuthenticated).Returns(true);
         _currentUserServiceMock.Setup(c => c.UserId).Returns(userId);
 
-        var handler = new GetOrCreateConversationCommandHandler(_dbContextMock.Object, _currentUserServiceMock.Object);
+        var handler = new GetOrCreateConversationCommandHandler(_dbContextMock.Object, StubClock.Instance, _currentUserServiceMock.Object);
 
         // Act
         var act = () => handler.Handle(new GetOrCreateConversationCommand(userId), CancellationToken.None);
@@ -115,7 +115,7 @@ public class GetOrCreateConversationCommandHandlerTests
 
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { student1, student2 }).Object);
 
-        var handler = new GetOrCreateConversationCommandHandler(_dbContextMock.Object, _currentUserServiceMock.Object);
+        var handler = new GetOrCreateConversationCommandHandler(_dbContextMock.Object, StubClock.Instance, _currentUserServiceMock.Object);
 
         // Act
         var act = () => handler.Handle(new GetOrCreateConversationCommand(student2.Id), CancellationToken.None);

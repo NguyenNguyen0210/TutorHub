@@ -12,15 +12,17 @@ namespace TutorHub.Application.Features.Auth.RefreshToken;
 public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, RefreshTokenResponseDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IJwtService _jwtService;
     private readonly AuthTokenLifetimeOptions _lifetimes;
 
     public RefreshTokenCommandHandler(
-        IAppDbContext context,
+        IAppDbContext context, IClock clock,
         IJwtService jwtService,
         IOptions<AuthTokenLifetimeOptions> lifetimeOptions)
     {
         _context = context;
+        _clock = clock;
         _jwtService = jwtService;
         _lifetimes = lifetimeOptions.Value;
     }
@@ -47,12 +49,12 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
         if (existingToken.IsRevoked)
         {
             var compromisedTokens = await _context.RefreshTokens
-                .Where(r => r.UserId == existingToken.UserId && r.RevokedAt == null && r.ExpiresAt > DateTime.UtcNow)
+                .Where(r => r.UserId == existingToken.UserId && r.RevokedAt == null && r.ExpiresAt > _clock.UtcNow)
                 .ToListAsync(cancellationToken);
 
             foreach (var token in compromisedTokens)
             {
-                token.RevokedAt = DateTime.UtcNow;
+                token.RevokedAt = _clock.UtcNow;
             }
 
             await _context.SaveChangesAsync(cancellationToken);
@@ -85,21 +87,21 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
         var newRawRefreshToken = _jwtService.GenerateRefreshToken();
 
         // Rotate: Revoke the current token
-        existingToken.RevokedAt = DateTime.UtcNow;
+        existingToken.RevokedAt = _clock.UtcNow;
 
         var newRefreshTokenEntity = new Domain.Entities.RefreshToken
         {
             Id = Guid.NewGuid(),
             UserId = existingToken.UserId,
             Token = newRawRefreshToken,
-            ExpiresAt = DateTime.UtcNow.AddDays(_lifetimes.RefreshTokenExpirationDays),
-            CreatedAt = DateTime.UtcNow
+            ExpiresAt = _clock.UtcNow.AddDays(_lifetimes.RefreshTokenExpirationDays),
+            CreatedAt = _clock.UtcNow
         };
 
         _context.RefreshTokens.Add(newRefreshTokenEntity);
         await _context.SaveChangesAsync(cancellationToken);
 
-        var expiresAt = DateTime.UtcNow.AddMinutes(_lifetimes.AccessTokenExpirationMinutes);
+        var expiresAt = _clock.UtcNow.AddMinutes(_lifetimes.AccessTokenExpirationMinutes);
 
         return new RefreshTokenResponseDto(
             AccessToken: newAccessToken,

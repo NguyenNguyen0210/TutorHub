@@ -11,11 +11,13 @@ namespace TutorHub.Application.Features.Admin.Users.BanUser;
 public class BanUserCommandHandler : IRequestHandler<BanUserCommand, AdminUserSummaryDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
 
-    public BanUserCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public BanUserCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
     {
         _context = context;
+        _clock = clock;
         _auditLogService = auditLogService;
     }
 
@@ -60,7 +62,7 @@ public class BanUserCommandHandler : IRequestHandler<BanUserCommand, AdminUserSu
             throw new ConflictException(ex.Message);
         }
 
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _clock.UtcNow;
 
         // 5. Active Refresh Tokens Revocation
         var activeTokens = await _context.RefreshTokens

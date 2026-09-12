@@ -41,6 +41,7 @@ public class BusinessEventNotificationHandlerTests
 
         var handler = new BusinessEventNotificationHandler(
             _dbContextMock.Object,
+            StubClock.Instance,
             _loggerMock.Object,
             _notificationServiceMock.Object);
 
@@ -86,6 +87,7 @@ public class BusinessEventNotificationHandlerTests
 
         var handler = new BusinessEventNotificationHandler(
             _dbContextMock.Object,
+            StubClock.Instance,
             _loggerMock.Object,
             _notificationServiceMock.Object);
 
@@ -135,6 +137,7 @@ public class BusinessEventNotificationHandlerTests
 
         var handler = new BusinessEventNotificationHandler(
             _dbContextMock.Object,
+            StubClock.Instance,
             _loggerMock.Object,
             _notificationServiceMock.Object);
 

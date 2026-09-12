@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Moq;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -26,7 +26,7 @@ public class CreateEnrollmentReviewCommandHandlerTests
         _contextMock.Setup(c => c.Reviews).Returns(MockDbSetHelper.CreateMockDbSet(_reviews).Object);
         _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(_tutorProfiles).Object);
 
-        _handler = new CreateEnrollmentReviewCommandHandler(_contextMock.Object);
+        _handler = new CreateEnrollmentReviewCommandHandler(_contextMock.Object, StubClock.Instance);
     }
 
     [Fact]
@@ -208,7 +208,7 @@ public class CreateEnrollmentReviewCommandHandlerTests
             UserId = tutorUser.Id,
             User = tutorUser
         };
-        // F-23: stats owned by domain — seed via ApplyReview (prior 4.0 x1).
+        // F-23: stats owned by domain � seed via ApplyReview (prior 4.0 x1).
         tutorProfile.ApplyReview(new List<int> { 4 });
         _tutorProfiles.Add(tutorProfile);
 

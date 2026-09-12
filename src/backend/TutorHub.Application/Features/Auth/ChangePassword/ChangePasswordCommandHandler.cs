@@ -8,13 +8,15 @@ namespace TutorHub.Application.Features.Auth.ChangePassword;
 public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordCommand, bool>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IPasswordHasher _passwordHasher;
 
     public ChangePasswordCommandHandler(
-        IAppDbContext context,
+        IAppDbContext context, IClock clock,
         IPasswordHasher passwordHasher)
     {
         _context = context;
+        _clock = clock;
         _passwordHasher = passwordHasher;
     }
 
@@ -37,12 +39,12 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
 
         // Security best practice: Revoke all active refresh tokens when password changes
         var activeTokens = await _context.RefreshTokens
-            .Where(r => r.UserId == user.Id && r.RevokedAt == null && r.ExpiresAt > DateTime.UtcNow)
+            .Where(r => r.UserId == user.Id && r.RevokedAt == null && r.ExpiresAt > _clock.UtcNow)
             .ToListAsync(cancellationToken);
 
         foreach (var token in activeTokens)
         {
-            token.RevokedAt = DateTime.UtcNow;
+            token.RevokedAt = _clock.UtcNow;
         }
 
         await _context.SaveChangesAsync(cancellationToken);

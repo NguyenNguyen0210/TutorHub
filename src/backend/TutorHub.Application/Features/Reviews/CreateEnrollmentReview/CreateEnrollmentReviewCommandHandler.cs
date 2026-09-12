@@ -13,10 +13,12 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
 {
     private const int DefaultReviewWindowDays = 30;
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public CreateEnrollmentReviewCommandHandler(IAppDbContext context)
+    public CreateEnrollmentReviewCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<ReviewDto> Handle(CreateEnrollmentReviewCommand request, CancellationToken cancellationToken)
@@ -43,7 +45,7 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
             throw new ConflictException("Reviews can only be submitted for completed enrollments.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         // 3. Review Window Guard (FR-OPEN-006 / DEC-REV-008: Default 30 days post-completion)
         if (enrollment.CompletedAt.HasValue && now > enrollment.CompletedAt.Value.AddDays(DefaultReviewWindowDays))

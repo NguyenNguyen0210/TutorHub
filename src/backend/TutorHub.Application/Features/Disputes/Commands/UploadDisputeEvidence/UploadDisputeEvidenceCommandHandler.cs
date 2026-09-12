@@ -11,10 +11,12 @@ namespace TutorHub.Application.Features.Disputes.Commands.UploadDisputeEvidence;
 public class UploadDisputeEvidenceCommandHandler : IRequestHandler<UploadDisputeEvidenceCommand, DisputeEvidenceDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public UploadDisputeEvidenceCommandHandler(IAppDbContext context)
+    public UploadDisputeEvidenceCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<DisputeEvidenceDto> Handle(UploadDisputeEvidenceCommand request, CancellationToken cancellationToken)
@@ -56,7 +58,7 @@ public class UploadDisputeEvidenceCommandHandler : IRequestHandler<UploadDispute
             FileUrl = request.FileUrl,
             ContentType = request.ContentType,
             FileSizeBytes = request.FileSizeBytes,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _clock.UtcNow
         };
 
         _context.DisputeEvidences.Add(evidence);

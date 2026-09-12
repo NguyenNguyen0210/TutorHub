@@ -17,7 +17,7 @@ public class AdminProcessRefundCallbackCommandHandlerTests
 
     public AdminProcessRefundCallbackCommandHandlerTests()
     {
-        _handler = new AdminProcessRefundCallbackCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
+        _handler = new AdminProcessRefundCallbackCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object);
     }
 
     [Fact]

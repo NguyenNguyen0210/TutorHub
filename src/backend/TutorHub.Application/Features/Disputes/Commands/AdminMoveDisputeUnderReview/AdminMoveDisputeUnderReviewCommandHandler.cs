@@ -11,10 +11,12 @@ namespace TutorHub.Application.Features.Disputes.Commands.AdminMoveDisputeUnderR
 public class AdminMoveDisputeUnderReviewCommandHandler : IRequestHandler<AdminMoveDisputeUnderReviewCommand, DisputeDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public AdminMoveDisputeUnderReviewCommandHandler(IAppDbContext context)
+    public AdminMoveDisputeUnderReviewCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<DisputeDto> Handle(AdminMoveDisputeUnderReviewCommand request, CancellationToken cancellationToken)
@@ -32,7 +34,7 @@ public class AdminMoveDisputeUnderReviewCommandHandler : IRequestHandler<AdminMo
             throw new NotFoundException(nameof(Dispute), request.DisputeId);
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         dispute.MoveUnderReview(request.AdminUserId, now);
 
         await _context.SaveChangesAsync(cancellationToken);

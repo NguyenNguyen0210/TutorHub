@@ -25,7 +25,7 @@ public class CheckoutCustomAgreementCommandHandlerTests
         _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(_bookings).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(_services).Object);
 
-        _handler = new CheckoutCustomAgreementCommandHandler(_contextMock.Object);
+        _handler = new CheckoutCustomAgreementCommandHandler(_contextMock.Object, StubClock.Instance);
     }
 
     [Fact]

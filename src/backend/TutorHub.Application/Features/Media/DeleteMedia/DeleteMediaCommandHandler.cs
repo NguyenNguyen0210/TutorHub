@@ -9,11 +9,13 @@ namespace TutorHub.Application.Features.Media.DeleteMedia;
 public class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaCommand, bool>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IObjectStorageService _storageService;
 
-    public DeleteMediaCommandHandler(IAppDbContext context, IObjectStorageService storageService)
+    public DeleteMediaCommandHandler(IAppDbContext context, IClock clock, IObjectStorageService storageService)
     {
         _context = context;
+        _clock = clock;
         _storageService = storageService;
     }
 
@@ -38,7 +40,7 @@ public class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaCommand, boo
 
         // 2. Soft-delete in Database
         media.Status = MediaStatus.Deleted;
-        media.DeletedAt = DateTime.UtcNow;
+        media.DeletedAt = _clock.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
 

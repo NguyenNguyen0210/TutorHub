@@ -11,15 +11,17 @@ namespace TutorHub.Application.Features.Admin.Conversations.AdminGetConversation
 public class AdminGetConversationMessagesQueryHandler : IRequestHandler<AdminGetConversationMessagesQuery, CursorPagedResult<MessageDto>>
 {
     private readonly IAppDbContext _dbContext;
+    private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AdminGetConversationMessagesQueryHandler> _logger;
 
     public AdminGetConversationMessagesQueryHandler(
-        IAppDbContext dbContext,
+        IAppDbContext dbContext, IClock clock,
         ICurrentUserService currentUserService,
         ILogger<AdminGetConversationMessagesQueryHandler> logger)
     {
         _dbContext = dbContext;
+        _clock = clock;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -58,7 +60,7 @@ public class AdminGetConversationMessagesQueryHandler : IRequestHandler<AdminGet
             adminUserId,
             request.ConversationId,
             request.OperationalReason.Trim(),
-            DateTime.UtcNow);
+            _clock.UtcNow);
 
         var query = _dbContext.Messages
             .AsNoTracking()

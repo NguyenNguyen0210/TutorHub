@@ -19,7 +19,7 @@ public class BanUserCommandHandlerTests
 
     public BanUserCommandHandlerTests()
     {
-        _handler = new BanUserCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
+        _handler = new BanUserCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object);
     }
 
     [Theory]

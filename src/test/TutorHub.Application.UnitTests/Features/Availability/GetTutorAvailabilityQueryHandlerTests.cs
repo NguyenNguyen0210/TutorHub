@@ -27,7 +27,7 @@ public class GetTutorAvailabilityQueryHandlerTests
         _contextMock.Setup(c => c.AvailabilitySlots).Returns(MockDbSetHelper.CreateMockDbSet(_availabilitySlots).Object);
         _contextMock.Setup(c => c.Sessions).Returns(MockDbSetHelper.CreateMockDbSet(_sessions).Object);
 
-        _handler = new GetTutorAvailabilityQueryHandler(_contextMock.Object);
+        _handler = new GetTutorAvailabilityQueryHandler(_contextMock.Object, StubClock.Instance);
     }
 
     [Fact]

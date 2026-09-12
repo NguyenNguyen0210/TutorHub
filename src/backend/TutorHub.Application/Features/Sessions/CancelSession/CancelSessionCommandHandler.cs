@@ -10,10 +10,12 @@ namespace TutorHub.Application.Features.Sessions.CancelSession;
 public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand, SessionDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public CancelSessionCommandHandler(IAppDbContext context)
+    public CancelSessionCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<SessionDto> Handle(CancelSessionCommand request, CancellationToken cancellationToken)
@@ -54,7 +56,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
 
         // 3. Domain gate: Unscheduled, or Scheduled with future StartAt. Completed /
         // Cancelled / started sessions are rejected inside CancelSingle (→ 409 via handler mapping).
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         try
         {
             session.CancelSingle(request.Reason, now);

@@ -10,13 +10,15 @@ namespace TutorHub.Application.Features.Media.CompleteUpload;
 public class CompleteUploadCommandHandler : IRequestHandler<CompleteUploadCommand, MediaDto>
 {
     private readonly IAppDbContext _dbContext;
+    private readonly IClock _clock;
     private readonly IObjectStorageService _storageService;
 
     public CompleteUploadCommandHandler(
-        IAppDbContext dbContext,
+        IAppDbContext dbContext, IClock clock,
         IObjectStorageService storageService)
     {
         _dbContext = dbContext;
+        _clock = clock;
         _storageService = storageService;
     }
 
@@ -44,7 +46,7 @@ public class CompleteUploadCommandHandler : IRequestHandler<CompleteUploadComman
             IsPrivate = isPrivate,
             Status = MediaStatus.Active,
             UploadedByUserId = request.UserId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _clock.UtcNow
         };
 
         _dbContext.Media.Add(media);

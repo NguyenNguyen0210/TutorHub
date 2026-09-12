@@ -8,13 +8,15 @@ namespace TutorHub.Application.Features.Notifications.MarkAllNotificationsAsRead
 public class MarkAllNotificationsAsReadCommandHandler : IRequestHandler<MarkAllNotificationsAsReadCommand, int>
 {
     private readonly IAppDbContext _dbContext;
+    private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
 
     public MarkAllNotificationsAsReadCommandHandler(
-        IAppDbContext dbContext,
+        IAppDbContext dbContext, IClock clock,
         ICurrentUserService currentUserService)
     {
         _dbContext = dbContext;
+        _clock = clock;
         _currentUserService = currentUserService;
     }
 
@@ -26,7 +28,7 @@ public class MarkAllNotificationsAsReadCommandHandler : IRequestHandler<MarkAllN
         }
 
         var currentUserId = _currentUserService.UserId.Value;
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         var unreadNotifications = await _dbContext.Notifications
             .Where(n => n.UserId == currentUserId && !n.IsRead)

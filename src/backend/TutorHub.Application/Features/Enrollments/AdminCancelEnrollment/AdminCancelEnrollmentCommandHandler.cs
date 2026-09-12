@@ -12,11 +12,13 @@ namespace TutorHub.Application.Features.Enrollments.AdminCancelEnrollment;
 public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEnrollmentCommand, EnrollmentDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
 
-    public AdminCancelEnrollmentCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public AdminCancelEnrollmentCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
     {
         _context = context;
+        _clock = clock;
         _auditLogService = auditLogService;
     }
 
@@ -53,7 +55,7 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
         }
 
         // 3. Domain Cancel with CancelledBy.Admin
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         var refundAmount = enrollment.Cancel(request.Reason, CancelledBy.Admin);
 
         // 4. Financial Escrow Adjustment & Refund Record. Lock the tutor wallet

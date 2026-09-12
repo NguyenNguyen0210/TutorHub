@@ -9,16 +9,18 @@ namespace TutorHub.Application.Features.Admin.Dashboard.GetAdminRevenueChart;
 public class GetAdminRevenueChartQueryHandler : IRequestHandler<GetAdminRevenueChartQuery, RevenueChartDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public GetAdminRevenueChartQueryHandler(IAppDbContext context)
+    public GetAdminRevenueChartQueryHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<RevenueChartDto> Handle(GetAdminRevenueChartQuery request, CancellationToken cancellationToken)
     {
         // 1. Calculate Vietnam Timezone Reporting Boundary (UTC+7)
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _clock.UtcNow;
         var nowVn = nowUtc.AddHours(7);
         var currentMonthStartVn = new DateTime(nowVn.Year, nowVn.Month, 1, 0, 0, 0, DateTimeKind.Unspecified);
 

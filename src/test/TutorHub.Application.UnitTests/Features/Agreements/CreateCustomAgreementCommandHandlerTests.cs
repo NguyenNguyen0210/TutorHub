@@ -33,7 +33,7 @@ public class CreateCustomAgreementCommandHandlerTests
         _contextMock.Setup(c => c.CustomAgreements).Returns(MockDbSetHelper.CreateMockDbSet(_agreements).Object);
         _contextMock.Setup(c => c.OutboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(_outboxMessages).Object);
 
-        _handler = new CreateCustomAgreementCommandHandler(_contextMock.Object);
+        _handler = new CreateCustomAgreementCommandHandler(_contextMock.Object, StubClock.Instance);
     }
 
     [Fact]

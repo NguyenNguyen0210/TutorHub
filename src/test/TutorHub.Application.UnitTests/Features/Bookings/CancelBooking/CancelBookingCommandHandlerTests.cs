@@ -19,7 +19,7 @@ public class CancelBookingCommandHandlerTests
 
     public CancelBookingCommandHandlerTests()
     {
-        _handler = new CancelBookingCommandHandler(_contextMock.Object);
+        _handler = new CancelBookingCommandHandler(_contextMock.Object, StubClock.Instance);
     }
 
     [Fact]

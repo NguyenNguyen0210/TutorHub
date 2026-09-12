@@ -11,10 +11,12 @@ namespace TutorHub.Application.Features.Agreements.Commands.CheckoutCustomAgreem
 public class CheckoutCustomAgreementCommandHandler : IRequestHandler<CheckoutCustomAgreementCommand, BookingDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public CheckoutCustomAgreementCommandHandler(IAppDbContext context)
+    public CheckoutCustomAgreementCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<BookingDto> Handle(CheckoutCustomAgreementCommand request, CancellationToken cancellationToken)
@@ -50,7 +52,7 @@ public class CheckoutCustomAgreementCommandHandler : IRequestHandler<CheckoutCus
             .Include(b => b.Subject)
             .FirstOrDefaultAsync(b => b.CustomAgreementId == agreement.Id, cancellationToken);
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         if (existingBooking != null)
         {

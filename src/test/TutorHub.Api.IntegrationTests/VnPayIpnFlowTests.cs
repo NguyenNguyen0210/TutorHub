@@ -53,6 +53,7 @@ public class VnPayIpnFlowTests : IntegrationTestBase
 
         var handler = new ProcessVnPayIpnCommandHandler(
             Db,
+            StubIntegrationClock.Instance,
             new AlwaysValidVnPayService(),
             Scope.ServiceProvider.GetRequiredService<IEnrollmentActivationService>(),
             Scope.ServiceProvider.GetRequiredService<IAuditLogService>(),

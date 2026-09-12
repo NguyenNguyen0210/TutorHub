@@ -12,15 +12,17 @@ namespace TutorHub.Application.Features.Media.UploadMedia;
 public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, MediaDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IObjectStorageService _storageService;
     private readonly ILogger<UploadMediaCommandHandler> _logger;
 
     public UploadMediaCommandHandler(
-        IAppDbContext context,
+        IAppDbContext context, IClock clock,
         IObjectStorageService storageService,
         ILogger<UploadMediaCommandHandler> logger)
     {
         _context = context;
+        _clock = clock;
         _storageService = storageService;
         _logger = logger;
     }
@@ -39,7 +41,7 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
         var isPrivate = request.MediaType != MediaType.Avatar;
 
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         var uniqueId = Guid.NewGuid().ToString("N");
         var storedFileName = $"{uniqueId}{ext}";
         var objectKey = request.MediaType switch

@@ -12,10 +12,12 @@ namespace TutorHub.Application.Features.Disputes.Commands.CreateDispute;
 public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand, DisputeDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public CreateDisputeCommandHandler(IAppDbContext context)
+    public CreateDisputeCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<DisputeDto> Handle(CreateDisputeCommand request, CancellationToken cancellationToken)
@@ -54,7 +56,7 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
         // A dispute addresses an issue with a delivery, so the session must have
         // already taken place (EndAt <= now). Future sessions use cancellation or
         // reschedule instead (FR-DISPUTE-001, PRD §8.4).
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         if (!session.EndAt.HasValue || session.EndAt.Value > now)
         {
             throw new BadRequestException("Cannot dispute a session that has not yet taken place.");

@@ -11,11 +11,13 @@ namespace TutorHub.Application.Features.Admin.Users.SuspendUser;
 public class SuspendUserCommandHandler : IRequestHandler<SuspendUserCommand, AdminUserSummaryDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
 
-    public SuspendUserCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public SuspendUserCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
     {
         _context = context;
+        _clock = clock;
         _auditLogService = auditLogService;
     }
 
@@ -62,7 +64,7 @@ public class SuspendUserCommandHandler : IRequestHandler<SuspendUserCommand, Adm
         }
 
         // 5. Active Refresh Tokens Revocation (Side-effect)
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _clock.UtcNow;
         var activeTokens = await _context.RefreshTokens
             .Where(t => t.UserId == user.Id && t.RevokedAt == null && t.ExpiresAt > nowUtc)
             .ToListAsync(cancellationToken);

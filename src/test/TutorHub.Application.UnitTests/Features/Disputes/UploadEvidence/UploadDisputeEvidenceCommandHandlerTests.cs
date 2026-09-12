@@ -17,7 +17,7 @@ public class UploadDisputeEvidenceCommandHandlerTests
 
     public UploadDisputeEvidenceCommandHandlerTests()
     {
-        _handler = new UploadDisputeEvidenceCommandHandler(_contextMock.Object);
+        _handler = new UploadDisputeEvidenceCommandHandler(_contextMock.Object, StubClock.Instance);
     }
 
     [Fact]

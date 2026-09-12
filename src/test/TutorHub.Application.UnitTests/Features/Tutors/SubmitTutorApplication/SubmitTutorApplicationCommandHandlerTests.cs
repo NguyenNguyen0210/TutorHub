@@ -18,7 +18,7 @@ public class SubmitTutorApplicationCommandHandlerTests
 
     public SubmitTutorApplicationCommandHandlerTests()
     {
-        _handler = new SubmitTutorApplicationCommandHandler(_contextMock.Object);
+        _handler = new SubmitTutorApplicationCommandHandler(_contextMock.Object, StubClock.Instance);
     }
 
     [Fact]

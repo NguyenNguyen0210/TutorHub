@@ -12,10 +12,12 @@ namespace TutorHub.Application.Features.Bookings.CancelBooking;
 public class CancelBookingCommandHandler : IRequestHandler<CancelBookingCommand, BookingDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public CancelBookingCommandHandler(IAppDbContext context)
+    public CancelBookingCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<BookingDto> Handle(CancelBookingCommand request, CancellationToken cancellationToken)
@@ -59,7 +61,7 @@ public class CancelBookingCommandHandler : IRequestHandler<CancelBookingCommand,
                 "Cancel the enrollment instead so sessions, escrow and the pro-rata refund are handled consistently.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         // 2. Validate cancellation eligibility via Domain entity
         if (!booking.CanCancel(actor))

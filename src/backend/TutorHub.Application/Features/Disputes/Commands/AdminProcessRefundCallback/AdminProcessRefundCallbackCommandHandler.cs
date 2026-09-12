@@ -12,11 +12,13 @@ namespace TutorHub.Application.Features.Disputes.Commands.AdminProcessRefundCall
 public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminProcessRefundCallbackCommand, RefundCallbackResultDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
 
-    public AdminProcessRefundCallbackCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public AdminProcessRefundCallbackCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
     {
         _context = context;
+        _clock = clock;
         _auditLogService = auditLogService;
     }
 
@@ -40,7 +42,7 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
             throw new ConflictException("Refund has already settled successfully.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         var oldStatus = refundTx.Status;
 
         Dispute? dispute = null;

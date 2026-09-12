@@ -26,6 +26,7 @@ public class LoginCommandHandlerTests
     {
         _handler = new LoginCommandHandler(
             _contextMock.Object,
+            StubClock.Instance,
             _passwordHasherMock.Object,
             _jwtServiceMock.Object,
             Options.Create(new AuthTokenLifetimeOptions()));

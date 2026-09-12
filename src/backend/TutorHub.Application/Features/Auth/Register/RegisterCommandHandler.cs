@@ -11,13 +11,15 @@ namespace TutorHub.Application.Features.Auth.Register;
 public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterResponseDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IPasswordHasher _passwordHasher;
 
     public RegisterCommandHandler(
-        IAppDbContext context,
+        IAppDbContext context, IClock clock,
         IPasswordHasher passwordHasher)
     {
         _context = context;
+        _clock = clock;
         _passwordHasher = passwordHasher;
     }
 
@@ -43,7 +45,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
             Phone = request.Phone?.Trim(),
             Role = request.Role,
             Status = AccountStatus.Active,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _clock.UtcNow
         };
 
         if (request.Role == UserRole.Student)

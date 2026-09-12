@@ -19,7 +19,7 @@ public class SuspendUserCommandHandlerTests
 
     public SuspendUserCommandHandlerTests()
     {
-        _handler = new SuspendUserCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
+        _handler = new SuspendUserCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object);
     }
 
     [Fact]

@@ -9,10 +9,12 @@ namespace TutorHub.Application.Features.Admin.Dashboard.GetAdminDashboardStats;
 public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashboardStatsQuery, AdminDashboardStatsDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public GetAdminDashboardStatsQueryHandler(IAppDbContext context)
+    public GetAdminDashboardStatsQueryHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<AdminDashboardStatsDto> Handle(GetAdminDashboardStatsQuery request, CancellationToken cancellationToken)
@@ -58,7 +60,7 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
         );
 
         // 3. Grouped Bookings Metrics
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _clock.UtcNow;
         var holdingCutoff = nowUtc.AddMinutes(-15);
 
         var bookingGroup = await _context.Bookings
