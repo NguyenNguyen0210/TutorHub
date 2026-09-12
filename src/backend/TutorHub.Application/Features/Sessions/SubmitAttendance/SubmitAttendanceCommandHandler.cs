@@ -87,8 +87,18 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
             absentUser?.RecordAbsentStrike(now);
         }
 
+        // FR-DISPUTE-003 / FR-EARN-004 / INV-003: while a dispute is active the
+        // session's escrow must stay locked. Matching attendance is recorded but
+        // the payout is not released until Admin resolves the dispute.
+        var hasActiveDispute = await _context.Disputes
+            .AsNoTracking()
+            .AnyAsync(d => d.SessionId == session.Id
+                && d.Status != DisputeStatus.Resolved
+                && d.Status != DisputeStatus.Dismissed, cancellationToken);
+
         if (session.StudentAttendance == AttendanceStatus.Attended &&
-            session.TutorAttendance == AttendanceStatus.Attended)
+            session.TutorAttendance == AttendanceStatus.Attended &&
+            !hasActiveDispute)
         {
             session.Complete();
             session.Enrollment.RecordCompletedSession(session.Id);
