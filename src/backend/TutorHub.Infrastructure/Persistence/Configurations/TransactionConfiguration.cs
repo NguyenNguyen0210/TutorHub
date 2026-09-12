@@ -11,7 +11,7 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.HasKey(t => t.Id);
 
         builder.Property(t => t.Amount)
-            .HasPrecision(10, 2)
+            .HasPrecision(12, 2)
             .IsRequired();
 
         builder.Property(t => t.Type)
@@ -29,11 +29,11 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .IsRequired();
 
         builder.Property(t => t.CommissionAmount)
-            .HasPrecision(10, 2)
+            .HasPrecision(12, 2)
             .IsRequired();
 
         builder.Property(t => t.PayoutAmount)
-            .HasPrecision(10, 2)
+            .HasPrecision(12, 2)
             .IsRequired();
 
         builder.Property(t => t.PaymentGatewayRef)
