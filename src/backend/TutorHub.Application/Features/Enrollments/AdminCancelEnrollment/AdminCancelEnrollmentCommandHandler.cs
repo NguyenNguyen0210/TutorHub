@@ -56,62 +56,62 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
         var now = DateTime.UtcNow;
         var refundAmount = enrollment.Cancel(request.Reason, CancelledBy.Admin);
 
-        // 4. Financial Escrow Adjustment & Refund Record
-        if (refundAmount > 0)
-        {
-            var wallet = await _context.Wallets.FirstOrDefaultAsync(
-                w => w.TutorProfileId == enrollment.TutorProfileId,
-                cancellationToken);
-
-            if (wallet != null)
-            {
-                // Guarded domain debit preserves the pending-escrow invariant.
-                wallet.DebitPending(refundAmount, now);
-            }
-
-            // DEC-S8-032 / INV-REFUND-004: refunds start Pending and only settle
-            // via the external provider callback; the obligation is explicit.
-            var refundTx = Transaction.CreateRefund(
-                bookingId: enrollment.BookingId,
-                sessionId: null,
-                disputeId: null,
-                originalPayout: null,
-                amount: refundAmount,
-                paymentGatewayRef: $"EscrowRefund-{enrollment.Id:N}",
-                description: $"Admin-cancelled enrollment refund: {request.Reason.Trim()}",
-                now: now);
-            refundTx.SettlementRequired = true;
-            _context.Transactions.Add(refundTx);
-
-            // Enqueue RefundCreated Outbox Message (DEC-S7-001, DEC-S7-002)
-            _context.AddOutboxMessage(new RefundCreatedEvent(
-                enrollment.Id,
-                enrollment.StudentProfile.UserId,
-                new MoneyDto(refundAmount),
-                refundTx.Id));
-        }
-
-        await _auditLogService.LogAsync(
-            action: "ENROLLMENT_ADMIN_CANCELLED",
-            entityName: "Enrollment",
-            entityId: enrollment.Id.ToString(),
-            userId: request.AdminUserId,
-            oldValues: new { status = "Active" },
-            newValues: new { status = "Cancelled", reason = request.Reason, refundAmount },
-            cancellationToken: cancellationToken);
-
-        // Enqueue EnrollmentCancelled Outbox Message (DEC-S7-001, DEC-S7-002)
-        _context.AddOutboxMessage(new EnrollmentCancelledEvent(
-            enrollment.Id,
-            enrollment.StudentProfile.UserId,
-            enrollment.TutorProfile.UserId,
-            request.AdminUserId,
-            request.Reason));
-
-        // 5. Explicit DB Transaction
+        // 4. Financial Escrow Adjustment & Refund Record. Lock the tutor wallet
+        // row so concurrent payouts/cancellations cannot race the escrow debit.
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
+            if (refundAmount > 0)
+            {
+                var wallet = await _context.Wallets
+                    .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {enrollment.TutorProfileId} FOR UPDATE")
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (wallet != null)
+                {
+                    // Guarded domain debit preserves the pending-escrow invariant.
+                    wallet.DebitPending(refundAmount, now);
+                }
+
+                // DEC-S8-032 / INV-REFUND-004: refunds start Pending and only settle
+                // via the external provider callback; the obligation is explicit.
+                var refundTx = Transaction.CreateRefund(
+                    bookingId: enrollment.BookingId,
+                    sessionId: null,
+                    disputeId: null,
+                    originalPayout: null,
+                    amount: refundAmount,
+                    paymentGatewayRef: $"EscrowRefund-{enrollment.Id:N}",
+                    description: $"Admin-cancelled enrollment refund: {request.Reason.Trim()}",
+                    now: now);
+                refundTx.SettlementRequired = true;
+                _context.Transactions.Add(refundTx);
+
+                // Enqueue RefundCreated Outbox Message (DEC-S7-001, DEC-S7-002)
+                _context.AddOutboxMessage(new RefundCreatedEvent(
+                    enrollment.Id,
+                    enrollment.StudentProfile.UserId,
+                    new MoneyDto(refundAmount),
+                    refundTx.Id));
+            }
+
+            await _auditLogService.LogAsync(
+                action: "ENROLLMENT_ADMIN_CANCELLED",
+                entityName: "Enrollment",
+                entityId: enrollment.Id.ToString(),
+                userId: request.AdminUserId,
+                oldValues: new { status = "Active" },
+                newValues: new { status = "Cancelled", reason = request.Reason, refundAmount },
+                cancellationToken: cancellationToken);
+
+            // Enqueue EnrollmentCancelled Outbox Message (DEC-S7-001, DEC-S7-002)
+            _context.AddOutboxMessage(new EnrollmentCancelledEvent(
+                enrollment.Id,
+                enrollment.StudentProfile.UserId,
+                enrollment.TutorProfile.UserId,
+                request.AdminUserId,
+                request.Reason));
+
             await _context.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
         }
