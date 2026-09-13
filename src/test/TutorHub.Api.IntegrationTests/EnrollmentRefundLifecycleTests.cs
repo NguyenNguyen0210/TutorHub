@@ -25,7 +25,9 @@ public class EnrollmentRefundLifecycleTests : IntegrationTestBase
         var (tutorUser, tutor, admin) = await SeedHelper.SeedTutorWithWalletAsync(Db);
         var (studentUser, _, service) = await SeedHelper.SeedMarketplaceAsync(Db, tutor, admin.Id);
 
-        var dto = await SendAsync(new CreateBookingCommand(studentUser.Id, service.Id));
+        SetCurrentUser(studentUser.Id, UserRole.Student);
+
+        var dto = await SendAsync(new CreateBookingCommand(service.Id));
 
         var booking = await Db.Bookings
             .Include(b => b.StudentProfile)

@@ -6,8 +6,6 @@ using TutorHub.Domain.Enums;
 namespace TutorHub.Application.Features.Bookings.GetMyBookings;
 
 public record GetMyBookingsQuery(
-    Guid UserId,
-    UserRole Role,
     BookingStatus? Status = null,
     DateOnly? FromDate = null,
     DateOnly? ToDate = null,

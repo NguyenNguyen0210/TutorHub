@@ -12,23 +12,27 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
 {
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateBookingCommandHandler(IAppDbContext context, IClock clock)
+    public CreateBookingCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<BookingDto> Handle(CreateBookingCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         // 1. Get or create StudentProfile for the current authenticated user
         var student = await _context.StudentProfiles
             .Include(s => s.User)
-            .FirstOrDefaultAsync(s => s.UserId == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken);
 
         if (student == null)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
             if (user == null || user.Role != UserRole.Student)
             {
                 throw new ForbiddenException("Only registered students can create bookings.");
@@ -37,7 +41,7 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
             student = new StudentProfile
             {
                 Id = Guid.NewGuid(),
-                UserId = request.UserId,
+                UserId = userId,
                 User = user
             };
             _context.StudentProfiles.Add(student);

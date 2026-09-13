@@ -13,15 +13,20 @@ public class CancelBookingCommandHandler : IRequestHandler<CancelBookingCommand,
 {
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CancelBookingCommandHandler(IAppDbContext context, IClock clock)
+    public CancelBookingCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<BookingDto> Handle(CancelBookingCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+        var role = _currentUserService.Role;
+
         var booking = await _context.Bookings
             .Include(b => b.StudentProfile).ThenInclude(s => s.User)
             .Include(b => b.TutorProfile).ThenInclude(t => t.User)
@@ -35,15 +40,15 @@ public class CancelBookingCommandHandler : IRequestHandler<CancelBookingCommand,
 
         // 1. Determine actor based on ownership
         CancelledBy actor;
-        if (booking.StudentProfile.UserId == request.UserId)
+        if (booking.StudentProfile.UserId == userId)
         {
             actor = CancelledBy.Student;
         }
-        else if (booking.TutorProfile.UserId == request.UserId)
+        else if (booking.TutorProfile.UserId == userId)
         {
             actor = CancelledBy.Tutor;
         }
-        else if (request.Role == UserRole.Admin)
+        else if (role == UserRole.Admin)
         {
             actor = CancelledBy.System;
         }

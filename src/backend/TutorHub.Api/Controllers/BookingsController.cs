@@ -37,9 +37,7 @@ public class BookingsController : ControllerBase
         [FromBody] CreateBookingRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new CreateBookingCommand(
-            UserId: userId,
             ServiceId: request.ServiceId
         );
 
@@ -66,12 +64,7 @@ public class BookingsController : ControllerBase
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var userId = GetCurrentUserId();
-        var role = GetCurrentUserRole();
-
         var query = new GetMyBookingsQuery(
-            UserId: userId,
-            Role: role,
             Status: status,
             FromDate: fromDate,
             ToDate: toDate,
@@ -96,10 +89,7 @@ public class BookingsController : ControllerBase
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var role = GetCurrentUserRole();
-
-        var query = new GetBookingByIdQuery(id, userId, role);
+        var query = new GetBookingByIdQuery(id);
         var result = await _sender.Send(query, cancellationToken);
 
         return Ok(ApiResponse<BookingDto>.SuccessResult(result, "Booking details retrieved successfully."));
@@ -121,10 +111,7 @@ public class BookingsController : ControllerBase
         [FromBody] CancelBookingRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var role = GetCurrentUserRole();
-
-        var command = new CancelBookingCommand(id, userId, role, request.Reason);
+        var command = new CancelBookingCommand(id, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<BookingDto>.SuccessResult(result, "Booking cancelled successfully. Refund processed according to cancellation policy."));
