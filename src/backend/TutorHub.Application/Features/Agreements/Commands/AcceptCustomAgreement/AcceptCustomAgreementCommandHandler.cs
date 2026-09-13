@@ -10,14 +10,18 @@ namespace TutorHub.Application.Features.Agreements.Commands.AcceptCustomAgreemen
 public class AcceptCustomAgreementCommandHandler : IRequestHandler<AcceptCustomAgreementCommand, CustomAgreementDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public AcceptCustomAgreementCommandHandler(IAppDbContext context)
+    public AcceptCustomAgreementCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<CustomAgreementDto> Handle(AcceptCustomAgreementCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var agreement = await _context.CustomAgreements
             .Include(a => a.TutorProfile).ThenInclude(t => t.User)
             .Include(a => a.StudentProfile).ThenInclude(s => s.User)
@@ -31,7 +35,7 @@ public class AcceptCustomAgreementCommandHandler : IRequestHandler<AcceptCustomA
         }
 
         // 1. Granular Student Authorization (INV-AGREE-003)
-        if (agreement.StudentProfile.UserId != request.StudentUserId)
+        if (agreement.StudentProfile.UserId != userId)
         {
             throw new ForbiddenException("Only the designated student participant can accept this custom agreement.");
         }

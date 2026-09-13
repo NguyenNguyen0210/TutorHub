@@ -14,15 +14,19 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
     private const int DefaultReviewWindowDays = 30;
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateEnrollmentReviewCommandHandler(IAppDbContext context, IClock clock)
+    public CreateEnrollmentReviewCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ReviewDto> Handle(CreateEnrollmentReviewCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var enrollment = await _context.Enrollments
             .Include(e => e.StudentProfile).ThenInclude(s => s.User)
             .Include(e => e.TutorProfile).ThenInclude(t => t.User)
@@ -34,7 +38,7 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
         }
 
         // 1. Participant Ownership Check: Only Student of this Enrollment can review
-        if (enrollment.StudentProfile.UserId != request.UserId)
+        if (enrollment.StudentProfile.UserId != userId)
         {
             throw new ForbiddenException("Only the student enrolled in this service can submit a review.");
         }

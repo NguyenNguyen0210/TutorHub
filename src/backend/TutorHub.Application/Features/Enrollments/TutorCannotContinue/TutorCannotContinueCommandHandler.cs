@@ -14,16 +14,20 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public TutorCannotContinueCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
+    public TutorCannotContinueCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<EnrollmentDto> Handle(TutorCannotContinueCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var enrollment = await _context.Enrollments
             .Include(e => e.StudentProfile).ThenInclude(s => s.User)
             .Include(e => e.TutorProfile).ThenInclude(t => t.User)
@@ -38,7 +42,7 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
         }
 
         // 1. Authorization: Only the Tutor of the Enrollment can declare Tutor Cannot Continue
-        if (enrollment.TutorProfile.UserId != request.UserId)
+        if (enrollment.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("You do not have permission to declare inability to continue for this enrollment.");
         }
@@ -102,7 +106,7 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
                 action: "ENROLLMENT_TUTOR_CANNOT_CONTINUE",
                 entityName: "Enrollment",
                 entityId: enrollment.Id.ToString(),
-                userId: request.UserId,
+                userId: userId,
                 oldValues: new { status = "Active" },
                 newValues: new { status = "Cancelled", reason = request.Reason, refundAmount },
                 cancellationToken: cancellationToken);
@@ -111,7 +115,7 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
                 enrollment.Id,
                 enrollment.StudentProfile.UserId,
                 enrollment.TutorProfile.UserId,
-                request.UserId,
+                userId,
                 request.Reason));
 
             await _context.SaveChangesAsync(cancellationToken);

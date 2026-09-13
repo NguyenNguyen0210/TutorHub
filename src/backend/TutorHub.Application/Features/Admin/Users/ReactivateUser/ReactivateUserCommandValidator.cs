@@ -8,8 +8,5 @@ public class ReactivateUserCommandValidator : AbstractValidator<ReactivateUserCo
     {
         RuleFor(x => x.UserId)
             .NotEmpty().WithMessage("UserId is required.");
-
-        RuleFor(x => x.AdminId)
-            .NotEmpty().WithMessage("AdminId is required.");
     }
 }

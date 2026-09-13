@@ -14,16 +14,20 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
     private readonly IAppDbContext _context;
     private readonly IVnPayService _vnPayService;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateVnPayUrlCommandHandler(IAppDbContext context, IVnPayService vnPayService, IClock clock)
+    public CreateVnPayUrlCommandHandler(IAppDbContext context, IVnPayService vnPayService, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _vnPayService = vnPayService;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<VnPayPaymentUrlDto> Handle(CreateVnPayUrlCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var booking = await _context.Bookings
             .Include(b => b.StudentProfile)
             .Include(b => b.Subject)
@@ -35,7 +39,7 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
         }
 
         // 1. Ownership validation
-        if (booking.StudentProfile.UserId != request.UserId)
+        if (booking.StudentProfile.UserId != userId)
         {
             throw new ForbiddenException("You do not have permission to pay for this booking.");
         }

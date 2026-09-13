@@ -9,14 +9,18 @@ namespace TutorHub.Application.Features.Reviews.ReplyReview;
 public class ReplyReviewCommandHandler : IRequestHandler<ReplyReviewCommand, ReviewDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ReplyReviewCommandHandler(IAppDbContext context)
+    public ReplyReviewCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ReviewDto> Handle(ReplyReviewCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var review = await _context.Reviews
             .Include(r => r.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(s => s.User)
             .Include(r => r.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(t => t.User)
@@ -28,7 +32,7 @@ public class ReplyReviewCommandHandler : IRequestHandler<ReplyReviewCommand, Rev
         }
 
         // 1. Authorization Guard: Only the Tutor belonging to this Enrollment can reply
-        if (review.Enrollment.TutorProfile.UserId != request.UserId)
+        if (review.Enrollment.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("You do not have permission to reply to this review.");
         }

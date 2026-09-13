@@ -15,11 +15,12 @@ namespace TutorHub.Application.UnitTests.Features.Bookings.CancelBooking;
 public class CancelBookingCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly CancelBookingCommandHandler _handler;
 
     public CancelBookingCommandHandlerTests()
     {
-        _handler = new CancelBookingCommandHandler(_contextMock.Object, StubClock.Instance);
+        _handler = new CancelBookingCommandHandler(_contextMock.Object, StubClock.Instance, _currentUser);
     }
 
     [Fact]
@@ -31,6 +32,7 @@ public class CancelBookingCommandHandlerTests
             .Build();
 
         var studentUserId = booking.StudentProfile.UserId;
+        _currentUser.Set(studentUserId, UserRole.Student);
         var bookingsList = new List<Booking> { booking };
         var walletsList = new List<Wallet>();
         var transactionsList = new List<Transaction>();
@@ -40,7 +42,7 @@ public class CancelBookingCommandHandlerTests
         _contextMock.Setup(c => c.Transactions).Returns(MockDbSetHelper.CreateMockDbSet(transactionsList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var command = new CancelBookingCommand(booking.Id, studentUserId, UserRole.Student, "Schedule conflict");
+        var command = new CancelBookingCommand(booking.Id, "Schedule conflict");
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -66,10 +68,11 @@ public class CancelBookingCommandHandlerTests
             .Build();
 
         var studentUserId = booking.StudentProfile.UserId;
+        _currentUser.Set(studentUserId, UserRole.Student);
         var bookingsList = new List<Booking> { booking };
         _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(bookingsList).Object);
 
-        var command = new CancelBookingCommand(booking.Id, studentUserId, UserRole.Student, "Paid cancel");
+        var command = new CancelBookingCommand(booking.Id, "Paid cancel");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -112,7 +115,8 @@ public class CancelBookingCommandHandlerTests
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var studentUserId = booking.StudentProfile.UserId;
-        var command = new CancelBookingCommand(booking.Id, studentUserId, UserRole.Student, "Emergency cancel");
+        _currentUser.Set(studentUserId, UserRole.Student);
+        var command = new CancelBookingCommand(booking.Id, "Emergency cancel");
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -136,7 +140,8 @@ public class CancelBookingCommandHandlerTests
         _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(bookingsList).Object);
 
         var nonExistentId = Guid.NewGuid();
-        var command = new CancelBookingCommand(nonExistentId, Guid.NewGuid(), UserRole.Student, "Reason");
+        _currentUser.Set(Guid.NewGuid(), UserRole.Student);
+        var command = new CancelBookingCommand(nonExistentId, "Reason");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -159,7 +164,8 @@ public class CancelBookingCommandHandlerTests
         _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(bookingsList).Object);
 
         var unauthorizedUserId = Guid.NewGuid();
-        var command = new CancelBookingCommand(booking.Id, unauthorizedUserId, UserRole.Student, "Intruder cancel");
+        _currentUser.Set(unauthorizedUserId, UserRole.Student);
+        var command = new CancelBookingCommand(booking.Id, "Intruder cancel");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -183,7 +189,8 @@ public class CancelBookingCommandHandlerTests
         _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(bookingsList).Object);
 
         var studentUserId = booking.StudentProfile.UserId;
-        var command = new CancelBookingCommand(booking.Id, studentUserId, UserRole.Student, "Cannot cancel twice");
+        _currentUser.Set(studentUserId, UserRole.Student);
+        var command = new CancelBookingCommand(booking.Id, "Cannot cancel twice");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);

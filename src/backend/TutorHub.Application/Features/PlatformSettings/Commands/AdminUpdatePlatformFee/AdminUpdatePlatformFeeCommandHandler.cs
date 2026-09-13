@@ -12,17 +12,21 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
 {
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
     public const string PlatformFeeKey = "PlatformFeeRate";
 
-    public AdminUpdatePlatformFeeCommandHandler(IAppDbContext context, IClock clock)
+    public AdminUpdatePlatformFeeCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<PlatformSettingDto> Handle(AdminUpdatePlatformFeeCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var setting = await _context.PlatformSettings
             .Include(s => s.Versions)
             .FirstOrDefaultAsync(s => s.Key == PlatformFeeKey, cancellationToken);
@@ -39,7 +43,7 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
                 Value = newValueStr,
                 Description = "Default platform commission percentage applied to session payouts.",
                 CurrentVersion = 1,
-                LastUpdatedByAdminId = request.AdminUserId,
+                LastUpdatedByAdminId = userId,
                 UpdatedAt = now
             };
 
@@ -50,7 +54,7 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
                 Version = 1,
                 Value = newValueStr,
                 Reason = request.Reason,
-                ChangedByAdminId = request.AdminUserId,
+                ChangedByAdminId = userId,
                 EffectiveFrom = now,
                 CreatedAt = now
             };
@@ -63,14 +67,14 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
                 "0.1000",
                 newValueStr,
                 1,
-                request.AdminUserId));
+                userId));
         }
         else
         {
             var oldVal = setting.Value;
             setting.CurrentVersion++;
             setting.Value = newValueStr;
-            setting.LastUpdatedByAdminId = request.AdminUserId;
+            setting.LastUpdatedByAdminId = userId;
             setting.UpdatedAt = now;
 
             var version = new PlatformSettingVersion
@@ -80,7 +84,7 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
                 Version = setting.CurrentVersion,
                 Value = newValueStr,
                 Reason = request.Reason,
-                ChangedByAdminId = request.AdminUserId,
+                ChangedByAdminId = userId,
                 EffectiveFrom = now,
                 CreatedAt = now
             };
@@ -92,7 +96,7 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
                 oldVal,
                 newValueStr,
                 setting.CurrentVersion,
-                request.AdminUserId));
+                userId));
         }
 
         await _context.SaveChangesAsync(cancellationToken);

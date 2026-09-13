@@ -26,7 +26,9 @@ public class ActiveDisputeReleaseGuardTests : IntegrationTestBase
         var (tutorUser, tutor, admin) = await SeedHelper.SeedTutorWithWalletAsync(Db);
         var (studentUser, _, service) = await SeedHelper.SeedMarketplaceAsync(Db, tutor, admin.Id);
 
-        var dto = await SendAsync(new CreateBookingCommand(studentUser.Id, service.Id));
+        SetCurrentUser(studentUser.Id, UserRole.Student);
+
+        var dto = await SendAsync(new CreateBookingCommand(service.Id));
 
         var booking = await Db.Bookings
             .Include(b => b.StudentProfile)
@@ -48,7 +50,6 @@ public class ActiveDisputeReleaseGuardTests : IntegrationTestBase
         // Pre-release dispute -> EscrowHold + attendance conflict flag.
         await SendAsync(new CreateDisputeCommand(
             SessionId: session.Id,
-            InitiatorUserId: studentUser.Id,
             Reason: DisputeReason.TutorNoShow,
             Description: "The tutor did not show up for this scheduled session."));
 
@@ -60,8 +61,10 @@ public class ActiveDisputeReleaseGuardTests : IntegrationTestBase
     {
         var (studentUserId, tutorUserId, session) = await SetupPaidSessionWithActiveDisputeAsync();
 
-        await SendAsync(new SubmitAttendanceCommand(studentUserId, session.Id, AttendanceStatus.Attended));
-        var result = await SendAsync(new SubmitAttendanceCommand(tutorUserId, session.Id, AttendanceStatus.Attended));
+        SetCurrentUser(studentUserId, UserRole.Student);
+        await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
+        SetCurrentUser(tutorUserId, UserRole.Tutor);
+        var result = await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
 
         // Session remains unresolved until Admin settles the dispute.
         result.Status.Should().Be(SessionStatus.Scheduled);

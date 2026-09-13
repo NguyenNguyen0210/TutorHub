@@ -13,6 +13,7 @@ namespace TutorHub.Application.UnitTests.Features.Reports.ReportUser;
 public class ReportUserCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly ReportUserCommandHandler _handler;
 
     private readonly List<User> _users = new();
@@ -25,13 +26,14 @@ public class ReportUserCommandHandlerTests
         _contextMock.Setup(c => c.Reports).Returns(MockDbSetHelper.CreateMockDbSet(_reports).Object);
         _contextMock.Setup(c => c.OutboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(_outboxMessages).Object);
 
-        _handler = new ReportUserCommandHandler(_contextMock.Object);
+        _handler = new ReportUserCommandHandler(_contextMock.Object, _currentUser);
     }
 
     [Fact]
     public async Task Handle_WhenReporterNotFound_ShouldThrowNotFoundException()
     {
-        var command = new ReportUserCommand(Guid.NewGuid(), Guid.NewGuid(), "Inappropriate language");
+        _currentUser.Set(Guid.NewGuid(), UserRole.Student);
+        var command = new ReportUserCommand(Guid.NewGuid(), "Inappropriate language");
 
         var act = () => _handler.Handle(command, CancellationToken.None);
 
@@ -45,7 +47,8 @@ public class ReportUserCommandHandlerTests
         var reporter = new User { Id = Guid.NewGuid(), FullName = "Reporter", Role = UserRole.Student };
         _users.Add(reporter);
 
-        var command = new ReportUserCommand(reporter.Id, Guid.NewGuid(), "Inappropriate language");
+        _currentUser.Set(reporter.Id, reporter.Role);
+        var command = new ReportUserCommand(Guid.NewGuid(), "Inappropriate language");
 
         var act = () => _handler.Handle(command, CancellationToken.None);
 
@@ -61,7 +64,8 @@ public class ReportUserCommandHandlerTests
         _users.Add(reporter);
         _users.Add(targetUser);
 
-        var command = new ReportUserCommand(reporter.Id, targetUser.Id, "Soliciting off-platform payment", "https://evidence.com/proof.png");
+        _currentUser.Set(reporter.Id, reporter.Role);
+        var command = new ReportUserCommand(targetUser.Id, "Soliciting off-platform payment", "https://evidence.com/proof.png");
 
         var result = await _handler.Handle(command, CancellationToken.None);
 

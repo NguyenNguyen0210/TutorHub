@@ -25,7 +25,9 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
         var (_, tutor, admin) = await SeedHelper.SeedTutorWithWalletAsync(Db);
         var (studentUser, _, service) = await SeedHelper.SeedMarketplaceAsync(Db, tutor, admin.Id);
 
-        var bookingDto = await SendAsync(new CreateBookingCommand(studentUser.Id, service.Id));
+        SetCurrentUser(studentUser.Id, UserRole.Student);
+
+        var bookingDto = await SendAsync(new CreateBookingCommand(service.Id));
 
         var booking = await Db.Bookings
             .Include(b => b.StudentProfile)
@@ -54,9 +56,9 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
         // Arrange
         var (adminId, studentUserId, session) = await SetupPaidSessionAsync();
 
+        SetCurrentUser(studentUserId, UserRole.Student);
         var dispute = await SendAsync(new CreateDisputeCommand(
             SessionId: session.Id,
-            InitiatorUserId: studentUserId,
             Reason: DisputeReason.QualityIssue,
             Description: "The tutor did not attend the scheduled session at all."));
 
@@ -64,16 +66,15 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
 
         await SendAsync(new UploadDisputeEvidenceCommand(
             DisputeId: dispute.Id,
-            UploadedByUserId: studentUserId,
             FileName: "chat-log.png",
             FileUrl: "disputes/chat-log.png",
             ContentType: "image/png",
             FileSizeBytes: 1024));
 
         // Act
+        SetCurrentUser(adminId, UserRole.Admin);
         await SendAsync(new AdminResolveDisputeCommand(
             DisputeId: dispute.Id,
-            AdminUserId: adminId,
             Decision: DisputeResolutionDecision.StudentWinsFullRefund,
             CustomRefundAmount: null,
             AdminNotes: "Full refund granted to student."));
@@ -96,9 +97,9 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
         // Arrange
         var (adminId, studentUserId, session) = await SetupPaidSessionAsync();
 
+        SetCurrentUser(studentUserId, UserRole.Student);
         var dispute = await SendAsync(new CreateDisputeCommand(
             SessionId: session.Id,
-            InitiatorUserId: studentUserId,
             Reason: DisputeReason.QualityIssue,
             Description: "The student claims tutor was late and session quality was bad."));
 
@@ -106,16 +107,15 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
 
         await SendAsync(new UploadDisputeEvidenceCommand(
             DisputeId: dispute.Id,
-            UploadedByUserId: studentUserId,
             FileName: "notes.pdf",
             FileUrl: "disputes/notes.pdf",
             ContentType: "application/pdf",
             FileSizeBytes: 2048));
 
         // Act
+        SetCurrentUser(adminId, UserRole.Admin);
         await SendAsync(new AdminResolveDisputeCommand(
             DisputeId: dispute.Id,
-            AdminUserId: adminId,
             Decision: DisputeResolutionDecision.TutorWinsReleaseEarning,
             CustomRefundAmount: null,
             AdminNotes: "Tutor fulfilled all requirements; full earning released."));
@@ -139,9 +139,9 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
         // Arrange
         var (adminId, studentUserId, session) = await SetupPaidSessionAsync();
 
+        SetCurrentUser(studentUserId, UserRole.Student);
         var dispute = await SendAsync(new CreateDisputeCommand(
             SessionId: session.Id,
-            InitiatorUserId: studentUserId,
             Reason: DisputeReason.QualityIssue,
             Description: "Partial coverage of curriculum during the scheduled session."));
 
@@ -149,16 +149,15 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
 
         await SendAsync(new UploadDisputeEvidenceCommand(
             DisputeId: dispute.Id,
-            UploadedByUserId: studentUserId,
             FileName: "screenshot.png",
             FileUrl: "disputes/screenshot.png",
             ContentType: "image/png",
             FileSizeBytes: 10_000));
 
         // Act
+        SetCurrentUser(adminId, UserRole.Admin);
         await SendAsync(new AdminResolveDisputeCommand(
             DisputeId: dispute.Id,
-            AdminUserId: adminId,
             Decision: DisputeResolutionDecision.StudentWinsPartialRefund,
             CustomRefundAmount: 100_000m,
             AdminNotes: "Partial refund granted based on submitted evidence."));
@@ -199,26 +198,26 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
         opened.Should().BeTrue();
         await Db.SaveChangesAsync();
 
-        await SendAsync(new SubmitAttendanceCommand(tutorUserId, session.Id, AttendanceStatus.Attended));
+        SetCurrentUser(tutorUserId, UserRole.Tutor);
+        await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
 
+        SetCurrentUser(studentUserId, UserRole.Student);
         var dispute = await SendAsync(new CreateDisputeCommand(
             SessionId: session.Id,
-            InitiatorUserId: studentUserId,
             Reason: DisputeReason.Other,
             Description: "Student disputes session attendance verification by tutor."));
 
         await SendAsync(new UploadDisputeEvidenceCommand(
             DisputeId: dispute.Id,
-            UploadedByUserId: studentUserId,
             FileName: "attendance.png",
             FileUrl: "disputes/attendance.png",
             ContentType: "image/png",
             FileSizeBytes: 1024));
 
         // Act
+        SetCurrentUser(adminId, UserRole.Admin);
         var result = await SendAsync(new FastTrackResolveDisputeCommand(
             DisputeId: dispute.Id,
-            AdminUserId: adminId,
             AdminNotes: "Fast-track resolution in favor of tutor due to student silence."));
 
         // Assert
@@ -252,26 +251,25 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
         opened.Should().BeTrue();
         await Db.SaveChangesAsync();
 
-        await SendAsync(new SubmitAttendanceCommand(studentUserId, session.Id, AttendanceStatus.Attended));
+        SetCurrentUser(studentUserId, UserRole.Student);
+        await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
 
         var dispute = await SendAsync(new CreateDisputeCommand(
             SessionId: session.Id,
-            InitiatorUserId: studentUserId,
             Reason: DisputeReason.Other,
             Description: "Student disputes session because tutor was silent and no-show."));
 
         await SendAsync(new UploadDisputeEvidenceCommand(
             DisputeId: dispute.Id,
-            UploadedByUserId: studentUserId,
             FileName: "attendance.png",
             FileUrl: "disputes/attendance.png",
             ContentType: "image/png",
             FileSizeBytes: 1024));
 
         // Act
+        SetCurrentUser(adminId, UserRole.Admin);
         var result = await SendAsync(new FastTrackResolveDisputeCommand(
             DisputeId: dispute.Id,
-            AdminUserId: adminId,
             AdminNotes: "Fast-track resolution in favor of student due to tutor silence."));
 
         // Assert

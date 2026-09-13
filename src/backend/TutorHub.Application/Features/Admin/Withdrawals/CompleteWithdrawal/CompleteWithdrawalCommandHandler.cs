@@ -12,15 +12,22 @@ public class CompleteWithdrawalCommandHandler : IRequestHandler<CompleteWithdraw
 {
     private readonly IAppDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CompleteWithdrawalCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public CompleteWithdrawalCommandHandler(
+        IAppDbContext context,
+        IAuditLogService auditLogService,
+        ICurrentUserService currentUserService)
     {
         _context = context;
         _auditLogService = auditLogService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<WithdrawalDto> Handle(CompleteWithdrawalCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var withdrawal = await _context.Withdrawals
             .Include(w => w.Wallet).ThenInclude(wall => wall.TutorProfile).ThenInclude(tp => tp.User)
             .Include(w => w.ProcessingStartedByAdmin)
@@ -39,21 +46,21 @@ public class CompleteWithdrawalCommandHandler : IRequestHandler<CompleteWithdraw
                 $"Cannot complete withdrawal in '{withdrawal.Status}' status. Must be in Processing status.");
         }
 
-        var admin = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.AdminId, cancellationToken);
+        var admin = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (admin == null)
         {
             throw new UnauthorizedException("Admin user not found.");
         }
 
         // Domain State Transition: Complete
-        withdrawal.Complete(request.AdminId);
+        withdrawal.Complete(userId);
         withdrawal.ProcessedByAdmin = admin;
 
         await _auditLogService.LogAsync(
             action: "WithdrawalCompleted",
             entityName: "Withdrawal",
             entityId: withdrawal.Id.ToString(),
-            userId: request.AdminId,
+            userId: userId,
             oldValues: new { Status = WithdrawalStatus.Processing.ToString() },
             newValues: new { Status = withdrawal.Status.ToString() },
             cancellationToken: cancellationToken);

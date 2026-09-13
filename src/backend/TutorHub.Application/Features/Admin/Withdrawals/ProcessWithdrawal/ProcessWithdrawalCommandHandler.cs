@@ -12,15 +12,22 @@ public class ProcessWithdrawalCommandHandler : IRequestHandler<ProcessWithdrawal
 {
     private readonly IAppDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ProcessWithdrawalCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public ProcessWithdrawalCommandHandler(
+        IAppDbContext context,
+        IAuditLogService auditLogService,
+        ICurrentUserService currentUserService)
     {
         _context = context;
         _auditLogService = auditLogService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<WithdrawalDto> Handle(ProcessWithdrawalCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var withdrawal = await _context.Withdrawals
             .Include(w => w.Wallet).ThenInclude(wall => wall.TutorProfile).ThenInclude(tp => tp.User)
             .Include(w => w.ProcessingStartedByAdmin)
@@ -38,20 +45,20 @@ public class ProcessWithdrawalCommandHandler : IRequestHandler<ProcessWithdrawal
                 $"Cannot mark withdrawal as Processing from '{withdrawal.Status}' status. Must be in Pending status.");
         }
 
-        var admin = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.AdminId, cancellationToken);
+        var admin = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (admin == null)
         {
             throw new UnauthorizedException("Admin user not found.");
         }
 
-        withdrawal.MarkProcessing(request.AdminId);
+        withdrawal.MarkProcessing(userId);
         withdrawal.ProcessingStartedByAdmin = admin;
 
         await _auditLogService.LogAsync(
             action: "WithdrawalProcessingStarted",
             entityName: "Withdrawal",
             entityId: withdrawal.Id.ToString(),
-            userId: request.AdminId,
+            userId: userId,
             oldValues: new { Status = WithdrawalStatus.Pending.ToString() },
             newValues: new { Status = withdrawal.Status.ToString() },
             cancellationToken: cancellationToken);

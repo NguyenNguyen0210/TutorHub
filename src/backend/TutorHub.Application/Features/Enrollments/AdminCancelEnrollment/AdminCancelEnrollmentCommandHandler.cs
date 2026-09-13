@@ -14,18 +14,23 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public AdminCancelEnrollmentCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
+    public AdminCancelEnrollmentCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<EnrollmentDto> Handle(AdminCancelEnrollmentCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+        var role = _currentUserService.Role;
+
         // 1. Authorization: Only Admin can execute Administrative Emergency Cancellation
-        if (request.Role != UserRole.Admin)
+        if (role != UserRole.Admin)
         {
             throw new ForbiddenException("Only administrators have permission to perform administrative enrollment cancellation.");
         }
@@ -101,7 +106,7 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
                 action: "ENROLLMENT_ADMIN_CANCELLED",
                 entityName: "Enrollment",
                 entityId: enrollment.Id.ToString(),
-                userId: request.AdminUserId,
+                userId: userId,
                 oldValues: new { status = "Active" },
                 newValues: new { status = "Cancelled", reason = request.Reason, refundAmount },
                 cancellationToken: cancellationToken);
@@ -111,7 +116,7 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
                 enrollment.Id,
                 enrollment.StudentProfile.UserId,
                 enrollment.TutorProfile.UserId,
-                request.AdminUserId,
+                userId,
                 request.Reason));
 
             await _context.SaveChangesAsync(cancellationToken);

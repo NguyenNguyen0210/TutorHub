@@ -14,13 +14,15 @@ namespace TutorHub.Application.UnitTests.Features.Bookings.CreateBooking;
 public class CreateBookingCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly CreateBookingCommandHandler _handler;
 
     public CreateBookingCommandHandlerTests()
     {
         _handler = new CreateBookingCommandHandler(
             _contextMock.Object,
-            Mock.Of<TutorHub.Application.Common.Interfaces.IClock>(c => c.UtcNow == new DateTime(2026, 9, 6, 0, 0, 0, DateTimeKind.Utc)));
+            Mock.Of<TutorHub.Application.Common.Interfaces.IClock>(c => c.UtcNow == new DateTime(2026, 9, 6, 0, 0, 0, DateTimeKind.Utc)),
+            _currentUser);
     }
 
     private static (Service service, StudentProfile studentProfile, TutorProfile tutorProfile, User studentUser, User tutorUser, TutorApplication tutorApp) CreateTestAggregate(
@@ -75,6 +77,7 @@ public class CreateBookingCommandHandlerTests
         // Arrange
         var (service, studentProfile, tutorProfile, studentUser, _, tutorApp) = CreateTestAggregate();
         var bookingsList = new List<Booking>();
+        _currentUser.Set(studentUser.Id, UserRole.Student);
 
         _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { studentProfile }).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
@@ -82,7 +85,7 @@ public class CreateBookingCommandHandlerTests
         _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(bookingsList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var command = new CreateBookingCommand(studentUser.Id, service.Id);
+        var command = new CreateBookingCommand(service.Id);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -111,11 +114,12 @@ public class CreateBookingCommandHandlerTests
         // Arrange
         var studentUser = new UserBuilder().WithRole(UserRole.Student).Build();
         var studentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = studentUser.Id, User = studentUser };
+        _currentUser.Set(studentUser.Id, UserRole.Student);
 
         _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { studentProfile }).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service>()).Object);
 
-        var command = new CreateBookingCommand(studentUser.Id, Guid.NewGuid());
+        var command = new CreateBookingCommand(Guid.NewGuid());
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -129,12 +133,13 @@ public class CreateBookingCommandHandlerTests
     {
         // Arrange
         var (service, studentProfile, _, studentUser, _, tutorApp) = CreateTestAggregate(serviceStatus: ServiceStatus.Draft);
+        _currentUser.Set(studentUser.Id, UserRole.Student);
 
         _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { studentProfile }).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { tutorApp }).Object);
 
-        var command = new CreateBookingCommand(studentUser.Id, service.Id);
+        var command = new CreateBookingCommand(service.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -149,12 +154,13 @@ public class CreateBookingCommandHandlerTests
     {
         // Arrange
         var (service, studentProfile, _, studentUser, _, tutorApp) = CreateTestAggregate(appStatus: TutorApplicationStatus.Pending);
+        _currentUser.Set(studentUser.Id, UserRole.Student);
 
         _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { studentProfile }).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { tutorApp }).Object);
 
-        var command = new CreateBookingCommand(studentUser.Id, service.Id);
+        var command = new CreateBookingCommand(service.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -169,12 +175,13 @@ public class CreateBookingCommandHandlerTests
     {
         // Arrange
         var (service, studentProfile, _, studentUser, _, tutorApp) = CreateTestAggregate(accountStatus: AccountStatus.Suspended);
+        _currentUser.Set(studentUser.Id, UserRole.Student);
 
         _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { studentProfile }).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { tutorApp }).Object);
 
-        var command = new CreateBookingCommand(studentUser.Id, service.Id);
+        var command = new CreateBookingCommand(service.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -189,12 +196,13 @@ public class CreateBookingCommandHandlerTests
         // Arrange
         var (service, _, _, _, tutorUser, tutorApp) = CreateTestAggregate();
         var tutorAsStudentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = tutorUser.Id, User = tutorUser };
+        _currentUser.Set(tutorUser.Id, UserRole.Student);
 
         _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { tutorAsStudentProfile }).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { tutorApp }).Object);
 
-        var command = new CreateBookingCommand(tutorUser.Id, service.Id); // Self-purchase attempt!
+        var command = new CreateBookingCommand(service.Id); // Self-purchase attempt!
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -209,12 +217,13 @@ public class CreateBookingCommandHandlerTests
     {
         // Arrange
         var (service, studentProfile, _, studentUser, _, tutorApp) = CreateTestAggregate(accountStatus: AccountStatus.Banned);
+        _currentUser.Set(studentUser.Id, UserRole.Student);
 
         _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { studentProfile }).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { tutorApp }).Object);
 
-        var command = new CreateBookingCommand(studentUser.Id, service.Id);
+        var command = new CreateBookingCommand(service.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -229,6 +238,7 @@ public class CreateBookingCommandHandlerTests
         // Arrange - User has Student role but no StudentProfile record yet
         var (service, _, tutorProfile, _, _, tutorApp) = CreateTestAggregate();
         var newUser = new UserBuilder().WithRole(UserRole.Student).Build();
+        _currentUser.Set(newUser.Id, UserRole.Student);
 
         var studentProfilesList = new List<StudentProfile>();
         var bookingsList = new List<Booking>();
@@ -240,7 +250,7 @@ public class CreateBookingCommandHandlerTests
         _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(bookingsList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var command = new CreateBookingCommand(newUser.Id, service.Id);
+        var command = new CreateBookingCommand(service.Id);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -257,7 +267,7 @@ public class CreateBookingCommandHandlerTests
     public void Validator_WhenServiceIdEmpty_FailsValidation()
     {
         var validator = new CreateBookingCommandValidator();
-        var command = new CreateBookingCommand(Guid.NewGuid(), Guid.Empty);
+        var command = new CreateBookingCommand(Guid.Empty);
         var result = validator.Validate(command);
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "ServiceId");
@@ -267,7 +277,7 @@ public class CreateBookingCommandHandlerTests
     public void Validator_WhenServiceIdValid_PassesValidation()
     {
         var validator = new CreateBookingCommandValidator();
-        var command = new CreateBookingCommand(Guid.NewGuid(), Guid.NewGuid());
+        var command = new CreateBookingCommand(Guid.NewGuid());
         var result = validator.Validate(command);
         result.IsValid.Should().BeTrue();
     }

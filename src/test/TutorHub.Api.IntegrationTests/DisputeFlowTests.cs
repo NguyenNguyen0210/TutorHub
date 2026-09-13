@@ -30,7 +30,9 @@ public class DisputeFlowTests : IntegrationTestBase
         var (_, tutor, admin) = await SeedHelper.SeedTutorWithWalletAsync(Db);
         var (studentUser, _, service) = await SeedHelper.SeedMarketplaceAsync(Db, tutor, admin.Id);
 
-        var bookingDto = await SendAsync(new CreateBookingCommand(studentUser.Id, service.Id));
+        SetCurrentUser(studentUser.Id, UserRole.Student);
+
+        var bookingDto = await SendAsync(new CreateBookingCommand(service.Id));
 
         var booking = await Db.Bookings
             .Include(b => b.StudentProfile)
@@ -59,11 +61,13 @@ public class DisputeFlowTests : IntegrationTestBase
         // Arrange
         var (adminId, studentUserId, session) = await SetupPaidSessionAsync();
 
-        await SendAsync(new SubmitAttendanceCommand(studentUserId, session.Id, AttendanceStatus.Attended));
+        SetCurrentUser(studentUserId, UserRole.Student);
+        await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
         var tutorUserId = (await Db.Sessions
             .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
             .FirstAsync(s => s.Id == session.Id)).Enrollment.TutorProfile.UserId;
-        var completed = await SendAsync(new SubmitAttendanceCommand(tutorUserId, session.Id, AttendanceStatus.Attended));
+        SetCurrentUser(tutorUserId, UserRole.Tutor);
+        var completed = await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
 
         completed.Status.Should().Be(SessionStatus.Completed);
 
@@ -75,9 +79,9 @@ public class DisputeFlowTests : IntegrationTestBase
         payoutTx.PayoutAmount.Should().Be(270_000m);
 
         // Act: student disputes post-release, admin grants partial refund of 100k.
+        SetCurrentUser(studentUserId, UserRole.Student);
         var dispute = await SendAsync(new CreateDisputeCommand(
             SessionId: session.Id,
-            InitiatorUserId: studentUserId,
             Reason: DisputeReason.QualityIssue,
             Description: "The tutor ended the session 20 minutes early, verified by chat log."));
 
@@ -86,15 +90,14 @@ public class DisputeFlowTests : IntegrationTestBase
         // Q3: financial resolution requires at least one evidence.
         await SendAsync(new UploadDisputeEvidenceCommand(
             DisputeId: dispute.Id,
-            UploadedByUserId: studentUserId,
             FileName: "chat-screenshot.png",
             FileUrl: "disputes/chat-screenshot.png",
             ContentType: "image/png",
             FileSizeBytes: 123_456));
 
+        SetCurrentUser(adminId, UserRole.Admin);
         await SendAsync(new AdminResolveDisputeCommand(
             DisputeId: dispute.Id,
-            AdminUserId: adminId,
             Decision: DisputeResolutionDecision.StudentWinsPartialRefund,
             CustomRefundAmount: 100_000m,
             AdminNotes: "Partially upheld with chat evidence."));
@@ -129,16 +132,15 @@ public class DisputeFlowTests : IntegrationTestBase
         // Arrange
         var (_, studentUserId, session) = await SetupPaidSessionAsync();
 
+        SetCurrentUser(studentUserId, UserRole.Student);
         await SendAsync(new CreateDisputeCommand(
             SessionId: session.Id,
-            InitiatorUserId: studentUserId,
             Reason: DisputeReason.QualityIssue,
             Description: "First dispute with sufficient description length."));
 
         // Act
         var act = () => SendAsync(new CreateDisputeCommand(
             SessionId: session.Id,
-            InitiatorUserId: studentUserId,
             Reason: DisputeReason.QualityIssue,
             Description: "Second dispute with sufficient description length."));
 

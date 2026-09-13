@@ -9,14 +9,18 @@ namespace TutorHub.Application.Features.Sessions.Reschedule.GetRescheduleRequest
 public class GetSessionRescheduleRequestsQueryHandler : IRequestHandler<GetSessionRescheduleRequestsQuery, List<SessionRescheduleRequestDto>>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetSessionRescheduleRequestsQueryHandler(IAppDbContext context)
+    public GetSessionRescheduleRequestsQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<List<SessionRescheduleRequestDto>> Handle(GetSessionRescheduleRequestsQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var session = await _context.Sessions
             .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
             .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
@@ -28,8 +32,8 @@ public class GetSessionRescheduleRequestsQueryHandler : IRequestHandler<GetSessi
         }
 
         // Only participants (Student or Tutor) can view reschedule proposal history
-        if (session.Enrollment.StudentProfile.UserId != request.UserId &&
-            session.Enrollment.TutorProfile.UserId != request.UserId)
+        if (session.Enrollment.StudentProfile.UserId != userId &&
+            session.Enrollment.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("You do not have permission to view reschedule requests for this session.");
         }

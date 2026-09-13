@@ -5,7 +5,6 @@ using TutorHub.Domain.Enums;
 namespace TutorHub.Application.Features.Tutors.Services.CreateService;
 
 public record CreateServiceCommand(
-    Guid UserId,
     Guid SubjectId,
     string Title,
     string Description,

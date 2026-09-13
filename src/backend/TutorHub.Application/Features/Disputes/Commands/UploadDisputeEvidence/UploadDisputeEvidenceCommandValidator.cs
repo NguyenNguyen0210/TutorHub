@@ -10,7 +10,6 @@ public class UploadDisputeEvidenceCommandValidator : AbstractValidator<UploadDis
     public UploadDisputeEvidenceCommandValidator()
     {
         RuleFor(x => x.DisputeId).NotEmpty();
-        RuleFor(x => x.UploadedByUserId).NotEmpty();
         RuleFor(x => x.FileName).NotEmpty().MaximumLength(256);
         RuleFor(x => x.FileUrl).NotEmpty().MaximumLength(1024);
 

@@ -6,8 +6,6 @@ public class SetWeeklyScheduleCommandValidator : AbstractValidator<SetWeeklySche
 {
     public SetWeeklyScheduleCommandValidator()
     {
-        RuleFor(x => x.UserId).NotEmpty();
-
         RuleFor(x => x.Schedule)
             .NotNull()
             .WithMessage("Schedule cannot be null.");

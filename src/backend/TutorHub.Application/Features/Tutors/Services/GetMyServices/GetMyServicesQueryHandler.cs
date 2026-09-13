@@ -9,17 +9,21 @@ namespace TutorHub.Application.Features.Tutors.Services.GetMyServices;
 public class GetMyServicesQueryHandler : IRequestHandler<GetMyServicesQuery, List<ServiceDto>>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMyServicesQueryHandler(IAppDbContext context)
+    public GetMyServicesQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<List<ServiceDto>> Handle(GetMyServicesQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var tutor = await _context.TutorProfiles
             .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null)
         {

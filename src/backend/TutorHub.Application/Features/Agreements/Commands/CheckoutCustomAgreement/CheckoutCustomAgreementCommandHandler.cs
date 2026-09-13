@@ -12,15 +12,19 @@ public class CheckoutCustomAgreementCommandHandler : IRequestHandler<CheckoutCus
 {
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CheckoutCustomAgreementCommandHandler(IAppDbContext context, IClock clock)
+    public CheckoutCustomAgreementCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<BookingDto> Handle(CheckoutCustomAgreementCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var agreement = await _context.CustomAgreements
             .Include(a => a.TutorProfile).ThenInclude(t => t.User)
             .Include(a => a.StudentProfile).ThenInclude(s => s.User)
@@ -34,7 +38,7 @@ public class CheckoutCustomAgreementCommandHandler : IRequestHandler<CheckoutCus
         }
 
         // 1. Granular Student Authorization (INV-AGREE-003)
-        if (agreement.StudentProfile.UserId != request.StudentUserId)
+        if (agreement.StudentProfile.UserId != userId)
         {
             throw new ForbiddenException("Only the designated student participant can checkout this custom agreement.");
         }

@@ -13,15 +13,19 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
 {
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public SubmitAttendanceCommandHandler(IAppDbContext context, IClock clock)
+    public SubmitAttendanceCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<SessionDto> Handle(SubmitAttendanceCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var session = await _context.Sessions
             .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(sp => sp.User)
             .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(tp => tp.User)
@@ -33,8 +37,8 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
             throw new NotFoundException("Session", request.SessionId);
         }
 
-        var isStudent = session.Enrollment.StudentProfile.UserId == request.UserId;
-        var isTutor = session.Enrollment.TutorProfile.UserId == request.UserId;
+        var isStudent = session.Enrollment.StudentProfile.UserId == userId;
+        var isTutor = session.Enrollment.TutorProfile.UserId == userId;
 
         if (!isStudent && !isTutor)
         {

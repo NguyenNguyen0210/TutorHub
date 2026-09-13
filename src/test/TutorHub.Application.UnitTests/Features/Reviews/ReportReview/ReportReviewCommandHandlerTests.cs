@@ -14,6 +14,7 @@ namespace TutorHub.Application.UnitTests.Features.Reviews.ReportReview;
 public class ReportReviewCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly ReportReviewCommandHandler _handler;
 
     private readonly List<Review> _reviews = new();
@@ -26,14 +27,15 @@ public class ReportReviewCommandHandlerTests
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(_users).Object);
         _contextMock.Setup(c => c.Reports).Returns(MockDbSetHelper.CreateMockDbSet(_reports).Object);
 
-        _handler = new ReportReviewCommandHandler(_contextMock.Object);
+        _handler = new ReportReviewCommandHandler(_contextMock.Object, _currentUser);
     }
 
     [Fact]
     public async Task Handle_WhenReviewNotFound_ShouldThrowNotFoundException()
     {
         // Arrange
-        var command = new ReportReviewCommand(Guid.NewGuid(), Guid.NewGuid(), "Inappropriate language");
+        _currentUser.Set(Guid.NewGuid(), UserRole.Tutor);
+        var command = new ReportReviewCommand(Guid.NewGuid(), "Inappropriate language");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -57,7 +59,8 @@ public class ReportReviewCommandHandlerTests
         var reporter = new UserBuilder().Build();
         _users.Add(reporter);
 
-        var command = new ReportReviewCommand(review.Id, reporter.Id, "Inappropriate language");
+        _currentUser.Set(reporter.Id, reporter.Role);
+        var command = new ReportReviewCommand(review.Id, "Inappropriate language");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -87,7 +90,8 @@ public class ReportReviewCommandHandlerTests
         var reporter = new UserBuilder().WithFullName("John Doe").WithRole(UserRole.Tutor).Build();
         _users.Add(reporter);
 
-        var command = new ReportReviewCommand(review.Id, reporter.Id, "Harassment and offensive language", "https://evidence.com/screenshot.png");
+        _currentUser.Set(reporter.Id, reporter.Role);
+        var command = new ReportReviewCommand(review.Id, "Harassment and offensive language", "https://evidence.com/screenshot.png");
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);

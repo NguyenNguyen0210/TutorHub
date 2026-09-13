@@ -1,6 +1,5 @@
 using FluentValidation;
 using TutorHub.Application.Common.Files;
-using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Media.UploadMedia;
 
@@ -11,10 +10,6 @@ public class UploadMediaCommandValidator : AbstractValidator<UploadMediaCommand>
 
     public UploadMediaCommandValidator()
     {
-        RuleFor(x => x.UserId)
-            .NotEmpty()
-            .WithMessage("UserId is required.");
-
         RuleFor(x => x.Stream)
             .NotNull()
             .WithMessage("File stream cannot be null.");
@@ -30,10 +25,6 @@ public class UploadMediaCommandValidator : AbstractValidator<UploadMediaCommand>
             .WithMessage("Original file name is required.")
             .Must(HaveAllowedExtension)
             .WithMessage("File extension is not supported. Allowed formats: .jpg, .jpeg, .png, .webp, .pdf.");
-
-        RuleFor(x => x)
-            .Must(HaveValidRoleForMediaType)
-            .WithMessage("You do not have permission to upload certificates. Only Tutors and Admins can upload certificates.");
     }
 
     private static bool HaveAllowedExtension(string fileName)
@@ -41,15 +32,5 @@ public class UploadMediaCommandValidator : AbstractValidator<UploadMediaCommand>
         if (string.IsNullOrWhiteSpace(fileName)) return false;
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
         return AllowedExtensions.Contains(ext);
-    }
-
-    private static bool HaveValidRoleForMediaType(UploadMediaCommand command)
-    {
-        if (command.MediaType == MediaType.Certificate)
-        {
-            return command.UserRole is UserRole.Tutor or UserRole.Admin;
-        }
-
-        return true;
     }
 }

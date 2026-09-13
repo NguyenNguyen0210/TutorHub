@@ -9,14 +9,18 @@ namespace TutorHub.Application.Features.Agreements.Commands.RejectCustomAgreemen
 public class RejectCustomAgreementCommandHandler : IRequestHandler<RejectCustomAgreementCommand, CustomAgreementDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public RejectCustomAgreementCommandHandler(IAppDbContext context)
+    public RejectCustomAgreementCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<CustomAgreementDto> Handle(RejectCustomAgreementCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var agreement = await _context.CustomAgreements
             .Include(a => a.TutorProfile).ThenInclude(t => t.User)
             .Include(a => a.StudentProfile).ThenInclude(s => s.User)
@@ -30,7 +34,7 @@ public class RejectCustomAgreementCommandHandler : IRequestHandler<RejectCustomA
         }
 
         // 1. Granular Student Authorization (INV-AGREE-003)
-        if (agreement.StudentProfile.UserId != request.StudentUserId)
+        if (agreement.StudentProfile.UserId != userId)
         {
             throw new ForbiddenException("Only the designated student participant can reject this custom agreement.");
         }

@@ -9,9 +9,6 @@ public class UpdateServiceCommandValidator : AbstractValidator<UpdateServiceComm
         RuleFor(x => x.ServiceId)
             .NotEmpty().WithMessage("ServiceId is required.");
 
-        RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("UserId is required.");
-
         RuleFor(x => x.Title)
             .MaximumLength(200).WithMessage("Title cannot exceed 200 characters.")
             .When(x => !string.IsNullOrEmpty(x.Title));

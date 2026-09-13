@@ -9,20 +9,24 @@ namespace TutorHub.Application.Features.Users.UpdateMyProfile;
 public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileCommand, MyProfileDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public UpdateMyProfileCommandHandler(IAppDbContext context)
+    public UpdateMyProfileCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<MyProfileDto> Handle(UpdateMyProfileCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (user == null)
         {
-            throw new NotFoundException("User", request.UserId);
+            throw new NotFoundException("User", userId);
         }
 
         // 1. Normalize FullName

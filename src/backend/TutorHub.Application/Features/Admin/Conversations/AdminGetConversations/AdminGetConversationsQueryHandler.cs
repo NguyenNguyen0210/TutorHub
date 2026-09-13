@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Conversations.DTOs;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Admin.Conversations.AdminGetConversations;
 
@@ -33,7 +34,7 @@ public class AdminGetConversationsQueryHandler : IRequestHandler<AdminGetConvers
             throw new UnauthorizedException("User is not authenticated.");
         }
 
-        if (_currentUserService.Role != "Admin")
+        if (_currentUserService.Role != UserRole.Admin)
         {
             throw new ForbiddenException("Only administrators can access all conversations.");
         }

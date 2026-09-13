@@ -9,14 +9,18 @@ namespace TutorHub.Application.Features.Agreements.Commands.CancelCustomAgreemen
 public class CancelCustomAgreementCommandHandler : IRequestHandler<CancelCustomAgreementCommand, CustomAgreementDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CancelCustomAgreementCommandHandler(IAppDbContext context)
+    public CancelCustomAgreementCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<CustomAgreementDto> Handle(CancelCustomAgreementCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var agreement = await _context.CustomAgreements
             .Include(a => a.TutorProfile).ThenInclude(t => t.User)
             .Include(a => a.StudentProfile).ThenInclude(s => s.User)
@@ -30,7 +34,7 @@ public class CancelCustomAgreementCommandHandler : IRequestHandler<CancelCustomA
         }
 
         // 1. Granular Tutor Authorization (INV-AGREE-004)
-        if (agreement.TutorProfile.UserId != request.TutorUserId)
+        if (agreement.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("Only the proposing tutor participant can cancel this custom agreement.");
         }

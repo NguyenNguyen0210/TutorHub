@@ -9,7 +9,5 @@ public record UploadMediaCommand(
     string OriginalFileName,
     string DeclaredContentType,
     long FileSize,
-    MediaType MediaType,
-    Guid UserId,
-    UserRole UserRole
+    MediaType MediaType
 ) : IRequest<MediaDto>;

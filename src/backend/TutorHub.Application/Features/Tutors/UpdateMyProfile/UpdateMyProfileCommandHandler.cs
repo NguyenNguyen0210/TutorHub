@@ -10,20 +10,24 @@ namespace TutorHub.Application.Features.Tutors.UpdateMyProfile;
 public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileCommand, TutorMyProfileDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public UpdateMyProfileCommandHandler(IAppDbContext context)
+    public UpdateMyProfileCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<TutorMyProfileDto> Handle(UpdateMyProfileCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var tutor = await _context.TutorProfiles
             .Include(t => t.User)
             .Include(t => t.TutorSubjects)
                 .ThenInclude(ts => ts.Subject)
                     .ThenInclude(s => s.Category)
-            .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null)
         {
@@ -31,7 +35,7 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
         }
 
         var isApproved = await _context.TutorApplications
-            .AnyAsync(a => a.UserId == request.UserId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
+            .AnyAsync(a => a.UserId == userId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
 
         if (!isApproved)
         {
@@ -94,7 +98,7 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
 
         var latestApplication = await _context.TutorApplications
             .AsNoTracking()
-            .Where(a => a.UserId == request.UserId)
+            .Where(a => a.UserId == userId)
             .OrderBy(a =>
                 a.Status == TutorApplicationStatus.Approved ? 0 :
                 a.Status == TutorApplicationStatus.Pending ? 1 : 2)

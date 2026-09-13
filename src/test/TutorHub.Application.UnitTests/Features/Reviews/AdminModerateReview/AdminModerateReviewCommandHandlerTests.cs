@@ -14,6 +14,7 @@ namespace TutorHub.Application.UnitTests.Features.Reviews.AdminModerateReview;
 public class AdminModerateReviewCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly AdminModerateReviewCommandHandler _handler;
 
     private readonly List<Review> _reviews = new();
@@ -26,14 +27,15 @@ public class AdminModerateReviewCommandHandlerTests
         _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(_tutorProfiles).Object);
         _contextMock.Setup(c => c.Enrollments).Returns(MockDbSetHelper.CreateMockDbSet(_enrollments).Object);
 
-        _handler = new AdminModerateReviewCommandHandler(_contextMock.Object);
+        _handler = new AdminModerateReviewCommandHandler(_contextMock.Object, _currentUser);
     }
 
     [Fact]
     public async Task Handle_WhenReviewNotFound_ShouldThrowNotFoundException()
     {
         // Arrange
-        var command = new AdminModerateReviewCommand(Guid.NewGuid(), Guid.NewGuid(), "Violates policy");
+        _currentUser.Set(Guid.NewGuid(), UserRole.Admin);
+        var command = new AdminModerateReviewCommand(Guid.NewGuid(), "Violates policy");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -68,7 +70,8 @@ public class AdminModerateReviewCommandHandlerTests
         review.RemoveByAdmin("Already removed reason", Guid.NewGuid());
         _reviews.Add(review);
 
-        var command = new AdminModerateReviewCommand(review.Id, Guid.NewGuid(), "Second removal attempt");
+        _currentUser.Set(Guid.NewGuid(), UserRole.Admin);
+        var command = new AdminModerateReviewCommand(review.Id, "Second removal attempt");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -125,7 +128,8 @@ public class AdminModerateReviewCommandHandlerTests
         _reviews.Add(review2);
 
         var adminId = Guid.NewGuid();
-        var command = new AdminModerateReviewCommand(review2.Id, adminId, "Profanity in review text");
+        _currentUser.Set(adminId, UserRole.Admin);
+        var command = new AdminModerateReviewCommand(review2.Id, "Profanity in review text");
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);

@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Admin.Reports.DTOs;
 using TutorHub.Application.Features.Admin.Reports.GetAdminReportById;
@@ -67,19 +65,8 @@ public class AdminTrustReportsController : ControllerBase
         [FromBody] ResolveReportRequest request,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
-        var command = new ResolveReportCommand(id, adminId, request.Decision, request.Resolution);
+        var command = new ResolveReportCommand(id, request.Decision, request.Resolution);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<AdminReportDetailDto>.SuccessResult(result, "Trust & Safety report resolved with moderation action successfully."));
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
     }
 }

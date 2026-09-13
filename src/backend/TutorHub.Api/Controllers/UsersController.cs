@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Users.DTOs;
 using TutorHub.Application.Features.Users.GetMyProfile;
@@ -31,8 +29,7 @@ public class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMyProfile(CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var query = new GetMyProfileQuery(userId);
+        var query = new GetMyProfileQuery();
         var result = await _sender.Send(query, cancellationToken);
 
         return Ok(ApiResponse<MyProfileDto>.SuccessResult(result, "Profile retrieved successfully."));
@@ -50,9 +47,7 @@ public class UsersController : ControllerBase
         [FromBody] UpdateUserProfileRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new UpdateMyProfileCommand(
-            UserId: userId,
             FullName: request.FullName,
             Phone: request.Phone,
             AvatarUrl: request.AvatarUrl
@@ -76,9 +71,7 @@ public class UsersController : ControllerBase
         [FromBody] ReportUserRequest request,
         CancellationToken cancellationToken)
     {
-        var reporterId = GetCurrentUserId();
         var command = new TutorHub.Application.Features.Reports.ReportUser.ReportUserCommand(
-            ReporterUserId: reporterId,
             TargetUserId: id,
             Reason: request.Reason,
             EvidenceUrl: request.EvidenceUrl
@@ -90,16 +83,6 @@ public class UsersController : ControllerBase
             StatusCodes.Status201Created,
             ApiResponse<TutorHub.Application.Features.Reports.DTOs.ReportSummaryDto>.SuccessResult(result, "User reported successfully. Our Trust & Safety team will investigate.")
         );
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
     }
 }
 

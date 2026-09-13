@@ -5,7 +5,6 @@ using TutorHub.Domain.Enums;
 namespace TutorHub.Application.Features.Agreements.Commands.CreateCustomAgreement;
 
 public record CreateCustomAgreementCommand(
-    Guid TutorUserId,
     Guid StudentProfileId,
     Guid SubjectId,
     Guid? ServiceId,

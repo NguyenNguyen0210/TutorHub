@@ -9,14 +9,18 @@ namespace TutorHub.Application.Features.Tutors.Services.GetMyServiceById;
 public class GetMyServiceByIdQueryHandler : IRequestHandler<GetMyServiceByIdQuery, ServiceDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMyServiceByIdQueryHandler(IAppDbContext context)
+    public GetMyServiceByIdQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ServiceDto> Handle(GetMyServiceByIdQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var service = await _context.Services
             .AsNoTracking()
             .Include(s => s.TutorProfile)
@@ -29,7 +33,7 @@ public class GetMyServiceByIdQueryHandler : IRequestHandler<GetMyServiceByIdQuer
             throw new NotFoundException("Service", request.ServiceId);
         }
 
-        if (service.TutorProfile.UserId != request.UserId)
+        if (service.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("You do not have permission to view this service.");
         }

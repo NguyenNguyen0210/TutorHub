@@ -10,14 +10,18 @@ namespace TutorHub.Application.Features.Tutors.Services.PublishService;
 public class PublishServiceCommandHandler : IRequestHandler<PublishServiceCommand, ServiceDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public PublishServiceCommandHandler(IAppDbContext context)
+    public PublishServiceCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ServiceDto> Handle(PublishServiceCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         // 1. Load service with dependencies
         var service = await _context.Services
             .Include(s => s.TutorProfile)
@@ -32,7 +36,7 @@ public class PublishServiceCommandHandler : IRequestHandler<PublishServiceComman
         }
 
         // 2. Verify ownership
-        if (service.TutorProfile.UserId != request.UserId)
+        if (service.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("You do not have permission to publish this service.");
         }
@@ -45,7 +49,7 @@ public class PublishServiceCommandHandler : IRequestHandler<PublishServiceComman
 
         // 4. Verify approved tutor application
         var isApprovedTutor = await _context.TutorApplications
-            .AnyAsync(a => a.UserId == request.UserId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
+            .AnyAsync(a => a.UserId == userId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
 
         if (!isApprovedTutor)
         {

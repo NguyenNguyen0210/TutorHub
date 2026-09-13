@@ -6,7 +6,6 @@ namespace TutorHub.Application.Features.Disputes.Commands.AdminResolveDispute;
 
 public record AdminResolveDisputeCommand(
     Guid DisputeId,
-    Guid AdminUserId,
     DisputeResolutionDecision Decision,
     decimal? CustomRefundAmount,
     string AdminNotes

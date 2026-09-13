@@ -14,22 +14,26 @@ public class SubmitTutorApplicationCommandHandler
 {
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public SubmitTutorApplicationCommandHandler(IAppDbContext context, IClock clock)
+    public SubmitTutorApplicationCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<TutorApplicationDto> Handle(
         SubmitTutorApplicationCommand request,
         CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (user == null)
-            throw new NotFoundException("User", request.UserId);
+            throw new NotFoundException("User", userId);
 
         if (user.Role != UserRole.Tutor)
             throw new BadRequestException(
@@ -37,7 +41,7 @@ public class SubmitTutorApplicationCommandHandler
 
         // Guard: at most one Pending application
         var hasPending = await _context.TutorApplications
-            .AnyAsync(a => a.UserId == request.UserId
+            .AnyAsync(a => a.UserId == userId
                 && a.Status == TutorApplicationStatus.Pending,
                 cancellationToken);
 
@@ -48,7 +52,7 @@ public class SubmitTutorApplicationCommandHandler
 
         // Guard: already approved
         var hasApproved = await _context.TutorApplications
-            .AnyAsync(a => a.UserId == request.UserId
+            .AnyAsync(a => a.UserId == userId
                 && a.Status == TutorApplicationStatus.Approved,
                 cancellationToken);
 
@@ -60,7 +64,7 @@ public class SubmitTutorApplicationCommandHandler
         var application = new TutorApplication
         {
             Id = Guid.NewGuid(),
-            UserId = request.UserId,
+            UserId = userId,
             Bio = request.Bio.Trim(),
             Education = request.Education.Trim(),
             ExperienceYears = request.ExperienceYears,

@@ -5,7 +5,6 @@ namespace TutorHub.Application.Features.Disputes.Commands.UploadDisputeEvidence;
 
 public record UploadDisputeEvidenceCommand(
     Guid DisputeId,
-    Guid UploadedByUserId,
     string FileName,
     string FileUrl,
     string ContentType,

@@ -10,17 +10,21 @@ namespace TutorHub.Application.Features.Tutors.UpdateMySubjects;
 public class UpdateMySubjectsCommandHandler : IRequestHandler<UpdateMySubjectsCommand, List<TutorSubjectDto>>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public UpdateMySubjectsCommandHandler(IAppDbContext context)
+    public UpdateMySubjectsCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<List<TutorSubjectDto>> Handle(UpdateMySubjectsCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var tutor = await _context.TutorProfiles
             .Include(t => t.TutorSubjects)
-            .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null)
         {

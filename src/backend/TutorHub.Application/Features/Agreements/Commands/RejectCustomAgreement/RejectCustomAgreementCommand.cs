@@ -5,6 +5,5 @@ namespace TutorHub.Application.Features.Agreements.Commands.RejectCustomAgreemen
 
 public record RejectCustomAgreementCommand(
     Guid AgreementId,
-    Guid StudentUserId,
     string Reason
 ) : IRequest<CustomAgreementDto>;

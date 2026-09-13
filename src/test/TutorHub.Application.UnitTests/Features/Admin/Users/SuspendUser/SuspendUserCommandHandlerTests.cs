@@ -15,11 +15,12 @@ public class SuspendUserCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
     private readonly Mock<IAuditLogService> _auditLogServiceMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly SuspendUserCommandHandler _handler;
 
     public SuspendUserCommandHandlerTests()
     {
-        _handler = new SuspendUserCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object);
+        _handler = new SuspendUserCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object, _currentUser);
     }
 
     [Fact]
@@ -27,6 +28,7 @@ public class SuspendUserCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var targetUser = new UserBuilder()
             .WithRole(UserRole.Student)
             .WithStatus(AccountStatus.Active)
@@ -48,7 +50,7 @@ public class SuspendUserCommandHandlerTests
         _contextMock.Setup(c => c.RefreshTokens).Returns(MockDbSetHelper.CreateMockDbSet(tokensList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var command = new SuspendUserCommand(targetUser.Id, adminId, "Repeated policy violations");
+        var command = new SuspendUserCommand(targetUser.Id, "Repeated policy violations");
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -82,7 +84,8 @@ public class SuspendUserCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
-        var command = new SuspendUserCommand(adminId, adminId, "Self suspension attempt");
+        _currentUser.Set(adminId, UserRole.Admin);
+        var command = new SuspendUserCommand(adminId, "Self suspension attempt");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -99,12 +102,13 @@ public class SuspendUserCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var nonExistentUserId = Guid.NewGuid();
         var usersList = new List<User>();
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
 
-        var command = new SuspendUserCommand(nonExistentUserId, adminId, "Non existent user");
+        var command = new SuspendUserCommand(nonExistentUserId, "Non existent user");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -119,6 +123,7 @@ public class SuspendUserCommandHandlerTests
     {
         // Arrange
         var currentAdminId = Guid.NewGuid();
+        _currentUser.Set(currentAdminId, UserRole.Admin);
         var targetAdmin = new UserBuilder()
             .WithRole(UserRole.Admin)
             .WithStatus(AccountStatus.Active)
@@ -128,7 +133,7 @@ public class SuspendUserCommandHandlerTests
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
 
-        var command = new SuspendUserCommand(targetAdmin.Id, currentAdminId, "Suspend the only admin");
+        var command = new SuspendUserCommand(targetAdmin.Id, "Suspend the only admin");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -145,6 +150,7 @@ public class SuspendUserCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var suspendedUser = new UserBuilder()
             .WithRole(UserRole.Student)
             .WithStatus(AccountStatus.Suspended)
@@ -154,7 +160,7 @@ public class SuspendUserCommandHandlerTests
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
 
-        var command = new SuspendUserCommand(suspendedUser.Id, adminId, "Already suspended");
+        var command = new SuspendUserCommand(suspendedUser.Id, "Already suspended");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);

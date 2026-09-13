@@ -14,11 +14,12 @@ namespace TutorHub.Application.UnitTests.Features.Sessions.Reschedule;
 public class GetSessionRescheduleRequestsQueryHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUserService = new();
     private readonly GetSessionRescheduleRequestsQueryHandler _handler;
 
     public GetSessionRescheduleRequestsQueryHandlerTests()
     {
-        _handler = new GetSessionRescheduleRequestsQueryHandler(_contextMock.Object);
+        _handler = new GetSessionRescheduleRequestsQueryHandler(_contextMock.Object, _currentUserService);
     }
 
     private static (Session session, Enrollment enrollment, User studentUser, User tutorUser) CreateTestAggregate()
@@ -89,7 +90,8 @@ public class GetSessionRescheduleRequestsQueryHandlerTests
         _contextMock.Setup(c => c.Sessions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Session> { session }).Object);
         _contextMock.Setup(c => c.SessionRescheduleRequests).Returns(MockDbSetHelper.CreateMockDbSet(new List<SessionRescheduleRequest> { req1, req2 }).Object);
 
-        var query = new GetSessionRescheduleRequestsQuery(studentUser.Id, session.Id);
+        var query = new GetSessionRescheduleRequestsQuery(session.Id);
+        _currentUserService.Set(studentUser.Id, UserRole.Student);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -119,7 +121,8 @@ public class GetSessionRescheduleRequestsQueryHandlerTests
         _contextMock.Setup(c => c.Sessions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Session> { session }).Object);
         _contextMock.Setup(c => c.SessionRescheduleRequests).Returns(MockDbSetHelper.CreateMockDbSet(new List<SessionRescheduleRequest> { req }).Object);
 
-        var query = new GetSessionRescheduleRequestsQuery(tutorUser.Id, session.Id);
+        var query = new GetSessionRescheduleRequestsQuery(session.Id);
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -138,7 +141,8 @@ public class GetSessionRescheduleRequestsQueryHandlerTests
 
         _contextMock.Setup(c => c.Sessions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Session> { session }).Object);
 
-        var query = new GetSessionRescheduleRequestsQuery(strangerId, session.Id);
+        var query = new GetSessionRescheduleRequestsQuery(session.Id);
+        _currentUserService.Set(strangerId, UserRole.Student);
 
         // Act
         var act = () => _handler.Handle(query, CancellationToken.None);
@@ -154,7 +158,8 @@ public class GetSessionRescheduleRequestsQueryHandlerTests
         // Arrange
         _contextMock.Setup(c => c.Sessions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Session>()).Object);
 
-        var query = new GetSessionRescheduleRequestsQuery(Guid.NewGuid(), Guid.NewGuid());
+        var query = new GetSessionRescheduleRequestsQuery(Guid.NewGuid());
+        _currentUserService.Set(Guid.NewGuid(), UserRole.Student);
 
         // Act
         var act = () => _handler.Handle(query, CancellationToken.None);

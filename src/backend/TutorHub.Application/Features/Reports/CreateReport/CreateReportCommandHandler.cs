@@ -12,14 +12,18 @@ namespace TutorHub.Application.Features.Reports.CreateReport;
 public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, ReportSummaryDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateReportCommandHandler(IAppDbContext context)
+    public CreateReportCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ReportSummaryDto> Handle(CreateReportCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var booking = await _context.Bookings
             .Include(b => b.StudentProfile).ThenInclude(s => s.User)
             .Include(b => b.TutorProfile).ThenInclude(t => t.User)
@@ -31,8 +35,8 @@ public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, R
         }
 
         // 1. Check user participation in booking
-        bool isStudent = booking.StudentProfile.UserId == request.UserId;
-        bool isTutor = booking.TutorProfile.UserId == request.UserId;
+        bool isStudent = booking.StudentProfile.UserId == userId;
+        bool isTutor = booking.TutorProfile.UserId == userId;
 
         if (!isStudent && !isTutor)
         {
@@ -48,7 +52,7 @@ public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, R
 
         // 3. Application-level check for duplicate report
         var alreadyReported = await _context.Reports
-            .AnyAsync(r => r.BookingId == request.BookingId && r.ReporterUserId == request.UserId, cancellationToken);
+            .AnyAsync(r => r.BookingId == request.BookingId && r.ReporterUserId == userId, cancellationToken);
 
         if (alreadyReported)
         {
@@ -65,7 +69,7 @@ public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, R
         {
             // F-23: validated construction lives in the domain.
             report = Report.Create(
-                reporterUserId: request.UserId,
+                reporterUserId: userId,
                 reportType: TrustReportType.UserConduct,
                 description: request.Description,
                 bookingId: booking.Id,
@@ -83,7 +87,7 @@ public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, R
         // Enqueue ReportCreated Outbox Message (DEC-S7-001, DEC-S7-002)
         _context.AddOutboxMessage(new ReportCreatedEvent(
             report.Id,
-            request.UserId,
+            userId,
             targetUserId,
             report.Description));
 

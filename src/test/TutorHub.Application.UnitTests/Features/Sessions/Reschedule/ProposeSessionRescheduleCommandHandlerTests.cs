@@ -17,6 +17,7 @@ public class ProposeSessionRescheduleCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
     private readonly Mock<IClock> _clockMock = new();
+    private readonly StubCurrentUserService _currentUserService = new();
     private readonly ProposeSessionRescheduleCommandHandler _handler;
 
     private readonly DateTime _fixedNow = new(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc); // Tuesday
@@ -24,7 +25,7 @@ public class ProposeSessionRescheduleCommandHandlerTests
     public ProposeSessionRescheduleCommandHandlerTests()
     {
         _clockMock.Setup(c => c.UtcNow).Returns(_fixedNow);
-        _handler = new ProposeSessionRescheduleCommandHandler(_contextMock.Object, _clockMock.Object);
+        _handler = new ProposeSessionRescheduleCommandHandler(_contextMock.Object, _clockMock.Object, _currentUserService);
     }
 
     private static (Session session, Enrollment enrollment, User studentUser, User tutorUser) CreateTestAggregate(
@@ -105,12 +106,12 @@ public class ProposeSessionRescheduleCommandHandlerTests
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var command = new ProposeSessionRescheduleCommand(
-            UserId: tutorUser.Id,
             SessionId: session.Id,
             ProposedStartAt: proposedStart,
             ProposedEndAt: proposedEnd,
             Reason: "Need to adjust for emergency."
         );
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -143,12 +144,12 @@ public class ProposeSessionRescheduleCommandHandlerTests
         _contextMock.Setup(c => c.Sessions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Session> { session }).Object);
 
         var command = new ProposeSessionRescheduleCommand(
-            UserId: studentUser.Id,
             SessionId: session.Id,
             ProposedStartAt: futureUtc.AddDays(1),
             ProposedEndAt: futureUtc.AddDays(1).AddHours(1),
             Reason: "Student trying to propose"
         );
+        _currentUserService.Set(studentUser.Id, UserRole.Student);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -169,12 +170,12 @@ public class ProposeSessionRescheduleCommandHandlerTests
         _contextMock.Setup(c => c.Sessions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Session> { session }).Object);
 
         var command = new ProposeSessionRescheduleCommand(
-            UserId: Guid.NewGuid(),
             SessionId: session.Id,
             ProposedStartAt: futureUtc.AddDays(1),
             ProposedEndAt: futureUtc.AddDays(1).AddHours(1),
             Reason: "Stranger"
         );
+        _currentUserService.Set(Guid.NewGuid(), UserRole.Tutor);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -193,12 +194,12 @@ public class ProposeSessionRescheduleCommandHandlerTests
 
         var proposedStart = _fixedNow.AddDays(1);
         var command = new ProposeSessionRescheduleCommand(
-            UserId: tutorUser.Id,
             SessionId: session.Id,
             ProposedStartAt: proposedStart,
             ProposedEndAt: proposedStart.AddHours(1),
             Reason: null
         );
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -220,12 +221,12 @@ public class ProposeSessionRescheduleCommandHandlerTests
 
         var proposedStart = _fixedNow.AddDays(1);
         var command = new ProposeSessionRescheduleCommand(
-            UserId: tutorUser.Id,
             SessionId: session.Id,
             ProposedStartAt: proposedStart,
             ProposedEndAt: proposedStart.AddHours(1),
             Reason: null
         );
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -248,12 +249,12 @@ public class ProposeSessionRescheduleCommandHandlerTests
 
         var proposedStart = _fixedNow.AddDays(2);
         var command = new ProposeSessionRescheduleCommand(
-            UserId: tutorUser.Id,
             SessionId: session.Id,
             ProposedStartAt: proposedStart,
             ProposedEndAt: proposedStart.AddHours(1),
             Reason: null
         );
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -275,12 +276,12 @@ public class ProposeSessionRescheduleCommandHandlerTests
 
         var pastStart = _fixedNow.AddHours(-1);
         var command = new ProposeSessionRescheduleCommand(
-            UserId: tutorUser.Id,
             SessionId: session.Id,
             ProposedStartAt: pastStart,
             ProposedEndAt: pastStart.AddHours(1),
             Reason: null
         );
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -314,12 +315,12 @@ public class ProposeSessionRescheduleCommandHandlerTests
         var proposedEnd = DateTime.SpecifyKind(new DateTime(2026, 9, 2, 8, 0, 0), DateTimeKind.Utc);
 
         var command = new ProposeSessionRescheduleCommand(
-            UserId: tutorUser.Id,
             SessionId: session.Id,
             ProposedStartAt: proposedStart,
             ProposedEndAt: proposedEnd,
             Reason: "Second proposal"
         );
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -353,12 +354,12 @@ public class ProposeSessionRescheduleCommandHandlerTests
         _contextMock.Setup(c => c.SessionRescheduleRequests).Returns(MockDbSetHelper.CreateMockDbSet(new List<SessionRescheduleRequest>()).Object);
 
         var command = new ProposeSessionRescheduleCommand(
-            UserId: tutorUser.Id,
             SessionId: session1.Id,
             ProposedStartAt: overlappingStart,
             ProposedEndAt: overlappingEnd,
             Reason: "Overlapping proposal"
         );
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);

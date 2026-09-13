@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Reports.CreateReport;
 using TutorHub.Application.Features.Reports.DTOs;
@@ -37,10 +35,8 @@ public class ReportsController : ControllerBase
         [FromBody] CreateReportRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new CreateReportCommand(
             BookingId: id,
-            UserId: userId,
             Description: request.Description,
             EvidenceUrl: request.EvidenceUrl
         );
@@ -64,20 +60,9 @@ public class ReportsController : ControllerBase
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var userId = GetCurrentUserId();
-        var query = new GetMyReportsQuery(userId, pageNumber, pageSize);
+        var query = new GetMyReportsQuery(pageNumber, pageSize);
         var result = await _sender.Send(query, cancellationToken);
 
         return Ok(ApiResponse<PagedResult<UserReportDetailDto>>.SuccessResult(result, "Your dispute reports retrieved successfully."));
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
     }
 }

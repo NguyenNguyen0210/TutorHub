@@ -10,24 +10,29 @@ namespace TutorHub.Application.Features.Transactions.GetMyTransactions;
 public class GetMyTransactionsQueryHandler : IRequestHandler<GetMyTransactionsQuery, PagedResult<UserTransactionDto>>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMyTransactionsQueryHandler(IAppDbContext context)
+    public GetMyTransactionsQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<PagedResult<UserTransactionDto>> Handle(GetMyTransactionsQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+        var role = _currentUserService.Role;
+
         var query = _context.Transactions.AsNoTracking();
 
         // 1. Role-based Identity Filter (Student or Tutor)
-        if (request.Role == UserRole.Student)
+        if (role == UserRole.Student)
         {
-            query = query.Where(t => t.Booking.StudentProfile.UserId == request.UserId);
+            query = query.Where(t => t.Booking.StudentProfile.UserId == userId);
         }
-        else if (request.Role == UserRole.Tutor)
+        else if (role == UserRole.Tutor)
         {
-            query = query.Where(t => t.Booking.TutorProfile.UserId == request.UserId);
+            query = query.Where(t => t.Booking.TutorProfile.UserId == userId);
         }
         else
         {
@@ -56,7 +61,7 @@ public class GetMyTransactionsQueryHandler : IRequestHandler<GetMyTransactionsQu
         var totalCount = await query.CountAsync(cancellationToken);
 
         // 4. Deterministic Sort & Server-Side Projection
-        var isStudent = request.Role == UserRole.Student;
+        var isStudent = role == UserRole.Student;
         var items = await query
             .OrderByDescending(t => t.CreatedAt)
             .ThenBy(t => t.Id)

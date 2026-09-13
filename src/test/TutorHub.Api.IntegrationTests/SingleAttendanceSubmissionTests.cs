@@ -26,7 +26,9 @@ public class SingleAttendanceSubmissionTests : IntegrationTestBase
         var (_, tutor, admin) = await SeedHelper.SeedTutorWithWalletAsync(Db);
         var (studentUser, _, service) = await SeedHelper.SeedMarketplaceAsync(Db, tutor, admin.Id);
 
-        var dto = await SendAsync(new CreateBookingCommand(studentUser.Id, service.Id));
+        SetCurrentUser(studentUser.Id, UserRole.Student);
+
+        var dto = await SendAsync(new CreateBookingCommand(service.Id));
 
         var booking = await Db.Bookings
             .Include(b => b.StudentProfile)
@@ -53,9 +55,11 @@ public class SingleAttendanceSubmissionTests : IntegrationTestBase
     {
         var (studentUserId, session) = await SetupScheduledSessionAsync();
 
-        await SendAsync(new SubmitAttendanceCommand(studentUserId, session.Id, AttendanceStatus.Attended));
+        SetCurrentUser(studentUserId, UserRole.Student);
+        await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
 
-        var act = () => SendAsync(new SubmitAttendanceCommand(studentUserId, session.Id, AttendanceStatus.Absent));
+        SetCurrentUser(studentUserId, UserRole.Student);
+        var act = () => SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Absent));
 
         await act.Should().ThrowAsync<ConflictException>();
     }
@@ -68,8 +72,10 @@ public class SingleAttendanceSubmissionTests : IntegrationTestBase
             .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
             .FirstAsync(s => s.Id == session.Id)).Enrollment.TutorProfile.UserId;
 
-        await SendAsync(new SubmitAttendanceCommand(studentUserId, session.Id, AttendanceStatus.Attended));
-        var result = await SendAsync(new SubmitAttendanceCommand(tutorUserId, session.Id, AttendanceStatus.Attended));
+        SetCurrentUser(studentUserId, UserRole.Student);
+        await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
+        SetCurrentUser(tutorUserId, UserRole.Tutor);
+        var result = await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
 
         result.Status.Should().Be(SessionStatus.Completed);
     }

@@ -3,4 +3,4 @@ using TutorHub.Application.Features.Tutors.DTOs;
 
 namespace TutorHub.Application.Features.Tutors.GetMyTutorApplication;
 
-public record GetMyTutorApplicationQuery(Guid UserId) : IRequest<TutorApplicationDto?>;
+public record GetMyTutorApplicationQuery : IRequest<TutorApplicationDto?>;

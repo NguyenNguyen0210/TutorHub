@@ -15,11 +15,12 @@ namespace TutorHub.Application.UnitTests.Features.Auth.GetMe;
 public class GetMeQueryHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly GetMeQueryHandler _handler;
 
     public GetMeQueryHandlerTests()
     {
-        _handler = new GetMeQueryHandler(_contextMock.Object);
+        _handler = new GetMeQueryHandler(_contextMock.Object, _currentUser);
     }
 
     [Theory]
@@ -38,7 +39,9 @@ public class GetMeQueryHandlerTests
         var usersList = new List<User> { user };
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
 
-        var query = new GetMeQuery(user.Id);
+        _currentUser.Set(user.Id, role);
+
+        var query = new GetMeQuery();
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -58,7 +61,9 @@ public class GetMeQueryHandlerTests
         var usersList = new List<User>();
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
 
-        var query = new GetMeQuery(Guid.NewGuid());
+        _currentUser.Set(Guid.NewGuid(), UserRole.Student);
+
+        var query = new GetMeQuery();
 
         // Act
         var act = () => _handler.Handle(query, CancellationToken.None);

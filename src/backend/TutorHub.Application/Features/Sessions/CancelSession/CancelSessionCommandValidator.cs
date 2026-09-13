@@ -6,7 +6,6 @@ public class CancelSessionCommandValidator : AbstractValidator<CancelSessionComm
 {
     public CancelSessionCommandValidator()
     {
-        RuleFor(x => x.UserId).NotEmpty();
         RuleFor(x => x.SessionId).NotEmpty();
         RuleFor(x => x.Reason)
             .NotEmpty().WithMessage("Cancellation reason is required.")

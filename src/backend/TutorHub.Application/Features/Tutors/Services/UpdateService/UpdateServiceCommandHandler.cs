@@ -11,15 +11,19 @@ public class UpdateServiceCommandHandler : IRequestHandler<UpdateServiceCommand,
 {
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public UpdateServiceCommandHandler(IAppDbContext context, IClock clock)
+    public UpdateServiceCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ServiceDto> Handle(UpdateServiceCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var service = await _context.Services
             .Include(s => s.TutorProfile)
             .Include(s => s.Subject)
@@ -31,7 +35,7 @@ public class UpdateServiceCommandHandler : IRequestHandler<UpdateServiceCommand,
             throw new NotFoundException("Service", request.ServiceId);
         }
 
-        if (service.TutorProfile.UserId != request.UserId)
+        if (service.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("You do not have permission to update this service.");
         }

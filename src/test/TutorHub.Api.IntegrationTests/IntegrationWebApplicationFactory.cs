@@ -23,6 +23,12 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
     private static readonly object Sync = new();
     private static bool _initialized;
 
+    /// <summary>
+    /// Shared ambient current-user. Singleton so tests can set the acting user
+    /// before dispatch; replaces the real HTTP-context-based implementation.
+    /// </summary>
+    public TestCurrentUserService CurrentUser { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureAppConfiguration((_, config) =>
@@ -43,6 +49,17 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
             {
                 services.Remove(descriptor);
             }
+
+            // Replace the HTTP-context current-user with an ambient test stub.
+            var currentUserDescriptors = services
+                .Where(d => d.ServiceType == typeof(TutorHub.Application.Common.Interfaces.ICurrentUserService))
+                .ToList();
+            foreach (var descriptor in currentUserDescriptors)
+            {
+                services.Remove(descriptor);
+            }
+
+            services.AddSingleton<TutorHub.Application.Common.Interfaces.ICurrentUserService>(CurrentUser);
         });
     }
 

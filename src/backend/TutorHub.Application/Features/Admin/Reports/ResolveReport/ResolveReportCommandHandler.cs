@@ -14,16 +14,20 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ResolveReportCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
+    public ResolveReportCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<AdminReportDetailDto> Handle(ResolveReportCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var report = await _context.Reports
             .Include(r => r.ReporterUser)
             .Include(r => r.ReportedUser)
@@ -45,7 +49,7 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
         }
 
         var now = _clock.UtcNow;
-        var admin = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.AdminId, cancellationToken);
+        var admin = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         // 2. Pure Trust & Safety Enforcement (FR-TRUST-004) - Zero Financial Mutation
         // Uses domain transitions + revokes refresh tokens so suspend/ban takes effect immediately.
@@ -86,7 +90,7 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
                         action: request.Decision == ReportDecision.SuspendUser ? "USER_SUSPENDED" : "USER_BANNED",
                         entityName: "User",
                         entityId: reportedUser.Id.ToString(),
-                        userId: request.AdminId,
+                        userId: userId,
                         oldValues: new { source = "TrustReport", reportId = report.Id },
                         newValues: new { status = reportedUser.Status.ToString(), reportId = report.Id },
                         cancellationToken: cancellationToken);
@@ -104,14 +108,14 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
 
             if (review != null && !review.IsRemoved)
             {
-                review.RemoveByAdmin(request.Resolution.Trim(), request.AdminId);
+                review.RemoveByAdmin(request.Resolution.Trim(), userId);
             }
         }
 
         // 4. Mark Report Resolved (F-23: domain transition).
         try
         {
-            report.Resolve(request.Decision, request.Resolution, request.AdminId);
+            report.Resolve(request.Decision, request.Resolution, userId);
         }
         catch (ArgumentException ex)
         {
@@ -129,7 +133,7 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
             action: $"TrustReportResolved_{request.Decision}",
             entityName: "Report",
             entityId: report.Id.ToString(),
-            userId: request.AdminId,
+            userId: userId,
             newValues: new { Decision = request.Decision.ToString(), Resolution = request.Resolution },
             cancellationToken: cancellationToken);
 

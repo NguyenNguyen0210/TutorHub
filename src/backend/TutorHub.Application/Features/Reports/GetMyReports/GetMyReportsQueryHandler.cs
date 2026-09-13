@@ -9,17 +9,21 @@ namespace TutorHub.Application.Features.Reports.GetMyReports;
 public class GetMyReportsQueryHandler : IRequestHandler<GetMyReportsQuery, PagedResult<UserReportDetailDto>>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMyReportsQueryHandler(IAppDbContext context)
+    public GetMyReportsQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<PagedResult<UserReportDetailDto>> Handle(GetMyReportsQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var query = _context.Reports
             .AsNoTracking()
-            .Where(r => r.ReporterUserId == request.UserId);
+            .Where(r => r.ReporterUserId == userId);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;

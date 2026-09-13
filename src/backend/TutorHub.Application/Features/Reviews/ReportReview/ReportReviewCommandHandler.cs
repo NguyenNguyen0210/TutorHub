@@ -12,14 +12,18 @@ namespace TutorHub.Application.Features.Reviews.ReportReview;
 public class ReportReviewCommandHandler : IRequestHandler<ReportReviewCommand, ReportSummaryDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ReportReviewCommandHandler(IAppDbContext context)
+    public ReportReviewCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ReportSummaryDto> Handle(ReportReviewCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var review = await _context.Reviews
             .Include(r => r.Enrollment).ThenInclude(e => e.StudentProfile)
             .FirstOrDefaultAsync(r => r.Id == request.ReviewId, cancellationToken);
@@ -35,11 +39,11 @@ public class ReportReviewCommandHandler : IRequestHandler<ReportReviewCommand, R
         }
 
         var reporter = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (reporter == null)
         {
-            throw new NotFoundException("User", request.UserId);
+            throw new NotFoundException("User", userId);
         }
 
         var reportedUserId = review.Enrollment?.StudentProfile?.UserId;
@@ -49,7 +53,7 @@ public class ReportReviewCommandHandler : IRequestHandler<ReportReviewCommand, R
         {
             // F-23: validated construction lives in the domain.
             report = Report.Create(
-                reporterUserId: request.UserId,
+                reporterUserId: userId,
                 reportType: TrustReportType.ReviewViolation,
                 description: $"[Review Violation Report - ReviewId: {review.Id}] {request.Description}",
                 bookingId: review.Enrollment?.BookingId,

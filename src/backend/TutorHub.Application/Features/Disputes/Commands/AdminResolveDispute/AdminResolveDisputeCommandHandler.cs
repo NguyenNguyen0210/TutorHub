@@ -15,16 +15,20 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public AdminResolveDisputeCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
+    public AdminResolveDisputeCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<DisputeDto> Handle(AdminResolveDisputeCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
 
         try
@@ -99,14 +103,14 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                 });
             }
 
-            dispute.DismissByAdmin(request.AdminUserId, request.AdminNotes, now);
-            dispute.ReleaseFinancialHold(request.AdminUserId, now);
+            dispute.DismissByAdmin(userId, request.AdminNotes, now);
+            dispute.ReleaseFinancialHold(userId, now);
 
             await _auditLogService.LogAsync(
                 action: "DisputeResolved",
                 entityName: "Dispute",
                 entityId: dispute.Id.ToString(),
-                userId: request.AdminUserId,
+                userId: userId,
                 oldValues: new { Status = "Open" },
                 newValues: new { Status = dispute.Status.ToString(), Decision = request.Decision.ToString(), request.AdminNotes },
                 cancellationToken: cancellationToken);
@@ -214,9 +218,9 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                     refundTx.Id));
             }
 
-            session.ResolveAttendanceByAdmin(request.AdminUserId, request.AdminNotes, "DisputeAdminResolution", now, releasePayout: tutorGrossRelease > 0);
-            dispute.ResolveByAdmin(request.AdminUserId, request.Decision, request.AdminNotes, now, affectsFinancial: true);
-            dispute.ReleaseFinancialHold(request.AdminUserId, now);
+            session.ResolveAttendanceByAdmin(userId, request.AdminNotes, "DisputeAdminResolution", now, releasePayout: tutorGrossRelease > 0);
+            dispute.ResolveByAdmin(userId, request.Decision, request.AdminNotes, now, affectsFinancial: true);
+            dispute.ReleaseFinancialHold(userId, now);
         }
         else
         {
@@ -267,8 +271,8 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                     });
                 }
 
-                dispute.ResolveByAdmin(request.AdminUserId, request.Decision, request.AdminNotes, now, originalTransactionId: originalTx.Id, affectsFinancial: true);
-                dispute.ReleaseFinancialHold(request.AdminUserId, now);
+                dispute.ResolveByAdmin(userId, request.Decision, request.AdminNotes, now, originalTransactionId: originalTx.Id, affectsFinancial: true);
+                dispute.ReleaseFinancialHold(userId, now);
             }
             else
             {
@@ -303,7 +307,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                         action: "DisputeRequiresFinancialIntervention",
                         entityName: "Dispute",
                         entityId: dispute.Id.ToString(),
-                        userId: request.AdminUserId,
+                        userId: userId,
                         oldValues: new { Status = "UnderReview" },
                         newValues: new { Status = dispute.Status.ToString(), RequiredRecovery = tutorNetRecovery, AvailableBalance = tutorWallet.AvailableBalance },
                         cancellationToken: cancellationToken);
@@ -379,8 +383,8 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                     new MoneyDto(studentRefund),
                     refundTx.Id));
 
-                dispute.ResolveByAdmin(request.AdminUserId, request.Decision, request.AdminNotes, now, originalTransactionId: originalTx.Id, affectsFinancial: true);
-                dispute.ReleaseFinancialHold(request.AdminUserId, now);
+                dispute.ResolveByAdmin(userId, request.Decision, request.AdminNotes, now, originalTransactionId: originalTx.Id, affectsFinancial: true);
+                dispute.ReleaseFinancialHold(userId, now);
             }
         }
 
@@ -396,7 +400,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             action: "DisputeResolved",
             entityName: "Dispute",
             entityId: dispute.Id.ToString(),
-            userId: request.AdminUserId,
+            userId: userId,
             oldValues: new { Status = "Open" },
             newValues: new { Status = dispute.Status.ToString(), Decision = request.Decision.ToString(), request.AdminNotes },
             cancellationToken: cancellationToken);

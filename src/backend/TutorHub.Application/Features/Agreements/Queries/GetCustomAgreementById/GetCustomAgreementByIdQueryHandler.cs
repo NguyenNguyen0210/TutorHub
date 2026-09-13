@@ -10,14 +10,18 @@ namespace TutorHub.Application.Features.Agreements.Queries.GetCustomAgreementByI
 public class GetCustomAgreementByIdQueryHandler : IRequestHandler<GetCustomAgreementByIdQuery, CustomAgreementDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetCustomAgreementByIdQueryHandler(IAppDbContext context)
+    public GetCustomAgreementByIdQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<CustomAgreementDto> Handle(GetCustomAgreementByIdQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var agreement = await _context.CustomAgreements
             .Include(a => a.TutorProfile).ThenInclude(t => t.User)
             .Include(a => a.StudentProfile).ThenInclude(s => s.User)
@@ -31,16 +35,16 @@ public class GetCustomAgreementByIdQueryHandler : IRequestHandler<GetCustomAgree
         }
 
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (user == null)
         {
-            throw new NotFoundException("User", request.UserId);
+            throw new NotFoundException("User", userId);
         }
 
         // Granular Authorization (Participant or Admin only)
-        bool isStudent = agreement.StudentProfile.UserId == request.UserId;
-        bool isTutor = agreement.TutorProfile.UserId == request.UserId;
+        bool isStudent = agreement.StudentProfile.UserId == userId;
+        bool isTutor = agreement.TutorProfile.UserId == userId;
         bool isAdmin = user.Role == UserRole.Admin;
 
         if (!isStudent && !isTutor && !isAdmin)

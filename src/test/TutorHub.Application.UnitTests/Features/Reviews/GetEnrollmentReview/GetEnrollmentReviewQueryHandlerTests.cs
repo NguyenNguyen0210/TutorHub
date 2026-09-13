@@ -14,6 +14,7 @@ namespace TutorHub.Application.UnitTests.Features.Reviews.GetEnrollmentReview;
 public class GetEnrollmentReviewQueryHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly GetEnrollmentReviewQueryHandler _handler;
 
     private readonly List<Enrollment> _enrollments = new();
@@ -21,14 +22,15 @@ public class GetEnrollmentReviewQueryHandlerTests
     public GetEnrollmentReviewQueryHandlerTests()
     {
         _contextMock.Setup(c => c.Enrollments).Returns(MockDbSetHelper.CreateMockDbSet(_enrollments).Object);
-        _handler = new GetEnrollmentReviewQueryHandler(_contextMock.Object);
+        _handler = new GetEnrollmentReviewQueryHandler(_contextMock.Object, _currentUser);
     }
 
     [Fact]
     public async Task Handle_WhenEnrollmentNotFound_ShouldThrowNotFoundException()
     {
         // Arrange
-        var query = new GetEnrollmentReviewQuery(Guid.NewGuid(), Guid.NewGuid(), UserRole.Student);
+        _currentUser.Set(Guid.NewGuid(), UserRole.Student);
+        var query = new GetEnrollmentReviewQuery(Guid.NewGuid());
 
         // Act
         var act = () => _handler.Handle(query, CancellationToken.None);
@@ -56,7 +58,8 @@ public class GetEnrollmentReviewQueryHandlerTests
         _enrollments.Add(enrollment);
 
         var unrelatedUserId = Guid.NewGuid();
-        var query = new GetEnrollmentReviewQuery(enrollment.Id, unrelatedUserId, UserRole.Student);
+        _currentUser.Set(unrelatedUserId, UserRole.Student);
+        var query = new GetEnrollmentReviewQuery(enrollment.Id);
 
         // Act
         var act = () => _handler.Handle(query, CancellationToken.None);
@@ -84,7 +87,8 @@ public class GetEnrollmentReviewQueryHandlerTests
         };
         _enrollments.Add(enrollment);
 
-        var query = new GetEnrollmentReviewQuery(enrollment.Id, studentUser.Id, UserRole.Student);
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+        var query = new GetEnrollmentReviewQuery(enrollment.Id);
 
         // Act
         var act = () => _handler.Handle(query, CancellationToken.None);
@@ -119,7 +123,8 @@ public class GetEnrollmentReviewQueryHandlerTests
         review.Enrollment = enrollment;
         _enrollments.Add(enrollment);
 
-        var query = new GetEnrollmentReviewQuery(enrollment.Id, studentUser.Id, UserRole.Student);
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+        var query = new GetEnrollmentReviewQuery(enrollment.Id);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);

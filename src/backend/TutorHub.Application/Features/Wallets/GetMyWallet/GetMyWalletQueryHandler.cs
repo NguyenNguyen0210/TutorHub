@@ -11,16 +11,20 @@ namespace TutorHub.Application.Features.Wallets.GetMyWallet;
 public class GetMyWalletQueryHandler : IRequestHandler<GetMyWalletQuery, WalletDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMyWalletQueryHandler(IAppDbContext context)
+    public GetMyWalletQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<WalletDto> Handle(GetMyWalletQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var tutor = await _context.TutorProfiles
-            .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null)
         {
