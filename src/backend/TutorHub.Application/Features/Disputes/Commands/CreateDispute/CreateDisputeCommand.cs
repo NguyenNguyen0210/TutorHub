@@ -6,7 +6,6 @@ namespace TutorHub.Application.Features.Disputes.Commands.CreateDispute;
 
 public record CreateDisputeCommand(
     Guid SessionId,
-    Guid InitiatorUserId,
     DisputeReason Reason,
     string Description
 ) : IRequest<DisputeDto>;

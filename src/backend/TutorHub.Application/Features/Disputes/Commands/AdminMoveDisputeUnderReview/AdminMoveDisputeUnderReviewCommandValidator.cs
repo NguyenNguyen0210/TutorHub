@@ -7,6 +7,5 @@ public class AdminMoveDisputeUnderReviewCommandValidator : AbstractValidator<Adm
     public AdminMoveDisputeUnderReviewCommandValidator()
     {
         RuleFor(x => x.DisputeId).NotEmpty();
-        RuleFor(x => x.AdminUserId).NotEmpty();
     }
 }

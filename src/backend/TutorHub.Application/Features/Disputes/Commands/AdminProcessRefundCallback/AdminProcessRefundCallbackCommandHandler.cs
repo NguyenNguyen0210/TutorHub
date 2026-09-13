@@ -14,16 +14,20 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public AdminProcessRefundCallbackCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
+    public AdminProcessRefundCallbackCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<RefundCallbackResultDto> Handle(AdminProcessRefundCallbackCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var refundTx = await _context.Transactions
             .FirstOrDefaultAsync(t => t.Id == request.RefundTransactionId, cancellationToken);
 
@@ -108,7 +112,7 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
             action: request.Outcome == TransactionStatus.Succeeded ? "RefundSettlementSucceeded" : "RefundSettlementFailed",
             entityName: "Transaction",
             entityId: refundTx.Id.ToString(),
-            userId: request.AdminUserId,
+            userId: userId,
             oldValues: new { Status = oldStatus.ToString() },
             newValues: new { Status = refundTx.Status.ToString(), SettlementRequired = refundTx.SettlementRequired, Reason = request.FailureReason },
             cancellationToken: cancellationToken);

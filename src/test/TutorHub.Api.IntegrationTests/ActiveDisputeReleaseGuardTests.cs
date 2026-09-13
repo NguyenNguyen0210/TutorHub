@@ -50,7 +50,6 @@ public class ActiveDisputeReleaseGuardTests : IntegrationTestBase
         // Pre-release dispute -> EscrowHold + attendance conflict flag.
         await SendAsync(new CreateDisputeCommand(
             SessionId: session.Id,
-            InitiatorUserId: studentUser.Id,
             Reason: DisputeReason.TutorNoShow,
             Description: "The tutor did not show up for this scheduled session."));
 

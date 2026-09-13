@@ -14,6 +14,7 @@ namespace TutorHub.Application.UnitTests.Features.Reviews.ReplyReview;
 public class ReplyReviewCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly ReplyReviewCommandHandler _handler;
 
     private readonly List<Review> _reviews = new();
@@ -21,14 +22,15 @@ public class ReplyReviewCommandHandlerTests
     public ReplyReviewCommandHandlerTests()
     {
         _contextMock.Setup(c => c.Reviews).Returns(MockDbSetHelper.CreateMockDbSet(_reviews).Object);
-        _handler = new ReplyReviewCommandHandler(_contextMock.Object);
+        _handler = new ReplyReviewCommandHandler(_contextMock.Object, _currentUser);
     }
 
     [Fact]
     public async Task Handle_WhenReviewNotFound_ShouldThrowNotFoundException()
     {
         // Arrange
-        var command = new ReplyReviewCommand(Guid.NewGuid(), Guid.NewGuid(), "Thanks!");
+        _currentUser.Set(Guid.NewGuid(), UserRole.Tutor);
+        var command = new ReplyReviewCommand(Guid.NewGuid(), "Thanks!");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -62,7 +64,8 @@ public class ReplyReviewCommandHandlerTests
         _reviews.Add(review);
 
         var differentUserId = Guid.NewGuid();
-        var command = new ReplyReviewCommand(review.Id, differentUserId, "Thanks for the review!");
+        _currentUser.Set(differentUserId, UserRole.Tutor);
+        var command = new ReplyReviewCommand(review.Id, "Thanks for the review!");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -96,7 +99,8 @@ public class ReplyReviewCommandHandlerTests
         review.RemoveByAdmin("Violates policy", Guid.NewGuid());
         _reviews.Add(review);
 
-        var command = new ReplyReviewCommand(review.Id, tutorUser.Id, "Thanks for the review!");
+        _currentUser.Set(tutorUser.Id, UserRole.Tutor);
+        var command = new ReplyReviewCommand(review.Id, "Thanks for the review!");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -129,7 +133,8 @@ public class ReplyReviewCommandHandlerTests
         review.Enrollment = enrollment;
         _reviews.Add(review);
 
-        var command = new ReplyReviewCommand(review.Id, tutorUser.Id, "Thank you, Alice! Wishing you all the best.");
+        _currentUser.Set(tutorUser.Id, UserRole.Tutor);
+        var command = new ReplyReviewCommand(review.Id, "Thank you, Alice! Wishing you all the best.");
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);

@@ -16,16 +16,20 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public FastTrackResolveDisputeCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
+    public FastTrackResolveDisputeCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<DisputeDto> Handle(FastTrackResolveDisputeCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
 
         try
@@ -185,9 +189,9 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
                     refundTx.Id));
             }
 
-            session.ResolveAttendanceByAdmin(request.AdminUserId, request.AdminNotes, "DisputeFastTrack", now, releasePayout: tutorClaims);
-            dispute.ResolveByAdmin(request.AdminUserId, decision, request.AdminNotes, now, affectsFinancial: true);
-            dispute.ReleaseFinancialHold(request.AdminUserId, now);
+            session.ResolveAttendanceByAdmin(userId, request.AdminNotes, "DisputeFastTrack", now, releasePayout: tutorClaims);
+            dispute.ResolveByAdmin(userId, decision, request.AdminNotes, now, affectsFinancial: true);
+            dispute.ReleaseFinancialHold(userId, now);
 
             _context.AddOutboxMessage(new DisputeResolvedEvent(
                 dispute.Id,
@@ -200,7 +204,7 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
                 action: "DisputeFastTrackResolved",
                 entityName: "Dispute",
                 entityId: dispute.Id.ToString(),
-                userId: request.AdminUserId,
+                userId: userId,
                 oldValues: new { Status = "Open" },
                 newValues: new { Status = dispute.Status.ToString(), Decision = decision.ToString(), request.AdminNotes },
                 cancellationToken: cancellationToken);

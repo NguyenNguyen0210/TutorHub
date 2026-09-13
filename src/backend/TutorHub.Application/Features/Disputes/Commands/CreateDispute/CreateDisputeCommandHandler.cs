@@ -13,15 +13,19 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
 {
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateDisputeCommandHandler(IAppDbContext context, IClock clock)
+    public CreateDisputeCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<DisputeDto> Handle(CreateDisputeCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
 
         try
@@ -40,12 +44,12 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
         var studentUserId = session.Enrollment.StudentProfile.UserId;
         var tutorUserId = session.Enrollment.TutorProfile.UserId;
 
-        if (request.InitiatorUserId != studentUserId && request.InitiatorUserId != tutorUserId)
+        if (userId != studentUserId && userId != tutorUserId)
         {
             throw new ForbiddenException("You are not a participant in this session.");
         }
 
-        var respondentUserId = request.InitiatorUserId == studentUserId ? tutorUserId : studentUserId;
+        var respondentUserId = userId == studentUserId ? tutorUserId : studentUserId;
 
         // Session status check: can only dispute Scheduled or Completed sessions
         if (session.Status == SessionStatus.Unscheduled || session.Status == SessionStatus.Cancelled)
@@ -77,7 +81,7 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
         {
             Id = Guid.NewGuid(),
             SessionId = session.Id,
-            InitiatorUserId = request.InitiatorUserId,
+            InitiatorUserId = userId,
             RespondentUserId = respondentUserId,
             Reason = request.Reason,
             Description = request.Description,
@@ -147,13 +151,13 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
         _context.AddOutboxMessage(new DisputeCreatedEvent(
             dispute.Id,
             session.EnrollmentId,
-            request.InitiatorUserId,
+            userId,
             respondentUserId));
 
         await _context.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
 
-        var initiatorName = request.InitiatorUserId == studentUserId
+        var initiatorName = userId == studentUserId
             ? session.Enrollment.StudentProfile.User?.FullName ?? "Student"
             : session.Enrollment.TutorProfile.User?.FullName ?? "Tutor";
 

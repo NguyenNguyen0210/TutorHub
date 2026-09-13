@@ -58,7 +58,6 @@ public class FutureSessionDisputeRejectionTests : IntegrationTestBase
 
         var act = () => SendAsync(new CreateDisputeCommand(
             SessionId: session.Id,
-            InitiatorUserId: studentUserId,
             Reason: DisputeReason.QualityIssue,
             Description: "Filing early before the session has actually taken place."));
 

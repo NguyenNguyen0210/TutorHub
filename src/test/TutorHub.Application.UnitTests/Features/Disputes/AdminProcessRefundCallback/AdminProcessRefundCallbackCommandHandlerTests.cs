@@ -13,11 +13,12 @@ public class AdminProcessRefundCallbackCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
     private readonly Mock<IAuditLogService> _auditLogServiceMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly AdminProcessRefundCallbackCommandHandler _handler;
 
     public AdminProcessRefundCallbackCommandHandlerTests()
     {
-        _handler = new AdminProcessRefundCallbackCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object);
+        _handler = new AdminProcessRefundCallbackCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object, _currentUser);
     }
 
     [Fact]
@@ -25,6 +26,7 @@ public class AdminProcessRefundCallbackCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var refundTx = new Transaction
         {
             Id = Guid.NewGuid(),
@@ -48,8 +50,7 @@ public class AdminProcessRefundCallbackCommandHandlerTests
             RefundTransactionId: refundTx.Id,
             Outcome: TransactionStatus.Succeeded,
             ProviderReference: "VNPAY-REF-999",
-            FailureReason: null,
-            AdminUserId: adminId
+            FailureReason: null
         );
 
         // Act
@@ -81,6 +82,7 @@ public class AdminProcessRefundCallbackCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var studentUserId = Guid.NewGuid();
         var studentProfileId = Guid.NewGuid();
 
@@ -116,8 +118,7 @@ public class AdminProcessRefundCallbackCommandHandlerTests
             RefundTransactionId: refundTx.Id,
             Outcome: TransactionStatus.Succeeded,
             ProviderReference: "PROV-1",
-            FailureReason: null,
-            AdminUserId: adminId);
+            FailureReason: null);
 
         // Act
         await _handler.Handle(command, CancellationToken.None);
@@ -134,6 +135,7 @@ public class AdminProcessRefundCallbackCommandHandlerTests
     {
         // Arrange (INV-REFUND-004 test)
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var dispute = new Dispute
         {
             Id = Guid.NewGuid()
@@ -164,8 +166,7 @@ public class AdminProcessRefundCallbackCommandHandlerTests
             RefundTransactionId: refundTx.Id,
             Outcome: TransactionStatus.Failed,
             ProviderReference: null,
-            FailureReason: "Card expired or account closed",
-            AdminUserId: adminId
+            FailureReason: "Card expired or account closed"
         );
 
         // Act

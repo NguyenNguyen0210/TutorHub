@@ -293,8 +293,7 @@ public class AdminController : ControllerBase
         [FromBody] ResolveReportRequest request,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
-        var command = new ResolveReportCommand(id, adminId, request.Decision, request.Resolution);
+        var command = new ResolveReportCommand(id, request.Decision, request.Resolution);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<AdminReportDetailDto>.SuccessResult(result, "Dispute report resolved successfully."));
     }
@@ -641,8 +640,7 @@ public class AdminController : ControllerBase
         [FromBody] AdminModerateReviewRequest request,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
-        var command = new AdminModerateReviewCommand(id, adminId, request.Reason);
+        var command = new AdminModerateReviewCommand(id, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<ReviewDto>.SuccessResult(result, "Review removed successfully by administrator."));
     }

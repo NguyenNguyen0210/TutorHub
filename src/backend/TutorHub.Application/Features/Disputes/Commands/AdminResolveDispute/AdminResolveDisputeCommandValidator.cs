@@ -8,7 +8,6 @@ public class AdminResolveDisputeCommandValidator : AbstractValidator<AdminResolv
     public AdminResolveDisputeCommandValidator()
     {
         RuleFor(x => x.DisputeId).NotEmpty();
-        RuleFor(x => x.AdminUserId).NotEmpty();
         RuleFor(x => x.AdminNotes).NotEmpty().MaximumLength(2000);
 
         When(x => x.Decision == DisputeResolutionDecision.StudentWinsPartialRefund, () =>

@@ -33,10 +33,8 @@ public class DisputesController : ControllerBase
         [FromBody] CreateDisputeRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new CreateDisputeCommand(
             SessionId: request.SessionId,
-            InitiatorUserId: userId,
             Reason: request.Reason,
             Description: request.Description
         );
@@ -58,10 +56,8 @@ public class DisputesController : ControllerBase
         [FromBody] UploadEvidenceRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new UploadDisputeEvidenceCommand(
             DisputeId: id,
-            UploadedByUserId: userId,
             FileName: request.FileName,
             FileUrl: request.FileUrl,
             ContentType: request.ContentType,

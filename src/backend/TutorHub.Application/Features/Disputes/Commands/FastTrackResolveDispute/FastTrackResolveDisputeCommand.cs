@@ -11,6 +11,5 @@ namespace TutorHub.Application.Features.Disputes.Commands.FastTrackResolveDisput
 /// </summary>
 public record FastTrackResolveDisputeCommand(
     Guid DisputeId,
-    Guid AdminUserId,
     string AdminNotes
 ) : IRequest<DisputeDto>;

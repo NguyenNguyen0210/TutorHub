@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Disputes.Commands.AdminMoveDisputeUnderReview;
 using TutorHub.Application.Features.Disputes.Commands.AdminResolveDispute;
@@ -66,8 +64,7 @@ public class AdminDisputesController : ControllerBase
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
-        var command = new AdminMoveDisputeUnderReviewCommand(id, adminId);
+        var command = new AdminMoveDisputeUnderReviewCommand(id);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<DisputeDto>.SuccessResult(result, "Dispute is now under active review."));
     }
@@ -82,10 +79,8 @@ public class AdminDisputesController : ControllerBase
         [FromBody] AdminResolveDisputeRequest request,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
         var command = new AdminResolveDisputeCommand(
             DisputeId: id,
-            AdminUserId: adminId,
             Decision: request.Decision,
             CustomRefundAmount: request.CustomRefundAmount,
             AdminNotes: request.AdminNotes
@@ -108,10 +103,8 @@ public class AdminDisputesController : ControllerBase
         [FromBody] FastTrackResolveRequest request,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
         var command = new FastTrackResolveDisputeCommand(
             DisputeId: id,
-            AdminUserId: adminId,
             AdminNotes: request.AdminNotes
         );
 
@@ -129,27 +122,15 @@ public class AdminDisputesController : ControllerBase
         [FromBody] ProcessRefundCallbackRequest request,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
         var command = new TutorHub.Application.Features.Disputes.Commands.AdminProcessRefundCallback.AdminProcessRefundCallbackCommand(
             RefundTransactionId: transactionId,
             Outcome: request.Outcome,
             ProviderReference: request.ProviderReference,
-            FailureReason: request.FailureReason,
-            AdminUserId: adminId
+            FailureReason: request.FailureReason
         );
 
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<RefundCallbackResultDto>.SuccessResult(result, result.Message));
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
     }
 }
 

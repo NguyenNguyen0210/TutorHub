@@ -8,8 +8,7 @@ public record AdminProcessRefundCallbackCommand(
     Guid RefundTransactionId,
     TransactionStatus Outcome, // Succeeded or Failed
     string? ProviderReference,
-    string? FailureReason,
-    Guid AdminUserId
+    string? FailureReason
 ) : IRequest<RefundCallbackResultDto>;
 
 public class RefundCallbackResultDto

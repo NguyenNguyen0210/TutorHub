@@ -14,6 +14,7 @@ namespace TutorHub.Application.UnitTests.Features.Reviews.CreateEnrollmentReview
 public class CreateEnrollmentReviewCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly CreateEnrollmentReviewCommandHandler _handler;
 
     private readonly List<Enrollment> _enrollments = new();
@@ -26,14 +27,15 @@ public class CreateEnrollmentReviewCommandHandlerTests
         _contextMock.Setup(c => c.Reviews).Returns(MockDbSetHelper.CreateMockDbSet(_reviews).Object);
         _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(_tutorProfiles).Object);
 
-        _handler = new CreateEnrollmentReviewCommandHandler(_contextMock.Object, StubClock.Instance);
+        _handler = new CreateEnrollmentReviewCommandHandler(_contextMock.Object, StubClock.Instance, _currentUser);
     }
 
     [Fact]
     public async Task Handle_WhenEnrollmentNotFound_ShouldThrowNotFoundException()
     {
         // Arrange
-        var command = new CreateEnrollmentReviewCommand(Guid.NewGuid(), Guid.NewGuid(), 5, "Great lesson!");
+        _currentUser.Set(Guid.NewGuid(), UserRole.Student);
+        var command = new CreateEnrollmentReviewCommand(Guid.NewGuid(), 5, "Great lesson!");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -64,7 +66,8 @@ public class CreateEnrollmentReviewCommandHandlerTests
         _enrollments.Add(enrollment);
 
         var differentUserId = Guid.NewGuid();
-        var command = new CreateEnrollmentReviewCommand(enrollment.Id, differentUserId, 5, "Great lesson!");
+        _currentUser.Set(differentUserId, UserRole.Student);
+        var command = new CreateEnrollmentReviewCommand(enrollment.Id, 5, "Great lesson!");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -95,7 +98,8 @@ public class CreateEnrollmentReviewCommandHandlerTests
         }; // Status defaults to Active
         _enrollments.Add(enrollment);
 
-        var command = new CreateEnrollmentReviewCommand(enrollment.Id, studentUser.Id, 5, "Great lesson!");
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+        var command = new CreateEnrollmentReviewCommand(enrollment.Id, 5, "Great lesson!");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -140,7 +144,8 @@ public class CreateEnrollmentReviewCommandHandlerTests
 
         _enrollments.Add(enrollment);
 
-        var command = new CreateEnrollmentReviewCommand(enrollment.Id, studentUser.Id, 5, "Late review attempt");
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+        var command = new CreateEnrollmentReviewCommand(enrollment.Id, 5, "Late review attempt");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -184,7 +189,8 @@ public class CreateEnrollmentReviewCommandHandlerTests
         existingReview.Id = Guid.NewGuid();
         _reviews.Add(existingReview);
 
-        var command = new CreateEnrollmentReviewCommand(enrollment.Id, studentUser.Id, 4, "Second review attempt");
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+        var command = new CreateEnrollmentReviewCommand(enrollment.Id, 4, "Second review attempt");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -208,7 +214,7 @@ public class CreateEnrollmentReviewCommandHandlerTests
             UserId = tutorUser.Id,
             User = tutorUser
         };
-        // F-23: stats owned by domain — seed via ApplyReview (prior 4.0 x1).
+        // F-23: stats owned by domain ï¿½ seed via ApplyReview (prior 4.0 x1).
         tutorProfile.ApplyReview(new List<int> { 4 });
         _tutorProfiles.Add(tutorProfile);
 
@@ -247,7 +253,8 @@ public class CreateEnrollmentReviewCommandHandlerTests
         enrollment.RecordCompletedSession(session.Id);
         _enrollments.Add(enrollment);
 
-        var command = new CreateEnrollmentReviewCommand(enrollment.Id, studentUser.Id, 5, "Outstanding teaching!");
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+        var command = new CreateEnrollmentReviewCommand(enrollment.Id, 5, "Outstanding teaching!");
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);

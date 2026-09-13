@@ -14,6 +14,7 @@ public class ResolveReportCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
     private readonly Mock<IAuditLogService> _auditLogServiceMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly ResolveReportCommandHandler _handler;
 
     private readonly List<Report> _reports = new();
@@ -28,13 +29,14 @@ public class ResolveReportCommandHandlerTests
         _contextMock.Setup(c => c.Reviews).Returns(MockDbSetHelper.CreateMockDbSet(_reviews).Object);
         _contextMock.Setup(c => c.RefreshTokens).Returns(MockDbSetHelper.CreateMockDbSet(_refreshTokens).Object);
 
-        _handler = new ResolveReportCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object);
+        _handler = new ResolveReportCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object, _currentUser);
     }
 
     [Fact]
     public async Task Handle_WhenReportNotFound_ShouldThrowNotFoundException()
     {
-        var command = new ResolveReportCommand(Guid.NewGuid(), Guid.NewGuid(), ReportDecision.Dismissed, "No issue");
+        _currentUser.Set(Guid.NewGuid(), UserRole.Admin);
+        var command = new ResolveReportCommand(Guid.NewGuid(), ReportDecision.Dismissed, "No issue");
 
         var act = () => _handler.Handle(command, CancellationToken.None);
 
@@ -47,7 +49,8 @@ public class ResolveReportCommandHandlerTests
         var report = new Report { Id = Guid.NewGuid(), Status = ReportStatus.Resolved };
         _reports.Add(report);
 
-        var command = new ResolveReportCommand(report.Id, Guid.NewGuid(), ReportDecision.Dismissed, "Duplicate");
+        _currentUser.Set(Guid.NewGuid(), UserRole.Admin);
+        var command = new ResolveReportCommand(report.Id, ReportDecision.Dismissed, "Duplicate");
 
         var act = () => _handler.Handle(command, CancellationToken.None);
 
@@ -75,7 +78,8 @@ public class ResolveReportCommandHandlerTests
         };
         _reports.Add(report);
 
-        var command = new ResolveReportCommand(report.Id, admin.Id, ReportDecision.SuspendUser, "Suspended for 7 days due to harassment");
+        _currentUser.Set(admin.Id, UserRole.Admin);
+        var command = new ResolveReportCommand(report.Id, ReportDecision.SuspendUser, "Suspended for 7 days due to harassment");
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -119,7 +123,8 @@ public class ResolveReportCommandHandlerTests
         };
         _reports.Add(report);
 
-        var command = new ResolveReportCommand(report.Id, admin.Id, ReportDecision.BanUser, "Permanently banned for fraud");
+        _currentUser.Set(admin.Id, UserRole.Admin);
+        var command = new ResolveReportCommand(report.Id, ReportDecision.BanUser, "Permanently banned for fraud");
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -150,7 +155,8 @@ public class ResolveReportCommandHandlerTests
         };
         _reports.Add(report);
 
-        var command = new ResolveReportCommand(report.Id, admin.Id, ReportDecision.RemoveContent, "Removed offensive review content");
+        _currentUser.Set(admin.Id, UserRole.Admin);
+        var command = new ResolveReportCommand(report.Id, ReportDecision.RemoveContent, "Removed offensive review content");
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -177,7 +183,8 @@ public class ResolveReportCommandHandlerTests
         };
         _reports.Add(report);
 
-        var command = new ResolveReportCommand(report.Id, admin.Id, ReportDecision.WarningIssued, "Warning issued");
+        _currentUser.Set(admin.Id, UserRole.Admin);
+        var command = new ResolveReportCommand(report.Id, ReportDecision.WarningIssued, "Warning issued");
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
