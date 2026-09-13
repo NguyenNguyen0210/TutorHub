@@ -14,11 +14,12 @@ namespace TutorHub.Application.UnitTests.Features.Tutors.Services.PublishService
 public class PublishServiceCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly PublishServiceCommandHandler _handler;
 
     public PublishServiceCommandHandlerTests()
     {
-        _handler = new PublishServiceCommandHandler(_contextMock.Object);
+        _handler = new PublishServiceCommandHandler(_contextMock.Object, _currentUser);
     }
 
     [Fact]
@@ -53,7 +54,8 @@ public class PublishServiceCommandHandlerTests
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { approvedApp }).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var command = new PublishServiceCommand(service.Id, user.Id);
+        _currentUser.Set(user.Id, UserRole.Tutor);
+        var command = new PublishServiceCommand(service.Id);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -73,7 +75,8 @@ public class PublishServiceCommandHandlerTests
         // Arrange
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service>()).Object);
 
-        var command = new PublishServiceCommand(Guid.NewGuid(), Guid.NewGuid());
+        _currentUser.Set(Guid.NewGuid(), UserRole.Tutor);
+        var command = new PublishServiceCommand(Guid.NewGuid());
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -105,7 +108,8 @@ public class PublishServiceCommandHandlerTests
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
 
         var differentUserId = Guid.NewGuid();
-        var command = new PublishServiceCommand(service.Id, differentUserId);
+        _currentUser.Set(differentUserId, UserRole.Tutor);
+        var command = new PublishServiceCommand(service.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -137,7 +141,8 @@ public class PublishServiceCommandHandlerTests
 
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
 
-        var command = new PublishServiceCommand(service.Id, suspendedUser.Id);
+        _currentUser.Set(suspendedUser.Id, UserRole.Tutor);
+        var command = new PublishServiceCommand(service.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -170,7 +175,8 @@ public class PublishServiceCommandHandlerTests
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication>()).Object);
 
-        var command = new PublishServiceCommand(service.Id, user.Id);
+        _currentUser.Set(user.Id, UserRole.Tutor);
+        var command = new PublishServiceCommand(service.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -206,7 +212,8 @@ public class PublishServiceCommandHandlerTests
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { approvedApp }).Object);
 
-        var command = new PublishServiceCommand(service.Id, user.Id);
+        _currentUser.Set(user.Id, UserRole.Tutor);
+        var command = new PublishServiceCommand(service.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);

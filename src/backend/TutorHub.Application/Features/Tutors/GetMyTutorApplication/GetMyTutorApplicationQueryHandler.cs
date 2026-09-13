@@ -10,19 +10,23 @@ public class GetMyTutorApplicationQueryHandler
     : IRequestHandler<GetMyTutorApplicationQuery, TutorApplicationDto?>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMyTutorApplicationQueryHandler(IAppDbContext context)
+    public GetMyTutorApplicationQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<TutorApplicationDto?> Handle(
         GetMyTutorApplicationQuery request,
         CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var application = await _context.TutorApplications
             .AsNoTracking()
-            .Where(a => a.UserId == request.UserId)
+            .Where(a => a.UserId == userId)
             .OrderBy(a =>
                 a.Status == TutorApplicationStatus.Approved ? 0 :
                 a.Status == TutorApplicationStatus.Pending ? 1 : 2)

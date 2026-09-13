@@ -10,23 +10,28 @@ namespace TutorHub.Application.Features.Enrollments.GetMyEnrollments;
 public class GetMyEnrollmentsQueryHandler : IRequestHandler<GetMyEnrollmentsQuery, PagedResult<EnrollmentSummaryDto>>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMyEnrollmentsQueryHandler(IAppDbContext context)
+    public GetMyEnrollmentsQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<PagedResult<EnrollmentSummaryDto>> Handle(GetMyEnrollmentsQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+        var role = _currentUserService.Role;
+
         var query = _context.Enrollments.AsNoTracking();
 
-        if (request.Role == UserRole.Student)
+        if (role == UserRole.Student)
         {
-            query = query.Where(e => e.StudentProfile.UserId == request.UserId);
+            query = query.Where(e => e.StudentProfile.UserId == userId);
         }
-        else if (request.Role == UserRole.Tutor)
+        else if (role == UserRole.Tutor)
         {
-            query = query.Where(e => e.TutorProfile.UserId == request.UserId);
+            query = query.Where(e => e.TutorProfile.UserId == userId);
         }
 
         if (request.Status.HasValue)

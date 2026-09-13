@@ -5,21 +5,24 @@ using Microsoft.Extensions.Logging;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Conversations.DTOs;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Admin.Conversations.AdminGetConversations;
 
 public class AdminGetConversationsQueryHandler : IRequestHandler<AdminGetConversationsQuery, CursorPagedResult<ConversationDto>>
 {
     private readonly IAppDbContext _dbContext;
+    private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AdminGetConversationsQueryHandler> _logger;
 
     public AdminGetConversationsQueryHandler(
-        IAppDbContext dbContext,
+        IAppDbContext dbContext, IClock clock,
         ICurrentUserService currentUserService,
         ILogger<AdminGetConversationsQueryHandler> logger)
     {
         _dbContext = dbContext;
+        _clock = clock;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -31,7 +34,7 @@ public class AdminGetConversationsQueryHandler : IRequestHandler<AdminGetConvers
             throw new UnauthorizedException("User is not authenticated.");
         }
 
-        if (_currentUserService.Role != "Admin")
+        if (_currentUserService.Role != UserRole.Admin)
         {
             throw new ForbiddenException("Only administrators can access all conversations.");
         }
@@ -48,7 +51,7 @@ public class AdminGetConversationsQueryHandler : IRequestHandler<AdminGetConvers
             "AdminOperationalAccess: Admin {AdminUserId} queried conversations list. Reason: {OperationalReason}, Timestamp: {Timestamp}",
             adminUserId,
             request.OperationalReason.Trim(),
-            DateTime.UtcNow);
+            _clock.UtcNow);
 
         var query = _dbContext.Conversations.AsNoTracking();
 

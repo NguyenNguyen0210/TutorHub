@@ -60,10 +60,14 @@ public class ProcessVnPayReturnQueryHandler : IRequestHandler<ProcessVnPayReturn
             amount = rawAmount / 100m;
         }
 
-        // 3. Find booking & transaction in Read-Only mode (NO MUTATION)
+        // 3. Find booking & transaction in Read-Only mode (NO MUTATION).
+        // The IPN rewrites PaymentGatewayRef to "txnRef|transactionNo", so the
+        // Return URL must match both the raw merchant ref and the composite form.
         var transaction = await _context.Transactions
             .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.PaymentGatewayRef == txnRef, cancellationToken);
+            .FirstOrDefaultAsync(
+                t => t.PaymentGatewayRef == txnRef || t.PaymentGatewayRef == $"{txnRef}|{transactionNo}",
+                cancellationToken);
 
         var bookingId = transaction?.BookingId ?? Guid.Empty;
         var isSuccess = responseCode == "00";

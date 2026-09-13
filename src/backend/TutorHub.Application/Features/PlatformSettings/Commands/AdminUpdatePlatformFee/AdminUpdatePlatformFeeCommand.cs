@@ -5,6 +5,5 @@ namespace TutorHub.Application.Features.PlatformSettings.Commands.AdminUpdatePla
 
 public record AdminUpdatePlatformFeeCommand(
     decimal NewFeeRate,
-    Guid AdminUserId,
     string Reason
 ) : IRequest<PlatformSettingDto>;

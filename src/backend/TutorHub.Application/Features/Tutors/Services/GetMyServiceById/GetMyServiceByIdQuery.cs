@@ -4,6 +4,5 @@ using TutorHub.Application.Features.Tutors.Services.DTOs;
 namespace TutorHub.Application.Features.Tutors.Services.GetMyServiceById;
 
 public record GetMyServiceByIdQuery(
-    Guid ServiceId,
-    Guid UserId
+    Guid ServiceId
 ) : IRequest<ServiceDto>;

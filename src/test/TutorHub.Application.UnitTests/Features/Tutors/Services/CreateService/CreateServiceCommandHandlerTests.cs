@@ -14,11 +14,12 @@ namespace TutorHub.Application.UnitTests.Features.Tutors.Services.CreateService;
 public class CreateServiceCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly CreateServiceCommandHandler _handler;
 
     public CreateServiceCommandHandlerTests()
     {
-        _handler = new CreateServiceCommandHandler(_contextMock.Object);
+        _handler = new CreateServiceCommandHandler(_contextMock.Object, StubClock.Instance, _currentUser);
     }
 
     [Fact]
@@ -63,8 +64,8 @@ public class CreateServiceCommandHandlerTests
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(servicesList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
+        _currentUser.Set(user.Id, UserRole.Tutor);
         var command = new CreateServiceCommand(
-            UserId: user.Id,
             SubjectId: subject.Id,
             Title: "Comprehensive Algebra 101",
             Description: "10 structured lessons covering high school algebra.",
@@ -105,8 +106,8 @@ public class CreateServiceCommandHandlerTests
         // Arrange
         _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorProfile>()).Object);
 
+        _currentUser.Set(Guid.NewGuid(), UserRole.Tutor);
         var command = new CreateServiceCommand(
-            UserId: Guid.NewGuid(),
             SubjectId: Guid.NewGuid(),
             Title: "Title",
             Description: "Desc",
@@ -137,8 +138,8 @@ public class CreateServiceCommandHandlerTests
         _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorProfile> { tutorProfile }).Object);
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication>()).Object);
 
+        _currentUser.Set(user.Id, UserRole.Tutor);
         var command = new CreateServiceCommand(
-            UserId: user.Id,
             SubjectId: Guid.NewGuid(),
             Title: "Title",
             Description: "Desc",
@@ -173,8 +174,8 @@ public class CreateServiceCommandHandlerTests
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { approvedApp }).Object);
         _contextMock.Setup(c => c.TutorSubjects).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorSubject>()).Object);
 
+        _currentUser.Set(user.Id, UserRole.Tutor);
         var command = new CreateServiceCommand(
-            UserId: user.Id,
             SubjectId: Guid.NewGuid(),
             Title: "Title",
             Description: "Desc",

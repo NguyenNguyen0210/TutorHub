@@ -12,18 +12,24 @@ namespace TutorHub.Application.Features.Agreements.Commands.CreateCustomAgreemen
 public class CreateCustomAgreementCommandHandler : IRequestHandler<CreateCustomAgreementCommand, CustomAgreementDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateCustomAgreementCommandHandler(IAppDbContext context)
+    public CreateCustomAgreementCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
+        _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<CustomAgreementDto> Handle(CreateCustomAgreementCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         // 1. Validate Tutor Profile & Status (INV-AGREE-001)
         var tutor = await _context.TutorProfiles
             .Include(t => t.User)
-            .FirstOrDefaultAsync(t => t.UserId == request.TutorUserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null || tutor.User.Role != UserRole.Tutor)
         {
@@ -105,7 +111,7 @@ public class CreateCustomAgreementCommandHandler : IRequestHandler<CreateCustomA
         }
 
         var validityDays = request.ValidityDays <= 0 ? 7 : request.ValidityDays;
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         // 6. Instantiate Domain Agreement with Immutable Commercial Terms Snapshot (INV-AGREE-007)
         var agreement = new CustomAgreement

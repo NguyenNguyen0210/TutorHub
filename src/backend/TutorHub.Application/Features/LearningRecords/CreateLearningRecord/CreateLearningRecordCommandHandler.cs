@@ -11,14 +11,18 @@ namespace TutorHub.Application.Features.LearningRecords.CreateLearningRecord;
 public class CreateLearningRecordCommandHandler : IRequestHandler<CreateLearningRecordCommand, LearningRecordDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateLearningRecordCommandHandler(IAppDbContext context)
+    public CreateLearningRecordCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<LearningRecordDto> Handle(CreateLearningRecordCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var session = await _context.Sessions
             .Include(s => s.Enrollment)
             .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
@@ -29,7 +33,7 @@ public class CreateLearningRecordCommandHandler : IRequestHandler<CreateLearning
         }
 
         // F-14: tutor-write only, Completed sessions only, write-once. No earning gate.
-        if (session.Enrollment.TutorProfile.UserId != request.UserId)
+        if (session.Enrollment.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("Only the session tutor can write the learning record.");
         }

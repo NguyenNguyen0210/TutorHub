@@ -11,14 +11,20 @@ namespace TutorHub.Application.Features.Disputes.Commands.AdminMoveDisputeUnderR
 public class AdminMoveDisputeUnderReviewCommandHandler : IRequestHandler<AdminMoveDisputeUnderReviewCommand, DisputeDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public AdminMoveDisputeUnderReviewCommandHandler(IAppDbContext context)
+    public AdminMoveDisputeUnderReviewCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
+        _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<DisputeDto> Handle(AdminMoveDisputeUnderReviewCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var dispute = await _context.Disputes
             .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(sp => sp.User)
             .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(tp => tp.User)
@@ -32,8 +38,8 @@ public class AdminMoveDisputeUnderReviewCommandHandler : IRequestHandler<AdminMo
             throw new NotFoundException(nameof(Dispute), request.DisputeId);
         }
 
-        var now = DateTime.UtcNow;
-        dispute.MoveUnderReview(request.AdminUserId, now);
+        var now = _clock.UtcNow;
+        dispute.MoveUnderReview(userId, now);
 
         await _context.SaveChangesAsync(cancellationToken);
 

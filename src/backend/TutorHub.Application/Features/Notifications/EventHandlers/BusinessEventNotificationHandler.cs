@@ -38,14 +38,17 @@ public class BusinessEventNotificationHandler :
 {
     private readonly IAppDbContext _dbContext;
     private readonly INotificationService? _notificationService;
+    private readonly IClock _clock;
     private readonly ILogger<BusinessEventNotificationHandler> _logger;
 
     public BusinessEventNotificationHandler(
         IAppDbContext dbContext,
+        IClock clock,
         ILogger<BusinessEventNotificationHandler> logger,
         INotificationService? notificationService = null)
     {
         _dbContext = dbContext;
+        _clock = clock;
         _logger = logger;
         _notificationService = notificationService;
     }
@@ -499,7 +502,7 @@ public class BusinessEventNotificationHandler :
             return;
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         var notificationsToInsert = new List<Notification>();
         var emailDeliveriesToInsert = new List<EmailDelivery>();
 

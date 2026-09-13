@@ -11,16 +11,20 @@ public class RejectTutorApplicationCommandHandler
     : IRequestHandler<RejectTutorApplicationCommand, AdminTutorApplicationDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public RejectTutorApplicationCommandHandler(IAppDbContext context)
+    public RejectTutorApplicationCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<AdminTutorApplicationDto> Handle(
         RejectTutorApplicationCommand request,
         CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var application = await _context.TutorApplications
             .Include(a => a.User)
             .FirstOrDefaultAsync(a => a.Id == request.ApplicationId, cancellationToken);
@@ -29,7 +33,7 @@ public class RejectTutorApplicationCommandHandler
             throw new NotFoundException("TutorApplication", request.ApplicationId);
 
         // Domain invariant — throws if not Pending, or reason is empty
-        application.Reject(request.Reason, request.AdminId);
+        application.Reject(request.Reason, userId);
 
         // Enqueue Outbox Message in same DB transaction (DEC-S7-001, DEC-S7-002)
         _context.AddOutboxMessage(new TutorApplicationRejectedEvent(

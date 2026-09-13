@@ -7,6 +7,5 @@ public class PublishServiceCommandValidator : AbstractValidator<PublishServiceCo
     public PublishServiceCommandValidator()
     {
         RuleFor(x => x.ServiceId).NotEmpty();
-        RuleFor(x => x.UserId).NotEmpty();
     }
 }

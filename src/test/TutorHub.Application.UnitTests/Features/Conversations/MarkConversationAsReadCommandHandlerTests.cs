@@ -45,7 +45,7 @@ public class MarkConversationAsReadCommandHandlerTests
         _dbContextMock.Setup(c => c.Conversations).Returns(MockDbSetHelper.CreateMockDbSet(new List<Conversation> { conversation }).Object);
         _dbContextMock.Setup(c => c.Messages).Returns(MockDbSetHelper.CreateMockDbSet(messages).Object);
 
-        var handler = new MarkConversationAsReadCommandHandler(_dbContextMock.Object, _currentUserServiceMock.Object);
+        var handler = new MarkConversationAsReadCommandHandler(_dbContextMock.Object, StubClock.Instance, _currentUserServiceMock.Object);
 
         // Act
         var result = await handler.Handle(new MarkConversationAsReadCommand(conversation.Id), CancellationToken.None);

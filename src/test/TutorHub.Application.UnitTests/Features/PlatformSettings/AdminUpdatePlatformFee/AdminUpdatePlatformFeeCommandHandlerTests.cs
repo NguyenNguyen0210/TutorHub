@@ -4,6 +4,7 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.PlatformSettings.Commands.AdminUpdatePlatformFee;
 using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
+using TutorHub.Domain.Enums;
 using Xunit;
 
 namespace TutorHub.Application.UnitTests.Features.PlatformSettings.AdminUpdatePlatformFee;
@@ -11,11 +12,12 @@ namespace TutorHub.Application.UnitTests.Features.PlatformSettings.AdminUpdatePl
 public class AdminUpdatePlatformFeeCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly AdminUpdatePlatformFeeCommandHandler _handler;
 
     public AdminUpdatePlatformFeeCommandHandlerTests()
     {
-        _handler = new AdminUpdatePlatformFeeCommandHandler(_contextMock.Object);
+        _handler = new AdminUpdatePlatformFeeCommandHandler(_contextMock.Object, StubClock.Instance, _currentUser);
     }
 
     [Fact]
@@ -23,13 +25,14 @@ public class AdminUpdatePlatformFeeCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var settings = new List<PlatformSetting>();
         var outbox = new List<OutboxMessage>();
 
         _contextMock.Setup(c => c.PlatformSettings).Returns(MockDbSetHelper.CreateMockDbSet(settings).Object);
         _contextMock.Setup(c => c.OutboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(outbox).Object);
 
-        var command = new AdminUpdatePlatformFeeCommand(0.12m, adminId, "Adjusting rate to 12%");
+        var command = new AdminUpdatePlatformFeeCommand(0.12m, "Adjusting rate to 12%");
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -48,6 +51,7 @@ public class AdminUpdatePlatformFeeCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var existingSetting = new PlatformSetting
         {
             Id = Guid.NewGuid(),
@@ -66,7 +70,7 @@ public class AdminUpdatePlatformFeeCommandHandlerTests
         _contextMock.Setup(c => c.PlatformSettings).Returns(MockDbSetHelper.CreateMockDbSet(settings).Object);
         _contextMock.Setup(c => c.OutboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(outbox).Object);
 
-        var command = new AdminUpdatePlatformFeeCommand(0.15m, adminId, "Increasing rate to 15%");
+        var command = new AdminUpdatePlatformFeeCommand(0.15m, "Increasing rate to 15%");
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);

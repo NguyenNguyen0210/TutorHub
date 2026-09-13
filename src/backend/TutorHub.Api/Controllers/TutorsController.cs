@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -144,9 +143,7 @@ public class TutorsController : ControllerBase
             throw new BadRequestException("Teaching mode must be Online, Offline, or Both.");
         }
 
-        var userId = GetCurrentUserId();
         var command = new SubmitTutorApplicationCommand(
-            UserId: userId,
             Bio: request.Bio,
             Education: request.Education,
             ExperienceYears: request.ExperienceYears,
@@ -179,9 +176,7 @@ public class TutorsController : ControllerBase
             throw new BadRequestException("Teaching mode must be Online, Offline, or Both.");
         }
 
-        var userId = GetCurrentUserId();
         var command = new ResubmitTutorApplicationCommand(
-            UserId: userId,
             Bio: request.Bio,
             Education: request.Education,
             ExperienceYears: request.ExperienceYears,
@@ -204,8 +199,7 @@ public class TutorsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMyTutorApplication(CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var query = new GetMyTutorApplicationQuery(userId);
+        var query = new GetMyTutorApplicationQuery();
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<TutorApplicationDto?>.SuccessResult(result, "Current tutor application retrieved successfully."));
     }
@@ -220,8 +214,7 @@ public class TutorsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMyProfile(CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var query = new GetMyProfileQuery(userId);
+        var query = new GetMyProfileQuery();
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<TutorMyProfileDto>.SuccessResult(result, "Current tutor profile retrieved successfully."));
     }
@@ -250,9 +243,7 @@ public class TutorsController : ControllerBase
             teachingMode = parsedMode;
         }
 
-        var userId = GetCurrentUserId();
         var command = new UpdateMyProfileCommand(
-            UserId: userId,
             FullName: request.FullName,
             Phone: request.Phone,
             AvatarUrl: request.AvatarUrl,
@@ -282,8 +273,7 @@ public class TutorsController : ControllerBase
         [FromBody] UpdateMySubjectsRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var command = new UpdateMySubjectsCommand(userId, request.Subjects);
+        var command = new UpdateMySubjectsCommand(request.Subjects);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<List<TutorSubjectDto>>.SuccessResult(result, "Tutor subjects updated successfully."));
     }
@@ -298,8 +288,7 @@ public class TutorsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMyAvailabilitySlots(CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var query = new GetMyAvailabilitySlotsQuery(userId);
+        var query = new GetMyAvailabilitySlotsQuery();
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<List<AvailabilitySlotDto>>.SuccessResult(result, "Availability slots retrieved successfully."));
     }
@@ -317,8 +306,7 @@ public class TutorsController : ControllerBase
         [FromBody] CreateAvailabilitySlotRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var command = new CreateAvailabilitySlotCommand(userId, request.DayOfWeek, request.StartTime, request.EndTime);
+        var command = new CreateAvailabilitySlotCommand(request.DayOfWeek, request.StartTime, request.EndTime);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<AvailabilitySlotDto>.SuccessResult(result, "Availability slot created successfully."));
     }
@@ -335,8 +323,7 @@ public class TutorsController : ControllerBase
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var command = new DeleteAvailabilitySlotCommand(id, userId);
+        var command = new DeleteAvailabilitySlotCommand(id);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<bool>.SuccessResult(result, "Availability slot deleted successfully."));
     }
@@ -356,8 +343,7 @@ public class TutorsController : ControllerBase
         [FromBody] SetWeeklyScheduleRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var command = new SetWeeklyScheduleCommand(userId, request.Schedule);
+        var command = new SetWeeklyScheduleCommand(request.Schedule);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<List<AvailabilitySlotDto>>.SuccessResult(result, "Weekly availability schedule synchronized successfully."));
     }
@@ -380,9 +366,7 @@ public class TutorsController : ControllerBase
             throw new BadRequestException("Teaching mode must be Online, Offline, or Both.");
         }
 
-        var userId = GetCurrentUserId();
         var command = new CreateServiceCommand(
-            UserId: userId,
             SubjectId: request.SubjectId,
             Title: request.Title,
             Description: request.Description,
@@ -410,8 +394,7 @@ public class TutorsController : ControllerBase
         [FromQuery] ServiceStatus? status,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var query = new GetMyServicesQuery(userId, status);
+        var query = new GetMyServicesQuery(status);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<List<ServiceDto>>.SuccessResult(result, "Your service offerings retrieved successfully."));
     }
@@ -429,8 +412,7 @@ public class TutorsController : ControllerBase
         [FromRoute] Guid serviceId,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var query = new GetMyServiceByIdQuery(serviceId, userId);
+        var query = new GetMyServiceByIdQuery(serviceId);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service details retrieved successfully."));
     }
@@ -462,10 +444,8 @@ public class TutorsController : ControllerBase
             teachingMode = parsedMode;
         }
 
-        var userId = GetCurrentUserId();
         var command = new UpdateServiceCommand(
             ServiceId: serviceId,
-            UserId: userId,
             Title: request.Title,
             Description: request.Description,
             LearningScope: request.LearningScope,
@@ -495,8 +475,7 @@ public class TutorsController : ControllerBase
         [FromRoute] Guid serviceId,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var command = new PublishServiceCommand(serviceId, userId);
+        var command = new PublishServiceCommand(serviceId);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service published successfully to the marketplace."));
     }
@@ -514,8 +493,7 @@ public class TutorsController : ControllerBase
         [FromRoute] Guid serviceId,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var command = new UnpublishServiceCommand(serviceId, userId);
+        var command = new UnpublishServiceCommand(serviceId);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service unpublished successfully."));
     }
@@ -533,15 +511,5 @@ public class TutorsController : ControllerBase
         var query = new GetTutorServicesQuery(id);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<List<ServiceSummaryDto>>.SuccessResult(result, "Tutor's published services retrieved successfully."));
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
     }
 }

@@ -12,14 +12,18 @@ namespace TutorHub.Application.Features.Sessions.ScheduleSession;
 public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionCommand, SessionDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ScheduleSessionCommandHandler(IAppDbContext context)
+    public ScheduleSessionCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<SessionDto> Handle(ScheduleSessionCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var session = await _context.Sessions
             .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
             .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(t => t.AvailabilitySlots)
@@ -32,8 +36,8 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
         }
 
         // 1. Authorization First: Only Student or Tutor participant can schedule
-        if (session.Enrollment.StudentProfile.UserId != request.UserId &&
-            session.Enrollment.TutorProfile.UserId != request.UserId)
+        if (session.Enrollment.StudentProfile.UserId != userId &&
+            session.Enrollment.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("You do not have permission to schedule this session.");
         }

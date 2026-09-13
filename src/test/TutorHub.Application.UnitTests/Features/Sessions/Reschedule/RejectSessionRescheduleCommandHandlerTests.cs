@@ -16,6 +16,7 @@ public class RejectSessionRescheduleCommandHandlerTests
     private readonly Mock<IAppDbContext> _contextMock = new();
     private readonly Mock<IAuditLogService> _auditLogMock = new();
     private readonly Mock<IClock> _clockMock = new();
+    private readonly StubCurrentUserService _currentUserService = new();
     private readonly RejectSessionRescheduleCommandHandler _handler;
 
     private readonly DateTime _fixedNow = new(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc); // Tuesday
@@ -26,7 +27,8 @@ public class RejectSessionRescheduleCommandHandlerTests
         _handler = new RejectSessionRescheduleCommandHandler(
             _contextMock.Object,
             _auditLogMock.Object,
-            _clockMock.Object);
+            _clockMock.Object,
+            _currentUserService);
     }
 
     private static (Session session, Enrollment enrollment, User studentUser, User tutorUser) CreateTestAggregate(
@@ -113,11 +115,11 @@ public class RejectSessionRescheduleCommandHandlerTests
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var command = new RejectSessionRescheduleCommand(
-            UserId: studentUser.Id,
             SessionId: session.Id,
             RequestId: request.Id,
             RejectionReason: "I have exams during that time."
         );
+        _currentUserService.Set(studentUser.Id, UserRole.Student);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -176,11 +178,11 @@ public class RejectSessionRescheduleCommandHandlerTests
         _contextMock.Setup(c => c.SessionRescheduleRequests).Returns(MockDbSetHelper.CreateMockDbSet(new List<SessionRescheduleRequest> { request }).Object);
 
         var command = new RejectSessionRescheduleCommand(
-            UserId: tutorUser.Id,
             SessionId: session.Id,
             RequestId: request.Id,
             RejectionReason: "Tutor cannot reject own proposal"
         );
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -211,11 +213,11 @@ public class RejectSessionRescheduleCommandHandlerTests
         _contextMock.Setup(c => c.SessionRescheduleRequests).Returns(MockDbSetHelper.CreateMockDbSet(new List<SessionRescheduleRequest> { request }).Object);
 
         var command = new RejectSessionRescheduleCommand(
-            UserId: Guid.NewGuid(),
             SessionId: session.Id,
             RequestId: request.Id,
             RejectionReason: "Stranger"
         );
+        _currentUserService.Set(Guid.NewGuid(), UserRole.Student);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -231,11 +233,11 @@ public class RejectSessionRescheduleCommandHandlerTests
         _contextMock.Setup(c => c.SessionRescheduleRequests).Returns(MockDbSetHelper.CreateMockDbSet(new List<SessionRescheduleRequest>()).Object);
 
         var command = new RejectSessionRescheduleCommand(
-            UserId: Guid.NewGuid(),
             SessionId: Guid.NewGuid(),
             RequestId: Guid.NewGuid(),
             RejectionReason: "Not found"
         );
+        _currentUserService.Set(Guid.NewGuid(), UserRole.Student);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -263,11 +265,11 @@ public class RejectSessionRescheduleCommandHandlerTests
         _contextMock.Setup(c => c.SessionRescheduleRequests).Returns(MockDbSetHelper.CreateMockDbSet(new List<SessionRescheduleRequest> { request }).Object);
 
         var command = new RejectSessionRescheduleCommand(
-            UserId: studentUser.Id,
             SessionId: session.Id,
             RequestId: request.Id,
             RejectionReason: "Mismatched"
         );
+        _currentUserService.Set(studentUser.Id, UserRole.Student);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -299,11 +301,11 @@ public class RejectSessionRescheduleCommandHandlerTests
         _contextMock.Setup(c => c.SessionRescheduleRequests).Returns(MockDbSetHelper.CreateMockDbSet(new List<SessionRescheduleRequest> { request }).Object);
 
         var command = new RejectSessionRescheduleCommand(
-            UserId: studentUser.Id,
             SessionId: session.Id,
             RequestId: request.Id,
             RejectionReason: "Again"
         );
+        _currentUserService.Set(studentUser.Id, UserRole.Student);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);

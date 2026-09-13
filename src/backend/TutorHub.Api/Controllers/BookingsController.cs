@@ -1,15 +1,12 @@
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Bookings.CancelBooking;
 using TutorHub.Application.Features.Bookings.CreateBooking;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Bookings.GetBookingById;
 using TutorHub.Application.Features.Bookings.GetMyBookings;
-using TutorHub.Application.Features.Bookings.PayBooking;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Api.Controllers;
@@ -38,9 +35,7 @@ public class BookingsController : ControllerBase
         [FromBody] CreateBookingRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new CreateBookingCommand(
-            UserId: userId,
             ServiceId: request.ServiceId
         );
 
@@ -50,29 +45,6 @@ public class BookingsController : ControllerBase
             StatusCodes.Status201Created,
             ApiResponse<BookingDto>.SuccessResult(result, "Booking created successfully. Please complete payment within 15 minutes to secure your package.")
         );
-    }
-
-    /// <summary>
-    /// Pay for a holding booking to transition into Pending confirmation (Student only).
-    /// </summary>
-    [Authorize(Roles = "Student")]
-    [HttpPost("{id:guid}/pay")]
-    [ProducesResponseType(typeof(ApiResponse<BookingDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> PayBooking(
-        [FromRoute] Guid id,
-        [FromBody] PayBookingRequest request,
-        CancellationToken cancellationToken)
-    {
-        var userId = GetCurrentUserId();
-        var command = new PayBookingCommand(id, userId, request.PaymentMethod);
-        var result = await _sender.Send(command, cancellationToken);
-
-        return Ok(ApiResponse<BookingDto>.SuccessResult(result, "Payment successful. Booking is now pending tutor confirmation."));
     }
 
     /// <summary>
@@ -90,12 +62,7 @@ public class BookingsController : ControllerBase
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var userId = GetCurrentUserId();
-        var role = GetCurrentUserRole();
-
         var query = new GetMyBookingsQuery(
-            UserId: userId,
-            Role: role,
             Status: status,
             FromDate: fromDate,
             ToDate: toDate,
@@ -120,10 +87,7 @@ public class BookingsController : ControllerBase
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var role = GetCurrentUserRole();
-
-        var query = new GetBookingByIdQuery(id, userId, role);
+        var query = new GetBookingByIdQuery(id);
         var result = await _sender.Send(query, cancellationToken);
 
         return Ok(ApiResponse<BookingDto>.SuccessResult(result, "Booking details retrieved successfully."));
@@ -145,32 +109,9 @@ public class BookingsController : ControllerBase
         [FromBody] CancelBookingRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var role = GetCurrentUserRole();
-
-        var command = new CancelBookingCommand(id, userId, role, request.Reason);
+        var command = new CancelBookingCommand(id, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<BookingDto>.SuccessResult(result, "Booking cancelled successfully. Refund processed according to cancellation policy."));
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
-    }
-
-    private UserRole GetCurrentUserRole()
-    {
-        var roleClaim = User.FindFirstValue(ClaimTypes.Role);
-        if (Enum.TryParse<UserRole>(roleClaim, true, out var role))
-        {
-            return role;
-        }
-        throw new UnauthorizedException("User role is invalid or missing from token.");
     }
 }

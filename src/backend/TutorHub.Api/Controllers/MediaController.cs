@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -38,16 +37,11 @@ public class MediaController : ControllerBase
         [FromBody] GenerateUploadUrlRequest request,
         CancellationToken cancellationToken = default)
     {
-        var userId = GetCurrentUserId();
-        var userRole = GetCurrentUserRole();
-
         var command = new GenerateUploadUrlCommand(
             FileName: request.FileName,
             ContentType: request.ContentType,
             EstimatedSize: request.EstimatedFileSize,
-            MediaType: request.MediaType,
-            UserId: userId,
-            UserRole: userRole
+            MediaType: request.MediaType
         );
 
         var result = await _sender.Send(command, cancellationToken);
@@ -67,17 +61,12 @@ public class MediaController : ControllerBase
         [FromBody] CompleteUploadRequest request,
         CancellationToken cancellationToken = default)
     {
-        var userId = GetCurrentUserId();
-        var userRole = GetCurrentUserRole();
-
         var command = new CompleteUploadCommand(
             ObjectKey: request.ObjectKey,
             OriginalFileName: request.OriginalFileName,
             ContentType: request.ContentType,
             FileSize: request.FileSize,
-            MediaType: request.MediaType,
-            UserId: userId,
-            UserRole: userRole
+            MediaType: request.MediaType
         );
 
         var result = await _sender.Send(command, cancellationToken);
@@ -104,9 +93,6 @@ public class MediaController : ControllerBase
             throw new BadRequestException("No file was uploaded or file is empty.");
         }
 
-        var userId = GetCurrentUserId();
-        var userRole = GetCurrentUserRole();
-
         await using var stream = file.OpenReadStream();
 
         var command = new UploadMediaCommand(
@@ -114,9 +100,7 @@ public class MediaController : ControllerBase
             OriginalFileName: file.FileName,
             DeclaredContentType: file.ContentType,
             FileSize: file.Length,
-            MediaType: mediaType,
-            UserId: userId,
-            UserRole: userRole
+            MediaType: mediaType
         );
 
         var result = await _sender.Send(command, cancellationToken);
@@ -152,13 +136,8 @@ public class MediaController : ControllerBase
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var userId = GetCurrentUserId();
-        var userRole = GetCurrentUserRole();
-
         var command = new DeleteMediaCommand(
-            MediaId: id,
-            UserId: userId,
-            UserRole: userRole
+            MediaId: id
         );
 
         var result = await _sender.Send(command, cancellationToken);
@@ -167,36 +146,11 @@ public class MediaController : ControllerBase
 
     private async Task<IActionResult> HandleGetMediaUrl(Guid id, CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var userRole = GetCurrentUserRole();
-
         var query = new GetMediaUrlQuery(
-            MediaId: id,
-            UserId: userId,
-            UserRole: userRole
+            MediaId: id
         );
 
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<MediaDto>.SuccessResult(result, "Media access URL retrieved successfully."));
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
-    }
-
-    private UserRole GetCurrentUserRole()
-    {
-        var roleClaim = User.FindFirstValue(ClaimTypes.Role);
-        if (Enum.TryParse<UserRole>(roleClaim, out var role))
-        {
-            return role;
-        }
-        throw new UnauthorizedException("User role is invalid or missing from token.");
     }
 }

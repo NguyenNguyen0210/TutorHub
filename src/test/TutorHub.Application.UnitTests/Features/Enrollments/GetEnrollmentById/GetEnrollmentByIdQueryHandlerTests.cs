@@ -14,11 +14,12 @@ namespace TutorHub.Application.UnitTests.Features.Enrollments.GetEnrollmentById;
 public class GetEnrollmentByIdQueryHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly GetEnrollmentByIdQueryHandler _handler;
 
     public GetEnrollmentByIdQueryHandlerTests()
     {
-        _handler = new GetEnrollmentByIdQueryHandler(_contextMock.Object);
+        _handler = new GetEnrollmentByIdQueryHandler(_contextMock.Object, _currentUser);
     }
 
     private static (Enrollment enrollment, User student, User tutor) CreateEnrollmentWithSessions(EnrollmentStatus status = EnrollmentStatus.Active)
@@ -84,7 +85,8 @@ public class GetEnrollmentByIdQueryHandlerTests
         var (enrollment, student, _) = CreateEnrollmentWithSessions();
         _contextMock.Setup(c => c.Enrollments).Returns(MockDbSetHelper.CreateMockDbSet(new List<Enrollment> { enrollment }).Object);
 
-        var query = new GetEnrollmentByIdQuery(student.Id, UserRole.Student, enrollment.Id);
+        _currentUser.Set(student.Id, UserRole.Student);
+        var query = new GetEnrollmentByIdQuery(enrollment.Id);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -106,7 +108,8 @@ public class GetEnrollmentByIdQueryHandlerTests
         _contextMock.Setup(c => c.Enrollments).Returns(MockDbSetHelper.CreateMockDbSet(new List<Enrollment> { enrollment }).Object);
 
         var adminId = Guid.NewGuid();
-        var query = new GetEnrollmentByIdQuery(adminId, UserRole.Admin, enrollment.Id);
+        _currentUser.Set(adminId, UserRole.Admin);
+        var query = new GetEnrollmentByIdQuery(enrollment.Id);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -123,7 +126,8 @@ public class GetEnrollmentByIdQueryHandlerTests
         var (enrollment, student, _) = CreateEnrollmentWithSessions(EnrollmentStatus.Cancelled);
         _contextMock.Setup(c => c.Enrollments).Returns(MockDbSetHelper.CreateMockDbSet(new List<Enrollment> { enrollment }).Object);
 
-        var query = new GetEnrollmentByIdQuery(student.Id, UserRole.Student, enrollment.Id);
+        _currentUser.Set(student.Id, UserRole.Student);
+        var query = new GetEnrollmentByIdQuery(enrollment.Id);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -141,7 +145,8 @@ public class GetEnrollmentByIdQueryHandlerTests
         var (enrollment, _, tutor) = CreateEnrollmentWithSessions(EnrollmentStatus.Completed);
         _contextMock.Setup(c => c.Enrollments).Returns(MockDbSetHelper.CreateMockDbSet(new List<Enrollment> { enrollment }).Object);
 
-        var query = new GetEnrollmentByIdQuery(tutor.Id, UserRole.Tutor, enrollment.Id);
+        _currentUser.Set(tutor.Id, UserRole.Tutor);
+        var query = new GetEnrollmentByIdQuery(enrollment.Id);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -160,7 +165,8 @@ public class GetEnrollmentByIdQueryHandlerTests
         _contextMock.Setup(c => c.Enrollments).Returns(MockDbSetHelper.CreateMockDbSet(new List<Enrollment> { enrollment }).Object);
 
         var strangerId = Guid.NewGuid();
-        var query = new GetEnrollmentByIdQuery(strangerId, UserRole.Student, enrollment.Id);
+        _currentUser.Set(strangerId, UserRole.Student);
+        var query = new GetEnrollmentByIdQuery(enrollment.Id);
 
         // Act
         var act = () => _handler.Handle(query, CancellationToken.None);

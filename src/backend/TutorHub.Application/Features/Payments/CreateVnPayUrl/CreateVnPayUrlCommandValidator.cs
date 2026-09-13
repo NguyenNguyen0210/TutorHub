@@ -10,10 +10,6 @@ public class CreateVnPayUrlCommandValidator : AbstractValidator<CreateVnPayUrlCo
             .NotEmpty()
             .WithMessage("BookingId is required.");
 
-        RuleFor(x => x.UserId)
-            .NotEmpty()
-            .WithMessage("UserId is required.");
-
         RuleFor(x => x.IpAddress)
             .NotEmpty()
             .WithMessage("IpAddress is required.");

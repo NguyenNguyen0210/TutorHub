@@ -15,15 +15,21 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
 
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly IAuditLogService _auditLogService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public FastTrackResolveDisputeCommandHandler(IAppDbContext context, IClock clock)
+    public FastTrackResolveDisputeCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _auditLogService = auditLogService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<DisputeDto> Handle(FastTrackResolveDisputeCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
 
         try
@@ -108,18 +114,22 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
             }
 
             var gross = session.EarningAmount;
-            var feeRate = enrollment.PlatformFeeRate > 0 ? enrollment.PlatformFeeRate : 0.10m;
+            // Snapshot rate is authoritative; a legitimate 0% must stay 0%.
+            var feeRate = enrollment.PlatformFeeRate;
+
+            // Pre-release escrow: remove the session's gross slice before splitting so
+            // money is conserved (mirrors AdminResolveDispute Stage A, DEC-S8-025).
+            tutorWallet.DebitPending(gross, now);
 
             DisputeResolutionDecision decision;
             if (tutorClaims)
             {
                 // Tutor taught, student ghosted: release full net payout.
                 decision = DisputeResolutionDecision.TutorWinsReleaseEarning;
-                var platformFee = Math.Round(gross * feeRate, MidpointRounding.AwayFromZero);
+                var platformFee = Math.Round(gross * feeRate, 2, MidpointRounding.AwayFromZero);
                 var tutorNetPayout = gross - platformFee;
 
-                tutorWallet.AvailableBalance += tutorNetPayout;
-                tutorWallet.UpdatedAt = now;
+                tutorWallet.CreditAvailable(tutorNetPayout, now);
 
                 _context.WalletTransactions.Add(new WalletTransaction
                 {
@@ -179,9 +189,9 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
                     refundTx.Id));
             }
 
-            session.ResolveAttendanceByAdmin(request.AdminUserId, request.AdminNotes, "DisputeFastTrack", now, releasePayout: tutorClaims);
-            dispute.ResolveByAdmin(request.AdminUserId, decision, request.AdminNotes, now, affectsFinancial: true);
-            dispute.ReleaseFinancialHold(request.AdminUserId, now);
+            session.ResolveAttendanceByAdmin(userId, request.AdminNotes, "DisputeFastTrack", now, releasePayout: tutorClaims);
+            dispute.ResolveByAdmin(userId, decision, request.AdminNotes, now, affectsFinancial: true);
+            dispute.ReleaseFinancialHold(userId, now);
 
             _context.AddOutboxMessage(new DisputeResolvedEvent(
                 dispute.Id,
@@ -189,6 +199,15 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
                 enrollment.StudentProfile.UserId,
                 enrollment.TutorProfile.UserId,
                 decision.ToString()));
+
+            await _auditLogService.LogAsync(
+                action: "DisputeFastTrackResolved",
+                entityName: "Dispute",
+                entityId: dispute.Id.ToString(),
+                userId: userId,
+                oldValues: new { Status = "Open" },
+                newValues: new { Status = dispute.Status.ToString(), Decision = decision.ToString(), request.AdminNotes },
+                cancellationToken: cancellationToken);
 
             await _context.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);

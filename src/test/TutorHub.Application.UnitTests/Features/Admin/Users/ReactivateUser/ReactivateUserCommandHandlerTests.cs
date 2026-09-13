@@ -15,11 +15,12 @@ public class ReactivateUserCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
     private readonly Mock<IAuditLogService> _auditLogServiceMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly ReactivateUserCommandHandler _handler;
 
     public ReactivateUserCommandHandlerTests()
     {
-        _handler = new ReactivateUserCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
+        _handler = new ReactivateUserCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object, _currentUser);
     }
 
     [Fact]
@@ -27,6 +28,7 @@ public class ReactivateUserCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var suspendedUser = new UserBuilder()
             .WithRole(UserRole.Student)
             .WithStatus(AccountStatus.Suspended)
@@ -37,7 +39,7 @@ public class ReactivateUserCommandHandlerTests
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var command = new ReactivateUserCommand(suspendedUser.Id, adminId);
+        var command = new ReactivateUserCommand(suspendedUser.Id);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -68,6 +70,7 @@ public class ReactivateUserCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var activeUser = new UserBuilder()
             .WithRole(UserRole.Student)
             .WithStatus(AccountStatus.Active)
@@ -77,7 +80,7 @@ public class ReactivateUserCommandHandlerTests
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
 
-        var command = new ReactivateUserCommand(activeUser.Id, adminId);
+        var command = new ReactivateUserCommand(activeUser.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -94,6 +97,7 @@ public class ReactivateUserCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var bannedUser = new UserBuilder()
             .WithRole(UserRole.Student)
             .WithStatus(AccountStatus.Banned)
@@ -103,7 +107,7 @@ public class ReactivateUserCommandHandlerTests
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
 
-        var command = new ReactivateUserCommand(bannedUser.Id, adminId);
+        var command = new ReactivateUserCommand(bannedUser.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -120,12 +124,13 @@ public class ReactivateUserCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var nonExistentUserId = Guid.NewGuid();
         var usersList = new List<User>();
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
 
-        var command = new ReactivateUserCommand(nonExistentUserId, adminId);
+        var command = new ReactivateUserCommand(nonExistentUserId);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);

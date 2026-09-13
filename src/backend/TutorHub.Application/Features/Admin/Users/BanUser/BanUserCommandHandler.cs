@@ -11,18 +11,28 @@ namespace TutorHub.Application.Features.Admin.Users.BanUser;
 public class BanUserCommandHandler : IRequestHandler<BanUserCommand, AdminUserSummaryDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public BanUserCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public BanUserCommandHandler(
+        IAppDbContext context,
+        IClock clock,
+        IAuditLogService auditLogService,
+        ICurrentUserService currentUserService)
     {
         _context = context;
+        _clock = clock;
         _auditLogService = auditLogService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<AdminUserSummaryDto> Handle(BanUserCommand request, CancellationToken cancellationToken)
     {
+        var adminId = _currentUserService.UserIdOrThrow();
+
         // 1. Self-lockout Invariant: Admin cannot ban themselves
-        if (request.UserId == request.AdminId)
+        if (request.UserId == adminId)
         {
             throw new ConflictException("Admin cannot ban their own account.");
         }
@@ -60,7 +70,7 @@ public class BanUserCommandHandler : IRequestHandler<BanUserCommand, AdminUserSu
             throw new ConflictException(ex.Message);
         }
 
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _clock.UtcNow;
 
         // 5. Active Refresh Tokens Revocation
         var activeTokens = await _context.RefreshTokens
@@ -77,7 +87,7 @@ public class BanUserCommandHandler : IRequestHandler<BanUserCommand, AdminUserSu
             action: "USER_BANNED",
             entityName: "User",
             entityId: user.Id.ToString(),
-            userId: request.AdminId,
+            userId: adminId,
             oldValues: new { status = previousStatus.ToString() },
             newValues: new { status = user.Status.ToString(), reason = request.Reason },
             cancellationToken: cancellationToken);

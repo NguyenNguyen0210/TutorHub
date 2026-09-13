@@ -14,11 +14,12 @@ namespace TutorHub.Application.UnitTests.Features.Tutors.SubmitTutorApplication;
 public class SubmitTutorApplicationCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly SubmitTutorApplicationCommandHandler _handler;
 
     public SubmitTutorApplicationCommandHandlerTests()
     {
-        _handler = new SubmitTutorApplicationCommandHandler(_contextMock.Object);
+        _handler = new SubmitTutorApplicationCommandHandler(_contextMock.Object, StubClock.Instance, _currentUser);
     }
 
     [Fact]
@@ -37,8 +38,8 @@ public class SubmitTutorApplicationCommandHandlerTests
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(applicationsList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
+        _currentUser.Set(user.Id, UserRole.Tutor);
         var command = new SubmitTutorApplicationCommand(
-            UserId: user.Id,
             Bio: "Experienced Math tutor with 5 years experience.",
             Education: "B.Sc. Mathematics",
             ExperienceYears: 5,
@@ -95,8 +96,8 @@ public class SubmitTutorApplicationCommandHandlerTests
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(applicationsList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
+        _currentUser.Set(user.Id, UserRole.Tutor);
         var command = new SubmitTutorApplicationCommand(
-            UserId: user.Id,
             Bio: "Updated comprehensive bio with 3 years experience.",
             Education: "B.Sc. Computer Science",
             ExperienceYears: 3,
@@ -128,8 +129,9 @@ public class SubmitTutorApplicationCommandHandlerTests
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(applicationsList).Object);
 
+        var userId = Guid.NewGuid();
+        _currentUser.Set(userId, UserRole.Tutor);
         var command = new SubmitTutorApplicationCommand(
-            UserId: Guid.NewGuid(),
             Bio: "Bio",
             Education: "Edu",
             ExperienceYears: 2,
@@ -158,8 +160,8 @@ public class SubmitTutorApplicationCommandHandlerTests
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(applicationsList).Object);
 
+        _currentUser.Set(user.Id, UserRole.Student);
         var command = new SubmitTutorApplicationCommand(
-            UserId: user.Id,
             Bio: "Bio",
             Education: "Edu",
             ExperienceYears: 2,
@@ -200,8 +202,8 @@ public class SubmitTutorApplicationCommandHandlerTests
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(applicationsList).Object);
 
+        _currentUser.Set(user.Id, UserRole.Tutor);
         var command = new SubmitTutorApplicationCommand(
-            UserId: user.Id,
             Bio: "Another bio",
             Education: "Another edu",
             ExperienceYears: 2,
@@ -243,8 +245,8 @@ public class SubmitTutorApplicationCommandHandlerTests
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(applicationsList).Object);
 
+        _currentUser.Set(user.Id, UserRole.Tutor);
         var command = new SubmitTutorApplicationCommand(
-            UserId: user.Id,
             Bio: "New bio",
             Education: "New edu",
             ExperienceYears: 6,

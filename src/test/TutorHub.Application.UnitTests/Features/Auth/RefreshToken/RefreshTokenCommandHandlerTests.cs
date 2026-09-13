@@ -24,6 +24,7 @@ public class RefreshTokenCommandHandlerTests
     {
         _handler = new RefreshTokenCommandHandler(
             _contextMock.Object,
+            StubClock.Instance,
             _jwtServiceMock.Object,
             Options.Create(new AuthTokenLifetimeOptions()));
     }

@@ -16,7 +16,7 @@ public class LogoutCommandHandlerTests
 
     public LogoutCommandHandlerTests()
     {
-        _handler = new LogoutCommandHandler(_contextMock.Object);
+        _handler = new LogoutCommandHandler(_contextMock.Object, StubClock.Instance);
     }
 
     [Fact]

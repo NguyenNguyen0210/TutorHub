@@ -12,19 +12,24 @@ public class RejectSessionRescheduleCommandHandler : IRequestHandler<RejectSessi
     private readonly IAppDbContext _context;
     private readonly IAuditLogService _auditLogService;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
     public RejectSessionRescheduleCommandHandler(
         IAppDbContext context,
         IAuditLogService auditLogService,
-        IClock clock)
+        IClock clock,
+        ICurrentUserService currentUserService)
     {
         _context = context;
         _auditLogService = auditLogService;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<SessionRescheduleRequestDto> Handle(RejectSessionRescheduleCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var requestEntity = await _context.SessionRescheduleRequests
             .FirstOrDefaultAsync(r => r.Id == request.RequestId, cancellationToken);
 
@@ -48,7 +53,7 @@ public class RejectSessionRescheduleCommandHandler : IRequestHandler<RejectSessi
         }
 
         // 1. Strict Actor Authorization (INV-RESCHED-001): Only the Student can reject
-        if (session.Enrollment.StudentProfile.UserId != request.UserId)
+        if (session.Enrollment.StudentProfile.UserId != userId)
         {
             throw new ForbiddenException("Only the Student can reject a session reschedule proposal.");
         }
@@ -63,14 +68,14 @@ public class RejectSessionRescheduleCommandHandler : IRequestHandler<RejectSessi
         var now = _clock.UtcNow;
 
         // 4. Domain mutation on request (Session schedule remains untouched)
-        requestEntity.Reject(request.UserId, request.RejectionReason, now);
+        requestEntity.Reject(userId, request.RejectionReason, now);
 
         // 5. Permanent Audit Log inside SAME unit of work
         await _auditLogService.LogAsync(
             action: "SESSION_RESCHEDULE_REJECTED",
             entityName: "SessionRescheduleRequest",
             entityId: requestEntity.Id.ToString(),
-            userId: request.UserId,
+            userId: userId,
             oldValues: new { Status = RescheduleRequestStatus.Pending.ToString() },
             newValues: new { Status = requestEntity.Status.ToString(), Reason = request.RejectionReason },
             cancellationToken: cancellationToken);

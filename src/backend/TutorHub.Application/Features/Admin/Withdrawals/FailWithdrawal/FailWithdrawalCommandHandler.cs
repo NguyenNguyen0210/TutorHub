@@ -12,14 +12,26 @@ namespace TutorHub.Application.Features.Admin.Withdrawals.FailWithdrawal;
 public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalCommand, WithdrawalDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
+    private readonly IAuditLogService _auditLogService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public FailWithdrawalCommandHandler(IAppDbContext context)
+    public FailWithdrawalCommandHandler(
+        IAppDbContext context,
+        IClock clock,
+        IAuditLogService auditLogService,
+        ICurrentUserService currentUserService)
     {
         _context = context;
+        _clock = clock;
+        _auditLogService = auditLogService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<WithdrawalDto> Handle(FailWithdrawalCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         // Reads + guards run outside the transaction (fail fast before acquiring DB resources).
         var withdrawal = await _context.Withdrawals
             .Include(w => w.Wallet).ThenInclude(wall => wall.TutorProfile).ThenInclude(tp => tp.User)
@@ -39,13 +51,13 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
                 $"Cannot fail withdrawal in '{withdrawal.Status}' status. Must be in Processing status.");
         }
 
-        var admin = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.AdminId, cancellationToken);
+        var admin = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (admin == null)
         {
             throw new UnauthorizedException("Admin user not found.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
 
@@ -62,7 +74,7 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
         }
 
         // Domain State Transition: Fail (DEC-WD-003, DEC-WD-004)
-        withdrawal.Fail(request.Reason, request.AdminId);
+        withdrawal.Fail(request.Reason, userId);
         withdrawal.ProcessedByAdmin = admin;
 
         // Atomic restoration of AvailableBalance (DEC-WD-004, DEC-WD-007)
@@ -91,6 +103,15 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
             withdrawal.Wallet.TutorProfile.UserId,
             new MoneyDto(withdrawal.Amount),
             withdrawal.FailureReason!));
+
+        await _auditLogService.LogAsync(
+            action: "WithdrawalFailed",
+            entityName: "Withdrawal",
+            entityId: withdrawal.Id.ToString(),
+            userId: userId,
+            oldValues: new { Status = WithdrawalStatus.Processing.ToString() },
+            newValues: new { Status = withdrawal.Status.ToString(), withdrawal.FailureReason },
+            cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);

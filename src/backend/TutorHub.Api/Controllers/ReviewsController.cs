@@ -1,8 +1,6 @@
-﻿using System.Security.Claims;
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Reports.DTOs;
 using TutorHub.Application.Features.Reviews.CreateEnrollmentReview;
@@ -10,7 +8,6 @@ using TutorHub.Application.Features.Reviews.DTOs;
 using TutorHub.Application.Features.Reviews.GetEnrollmentReview;
 using TutorHub.Application.Features.Reviews.ReplyReview;
 using TutorHub.Application.Features.Reviews.ReportReview;
-using TutorHub.Domain.Enums;
 
 namespace TutorHub.Api.Controllers;
 
@@ -40,8 +37,7 @@ public class ReviewsController : ControllerBase
         [FromBody] CreateEnrollmentReviewRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var command = new CreateEnrollmentReviewCommand(enrollmentId, userId, request.Rating, request.Comment);
+        var command = new CreateEnrollmentReviewCommand(enrollmentId, request.Rating, request.Comment);
         var result = await _sender.Send(command, cancellationToken);
 
         return StatusCode(
@@ -63,9 +59,7 @@ public class ReviewsController : ControllerBase
         [FromRoute] Guid enrollmentId,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var role = GetCurrentUserRole();
-        var query = new GetEnrollmentReviewQuery(enrollmentId, userId, role);
+        var query = new GetEnrollmentReviewQuery(enrollmentId);
         var result = await _sender.Send(query, cancellationToken);
 
         return Ok(ApiResponse<ReviewDto>.SuccessResult(result, "Enrollment review retrieved successfully."));
@@ -87,8 +81,7 @@ public class ReviewsController : ControllerBase
         [FromBody] ReplyReviewRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var command = new ReplyReviewCommand(id, userId, request.Reply);
+        var command = new ReplyReviewCommand(id, request.Reply);
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<ReviewDto>.SuccessResult(result, "Reply submitted successfully."));
@@ -109,33 +102,12 @@ public class ReviewsController : ControllerBase
         [FromBody] ReportReviewRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var command = new ReportReviewCommand(id, userId, request.Description, request.EvidenceUrl);
+        var command = new ReportReviewCommand(id, request.Description, request.EvidenceUrl);
         var result = await _sender.Send(command, cancellationToken);
 
         return StatusCode(
             StatusCodes.Status201Created,
             ApiResponse<ReportSummaryDto>.SuccessResult(result, "Review report submitted successfully and is awaiting admin review.")
         );
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
-    }
-
-    private UserRole GetCurrentUserRole()
-    {
-        var roleClaim = User.FindFirstValue(ClaimTypes.Role) ?? User.FindFirstValue("role");
-        if (string.IsNullOrWhiteSpace(roleClaim) || !Enum.TryParse<UserRole>(roleClaim, true, out var role))
-        {
-            throw new UnauthorizedException("User role is invalid or missing from token.");
-        }
-        return role;
     }
 }

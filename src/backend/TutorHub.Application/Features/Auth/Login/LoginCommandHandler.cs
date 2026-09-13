@@ -14,17 +14,19 @@ namespace TutorHub.Application.Features.Auth.Login;
 public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtService _jwtService;
     private readonly AuthTokenLifetimeOptions _lifetimes;
 
     public LoginCommandHandler(
-        IAppDbContext context,
+        IAppDbContext context, IClock clock,
         IPasswordHasher passwordHasher,
         IJwtService jwtService,
         IOptions<AuthTokenLifetimeOptions> lifetimeOptions)
     {
         _context = context;
+        _clock = clock;
         _passwordHasher = passwordHasher;
         _jwtService = jwtService;
         _lifetimes = lifetimeOptions.Value;
@@ -65,8 +67,8 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
             Id = Guid.NewGuid(),
             UserId = user.Id,
             Token = rawRefreshToken,
-            ExpiresAt = DateTime.UtcNow.AddDays(_lifetimes.RefreshTokenExpirationDays),
-            CreatedAt = DateTime.UtcNow
+            ExpiresAt = _clock.UtcNow.AddDays(_lifetimes.RefreshTokenExpirationDays),
+            CreatedAt = _clock.UtcNow
         };
 
         _context.RefreshTokens.Add(refreshTokenEntity);

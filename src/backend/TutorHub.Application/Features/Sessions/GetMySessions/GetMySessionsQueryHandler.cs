@@ -10,14 +10,19 @@ namespace TutorHub.Application.Features.Sessions.GetMySessions;
 public class GetMySessionsQueryHandler : IRequestHandler<GetMySessionsQuery, List<SessionCalendarDto>>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMySessionsQueryHandler(IAppDbContext context)
+    public GetMySessionsQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<List<SessionCalendarDto>> Handle(GetMySessionsQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+        var role = _currentUserService.Role;
+
         // 1. Validate date range window
         if (request.FromDate.HasValue != request.ToDate.HasValue)
         {
@@ -32,13 +37,13 @@ public class GetMySessionsQueryHandler : IRequestHandler<GetMySessionsQuery, Lis
         // 2. Query with direct LINQ Projection
         var query = _context.Sessions.AsNoTracking();
 
-        if (request.Role == UserRole.Student)
+        if (role == UserRole.Student)
         {
-            query = query.Where(s => s.Enrollment.StudentProfile.UserId == request.UserId);
+            query = query.Where(s => s.Enrollment.StudentProfile.UserId == userId);
         }
-        else if (request.Role == UserRole.Tutor)
+        else if (role == UserRole.Tutor)
         {
-            query = query.Where(s => s.Enrollment.TutorProfile.UserId == request.UserId);
+            query = query.Where(s => s.Enrollment.TutorProfile.UserId == userId);
         }
 
         if (request.Status.HasValue)

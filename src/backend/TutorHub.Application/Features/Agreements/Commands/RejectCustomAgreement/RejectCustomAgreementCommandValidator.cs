@@ -7,7 +7,6 @@ public class RejectCustomAgreementCommandValidator : AbstractValidator<RejectCus
     public RejectCustomAgreementCommandValidator()
     {
         RuleFor(x => x.AgreementId).NotEmpty();
-        RuleFor(x => x.StudentUserId).NotEmpty();
 
         RuleFor(x => x.Reason)
             .NotEmpty().WithMessage("Rejection reason is required.")

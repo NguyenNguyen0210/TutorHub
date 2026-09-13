@@ -11,14 +11,19 @@ namespace TutorHub.Application.Features.Bookings.GetMyBookings;
 public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, PagedResult<BookingSummaryDto>>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMyBookingsQueryHandler(IAppDbContext context)
+    public GetMyBookingsQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<PagedResult<BookingSummaryDto>> Handle(GetMyBookingsQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+        var role = _currentUserService.Role;
+
         var query = _context.Bookings
             .AsNoTracking()
             .Include(b => b.StudentProfile).ThenInclude(s => s.User)
@@ -29,13 +34,13 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Pag
         // Filter by user role & ownership. Any other role is rejected:
         // this endpoint is scoped to the caller's own bookings (route locked
         // to Student/Tutor); there is intentionally no unfiltered fall-through.
-        if (request.Role == UserRole.Student)
+        if (role == UserRole.Student)
         {
-            query = query.Where(b => b.StudentProfile.UserId == request.UserId);
+            query = query.Where(b => b.StudentProfile.UserId == userId);
         }
-        else if (request.Role == UserRole.Tutor)
+        else if (role == UserRole.Tutor)
         {
-            query = query.Where(b => b.TutorProfile.UserId == request.UserId);
+            query = query.Where(b => b.TutorProfile.UserId == userId);
         }
         else
         {

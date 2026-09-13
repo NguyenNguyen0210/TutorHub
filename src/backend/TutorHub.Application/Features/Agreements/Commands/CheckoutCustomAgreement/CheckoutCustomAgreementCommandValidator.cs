@@ -7,6 +7,5 @@ public class CheckoutCustomAgreementCommandValidator : AbstractValidator<Checkou
     public CheckoutCustomAgreementCommandValidator()
     {
         RuleFor(x => x.AgreementId).NotEmpty();
-        RuleFor(x => x.StudentUserId).NotEmpty();
     }
 }

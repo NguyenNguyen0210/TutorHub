@@ -5,6 +5,5 @@ namespace TutorHub.Application.Features.Admin.TutorApplications.RejectTutorAppli
 
 public record RejectTutorApplicationCommand(
     Guid ApplicationId,
-    Guid AdminId,
     string Reason
 ) : IRequest<AdminTutorApplicationDto>;

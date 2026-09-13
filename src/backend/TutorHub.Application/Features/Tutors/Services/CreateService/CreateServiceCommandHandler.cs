@@ -11,17 +11,23 @@ namespace TutorHub.Application.Features.Tutors.Services.CreateService;
 public class CreateServiceCommandHandler : IRequestHandler<CreateServiceCommand, ServiceDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateServiceCommandHandler(IAppDbContext context)
+    public CreateServiceCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
+        _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ServiceDto> Handle(CreateServiceCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         // 1. Verify TutorProfile exists
         var tutor = await _context.TutorProfiles
-            .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null)
         {
@@ -30,7 +36,7 @@ public class CreateServiceCommandHandler : IRequestHandler<CreateServiceCommand,
 
         // 2. Verify Approved TutorApplication
         var isApprovedTutor = await _context.TutorApplications
-            .AnyAsync(a => a.UserId == request.UserId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
+            .AnyAsync(a => a.UserId == userId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
 
         if (!isApprovedTutor)
         {
@@ -64,7 +70,7 @@ public class CreateServiceCommandHandler : IRequestHandler<CreateServiceCommand,
             TeachingMode = request.TeachingMode,
             TrialLessonUrl = request.TrialLessonUrl,
             Status = ServiceStatus.Draft,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _clock.UtcNow
         };
 
         _context.Services.Add(service);

@@ -12,20 +12,26 @@ namespace TutorHub.Application.Features.Availability.SetWeeklySchedule;
 public class SetWeeklyScheduleCommandHandler : IRequestHandler<SetWeeklyScheduleCommand, List<AvailabilitySlotDto>>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public SetWeeklyScheduleCommandHandler(IAppDbContext context)
+    public SetWeeklyScheduleCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
+        _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<List<AvailabilitySlotDto>> Handle(SetWeeklyScheduleCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
 
         try
         {
         var tutor = await _context.TutorProfiles
-            .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null)
         {
@@ -38,7 +44,7 @@ public class SetWeeklyScheduleCommandHandler : IRequestHandler<SetWeeklySchedule
             cancellationToken);
 
         // 2. Fetch concrete future scheduled sessions for this tutor (INV-AVAIL-005)
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _clock.UtcNow;
         var futureScheduledSessions = await _context.Sessions
             .Where(s => s.Enrollment.TutorProfileId == tutor.Id &&
                         s.Status == SessionStatus.Scheduled &&

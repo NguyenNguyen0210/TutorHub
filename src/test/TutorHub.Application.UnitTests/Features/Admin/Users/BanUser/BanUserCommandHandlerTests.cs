@@ -15,11 +15,12 @@ public class BanUserCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
     private readonly Mock<IAuditLogService> _auditLogServiceMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly BanUserCommandHandler _handler;
 
     public BanUserCommandHandlerTests()
     {
-        _handler = new BanUserCommandHandler(_contextMock.Object, _auditLogServiceMock.Object);
+        _handler = new BanUserCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object, _currentUser);
     }
 
     [Theory]
@@ -29,6 +30,7 @@ public class BanUserCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var targetUser = new UserBuilder()
             .WithRole(UserRole.Student)
             .WithStatus(initialStatus)
@@ -50,7 +52,7 @@ public class BanUserCommandHandlerTests
         _contextMock.Setup(c => c.RefreshTokens).Returns(MockDbSetHelper.CreateMockDbSet(tokensList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var command = new BanUserCommand(targetUser.Id, adminId, "Severe fraud violations");
+        var command = new BanUserCommand(targetUser.Id, "Severe fraud violations");
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -84,7 +86,8 @@ public class BanUserCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
-        var command = new BanUserCommand(adminId, adminId, "Self ban attempt");
+        _currentUser.Set(adminId, UserRole.Admin);
+        var command = new BanUserCommand(adminId, "Self ban attempt");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -101,12 +104,13 @@ public class BanUserCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var nonExistentUserId = Guid.NewGuid();
         var usersList = new List<User>();
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
 
-        var command = new BanUserCommand(nonExistentUserId, adminId, "Non existent user");
+        var command = new BanUserCommand(nonExistentUserId, "Non existent user");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -121,6 +125,7 @@ public class BanUserCommandHandlerTests
     {
         // Arrange
         var currentAdminId = Guid.NewGuid();
+        _currentUser.Set(currentAdminId, UserRole.Admin);
         var targetAdmin = new UserBuilder()
             .WithRole(UserRole.Admin)
             .WithStatus(AccountStatus.Active)
@@ -130,7 +135,7 @@ public class BanUserCommandHandlerTests
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
 
-        var command = new BanUserCommand(targetAdmin.Id, currentAdminId, "Ban the only admin");
+        var command = new BanUserCommand(targetAdmin.Id, "Ban the only admin");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -147,6 +152,7 @@ public class BanUserCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var bannedUser = new UserBuilder()
             .WithRole(UserRole.Student)
             .WithStatus(AccountStatus.Banned)
@@ -156,7 +162,7 @@ public class BanUserCommandHandlerTests
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
 
-        var command = new BanUserCommand(bannedUser.Id, adminId, "Already banned");
+        var command = new BanUserCommand(bannedUser.Id, "Already banned");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);

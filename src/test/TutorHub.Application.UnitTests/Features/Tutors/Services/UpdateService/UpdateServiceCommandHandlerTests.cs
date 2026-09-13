@@ -14,11 +14,12 @@ namespace TutorHub.Application.UnitTests.Features.Tutors.Services.UpdateService;
 public class UpdateServiceCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly UpdateServiceCommandHandler _handler;
 
     public UpdateServiceCommandHandlerTests()
     {
-        _handler = new UpdateServiceCommandHandler(_contextMock.Object);
+        _handler = new UpdateServiceCommandHandler(_contextMock.Object, StubClock.Instance, _currentUser);
     }
 
     [Fact]
@@ -49,9 +50,9 @@ public class UpdateServiceCommandHandlerTests
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
+        _currentUser.Set(user.Id, UserRole.Tutor);
         var command = new UpdateServiceCommand(
             ServiceId: service.Id,
-            UserId: user.Id,
             Title: "New Title",
             Description: "New Description",
             LearningScope: "Scope",
@@ -105,9 +106,9 @@ public class UpdateServiceCommandHandlerTests
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
+        _currentUser.Set(user.Id, UserRole.Tutor);
         var command = new UpdateServiceCommand(
             ServiceId: service.Id,
-            UserId: user.Id,
             Title: "Updated Published Title",
             Description: "Updated Published Description",
             LearningScope: "Updated Scope",
@@ -154,9 +155,9 @@ public class UpdateServiceCommandHandlerTests
 
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
 
+        _currentUser.Set(user.Id, UserRole.Tutor);
         var command = new UpdateServiceCommand(
             ServiceId: service.Id,
-            UserId: user.Id,
             Title: null,
             Description: null,
             LearningScope: null,
@@ -196,9 +197,9 @@ public class UpdateServiceCommandHandlerTests
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
 
         var differentUserId = Guid.NewGuid();
+        _currentUser.Set(differentUserId, UserRole.Tutor);
         var command = new UpdateServiceCommand(
             ServiceId: service.Id,
-            UserId: differentUserId,
             Title: "New Title",
             Description: null,
             LearningScope: null,

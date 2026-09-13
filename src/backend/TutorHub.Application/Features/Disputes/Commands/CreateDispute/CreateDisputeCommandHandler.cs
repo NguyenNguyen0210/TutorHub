@@ -12,14 +12,20 @@ namespace TutorHub.Application.Features.Disputes.Commands.CreateDispute;
 public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand, DisputeDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateDisputeCommandHandler(IAppDbContext context)
+    public CreateDisputeCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
+        _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<DisputeDto> Handle(CreateDisputeCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
 
         try
@@ -38,17 +44,26 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
         var studentUserId = session.Enrollment.StudentProfile.UserId;
         var tutorUserId = session.Enrollment.TutorProfile.UserId;
 
-        if (request.InitiatorUserId != studentUserId && request.InitiatorUserId != tutorUserId)
+        if (userId != studentUserId && userId != tutorUserId)
         {
             throw new ForbiddenException("You are not a participant in this session.");
         }
 
-        var respondentUserId = request.InitiatorUserId == studentUserId ? tutorUserId : studentUserId;
+        var respondentUserId = userId == studentUserId ? tutorUserId : studentUserId;
 
         // Session status check: can only dispute Scheduled or Completed sessions
         if (session.Status == SessionStatus.Unscheduled || session.Status == SessionStatus.Cancelled)
         {
             throw new BadRequestException($"Cannot dispute a session in '{session.Status}' status.");
+        }
+
+        // A dispute addresses an issue with a delivery, so the session must have
+        // already taken place (EndAt <= now). Future sessions use cancellation or
+        // reschedule instead (FR-DISPUTE-001, PRD §8.4).
+        var now = _clock.UtcNow;
+        if (!session.EndAt.HasValue || session.EndAt.Value > now)
+        {
+            throw new BadRequestException("Cannot dispute a session that has not yet taken place.");
         }
 
         // Active dispute deduplication: only 1 active dispute per session (INV-DISP-001)
@@ -62,12 +77,11 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
             throw new ConflictException("An active dispute already exists for this session.");
         }
 
-        var now = DateTime.UtcNow;
         var dispute = new Dispute
         {
             Id = Guid.NewGuid(),
             SessionId = session.Id,
-            InitiatorUserId = request.InitiatorUserId,
+            InitiatorUserId = userId,
             RespondentUserId = respondentUserId,
             Reason = request.Reason,
             Description = request.Description,
@@ -137,13 +151,13 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
         _context.AddOutboxMessage(new DisputeCreatedEvent(
             dispute.Id,
             session.EnrollmentId,
-            request.InitiatorUserId,
+            userId,
             respondentUserId));
 
         await _context.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
 
-        var initiatorName = request.InitiatorUserId == studentUserId
+        var initiatorName = userId == studentUserId
             ? session.Enrollment.StudentProfile.User?.FullName ?? "Student"
             : session.Enrollment.TutorProfile.User?.FullName ?? "Tutor";
 

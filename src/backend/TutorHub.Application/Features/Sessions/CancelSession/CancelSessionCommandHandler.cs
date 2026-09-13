@@ -10,14 +10,20 @@ namespace TutorHub.Application.Features.Sessions.CancelSession;
 public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand, SessionDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CancelSessionCommandHandler(IAppDbContext context)
+    public CancelSessionCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
+        _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<SessionDto> Handle(CancelSessionCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var session = await _context.Sessions
             .Include(s => s.Enrollment)
             .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
@@ -31,6 +37,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
         var enrollment = await _context.Enrollments
             .Include(e => e.StudentProfile)
             .Include(e => e.TutorProfile)
+            .Include(e => e.Sessions)
             .FirstOrDefaultAsync(e => e.Id == session.EnrollmentId, cancellationToken);
 
         if (enrollment == null)
@@ -38,8 +45,8 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
             throw new NotFoundException("Enrollment", session.EnrollmentId);
         }
 
-        if (enrollment.StudentProfile.UserId != request.UserId &&
-            enrollment.TutorProfile.UserId != request.UserId)
+        if (enrollment.StudentProfile.UserId != userId &&
+            enrollment.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("You do not have permission to cancel this session.");
         }
@@ -53,7 +60,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
 
         // 3. Domain gate: Unscheduled, or Scheduled with future StartAt. Completed /
         // Cancelled / started sessions are rejected inside CancelSingle (→ 409 via handler mapping).
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
         try
         {
             session.CancelSingle(request.Reason, now);
@@ -66,6 +73,10 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
         {
             throw new ConflictException(ex.Message);
         }
+
+        // 4. Re-evaluate the contract lifecycle: the last unresolved Session may
+        // now be terminal, allowing the Enrollment to complete (FR-ENR-005).
+        enrollment.EvaluateCompletion();
 
         await _context.SaveChangesAsync(cancellationToken);
 

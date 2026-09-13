@@ -8,10 +8,12 @@ namespace TutorHub.Application.Features.Auth.Logout;
 public class LogoutCommandHandler : IRequestHandler<LogoutCommand, bool>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
 
-    public LogoutCommandHandler(IAppDbContext context)
+    public LogoutCommandHandler(IAppDbContext context, IClock clock)
     {
         _context = context;
+        _clock = clock;
     }
 
     public async Task<bool> Handle(LogoutCommand request, CancellationToken cancellationToken)
@@ -29,7 +31,7 @@ public class LogoutCommandHandler : IRequestHandler<LogoutCommand, bool>
             return true;
         }
 
-        token.RevokedAt = DateTime.UtcNow;
+        token.RevokedAt = _clock.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
         return true;

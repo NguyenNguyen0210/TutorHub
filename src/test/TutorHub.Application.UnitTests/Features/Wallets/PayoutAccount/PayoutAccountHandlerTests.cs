@@ -15,6 +15,7 @@ namespace TutorHub.Application.UnitTests.Features.Wallets.PayoutAccount;
 public class PayoutAccountHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
 
     [Fact]
     public async Task GetPayoutAccount_TutorExists_ReturnsDetails()
@@ -32,10 +33,11 @@ public class PayoutAccountHandlerTests
         };
 
         _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorProfile> { tutor }).Object);
-        var handler = new GetPayoutAccountQueryHandler(_contextMock.Object);
+        _currentUser.Set(user.Id, UserRole.Tutor);
+        var handler = new GetPayoutAccountQueryHandler(_contextMock.Object, _currentUser);
 
         // Act
-        var result = await handler.Handle(new GetPayoutAccountQuery(user.Id), CancellationToken.None);
+        var result = await handler.Handle(new GetPayoutAccountQuery(), CancellationToken.None);
 
         // Assert
         result.Should().NotBeNull();
@@ -57,10 +59,10 @@ public class PayoutAccountHandlerTests
         };
 
         _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorProfile> { tutor }).Object);
-        var handler = new UpdatePayoutAccountCommandHandler(_contextMock.Object);
+        _currentUser.Set(user.Id, UserRole.Tutor);
+        var handler = new UpdatePayoutAccountCommandHandler(_contextMock.Object, _currentUser);
 
         var command = new UpdatePayoutAccountCommand(
-            UserId: user.Id,
             BankName: "MB Bank",
             BankCode: "MBB",
             AccountNumber: "99998888",

@@ -5,21 +5,24 @@ using Microsoft.Extensions.Logging;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Conversations.DTOs;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Admin.Conversations.AdminGetConversationMessages;
 
 public class AdminGetConversationMessagesQueryHandler : IRequestHandler<AdminGetConversationMessagesQuery, CursorPagedResult<MessageDto>>
 {
     private readonly IAppDbContext _dbContext;
+    private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AdminGetConversationMessagesQueryHandler> _logger;
 
     public AdminGetConversationMessagesQueryHandler(
-        IAppDbContext dbContext,
+        IAppDbContext dbContext, IClock clock,
         ICurrentUserService currentUserService,
         ILogger<AdminGetConversationMessagesQueryHandler> logger)
     {
         _dbContext = dbContext;
+        _clock = clock;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -31,7 +34,7 @@ public class AdminGetConversationMessagesQueryHandler : IRequestHandler<AdminGet
             throw new UnauthorizedException("User is not authenticated.");
         }
 
-        if (_currentUserService.Role != "Admin")
+        if (_currentUserService.Role != UserRole.Admin)
         {
             throw new ForbiddenException("Only administrators can access conversation messages via admin endpoint.");
         }
@@ -58,7 +61,7 @@ public class AdminGetConversationMessagesQueryHandler : IRequestHandler<AdminGet
             adminUserId,
             request.ConversationId,
             request.OperationalReason.Trim(),
-            DateTime.UtcNow);
+            _clock.UtcNow);
 
         var query = _dbContext.Messages
             .AsNoTracking()

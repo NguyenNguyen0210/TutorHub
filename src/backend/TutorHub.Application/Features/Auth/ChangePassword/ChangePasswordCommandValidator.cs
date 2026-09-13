@@ -6,9 +6,6 @@ public class ChangePasswordCommandValidator : AbstractValidator<ChangePasswordCo
 {
     public ChangePasswordCommandValidator()
     {
-        RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
-
         RuleFor(x => x.CurrentPassword)
             .NotEmpty().WithMessage("Current password is required.");
 

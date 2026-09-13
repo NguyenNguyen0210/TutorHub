@@ -6,8 +6,6 @@ using TutorHub.Domain.Enums;
 namespace TutorHub.Application.Features.Transactions.GetMyTransactions;
 
 public record GetMyTransactionsQuery(
-    Guid UserId,
-    UserRole Role,
     TransactionStatus? Status = null,
     DateTime? FromDate = null,
     DateTime? ToDate = null,

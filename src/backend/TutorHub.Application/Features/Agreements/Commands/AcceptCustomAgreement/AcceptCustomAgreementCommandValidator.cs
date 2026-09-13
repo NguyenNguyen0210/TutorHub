@@ -7,6 +7,5 @@ public class AcceptCustomAgreementCommandValidator : AbstractValidator<AcceptCus
     public AcceptCustomAgreementCommandValidator()
     {
         RuleFor(x => x.AgreementId).NotEmpty();
-        RuleFor(x => x.StudentUserId).NotEmpty();
     }
 }

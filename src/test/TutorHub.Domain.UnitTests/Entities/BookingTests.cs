@@ -28,7 +28,6 @@ public class BookingTests
 
     [Theory]
     [InlineData(BookingStatus.Holding)]
-    [InlineData(BookingStatus.Paid)]
     public void CanCancel_WhenStudentCancelsActiveBooking_ReturnsTrue(BookingStatus status)
     {
         // Arrange
@@ -41,18 +40,30 @@ public class BookingTests
         result.Should().BeTrue();
     }
 
-    [Theory]
-    [InlineData(BookingStatus.Paid)]
-    public void CanCancel_WhenTutorCancelsPaidBooking_ReturnsTrue(BookingStatus status)
+    [Fact]
+    public void CanCancel_WhenStudentCancelsPaidBooking_ReturnsFalse()
     {
         // Arrange
-        var booking = CreateTestBooking(status);
+        var booking = CreateTestBooking(BookingStatus.Paid);
+
+        // Act
+        var result = booking.CanCancel(CancelledBy.Student);
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CanCancel_WhenTutorCancelsPaidBooking_ReturnsFalse()
+    {
+        // Arrange
+        var booking = CreateTestBooking(BookingStatus.Paid);
 
         // Act
         var result = booking.CanCancel(CancelledBy.Tutor);
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -98,25 +109,23 @@ public class BookingTests
     }
 
     [Fact]
-    public void CalculateRefund_WhenPaid_ReturnsFullAmount()
+    public void CalculateRefund_WhenPaid_ThrowsInvalidOperation()
     {
         // Arrange
         var booking = CreateTestBooking(BookingStatus.Paid, 2_000_000m);
 
         // Act
-        var (percentage, amount, payout) = booking.CalculateRefund(CancelledBy.Student);
+        var act = () => booking.CalculateRefund(CancelledBy.Student);
 
         // Assert
-        percentage.Should().Be(100);
-        amount.Should().Be(2_000_000m);
-        payout.Should().Be(0);
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
     public void Cancel_WhenEligible_UpdatesStatusAndCancellationDetails()
     {
         // Arrange
-        var booking = CreateTestBooking(BookingStatus.Paid);
+        var booking = CreateTestBooking(BookingStatus.Holding);
         var now = DateTime.UtcNow;
 
         // Act
@@ -142,5 +151,55 @@ public class BookingTests
         // Assert
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("Cannot cancel booking in 'Expired' status.");
+    }
+
+    [Fact]
+    public void ReactivateForPayment_WhenSystemExpired_ReactivatesToPaid()
+    {
+        // Arrange
+        var booking = CreateTestBooking(BookingStatus.Cancelled);
+        booking.CancelledBy = CancelledBy.System;
+        booking.CancellationReason = "HoldingExpired";
+        booking.CancelledAt = DateTime.UtcNow;
+        booking.HoldingExpiresAt = DateTime.UtcNow.AddMinutes(-1);
+        var now = DateTime.UtcNow;
+
+        // Act
+        booking.ReactivateForPayment(now);
+
+        // Assert
+        booking.Status.Should().Be(BookingStatus.Paid);
+        booking.CancelledBy.Should().BeNull();
+        booking.CancellationReason.Should().BeNull();
+        booking.CancelledAt.Should().BeNull();
+        booking.HoldingExpiresAt.Should().BeNull();
+        booking.ConfirmedAt.Should().Be(now);
+    }
+
+    [Fact]
+    public void ReactivateForPayment_WhenCancelledByStudent_Throws()
+    {
+        // Arrange
+        var booking = CreateTestBooking(BookingStatus.Cancelled);
+        booking.CancelledBy = CancelledBy.Student;
+
+        // Act
+        var act = () => booking.ReactivateForPayment(DateTime.UtcNow);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void ReactivateForPayment_WhenNotCancelled_Throws()
+    {
+        // Arrange
+        var booking = CreateTestBooking(BookingStatus.Holding);
+
+        // Act
+        var act = () => booking.ReactivateForPayment(DateTime.UtcNow);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>();
     }
 }

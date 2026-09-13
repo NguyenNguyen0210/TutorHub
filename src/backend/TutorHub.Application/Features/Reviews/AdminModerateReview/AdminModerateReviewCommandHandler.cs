@@ -9,14 +9,18 @@ namespace TutorHub.Application.Features.Reviews.AdminModerateReview;
 public class AdminModerateReviewCommandHandler : IRequestHandler<AdminModerateReviewCommand, ReviewDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public AdminModerateReviewCommandHandler(IAppDbContext context)
+    public AdminModerateReviewCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ReviewDto> Handle(AdminModerateReviewCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var review = await _context.Reviews
             .Include(r => r.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(s => s.User)
             .Include(r => r.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(t => t.User)
@@ -33,7 +37,7 @@ public class AdminModerateReviewCommandHandler : IRequestHandler<AdminModerateRe
         }
 
         // 1. Soft moderation domain action
-        review.RemoveByAdmin(request.Reason, request.AdminId);
+        review.RemoveByAdmin(request.Reason, userId);
 
         // 2. Recalculate TutorProfile RatingAvg & TotalReviews
         var tutorProfileId = review.Enrollment.TutorProfileId;

@@ -8,20 +8,26 @@ namespace TutorHub.Application.Features.Auth.ChangePassword;
 public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordCommand, bool>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly ICurrentUserService _currentUserService;
 
     public ChangePasswordCommandHandler(
-        IAppDbContext context,
-        IPasswordHasher passwordHasher)
+        IAppDbContext context, IClock clock,
+        IPasswordHasher passwordHasher, ICurrentUserService currentUserService)
     {
         _context = context;
+        _clock = clock;
         _passwordHasher = passwordHasher;
+        _currentUserService = currentUserService;
     }
 
     public async Task<bool> Handle(ChangePasswordCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (user == null)
         {
@@ -37,12 +43,12 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
 
         // Security best practice: Revoke all active refresh tokens when password changes
         var activeTokens = await _context.RefreshTokens
-            .Where(r => r.UserId == user.Id && r.RevokedAt == null && r.ExpiresAt > DateTime.UtcNow)
+            .Where(r => r.UserId == user.Id && r.RevokedAt == null && r.ExpiresAt > _clock.UtcNow)
             .ToListAsync(cancellationToken);
 
         foreach (var token in activeTokens)
         {
-            token.RevokedAt = DateTime.UtcNow;
+            token.RevokedAt = _clock.UtcNow;
         }
 
         await _context.SaveChangesAsync(cancellationToken);

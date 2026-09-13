@@ -15,22 +15,24 @@ namespace TutorHub.Application.UnitTests.Features.Bookings.CancelBooking;
 public class CancelBookingCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly CancelBookingCommandHandler _handler;
 
     public CancelBookingCommandHandlerTests()
     {
-        _handler = new CancelBookingCommandHandler(_contextMock.Object);
+        _handler = new CancelBookingCommandHandler(_contextMock.Object, StubClock.Instance, _currentUser);
     }
 
     [Fact]
-    public async Task Handle_WhenStudentCancelsPaidBooking_ShouldCancelAndSave()
+    public async Task Handle_WhenStudentCancelsHoldingBooking_ShouldCancelAndSave()
     {
-        // Arrange - Setup a paid booking (Wave 3: Pending/Confirmed/Completed gone)
+        // Arrange - Setup a holding booking
         var booking = new BookingBuilder()
-            .WithStatus(BookingStatus.Paid)
+            .WithStatus(BookingStatus.Holding)
             .Build();
 
         var studentUserId = booking.StudentProfile.UserId;
+        _currentUser.Set(studentUserId, UserRole.Student);
         var bookingsList = new List<Booking> { booking };
         var walletsList = new List<Wallet>();
         var transactionsList = new List<Transaction>();
@@ -40,7 +42,7 @@ public class CancelBookingCommandHandlerTests
         _contextMock.Setup(c => c.Transactions).Returns(MockDbSetHelper.CreateMockDbSet(transactionsList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var command = new CancelBookingCommand(booking.Id, studentUserId, UserRole.Student, "Schedule conflict");
+        var command = new CancelBookingCommand(booking.Id, "Schedule conflict");
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -58,21 +60,43 @@ public class CancelBookingCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenBookingHasHeldTransaction_ShouldRefundTransactionAndUpdateTutorWallet()
+    public async Task Handle_WhenStudentCancelsPaidBooking_ShouldThrowConflict()
     {
-        // Arrange - Booking with Held transaction (200,000 VND) and tutor wallet having pending balance
+        // Arrange
+        var booking = new BookingBuilder()
+            .WithStatus(BookingStatus.Paid)
+            .Build();
+
+        var studentUserId = booking.StudentProfile.UserId;
+        _currentUser.Set(studentUserId, UserRole.Student);
+        var bookingsList = new List<Booking> { booking };
+        _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(bookingsList).Object);
+
+        var command = new CancelBookingCommand(booking.Id, "Paid cancel");
+
+        // Act
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        var ex = await act.Should().ThrowAsync<ConflictException>();
+        ex.Which.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenHoldingBookingCancelledWithHeldTransaction_ShouldVoidAttemptWithoutWalletChange()
+    {
+        // Arrange
         var bookingId = Guid.NewGuid();
 
         var transaction = new TransactionBuilder()
             .WithBookingId(bookingId)
-            .WithAmount(200_000m)
             .WithStatus(TransactionStatus.Held)
             .Build();
 
         var booking = new BookingBuilder()
             .WithId(bookingId)
-            .WithStatus(BookingStatus.Paid)
-            .WithSnapshot(200_000m)
+            .WithStatus(BookingStatus.Holding)
             .WithTransaction(transaction)
             .Build();
 
@@ -91,7 +115,8 @@ public class CancelBookingCommandHandlerTests
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var studentUserId = booking.StudentProfile.UserId;
-        var command = new CancelBookingCommand(booking.Id, studentUserId, UserRole.Student, "Emergency cancel");
+        _currentUser.Set(studentUserId, UserRole.Student);
+        var command = new CancelBookingCommand(booking.Id, "Emergency cancel");
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -100,12 +125,9 @@ public class CancelBookingCommandHandlerTests
         result.Should().NotBeNull();
         result.Status.Should().Be(BookingStatus.Cancelled);
 
-        // 1. Transaction state transitioned to Refunded
-        transaction.Status.Should().Be(TransactionStatus.Refunded);
-        transaction.RefundedAt.Should().NotBeNull();
-
-        // 2. Tutor wallet pending balance decremented
-        tutorWallet.PendingBalance.Should().Be(0m);
+        booking.Status.Should().Be(BookingStatus.Cancelled);
+        transaction.Status.Should().Be(TransactionStatus.Failed);
+        tutorWallet.PendingBalance.Should().Be(200_000m);
 
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -118,7 +140,8 @@ public class CancelBookingCommandHandlerTests
         _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(bookingsList).Object);
 
         var nonExistentId = Guid.NewGuid();
-        var command = new CancelBookingCommand(nonExistentId, Guid.NewGuid(), UserRole.Student, "Reason");
+        _currentUser.Set(Guid.NewGuid(), UserRole.Student);
+        var command = new CancelBookingCommand(nonExistentId, "Reason");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -141,7 +164,8 @@ public class CancelBookingCommandHandlerTests
         _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(bookingsList).Object);
 
         var unauthorizedUserId = Guid.NewGuid();
-        var command = new CancelBookingCommand(booking.Id, unauthorizedUserId, UserRole.Student, "Intruder cancel");
+        _currentUser.Set(unauthorizedUserId, UserRole.Student);
+        var command = new CancelBookingCommand(booking.Id, "Intruder cancel");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -165,7 +189,8 @@ public class CancelBookingCommandHandlerTests
         _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(bookingsList).Object);
 
         var studentUserId = booking.StudentProfile.UserId;
-        var command = new CancelBookingCommand(booking.Id, studentUserId, UserRole.Student, "Cannot cancel twice");
+        _currentUser.Set(studentUserId, UserRole.Student);
+        var command = new CancelBookingCommand(booking.Id, "Cannot cancel twice");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);

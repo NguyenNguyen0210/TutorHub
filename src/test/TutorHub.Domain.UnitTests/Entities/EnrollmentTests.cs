@@ -140,6 +140,74 @@ public class EnrollmentTests
     }
 
     [Fact]
+    public void RecordCompletedSession_WithACancelledSession_StillCompletesEnrollment()
+    {
+        // Arrange: 3 sessions, one cancelled, the other two completed.
+        var enrollment = CreateEnrollmentWithSessions(totalPrice: 1_000_000m, totalSessions: 3);
+        var s1 = enrollment.Sessions.ElementAt(0);
+        var s2 = enrollment.Sessions.ElementAt(1);
+        var s3 = enrollment.Sessions.ElementAt(2);
+
+        s3.CancelSingle("Student cancelled this session", DateTime.UtcNow);
+
+        s1.Schedule(DateTime.UtcNow.AddDays(1), DateTime.UtcNow.AddDays(1).AddHours(1));
+        s1.Complete();
+        enrollment.RecordCompletedSession(s1.Id);
+
+        s2.Schedule(DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(2).AddHours(1));
+        s2.Complete();
+        enrollment.RecordCompletedSession(s2.Id);
+
+        // Assert: cancelled session no longer blocks completion (FR-ENR-005).
+        enrollment.Status.Should().Be(EnrollmentStatus.Completed);
+        enrollment.CompletedAt.Should().NotBeNull();
+        enrollment.CompletedSessions.Should().Be(2);
+    }
+
+    [Fact]
+    public void EvaluateCompletion_WhenAllSessionsCancelled_RemainsActive()
+    {
+        // Arrange: every session cancelled is an early termination, not completion.
+        var enrollment = CreateEnrollmentWithSessions(totalPrice: 900_000m, totalSessions: 3);
+        foreach (var s in enrollment.Sessions)
+        {
+            s.CancelSingle("Cancelled", DateTime.UtcNow);
+        }
+
+        // Act
+        enrollment.EvaluateCompletion();
+
+        // Assert: no delivered session -> stay Active (must go through enrollment cancel).
+        enrollment.Status.Should().Be(EnrollmentStatus.Active);
+        enrollment.CompletedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void EvaluateCompletion_WhenCancelledSessionWasLastUnresolved_Completes()
+    {
+        // Arrange: 2 completed, 1 remaining scheduled; then the last is cancelled.
+        var enrollment = CreateEnrollmentWithSessions(totalPrice: 900_000m, totalSessions: 3);
+        var s1 = enrollment.Sessions.ElementAt(0);
+        var s2 = enrollment.Sessions.ElementAt(1);
+        var s3 = enrollment.Sessions.ElementAt(2);
+
+        s1.Schedule(DateTime.UtcNow.AddDays(1), DateTime.UtcNow.AddDays(1).AddHours(1));
+        s1.Complete();
+        enrollment.RecordCompletedSession(s1.Id);
+
+        s2.Schedule(DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(2).AddHours(1));
+        s2.Complete();
+        enrollment.RecordCompletedSession(s2.Id);
+
+        // Act: cancel the final unresolved session, then re-evaluate.
+        s3.CancelSingle("Cancelled last session", DateTime.UtcNow);
+        enrollment.EvaluateCompletion();
+
+        // Assert
+        enrollment.Status.Should().Be(EnrollmentStatus.Completed);
+    }
+
+    [Fact]
     public void RecordCompletedSession_WhenEnrollmentCancelled_ThrowsInvalidOperationException()
     {
         // Arrange

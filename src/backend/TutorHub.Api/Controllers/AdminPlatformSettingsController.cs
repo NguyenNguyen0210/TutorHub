@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.PlatformSettings.Commands.AdminUpdatePlatformFee;
 using TutorHub.Application.Features.PlatformSettings.Commands.AdminUpsertPlatformSetting;
@@ -44,10 +42,8 @@ public class AdminPlatformSettingsController : ControllerBase
         [FromBody] UpdatePlatformFeeRequest request,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
         var command = new AdminUpdatePlatformFeeCommand(
             NewFeeRate: request.NewFeeRate,
-            AdminUserId: adminId,
             Reason: request.Reason
         );
 
@@ -70,11 +66,9 @@ public class AdminPlatformSettingsController : ControllerBase
         [FromBody] UpsertPlatformSettingRequest request,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
         var command = new AdminUpsertPlatformSettingCommand(
             Key: key,
             Value: request.Value,
-            AdminUserId: adminId,
             Reason: request.Reason
         );
 
@@ -91,16 +85,6 @@ public class AdminPlatformSettingsController : ControllerBase
     {
         var result = await _sender.Send(new AdminGetPlatformRevenueAnalyticsQuery(), cancellationToken);
         return Ok(ApiResponse<PlatformRevenueAnalyticsDto>.SuccessResult(result, "Platform revenue analytics retrieved successfully."));
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
     }
 }
 

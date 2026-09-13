@@ -10,14 +10,19 @@ namespace TutorHub.Application.Features.Bookings.GetBookingById;
 public class GetBookingByIdQueryHandler : IRequestHandler<GetBookingByIdQuery, BookingDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetBookingByIdQueryHandler(IAppDbContext context)
+    public GetBookingByIdQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<BookingDto> Handle(GetBookingByIdQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+        var role = _currentUserService.Role;
+
         var booking = await _context.Bookings
             .AsNoTracking()
             .Include(b => b.StudentProfile).ThenInclude(s => s.User)
@@ -33,9 +38,9 @@ public class GetBookingByIdQueryHandler : IRequestHandler<GetBookingByIdQuery, B
         var paymentTx = await _context.GetPaymentTransactionAsync(booking.Id, cancellationToken);
 
         // Resource Authorization Check
-        var isOwner = (request.Role == UserRole.Student && booking.StudentProfile.UserId == request.UserId) ||
-                      (request.Role == UserRole.Tutor && booking.TutorProfile.UserId == request.UserId) ||
-                      (request.Role == UserRole.Admin);
+        var isOwner = (role == UserRole.Student && booking.StudentProfile.UserId == userId) ||
+                      (role == UserRole.Tutor && booking.TutorProfile.UserId == userId) ||
+                      (role == UserRole.Admin);
 
         if (!isOwner)
         {

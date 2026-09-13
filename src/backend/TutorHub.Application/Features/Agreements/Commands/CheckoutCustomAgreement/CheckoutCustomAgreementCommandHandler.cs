@@ -11,14 +11,20 @@ namespace TutorHub.Application.Features.Agreements.Commands.CheckoutCustomAgreem
 public class CheckoutCustomAgreementCommandHandler : IRequestHandler<CheckoutCustomAgreementCommand, BookingDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CheckoutCustomAgreementCommandHandler(IAppDbContext context)
+    public CheckoutCustomAgreementCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
+        _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<BookingDto> Handle(CheckoutCustomAgreementCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var agreement = await _context.CustomAgreements
             .Include(a => a.TutorProfile).ThenInclude(t => t.User)
             .Include(a => a.StudentProfile).ThenInclude(s => s.User)
@@ -32,7 +38,7 @@ public class CheckoutCustomAgreementCommandHandler : IRequestHandler<CheckoutCus
         }
 
         // 1. Granular Student Authorization (INV-AGREE-003)
-        if (agreement.StudentProfile.UserId != request.StudentUserId)
+        if (agreement.StudentProfile.UserId != userId)
         {
             throw new ForbiddenException("Only the designated student participant can checkout this custom agreement.");
         }
@@ -50,7 +56,7 @@ public class CheckoutCustomAgreementCommandHandler : IRequestHandler<CheckoutCus
             .Include(b => b.Subject)
             .FirstOrDefaultAsync(b => b.CustomAgreementId == agreement.Id, cancellationToken);
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         if (existingBooking != null)
         {
@@ -61,19 +67,29 @@ public class CheckoutCustomAgreementCommandHandler : IRequestHandler<CheckoutCus
                 throw new ConflictException("This custom agreement has already been paid and ordered.");
             }
 
-            // If active holding, return existing booking idempotently
-            if (existingBooking.Status == BookingStatus.Holding && existingBooking.HoldingExpiresAt > now)
+            if (existingBooking.Status == BookingStatus.Holding)
             {
-                return MapToDto(existingBooking);
-            }
+                // A null HoldingExpiresAt is treated as lapsed (never assume a live hold).
+                var holdIsLive = existingBooking.HoldingExpiresAt.HasValue
+                    && existingBooking.HoldingExpiresAt.Value > now;
 
-            // If expired holding, refresh the 15-minute hold window
-            if (existingBooking.Status == BookingStatus.Holding && existingBooking.HoldingExpiresAt <= now)
-            {
+                if (holdIsLive)
+                {
+                    // Idempotent replay of an active hold.
+                    return MapToDto(existingBooking);
+                }
+
+                // Lapsed hold: refresh the 15-minute window on the SAME booking.
                 existingBooking.HoldingExpiresAt = now.AddMinutes(15);
                 await _context.SaveChangesAsync(cancellationToken);
                 return MapToDto(existingBooking);
             }
+
+            // Cancelled / Expired: the agreement's single booking already lapsed.
+            // A filtered unique index on CustomAgreementId forbids a second booking,
+            // so the student must start a new agreement instead (INV-AGREE-009).
+            throw new ConflictException(
+                $"The checkout for this agreement is no longer active (booking status: {existingBooking.Status}). Please request a new agreement.");
         }
 
         // 4. Create Canonical Booking with Immutable Commercial Terms Snapshot (INV-AGREE-008, INV-AGREE-010)

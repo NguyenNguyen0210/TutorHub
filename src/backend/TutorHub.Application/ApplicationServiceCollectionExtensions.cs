@@ -3,6 +3,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using TutorHub.Application.Common.Behaviors;
+using TutorHub.Application.Features.Enrollments.Common;
 
 namespace TutorHub.Application;
 
@@ -23,6 +24,8 @@ public static class ApplicationServiceCollectionExtensions
         // NOTE: AuthTokenLifetimeOptions is bound in TutorHub.Api/Program.cs
         // (composition root) to avoid an Options.ConfigurationExtensions
         // dependency in the Application layer.
+
+        services.AddScoped<IEnrollmentActivationService, EnrollmentActivationService>();
 
         return services;
     }

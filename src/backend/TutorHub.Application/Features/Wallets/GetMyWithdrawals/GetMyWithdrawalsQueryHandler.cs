@@ -11,16 +11,20 @@ namespace TutorHub.Application.Features.Wallets.GetMyWithdrawals;
 public class GetMyWithdrawalsQueryHandler : IRequestHandler<GetMyWithdrawalsQuery, PagedResult<WithdrawalDto>>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMyWithdrawalsQueryHandler(IAppDbContext context)
+    public GetMyWithdrawalsQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<PagedResult<WithdrawalDto>> Handle(GetMyWithdrawalsQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var tutor = await _context.TutorProfiles
-            .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null)
         {

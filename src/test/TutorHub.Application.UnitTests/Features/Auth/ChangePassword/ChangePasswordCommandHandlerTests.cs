@@ -7,6 +7,7 @@ using TutorHub.Application.Common.Security;
 using TutorHub.Application.Features.Auth.ChangePassword;
 using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
+using TutorHub.Domain.Enums;
 using TutorHub.Domain.UnitTests.Common.Builders;
 using Xunit;
 
@@ -16,13 +17,16 @@ public class ChangePasswordCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
     private readonly Mock<IPasswordHasher> _passwordHasherMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly ChangePasswordCommandHandler _handler;
 
     public ChangePasswordCommandHandlerTests()
     {
         _handler = new ChangePasswordCommandHandler(
             _contextMock.Object,
-            _passwordHasherMock.Object);
+            StubClock.Instance,
+            _passwordHasherMock.Object,
+            _currentUser);
     }
 
     [Fact]
@@ -59,7 +63,9 @@ public class ChangePasswordCommandHandlerTests
             .Setup(h => h.HashPassword(newPassword))
             .Returns(newHashedPassword);
 
-        var command = new ChangePasswordCommand(user.Id, oldPassword, newPassword);
+        _currentUser.Set(user.Id, UserRole.Student);
+
+        var command = new ChangePasswordCommand(oldPassword, newPassword);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -82,7 +88,7 @@ public class ChangePasswordCommandHandlerTests
         var usersList = new List<User>();
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
 
-        var command = new ChangePasswordCommand(Guid.NewGuid(), "OldPassword123!", "NewPassword456!");
+        var command = new ChangePasswordCommand("OldPassword123!", "NewPassword456!");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -109,7 +115,9 @@ public class ChangePasswordCommandHandlerTests
             .Setup(h => h.VerifyPassword("WrongOldPassword", user.PasswordHash))
             .Returns(false);
 
-        var command = new ChangePasswordCommand(user.Id, "WrongOldPassword", "NewPassword456!");
+        _currentUser.Set(user.Id, UserRole.Student);
+
+        var command = new ChangePasswordCommand("WrongOldPassword", "NewPassword456!");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);

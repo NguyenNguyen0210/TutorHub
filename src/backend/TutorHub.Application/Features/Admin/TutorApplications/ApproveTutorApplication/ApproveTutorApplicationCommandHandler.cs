@@ -13,16 +13,22 @@ public class ApproveTutorApplicationCommandHandler
     : IRequestHandler<ApproveTutorApplicationCommand, AdminTutorApplicationDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ApproveTutorApplicationCommandHandler(IAppDbContext context)
+    public ApproveTutorApplicationCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
+        _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<AdminTutorApplicationDto> Handle(
         ApproveTutorApplicationCommand request,
         CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var application = await _context.TutorApplications
             .Include(a => a.User)
             .FirstOrDefaultAsync(a => a.Id == request.ApplicationId, cancellationToken);
@@ -31,7 +37,7 @@ public class ApproveTutorApplicationCommandHandler
             throw new NotFoundException("TutorApplication", request.ApplicationId);
 
         // Domain invariant — throws if not Pending
-        application.Approve(request.AdminId);
+        application.Approve(userId);
 
         // Create TutorProfile from application snapshot
         var profileExists = await _context.TutorProfiles
@@ -63,7 +69,7 @@ public class ApproveTutorApplicationCommandHandler
             TutorProfileId = tutorProfileId,
             PendingBalance = 0,
             AvailableBalance = 0,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = _clock.UtcNow
         };
 
         _context.TutorProfiles.Add(profile);
@@ -73,7 +79,7 @@ public class ApproveTutorApplicationCommandHandler
         _context.AddOutboxMessage(new TutorApplicationApprovedEvent(
             application.Id,
             application.UserId,
-            request.AdminId));
+            userId));
 
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         try

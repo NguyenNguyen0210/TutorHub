@@ -9,9 +9,6 @@ public class ReportReviewCommandValidator : AbstractValidator<ReportReviewComman
         RuleFor(x => x.ReviewId)
             .NotEmpty().WithMessage("Review ID is required.");
 
-        RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
-
         RuleFor(x => x.Description)
             .NotEmpty().WithMessage("Report description is required.")
             .MaximumLength(1000).WithMessage("Description must not exceed 1000 characters.");

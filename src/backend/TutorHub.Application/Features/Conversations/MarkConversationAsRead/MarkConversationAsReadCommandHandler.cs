@@ -8,15 +8,17 @@ namespace TutorHub.Application.Features.Conversations.MarkConversationAsRead;
 public class MarkConversationAsReadCommandHandler : IRequestHandler<MarkConversationAsReadCommand, int>
 {
     private readonly IAppDbContext _dbContext;
+    private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
     private readonly IChatNotificationService? _chatNotificationService;
 
     public MarkConversationAsReadCommandHandler(
-        IAppDbContext dbContext,
+        IAppDbContext dbContext, IClock clock,
         ICurrentUserService currentUserService,
         IChatNotificationService? chatNotificationService = null)
     {
         _dbContext = dbContext;
+        _clock = clock;
         _currentUserService = currentUserService;
         _chatNotificationService = chatNotificationService;
     }
@@ -48,7 +50,7 @@ public class MarkConversationAsReadCommandHandler : IRequestHandler<MarkConversa
             throw new ForbiddenException("You are not authorized to access this conversation.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         var unreadMessages = await _dbContext.Messages
             .Where(m => m.ConversationId == request.ConversationId && m.SenderUserId != currentUserId && !m.IsRead)

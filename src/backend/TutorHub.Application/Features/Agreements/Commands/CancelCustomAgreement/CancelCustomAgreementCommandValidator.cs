@@ -7,7 +7,6 @@ public class CancelCustomAgreementCommandValidator : AbstractValidator<CancelCus
     public CancelCustomAgreementCommandValidator()
     {
         RuleFor(x => x.AgreementId).NotEmpty();
-        RuleFor(x => x.TutorUserId).NotEmpty();
 
         RuleFor(x => x.Reason)
             .NotEmpty().WithMessage("Cancellation reason is required.")

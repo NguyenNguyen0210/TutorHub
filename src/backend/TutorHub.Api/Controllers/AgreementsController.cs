@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Agreements.Commands.AcceptCustomAgreement;
 using TutorHub.Application.Features.Agreements.Commands.CancelCustomAgreement;
@@ -43,9 +41,7 @@ public class AgreementsController : ControllerBase
         [FromBody] CreateCustomAgreementRequest request,
         CancellationToken cancellationToken)
     {
-        var tutorUserId = GetCurrentUserId();
         var command = new CreateCustomAgreementCommand(
-            TutorUserId: tutorUserId,
             StudentProfileId: request.StudentProfileId,
             SubjectId: request.SubjectId,
             ServiceId: request.ServiceId,
@@ -79,8 +75,7 @@ public class AgreementsController : ControllerBase
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var query = new GetCustomAgreementByIdQuery(id, userId);
+        var query = new GetCustomAgreementByIdQuery(id);
         var result = await _sender.Send(query, cancellationToken);
 
         return Ok(ApiResponse<CustomAgreementDto>.SuccessResult(result, "Custom agreement details retrieved successfully."));
@@ -98,8 +93,7 @@ public class AgreementsController : ControllerBase
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var userId = GetCurrentUserId();
-        var query = new GetMyAgreementsQuery(userId, status, pageNumber, pageSize);
+        var query = new GetMyAgreementsQuery(status, pageNumber, pageSize);
         var result = await _sender.Send(query, cancellationToken);
 
         return Ok(ApiResponse<PagedResult<CustomAgreementDto>>.SuccessResult(result, "Agreements retrieved successfully."));
@@ -119,8 +113,7 @@ public class AgreementsController : ControllerBase
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
     {
-        var studentUserId = GetCurrentUserId();
-        var command = new AcceptCustomAgreementCommand(id, studentUserId);
+        var command = new AcceptCustomAgreementCommand(id);
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<CustomAgreementDto>.SuccessResult(result, "Custom agreement accepted successfully. You can now proceed to checkout."));
@@ -142,8 +135,7 @@ public class AgreementsController : ControllerBase
         [FromBody] RejectAgreementRequest request,
         CancellationToken cancellationToken)
     {
-        var studentUserId = GetCurrentUserId();
-        var command = new RejectCustomAgreementCommand(id, studentUserId, request.Reason);
+        var command = new RejectCustomAgreementCommand(id, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<CustomAgreementDto>.SuccessResult(result, "Custom agreement rejected successfully."));
@@ -165,8 +157,7 @@ public class AgreementsController : ControllerBase
         [FromBody] CancelAgreementRequest request,
         CancellationToken cancellationToken)
     {
-        var tutorUserId = GetCurrentUserId();
-        var command = new CancelCustomAgreementCommand(id, tutorUserId, request.Reason);
+        var command = new CancelCustomAgreementCommand(id, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<CustomAgreementDto>.SuccessResult(result, "Custom agreement cancelled successfully."));
@@ -186,23 +177,12 @@ public class AgreementsController : ControllerBase
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
     {
-        var studentUserId = GetCurrentUserId();
-        var command = new CheckoutCustomAgreementCommand(id, studentUserId);
+        var command = new CheckoutCustomAgreementCommand(id);
         var result = await _sender.Send(command, cancellationToken);
 
         return StatusCode(
             StatusCodes.Status201Created,
             ApiResponse<BookingDto>.SuccessResult(result, "Booking created from custom agreement with 15-minute checkout hold. Proceed to payment.")
         );
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
     }
 }

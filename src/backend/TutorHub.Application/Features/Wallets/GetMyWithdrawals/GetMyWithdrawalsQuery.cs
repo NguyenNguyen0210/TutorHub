@@ -6,7 +6,6 @@ using TutorHub.Domain.Enums;
 namespace TutorHub.Application.Features.Wallets.GetMyWithdrawals;
 
 public record GetMyWithdrawalsQuery(
-    Guid UserId,
     WithdrawalStatus? Status = null,
     int PageNumber = 1,
     int PageSize = 10

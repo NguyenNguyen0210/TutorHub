@@ -8,13 +8,15 @@ namespace TutorHub.Application.Features.Notifications.MarkNotificationAsRead;
 public class MarkNotificationAsReadCommandHandler : IRequestHandler<MarkNotificationAsReadCommand, bool>
 {
     private readonly IAppDbContext _dbContext;
+    private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
 
     public MarkNotificationAsReadCommandHandler(
-        IAppDbContext dbContext,
+        IAppDbContext dbContext, IClock clock,
         ICurrentUserService currentUserService)
     {
         _dbContext = dbContext;
+        _clock = clock;
         _currentUserService = currentUserService;
     }
 
@@ -40,7 +42,7 @@ public class MarkNotificationAsReadCommandHandler : IRequestHandler<MarkNotifica
             throw new ForbiddenException("You cannot mark another user's notification as read.");
         }
 
-        notification.MarkAsRead(DateTime.UtcNow);
+        notification.MarkAsRead(_clock.UtcNow);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return true;

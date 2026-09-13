@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Enrollments.CancelEnrollment;
@@ -38,12 +36,7 @@ public class EnrollmentsController : ControllerBase
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var userId = GetCurrentUserId();
-        var role = GetCurrentUserRole();
-
         var query = new GetMyEnrollmentsQuery(
-            UserId: userId,
-            Role: role,
             Status: status,
             PageNumber: pageNumber,
             PageSize: pageSize
@@ -66,10 +59,7 @@ public class EnrollmentsController : ControllerBase
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var role = GetCurrentUserRole();
-
-        var query = new GetEnrollmentByIdQuery(userId, role, id);
+        var query = new GetEnrollmentByIdQuery(id);
         var result = await _sender.Send(query, cancellationToken);
 
         return Ok(ApiResponse<EnrollmentDto>.SuccessResult(result, "Enrollment details retrieved successfully."));
@@ -92,8 +82,7 @@ public class EnrollmentsController : ControllerBase
         [FromBody] CancelEnrollmentRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var command = new CancelEnrollmentCommand(userId, id, request.Reason);
+        var command = new CancelEnrollmentCommand(id, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<EnrollmentDto>.SuccessResult(result, "Enrollment cancelled successfully."));
@@ -116,30 +105,9 @@ public class EnrollmentsController : ControllerBase
         [FromBody] TutorCannotContinueRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var command = new TutorCannotContinueCommand(userId, id, request.Reason);
+        var command = new TutorCannotContinueCommand(id, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<EnrollmentDto>.SuccessResult(result, "Tutor inability to continue processed successfully."));
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
-    }
-
-    private UserRole GetCurrentUserRole()
-    {
-        var roleClaim = User.FindFirstValue(ClaimTypes.Role);
-        if (Enum.TryParse<UserRole>(roleClaim, true, out var role))
-        {
-            return role;
-        }
-        throw new UnauthorizedException("User role is invalid or missing from token.");
     }
 }

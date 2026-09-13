@@ -19,6 +19,8 @@ namespace TutorHub.Application.UnitTests.Features.Admin.Withdrawals;
 public class AdminWithdrawalCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly Mock<IAuditLogService> _auditLogServiceMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
 
     private static (Withdrawal withdrawal, Wallet wallet, User adminUser) CreateTestAggregate(WithdrawalStatus initialStatus = WithdrawalStatus.Pending)
     {
@@ -62,8 +64,9 @@ public class AdminWithdrawalCommandHandlerTests
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
 
-        var handler = new ProcessWithdrawalCommandHandler(_contextMock.Object);
-        var command = new ProcessWithdrawalCommand(withdrawal.Id, admin.Id);
+        _currentUser.Set(admin.Id, UserRole.Admin);
+        var handler = new ProcessWithdrawalCommandHandler(_contextMock.Object, _auditLogServiceMock.Object, _currentUser);
+        var command = new ProcessWithdrawalCommand(withdrawal.Id);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
@@ -82,8 +85,9 @@ public class AdminWithdrawalCommandHandlerTests
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
 
-        var handler = new ProcessWithdrawalCommandHandler(_contextMock.Object);
-        var command = new ProcessWithdrawalCommand(withdrawal.Id, admin.Id);
+        _currentUser.Set(admin.Id, UserRole.Admin);
+        var handler = new ProcessWithdrawalCommandHandler(_contextMock.Object, _auditLogServiceMock.Object, _currentUser);
+        var command = new ProcessWithdrawalCommand(withdrawal.Id);
 
         // Act
         var act = () => handler.Handle(command, CancellationToken.None);
@@ -102,8 +106,9 @@ public class AdminWithdrawalCommandHandlerTests
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
 
-        var handler = new CompleteWithdrawalCommandHandler(_contextMock.Object);
-        var command = new CompleteWithdrawalCommand(withdrawal.Id, admin.Id);
+        _currentUser.Set(admin.Id, UserRole.Admin);
+        var handler = new CompleteWithdrawalCommandHandler(_contextMock.Object, _auditLogServiceMock.Object, _currentUser);
+        var command = new CompleteWithdrawalCommand(withdrawal.Id);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
@@ -123,8 +128,9 @@ public class AdminWithdrawalCommandHandlerTests
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
 
-        var handler = new CompleteWithdrawalCommandHandler(_contextMock.Object);
-        var command = new CompleteWithdrawalCommand(withdrawal.Id, admin.Id);
+        _currentUser.Set(admin.Id, UserRole.Admin);
+        var handler = new CompleteWithdrawalCommandHandler(_contextMock.Object, _auditLogServiceMock.Object, _currentUser);
+        var command = new CompleteWithdrawalCommand(withdrawal.Id);
 
         // Act
         var act = () => handler.Handle(command, CancellationToken.None);
@@ -143,8 +149,9 @@ public class AdminWithdrawalCommandHandlerTests
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
 
-        var handler = new FailWithdrawalCommandHandler(_contextMock.Object);
-        var command = new FailWithdrawalCommand(withdrawal.Id, admin.Id, "Reason");
+        _currentUser.Set(admin.Id, UserRole.Admin);
+        var handler = new FailWithdrawalCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object, _currentUser);
+        var command = new FailWithdrawalCommand(withdrawal.Id, "Reason");
 
         // Act
         var act = () => handler.Handle(command, CancellationToken.None);
@@ -173,3 +180,4 @@ public class AdminWithdrawalCommandHandlerTests
         result.Amount.Should().Be(300_000m);
     }
 }
+

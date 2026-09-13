@@ -14,19 +14,24 @@ public class AcceptSessionRescheduleCommandHandler : IRequestHandler<AcceptSessi
     private readonly IAppDbContext _context;
     private readonly IAuditLogService _auditLogService;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
     public AcceptSessionRescheduleCommandHandler(
         IAppDbContext context,
         IAuditLogService auditLogService,
-        IClock clock)
+        IClock clock,
+        ICurrentUserService currentUserService)
     {
         _context = context;
         _auditLogService = auditLogService;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<SessionDto> Handle(AcceptSessionRescheduleCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var requestEntity = await _context.SessionRescheduleRequests
             .FirstOrDefaultAsync(r => r.Id == request.RequestId, cancellationToken);
 
@@ -51,7 +56,7 @@ public class AcceptSessionRescheduleCommandHandler : IRequestHandler<AcceptSessi
         }
 
         // 1. Strict Actor Authorization (INV-RESCHED-001): Only the Student can accept
-        if (session.Enrollment.StudentProfile.UserId != request.UserId)
+        if (session.Enrollment.StudentProfile.UserId != userId)
         {
             throw new ForbiddenException("Only the Student can accept a session reschedule proposal.");
         }
@@ -118,7 +123,7 @@ public class AcceptSessionRescheduleCommandHandler : IRequestHandler<AcceptSessi
 
             // 8. Domain State Transitions
             session.Reschedule(requestEntity.ProposedStartAt, requestEntity.ProposedEndAt, now);
-            requestEntity.Accept(request.UserId, now);
+            requestEntity.Accept(userId, now);
 
             // 9. Transactional Outbox (DEC-S7-001, DEC-S7-002)
             _context.AddOutboxMessage(new SessionRescheduledEvent(
@@ -131,7 +136,7 @@ public class AcceptSessionRescheduleCommandHandler : IRequestHandler<AcceptSessi
                 requestEntity.ProposedStartAt,
                 requestEntity.ProposedEndAt,
                 requestEntity.Id,
-                request.UserId,
+                userId,
                 Guid.NewGuid(),
                 1,
                 now));
@@ -141,7 +146,7 @@ public class AcceptSessionRescheduleCommandHandler : IRequestHandler<AcceptSessi
                 action: "SESSION_RESCHEDULED",
                 entityName: "Session",
                 entityId: session.Id.ToString(),
-                userId: request.UserId,
+                userId: userId,
                 oldValues: new { StartAt = previousStartAt, EndAt = previousEndAt },
                 newValues: new { StartAt = requestEntity.ProposedStartAt, EndAt = requestEntity.ProposedEndAt, RescheduleRequestId = requestEntity.Id },
                 cancellationToken: cancellationToken);

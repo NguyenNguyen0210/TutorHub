@@ -13,11 +13,12 @@ namespace TutorHub.Application.UnitTests.Features.Disputes.UploadEvidence;
 public class UploadDisputeEvidenceCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly UploadDisputeEvidenceCommandHandler _handler;
 
     public UploadDisputeEvidenceCommandHandlerTests()
     {
-        _handler = new UploadDisputeEvidenceCommandHandler(_contextMock.Object);
+        _handler = new UploadDisputeEvidenceCommandHandler(_contextMock.Object, StubClock.Instance, _currentUser);
     }
 
     [Fact]
@@ -42,9 +43,9 @@ public class UploadDisputeEvidenceCommandHandlerTests
         _contextMock.Setup(c => c.Disputes).Returns(MockDbSetHelper.CreateMockDbSet(disputes).Object);
         _contextMock.Setup(c => c.DisputeEvidences).Returns(MockDbSetHelper.CreateMockDbSet(evidences).Object);
 
+        _currentUser.Set(studentUser.Id, studentUser.Role);
         var command = new UploadDisputeEvidenceCommand(
             dispute.Id,
-            studentUser.Id,
             "screenshot.png",
             "https://cdn.tutorhub.com/evidence/123.png",
             "image/png",
@@ -82,9 +83,9 @@ public class UploadDisputeEvidenceCommandHandlerTests
         _contextMock.Setup(c => c.Disputes).Returns(MockDbSetHelper.CreateMockDbSet(disputes).Object);
         _contextMock.Setup(c => c.DisputeEvidences).Returns(MockDbSetHelper.CreateMockDbSet(evidences).Object);
 
+        _currentUser.Set(intruderUser.Id, intruderUser.Role);
         var command = new UploadDisputeEvidenceCommand(
             dispute.Id,
-            intruderUser.Id,
             "screenshot.png",
             "https://cdn.tutorhub.com/evidence/123.png",
             "image/png",

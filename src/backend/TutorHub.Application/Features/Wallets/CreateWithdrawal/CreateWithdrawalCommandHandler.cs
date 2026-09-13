@@ -12,21 +12,27 @@ namespace TutorHub.Application.Features.Wallets.CreateWithdrawal;
 public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCommand, WithdrawalDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateWithdrawalCommandHandler(IAppDbContext context)
+    public CreateWithdrawalCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
+        _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<WithdrawalDto> Handle(CreateWithdrawalCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
 
         try
         {
         var tutor = await _context.TutorProfiles
             .Include(t => t.User)
-            .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null)
         {
@@ -76,7 +82,7 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
             throw new BadRequestException("Payout destination details are incomplete. Either supply all destination fields or configure your default payout account.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _clock.UtcNow;
 
         // Row-level locking (FOR UPDATE)
         var wallet = await _context.Wallets

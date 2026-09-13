@@ -11,14 +11,20 @@ namespace TutorHub.Application.Features.Disputes.Commands.UploadDisputeEvidence;
 public class UploadDisputeEvidenceCommandHandler : IRequestHandler<UploadDisputeEvidenceCommand, DisputeEvidenceDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public UploadDisputeEvidenceCommandHandler(IAppDbContext context)
+    public UploadDisputeEvidenceCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
+        _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<DisputeEvidenceDto> Handle(UploadDisputeEvidenceCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var dispute = await _context.Disputes
             .FirstOrDefaultAsync(d => d.Id == request.DisputeId, cancellationToken);
 
@@ -28,13 +34,13 @@ public class UploadDisputeEvidenceCommandHandler : IRequestHandler<UploadDispute
         }
 
         // Must be participant or admin
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UploadedByUserId, cancellationToken);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (user == null)
         {
-            throw new NotFoundException(nameof(User), request.UploadedByUserId);
+            throw new NotFoundException(nameof(User), userId);
         }
 
-        var isParticipant = dispute.InitiatorUserId == request.UploadedByUserId || dispute.RespondentUserId == request.UploadedByUserId;
+        var isParticipant = dispute.InitiatorUserId == userId || dispute.RespondentUserId == userId;
         var isAdmin = user.Role == UserRole.Admin;
 
         if (!isParticipant && !isAdmin)
@@ -51,12 +57,12 @@ public class UploadDisputeEvidenceCommandHandler : IRequestHandler<UploadDispute
         {
             Id = Guid.NewGuid(),
             DisputeId = dispute.Id,
-            UploadedByUserId = request.UploadedByUserId,
+            UploadedByUserId = userId,
             FileName = request.FileName,
             FileUrl = request.FileUrl,
             ContentType = request.ContentType,
             FileSizeBytes = request.FileSizeBytes,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _clock.UtcNow
         };
 
         _context.DisputeEvidences.Add(evidence);

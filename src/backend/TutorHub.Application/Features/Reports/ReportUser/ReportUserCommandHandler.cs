@@ -12,20 +12,29 @@ namespace TutorHub.Application.Features.Reports.ReportUser;
 public class ReportUserCommandHandler : IRequestHandler<ReportUserCommand, ReportSummaryDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ReportUserCommandHandler(IAppDbContext context)
+    public ReportUserCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ReportSummaryDto> Handle(ReportUserCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
+        if (userId == request.TargetUserId)
+        {
+            throw new BadRequestException("Users cannot report themselves.");
+        }
+
         var reporter = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == request.ReporterUserId, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (reporter == null)
         {
-            throw new NotFoundException("User", request.ReporterUserId);
+            throw new NotFoundException("User", userId);
         }
 
         var targetUser = await _context.Users
@@ -41,7 +50,7 @@ public class ReportUserCommandHandler : IRequestHandler<ReportUserCommand, Repor
         {
             // F-23: validated construction lives in the domain.
             report = Report.Create(
-                reporterUserId: reporter.Id,
+                reporterUserId: userId,
                 reportType: TrustReportType.UserConduct,
                 description: request.Reason,
                 reportedUserId: targetUser.Id,

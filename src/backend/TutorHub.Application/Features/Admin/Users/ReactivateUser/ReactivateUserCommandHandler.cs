@@ -11,16 +11,26 @@ namespace TutorHub.Application.Features.Admin.Users.ReactivateUser;
 public class ReactivateUserCommandHandler : IRequestHandler<ReactivateUserCommand, AdminUserSummaryDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ReactivateUserCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public ReactivateUserCommandHandler(
+        IAppDbContext context,
+        IClock clock,
+        IAuditLogService auditLogService,
+        ICurrentUserService currentUserService)
     {
         _context = context;
+        _clock = clock;
         _auditLogService = auditLogService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<AdminUserSummaryDto> Handle(ReactivateUserCommand request, CancellationToken cancellationToken)
     {
+        var adminId = _currentUserService.UserIdOrThrow();
+
         // 1. Find target user
         var user = await _context.Users
             .Include(u => u.TutorApplications)
@@ -42,14 +52,14 @@ public class ReactivateUserCommandHandler : IRequestHandler<ReactivateUserComman
             throw new ConflictException(ex.Message);
         }
 
-        var nowUtc = DateTime.UtcNow;
+        var nowUtc = _clock.UtcNow;
 
         // 3. Central Append-Only Audit Trail Logging
         await _auditLogService.LogAsync(
             action: "USER_REACTIVATED",
             entityName: "User",
             entityId: user.Id.ToString(),
-            userId: request.AdminId,
+            userId: adminId,
             oldValues: new { status = previousStatus.ToString() },
             newValues: new { status = user.Status.ToString(), reason = "Reactivated by administrator" },
             cancellationToken: cancellationToken);

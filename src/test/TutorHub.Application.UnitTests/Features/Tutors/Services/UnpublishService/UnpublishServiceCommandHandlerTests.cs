@@ -14,11 +14,12 @@ namespace TutorHub.Application.UnitTests.Features.Tutors.Services.UnpublishServi
 public class UnpublishServiceCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly UnpublishServiceCommandHandler _handler;
 
     public UnpublishServiceCommandHandlerTests()
     {
-        _handler = new UnpublishServiceCommandHandler(_contextMock.Object);
+        _handler = new UnpublishServiceCommandHandler(_contextMock.Object, _currentUser);
     }
 
     [Fact]
@@ -48,7 +49,8 @@ public class UnpublishServiceCommandHandlerTests
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var command = new UnpublishServiceCommand(service.Id, user.Id);
+        _currentUser.Set(user.Id, UserRole.Tutor);
+        var command = new UnpublishServiceCommand(service.Id);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -83,7 +85,8 @@ public class UnpublishServiceCommandHandlerTests
 
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
 
-        var command = new UnpublishServiceCommand(service.Id, user.Id);
+        _currentUser.Set(user.Id, UserRole.Tutor);
+        var command = new UnpublishServiceCommand(service.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -116,7 +119,8 @@ public class UnpublishServiceCommandHandlerTests
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
 
         var differentUserId = Guid.NewGuid();
-        var command = new UnpublishServiceCommand(service.Id, differentUserId);
+        _currentUser.Set(differentUserId, UserRole.Tutor);
+        var command = new UnpublishServiceCommand(service.Id);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
