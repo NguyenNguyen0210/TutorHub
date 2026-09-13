@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Wallets.CreateWithdrawal;
 using TutorHub.Application.Features.Wallets.DTOs;
@@ -36,8 +34,7 @@ public class WalletsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetMyWallet(CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var result = await _sender.Send(new GetMyWalletQuery(userId), cancellationToken);
+        var result = await _sender.Send(new GetMyWalletQuery(), cancellationToken);
 
         return Ok(ApiResponse<WalletDto>.SuccessResult(result, "Wallet balance retrieved successfully."));
     }
@@ -54,9 +51,7 @@ public class WalletsController : ControllerBase
         [FromBody] CreateWithdrawalRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new CreateWithdrawalCommand(
-            UserId: userId,
             Amount: request.Amount,
             BankName: request.BankName,
             BankCode: request.BankCode,
@@ -86,9 +81,7 @@ public class WalletsController : ControllerBase
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var userId = GetCurrentUserId();
         var query = new GetMyWithdrawalsQuery(
-            UserId: userId,
             Status: status,
             PageNumber: pageNumber,
             PageSize: pageSize
@@ -107,8 +100,7 @@ public class WalletsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetPayoutAccount(CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var result = await _sender.Send(new GetPayoutAccountQuery(userId), cancellationToken);
+        var result = await _sender.Send(new GetPayoutAccountQuery(), cancellationToken);
 
         return Ok(ApiResponse<TutorPayoutAccountDto>.SuccessResult(result, "Payout bank account retrieved successfully."));
     }
@@ -125,9 +117,7 @@ public class WalletsController : ControllerBase
         [FromBody] UpdatePayoutAccountRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new UpdatePayoutAccountCommand(
-            UserId: userId,
             BankName: request.BankName,
             BankCode: request.BankCode,
             AccountNumber: request.AccountNumber,
@@ -151,24 +141,12 @@ public class WalletsController : ControllerBase
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var userId = GetCurrentUserId();
         var query = new GetWalletStatementQuery(
-            UserId: userId,
             PageNumber: pageNumber,
             PageSize: pageSize
         );
 
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<WalletTransactionDto>>.SuccessResult(result, "Wallet statement retrieved successfully."));
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
     }
 }

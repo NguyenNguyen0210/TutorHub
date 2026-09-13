@@ -9,16 +9,20 @@ namespace TutorHub.Application.Features.Wallets.PayoutAccount.UpdatePayoutAccoun
 public class UpdatePayoutAccountCommandHandler : IRequestHandler<UpdatePayoutAccountCommand, TutorPayoutAccountDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public UpdatePayoutAccountCommandHandler(IAppDbContext context)
+    public UpdatePayoutAccountCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<TutorPayoutAccountDto> Handle(UpdatePayoutAccountCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var tutor = await _context.TutorProfiles
-            .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null)
         {

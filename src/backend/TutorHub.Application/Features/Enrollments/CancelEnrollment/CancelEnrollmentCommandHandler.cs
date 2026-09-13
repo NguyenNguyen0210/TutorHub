@@ -14,16 +14,20 @@ public class CancelEnrollmentCommandHandler : IRequestHandler<CancelEnrollmentCo
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CancelEnrollmentCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
+    public CancelEnrollmentCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<EnrollmentDto> Handle(CancelEnrollmentCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var enrollment = await _context.Enrollments
             .Include(e => e.StudentProfile).ThenInclude(s => s.User)
             .Include(e => e.TutorProfile).ThenInclude(t => t.User)
@@ -38,7 +42,7 @@ public class CancelEnrollmentCommandHandler : IRequestHandler<CancelEnrollmentCo
         }
 
         // 1. Authorization: Only the Student of the Enrollment can execute Student Cancellation
-        if (enrollment.StudentProfile.UserId != request.UserId)
+        if (enrollment.StudentProfile.UserId != userId)
         {
             throw new ForbiddenException("You do not have permission to cancel this enrollment.");
         }
@@ -102,7 +106,7 @@ public class CancelEnrollmentCommandHandler : IRequestHandler<CancelEnrollmentCo
                 action: "ENROLLMENT_CANCELLED",
                 entityName: "Enrollment",
                 entityId: enrollment.Id.ToString(),
-                userId: request.UserId,
+                userId: userId,
                 oldValues: new { status = "Active" },
                 newValues: new { status = "Cancelled", reason = request.Reason, refundAmount },
                 cancellationToken: cancellationToken);
@@ -112,7 +116,7 @@ public class CancelEnrollmentCommandHandler : IRequestHandler<CancelEnrollmentCo
                 enrollment.Id,
                 enrollment.StudentProfile.UserId,
                 enrollment.TutorProfile.UserId,
-                request.UserId,
+                userId,
                 request.Reason));
 
             await _context.SaveChangesAsync(cancellationToken);

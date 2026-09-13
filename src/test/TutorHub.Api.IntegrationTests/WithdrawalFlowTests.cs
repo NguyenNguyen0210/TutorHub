@@ -27,8 +27,8 @@ public class WithdrawalFlowTests : IntegrationTestBase
         var (tutorUser, tutor, _) = await SeedHelper.SeedTutorWithWalletAsync(Db);
 
         // Act
+        SetCurrentUser(tutorUser.Id, UserRole.Tutor);
         var result = await SendAsync(new CreateWithdrawalCommand(
-            UserId: tutorUser.Id,
             Amount: 300_000m,
             BankName: "Vietcombank",
             BankCode: "VCB",
@@ -63,8 +63,8 @@ public class WithdrawalFlowTests : IntegrationTestBase
             Db, availableBalance: 500_000m, heldBalance: 400_000m);
 
         // Act
+        SetCurrentUser(tutorUser.Id, UserRole.Tutor);
         var act = () => SendAsync(new CreateWithdrawalCommand(
-            UserId: tutorUser.Id,
             Amount: 300_000m,
             BankName: "Vietcombank",
             AccountNumber: "1234567890",
@@ -79,8 +79,8 @@ public class WithdrawalFlowTests : IntegrationTestBase
     {
         // Arrange
         var (tutorUser, _, admin) = await SeedHelper.SeedTutorWithWalletAsync(Db);
+        SetCurrentUser(tutorUser.Id, UserRole.Tutor);
         var created = await SendAsync(new CreateWithdrawalCommand(
-            UserId: tutorUser.Id,
             Amount: 200_000m,
             BankName: "Vietcombank",
             AccountNumber: "1234567890",

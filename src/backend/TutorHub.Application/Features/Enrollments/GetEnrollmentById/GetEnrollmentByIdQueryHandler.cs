@@ -10,14 +10,19 @@ namespace TutorHub.Application.Features.Enrollments.GetEnrollmentById;
 public class GetEnrollmentByIdQueryHandler : IRequestHandler<GetEnrollmentByIdQuery, EnrollmentDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetEnrollmentByIdQueryHandler(IAppDbContext context)
+    public GetEnrollmentByIdQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<EnrollmentDto> Handle(GetEnrollmentByIdQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+        var role = _currentUserService.Role;
+
         var enrollment = await _context.Enrollments
             .Include(e => e.StudentProfile).ThenInclude(s => s.User)
             .Include(e => e.TutorProfile).ThenInclude(t => t.User)
@@ -33,9 +38,9 @@ public class GetEnrollmentByIdQueryHandler : IRequestHandler<GetEnrollmentByIdQu
         }
 
         // Authorization: Student, Tutor, or Admin
-        if (request.Role != UserRole.Admin &&
-            enrollment.StudentProfile.UserId != request.UserId &&
-            enrollment.TutorProfile.UserId != request.UserId)
+        if (role != UserRole.Admin &&
+            enrollment.StudentProfile.UserId != userId &&
+            enrollment.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("You do not have permission to view this enrollment.");
         }

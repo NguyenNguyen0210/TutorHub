@@ -47,7 +47,8 @@ public class EnrollmentRefundLifecycleTests : IntegrationTestBase
     {
         var (studentUserId, _, enrollmentId) = await SetupActiveEnrollmentAsync();
 
-        await SendAsync(new CancelEnrollmentCommand(studentUserId, enrollmentId, "Schedule conflict"));
+        SetCurrentUser(studentUserId, UserRole.Student);
+        await SendAsync(new CancelEnrollmentCommand(enrollmentId, "Schedule conflict"));
 
         var refund = await Db.Transactions.AsNoTracking()
             .FirstAsync(t => t.BookingId == (Db.Enrollments.AsNoTracking()
@@ -65,7 +66,8 @@ public class EnrollmentRefundLifecycleTests : IntegrationTestBase
     {
         var (_, tutorUserId, enrollmentId) = await SetupActiveEnrollmentAsync();
 
-        await SendAsync(new TutorCannotContinueCommand(tutorUserId, enrollmentId, "Tutor unavailable"));
+        SetCurrentUser(tutorUserId, UserRole.Tutor);
+        await SendAsync(new TutorCannotContinueCommand(enrollmentId, "Tutor unavailable"));
 
         var bookingId = (await Db.Enrollments.AsNoTracking().FirstAsync(e => e.Id == enrollmentId)).BookingId;
         var refund = await Db.Transactions.AsNoTracking()

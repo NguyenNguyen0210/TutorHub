@@ -13,11 +13,12 @@ namespace TutorHub.Application.UnitTests.Features.Enrollments.GetMyEnrollments;
 public class GetMyEnrollmentsQueryHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly GetMyEnrollmentsQueryHandler _handler;
 
     public GetMyEnrollmentsQueryHandlerTests()
     {
-        _handler = new GetMyEnrollmentsQueryHandler(_contextMock.Object);
+        _handler = new GetMyEnrollmentsQueryHandler(_contextMock.Object, _currentUser);
     }
 
     private static (Enrollment enrollment, User student, User tutor) CreateEnrollmentWithSessions(
@@ -90,7 +91,8 @@ public class GetMyEnrollmentsQueryHandlerTests
         var enrollments = new List<Enrollment> { enrollment1, enrollment2 };
         _contextMock.Setup(c => c.Enrollments).Returns(MockDbSetHelper.CreateMockDbSet(enrollments).Object);
 
-        var query = new GetMyEnrollmentsQuery(student.Id, UserRole.Student, null, 1, 10);
+        _currentUser.Set(student.Id, UserRole.Student);
+        var query = new GetMyEnrollmentsQuery(null, 1, 10);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -115,7 +117,8 @@ public class GetMyEnrollmentsQueryHandlerTests
         var enrollments = new List<Enrollment> { enrollment1, enrollment2 };
         _contextMock.Setup(c => c.Enrollments).Returns(MockDbSetHelper.CreateMockDbSet(enrollments).Object);
 
-        var query = new GetMyEnrollmentsQuery(tutor.Id, UserRole.Tutor, null, 1, 10);
+        _currentUser.Set(tutor.Id, UserRole.Tutor);
+        var query = new GetMyEnrollmentsQuery(null, 1, 10);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -138,7 +141,8 @@ public class GetMyEnrollmentsQueryHandlerTests
         var enrollments = new List<Enrollment> { enrollmentActive, enrollmentCancelled };
         _contextMock.Setup(c => c.Enrollments).Returns(MockDbSetHelper.CreateMockDbSet(enrollments).Object);
 
-        var query = new GetMyEnrollmentsQuery(student.Id, UserRole.Student, EnrollmentStatus.Cancelled, 1, 10);
+        _currentUser.Set(student.Id, UserRole.Student);
+        var query = new GetMyEnrollmentsQuery(EnrollmentStatus.Cancelled, 1, 10);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);
@@ -163,7 +167,8 @@ public class GetMyEnrollmentsQueryHandlerTests
         var enrollments = new List<Enrollment> { e1, e2, e3 };
         _contextMock.Setup(c => c.Enrollments).Returns(MockDbSetHelper.CreateMockDbSet(enrollments).Object);
 
-        var query = new GetMyEnrollmentsQuery(student.Id, UserRole.Student, null, 2, 2);
+        _currentUser.Set(student.Id, UserRole.Student);
+        var query = new GetMyEnrollmentsQuery(null, 2, 2);
 
         // Act
         var result = await _handler.Handle(query, CancellationToken.None);

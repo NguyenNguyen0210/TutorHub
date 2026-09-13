@@ -621,8 +621,7 @@ public class AdminController : ControllerBase
         [FromBody] AdminCancelEnrollmentRequest request,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
-        var command = new AdminCancelEnrollmentCommand(adminId, UserRole.Admin, id, request.Reason);
+        var command = new AdminCancelEnrollmentCommand(id, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<EnrollmentDto>.SuccessResult(result, "Enrollment administratively cancelled successfully."));
     }

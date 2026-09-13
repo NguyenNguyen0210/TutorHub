@@ -11,7 +11,7 @@ public class CancelEnrollmentCommandValidatorTests
     [Fact]
     public void Validate_WhenValidCommand_Passes()
     {
-        var command = new CancelEnrollmentCommand(Guid.NewGuid(), Guid.NewGuid(), "Valid cancellation reason.");
+        var command = new CancelEnrollmentCommand(Guid.NewGuid(), "Valid cancellation reason.");
         var result = _validator.Validate(command);
         result.IsValid.Should().BeTrue();
     }
@@ -19,7 +19,7 @@ public class CancelEnrollmentCommandValidatorTests
     [Fact]
     public void Validate_WhenEnrollmentIdEmpty_Fails()
     {
-        var command = new CancelEnrollmentCommand(Guid.NewGuid(), Guid.Empty, "Valid cancellation reason.");
+        var command = new CancelEnrollmentCommand(Guid.Empty, "Valid cancellation reason.");
         var result = _validator.Validate(command);
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "EnrollmentId");
@@ -31,7 +31,7 @@ public class CancelEnrollmentCommandValidatorTests
     [InlineData("abc")] // Too short (< 5 chars)
     public void Validate_WhenReasonInvalid_Fails(string reason)
     {
-        var command = new CancelEnrollmentCommand(Guid.NewGuid(), Guid.NewGuid(), reason);
+        var command = new CancelEnrollmentCommand(Guid.NewGuid(), reason);
         var result = _validator.Validate(command);
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "Reason");
@@ -41,7 +41,7 @@ public class CancelEnrollmentCommandValidatorTests
     public void Validate_WhenReasonExceeds500Chars_Fails()
     {
         var longReason = new string('a', 501);
-        var command = new CancelEnrollmentCommand(Guid.NewGuid(), Guid.NewGuid(), longReason);
+        var command = new CancelEnrollmentCommand(Guid.NewGuid(), longReason);
         var result = _validator.Validate(command);
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "Reason");

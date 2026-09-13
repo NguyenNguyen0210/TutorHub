@@ -13,22 +13,26 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
 {
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateWithdrawalCommandHandler(IAppDbContext context, IClock clock)
+    public CreateWithdrawalCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<WithdrawalDto> Handle(CreateWithdrawalCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
 
         try
         {
         var tutor = await _context.TutorProfiles
             .Include(t => t.User)
-            .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null)
         {

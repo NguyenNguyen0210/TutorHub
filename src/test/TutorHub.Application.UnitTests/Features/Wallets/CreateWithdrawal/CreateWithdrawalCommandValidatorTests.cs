@@ -15,7 +15,6 @@ public class CreateWithdrawalCommandValidatorTests
     {
         // Arrange
         var command = new CreateWithdrawalCommand(
-            UserId: Guid.NewGuid(),
             Amount: amount
         );
 
@@ -32,7 +31,6 @@ public class CreateWithdrawalCommandValidatorTests
     {
         // Arrange (All-or-Nothing Rule: BankName provided, but AccountNumber missing)
         var command = new CreateWithdrawalCommand(
-            UserId: Guid.NewGuid(),
             Amount: 100_000m,
             BankName: "VCB",
             AccountNumber: "",
@@ -52,7 +50,6 @@ public class CreateWithdrawalCommandValidatorTests
     {
         // Arrange
         var command = new CreateWithdrawalCommand(
-            UserId: Guid.NewGuid(),
             Amount: 500_000m,
             BankName: "Vietcombank",
             BankCode: "VCB",
