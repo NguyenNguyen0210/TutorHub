@@ -6,7 +6,6 @@ public class CreateLearningRecordCommandValidator : AbstractValidator<CreateLear
 {
     public CreateLearningRecordCommandValidator()
     {
-        RuleFor(x => x.UserId).NotEmpty();
         RuleFor(x => x.SessionId).NotEmpty();
         RuleFor(x => x.Content)
             .NotEmpty().WithMessage("Learning record content is required.")

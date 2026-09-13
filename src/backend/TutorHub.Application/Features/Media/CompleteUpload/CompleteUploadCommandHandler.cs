@@ -12,18 +12,23 @@ public class CompleteUploadCommandHandler : IRequestHandler<CompleteUploadComman
     private readonly IAppDbContext _dbContext;
     private readonly IClock _clock;
     private readonly IObjectStorageService _storageService;
+    private readonly ICurrentUserService _currentUserService;
 
     public CompleteUploadCommandHandler(
         IAppDbContext dbContext, IClock clock,
-        IObjectStorageService storageService)
+        IObjectStorageService storageService,
+        ICurrentUserService currentUserService)
     {
         _dbContext = dbContext;
         _clock = clock;
         _storageService = storageService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<MediaDto> Handle(CompleteUploadCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         // 1. Verify object exists on Cloudflare R2 via HEAD check
         var exists = await _storageService.ExistsAsync(request.ObjectKey, cancellationToken);
         if (!exists)
@@ -45,7 +50,7 @@ public class CompleteUploadCommandHandler : IRequestHandler<CompleteUploadComman
             MediaType = request.MediaType,
             IsPrivate = isPrivate,
             Status = MediaStatus.Active,
-            UploadedByUserId = request.UserId,
+            UploadedByUserId = userId,
             CreatedAt = _clock.UtcNow
         };
 

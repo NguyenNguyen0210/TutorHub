@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Payments.CreateVnPayUrl;
 using TutorHub.Application.Features.Payments.DTOs;
@@ -37,12 +35,10 @@ public class PaymentsController : ControllerBase
         [FromBody] CreateVnPayUrlRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var ipAddress = GetClientIpAddress();
 
         var command = new CreateVnPayUrlCommand(
             BookingId: request.BookingId,
-            UserId: userId,
             IpAddress: ipAddress
         );
 
@@ -122,15 +118,5 @@ public class PaymentsController : ControllerBase
 
         // 3. Fallback to HttpContext Connection RemoteIpAddress
         return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
     }
 }

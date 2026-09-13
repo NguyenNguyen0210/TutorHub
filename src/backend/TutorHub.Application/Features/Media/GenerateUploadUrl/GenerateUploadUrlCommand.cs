@@ -8,7 +8,5 @@ public record GenerateUploadUrlCommand(
     string FileName,
     string ContentType,
     long? EstimatedSize,
-    MediaType MediaType,
-    Guid UserId,
-    UserRole UserRole
+    MediaType MediaType
 ) : IRequest<UploadUrlDto>;

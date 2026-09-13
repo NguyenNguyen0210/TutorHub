@@ -6,7 +6,6 @@ public class GetLearningRecordQueryValidator : AbstractValidator<GetLearningReco
 {
     public GetLearningRecordQueryValidator()
     {
-        RuleFor(x => x.UserId).NotEmpty();
         RuleFor(x => x.SessionId).NotEmpty();
     }
 }

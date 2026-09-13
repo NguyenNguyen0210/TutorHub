@@ -9,14 +9,18 @@ namespace TutorHub.Application.Features.LearningRecords.GetLearningRecord;
 public class GetLearningRecordQueryHandler : IRequestHandler<GetLearningRecordQuery, LearningRecordDto?>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetLearningRecordQueryHandler(IAppDbContext context)
+    public GetLearningRecordQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<LearningRecordDto?> Handle(GetLearningRecordQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var session = await _context.Sessions
             .Include(s => s.Enrollment)
             .AsNoTracking()
@@ -28,8 +32,8 @@ public class GetLearningRecordQueryHandler : IRequestHandler<GetLearningRecordQu
         }
 
         // F-14: student or tutor participant read-only.
-        if (session.Enrollment.StudentProfile.UserId != request.UserId &&
-            session.Enrollment.TutorProfile.UserId != request.UserId)
+        if (session.Enrollment.StudentProfile.UserId != userId &&
+            session.Enrollment.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("You do not have permission to view this learning record.");
         }

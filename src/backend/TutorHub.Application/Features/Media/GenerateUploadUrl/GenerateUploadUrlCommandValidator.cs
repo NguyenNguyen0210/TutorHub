@@ -21,10 +21,6 @@ public class GenerateUploadUrlCommandValidator : AbstractValidator<GenerateUploa
             .Must(ct => AllowedContentTypes.Contains(ct)).WithMessage("Unsupported MIME type.");
 
         RuleFor(x => x)
-            .Must(x => x.MediaType != MediaType.Certificate || x.UserRole == UserRole.Tutor || x.UserRole == UserRole.Admin)
-            .WithMessage("Only Tutors and Admins can upload certificates.");
-
-        RuleFor(x => x)
             .Must(x => !x.EstimatedSize.HasValue || x.MediaType != MediaType.Avatar || x.EstimatedSize.Value <= UploadLimits.MediaAvatarMaxBytes)
             .WithMessage("Avatar file size must not exceed 5MB.");
 

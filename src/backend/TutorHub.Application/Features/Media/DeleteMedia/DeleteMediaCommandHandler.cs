@@ -11,16 +11,21 @@ public class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaCommand, boo
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly IObjectStorageService _storageService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public DeleteMediaCommandHandler(IAppDbContext context, IClock clock, IObjectStorageService storageService)
+    public DeleteMediaCommandHandler(IAppDbContext context, IClock clock, IObjectStorageService storageService, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
         _storageService = storageService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<bool> Handle(DeleteMediaCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+        var role = _currentUserService.Role;
+
         var media = await _context.Media
             .FirstOrDefaultAsync(m => m.Id == request.MediaId && m.Status == MediaStatus.Active, cancellationToken);
 
@@ -30,8 +35,8 @@ public class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaCommand, boo
         }
 
         // 1. Ownership Authorization Check
-        var isOwner = media.UploadedByUserId == request.UserId;
-        var isAdmin = request.UserRole == UserRole.Admin;
+        var isOwner = media.UploadedByUserId == userId;
+        var isAdmin = role == UserRole.Admin;
 
         if (!isOwner && !isAdmin)
         {

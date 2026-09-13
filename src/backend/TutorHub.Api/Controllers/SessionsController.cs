@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Sessions.DTOs;
@@ -234,9 +232,7 @@ public class SessionsController : ControllerBase
         [FromBody] CreateLearningRecordRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new CreateLearningRecordCommand(
-            UserId: userId,
             SessionId: id,
             Content: request.Content
         );
@@ -258,9 +254,7 @@ public class SessionsController : ControllerBase
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var query = new GetLearningRecordQuery(
-            UserId: userId,
             SessionId: id
         );
 
@@ -292,14 +286,4 @@ public class SessionsController : ControllerBase
     public record CreateLearningRecordRequest(
         string Content
     );
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
-    }
 }

@@ -15,20 +15,31 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
     private readonly IClock _clock;
     private readonly IObjectStorageService _storageService;
     private readonly ILogger<UploadMediaCommandHandler> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
     public UploadMediaCommandHandler(
         IAppDbContext context, IClock clock,
         IObjectStorageService storageService,
-        ILogger<UploadMediaCommandHandler> logger)
+        ILogger<UploadMediaCommandHandler> logger,
+        ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
         _storageService = storageService;
         _logger = logger;
+        _currentUserService = currentUserService;
     }
 
     public async Task<MediaDto> Handle(UploadMediaCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+        var role = _currentUserService.Role;
+
+        if (request.MediaType == MediaType.Certificate && role is not UserRole.Tutor and not UserRole.Admin)
+        {
+            throw new ForbiddenException("You do not have permission to upload certificates. Only Tutors and Admins can upload certificates.");
+        }
+
         var ext = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
 
         // 1. Deep Binary Magic Bytes Validation
@@ -46,10 +57,10 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
         var storedFileName = $"{uniqueId}{ext}";
         var objectKey = request.MediaType switch
         {
-            MediaType.Avatar => $"profiles/{request.UserId}/avatar/{storedFileName}",
-            MediaType.Certificate => $"tutors/{request.UserId}/documents/{storedFileName}",
-            MediaType.DisputeEvidence => $"reports/{request.UserId}/attachments/{storedFileName}",
-            _ => $"general/{request.UserId}/{now:yyyy}/{now:MM}/{storedFileName}"
+            MediaType.Avatar => $"profiles/{userId}/avatar/{storedFileName}",
+            MediaType.Certificate => $"tutors/{userId}/documents/{storedFileName}",
+            MediaType.DisputeEvidence => $"reports/{userId}/attachments/{storedFileName}",
+            _ => $"general/{userId}/{now:yyyy}/{now:MM}/{storedFileName}"
         };
 
         // 3. Upload to Cloudflare R2 Object Storage
@@ -72,7 +83,7 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
             MediaType = request.MediaType,
             IsPrivate = isPrivate,
             Status = MediaStatus.Active,
-            UploadedByUserId = request.UserId,
+            UploadedByUserId = userId,
             CreatedAt = now
         };
 

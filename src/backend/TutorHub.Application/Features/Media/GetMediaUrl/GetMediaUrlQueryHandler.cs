@@ -11,15 +11,20 @@ public class GetMediaUrlQueryHandler : IRequestHandler<GetMediaUrlQuery, MediaDt
 {
     private readonly IAppDbContext _context;
     private readonly IObjectStorageService _storageService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMediaUrlQueryHandler(IAppDbContext context, IObjectStorageService storageService)
+    public GetMediaUrlQueryHandler(IAppDbContext context, IObjectStorageService storageService, ICurrentUserService currentUserService)
     {
         _context = context;
         _storageService = storageService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<MediaDto> Handle(GetMediaUrlQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+        var role = _currentUserService.Role;
+
         var media = await _context.Media
             .AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == request.MediaId && m.Status == MediaStatus.Active, cancellationToken);
@@ -32,8 +37,8 @@ public class GetMediaUrlQueryHandler : IRequestHandler<GetMediaUrlQuery, MediaDt
         // 1. Authorization Ownership Check on Private Files
         if (media.IsPrivate)
         {
-            var isOwner = media.UploadedByUserId == request.UserId;
-            var isAdmin = request.UserRole == UserRole.Admin;
+            var isOwner = media.UploadedByUserId == userId;
+            var isAdmin = role == UserRole.Admin;
 
             if (!isOwner && !isAdmin)
             {
