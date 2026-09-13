@@ -9,14 +9,18 @@ namespace TutorHub.Application.Features.Tutors.Services.UnpublishService;
 public class UnpublishServiceCommandHandler : IRequestHandler<UnpublishServiceCommand, ServiceDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public UnpublishServiceCommandHandler(IAppDbContext context)
+    public UnpublishServiceCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ServiceDto> Handle(UnpublishServiceCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var service = await _context.Services
             .Include(s => s.TutorProfile)
             .Include(s => s.Subject)
@@ -28,7 +32,7 @@ public class UnpublishServiceCommandHandler : IRequestHandler<UnpublishServiceCo
             throw new NotFoundException("Service", request.ServiceId);
         }
 
-        if (service.TutorProfile.UserId != request.UserId)
+        if (service.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("You do not have permission to unpublish this service.");
         }

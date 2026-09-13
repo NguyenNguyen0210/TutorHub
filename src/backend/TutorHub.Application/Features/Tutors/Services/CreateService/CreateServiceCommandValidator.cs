@@ -6,9 +6,6 @@ public class CreateServiceCommandValidator : AbstractValidator<CreateServiceComm
 {
     public CreateServiceCommandValidator()
     {
-        RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("UserId is required.");
-
         RuleFor(x => x.SubjectId)
             .NotEmpty().WithMessage("SubjectId is required.");
 

@@ -5,7 +5,6 @@ using TutorHub.Domain.Enums;
 namespace TutorHub.Application.Features.Tutors.UpdateMyProfile;
 
 public record UpdateMyProfileCommand(
-    Guid UserId,
     string? FullName = null,
     string? Phone = null,
     string? AvatarUrl = null,

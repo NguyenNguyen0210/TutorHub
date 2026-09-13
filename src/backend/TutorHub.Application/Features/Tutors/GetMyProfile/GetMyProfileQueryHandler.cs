@@ -10,20 +10,24 @@ namespace TutorHub.Application.Features.Tutors.GetMyProfile;
 public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, TutorMyProfileDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMyProfileQueryHandler(IAppDbContext context)
+    public GetMyProfileQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<TutorMyProfileDto> Handle(GetMyProfileQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var tutor = await _context.TutorProfiles
             .Include(t => t.User)
             .Include(t => t.TutorSubjects)
                 .ThenInclude(ts => ts.Subject)
                     .ThenInclude(s => s.Category)
-            .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null)
         {
@@ -32,7 +36,7 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, Tutor
 
         var latestApplication = await _context.TutorApplications
             .AsNoTracking()
-            .Where(a => a.UserId == request.UserId)
+            .Where(a => a.UserId == userId)
             .OrderBy(a =>
                 a.Status == TutorApplicationStatus.Approved ? 0 :
                 a.Status == TutorApplicationStatus.Pending ? 1 : 2)

@@ -10,16 +10,20 @@ namespace TutorHub.Application.Features.Availability.CreateAvailabilitySlot;
 public class CreateAvailabilitySlotCommandHandler : IRequestHandler<CreateAvailabilitySlotCommand, AvailabilitySlotDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateAvailabilitySlotCommandHandler(IAppDbContext context)
+    public CreateAvailabilitySlotCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<AvailabilitySlotDto> Handle(CreateAvailabilitySlotCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var tutor = await _context.TutorProfiles
-            .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null)
         {

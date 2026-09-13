@@ -31,8 +31,7 @@ public class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMyProfile(CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var query = new GetMyProfileQuery(userId);
+        var query = new GetMyProfileQuery();
         var result = await _sender.Send(query, cancellationToken);
 
         return Ok(ApiResponse<MyProfileDto>.SuccessResult(result, "Profile retrieved successfully."));
@@ -50,9 +49,7 @@ public class UsersController : ControllerBase
         [FromBody] UpdateUserProfileRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new UpdateMyProfileCommand(
-            UserId: userId,
             FullName: request.FullName,
             Phone: request.Phone,
             AvatarUrl: request.AvatarUrl

@@ -14,22 +14,26 @@ public class ResubmitTutorApplicationCommandHandler
 {
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ResubmitTutorApplicationCommandHandler(IAppDbContext context, IClock clock)
+    public ResubmitTutorApplicationCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<TutorApplicationDto> Handle(
         ResubmitTutorApplicationCommand request,
         CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (user == null)
-            throw new NotFoundException("User", request.UserId);
+            throw new NotFoundException("User", userId);
 
         if (user.Role != UserRole.Tutor)
             throw new BadRequestException(
@@ -37,7 +41,7 @@ public class ResubmitTutorApplicationCommandHandler
 
         // F-18: only a Rejected latest application may start a new Pending cycle.
         var latest = await _context.TutorApplications
-            .Where(a => a.UserId == request.UserId)
+            .Where(a => a.UserId == userId)
             .OrderByDescending(a => a.SubmittedAt)
             .ThenByDescending(a => a.Id)
             .FirstOrDefaultAsync(cancellationToken);
@@ -57,7 +61,7 @@ public class ResubmitTutorApplicationCommandHandler
         var application = new TutorApplication
         {
             Id = Guid.NewGuid(),
-            UserId = request.UserId,
+            UserId = userId,
             Bio = request.Bio.Trim(),
             Education = request.Education.Trim(),
             ExperienceYears = request.ExperienceYears,

@@ -9,17 +9,21 @@ namespace TutorHub.Application.Features.Availability.GetMyAvailabilitySlots;
 public class GetMyAvailabilitySlotsQueryHandler : IRequestHandler<GetMyAvailabilitySlotsQuery, List<AvailabilitySlotDto>>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMyAvailabilitySlotsQueryHandler(IAppDbContext context)
+    public GetMyAvailabilitySlotsQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<List<AvailabilitySlotDto>> Handle(GetMyAvailabilitySlotsQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var tutor = await _context.TutorProfiles
             .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.UserId == request.UserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null)
         {
