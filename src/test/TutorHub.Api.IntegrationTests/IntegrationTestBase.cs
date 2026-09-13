@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using TutorHub.Domain.Enums;
 using TutorHub.Infrastructure.Persistence;
 
 namespace TutorHub.Api.IntegrationTests;
@@ -38,6 +39,20 @@ public abstract class IntegrationTestBase : IClassFixture<IntegrationWebApplicat
         using var scope = Factory.Services.CreateScope();
         var sender = scope.ServiceProvider.GetRequiredService<ISender>();
         return await sender.Send(request);
+    }
+
+    /// <summary>
+    /// Sets the acting user for subsequent handler dispatch. Handlers resolve the
+    /// current user from ICurrentUserService instead of command parameters.
+    /// </summary>
+    protected void SetCurrentUser(
+        Guid? userId,
+        UserRole? role = null,
+        bool isAuthenticated = true,
+        Guid? tutorProfileId = null,
+        Guid? studentProfileId = null)
+    {
+        Factory.CurrentUser.Set(userId, role, isAuthenticated, tutorProfileId, studentProfileId);
     }
 
     public void Dispose()
