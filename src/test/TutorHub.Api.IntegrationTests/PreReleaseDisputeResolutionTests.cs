@@ -201,7 +201,8 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
         opened.Should().BeTrue();
         await Db.SaveChangesAsync();
 
-        await SendAsync(new SubmitAttendanceCommand(tutorUserId, session.Id, AttendanceStatus.Attended));
+        SetCurrentUser(tutorUserId, UserRole.Tutor);
+        await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
 
         var dispute = await SendAsync(new CreateDisputeCommand(
             SessionId: session.Id,
@@ -254,7 +255,8 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
         opened.Should().BeTrue();
         await Db.SaveChangesAsync();
 
-        await SendAsync(new SubmitAttendanceCommand(studentUserId, session.Id, AttendanceStatus.Attended));
+        SetCurrentUser(studentUserId, UserRole.Student);
+        await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
 
         var dispute = await SendAsync(new CreateDisputeCommand(
             SessionId: session.Id,

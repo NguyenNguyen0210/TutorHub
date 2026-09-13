@@ -54,8 +54,10 @@ public class EnrollmentCompletionLifecycleTests : IntegrationTestBase
         tracked.Schedule(DateTime.UtcNow.AddHours(-3), DateTime.UtcNow.AddHours(-2));
         await Db.SaveChangesAsync();
 
-        await SendAsync(new SubmitAttendanceCommand(studentUserId, sessionId, AttendanceStatus.Attended));
-        await SendAsync(new SubmitAttendanceCommand(tutorUserId, sessionId, AttendanceStatus.Attended));
+        SetCurrentUser(studentUserId, UserRole.Student);
+        await SendAsync(new SubmitAttendanceCommand(sessionId, AttendanceStatus.Attended));
+        SetCurrentUser(tutorUserId, UserRole.Tutor);
+        await SendAsync(new SubmitAttendanceCommand(sessionId, AttendanceStatus.Attended));
     }
 
     [Fact]
@@ -68,7 +70,8 @@ public class EnrollmentCompletionLifecycleTests : IntegrationTestBase
         await CompleteSessionAsync(studentUserId, tutorUserId, sessions[1].Id);
 
         // Cancel the last unresolved session.
-        await SendAsync(new CancelSessionCommand(studentUserId, sessions[2].Id, "Cannot attend final session"));
+        SetCurrentUser(studentUserId, UserRole.Student);
+        await SendAsync(new CancelSessionCommand(sessions[2].Id, "Cannot attend final session"));
 
         var enrollment = await Db.Enrollments.AsNoTracking().FirstAsync(e => e.Id == enrollmentId);
         enrollment.Status.Should().Be(EnrollmentStatus.Completed);
@@ -81,7 +84,8 @@ public class EnrollmentCompletionLifecycleTests : IntegrationTestBase
     {
         var (studentUserId, _, enrollmentId, sessions) = await SetupAsync();
 
-        await SendAsync(new CancelSessionCommand(studentUserId, sessions[0].Id, "Skip first session"));
+        SetCurrentUser(studentUserId, UserRole.Student);
+        await SendAsync(new CancelSessionCommand(sessions[0].Id, "Skip first session"));
 
         var enrollment = await Db.Enrollments.AsNoTracking().FirstAsync(e => e.Id == enrollmentId);
         enrollment.Status.Should().Be(EnrollmentStatus.Active);

@@ -11,15 +11,19 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
 {
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CancelSessionCommandHandler(IAppDbContext context, IClock clock)
+    public CancelSessionCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<SessionDto> Handle(CancelSessionCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var session = await _context.Sessions
             .Include(s => s.Enrollment)
             .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
@@ -41,8 +45,8 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
             throw new NotFoundException("Enrollment", session.EnrollmentId);
         }
 
-        if (enrollment.StudentProfile.UserId != request.UserId &&
-            enrollment.TutorProfile.UserId != request.UserId)
+        if (enrollment.StudentProfile.UserId != userId &&
+            enrollment.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("You do not have permission to cancel this session.");
         }

@@ -61,8 +61,10 @@ public class EnrollmentActivationServiceTests : IntegrationTestBase
             tracked.Schedule(DateTime.UtcNow.AddHours(-3), DateTime.UtcNow.AddHours(-2));
             await Db.SaveChangesAsync();
 
-            await SendAsync(new SubmitAttendanceCommand(studentUser.Id, tracked.Id, AttendanceStatus.Attended));
-            await SendAsync(new SubmitAttendanceCommand(tutorUser.Id, tracked.Id, AttendanceStatus.Attended));
+            SetCurrentUser(studentUser.Id, UserRole.Student);
+            await SendAsync(new SubmitAttendanceCommand(tracked.Id, AttendanceStatus.Attended));
+            SetCurrentUser(tutorUser.Id, UserRole.Tutor);
+            await SendAsync(new SubmitAttendanceCommand(tracked.Id, AttendanceStatus.Attended));
         }
 
         // Assert: escrow fully drained; net credited (1,000,000 + 3 * 270,000).

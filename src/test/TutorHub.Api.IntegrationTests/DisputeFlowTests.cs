@@ -61,11 +61,13 @@ public class DisputeFlowTests : IntegrationTestBase
         // Arrange
         var (adminId, studentUserId, session) = await SetupPaidSessionAsync();
 
-        await SendAsync(new SubmitAttendanceCommand(studentUserId, session.Id, AttendanceStatus.Attended));
+        SetCurrentUser(studentUserId, UserRole.Student);
+        await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
         var tutorUserId = (await Db.Sessions
             .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
             .FirstAsync(s => s.Id == session.Id)).Enrollment.TutorProfile.UserId;
-        var completed = await SendAsync(new SubmitAttendanceCommand(tutorUserId, session.Id, AttendanceStatus.Attended));
+        SetCurrentUser(tutorUserId, UserRole.Tutor);
+        var completed = await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
 
         completed.Status.Should().Be(SessionStatus.Completed);
 

@@ -49,9 +49,7 @@ public class SessionsController : ControllerBase
         [FromBody] ScheduleSessionRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new ScheduleSessionCommand(
-            UserId: userId,
             SessionId: id,
             StartAt: request.StartAt,
             EndAt: request.EndAt
@@ -78,9 +76,7 @@ public class SessionsController : ControllerBase
         [FromBody] SubmitAttendanceRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new SubmitAttendanceCommand(
-            UserId: userId,
             SessionId: id,
             Outcome: request.Outcome
         );
@@ -103,12 +99,7 @@ public class SessionsController : ControllerBase
         [FromQuery] DateTime? toDate,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var role = GetCurrentUserRole();
-
         var query = new GetMySessionsQuery(
-            UserId: userId,
-            Role: role,
             Status: status,
             FromDate: fromDate,
             ToDate: toDate
@@ -135,9 +126,7 @@ public class SessionsController : ControllerBase
         [FromBody] ProposeRescheduleRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new ProposeSessionRescheduleCommand(
-            UserId: userId,
             SessionId: id,
             ProposedStartAt: request.ProposedStartAt,
             ProposedEndAt: request.ProposedEndAt,
@@ -165,9 +154,7 @@ public class SessionsController : ControllerBase
         [FromRoute] Guid requestId,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new AcceptSessionRescheduleCommand(
-            UserId: userId,
             SessionId: id,
             RequestId: requestId
         );
@@ -194,9 +181,7 @@ public class SessionsController : ControllerBase
         [FromBody] RejectRescheduleRequest? request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new RejectSessionRescheduleCommand(
-            UserId: userId,
             SessionId: id,
             RequestId: requestId,
             RejectionReason: request?.Reason
@@ -224,9 +209,7 @@ public class SessionsController : ControllerBase
         [FromBody] CancelSessionRequest request,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var command = new CancelSessionCommand(
-            UserId: userId,
             SessionId: id,
             Reason: request.Reason
         );
@@ -298,9 +281,7 @@ public class SessionsController : ControllerBase
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
         var query = new GetSessionRescheduleRequestsQuery(
-            UserId: userId,
             SessionId: id
         );
 
@@ -320,15 +301,5 @@ public class SessionsController : ControllerBase
             throw new UnauthorizedException("User ID is invalid or missing from token.");
         }
         return userId;
-    }
-
-    private UserRole GetCurrentUserRole()
-    {
-        var roleClaim = User.FindFirstValue(ClaimTypes.Role);
-        if (Enum.TryParse<UserRole>(roleClaim, true, out var role))
-        {
-            return role;
-        }
-        throw new UnauthorizedException("User role is invalid or missing from token.");
     }
 }

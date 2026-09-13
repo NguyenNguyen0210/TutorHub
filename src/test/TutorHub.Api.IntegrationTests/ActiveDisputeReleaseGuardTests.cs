@@ -62,8 +62,10 @@ public class ActiveDisputeReleaseGuardTests : IntegrationTestBase
     {
         var (studentUserId, tutorUserId, session) = await SetupPaidSessionWithActiveDisputeAsync();
 
-        await SendAsync(new SubmitAttendanceCommand(studentUserId, session.Id, AttendanceStatus.Attended));
-        var result = await SendAsync(new SubmitAttendanceCommand(tutorUserId, session.Id, AttendanceStatus.Attended));
+        SetCurrentUser(studentUserId, UserRole.Student);
+        await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
+        SetCurrentUser(tutorUserId, UserRole.Tutor);
+        var result = await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
 
         // Session remains unresolved until Admin settles the dispute.
         result.Status.Should().Be(SessionStatus.Scheduled);

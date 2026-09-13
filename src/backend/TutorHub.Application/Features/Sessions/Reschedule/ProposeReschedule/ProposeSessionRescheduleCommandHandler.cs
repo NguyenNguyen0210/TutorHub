@@ -13,15 +13,18 @@ public class ProposeSessionRescheduleCommandHandler : IRequestHandler<ProposeSes
 {
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ProposeSessionRescheduleCommandHandler(IAppDbContext context, IClock clock)
+    public ProposeSessionRescheduleCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<SessionRescheduleRequestDto> Handle(ProposeSessionRescheduleCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
         var now = _clock.UtcNow;
 
         var session = await _context.Sessions
@@ -35,7 +38,7 @@ public class ProposeSessionRescheduleCommandHandler : IRequestHandler<ProposeSes
         }
 
         // 1. Strict Actor Authorization (INV-RESCHED-001 / Patch A): Only Tutor can propose
-        if (session.Enrollment.TutorProfile.UserId != request.UserId)
+        if (session.Enrollment.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("Only the Tutor can propose a session reschedule.");
         }
