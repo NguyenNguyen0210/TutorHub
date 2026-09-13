@@ -209,7 +209,7 @@ public class ConversationsController : ControllerBase
 
         var isStudent = conversation.StudentProfile != null && conversation.StudentProfile.UserId == currentUserId;
         var isTutor = conversation.TutorProfile != null && conversation.TutorProfile.UserId == currentUserId;
-        var isAdmin = _currentUserService.Role == "Admin";
+        var isAdmin = _currentUserService.Role == TutorHub.Domain.Enums.UserRole.Admin;
 
         if (!isStudent && !isTutor && !isAdmin)
         {

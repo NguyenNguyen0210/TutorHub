@@ -39,7 +39,7 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
         }
 
         var isOwner = _currentUserService.UserId.HasValue && _currentUserService.UserId.Value == tutor.UserId;
-        var isAdmin = string.Equals(_currentUserService.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+        var isAdmin = _currentUserService.Role == UserRole.Admin;
 
         var isApproved = await _context.TutorApplications
             .AnyAsync(a => a.UserId == tutor.UserId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
