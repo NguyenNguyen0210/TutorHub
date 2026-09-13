@@ -521,8 +521,7 @@ public class AdminController : ControllerBase
         [FromBody] SuspendUserRequest request,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
-        var command = new SuspendUserCommand(id, adminId, request.Reason);
+        var command = new SuspendUserCommand(id, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<AdminUserSummaryDto>.SuccessResult(result, "User account suspended successfully."));
     }
@@ -541,8 +540,7 @@ public class AdminController : ControllerBase
         [FromRoute] Guid id,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
-        var command = new ReactivateUserCommand(id, adminId);
+        var command = new ReactivateUserCommand(id);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<AdminUserSummaryDto>.SuccessResult(result, "User account reactivated successfully."));
     }
@@ -562,8 +560,7 @@ public class AdminController : ControllerBase
         [FromBody] BanUserRequest request,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
-        var command = new BanUserCommand(id, adminId, request.Reason);
+        var command = new BanUserCommand(id, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<AdminUserSummaryDto>.SuccessResult(result, "User account banned successfully."));
     }

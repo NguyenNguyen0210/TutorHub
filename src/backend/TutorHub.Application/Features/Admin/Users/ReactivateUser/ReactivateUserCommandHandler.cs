@@ -13,16 +13,24 @@ public class ReactivateUserCommandHandler : IRequestHandler<ReactivateUserComman
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ReactivateUserCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService)
+    public ReactivateUserCommandHandler(
+        IAppDbContext context,
+        IClock clock,
+        IAuditLogService auditLogService,
+        ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<AdminUserSummaryDto> Handle(ReactivateUserCommand request, CancellationToken cancellationToken)
     {
+        var adminId = _currentUserService.UserIdOrThrow();
+
         // 1. Find target user
         var user = await _context.Users
             .Include(u => u.TutorApplications)
@@ -51,7 +59,7 @@ public class ReactivateUserCommandHandler : IRequestHandler<ReactivateUserComman
             action: "USER_REACTIVATED",
             entityName: "User",
             entityId: user.Id.ToString(),
-            userId: request.AdminId,
+            userId: adminId,
             oldValues: new { status = previousStatus.ToString() },
             newValues: new { status = user.Status.ToString(), reason = "Reactivated by administrator" },
             cancellationToken: cancellationToken);
