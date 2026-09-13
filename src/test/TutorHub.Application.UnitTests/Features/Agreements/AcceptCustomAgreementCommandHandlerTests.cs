@@ -13,6 +13,7 @@ namespace TutorHub.Application.UnitTests.Features.Agreements;
 public class AcceptCustomAgreementCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly AcceptCustomAgreementCommandHandler _handler;
 
     private readonly List<CustomAgreement> _agreements = new();
@@ -23,7 +24,7 @@ public class AcceptCustomAgreementCommandHandlerTests
         _contextMock.Setup(c => c.CustomAgreements).Returns(MockDbSetHelper.CreateMockDbSet(_agreements).Object);
         _contextMock.Setup(c => c.OutboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(_outboxMessages).Object);
 
-        _handler = new AcceptCustomAgreementCommandHandler(_contextMock.Object);
+        _handler = new AcceptCustomAgreementCommandHandler(_contextMock.Object, _currentUser);
     }
 
     [Fact]
@@ -58,7 +59,9 @@ public class AcceptCustomAgreementCommandHandlerTests
         };
         _agreements.Add(agreement);
 
-        var command = new AcceptCustomAgreementCommand(agreement.Id, studentUser.Id);
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+
+        var command = new AcceptCustomAgreementCommand(agreement.Id);
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -95,7 +98,8 @@ public class AcceptCustomAgreementCommandHandlerTests
         _agreements.Add(agreement);
 
         var wrongStudentUserId = Guid.NewGuid();
-        var command = new AcceptCustomAgreementCommand(agreement.Id, wrongStudentUserId);
+        _currentUser.Set(wrongStudentUserId, UserRole.Student);
+        var command = new AcceptCustomAgreementCommand(agreement.Id);
 
         var act = () => _handler.Handle(command, CancellationToken.None);
 
@@ -124,7 +128,9 @@ public class AcceptCustomAgreementCommandHandlerTests
         };
         _agreements.Add(agreement);
 
-        var command = new AcceptCustomAgreementCommand(agreement.Id, studentUser.Id);
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+
+        var command = new AcceptCustomAgreementCommand(agreement.Id);
 
         var act = () => _handler.Handle(command, CancellationToken.None);
 

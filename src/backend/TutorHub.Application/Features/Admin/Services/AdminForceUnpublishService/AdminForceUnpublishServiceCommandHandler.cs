@@ -10,15 +10,22 @@ public class AdminForceUnpublishServiceCommandHandler : IRequestHandler<AdminFor
 {
     private readonly IAppDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public AdminForceUnpublishServiceCommandHandler(IAppDbContext context, IAuditLogService auditLogService)
+    public AdminForceUnpublishServiceCommandHandler(
+        IAppDbContext context,
+        IAuditLogService auditLogService,
+        ICurrentUserService currentUserService)
     {
         _context = context;
         _auditLogService = auditLogService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ServiceDto> Handle(AdminForceUnpublishServiceCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var service = await _context.Services
             .Include(s => s.Subject)
                 .ThenInclude(sub => sub.Category)
@@ -36,7 +43,7 @@ public class AdminForceUnpublishServiceCommandHandler : IRequestHandler<AdminFor
             action: "SERVICE_FORCE_UNPUBLISHED",
             entityName: "Service",
             entityId: service.Id.ToString(),
-            userId: request.AdminId,
+            userId: userId,
             oldValues: new { status = "Published" },
             newValues: new { status = service.Status.ToString() },
             cancellationToken: cancellationToken);

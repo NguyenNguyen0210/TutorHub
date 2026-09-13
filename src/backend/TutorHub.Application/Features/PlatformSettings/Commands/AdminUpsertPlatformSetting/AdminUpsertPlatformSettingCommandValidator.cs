@@ -13,7 +13,6 @@ public class AdminUpsertPlatformSettingCommandValidator : AbstractValidator<Admi
         RuleFor(x => x.Value)
             .NotEmpty().WithMessage("Setting value is required.")
             .MaximumLength(500).WithMessage("Setting value cannot exceed 500 characters.");
-        RuleFor(x => x.AdminUserId).NotEmpty();
         RuleFor(x => x.Reason)
             .NotEmpty().WithMessage("Change reason is required.")
             .MaximumLength(500).WithMessage("Change reason cannot exceed 500 characters.");

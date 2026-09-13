@@ -10,14 +10,18 @@ namespace TutorHub.Application.Features.Agreements.Queries.GetMyAgreements;
 public class GetMyAgreementsQueryHandler : IRequestHandler<GetMyAgreementsQuery, PagedResult<CustomAgreementDto>>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMyAgreementsQueryHandler(IAppDbContext context)
+    public GetMyAgreementsQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<PagedResult<CustomAgreementDto>> Handle(GetMyAgreementsQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
         var pageSize = request.PageSize < 1 ? 10 : (request.PageSize > 50 ? 50 : request.PageSize);
 
@@ -27,7 +31,7 @@ public class GetMyAgreementsQueryHandler : IRequestHandler<GetMyAgreementsQuery,
             .Include(a => a.StudentProfile).ThenInclude(s => s.User)
             .Include(a => a.Subject)
             .Include(a => a.Service)
-            .Where(a => a.StudentProfile.UserId == request.UserId || a.TutorProfile.UserId == request.UserId);
+            .Where(a => a.StudentProfile.UserId == userId || a.TutorProfile.UserId == userId);
 
         if (request.Status.HasValue)
         {

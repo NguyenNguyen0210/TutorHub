@@ -6,7 +6,6 @@ using TutorHub.Domain.Enums;
 namespace TutorHub.Application.Features.Agreements.Queries.GetMyAgreements;
 
 public record GetMyAgreementsQuery(
-    Guid UserId,
     CustomAgreementStatus? Status = null,
     int PageNumber = 1,
     int PageSize = 10

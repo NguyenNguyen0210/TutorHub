@@ -1,10 +1,8 @@
 using TutorHub.Application.Features.Reviews.AdminModerateReview;
 using TutorHub.Application.Features.Reviews.DTOs;
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Admin.Categories.CreateCategory;
 using TutorHub.Application.Features.Admin.Categories.DeleteCategory;
@@ -101,8 +99,7 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ApproveTutorApplication([FromRoute] Guid id, CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
-        var command = new ApproveTutorApplicationCommand(id, adminId);
+        var command = new ApproveTutorApplicationCommand(id);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<AdminTutorApplicationDto>.SuccessResult(result, "Tutor application approved successfully."));
     }
@@ -121,8 +118,7 @@ public class AdminController : ControllerBase
         [FromBody] RejectTutorApplicationRequest request,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
-        var command = new RejectTutorApplicationCommand(id, adminId, request.Reason);
+        var command = new RejectTutorApplicationCommand(id, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<AdminTutorApplicationDto>.SuccessResult(result, "Tutor application rejected successfully."));
     }
@@ -201,8 +197,7 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ProcessWithdrawal([FromRoute] Guid id, CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
-        var command = new ProcessWithdrawalCommand(id, adminId);
+        var command = new ProcessWithdrawalCommand(id);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<WithdrawalDto>.SuccessResult(result, "Withdrawal marked as Processing."));
     }
@@ -218,8 +213,7 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CompleteWithdrawal([FromRoute] Guid id, CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
-        var command = new CompleteWithdrawalCommand(id, adminId);
+        var command = new CompleteWithdrawalCommand(id);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<WithdrawalDto>.SuccessResult(result, "Withdrawal completed successfully."));
     }
@@ -239,8 +233,7 @@ public class AdminController : ControllerBase
         [FromBody] FailWithdrawalRequest request,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
-        var command = new FailWithdrawalCommand(id, adminId, request.Reason);
+        var command = new FailWithdrawalCommand(id, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<WithdrawalDto>.SuccessResult(result, "Withdrawal marked as Failed and amount restored to tutor's wallet."));
     }
@@ -598,8 +591,7 @@ public class AdminController : ControllerBase
         [FromRoute] Guid serviceId,
         CancellationToken cancellationToken)
     {
-        var adminId = GetCurrentUserId();
-        var command = new AdminForceUnpublishServiceCommand(serviceId, adminId);
+        var command = new AdminForceUnpublishServiceCommand(serviceId);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service force-unpublished successfully by administrator."));
     }
@@ -685,15 +677,5 @@ public class AdminController : ControllerBase
             id, operationalReason, cursor, pageSize);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<TutorHub.Application.Features.Conversations.DTOs.CursorPagedResult<TutorHub.Application.Features.Conversations.DTOs.MessageDto>>.SuccessResult(result));
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
     }
 }

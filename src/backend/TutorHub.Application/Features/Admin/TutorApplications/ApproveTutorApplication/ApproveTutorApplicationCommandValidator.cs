@@ -7,6 +7,5 @@ public class ApproveTutorApplicationCommandValidator : AbstractValidator<Approve
     public ApproveTutorApplicationCommandValidator()
     {
         RuleFor(x => x.ApplicationId).NotEmpty();
-        RuleFor(x => x.AdminId).NotEmpty();
     }
 }

@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Disputes.Commands.CreateDispute;
 using TutorHub.Application.Features.Disputes.Commands.UploadDisputeEvidence;
@@ -78,19 +76,8 @@ public class DisputesController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<List<DisputeDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMyDisputes(CancellationToken cancellationToken)
     {
-        var userId = GetCurrentUserId();
-        var result = await _sender.Send(new GetMyDisputesQuery(userId), cancellationToken);
+        var result = await _sender.Send(new GetMyDisputesQuery(), cancellationToken);
         return Ok(ApiResponse<List<DisputeDto>>.SuccessResult(result, "User disputes retrieved successfully."));
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedException("User ID is invalid or missing from token.");
-        }
-        return userId;
     }
 }
 

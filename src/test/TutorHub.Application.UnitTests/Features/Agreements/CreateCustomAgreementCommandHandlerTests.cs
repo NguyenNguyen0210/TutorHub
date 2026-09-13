@@ -13,6 +13,7 @@ namespace TutorHub.Application.UnitTests.Features.Agreements;
 public class CreateCustomAgreementCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly CreateCustomAgreementCommandHandler _handler;
 
     private readonly List<TutorProfile> _tutorProfiles = new();
@@ -33,7 +34,7 @@ public class CreateCustomAgreementCommandHandlerTests
         _contextMock.Setup(c => c.CustomAgreements).Returns(MockDbSetHelper.CreateMockDbSet(_agreements).Object);
         _contextMock.Setup(c => c.OutboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(_outboxMessages).Object);
 
-        _handler = new CreateCustomAgreementCommandHandler(_contextMock.Object, StubClock.Instance);
+        _handler = new CreateCustomAgreementCommandHandler(_contextMock.Object, StubClock.Instance, _currentUser);
     }
 
     [Fact]
@@ -50,8 +51,9 @@ public class CreateCustomAgreementCommandHandlerTests
         var subject = new Subject { Id = Guid.NewGuid(), Name = "Physics" };
         _subjects.Add(subject);
 
+        _currentUser.Set(tutorUser.Id, UserRole.Tutor);
+
         var command = new CreateCustomAgreementCommand(
-            TutorUserId: tutorUser.Id,
             StudentProfileId: student.Id,
             SubjectId: subject.Id,
             ServiceId: null,
@@ -85,8 +87,9 @@ public class CreateCustomAgreementCommandHandlerTests
     {
         var nonTutor = new User { Id = Guid.NewGuid(), FullName = "Student", Role = UserRole.Student, Status = AccountStatus.Active };
 
+        _currentUser.Set(nonTutor.Id, UserRole.Student);
+
         var command = new CreateCustomAgreementCommand(
-            TutorUserId: nonTutor.Id,
             StudentProfileId: Guid.NewGuid(),
             SubjectId: Guid.NewGuid(),
             ServiceId: null,
@@ -128,8 +131,9 @@ public class CreateCustomAgreementCommandHandlerTests
         };
         _conversations.Add(conversation);
 
+        _currentUser.Set(tutorUser.Id, UserRole.Tutor);
+
         var command = new CreateCustomAgreementCommand(
-            TutorUserId: tutorUser.Id,
             StudentProfileId: student.Id,
             SubjectId: subject.Id,
             ServiceId: null,

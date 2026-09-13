@@ -6,7 +6,6 @@ public class CreateCustomAgreementCommandValidator : AbstractValidator<CreateCus
 {
     public CreateCustomAgreementCommandValidator()
     {
-        RuleFor(x => x.TutorUserId).NotEmpty();
         RuleFor(x => x.StudentProfileId).NotEmpty();
         RuleFor(x => x.SubjectId).NotEmpty();
 

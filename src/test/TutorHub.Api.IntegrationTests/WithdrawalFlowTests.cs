@@ -87,8 +87,9 @@ public class WithdrawalFlowTests : IntegrationTestBase
             AccountHolderName: "INTEGRATION TUTOR"));
 
         // Act
-        var processing = await SendAsync(new ProcessWithdrawalCommand(created.Id, admin.Id));
-        var completed = await SendAsync(new CompleteWithdrawalCommand(created.Id, admin.Id));
+        SetCurrentUser(admin.Id, UserRole.Admin);
+        var processing = await SendAsync(new ProcessWithdrawalCommand(created.Id));
+        var completed = await SendAsync(new CompleteWithdrawalCommand(created.Id));
 
         // Assert
         processing.Status.Should().Be(WithdrawalStatus.Processing);

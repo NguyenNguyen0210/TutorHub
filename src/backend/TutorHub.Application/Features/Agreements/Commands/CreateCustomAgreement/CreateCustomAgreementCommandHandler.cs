@@ -13,19 +13,23 @@ public class CreateCustomAgreementCommandHandler : IRequestHandler<CreateCustomA
 {
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateCustomAgreementCommandHandler(IAppDbContext context, IClock clock)
+    public CreateCustomAgreementCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<CustomAgreementDto> Handle(CreateCustomAgreementCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         // 1. Validate Tutor Profile & Status (INV-AGREE-001)
         var tutor = await _context.TutorProfiles
             .Include(t => t.User)
-            .FirstOrDefaultAsync(t => t.UserId == request.TutorUserId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null || tutor.User.Role != UserRole.Tutor)
         {

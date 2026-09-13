@@ -11,6 +11,5 @@ namespace TutorHub.Application.Features.PlatformSettings.Commands.AdminUpsertPla
 public record AdminUpsertPlatformSettingCommand(
     string Key,
     string Value,
-    Guid AdminUserId,
     string Reason
 ) : IRequest<PlatformSettingDto>;

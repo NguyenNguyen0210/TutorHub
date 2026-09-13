@@ -14,11 +14,12 @@ namespace TutorHub.Application.UnitTests.Features.Admin.TutorApplications.Reject
 public class RejectTutorApplicationCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly RejectTutorApplicationCommandHandler _handler;
 
     public RejectTutorApplicationCommandHandlerTests()
     {
-        _handler = new RejectTutorApplicationCommandHandler(_contextMock.Object);
+        _handler = new RejectTutorApplicationCommandHandler(_contextMock.Object, _currentUser);
     }
 
     [Fact]
@@ -26,6 +27,7 @@ public class RejectTutorApplicationCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var user = new UserBuilder().WithRole(UserRole.Tutor).Build();
 
         var pendingApp = new TutorApplication
@@ -49,7 +51,7 @@ public class RejectTutorApplicationCommandHandlerTests
         _contextMock.Setup(c => c.Wallets).Returns(MockDbSetHelper.CreateMockDbSet(walletsList).Object);
         _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var command = new RejectTutorApplicationCommand(pendingApp.Id, adminId, "Missing verified diplomas and credentials.");
+        var command = new RejectTutorApplicationCommand(pendingApp.Id, "Missing verified diplomas and credentials.");
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
@@ -76,11 +78,12 @@ public class RejectTutorApplicationCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var applicationsList = new List<TutorApplication>();
 
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(applicationsList).Object);
 
-        var command = new RejectTutorApplicationCommand(Guid.NewGuid(), adminId, "Some reason");
+        var command = new RejectTutorApplicationCommand(Guid.NewGuid(), "Some reason");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -98,6 +101,7 @@ public class RejectTutorApplicationCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var user = new UserBuilder().WithRole(UserRole.Tutor).Build();
 
         var pendingApp = new TutorApplication
@@ -115,7 +119,7 @@ public class RejectTutorApplicationCommandHandlerTests
         var applicationsList = new List<TutorApplication> { pendingApp };
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(applicationsList).Object);
 
-        var command = new RejectTutorApplicationCommand(pendingApp.Id, adminId, reason!);
+        var command = new RejectTutorApplicationCommand(pendingApp.Id, reason!);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -132,6 +136,7 @@ public class RejectTutorApplicationCommandHandlerTests
     {
         // Arrange
         var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
         var user = new UserBuilder().WithRole(UserRole.Tutor).Build();
 
         var approvedApp = new TutorApplication
@@ -150,7 +155,7 @@ public class RejectTutorApplicationCommandHandlerTests
         var applicationsList = new List<TutorApplication> { approvedApp };
         _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(applicationsList).Object);
 
-        var command = new RejectTutorApplicationCommand(approvedApp.Id, adminId, "Attempt to reject approved app");
+        var command = new RejectTutorApplicationCommand(approvedApp.Id, "Attempt to reject approved app");
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);

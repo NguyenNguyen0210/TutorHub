@@ -13,6 +13,7 @@ namespace TutorHub.Application.UnitTests.Features.Agreements;
 public class CheckoutCustomAgreementCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
+    private readonly StubCurrentUserService _currentUser = new();
     private readonly CheckoutCustomAgreementCommandHandler _handler;
 
     private readonly List<CustomAgreement> _agreements = new();
@@ -25,7 +26,7 @@ public class CheckoutCustomAgreementCommandHandlerTests
         _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(_bookings).Object);
         _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(_services).Object);
 
-        _handler = new CheckoutCustomAgreementCommandHandler(_contextMock.Object, StubClock.Instance);
+        _handler = new CheckoutCustomAgreementCommandHandler(_contextMock.Object, StubClock.Instance, _currentUser);
     }
 
     [Fact]
@@ -60,7 +61,8 @@ public class CheckoutCustomAgreementCommandHandlerTests
         };
         _agreements.Add(agreement);
 
-        var command = new CheckoutCustomAgreementCommand(agreement.Id, studentUser.Id);
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+        var command = new CheckoutCustomAgreementCommand(agreement.Id);
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -127,7 +129,8 @@ public class CheckoutCustomAgreementCommandHandlerTests
         };
         _bookings.Add(existingBooking);
 
-        var command = new CheckoutCustomAgreementCommand(agreement.Id, studentUser.Id);
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+        var command = new CheckoutCustomAgreementCommand(agreement.Id);
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -188,7 +191,8 @@ public class CheckoutCustomAgreementCommandHandlerTests
     public async Task Handle_WhenHoldingHasNullExpiry_RefreshesSameBookingWithoutDuplicate()
     {
         var (studentUser, agreement) = SeedAgreementWithBooking(BookingStatus.Holding, holdingExpiresAt: null);
-        var command = new CheckoutCustomAgreementCommand(agreement.Id, studentUser.Id);
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+        var command = new CheckoutCustomAgreementCommand(agreement.Id);
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -201,7 +205,8 @@ public class CheckoutCustomAgreementCommandHandlerTests
     public async Task Handle_WhenHoldingExpired_RefreshesSameBooking()
     {
         var (studentUser, agreement) = SeedAgreementWithBooking(BookingStatus.Holding, DateTime.UtcNow.AddMinutes(-1));
-        var command = new CheckoutCustomAgreementCommand(agreement.Id, studentUser.Id);
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+        var command = new CheckoutCustomAgreementCommand(agreement.Id);
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -213,7 +218,8 @@ public class CheckoutCustomAgreementCommandHandlerTests
     public async Task Handle_WhenExistingBookingCancelled_ThrowsConflictNoDuplicate()
     {
         var (studentUser, agreement) = SeedAgreementWithBooking(BookingStatus.Cancelled, DateTime.UtcNow.AddMinutes(-30));
-        var command = new CheckoutCustomAgreementCommand(agreement.Id, studentUser.Id);
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+        var command = new CheckoutCustomAgreementCommand(agreement.Id);
 
         var act = () => _handler.Handle(command, CancellationToken.None);
 
@@ -242,7 +248,8 @@ public class CheckoutCustomAgreementCommandHandlerTests
         };
         _agreements.Add(agreement);
 
-        var command = new CheckoutCustomAgreementCommand(agreement.Id, studentUser.Id);
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+        var command = new CheckoutCustomAgreementCommand(agreement.Id);
 
         var act = () => _handler.Handle(command, CancellationToken.None);
 
@@ -292,7 +299,8 @@ public class CheckoutCustomAgreementCommandHandlerTests
         };
         _agreements.Add(agreement);
 
-        var command = new CheckoutCustomAgreementCommand(agreement.Id, studentUser.Id);
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+        var command = new CheckoutCustomAgreementCommand(agreement.Id);
 
         var result = await _handler.Handle(command, CancellationToken.None);
 

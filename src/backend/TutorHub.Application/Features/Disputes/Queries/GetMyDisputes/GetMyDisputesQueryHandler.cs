@@ -8,21 +8,25 @@ namespace TutorHub.Application.Features.Disputes.Queries.GetMyDisputes;
 public class GetMyDisputesQueryHandler : IRequestHandler<GetMyDisputesQuery, List<DisputeDto>>
 {
     private readonly IAppDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMyDisputesQueryHandler(IAppDbContext context)
+    public GetMyDisputesQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<List<DisputeDto>> Handle(GetMyDisputesQuery request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         var disputes = await _context.Disputes
             .AsNoTracking()
             .Include(d => d.Session)
             .Include(d => d.InitiatorUser)
             .Include(d => d.RespondentUser)
             .Include(d => d.Evidences)
-            .Where(d => d.InitiatorUserId == request.UserId || d.RespondentUserId == request.UserId)
+            .Where(d => d.InitiatorUserId == userId || d.RespondentUserId == userId)
             .OrderByDescending(d => d.CreatedAt)
             .ToListAsync(cancellationToken);
 

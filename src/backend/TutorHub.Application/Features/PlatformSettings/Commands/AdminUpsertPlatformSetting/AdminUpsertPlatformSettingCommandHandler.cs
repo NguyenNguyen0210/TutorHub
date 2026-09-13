@@ -11,15 +11,19 @@ public class AdminUpsertPlatformSettingCommandHandler : IRequestHandler<AdminUps
 {
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly ICurrentUserService _currentUserService;
 
-    public AdminUpsertPlatformSettingCommandHandler(IAppDbContext context, IClock clock)
+    public AdminUpsertPlatformSettingCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _currentUserService = currentUserService;
     }
 
     public async Task<PlatformSettingDto> Handle(AdminUpsertPlatformSettingCommand request, CancellationToken cancellationToken)
     {
+        var userId = _currentUserService.UserIdOrThrow();
+
         // Validator already whitelists Key; re-check defensively for direct MediatR dispatch.
         if (!PlatformSettingKeys.All.Contains(request.Key))
         {
@@ -41,7 +45,7 @@ public class AdminUpsertPlatformSettingCommandHandler : IRequestHandler<AdminUps
                 Value = request.Value.Trim(),
                 Description = $"Generic platform policy (F-17 plumbing; semantics pending product decision).",
                 CurrentVersion = 1,
-                LastUpdatedByAdminId = request.AdminUserId,
+                LastUpdatedByAdminId = userId,
                 UpdatedAt = now
             };
 
@@ -52,7 +56,7 @@ public class AdminUpsertPlatformSettingCommandHandler : IRequestHandler<AdminUps
                 Version = 1,
                 Value = setting.Value,
                 Reason = request.Reason,
-                ChangedByAdminId = request.AdminUserId,
+                ChangedByAdminId = userId,
                 EffectiveFrom = now,
                 CreatedAt = now
             });
@@ -64,14 +68,14 @@ public class AdminUpsertPlatformSettingCommandHandler : IRequestHandler<AdminUps
                 string.Empty,
                 setting.Value,
                 1,
-                request.AdminUserId));
+                userId));
         }
         else
         {
             var oldVal = setting.Value;
             setting.CurrentVersion++;
             setting.Value = request.Value.Trim();
-            setting.LastUpdatedByAdminId = request.AdminUserId;
+            setting.LastUpdatedByAdminId = userId;
             setting.UpdatedAt = now;
 
             setting.Versions.Add(new PlatformSettingVersion
@@ -81,7 +85,7 @@ public class AdminUpsertPlatformSettingCommandHandler : IRequestHandler<AdminUps
                 Version = setting.CurrentVersion,
                 Value = setting.Value,
                 Reason = request.Reason,
-                ChangedByAdminId = request.AdminUserId,
+                ChangedByAdminId = userId,
                 EffectiveFrom = now,
                 CreatedAt = now
             });
@@ -91,7 +95,7 @@ public class AdminUpsertPlatformSettingCommandHandler : IRequestHandler<AdminUps
                 oldVal,
                 setting.Value,
                 setting.CurrentVersion,
-                request.AdminUserId));
+                userId));
         }
 
         await _context.SaveChangesAsync(cancellationToken);
