@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using TutorHub.Api.Configuration;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Payments.DTOs;
 using TutorHub.Application.Features.Payments.GetPaymentResult;
@@ -50,6 +52,7 @@ public class PaymentsController : ControllerBase
     /// VNPay browser return URL redirect handler (Presentation / Read-Only).
     /// </summary>
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingPolicies.Payment)]
     [HttpGet("vnpay/return")]
     [ProducesResponseType(typeof(ApiResponse<PaymentResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ProcessVnPayReturn(CancellationToken cancellationToken)
@@ -65,6 +68,7 @@ public class PaymentsController : ControllerBase
     /// VNPay Server-to-Server Instant Payment Notification (IPN) Webhook (Atomic and Idempotent Mutation).
     /// </summary>
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingPolicies.Payment)]
     [HttpGet("vnpay/ipn")]
     [ProducesResponseType(typeof(PaymentWebhookAckDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> ProcessVnPayIpn(CancellationToken cancellationToken)

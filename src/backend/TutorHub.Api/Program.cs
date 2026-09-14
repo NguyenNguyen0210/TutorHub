@@ -1,7 +1,9 @@
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -160,7 +162,39 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddHealthChecks();
 
+// P0-D2: per-IP throttling for credential and payment endpoints.
+builder.Services.AddTutorHubRateLimiting();
+
+// P0-D2: honour X-Forwarded-* ONLY when explicitly deployed behind a proxy. Enabling
+// this unconditionally lets any client spoof its address and evade the per-IP limiter.
+if (builder.Configuration.GetValue<bool>("ReverseProxy:Enabled"))
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+        var knownProxies = builder.Configuration.GetSection("ReverseProxy:KnownProxies").Get<string[]>();
+        if (knownProxies is { Length: > 0 })
+        {
+            options.KnownProxies.Clear();
+            foreach (var proxy in knownProxies)
+            {
+                if (IPAddress.TryParse(proxy, out var parsedProxy))
+                {
+                    options.KnownProxies.Add(parsedProxy);
+                }
+            }
+        }
+    });
+}
+
 var app = builder.Build();
+
+// P0-D2: must run before anything that reads Connection.RemoteIpAddress.
+if (app.Configuration.GetValue<bool>("ReverseProxy:Enabled"))
+{
+    app.UseForwardedHeaders();
+}
 
 // F-25: liveness probe backing the docker-compose /health check.
 app.MapHealthChecks("/health");
@@ -176,6 +210,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseRouting();
+
+// P0-D2: throttle before authentication so credential stuffing is limited even for
+// requests that never present a valid token.
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
