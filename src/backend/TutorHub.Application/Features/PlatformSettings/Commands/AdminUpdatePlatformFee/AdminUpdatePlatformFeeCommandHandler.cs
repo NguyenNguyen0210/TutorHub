@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Features.PlatformSettings.Commands.AdminUpsertPlatformSetting;
 using TutorHub.Application.Features.PlatformSettings.DTOs;
 using TutorHub.Domain.Entities;
 
@@ -13,8 +14,6 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
-
-    public const string PlatformFeeKey = "PlatformFeeRate";
 
     public AdminUpdatePlatformFeeCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
     {
@@ -29,7 +28,7 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
 
         var setting = await _context.PlatformSettings
             .Include(s => s.Versions)
-            .FirstOrDefaultAsync(s => s.Key == PlatformFeeKey, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Key == PlatformSettingKeys.PlatformFeeRate, cancellationToken);
 
         var now = _clock.UtcNow;
         var newValueStr = request.NewFeeRate.ToString("F4", CultureInfo.InvariantCulture);
@@ -39,7 +38,7 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
             setting = new PlatformSetting
             {
                 Id = Guid.NewGuid(),
-                Key = PlatformFeeKey,
+                Key = PlatformSettingKeys.PlatformFeeRate,
                 Value = newValueStr,
                 Description = "Default platform commission percentage applied to session payouts.",
                 CurrentVersion = 1,
@@ -63,8 +62,9 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
             _context.PlatformSettings.Add(setting);
 
             _context.AddOutboxMessage(new PlatformSettingChangedEvent(
-                PlatformFeeKey,
-                "0.1000",
+                PlatformSettingKeys.PlatformFeeRate,
+                // No previous value exists on first configuration; do not invent one.
+                string.Empty,
                 newValueStr,
                 1,
                 userId));
@@ -92,7 +92,7 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
             setting.Versions.Add(version);
 
             _context.AddOutboxMessage(new PlatformSettingChangedEvent(
-                PlatformFeeKey,
+                PlatformSettingKeys.PlatformFeeRate,
                 oldVal,
                 newValueStr,
                 setting.CurrentVersion,
