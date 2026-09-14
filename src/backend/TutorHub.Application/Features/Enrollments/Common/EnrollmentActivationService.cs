@@ -1,7 +1,7 @@
-using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Features.PlatformSettings.Commands.AdminUpsertPlatformSetting;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Services;
@@ -51,8 +51,7 @@ public class EnrollmentActivationService : IEnrollmentActivationService
                 "PUT /api/v1/admin/platform-settings/fee-rate before accepting payments.");
         }
 
-        if (!decimal.TryParse(feeSetting.Value, NumberStyles.Number, CultureInfo.InvariantCulture, out var feeRate)
-            || feeRate < 0m || feeRate >= 1m)
+        if (!PlatformFeeRateSetting.TryParse(feeSetting.Value, out var feeRate))
         {
             throw new InvalidOperationException(
                 $"Platform setting '{PlatformSettingKeys.PlatformFeeRate}' has invalid value " +

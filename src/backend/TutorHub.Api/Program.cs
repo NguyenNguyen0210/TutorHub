@@ -3,12 +3,14 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using TutorHub.Api.Configuration;
 using TutorHub.Api.Exceptions;
+using TutorHub.Api.HealthChecks;
 using TutorHub.Application;
 using TutorHub.Infrastructure;
 using TutorHub.Infrastructure.Authentication;
@@ -160,7 +162,12 @@ builder.Services.AddSwaggerGen(c =>
     }
 });
 
-builder.Services.AddHealthChecks();
+// P0-E3: readiness = the instance can actually serve traffic (database reachable and
+// the platform fee setting every payment activation snapshots is configured), while
+// liveness only asks whether the process answers.
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database")
+    .AddCheck<PlatformFeeSettingHealthCheck>("platform-fee-setting");
 
 // P0-E2: the frontend is served from its own origin, so preflight must succeed.
 // Credentials flow with the request, hence explicit origins instead of a wildcard.
@@ -210,8 +217,20 @@ if (app.Configuration.GetValue<bool>("ReverseProxy:Enabled"))
     app.UseForwardedHeaders();
 }
 
-// F-25: liveness probe backing the docker-compose /health check.
-app.MapHealthChecks("/health");
+// F-25 / P0-E3: readiness, kept on the path docker-compose already probes. A failing
+// dependency answers 503, which `curl -f` reports as unhealthy.
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = HealthCheckResponseWriter.WriteAsync
+});
+
+// P0-E3: liveness runs no dependency checks on purpose — a database outage must not
+// make an orchestrator restart a process that is otherwise fine.
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false,
+    ResponseWriter = HealthCheckResponseWriter.WriteAsync
+});
 
 app.UseExceptionHandler(_ => { });
 
