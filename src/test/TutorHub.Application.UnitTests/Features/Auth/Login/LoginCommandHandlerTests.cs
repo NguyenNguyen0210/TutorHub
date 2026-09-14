@@ -29,6 +29,7 @@ public class LoginCommandHandlerTests
             StubClock.Instance,
             _passwordHasherMock.Object,
             _jwtServiceMock.Object,
+            new StubRefreshTokenHasher(),
             Options.Create(new AuthTokenLifetimeOptions()));
     }
 
@@ -76,7 +77,10 @@ public class LoginCommandHandlerTests
         result.User.Email.Should().Be(user.Email);
         result.User.FullName.Should().Be(user.FullName);
 
-        refreshTokensList.Should().ContainSingle(t => t.UserId == user.Id && t.Token == "mocked-refresh-token-string");
+        // P0-D1: the raw token goes back to the client; only its hash is persisted.
+        refreshTokensList.Should().ContainSingle(t =>
+            t.UserId == user.Id && t.TokenHash == "hash:mocked-refresh-token-string");
+        refreshTokensList.Should().NotContain(t => t.TokenHash == "mocked-refresh-token-string");
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 

@@ -42,10 +42,18 @@ public static class InfrastructureServiceCollectionExtensions
             .BindConfiguration(AuthTokenLifetimeOptions.SectionName)
             .ValidateOnStart();
 
+        // Refresh token hashing pepper (P0-D1). Required: tokens are stored hashed,
+        // and the pepper must never live in the database alongside them.
+        services.AddOptions<RefreshTokenOptions>()
+            .BindConfiguration(RefreshTokenOptions.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         // Authentication & Security Services
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IJwtService, JwtService>();
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
+        services.AddSingleton<IRefreshTokenHasher, RefreshTokenHasher>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         // VNPay Payment Gateway Services

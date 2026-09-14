@@ -17,18 +17,21 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
     private readonly IClock _clock;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtService _jwtService;
+    private readonly IRefreshTokenHasher _refreshTokenHasher;
     private readonly AuthTokenLifetimeOptions _lifetimes;
 
     public LoginCommandHandler(
         IAppDbContext context, IClock clock,
         IPasswordHasher passwordHasher,
         IJwtService jwtService,
+        IRefreshTokenHasher refreshTokenHasher,
         IOptions<AuthTokenLifetimeOptions> lifetimeOptions)
     {
         _context = context;
         _clock = clock;
         _passwordHasher = passwordHasher;
         _jwtService = jwtService;
+        _refreshTokenHasher = refreshTokenHasher;
         _lifetimes = lifetimeOptions.Value;
     }
 
@@ -66,7 +69,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
-            Token = rawRefreshToken,
+            TokenHash = _refreshTokenHasher.Hash(rawRefreshToken),
             ExpiresAt = _clock.UtcNow.AddDays(_lifetimes.RefreshTokenExpirationDays),
             CreatedAt = _clock.UtcNow
         };

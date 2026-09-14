@@ -42,7 +42,7 @@ public class ChangePasswordCommandHandlerTests
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
-            Token = "active-session-token",
+            TokenHash = "hash:active-session-token",
             ExpiresAt = DateTime.UtcNow.AddDays(5),
             CreatedAt = DateTime.UtcNow.AddDays(-2),
             RevokedAt = null
