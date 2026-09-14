@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using TutorHub.Api.Configuration;
 using TutorHub.Api.Exceptions;
 using TutorHub.Application;
 using TutorHub.Infrastructure;
@@ -45,6 +46,9 @@ if (builder.Environment.IsDevelopment())
 }
 
 builder.Configuration.AddEnvironmentVariables();
+
+// F-25 hardening: refuse to start while a secret still holds a template value.
+StartupSecretGuard.ValidateNoPlaceholderSecrets(builder.Configuration);
 
 // Add Layers
 builder.Services.AddApplication();
