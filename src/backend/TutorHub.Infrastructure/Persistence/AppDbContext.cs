@@ -47,7 +47,39 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<SessionRescheduleRequest> SessionRescheduleRequests => Set<SessionRescheduleRequest>();
     public DbSet<LearningRecord> LearningRecords => Set<LearningRecord>();
 
+    public override int SaveChanges()
+    {
+        EnforceLedgerImmutability();
+        return base.SaveChanges();
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        EnforceLedgerImmutability();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        EnforceLedgerImmutability();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        EnforceLedgerImmutability();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    /// <summary>
+    /// Append-only / immutability guards for the financial ledger
+    /// (INV-LEDGER-006, INV-LEDGER-007, DEC-S8-030).
+    ///
+    /// Invoked from EVERY SaveChanges entry point (sync, sync-bool, async,
+    /// async-bool) so that no overload can bypass the ledger invariants. Guarding
+    /// only the async overload left the other three as an open door.
+    /// </summary>
+    private void EnforceLedgerImmutability()
     {
         // Enforce append-only / immutability on Transaction (DEC-S8-030, INV-LEDGER-007)
         var deletedTransactions = ChangeTracker.Entries<Transaction>()
@@ -119,8 +151,6 @@ public class AppDbContext : DbContext, IAppDbContext
         {
             throw new InvalidOperationException("AuditLog records are append-only and cannot be modified or deleted.");
         }
-
-        return base.SaveChangesAsync(cancellationToken);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

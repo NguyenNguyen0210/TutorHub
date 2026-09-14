@@ -179,4 +179,92 @@ public class AppDbContextAppendOnlyTests
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*chaining is forbidden*");
     }
+
+    /// <summary>Every public persistence entry point on DbContext.</summary>
+    public enum SaveEntryPoint
+    {
+        SaveChanges,
+        SaveChangesWithAcceptAllChanges,
+        SaveChangesAsync,
+        SaveChangesAsyncWithAcceptAllChanges
+    }
+
+    private static Task InvokeSave(AppDbContext context, SaveEntryPoint entryPoint) => entryPoint switch
+    {
+        SaveEntryPoint.SaveChanges => Task.FromResult(context.SaveChanges()),
+        SaveEntryPoint.SaveChangesWithAcceptAllChanges =>
+            Task.FromResult(context.SaveChanges(acceptAllChangesOnSuccess: true)),
+        SaveEntryPoint.SaveChangesAsync => context.SaveChangesAsync(),
+        SaveEntryPoint.SaveChangesAsyncWithAcceptAllChanges =>
+            context.SaveChangesAsync(acceptAllChangesOnSuccess: true),
+        _ => throw new ArgumentOutOfRangeException(nameof(entryPoint))
+    };
+
+    [Theory]
+    [InlineData(SaveEntryPoint.SaveChanges)]
+    [InlineData(SaveEntryPoint.SaveChangesWithAcceptAllChanges)]
+    [InlineData(SaveEntryPoint.SaveChangesAsync)]
+    [InlineData(SaveEntryPoint.SaveChangesAsyncWithAcceptAllChanges)]
+    public async Task EverySaveEntryPoint_BlocksModifyingSettledTransaction(SaveEntryPoint entryPoint)
+    {
+        // P0-C1: guarding only the async overload left three doors open.
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new AppDbContext(options);
+
+        var tx = new Transaction
+        {
+            Id = Guid.NewGuid(),
+            BookingId = Guid.NewGuid(),
+            Type = TransactionType.SessionPayoutCredit,
+            Amount = 100_000m,
+            Status = TransactionStatus.Released,
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Transactions.Add(tx);
+        await context.SaveChangesAsync();
+
+        tx.Status = TransactionStatus.Refunded;
+
+        Func<Task> act = async () => await InvokeSave(context, entryPoint);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*immutable*");
+    }
+
+    [Theory]
+    [InlineData(SaveEntryPoint.SaveChanges)]
+    [InlineData(SaveEntryPoint.SaveChangesWithAcceptAllChanges)]
+    [InlineData(SaveEntryPoint.SaveChangesAsync)]
+    [InlineData(SaveEntryPoint.SaveChangesAsyncWithAcceptAllChanges)]
+    public async Task EverySaveEntryPoint_BlocksDeletingAuditLog(SaveEntryPoint entryPoint)
+    {
+        // P0-C1 / INV-LEDGER-006 on every overload.
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new AppDbContext(options);
+
+        var log = new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            Action = "PlatformFeeRateUpdated",
+            EntityName = "PlatformSetting",
+            EntityId = "PlatformFeeRate",
+            CorrelationId = "corr-guard",
+            CreatedAt = DateTime.UtcNow
+        };
+        context.AuditLogs.Add(log);
+        await context.SaveChangesAsync();
+
+        context.AuditLogs.Remove(log);
+
+        Func<Task> act = async () => await InvokeSave(context, entryPoint);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*AuditLog records are append-only*");
+    }
 }
