@@ -1,6 +1,6 @@
 namespace TutorHub.Application.Features.Payments.DTOs;
 
-public record VnPayIpnResponseDto(
+public record PaymentWebhookAckDto(
     string RspCode,
     string Message
 );

@@ -4,23 +4,23 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using TutorHub.Application.Common.Interfaces;
-using TutorHub.Application.Common.Payment;
+using TutorHub.Application.Common.Payments;
 using TutorHub.Application.Features.Bookings.CreateBooking;
 using TutorHub.Application.Features.Enrollments.Common;
-using TutorHub.Application.Features.Payments.ProcessVnPayIpn;
+using TutorHub.Application.Features.Payments.HandlePaymentWebhook;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// Canonical happy-path VNPay IPN: a Holding booking plus its pre-allocated
+/// Canonical happy-path payment webhook: a Holding booking plus its pre-allocated
 /// gateway attempt, then a successful IPN, activates the enrollment with the
 /// GROSS escrow amount.
 /// </summary>
-public class VnPayIpnFlowTests : IntegrationTestBase
+public class PaymentWebhookFlowTests : IntegrationTestBase
 {
-    public VnPayIpnFlowTests(IntegrationWebApplicationFactory factory)
+    public PaymentWebhookFlowTests(IntegrationWebApplicationFactory factory)
         : base(factory)
     {
     }
@@ -53,13 +53,13 @@ public class VnPayIpnFlowTests : IntegrationTestBase
         Db.Transactions.Add(tx);
         await Db.SaveChangesAsync();
 
-        var handler = new ProcessVnPayIpnCommandHandler(
+        var handler = new HandlePaymentWebhookCommandHandler(
             Db,
             StubIntegrationClock.Instance,
-            new AlwaysValidVnPayService(),
+            new AlwaysValidPaymentGateway(),
             Scope.ServiceProvider.GetRequiredService<IEnrollmentActivationService>(),
             Scope.ServiceProvider.GetRequiredService<IAuditLogService>(),
-            NullLogger<ProcessVnPayIpnCommandHandler>.Instance);
+            NullLogger<HandlePaymentWebhookCommandHandler>.Instance);
 
         var parameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -73,9 +73,9 @@ public class VnPayIpnFlowTests : IntegrationTestBase
             ["vnp_SecureHash"] = "dummy"
         };
 
-        var result = await handler.Handle(new ProcessVnPayIpnCommand(parameters), CancellationToken.None);
+        var result = await handler.Handle(new HandlePaymentWebhookCommand(parameters), CancellationToken.None);
 
-        result.RspCode.Should().Be("00");
+        result.Code.Should().Be("00");
 
         var freshBooking = await Db.Bookings.AsNoTracking().FirstAsync(b => b.Id == booking.Id);
         freshBooking.Status.Should().Be(BookingStatus.Paid);
@@ -97,10 +97,37 @@ public class VnPayIpnFlowTests : IntegrationTestBase
         outboxTypes.Should().Contain("EnrollmentActivated");
     }
 
-    private sealed class AlwaysValidVnPayService : IVnPayService
+    private sealed class AlwaysValidPaymentGateway : IPaymentGateway
     {
-        public string CreatePaymentUrl(VnPayPaymentRequest request) => "https://sandbox.test/pay";
-        public bool VerifySignature(IReadOnlyDictionary<string, string> parameters, string secureHash) => true;
-        public string GetTmnCode() => "TESTTMN";
+        public string CreateRedirect(PaymentRedirectRequest request) => "https://sandbox.test/pay";
+
+        public PaymentCallbackResult VerifyAndParseCallback(IReadOnlyDictionary<string, string> parameters)
+        {
+            parameters.TryGetValue("vnp_TxnRef", out var txnRef);
+            parameters.TryGetValue("vnp_Amount", out var amountStr);
+            parameters.TryGetValue("vnp_TransactionNo", out var transactionNo);
+            decimal.TryParse(amountStr, out var rawAmount);
+
+            return new PaymentCallbackResult(
+                IsVerified: true,
+                Error: null,
+                MerchantReference: txnRef,
+                Amount: rawAmount / 100m,
+                IsSuccessful: true,
+                ProviderTransactionId: transactionNo);
+        }
+
+        public PaymentWebhookAck BuildAcknowledgement(PaymentWebhookOutcome outcome)
+        {
+            return outcome switch
+            {
+                PaymentWebhookOutcome.Success => new PaymentWebhookAck("00", "Confirm Success"),
+                PaymentWebhookOutcome.Duplicate => new PaymentWebhookAck("02", "Order already confirmed"),
+                PaymentWebhookOutcome.NotFound => new PaymentWebhookAck("01", "Order not found"),
+                PaymentWebhookOutcome.InvalidAmount => new PaymentWebhookAck("04", "Invalid amount"),
+                PaymentWebhookOutcome.InvalidSignature => new PaymentWebhookAck("97", "Invalid Checksum"),
+                _ => new PaymentWebhookAck("99", "Invalid Request"),
+            };
+        }
     }
 }

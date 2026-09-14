@@ -1,10 +1,10 @@
 using FluentValidation;
 
-namespace TutorHub.Application.Features.Payments.CreateVnPayUrl;
+namespace TutorHub.Application.Features.Payments.InitiatePayment;
 
-public class CreateVnPayUrlCommandValidator : AbstractValidator<CreateVnPayUrlCommand>
+public class InitiatePaymentCommandValidator : AbstractValidator<InitiatePaymentCommand>
 {
-    public CreateVnPayUrlCommandValidator()
+    public InitiatePaymentCommandValidator()
     {
         RuleFor(x => x.BookingId)
             .NotEmpty()

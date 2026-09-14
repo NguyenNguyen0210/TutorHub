@@ -5,7 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TutorHub.Application.Common.Interfaces;
-using TutorHub.Application.Common.Payment;
+using TutorHub.Application.Common.Payments;
 using TutorHub.Application.Common.Security;
 using TutorHub.Application.Common.Storage;
 using TutorHub.Infrastructure.Authentication;
@@ -54,7 +54,7 @@ public static class InfrastructureServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        services.AddScoped<IVnPayService, VnPayService>();
+        services.AddScoped<IPaymentGateway, VnPayPaymentGateway>();
 
         // Cloudflare R2 Object Storage Services
         services.AddOptions<CloudflareR2Options>()

@@ -2,29 +2,30 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Payments;
 using TutorHub.Application.Features.Bookings;
 using TutorHub.Application.Features.Payments.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 
-namespace TutorHub.Application.Features.Payments.CreateVnPayUrl;
+namespace TutorHub.Application.Features.Payments.InitiatePayment;
 
-public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlCommand, VnPayPaymentUrlDto>
+public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentCommand, PaymentRedirectDto>
 {
     private readonly IAppDbContext _context;
-    private readonly IVnPayService _vnPayService;
+    private readonly IPaymentGateway _paymentGateway;
     private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
 
-    public CreateVnPayUrlCommandHandler(IAppDbContext context, IVnPayService vnPayService, IClock clock, ICurrentUserService currentUserService)
+    public InitiatePaymentCommandHandler(IAppDbContext context, IPaymentGateway paymentGateway, IClock clock, ICurrentUserService currentUserService)
     {
         _context = context;
-        _vnPayService = vnPayService;
+        _paymentGateway = paymentGateway;
         _clock = clock;
         _currentUserService = currentUserService;
     }
 
-    public async Task<VnPayPaymentUrlDto> Handle(CreateVnPayUrlCommand request, CancellationToken cancellationToken)
+    public async Task<PaymentRedirectDto> Handle(InitiatePaymentCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
 
@@ -93,8 +94,8 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        // 6. Build VNPay payment URL
-        var paymentReq = new VnPayPaymentRequest(
+        // 6. Build hosted payment redirect through the configured gateway
+        var paymentReq = new PaymentRedirectRequest(
             MerchantReference: merchantRef,
             Amount: booking.TotalPrice,
             OrderInfo: $"Thanh toan buoi hoc {booking.Subject.Name} #{booking.Id.ToString()[..8]}",
@@ -103,9 +104,9 @@ public class CreateVnPayUrlCommandHandler : IRequestHandler<CreateVnPayUrlComman
             ExpireAt: expireAt
         );
 
-        var paymentUrl = _vnPayService.CreatePaymentUrl(paymentReq);
+        var paymentUrl = _paymentGateway.CreateRedirect(paymentReq);
 
-        return new VnPayPaymentUrlDto(
+        return new PaymentRedirectDto(
             PaymentUrl: paymentUrl,
             MerchantReference: merchantRef,
             BookingId: booking.Id,

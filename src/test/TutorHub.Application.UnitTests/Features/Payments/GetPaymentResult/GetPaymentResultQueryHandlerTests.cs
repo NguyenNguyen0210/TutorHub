@@ -1,28 +1,28 @@
 using FluentAssertions;
 using Moq;
 using TutorHub.Application.Common.Interfaces;
-using TutorHub.Application.Common.Payment;
-using TutorHub.Application.Features.Payments.ProcessVnPayReturn;
+using TutorHub.Application.Common.Payments;
+using TutorHub.Application.Features.Payments.GetPaymentResult;
 using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 using Xunit;
 
-namespace TutorHub.Application.UnitTests.Features.Payments.ProcessVnPayReturn;
+namespace TutorHub.Application.UnitTests.Features.Payments.GetPaymentResult;
 
-public class ProcessVnPayReturnQueryHandlerTests
+public class GetPaymentResultQueryHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
-    private readonly Mock<IVnPayService> _vnPayServiceMock = new();
-    private readonly ProcessVnPayReturnQueryHandler _handler;
+    private readonly Mock<IPaymentGateway> _paymentGatewayMock = new();
+    private readonly GetPaymentResultQueryHandler _handler;
 
-    public ProcessVnPayReturnQueryHandlerTests()
+    public GetPaymentResultQueryHandlerTests()
     {
-        _vnPayServiceMock
-            .Setup(s => s.VerifySignature(It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<string>()))
-            .Returns(true);
+        _paymentGatewayMock
+            .Setup(s => s.VerifyAndParseCallback(It.IsAny<IReadOnlyDictionary<string, string>>()))
+            .Returns(new PaymentCallbackResult(true, null, "THB260912ABC123", 900_000m, true, "987654321"));
 
-        _handler = new ProcessVnPayReturnQueryHandler(_contextMock.Object, _vnPayServiceMock.Object);
+        _handler = new GetPaymentResultQueryHandler(_contextMock.Object, _paymentGatewayMock.Object);
     }
 
     private void SetupTransactions(params Transaction[] transactions)
@@ -47,7 +47,7 @@ public class ProcessVnPayReturnQueryHandlerTests
     [Fact]
     public async Task Handle_WhenGatewayRefWasRewrittenToCompositeForm_StillResolvesBooking()
     {
-        // Arrange: the IPN rewrites PaymentGatewayRef to "txnRef|transactionNo".
+        // Arrange: the webhook rewrites PaymentGatewayRef to "txnRef|transactionNo".
         var bookingId = Guid.NewGuid();
         var tx = new Transaction
         {
@@ -61,7 +61,7 @@ public class ProcessVnPayReturnQueryHandlerTests
         };
         SetupTransactions(tx);
 
-        var query = new ProcessVnPayReturnQuery(
+        var query = new GetPaymentResultQuery(
             BuildParameters(txnRef: "THB260912ABC123", transactionNo: "987654321"));
 
         // Act
@@ -88,7 +88,7 @@ public class ProcessVnPayReturnQueryHandlerTests
             CreatedAt = DateTime.UtcNow
         });
 
-        var query = new ProcessVnPayReturnQuery(
+        var query = new GetPaymentResultQuery(
             BuildParameters(txnRef: "THB260912ABC123", transactionNo: "987654321"));
 
         // Act
@@ -104,7 +104,7 @@ public class ProcessVnPayReturnQueryHandlerTests
         // Arrange
         SetupTransactions();
 
-        var query = new ProcessVnPayReturnQuery(
+        var query = new GetPaymentResultQuery(
             BuildParameters(txnRef: "THB-NOT-FOUND", transactionNo: "1"));
 
         // Act
@@ -118,11 +118,11 @@ public class ProcessVnPayReturnQueryHandlerTests
     public async Task Handle_WhenSignatureInvalid_ReturnsFailureWithoutLookup()
     {
         // Arrange
-        _vnPayServiceMock
-            .Setup(s => s.VerifySignature(It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<string>()))
-            .Returns(false);
+        _paymentGatewayMock
+            .Setup(s => s.VerifyAndParseCallback(It.IsAny<IReadOnlyDictionary<string, string>>()))
+            .Returns(new PaymentCallbackResult(false, PaymentCallbackError.InvalidSignature, null, 0, false, null));
 
-        var query = new ProcessVnPayReturnQuery(
+        var query = new GetPaymentResultQuery(
             BuildParameters(txnRef: "THB260912ABC123", transactionNo: "987654321"));
 
         // Act

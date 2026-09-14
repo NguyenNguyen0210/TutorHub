@@ -1,11 +1,10 @@
 namespace TutorHub.Application.Features.Payments.DTOs;
 
-public record VnPayReturnResultDto(
+public record PaymentResultDto(
     bool Success,
     string Message,
     Guid BookingId,
     string MerchantReference,
     string? TransactionNo,
-    decimal Amount,
-    string? ResponseCode
+    decimal Amount
 );

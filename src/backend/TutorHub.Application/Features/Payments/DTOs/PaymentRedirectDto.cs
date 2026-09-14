@@ -1,6 +1,6 @@
 namespace TutorHub.Application.Features.Payments.DTOs;
 
-public record VnPayPaymentUrlDto(
+public record PaymentRedirectDto(
     string PaymentUrl,
     string MerchantReference,
     Guid BookingId,

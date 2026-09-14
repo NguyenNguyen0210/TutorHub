@@ -9,8 +9,8 @@ namespace TutorHub.Application.Features.Enrollments.Common;
 /// <summary>
 /// Shared activation of a paid Booking into an active Enrollment: snapshots the
 /// platform fee (DEC-S8-020), allocates N Sessions, credits the tutor wallet's
-/// Pending escrow with the GROSS amount, and enqueues the outbox events. Used by
-/// both the VNPay IPN and the transitional mock payment path so they cannot diverge.
+/// Pending escrow with the GROSS amount, and enqueues the outbox events. Kept in
+/// one place so every payment-confirmation path activates identically.
 /// </summary>
 public interface IEnrollmentActivationService
 {

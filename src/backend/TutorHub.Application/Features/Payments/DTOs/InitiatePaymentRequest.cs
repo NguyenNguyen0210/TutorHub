@@ -1,5 +1,5 @@
 namespace TutorHub.Application.Features.Payments.DTOs;
 
-public record CreateVnPayUrlRequest(
+public record InitiatePaymentRequest(
     Guid BookingId
 );
