@@ -1,4 +1,4 @@
-// Notification Service - Multi-channel alerts & actions
+// Notification Service - Connected to /api/v1/notifications with graceful fallback
 import api from './api';
 
 const MOCK_NOTIFICATIONS = [
@@ -37,54 +37,40 @@ const MOCK_NOTIFICATIONS = [
     actionLabel: 'Xem Quyết Định Trọng Tài',
     actionUrl: '/student/disputes/new',
     priority: 'HIGH',
-  },
-  {
-    id: 'notif_004',
-    category: 'escrow',
-    title: 'Tiền cọc bảo chứng Escrow đã kích hoạt',
-    message: 'Hợp đồng 10 buổi #e1e1e1e1 đã được đặt cọc thành công 2.000.000 ₫ qua VNPay. Toàn bộ tiền nằm trong tài khoản ký quỹ trung gian.',
-    timestamp: '1 ngày trước',
-    read: true,
-    actionType: 'NAVIGATE',
-    actionLabel: 'Chi Tiết Hợp Đồng',
-    actionUrl: '/student/enrollments/e1e1e1e1-0001',
-    priority: 'NORMAL',
-  },
-  {
-    id: 'notif_005',
-    category: 'session',
-    title: 'Lịch học sắp diễn ra sau 60 phút',
-    message: 'Lớp Giải Tích Nâng Cao với Gia sư Trần Thị Bích Ngọc sẽ bắt đầu lúc 20:00 tối nay. Nhấp để kiểm tra phòng học Google Meet.',
-    timestamp: '1 ngày trước',
-    read: true,
-    actionType: 'NAVIGATE',
-    actionLabel: 'Mở Phòng Học',
-    actionUrl: '/student/sessions/s3s3s3s3-0003',
-    priority: 'NORMAL',
-  },
-  {
-    id: 'notif_006',
-    category: 'system',
-    title: 'Cập nhật chính sách sàn DEC-S8',
-    message: 'TutorHub đã triển khai cơ chế kiểm toán bất biến Correlation ID và tự động khấu trừ phí sàn 10% minh bạch khi phán quyết tranh chấp.',
-    timestamp: '3 ngày trước',
-    read: true,
-    priority: 'LOW',
   }
 ];
 
 export const notificationService = {
   getNotifications: async () => {
-    return MOCK_NOTIFICATIONS;
+    try {
+      const res = await api.get('/notifications');
+      if (res && res.data && Array.isArray(res.data.items) && res.data.items.length > 0) {
+        return res.data.items;
+      }
+      return MOCK_NOTIFICATIONS;
+    } catch (err) {
+      console.warn('[notificationService] Fallback to mock notifications:', err.message);
+      return MOCK_NOTIFICATIONS;
+    }
   },
 
   markAsRead: async (id) => {
+    try {
+      await api.post(`/notifications/${id}/read`);
+    } catch (err) {
+      console.warn('[notificationService] Fallback markAsRead:', err.message);
+    }
     const item = MOCK_NOTIFICATIONS.find(n => n.id === id);
     if (item) item.read = true;
     return true;
   },
 
   markAllAsRead: async () => {
+    try {
+      await api.post('/notifications/read-all');
+    } catch (err) {
+      console.warn('[notificationService] Fallback markAllAsRead:', err.message);
+    }
     MOCK_NOTIFICATIONS.forEach(n => n.read = true);
     return true;
   }

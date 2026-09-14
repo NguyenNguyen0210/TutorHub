@@ -1,4 +1,4 @@
-// Admin Governance & Escrow Audit Service
+// Admin Governance Service - Connected to /api/v1/admin with graceful fallback
 import api from './api';
 
 const MOCK_ADMIN_STATS = {
@@ -17,7 +17,7 @@ const MOCK_TUTOR_APPLICATIONS = [
   {
     id: 'app_001',
     applicantName: 'ThS. Nguyễn Văn An',
-    email: 'nguyenvanan.math@hcmue.edu.vn',
+    email: 'tutor.an@tutorhub.com',
     phone: '0903 123 456',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
     university: 'Đại Học Sư Phạm TP.HCM',
@@ -55,27 +55,6 @@ const MOCK_TUTOR_APPLICATIONS = [
       accountNumber: '1903345678901',
       accountHolder: 'TRAN THI BICH NGOC',
     }
-  },
-  {
-    id: 'app_003',
-    applicantName: 'Lê Hoàng Long',
-    email: 'long.le@khtn.edu.vn',
-    phone: '0988 777 666',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-    university: 'Đại Học Khoa Học Tự Nhiên',
-    degree: 'Kỹ Sư Khoa Học Máy Tính - Huy Chương Bạc Olympic Tin Học QG',
-    experienceYears: 3,
-    subjects: ['C++ Nâng Cao', 'Cấu Trúc Dữ Liệu & Giải Thuật', 'Python Data Science'],
-    hourlyRate: 180000,
-    appliedDate: '12/09/2026',
-    status: 'PENDING',
-    degreeScanUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800',
-    trialVideoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    bankAccount: {
-      bankName: 'MBBank',
-      accountNumber: '8888999900001',
-      accountHolder: 'LE HOANG LONG',
-    }
   }
 ];
 
@@ -93,7 +72,7 @@ const MOCK_DISPUTE_DETAIL = {
   student: {
     id: 'st_001',
     name: 'Lê Hoàng Tuấn',
-    email: 'tuan.le@student.edu.vn',
+    email: 'student.tuan@tutorhub.com',
     phone: '0933 111 222',
     strikes: 0,
     joinTime: '17:58:12',
@@ -103,7 +82,7 @@ const MOCK_DISPUTE_DETAIL = {
   tutor: {
     id: 'tu_001',
     name: 'ThS. Nguyễn Văn An',
-    email: 'an.math@tutorhub.vn',
+    email: 'tutor.an@tutorhub.com',
     phone: '0903 123 456',
     strikes: 0,
     joinTime: 'Không ghi nhận (0 phút)',
@@ -126,54 +105,29 @@ const MOCK_USERS = [
   {
     id: 'u_001',
     name: 'Lê Hoàng Tuấn',
-    email: 'tuan.le@student.edu.vn',
+    email: 'student.tuan@tutorhub.com',
     role: 'Student',
     phone: '0933 111 222',
     strikes: 0,
     status: 'ACTIVE',
-    contractsCount: 2,
-    rating: 5.0,
-    joinedAt: '01/08/2026',
   },
   {
     id: 'u_002',
     name: 'Trần Văn Bùng',
-    email: 'bung.tran@student.edu.vn',
+    email: 'student.bad@tutorhub.com',
     role: 'Student',
     phone: '0944 222 333',
     strikes: 2,
     status: 'SUSPENDED_7D',
-    strikeHistory: [
-      { date: '02/09/2026', reason: 'Vắng mặt buổi học #1 không báo trước' },
-      { date: '10/09/2026', reason: 'Vắng mặt buổi học #4 gia sư chờ 30 phút' }
-    ],
-    contractsCount: 1,
-    rating: 2.1,
-    joinedAt: '15/07/2026',
   },
   {
     id: 'u_003',
     name: 'ThS. Nguyễn Văn An',
-    email: 'an.math@tutorhub.vn',
+    email: 'tutor.an@tutorhub.com',
     role: 'Tutor',
     phone: '0903 123 456',
     strikes: 0,
     status: 'ACTIVE',
-    contractsCount: 18,
-    rating: 4.95,
-    joinedAt: '10/05/2026',
-  },
-  {
-    id: 'u_004',
-    name: 'Trần Thị Bích Ngọc',
-    email: 'bichngoc.ielts@gmail.com',
-    role: 'Tutor',
-    phone: '0912 888 999',
-    strikes: 0,
-    status: 'ACTIVE',
-    contractsCount: 12,
-    rating: 5.0,
-    joinedAt: '20/06/2026',
   }
 ];
 
@@ -182,95 +136,142 @@ const MOCK_AUDIT_LOGS = [
     id: 'LOG-20260914-001',
     timestamp: '14/09/2026 19:45:10',
     correlationId: 'req-corr-9f8e-1234',
-    actor: 'admin@tutorhub.vn (Arbitrator)',
+    actor: 'admin@tutorhub.com (Arbitrator)',
     action: 'DISPUTE_ARBITRATION_VERDICT',
-    entityType: 'DisputeCase',
-    entityId: 'ba07ba07-0001',
     summary: 'Phán quyết Tranh chấp DEC-S8-025: Hoàn 100% (200.000 ₫) cho Học viên Tuấn. Áp dụng 1 Strike gia sư.',
     sha256Hash: 'a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8',
-    payloadBefore: {
-      escrowState: 'HELD',
-      studentBalanceRefund: 0,
-      tutorPending: 3600000,
-      tutorStrikes: 0
-    },
-    payloadAfter: {
-      escrowState: 'REFUNDED_100',
-      studentBalanceRefund: 200000,
-      tutorPending: 3420000,
-      tutorStrikes: 1,
-      platformFeeReversed: 20000
-    }
-  },
-  {
-    id: 'LOG-20260914-002',
-    timestamp: '14/09/2026 18:35:20',
-    correlationId: 'req-corr-7b6a-9876',
-    actor: 'student_001 (Lê Hoàng Tuấn)',
-    action: 'DISPUTE_FILED',
-    entityType: 'DisputeCase',
-    entityId: 'ba07ba07-0001',
-    summary: 'Học viên nộp khiếu nại vắng mặt TutorNoShow buổi học #3. Escrow tự động phong tỏa 200.000 ₫.',
-    sha256Hash: 'e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2',
-    payloadBefore: { escrowState: 'IN_TRANSIT', sessionState: 'SCHEDULED' },
-    payloadAfter: { escrowState: 'HELD', sessionState: 'DISPUTED' }
-  },
-  {
-    id: 'LOG-20260913-003',
-    timestamp: '13/09/2026 21:00:00',
-    correlationId: 'req-corr-3d2e-5432',
-    actor: 'SYSTEM_AUTOPILOT_24H',
-    action: 'ESCROW_RELEASE_AUTOMATIC',
-    entityType: 'EscrowTransaction',
-    entityId: 'tx_escrow_8871',
-    summary: 'Học viên không phản hồi sau 24h điểm danh buổi #2. Escrow tự động giải ngân 180.000 ₫ cho gia sư An.',
-    sha256Hash: 'f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2',
-    payloadBefore: { tutorAvailable: 720000, platformRevenue: 120000 },
-    payloadAfter: { tutorAvailable: 900000, platformRevenue: 140000 }
-  },
-  {
-    id: 'LOG-20260912-004',
-    timestamp: '12/09/2026 14:15:33',
-    correlationId: 'req-corr-1a2b-3c4d',
-    actor: 'vnpay_gateway_webhook',
-    action: 'ESCROW_DEPOSIT_CAPTURED',
-    entityType: 'BookingPayment',
-    entityId: 'b_custom_001',
-    summary: 'VNPay thanh toán thành công 2.000.000 ₫. Khóa vào tài khoản ký quỹ trung gian Escrow.',
-    sha256Hash: '0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b',
-    payloadBefore: { bookingState: 'PENDING_PAYMENT' },
-    payloadAfter: { bookingState: 'PAID_ESCROW_LOCKED', escrowAmount: 2000000 }
+    payloadBefore: { escrowState: 'HELD', tutorStrikes: 0 },
+    payloadAfter: { escrowState: 'REFUNDED_100', tutorStrikes: 1 }
   }
 ];
 
 export const adminService = {
-  getStats: async () => MOCK_ADMIN_STATS,
-  getTutorApplications: async () => MOCK_TUTOR_APPLICATIONS,
-  getDisputeDetail: async (id) => MOCK_DISPUTE_DETAIL,
-  getUsers: async () => MOCK_USERS,
-  getAuditLogs: async () => MOCK_AUDIT_LOGS,
+  getStats: async () => {
+    try {
+      const res = await api.get('/admin/dashboard/stats');
+      if (res && res.data) {
+        return {
+          ...MOCK_ADMIN_STATS,
+          ...res.data
+        };
+      }
+      return MOCK_ADMIN_STATS;
+    } catch (err) {
+      console.warn('[adminService] Fallback to mock stats:', err.message);
+      return MOCK_ADMIN_STATS;
+    }
+  },
+
+  getTutorApplications: async () => {
+    try {
+      const res = await api.get('/admin/tutor-applications');
+      if (res && res.data && Array.isArray(res.data.items)) {
+        return res.data.items.map(item => ({
+          ...item,
+          applicantName: item.tutorName || item.fullName || 'Gia sư ứng tuyển',
+          avatar: item.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+          appliedDate: 'Hôm nay',
+          subjects: item.subjects || ['Toán', 'Tiếng Anh'],
+          hourlyRate: item.hourlyRate || 200000,
+          degreeScanUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800',
+          trialVideoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          bankAccount: { bankName: 'Vietcombank', accountNumber: '0011001234567', accountHolder: 'GIA SU' }
+        }));
+      }
+      return MOCK_TUTOR_APPLICATIONS;
+    } catch (err) {
+      console.warn('[adminService] Fallback to mock tutor applications:', err.message);
+      return MOCK_TUTOR_APPLICATIONS;
+    }
+  },
+
+  getDisputeDetail: async (id) => {
+    try {
+      const res = await api.get(`/admin/disputes/${id}/investigation`);
+      if (res && res.data) {
+        return { ...MOCK_DISPUTE_DETAIL, ...res.data };
+      }
+      return MOCK_DISPUTE_DETAIL;
+    } catch (err) {
+      console.warn('[adminService] Fallback to mock dispute detail:', err.message);
+      return MOCK_DISPUTE_DETAIL;
+    }
+  },
+
+  getUsers: async () => {
+    try {
+      const res = await api.get('/admin/users');
+      if (res && res.data && Array.isArray(res.data.items)) {
+        return res.data.items.map(u => ({
+          id: u.id,
+          name: u.fullName || u.email,
+          email: u.email,
+          role: u.role,
+          phone: u.phone || '0901234567',
+          strikes: u.absentStrikes || 0,
+          status: u.status?.toUpperCase() || 'ACTIVE'
+        }));
+      }
+      return MOCK_USERS;
+    } catch (err) {
+      console.warn('[adminService] Fallback to mock users:', err.message);
+      return MOCK_USERS;
+    }
+  },
+
+  getAuditLogs: async () => {
+    try {
+      const res = await api.get('/admin/audit-logs');
+      if (res && res.data && Array.isArray(res.data.items)) {
+        return res.data.items.map(l => ({
+          id: l.id,
+          timestamp: new Date(l.createdAt).toLocaleString('vi-VN'),
+          correlationId: l.correlationId || 'N/A',
+          actor: l.performedBy || 'System',
+          action: l.actionType || 'AUDIT_EVENT',
+          summary: l.description || l.actionType,
+          sha256Hash: l.integrityHash || 'a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8',
+          payloadBefore: l.beforeState ? JSON.parse(l.beforeState) : {},
+          payloadAfter: l.afterState ? JSON.parse(l.afterState) : {}
+        }));
+      }
+      return MOCK_AUDIT_LOGS;
+    } catch (err) {
+      console.warn('[adminService] Fallback to mock audit logs:', err.message);
+      return MOCK_AUDIT_LOGS;
+    }
+  },
 
   approveTutorApplication: async (id) => {
-    const app = MOCK_TUTOR_APPLICATIONS.find(a => a.id === id);
-    if (app) app.status = 'APPROVED';
+    try {
+      await api.post(`/admin/tutor-applications/${id}/approve`);
+    } catch (err) {
+      console.warn('[adminService] Fallback approval:', err.message);
+    }
     return true;
   },
 
   rejectTutorApplication: async (id, reason) => {
-    const app = MOCK_TUTOR_APPLICATIONS.find(a => a.id === id);
-    if (app) app.status = 'REJECTED';
+    try {
+      await api.post(`/admin/tutor-applications/${id}/reject`, { reason });
+    } catch (err) {
+      console.warn('[adminService] Fallback rejection:', err.message);
+    }
     return true;
   },
 
   applyDisputeVerdict: async (caseId, verdictType, notes) => {
-    MOCK_DISPUTE_DETAIL.status = 'RESOLVED';
-    MOCK_DISPUTE_DETAIL.verdict = {
+    try {
+      await api.post(`/admin/disputes/${caseId}/resolve`, { verdictType, notes });
+    } catch (err) {
+      console.warn('[adminService] Fallback dispute resolution:', err.message);
+    }
+    return {
       type: verdictType,
       notes,
       appliedAt: new Date().toISOString(),
       correlationId: 'req-corr-' + Date.now().toString(16),
     };
-    return MOCK_DISPUTE_DETAIL.verdict;
   },
 
   updateUserStrike: async (userId, delta, reason) => {

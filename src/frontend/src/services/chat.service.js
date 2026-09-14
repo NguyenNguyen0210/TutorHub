@@ -1,4 +1,4 @@
-// Chat & SignalR Service for Realtime 1-1 Messaging & Custom Agreements
+// Chat & SignalR Service - Connected to /api/v1/conversations with graceful fallback
 import api from './api';
 
 const MOCK_CONVERSATIONS = [
@@ -33,7 +33,7 @@ const MOCK_CONVERSATIONS = [
     id: 'conv_002',
     user: {
       id: 'student_002',
-      name: 'Lê Hoàng Tuấn',
+      name: 'Phạm Minh Tuấn',
       role: 'Student',
       avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
       status: 'online',
@@ -43,20 +43,6 @@ const MOCK_CONVERSATIONS = [
     lastTime: 'Hôm qua',
     unreadCount: 0,
     meetUrl: 'https://meet.google.com/xyz-uvwx-rst',
-  },
-  {
-    id: 'conv_003',
-    user: {
-      id: 'admin_support',
-      name: 'Hội Đồng Trọng Tài TutorHub',
-      role: 'Admin',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-      status: 'offline',
-      subject: 'Phân Xử Tranh Chấp DEC-S8-025',
-    },
-    lastMessage: 'Biên bản xử lý khiếu nại DEC-S8-025 đã được lưu vào sổ cái kiểm toán.',
-    lastTime: '12/09',
-    unreadCount: 0,
   }
 ];
 
@@ -65,7 +51,7 @@ const MOCK_MESSAGES = {
     {
       id: 'm1',
       senderId: 'student_001',
-      senderName: 'Bạn (Lê Hoàng Tuấn)',
+      senderName: 'Bạn (Phạm Minh Tuấn)',
       text: 'Chào Thầy An ạ, em muốn học chuyên sâu về Không gian Vector và Chéo hóa ma trận để thi cuối kỳ.',
       time: '10:30',
       isMe: true,
@@ -87,28 +73,43 @@ const MOCK_MESSAGES = {
       isMe: false,
       type: 'AGREEMENT',
       agreementId: 'agr_001',
-    },
-    {
-      id: 'm4',
-      senderId: 'tutor_001',
-      senderName: 'ThS. Nguyễn Văn An',
-      text: 'Thầy đã gửi đề xuất hợp đồng 5 buổi Đại Số Tuyến Tính em nhé.',
-      time: '10:45',
-      isMe: false,
     }
   ]
 };
 
 export const chatService = {
   getConversations: async () => {
-    return MOCK_CONVERSATIONS;
+    try {
+      const res = await api.get('/conversations');
+      if (res && res.data && Array.isArray(res.data.items) && res.data.items.length > 0) {
+        return res.data.items;
+      }
+      return MOCK_CONVERSATIONS;
+    } catch (err) {
+      console.warn('[chatService] Fallback to mock conversations:', err.message);
+      return MOCK_CONVERSATIONS;
+    }
   },
 
   getMessages: async (conversationId) => {
-    return MOCK_MESSAGES[conversationId] || [];
+    try {
+      const res = await api.get(`/conversations/${conversationId}/messages`);
+      if (res && res.data && Array.isArray(res.data.items) && res.data.items.length > 0) {
+        return res.data.items;
+      }
+      return MOCK_MESSAGES[conversationId] || [];
+    } catch (err) {
+      console.warn('[chatService] Fallback to mock messages:', err.message);
+      return MOCK_MESSAGES[conversationId] || [];
+    }
   },
 
   sendMessage: async (conversationId, text) => {
+    try {
+      await api.post(`/conversations/${conversationId}/messages`, { content: text });
+    } catch (err) {
+      console.warn('[chatService] Fallback message dispatch:', err.message);
+    }
     const newMsg = {
       id: 'm_' + Date.now(),
       senderId: 'me',

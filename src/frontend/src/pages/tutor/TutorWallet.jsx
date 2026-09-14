@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Tag, Card, Divider } from 'antd';
 import {
@@ -11,15 +11,27 @@ import {
   HistoryOutlined,
 } from '@ant-design/icons';
 import { formatCurrency } from '@/utils/formatters';
+import walletService from '@/services/wallet.service';
 
 export default function TutorWallet() {
   const navigate = useNavigate();
+  const [wallet, setWallet] = useState(null);
+  const [withdrawals, setWithdrawals] = useState([]);
 
-  // 4 balances
-  const pendingBalance = 3600000;
-  const availableBalance = 900000;
-  const heldBalance = 200000;
-  const withdrawableBalance = availableBalance - heldBalance; // 700.000 ₫
+  useEffect(() => {
+    walletService.getMyWallet().then(setWallet);
+    walletService.getWithdrawals().then(setWithdrawals);
+  }, []);
+
+  const pendingBalance = wallet ? wallet.pendingBalance : 3600000;
+  const availableBalance = wallet ? wallet.availableBalance : 900000;
+  const heldBalance = wallet ? wallet.heldBalance : 200000;
+  const withdrawableBalance = wallet ? wallet.withdrawableBalance : 700000;
+  const bank = wallet?.bankAccount || {
+    bankName: 'Ngân Hàng TMCP Ngoại Thương Việt Nam (Vietcombank)',
+    accountNumber: '0011001234567',
+    accountHolderName: 'NGUYEN VAN AN',
+  };
 
   return (
     <div className="min-h-screen bg-slate-50/50 p-6 sm:p-8 space-y-8">
@@ -45,143 +57,155 @@ export default function TutorWallet() {
           className="rounded-xl bg-emerald-600 font-bold hover:bg-emerald-500 border-0 shadow-md shadow-emerald-600/25 h-11 px-6"
           onClick={() => navigate('/tutor/wallet/withdraw')}
         >
-          Yêu Cầu Rút Tiền Ngân Hàng <ArrowRightOutlined />
+          Tạo Lệnh Rút Tiền →
         </Button>
       </div>
 
-      {/* 4 EXCLUSIVE FINANCIAL CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: PendingBalance */}
-        <div className="rounded-2xl border border-brand-indigo-100 bg-gradient-to-br from-brand-indigo-50/60 via-white to-slate-50 p-5 shadow-sm">
-          <span className="text-xs font-bold uppercase text-brand-indigo-800 tracking-wider">
-            1. Đang Giữ Trong Escrow (Pending)
-          </span>
-          <div className="mt-3 text-2xl font-extrabold text-brand-indigo-700">
-            {formatCurrency(pendingBalance)}
-          </div>
-          <p className="mt-1 text-[11px] text-slate-500 font-medium">
-            Ký quỹ bảo chứng cho các buổi học con sắp diễn ra
-          </p>
-        </div>
-
-        {/* Card 2: AvailableBalance */}
-        <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/70 via-white to-emerald-50/30 p-5 shadow-sm">
-          <span className="text-xs font-bold uppercase text-emerald-800 tracking-wider">
-            2. Số Dư Khả Dụng (Available)
-          </span>
-          <div className="mt-3 text-2xl font-extrabold text-emerald-700">
-            {formatCurrency(availableBalance)}
-          </div>
-          <p className="mt-1 text-[11px] text-emerald-600 font-medium">
-            Đã hoàn tất điểm danh & trừ phí sàn 10%
-          </p>
-        </div>
-
-        {/* Card 3: HeldBalance */}
-        <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-5 shadow-sm">
-          <span className="text-xs font-bold uppercase text-rose-800 tracking-wider">
-            3. Đang Phong Tỏa (Held / Dispute)
-          </span>
-          <div className="mt-3 text-2xl font-extrabold text-rose-600">
-            {formatCurrency(heldBalance)}
-          </div>
-          <p className="mt-1 text-[11px] text-rose-700 font-medium">
-            Phong tỏa tạm thời do có khiếu nại buổi #3
-          </p>
-        </div>
-
-        {/* Card 4: WithdrawableBalance */}
-        <div className="rounded-2xl border border-slate-900 bg-slate-900 text-white p-5 shadow-lg">
-          <span className="text-xs font-bold uppercase text-emerald-400 tracking-wider">
-            4. Thực Tế Được Rút (Withdrawable)
-          </span>
-          <div className="mt-3 text-3xl font-extrabold text-emerald-400">
-            {formatCurrency(withdrawableBalance)}
-          </div>
-          <p className="mt-1 text-[11px] text-slate-300 font-medium">
-            = Available (900k) - Held (200k)
-          </p>
-        </div>
-      </div>
-
-      {/* KYC BANK ACCOUNT INFO */}
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 text-2xl">
-              <BankOutlined />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-slate-900">Tài Khoản Ngân Hàng Nhận Tiền Đã KYC</span>
-                <Tag color="success" className="font-bold border-0 text-[10px]">ĐÃ XÁC THỰC</Tag>
-              </div>
-              <div className="text-xs text-slate-500 font-mono mt-0.5">
-                Vietcombank • Số TK: <strong>0071001234567</strong> • Chủ TK: <strong>NGUYEN VAN AN</strong>
-              </div>
+      {/* 4 FINANCIAL BALANCES GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Card 1: Pending Balance */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Tiền Chờ Giải Ngân (Pending)</span>
+            <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
+              <LockFilled />
             </div>
           </div>
-
-          <span className="text-xs text-slate-400 italic">
-            Tiền rút sẽ chuyển thẳng về tài khoản này trong 5-15 phút sau khi duyệt.
-          </span>
-        </div>
-      </div>
-
-      {/* IMMUTABLE LEDGER TRANSACTIONS */}
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b pb-4">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 m-0">
-              Sổ Cái Kiểm Toán Giao Dịch Bất Biến (Ledger Statement)
-            </h3>
-            <p className="text-xs text-slate-500 m-0 mt-0.5">
-              Mọi biến động số dư đều được kiểm toán mã hóa và lưu trữ vĩnh viễn.
+          <div className="mt-3">
+            <div className="text-2xl font-black text-slate-900 tracking-tight">{formatCurrency(pendingBalance)}</div>
+            <p className="text-[11px] text-slate-400 mt-1 mb-0">
+              Khóa trong Escrow cho 4 buổi học chưa hoàn thành
             </p>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b">
-              <tr>
-                <th className="p-3">Thời Gian</th>
-                <th className="p-3">Loại Giao Dịch</th>
-                <th className="p-3">Biến Động</th>
-                <th className="p-3">Số Dư Sau Biến Động</th>
-                <th className="p-3">Mô Tả & Hợp Đồng</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              <tr className="hover:bg-slate-50/50">
-                <td className="p-3 text-slate-500 font-mono">12/09/2026 19:05</td>
-                <td className="p-3">
-                  <Tag color="green" className="font-bold border-0 text-[10px]">GIẢI NGÂN BUỔI HỌC</Tag>
-                </td>
-                <td className="p-3 font-bold text-emerald-600">+ 180.000 ₫</td>
-                <td className="p-3 font-bold text-slate-800">900.000 ₫</td>
-                <td className="p-3 text-slate-600">Giải ngân Buổi 2 (200k - 10% phí sàn = 180k) • CTR-2026-THB-001</td>
-              </tr>
-              <tr className="hover:bg-slate-50/50">
-                <td className="p-3 text-slate-500 font-mono">10/09/2026 19:05</td>
-                <td className="p-3">
-                  <Tag color="green" className="font-bold border-0 text-[10px]">GIẢI NGÂN BUỔI HỌC</Tag>
-                </td>
-                <td className="p-3 font-bold text-emerald-600">+ 180.000 ₫</td>
-                <td className="p-3 font-bold text-slate-800">720.000 ₫</td>
-                <td className="p-3 text-slate-600">Giải ngân Buổi 1 (200k - 10% phí sàn = 180k) • CTR-2026-THB-001</td>
-              </tr>
-              <tr className="hover:bg-slate-50/50">
-                <td className="p-3 text-slate-500 font-mono">08/09/2026 14:20</td>
-                <td className="p-3">
-                  <Tag color="blue" className="font-bold border-0 text-[10px]">KÝ QUỸ ESCROW</Tag>
-                </td>
-                <td className="p-3 font-bold text-brand-indigo-600">+ 2.000.000 ₫ (Pending)</td>
-                <td className="p-3 font-bold text-slate-800">3.600.000 ₫ (Pending)</td>
-                <td className="p-3 text-slate-600">Học viên Tuấn thanh toán gói 10 buổi THPT • Ký quỹ két Escrow</td>
-              </tr>
-            </tbody>
-          </table>
+        {/* Card 2: Available Balance */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Số Dư Đã Giải Ngân (Available)</span>
+            <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+              <WalletFilled />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-black text-slate-900 tracking-tight">{formatCurrency(availableBalance)}</div>
+            <p className="text-[11px] text-slate-400 mt-1 mb-0">
+              Thù lao tích lũy từ các buổi học đã xác nhận điểm danh
+            </p>
+          </div>
+        </div>
+
+        {/* Card 3: Held Balance */}
+        <div className="rounded-2xl border border-rose-200/80 bg-gradient-to-br from-rose-50/40 via-white to-white p-6 shadow-xs relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-rose-600">Tạm Giữ Tranh Chấp (Held)</span>
+            <div className="p-2 rounded-xl bg-rose-100 text-rose-600">
+              <SafetyCertificateFilled />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-black text-rose-600 tracking-tight">{formatCurrency(heldBalance)}</div>
+            <p className="text-[11px] text-rose-500 mt-1 mb-0">
+              Phong tỏa bảo đảm quyền lợi khiếu nại buổi #3
+            </p>
+          </div>
+        </div>
+
+        {/* Card 4: Withdrawable Balance (DEC-WD-001) */}
+        <div className="rounded-2xl border-2 border-emerald-500 bg-gradient-to-br from-emerald-50/50 via-white to-white p-6 shadow-md shadow-emerald-500/10 relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-700">Khả Dụng Rút Tiền</span>
+            <Tag color="success" className="font-bold border-0 text-[10px] m-0">DEC-WD-001</Tag>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-black text-emerald-600 tracking-tight">{formatCurrency(withdrawableBalance)}</div>
+            <p className="text-[11px] text-slate-500 mt-1 mb-0">
+              = Available (900k) - Held (200k) phong tỏa
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* KYC BANK ACCOUNT & IMMUTABLE LEDGER */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* KYC Bank Info */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <BankOutlined className="text-emerald-600 text-lg" />
+              <h3 className="text-sm font-bold text-slate-900 m-0">Tài Khoản Ngân Hàng Thụ Hưởng</h3>
+            </div>
+            <Tag color="success" className="m-0 text-[10px] font-bold">XÁC MINH KYC</Tag>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-2 text-xs">
+            <div>
+              <span className="text-slate-400 block text-[10px] uppercase font-bold">Ngân Hàng:</span>
+              <span className="font-bold text-slate-800">{bank.bankName}</span>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[10px] uppercase font-bold">Số Tài Khoản:</span>
+              <span className="font-mono font-bold text-slate-900 text-sm tracking-wide">{bank.accountNumber}</span>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[10px] uppercase font-bold">Chủ Tài Khoản:</span>
+              <span className="font-bold text-slate-800 uppercase">{bank.accountHolderName}</span>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-slate-400 italic">
+            * Lệnh rút tiền chỉ được chuyển về tài khoản chính chủ đã xác minh KYC danh tính.
+          </p>
+        </div>
+
+        {/* Immutable Ledger Statement Table */}
+        <div className="lg:col-span-2 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <HistoryOutlined className="text-indigo-600 text-lg" />
+              <h3 className="text-sm font-bold text-slate-900 m-0">Lịch Sử Biến Động Sổ Cái (Audit Trail)</h3>
+            </div>
+            <span className="text-[11px] font-mono text-slate-400">Append-Only Immutability</span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase text-[10px]">
+                  <th className="py-2.5 px-3">Thời Gian</th>
+                  <th className="py-2.5 px-3">Mã GD / Sự Kiện</th>
+                  <th className="py-2.5 px-3">Loại Giao Dịch</th>
+                  <th className="py-2.5 px-3 text-right">Biến Động</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                <tr>
+                  <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">13/09 20:30</td>
+                  <td className="py-3 px-3 font-mono font-semibold text-slate-800">DISP-HELD-003</td>
+                  <td className="py-3 px-3"><Tag color="error">Held Tranh Chấp #3</Tag></td>
+                  <td className="py-3 px-3 text-right font-bold text-rose-600">-200.000 ₫ (Phong tỏa)</td>
+                </tr>
+                <tr>
+                  <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">12/09 19:30</td>
+                  <td className="py-3 px-3 font-mono font-semibold text-slate-800">PAYOUT-SES-002</td>
+                  <td className="py-3 px-3"><Tag color="success">Giải Ngân Buổi #2</Tag></td>
+                  <td className="py-3 px-3 text-right font-bold text-emerald-600">+180.000 ₫</td>
+                </tr>
+                <tr>
+                  <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">10/09 19:30</td>
+                  <td className="py-3 px-3 font-mono font-semibold text-slate-800">PAYOUT-SES-001</td>
+                  <td className="py-3 px-3"><Tag color="success">Giải Ngân Buổi #1</Tag></td>
+                  <td className="py-3 px-3 text-right font-bold text-emerald-600">+180.000 ₫</td>
+                </tr>
+                <tr>
+                  <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">08/09 14:15</td>
+                  <td className="py-3 px-3 font-mono font-semibold text-slate-800">ESCROW-LOCK-10S</td>
+                  <td className="py-3 px-3"><Tag color="purple">Ký Quỹ Hợp Đồng 10 Buổi</Tag></td>
+                  <td className="py-3 px-3 text-right font-bold text-amber-600">+2.000.000 ₫ (Pending)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
