@@ -31,3 +31,8 @@ export function formatRelativeTime(date) {
   if (!date) return '';
   return dayjs(date).fromNow();
 }
+
+/**
+ * Alias for formatCurrency
+ */
+export const formatVND = formatCurrency;

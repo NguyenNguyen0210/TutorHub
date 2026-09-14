@@ -1,4 +1,4 @@
-﻿import { create } from 'zustand';
+import { create } from 'zustand';
 import { TEST_ACCOUNTS, USER_ROLES } from '../config/constants';
 
 // Lấy trạng thái lưu trữ cục bộ nếu có
@@ -11,6 +11,7 @@ export const useAuthStore = create((set, get) => ({
   refreshToken: 'mock-refresh-token',
   role: savedUser?.role || USER_ROLES.TUTOR,
   isAuthenticated: true,
+  testAccounts: TEST_ACCOUNTS,
 
   login: (userData, tokens) => {
     localStorage.setItem('tutorhub_user', JSON.stringify(userData));
@@ -37,12 +38,19 @@ export const useAuthStore = create((set, get) => ({
   },
 
   // Chuyển nhanh giữa 4 tài khoản test từ seedData.sql
-  switchTestAccount: (accountIndex) => {
-    const acc = TEST_ACCOUNTS[accountIndex];
-    if (!acc) return;
+  switchTestAccount: (accountIdentifier) => {
+    let acc;
+    if (typeof accountIdentifier === 'number') {
+      acc = TEST_ACCOUNTS[accountIdentifier];
+    } else {
+      acc = TEST_ACCOUNTS.find(a => a.email === accountIdentifier || a.role === accountIdentifier);
+    }
+    if (!acc) acc = TEST_ACCOUNTS[0];
+
     const mockUser = {
       id: acc.profileId,
       name: acc.name,
+      fullName: acc.name,
       email: acc.email,
       role: acc.role,
       avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${acc.name}`,
@@ -52,5 +60,6 @@ export const useAuthStore = create((set, get) => ({
       refreshToken: `mock-refresh-${acc.role.toLowerCase()}`,
     };
     get().login(mockUser, mockTokens);
+    return acc;
   },
 }));
