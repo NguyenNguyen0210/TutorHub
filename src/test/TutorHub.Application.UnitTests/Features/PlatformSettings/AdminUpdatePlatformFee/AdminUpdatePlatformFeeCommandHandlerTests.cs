@@ -13,11 +13,12 @@ public class AdminUpdatePlatformFeeCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
     private readonly StubCurrentUserService _currentUser = new();
+    private readonly Mock<IAuditLogService> _auditLogMock = new();
     private readonly AdminUpdatePlatformFeeCommandHandler _handler;
 
     public AdminUpdatePlatformFeeCommandHandlerTests()
     {
-        _handler = new AdminUpdatePlatformFeeCommandHandler(_contextMock.Object, StubClock.Instance, _currentUser);
+        _handler = new AdminUpdatePlatformFeeCommandHandler(_contextMock.Object, StubClock.Instance, _currentUser, _auditLogMock.Object);
     }
 
     [Fact]
@@ -103,5 +104,31 @@ public class AdminUpdatePlatformFeeCommandHandlerTests
         enrollment.FeePolicyVersion.Should().Be(1);
         enrollment.PlatformFeeRate.Should().NotBe(newFeeRate);
         enrollment.FeePolicyVersion.Should().NotBe(newVersion);
+    }
+
+    [Fact]
+    public async Task Handle_WhenFeeRateChanges_WritesAuditLog()
+    {
+        // P0-A4: CLAUDE.md convention #6 requires admin platform-configuration
+        // changes to land in the central audit log.
+        var adminId = Guid.NewGuid();
+        _currentUser.Set(adminId, UserRole.Admin);
+
+        _contextMock.Setup(c => c.PlatformSettings).Returns(MockDbSetHelper.CreateMockDbSet(new List<PlatformSetting>()).Object);
+        _contextMock.Setup(c => c.OutboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(new List<OutboxMessage>()).Object);
+
+        await _handler.Handle(new AdminUpdatePlatformFeeCommand(0.12m, "Audit trail check."), CancellationToken.None);
+
+        _auditLogMock.Verify(a => a.LogAsync(
+            "PlatformFeeRateUpdated",
+            "PlatformSetting",
+            It.IsAny<string>(),
+            adminId,
+            It.IsAny<object?>(),
+            It.IsAny<object?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }
