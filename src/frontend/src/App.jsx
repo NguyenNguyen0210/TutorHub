@@ -1,9 +1,10 @@
-﻿import React from 'react';
+import React from 'react';
 import { ConfigProvider } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { antdTheme } from './config/theme';
 import AppRoutes from './routes';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,12 +18,14 @@ const queryClient = new QueryClient({
 
 export default function App() {
   return (
-    <ConfigProvider theme={antdTheme}>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </QueryClientProvider>
-    </ConfigProvider>
+    <ErrorBoundary>
+      <ConfigProvider theme={antdTheme}>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </QueryClientProvider>
+      </ConfigProvider>
+    </ErrorBoundary>
   );
 }
