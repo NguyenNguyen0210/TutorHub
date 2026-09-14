@@ -46,7 +46,7 @@ public class GetMediaUrlQueryHandler : IRequestHandler<GetMediaUrlQuery, MediaDt
             }
         }
 
-        // 2. Generate Access URL (Presigned 15 minutes)
+        // 2. Generate short-lived access URL
         var accessUrl = await _storageService.GenerateDownloadUrlAsync(media.ObjectKey, TimeSpan.FromMinutes(15), cancellationToken);
 
         return new MediaDto(
