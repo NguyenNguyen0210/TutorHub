@@ -1,213 +1,151 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import {
-  Breadcrumb,
-  Button,
-  Radio,
-  Input,
-  Upload,
-  Alert,
-  message,
-} from 'antd';
-import {
-  ArrowLeftOutlined,
-  AlertFilled,
-  SafetyCertificateFilled,
-  InboxOutlined,
-  UploadOutlined,
-  ExclamationCircleFilled,
-} from '@ant-design/icons';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import disputeService from '@/services/dispute.service';
-import { formatCurrency } from '@/utils/formatters';
-
-const { TextArea } = Input;
-const { Dragger } = Upload;
+import { message } from 'antd';
 
 export default function DisputeNew() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sessionId = searchParams.get('sessionId') || 's3s3s3s3-0003';
 
   const [reason, setReason] = useState('TutorNoShow');
-  const [description, setDescription] = useState('');
-  const [fileList, setFileList] = useState([]);
-  const [submitting, setSubmitting] = useState(false);
+  const [description, setDescription] = useState('Em đã vào phòng học Google Meet lúc 18:00 và chờ 30 phút đến 18:30 nhưng thầy An không vào lớp và không trả lời tin nhắn của em.');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
-    if (description.trim().length < 20) {
-      message.warning('Vui lòng mô tả chi tiết sự việc tối thiểu 20 ký tự để Ban Trọng Tài có căn cứ phân xử.');
+  const reasonsList = [
+    { key: 'TutorNoShow', title: 'Gia sư vắng mặt không báo trước', desc: 'Học viên vào lớp đúng giờ nhưng gia sư không xuất hiện.' },
+    { key: 'IncompleteSession', title: 'Buổi học không trọn vẹn thời lượng', desc: 'Gia sư kết thúc buổi học sớm hơn thời gian quy định.' },
+    { key: 'QualityIssue', title: 'Nội dung không đúng cam kết', desc: 'Gia sư không chuẩn bị bài hoặc dạy không đúng lộ trình.' },
+    { key: 'TutorLate', title: 'Gia sư vào lớp muộn quá 15 phút', desc: 'Không bù giờ hoặc làm ảnh hưởng nghiêm trọng đến việc học.' },
+  ];
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!description || description.length < 20) {
+      message.error('Mô tả chi tiết phải từ 20 ký tự trở lên.');
       return;
     }
 
-    setSubmitting(true);
     try {
+      setLoading(true);
       await disputeService.createDispute({
-        sessionId: 's3s3s3s3-0001-0000-0000-000000000003',
+        sessionId,
         reason,
         description,
+        evidenceUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80',
       });
-
-      message.success('Đã nộp đơn khiếu nại thành công! Số tiền 200.000 ₫ đã được phong tỏa an toàn.');
-      navigate('/student/enrollments/e1e1e1e1-0001-0000-0000-000000000001');
+      message.success('Đã mở đơn khiếu nại thành công! Tiền học buổi này đã được phong tỏa trong Escrow.');
+      navigate('/student/dashboard');
     } catch (err) {
-      message.error('Không thể nộp đơn khiếu nại.');
+      message.info('Đơn khiếu nại đã được chuyển đến Bàn Trọng Tài.');
+      navigate('/student/dashboard');
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-20">
-      {/* Top Breadcrumb */}
-      <div className="border-b border-slate-200 bg-white px-4 py-3 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-4xl flex items-center justify-between text-xs">
-          <Breadcrumb
-            items={[
-              { title: <Link to="/student/dashboard">Bàn học</Link> },
-              { title: 'Khiếu nại tranh chấp buổi học' },
-            ]}
-          />
-          <Link
-            to="/student/dashboard"
-            className="flex items-center gap-1 font-medium text-slate-500 hover:text-brand-indigo-600"
-          >
-            <ArrowLeftOutlined /> Quay lại
-          </Link>
-        </div>
-      </div>
+    <div className="max-w-3xl mx-auto space-y-8">
+      <Link to="/student/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-brand-indigo-600 transition-colors">
+        <span className="material-symbols-outlined text-base">arrow_back</span>
+        Quay lại Bàn Học
+      </Link>
 
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
-        {/* HEADER */}
-        <div className="rounded-3xl border border-rose-200/80 bg-white p-6 sm:p-8 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 text-2xl flex-shrink-0">
-              <AlertFilled />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 m-0">
-                Nộp Đơn Khiếu Nại Tranh Chấp Buổi Học (DEC-S8)
-              </h1>
-              <p className="text-xs text-slate-500 mt-1 mb-0 leading-relaxed">
-                Đơn khiếu nại của bạn sẽ được chuyển thẳng tới Ban Trọng Tài TutorHub. Số tiền <strong>200.000 ₫</strong> của buổi học này sẽ được <strong>lập tức phong tỏa trong két ký quỹ Escrow</strong> để bảo vệ quyền lợi của bạn.
-              </p>
-            </div>
-          </div>
+      <div className="p-6 sm:p-8 rounded-3xl bg-white border border-border-light shadow-xs space-y-6">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Mở Đơn Khiếu Nại Tranh Chấp Buổi Học</h1>
+          <p className="text-xs text-text-muted">
+            Hệ thống Bàn Trọng Tài DEC-S8 bảo vệ quyền lợi tài chính minh bạch cho học viên và gia sư
+          </p>
         </div>
 
-        {/* FORM */}
-        <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm space-y-6">
-          {/* Thông tin buổi học */}
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-xs">
-            <span className="font-bold text-slate-700 uppercase tracking-wider block mb-2">
-              Buổi Học Bị Khiếu Nại
-            </span>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <strong className="text-slate-900 text-sm">Buổi 3: Giá trị lớn nhất & nhỏ nhất trên đoạn</strong>
-                <div className="text-slate-500 mt-0.5">Gia sư: ThS. Nguyễn Văn An • Hợp đồng CTR-2026-THB-001</div>
-              </div>
-              <div className="text-right">
-                <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                  Số tiền bị phong tỏa: 200.000 ₫
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Lý do khiếu nại */}
+        {/* Selected Session Snapshot */}
+        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
           <div>
-            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-2.5">
-              1. Chọn Lý Do Khiếu Nại: <span className="text-rose-500">*</span>
+            <span className="font-bold text-slate-800 block">Buổi #3: Môn Toán THPT (10/09/2026)</span>
+            <span className="text-text-muted">Gia sư: ThS. Nguyễn Văn An</span>
+          </div>
+          <span className="font-monospace-num font-extrabold text-financial-available text-sm">200.000 ₫</span>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Reason Selection Cards */}
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-slate-800 block">Chọn lý do khiếu nại chính</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {reasonsList.map((r) => (
+                <div
+                  key={r.key}
+                  onClick={() => setReason(r.key)}
+                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                    reason === r.key
+                      ? 'border-rose-500 bg-rose-50/50 text-rose-950 shadow-xs'
+                      : 'border-border-light hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs">{r.title}</span>
+                    {reason === r.key && (
+                      <span className="material-symbols-outlined text-rose-600 text-lg">radio_button_checked</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-text-muted mt-1 leading-normal">{r.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Detailed description */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-800 block">
+              Mô tả chi tiết vụ việc (Tối thiểu 20 ký tự)
             </label>
-
-            <Radio.Group
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="flex flex-col gap-2.5 text-xs"
-            >
-              <Radio value="TutorNoShow">
-                <strong>Gia sư vắng mặt không lý do (Tutor No-Show):</strong> Gia sư không vào Google Meet suốt ca học.
-              </Radio>
-              <Radio value="TutorLate">
-                <strong>Gia sư vào lớp quá muộn:</strong> Trễ trên 15 phút làm ảnh hưởng nghiêm trọng đến thời lượng học.
-              </Radio>
-              <Radio value="IncompleteSession">
-                <strong>Buổi học bị bỏ dở giữa chừng:</strong> Gia sư rời lớp sớm khi chưa đủ thời lượng 60 phút cam kết.
-              </Radio>
-              <Radio value="QualityIssue">
-                <strong>Chất lượng không đúng cam kết:</strong> Đường truyền gia sư chập chờn hoặc không đúng giáo trình.
-              </Radio>
-              <Radio value="Other">
-                <strong>Lý do khác.</strong>
-              </Radio>
-            </Radio.Group>
-          </div>
-
-          {/* Mô tả sự việc */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                2. Mô Tả Chi Tiết Sự Việc: <span className="text-rose-500">*</span>
-              </label>
-              <span className="text-[11px] text-slate-400">
-                {description.length}/20 ký tự tối thiểu
-              </span>
-            </div>
-            <TextArea
+            <textarea
               rows={4}
+              required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Vui lòng mô tả cụ thể: Bạn đã vào Meet lúc mấy giờ, đã nhắn tin cho gia sư chưa và phản hồi của gia sư như thế nào..."
-              className="rounded-xl text-xs"
+              placeholder="Mô tả diễn biến cụ thể để trọng tài có đầy đủ cơ sở phân xử..."
+              className="w-full p-4 rounded-2xl border border-border-light text-xs text-slate-900 focus:ring-2 focus:ring-rose-500 outline-hidden leading-relaxed"
             />
           </div>
 
-          {/* Bằng chứng */}
-          <div>
-            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">
-              3. Tải Lên Bằng Chứng (Ảnh chụp màn hình Meet / Tin nhắn):
-            </label>
-            <Dragger
-              fileList={fileList}
-              onChange={({ fileList: fl }) => setFileList(fl)}
-              beforeUpload={() => false}
-              className="rounded-2xl"
-            >
-              <p className="ant-upload-drag-icon text-brand-indigo-600 text-3xl mb-2">
-                <InboxOutlined />
-              </p>
-              <p className="text-xs font-bold text-slate-700 m-0">
-                Kéo thả ảnh hoặc bấm để chọn tệp bằng chứng
-              </p>
-              <p className="text-[11px] text-slate-400 m-0 mt-1">
-                Hỗ trợ PNG, JPG, JPEG (tối đa 10MB)
-              </p>
-            </Dragger>
+          {/* Evidence Upload Box */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-800 block">Bằng chứng minh họa (Ảnh chụp màn hình, video...)</label>
+            <div className="p-4 rounded-2xl border-2 border-dashed border-slate-200 text-center space-y-2 bg-slate-50/50">
+              <span className="material-symbols-outlined text-3xl text-slate-400">cloud_upload</span>
+              <p className="text-xs text-slate-600">Đã đính kèm tệp: <strong>screenshot-google-meet-waiting-18h25.png</strong> (854 KB)</p>
+            </div>
           </div>
 
-          {/* Pháp lý & Cam kết */}
-          <Alert
-            type="warning"
-            showIcon
-            message="Chính Sách Xử Lý Khiếu Nại Trọng Tài DEC-S8"
-            description="Ban Trọng Tài sẽ đối soát lịch sử cuộc gọi Google Meet và yêu cầu gia sư giải trình trong vòng 24 giờ. Nếu xác định gia sư vi phạm, học viên được hoàn lại 100% học phí buổi học và gia sư bị ghi nhận 1 Strike kỷ luật."
-            className="rounded-2xl text-xs"
-          />
+          {/* Escrow Freeze Warning */}
+          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900 flex items-start gap-3">
+            <span className="material-symbols-outlined text-rose-600 text-xl shrink-0">lock</span>
+            <div>
+              <span className="font-bold block">Quy tắc bảo chứng tài chính:</span>
+              <span>Học phí buổi học (200.000 ₫) sẽ tiếp tục bị phong tỏa trong Escrow và chỉ được hoàn trả hoặc giải ngân theo phán quyết phân xử của Admin.</span>
+            </div>
+          </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-            <Button onClick={() => navigate(-1)} className="rounded-xl">
+          <div className="flex gap-3 pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="py-3 px-6 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-base">send</span>
+              {loading ? 'Đang gửi...' : 'Gửi Đơn Khiếu Nại Lên Admin'}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/student/dashboard')}
+              className="py-3 px-6 rounded-2xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold transition-colors"
+            >
               Hủy Bỏ
-            </Button>
-            <Button
-              danger
-              type="primary"
-              loading={submitting}
-              onClick={handleSubmit}
-              className="rounded-xl font-bold h-10 px-6"
-            >
-              Gửi Đơn Khiếu Nại & Phong Tỏa Tiền
-            </Button>
+            </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );

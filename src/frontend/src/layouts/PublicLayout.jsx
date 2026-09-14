@@ -1,20 +1,12 @@
 import React from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { Button, Dropdown, Space, Avatar, Badge } from 'antd';
-import {
-  SafetyCertificateOutlined,
-  UserOutlined,
-  MessageOutlined,
-  BellOutlined,
-  LogoutOutlined,
-  DashboardOutlined,
-  SettingOutlined,
-} from '@ant-design/icons';
-import { useAuthStore } from '../store/authStore';
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
+import { Dropdown, Avatar } from 'antd';
+import { useAuthStore } from '@/store/authStore';
 
 export default function PublicLayout() {
   const { user, role, isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = async () => {
     await logout();
@@ -30,83 +22,122 @@ export default function PublicLayout() {
   const userMenuItems = [
     {
       key: 'dashboard',
-      icon: <DashboardOutlined />,
-      label: 'Bang Dieu Khien',
+      icon: <span className="material-symbols-outlined text-base">dashboard</span>,
+      label: 'Bảng Điều Khiển',
       onClick: () => navigate(getDashboardPath()),
     },
     {
-      key: 'settings',
-      icon: <SettingOutlined />,
-      label: 'Cai Dat Tai Khoan',
-      onClick: () => navigate('/app/settings'),
+      key: 'messages',
+      icon: <span className="material-symbols-outlined text-base">chat</span>,
+      label: 'Tin Nhắn & Hợp Đồng',
+      onClick: () => navigate('/app/messages'),
+    },
+    {
+      key: 'notifications',
+      icon: <span className="material-symbols-outlined text-base">notifications</span>,
+      label: 'Trung Tâm Thông Báo',
+      onClick: () => navigate('/app/notifications'),
     },
     { type: 'divider' },
     {
       key: 'logout',
-      icon: <LogoutOutlined />,
-      label: 'Dang Xuat',
+      icon: <span className="material-symbols-outlined text-base text-rose-500">logout</span>,
+      label: <span className="text-rose-600 font-medium">Đăng Xuất</span>,
       danger: true,
       onClick: handleLogout,
     },
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 font-sans">
+    <div className="min-h-screen flex flex-col bg-surface-canvas-light text-text-primary antialiased font-sans">
       {/* Top Sticky Glass Navigation */}
-      <header className="sticky top-0 z-50 glass-surface border-b border-slate-200/80 px-4 lg:px-8 py-3.5 transition-all">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      <header className="bg-surface-card-glass backdrop-blur-md dark:bg-brand-navy-900 border-b border-border-light shadow-xs sticky top-0 z-50 transition-all">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 gap-4">
+          {/* Brand Logo & Slogan */}
+          <div className="flex items-center gap-6 flex-1">
+            <Link to="/tutors" className="flex items-center gap-2.5 group shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-brand-indigo-50 flex items-center justify-center border border-brand-indigo-100 shadow-xs group-hover:scale-105 transition-transform duration-150">
+                <span className="material-symbols-outlined text-financial-available text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  verified_user
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="font-headline-2 text-xl font-extrabold text-brand-indigo-600 tracking-tight leading-none">
+                  Tutor<span className="text-brand-navy-900">Hub</span>
+                </span>
+                <span className="font-caption text-[10px] tracking-wider font-bold text-financial-available uppercase mt-0.5">
+                  Dual Escrow Verified
+                </span>
+              </div>
+            </Link>
 
-          {/* Logo & Slogan */}
-          <Link to="/" className="flex items-center gap-2.5 text-decoration-none group">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-              <SafetyCertificateOutlined className="text-xl" />
-            </div>
-            <div>
-              <span className="text-xl font-extrabold text-slate-900 tracking-tight block leading-tight">
-                Tutor<span className="text-indigo-600">Hub</span>
-              </span>
-              <span className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wider block">
-                2-Way Escrow Guarantee
-              </span>
-            </div>
-          </Link>
-
-          {/* Quick Nav Links */}
-          <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600">
-            <Link to="/tutors" className="hover:text-indigo-600 transition-colors">Kham Pha Gia Su</Link>
-            {isAuthenticated && (
-              <Link to={getDashboardPath()} className="hover:text-indigo-600 transition-colors">
-                Bang Dieu Khien
+            {/* Quick Category Nav */}
+            <nav className="hidden lg:flex items-center gap-6 text-sm font-semibold text-text-secondary">
+              <Link 
+                to="/tutors" 
+                className={`flex items-center gap-1.5 transition-colors ${location.pathname === '/tutors' ? 'text-brand-indigo-600 font-bold' : 'hover:text-brand-indigo-600'}`}
+              >
+                <span className="material-symbols-outlined text-lg">explore</span>
+                Khám Phá Gia Sư
               </Link>
-            )}
-          </nav>
+              {isAuthenticated && (
+                <Link 
+                  to={getDashboardPath()} 
+                  className="flex items-center gap-1.5 hover:text-brand-indigo-600 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-lg">space_dashboard</span>
+                  Bàn Làm Việc
+                </Link>
+              )}
+            </nav>
+          </div>
 
           {/* Action Bar */}
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
-                <Link to="/app/messages">
-                  <Button type="text" shape="circle" icon={<MessageOutlined />} className="text-slate-600" />
+                <Link
+                  to="/app/messages"
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-text-secondary hover:bg-slate-100 transition-colors"
+                  title="Tin nhắn"
+                >
+                  <span className="material-symbols-outlined text-xl">chat</span>
                 </Link>
-                <Link to="/app/notifications">
-                  <Badge count={0} size="small">
-                    <Button type="text" shape="circle" icon={<BellOutlined />} className="text-slate-600" />
-                  </Badge>
+                <Link
+                  to="/app/notifications"
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-text-secondary hover:bg-slate-100 transition-colors relative"
+                  title="Thông báo"
+                >
+                  <span className="material-symbols-outlined text-xl">notifications</span>
+                  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500"></span>
                 </Link>
                 <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="bottomRight">
-                  <div className="flex items-center gap-2 pl-2 border-l border-slate-200 cursor-pointer hover:opacity-80 transition-opacity">
-                    <Avatar src={user?.avatarUrl} icon={<UserOutlined />} className="border border-indigo-200" />
-                    <span className="text-xs font-bold text-slate-800 hidden sm:inline-block">{user?.name}</span>
+                  <div className="flex items-center gap-2.5 pl-3 border-l border-border-light cursor-pointer hover:opacity-80 transition-opacity">
+                    <Avatar
+                      src={user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email || 'user'}`}
+                      className="border border-brand-indigo-200"
+                    />
+                    <div className="hidden sm:flex flex-col text-left">
+                      <span className="text-xs font-bold text-slate-800 line-clamp-1">{user?.fullName || user?.name || 'Tài khoản'}</span>
+                      <span className="text-[10px] font-semibold text-brand-indigo-600 uppercase">{role || 'User'}</span>
+                    </div>
                   </div>
                 </Dropdown>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Link to="/auth/login">
-                  <Button type="text" className="font-semibold text-slate-700">Dang Nhap</Button>
+                <Link
+                  to="/auth/login"
+                  className="px-4 py-2 text-xs font-bold text-slate-700 hover:text-brand-indigo-600 rounded-xl transition-colors"
+                >
+                  Đăng Nhập
                 </Link>
-                <Link to="/auth/register">
-                  <Button type="primary" className="font-semibold">Dang Ky</Button>
+                <Link
+                  to="/auth/register"
+                  className="px-4 py-2 text-xs font-bold text-white bg-brand-indigo-600 hover:bg-brand-indigo-700 rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-base">person_add</span>
+                  Đăng Ký
                 </Link>
               </div>
             )}
@@ -114,43 +145,31 @@ export default function PublicLayout() {
         </div>
       </header>
 
-      {/* Main Content Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6">
+      {/* Main Page Content */}
+      <main className="flex-1 w-full">
         <Outlet />
       </main>
 
-      {/* Trust Footer */}
-      <footer className="bg-slate-900 text-slate-300 py-10 px-4 lg:px-8 mt-12 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="space-y-3 md:col-span-2">
-            <div className="flex items-center gap-2 text-white font-bold text-lg">
-              <SafetyCertificateOutlined className="text-emerald-400 text-xl" />
-              TutorHub Smart Escrow System
+      {/* Stitch Trust Footer */}
+      <footer className="bg-surface-canvas-light dark:bg-brand-navy-950 border-t border-border-light py-10 px-4 sm:px-6 lg:px-8 mt-12 transition-all">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="font-headline-2 text-lg text-brand-navy-900 font-bold">TutorHub</span>
+              <span className="px-2 py-0.5 text-[10px] font-monospace-num font-semibold rounded bg-financial-available-bg text-financial-available border border-financial-available/20">
+                ESCROW V2 PROTECTED
+              </span>
             </div>
-            <p className="text-xs text-slate-400 leading-relaxed max-w-md">
-              Nen tang ket noi gia su va hoc vien theo goi dich vu hoc tap voi co che bao chung hoc phi hai chieu (2-Way Escrow Guarantee). Tien hoc duoc giu an toan va chi giai ngan tung buoi sau khi doi soat diem danh thanh cong 24 gio.
+            <p className="font-caption text-xs text-text-muted max-w-xl">
+              © 2026 TutorHub Vietnam. Nền tảng kết nối gia sư và học viên trực tuyến với cơ chế ký quỹ bảo chứng Escrow 2 chiều và phân xử tranh chấp DEC-S8.
             </p>
           </div>
-          <div>
-            <h4 className="text-white font-semibold text-sm mb-3">Quy Trinh Bao Chung</h4>
-            <ul className="text-xs text-slate-400 space-y-2">
-              <li>1. Dat giu cho 15 phut (Holding Lock)</li>
-              <li>2. Cap phat hop dong N buoi hoc</li>
-              <li>3. Diem danh doi soat 2 chieu 24h</li>
-              <li>4. Trong tai tranh chap DEC-S8-025</li>
-            </ul>
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-6 gap-y-2 text-xs text-text-muted">
+            <Link to="/tutors" className="hover:text-brand-indigo-600 transition-colors">Tìm Gia Sư</Link>
+            <Link to="/auth/register" className="hover:text-brand-indigo-600 transition-colors">Đăng Ký Làm Gia Sư</Link>
+            <a href="#" className="hover:text-brand-indigo-600 transition-colors">Chính Sách Bảo Chứng Escrow</a>
+            <a href="#" className="hover:text-brand-indigo-600 transition-colors">Quy Trình Đối Soát 24h</a>
           </div>
-          <div>
-            <h4 className="text-white font-semibold text-sm mb-3">Cong Thanh Toan</h4>
-            <div className="p-3 bg-slate-800 rounded-lg border border-slate-700 inline-block text-xs">
-              <span className="text-emerald-400 font-bold block mb-1">VNPay Gateway</span>
-              <span className="text-slate-400 block">Thanh toan an toan qua cong VNPay</span>
-            </div>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-slate-800 flex justify-between items-center text-xs text-slate-500">
-          <span>&copy; 2026 TutorHub Platform. Bat bien tai chinh & Kiem toan bat kha xam pham.</span>
-          <span>Version 1.0</span>
         </div>
       </footer>
     </div>

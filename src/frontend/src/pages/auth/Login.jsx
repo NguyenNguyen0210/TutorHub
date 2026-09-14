@@ -1,147 +1,160 @@
 import React, { useState } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Form, Input, Button, Checkbox, Alert, message } from 'antd';
-import {
-  UserOutlined,
-  LockOutlined,
-  SafetyCertificateOutlined,
-} from '@ant-design/icons';
-import { useAuthStore } from '../../store/authStore';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuthStore } from '@/store/authStore';
 
 export default function Login() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { loginWithCredentials } = useAuthStore();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const from = location.state?.from?.pathname || null;
-
-  const onFinish = async (values) => {
-    setLoading(true);
-    setError(null);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setErrorMsg('Vui lòng nhập đầy đủ email và mật khẩu.');
+      return;
+    }
 
     try {
-      const result = await loginWithCredentials(values.email, values.password);
-
-      if (result.success) {
-        message.success(`Dang nhap thanh cong! Chao mung ${result.user.name}`);
-
-        // Redirect to previous page or role-based dashboard
-        if (from) {
-          navigate(from, { replace: true });
-        } else if (result.user.role === 'Admin') {
-          navigate('/admin/dashboard');
-        } else if (result.user.role === 'Tutor') {
-          navigate('/tutor/dashboard');
-        } else {
-          navigate('/student/dashboard');
-        }
-      }
+      setLoading(true);
+      setErrorMsg('');
+      const res = await loginWithCredentials(email, password);
+      const loggedUser = res.user;
+      if (loggedUser.role === 'Admin') navigate('/admin/dashboard');
+      else if (loggedUser.role === 'Tutor') navigate('/tutor/dashboard');
+      else navigate('/student/dashboard');
     } catch (err) {
-      setError(err.message || 'Email hoac mat khau khong dung. Vui long thu lai.');
+      setErrorMsg(err.message || 'Email hoặc mật khẩu không chính xác.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-          Dang Nhap Tai Khoan
-        </h2>
-        <p className="mt-1 text-xs text-slate-500">
-          Truy cap he thong hoc tap & quan tri bao chung Escrow TutorHub
-        </p>
-      </div>
-
-      {error && (
-        <Alert
-          message={error}
-          type="error"
-          showIcon
-          closable
-          onClose={() => setError(null)}
-          className="rounded-xl"
-        />
-      )}
-
-      {from && (
-        <Alert
-          message="Ban can dang nhap de truy cap trang nay."
-          type="info"
-          showIcon
-          className="rounded-xl"
-        />
-      )}
-
-      {/* LOGIN FORM */}
-      <Form
-        name="loginForm"
-        layout="vertical"
-        initialValues={{ remember: true }}
-        onFinish={onFinish}
-        size="large"
-      >
-        <Form.Item
-          name="email"
-          label={<span className="text-xs font-bold text-slate-700 uppercase">Email</span>}
-          rules={[
-            { required: true, message: 'Vui long nhap email!' },
-            { type: 'email', message: 'Email khong hop le!' },
-          ]}
-        >
-          <Input
-            prefix={<UserOutlined className="text-slate-400" />}
-            placeholder="name@example.com"
-            className="rounded-xl text-xs"
-            autoComplete="email"
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="password"
-          label={<span className="text-xs font-bold text-slate-700 uppercase">Mat Khau</span>}
-          rules={[{ required: true, message: 'Vui long nhap mat khau!' }]}
-        >
-          <Input.Password
-            prefix={<LockOutlined className="text-slate-400" />}
-            placeholder="••••••••"
-            className="rounded-xl text-xs"
-            autoComplete="current-password"
-          />
-        </Form.Item>
-
-        <div className="flex items-center justify-between text-xs mb-4">
-          <Form.Item name="remember" valuePropName="checked" noStyle>
-            <Checkbox className="text-xs text-slate-600">Ghi nho dang nhap</Checkbox>
-          </Form.Item>
-          <a href="#" className="text-indigo-600 hover:underline">Quen mat khau?</a>
+    <div className="min-h-[85vh] flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-3xl border border-border-light p-8 sm:p-10 shadow-xl space-y-8">
+        {/* Brand Header */}
+        <div className="text-center space-y-2">
+          <Link to="/" className="inline-flex items-center gap-2 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-brand-indigo-50 flex items-center justify-center border border-brand-indigo-100 shadow-xs">
+              <span className="material-symbols-outlined text-financial-available text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                verified_user
+              </span>
+            </div>
+            <span className="text-2xl font-extrabold text-brand-indigo-600 tracking-tight">
+              Tutor<span className="text-brand-navy-900">Hub</span>
+            </span>
+          </Link>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Đăng Nhập Tài Khoản</h1>
+          <p className="text-xs text-text-muted">
+            Học tập & quản trị bảo chứng an toàn với cơ chế Dual-Escrow
+          </p>
         </div>
 
-        <Button
-          type="primary"
-          htmlType="submit"
-          block
-          loading={loading}
-          className="h-11 rounded-xl bg-indigo-600 font-bold text-sm shadow-md shadow-indigo-600/25 hover:bg-indigo-500"
-        >
-          Dang Nhap Vao He Thong
-        </Button>
-      </Form>
+        {/* Error Alert */}
+        {errorMsg && (
+          <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+            <span className="material-symbols-outlined text-base shrink-0">error</span>
+            <span>{errorMsg}</span>
+          </div>
+        )}
 
-      {/* FOOTER */}
-      <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100">
-        Chua co tai khoan hoc vien?{' '}
-        <Link to="/auth/register" className="font-bold text-indigo-600 hover:underline">
-          Dang ky mien phi ngay
-        </Link>
-        <div className="mt-2">
-          Ban la chuyen gia / giao vien?{' '}
-          <Link to="/tutor/application" className="font-bold text-emerald-600 hover:underline">
-            Dang ky lam Gia su tai day &rarr;
-          </Link>
+        {/* Login Form */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 block">Địa chỉ Email</label>
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">
+                mail
+              </span>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-border-light text-slate-900 text-xs font-medium focus:ring-2 focus:ring-brand-indigo-500 focus:border-brand-indigo-500 outline-hidden transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700">Mật khẩu</label>
+              <a href="#" className="text-[11px] font-semibold text-brand-indigo-600 hover:underline">
+                Quên mật khẩu?
+              </a>
+            </div>
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">
+                lock
+              </span>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full pl-10 pr-10 py-3 rounded-xl border border-border-light text-slate-900 text-xs font-medium focus:ring-2 focus:ring-brand-indigo-500 focus:border-brand-indigo-500 outline-hidden transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <span className="material-symbols-outlined text-lg">
+                  {showPassword ? 'visibility_off' : 'visibility'}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded text-brand-indigo-600 focus:ring-brand-indigo-500 border-border-light"
+              />
+              <span className="text-xs text-slate-600">Ghi nhớ phiên đăng nhập (30 ngày)</span>
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3.5 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {loading ? (
+              <span>Đang xác thực...</span>
+            ) : (
+              <>
+                <span>Đăng Nhập Ngay</span>
+                <span className="material-symbols-outlined text-base">login</span>
+              </>
+            )}
+          </button>
+        </form>
+
+        {/* Footer Link */}
+        <div className="pt-4 border-t border-border-light text-center space-y-2">
+          <p className="text-xs text-slate-600">
+            Chưa có tài khoản?{' '}
+            <Link to="/auth/register" className="font-bold text-brand-indigo-600 hover:underline">
+              Đăng ký học viên
+            </Link>
+          </p>
+          <p className="text-xs text-slate-500">
+            Bạn là gia sư?{' '}
+            <Link to="/auth/register" className="font-bold text-financial-available hover:underline">
+              Đăng ký gia sư bảo chứng
+            </Link>
+          </p>
         </div>
       </div>
     </div>

@@ -1,12 +1,14 @@
-﻿/** @type {import('tailwindcss').Config} */
+/** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
+        // Core Brand Navy & Indigo
         brand: {
           navy: {
             950: '#0B0F17',
@@ -21,6 +23,24 @@ export default {
             700: '#4338CA',
           },
         },
+        'brand-navy-950': '#0B0F17',
+        'brand-navy-900': '#0F172A',
+        'brand-navy-800': '#1E293B',
+        'brand-indigo-50': '#EEF2FF',
+        'brand-indigo-100': '#E0E7FF',
+        'brand-indigo-500': '#6366F1',
+        'brand-indigo-600': '#4F46E5',
+        'brand-indigo-700': '#4338CA',
+
+        // Stitch Semantic Escrow Colors
+        'financial-available': '#10B981',
+        'financial-available-bg': '#ECFDF5',
+        'financial-holding': '#F59E0B',
+        'financial-holding-bg': '#FFFBEB',
+        'financial-dispute': '#EF4444',
+        'financial-dispute-bg': '#FEF2F2',
+        'financial-escrow-blue': '#3B82F6',
+        'financial-escrow-blue-bg': '#EFF6FF',
         financial: {
           available: '#10B981',
           'available-bg': '#ECFDF5',
@@ -31,11 +51,60 @@ export default {
           escrow: '#3B82F6',
           'escrow-bg': '#EFF6FF',
         },
+
+        // Surface & Glassmorphism Tokens
+        'surface-card-glass': 'rgba(255, 255, 255, 0.88)',
+        'surface-card-light': '#FFFFFF',
+        'surface-canvas-light': '#F8FAFC',
+        'border-light': '#E2E8F0',
+        'text-primary': '#0F172A',
+        'text-secondary': '#475569',
+        'text-muted': '#94A3B8',
+
+        // Stitch System Tokens
+        primary: '#3525cd',
+        'on-primary': '#ffffff',
+        'primary-container': '#4f46e5',
+        'primary-fixed-dim': '#c3c0ff',
+        'primary-fixed': '#e2dfff',
+        'surface-tint': '#4d44e3',
+        'surface-container-low': '#f5f2ff',
+        'surface-container': '#f0ecf9',
+        'surface-container-high': '#eae6f4',
+        'surface-container-highest': '#e4e1ee',
+        'surface-container-lowest': '#ffffff',
+      },
+      spacing: {
+        'space-xs': '0.25rem',
+        'space-sm': '0.5rem',
+        'space-md': '1rem',
+        'space-lg': '1.5rem',
+        'space-xl': '2rem',
+        'margin': '1.5rem',
+        'gutter': '1rem',
       },
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
         display: ['"Plus Jakarta Sans"', 'sans-serif'],
+        'display-hero': ['"Plus Jakarta Sans"', 'sans-serif'],
+        'headline-1': ['"Plus Jakarta Sans"', 'sans-serif'],
+        'headline-2': ['"Plus Jakarta Sans"', 'sans-serif'],
+        'headline-3': ['"Plus Jakarta Sans"', 'sans-serif'],
+        'body-lg': ['Inter', 'sans-serif'],
+        'body-reg': ['Inter', 'sans-serif'],
+        'caption': ['Inter', 'sans-serif'],
+        'monospace-num': ['"JetBrains Mono"', 'monospace'],
+      },
+      fontSize: {
+        'display-hero': ['36px', { lineHeight: '1.2', fontWeight: '700' }],
+        'headline-1': ['28px', { lineHeight: '1.3', fontWeight: '700' }],
+        'headline-2': ['22px', { lineHeight: '1.35', fontWeight: '600' }],
+        'headline-3': ['18px', { lineHeight: '1.4', fontWeight: '600' }],
+        'body-lg': ['16px', { lineHeight: '1.5', fontWeight: '400' }],
+        'body-reg': ['14px', { lineHeight: '1.5', fontWeight: '400' }],
+        'caption': ['12px', { lineHeight: '1.4', fontWeight: '500' }],
+        'monospace-num': ['14px', { lineHeight: '1.4', fontWeight: '600' }],
       },
       boxShadow: {
         'glass': '0 4px 20px -2px rgba(15, 23, 42, 0.05)',
@@ -46,7 +115,6 @@ export default {
   },
   plugins: [],
   corePlugins: {
-    // Để Ant Design v5 và Tailwind không bị xung đột reset nút bấm
     preflight: true,
   },
 };

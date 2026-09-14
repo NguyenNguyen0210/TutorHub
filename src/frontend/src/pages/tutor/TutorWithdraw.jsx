@@ -1,170 +1,140 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Form, Input, InputNumber, Button, Tag, Alert, message, Table } from 'antd';
-import {
-  BankOutlined,
-  SafetyCertificateFilled,
-  CheckCircleFilled,
-  ArrowLeftOutlined,
-  DollarCircleFilled,
-} from '@ant-design/icons';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/utils/formatters';
-import walletService from '@/services/wallet.service';
+import { message } from 'antd';
 
 export default function TutorWithdraw() {
-  const navigate = useNavigate();
-  const [form] = Form.useForm();
+  const withdrawableLimit = 700000;
+  const [amount, setAmount] = useState('500000');
+  const [note, setNote] = useState('Rút thu nhập dạy Toán tháng 9');
   const [loading, setLoading] = useState(false);
-  const [wallet, setWallet] = useState(null);
-  const [withdrawals, setWithdrawals] = useState([]);
 
-  useEffect(() => {
-    walletService.getMyWallet().then(setWallet);
-    walletService.getWithdrawals().then(setWithdrawals);
-  }, []);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const num = parseInt(amount);
+    if (num < 50000) {
+      message.error('Số tiền rút tối thiểu là 50.000 ₫');
+      return;
+    }
+    if (num > withdrawableLimit) {
+      message.error('Số tiền rút vượt quá hạn mức được phép');
+      return;
+    }
 
-  const withdrawableBalance = wallet ? wallet.withdrawableBalance : 700000;
-  const bank = wallet?.bankAccount || {
-    bankName: 'Ngân Hàng TMCP Ngoại Thương Việt Nam (Vietcombank)',
-    accountNumber: '0011001234567',
-    accountHolderName: 'NGUYEN VAN AN',
-  };
-
-  const onFinish = (values) => {
     setLoading(true);
-    walletService.createWithdrawal({
-      amount: values.amount,
-      note: values.note || 'Yêu cầu rút tiền thù lao'
-    }).then((res) => {
+    setTimeout(() => {
       setLoading(false);
-      message.success(`Đã khởi tạo lệnh rút ${formatCurrency(values.amount)} thành công!`);
-      form.resetFields();
-      walletService.getWithdrawals().then(setWithdrawals);
-    });
+      message.success(`Đã tạo lệnh rút ${formatCurrency(num)} thành công! Lệnh đang chờ chuyển khoản.`);
+    }, 600);
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 sm:p-8 space-y-8">
-      {/* Back button */}
-      <Button
-        type="link"
-        icon={<ArrowLeftOutlined />}
-        onClick={() => navigate('/tutor/wallet')}
-        className="p-0 text-slate-500 hover:text-slate-800 text-xs font-semibold"
-      >
-        Quay lại Trung tâm Ví Escrow
-      </Button>
+    <div className="max-w-4xl mx-auto space-y-8">
+      <Link to="/tutor/wallet" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-brand-indigo-600 transition-colors">
+        <span className="material-symbols-outlined text-base">arrow_back</span>
+        Quay lại Ví Bảo Chứng
+      </Link>
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight m-0">
-            Yêu Cầu Rút Tiền Về Ngân Hàng
-          </h1>
-          <p className="text-xs text-slate-500 mt-1 mb-0">
-            Chuyển tiền thù lao khả dụng về tài khoản ngân hàng chính chủ KYC trong vòng 2-4 giờ làm việc.
-          </p>
-        </div>
-
-        <div className="rounded-2xl border-2 border-emerald-500/40 bg-emerald-50/40 p-3 px-4 text-right">
-          <span className="text-[10px] font-extrabold uppercase text-emerald-700 block">Hạn Mức Khả Dụng Rút:</span>
-          <span className="text-xl font-black text-emerald-600">{formatCurrency(withdrawableBalance)}</span>
-        </div>
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          Yêu Cầu Rút Tiền Về Tài Khoản Ngân Hàng
+        </h1>
+        <p className="text-xs sm:text-sm text-text-muted mt-1">
+          Chỉ được rút từ Số dư khả dụng (Available) sau khi trừ đi các khoản tiền đang bị phong tỏa tranh chấp (Held)
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Form Container */}
-        <div className="lg:col-span-7 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-6">
-          <div className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-            <BankOutlined className="text-emerald-600 text-2xl" />
-            <div className="text-xs">
-              <span className="font-bold text-slate-800 block">{bank.bankName}</span>
-              <span className="text-slate-500 font-mono font-bold text-[11px]">{bank.accountNumber} • {bank.accountHolderName}</span>
-            </div>
-            <Tag color="success" className="ml-auto m-0 text-[10px] font-bold">KYC VERIFIED</Tag>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Form Card */}
+        <div className="lg:col-span-2 p-6 sm:p-8 rounded-3xl bg-white border border-border-light shadow-xs space-y-6">
+          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
+            <span className="font-bold text-emerald-900">Hạn mức được phép rút hiện tại:</span>
+            <span className="text-lg font-extrabold text-financial-available font-monospace-num">
+              {formatCurrency(withdrawableLimit)}
+            </span>
           </div>
 
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={onFinish}
-            initialValues={{ amount: Math.min(500000, withdrawableBalance) }}
-          >
-            <Form.Item
-              name="amount"
-              label={<span className="text-xs font-bold text-slate-700 uppercase">Số Tiền Muốn Rút (₫)</span>}
-              rules={[
-                { required: true, message: 'Vui lòng nhập số tiền!' },
-                {
-                  validator: (_, value) => {
-                    if (value < 50000) return Promise.reject('Số tiền rút tối thiểu là 50.000 ₫');
-                    if (value > withdrawableBalance) return Promise.reject(`Số tiền vượt quá hạn mức khả dụng (${formatCurrency(withdrawableBalance)})`);
-                    return Promise.resolve();
-                  }
-                }
-              ]}
-            >
-              <InputNumber
-                className="w-full rounded-xl text-sm"
-                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
-                min={50000}
-                max={withdrawableBalance}
-                step={50000}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">Số tiền muốn rút (₫)</label>
+              <input
+                type="number"
+                required
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                min="50000"
+                max={withdrawableLimit}
+                className="w-full px-4 py-3 rounded-xl border border-border-light text-slate-900 font-monospace-num font-bold text-base focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
               />
-            </Form.Item>
-
-            <div className="flex gap-2 mb-4">
-              {[100000, 200000, 500000, withdrawableBalance].map((val) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => form.setFieldsValue({ amount: val })}
-                  className="px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 hover:border-emerald-500 hover:text-emerald-700"
-                >
-                  {val === withdrawableBalance ? 'Toàn bộ' : formatCurrency(val)}
-                </button>
-              ))}
+              <span className="text-[11px] text-text-muted block">Tối thiểu: 50.000 ₫ • Tối đa: {formatCurrency(withdrawableLimit)}</span>
             </div>
 
-            <Form.Item
-              name="note"
-              label={<span className="text-xs font-bold text-slate-700 uppercase">Ghi Chú Rút Tiền (Tùy chọn)</span>}
-            >
-              <Input placeholder="Ví dụ: Rút thù lao giảng dạy tuần 2 tháng 9" className="rounded-xl text-xs py-2" />
-            </Form.Item>
+            {/* Linked Bank Card */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700 block">Tài khoản ngân hàng thụ hưởng đã xác thực</label>
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
+                <div>
+                  <span className="font-bold text-slate-900 block">Ngân hàng TMCP Ngoại Thương Việt Nam (Vietcombank)</span>
+                  <span className="text-slate-600 font-monospace-num">STK: 0011001234567 • NGUYEN VAN AN</span>
+                </div>
+                <span className="px-2 py-0.5 rounded bg-emerald-100 text-financial-available text-[10px] font-bold">
+                  ĐÃ XÁC THỰC KYC ✅
+                </span>
+              </div>
+            </div>
 
-            <Button
-              type="primary"
-              htmlType="submit"
-              block
-              size="large"
-              loading={loading}
-              className="h-11 rounded-xl bg-emerald-600 font-bold text-sm shadow-md shadow-emerald-600/25 hover:bg-emerald-500 border-0"
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">Ghi chú giao dịch</label>
+              <input
+                type="text"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-border-light text-slate-900 text-xs focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-2xl bg-financial-available hover:bg-emerald-600 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2"
             >
-              Xác Nhận Rút Tiền Ngay
-            </Button>
-          </Form>
+              <span className="material-symbols-outlined text-base">send</span>
+              {loading ? 'Đang gửi lệnh...' : `Xác Nhận Rút ${formatCurrency(parseInt(amount) || 0)} Về Ngân Hàng`}
+            </button>
+          </form>
         </div>
 
-        {/* Withdrawal History Table */}
-        <div className="lg:col-span-5 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
-          <h3 className="text-sm font-bold text-slate-900 m-0">Lịch Sử Lệnh Rút Gần Nhất</h3>
+        {/* Withdrawal History Card */}
+        <div className="space-y-6">
+          <div className="p-6 rounded-3xl bg-white border border-border-light shadow-xs space-y-4">
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span className="material-symbols-outlined text-brand-indigo-600">history</span>
+              Lịch Sử Lệnh Rút Gần Đây
+            </h3>
 
-          <div className="space-y-3">
-            {withdrawals.map((w) => (
-              <div key={w.id} className="p-3 rounded-xl border border-slate-100 bg-slate-50/70 text-xs space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="font-black text-slate-800">{formatCurrency(w.amount)}</span>
-                  <Tag color={w.status === 'Completed' ? 'success' : w.status === 'Pending' ? 'processing' : 'error'} className="m-0 text-[10px] font-bold">
-                    {w.status === 'Completed' ? 'ĐÃ CHUYỂN' : w.status === 'Pending' ? 'ĐANG DUYỆT' : 'THẤT BẠI'}
-                  </Tag>
+            <div className="space-y-3 text-xs">
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                <div className="flex justify-between">
+                  <span className="font-monospace-num font-bold text-slate-800">WTH-99214</span>
+                  <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">Chờ Admin Duyệt ⏳</span>
                 </div>
-                <div className="flex justify-between text-[11px] text-slate-400 font-mono">
-                  <span>{w.bankName || 'VCB'} • {w.accountNumber || '0011001234567'}</span>
-                  <span>{w.requestedAt ? new Date(w.requestedAt).toLocaleDateString('vi-VN') : 'Hôm nay'}</span>
+                <div className="flex justify-between text-text-muted">
+                  <span>13/09/2026</span>
+                  <span className="font-bold text-slate-800 font-monospace-num">300.000 ₫</span>
                 </div>
               </div>
-            ))}
+
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                <div className="flex justify-between">
+                  <span className="font-monospace-num font-bold text-slate-800">WTH-88219</span>
+                  <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">Thành công ✅</span>
+                </div>
+                <div className="flex justify-between text-text-muted">
+                  <span>05/09/2026</span>
+                  <span className="font-bold text-slate-800 font-monospace-num">500.000 ₫</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -1,116 +1,124 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button, Tag, Divider, message } from 'antd';
-import { PlusOutlined, EditOutlined, CheckCircleFilled, ThunderboltFilled } from '@ant-design/icons';
 import { formatCurrency } from '@/utils/formatters';
+import { message } from 'antd';
 
 export default function TutorServices() {
-  const navigate = useNavigate();
-
-  const services = [
+  const packages = [
     {
-      id: '5e521ce5-0001',
-      title: 'Luyện thi THPT Toán 10 buổi Thực Chiến',
-      sessions: 10,
+      id: 'pkg-1',
+      name: 'Luyện thi THPT Toán 10 Buổi',
+      sessionCount: 10,
       duration: 60,
       price: 2000000,
-      status: 'Published',
-      activeStudents: 1,
-      totalRevenue: 2000000,
+      unitPrice: 200000,
+      mode: 'Online + Offline',
+      activeStudents: 3,
+      revenue: 6000000,
+      status: 'Active',
     },
     {
-      id: '5e521ce5-0002',
-      title: 'Toán Nâng Cao 15 buổi Chuyên Đề 9+',
-      sessions: 15,
+      id: 'pkg-2',
+      name: 'Toán Nâng Cao 15 Buổi Chuyên Đề 9+',
+      sessionCount: 15,
       duration: 90,
       price: 3500000,
-      status: 'Published',
-      activeStudents: 0,
-      totalRevenue: 0,
+      unitPrice: 233333,
+      mode: 'Online',
+      activeStudents: 1,
+      revenue: 3500000,
+      status: 'Active',
     },
     {
-      id: '5e521ce5-0003',
-      title: 'Lấy gốc Toán THCS lớp 9 vào 10',
-      sessions: 12,
+      id: 'pkg-3',
+      name: 'Luyện Đề Cấp Tốc 5 Buổi Trọng Tâm',
+      sessionCount: 5,
       duration: 60,
-      price: 1800000,
-      status: 'Draft',
+      price: 1200000,
+      unitPrice: 240000,
+      mode: 'Online',
       activeStudents: 0,
-      totalRevenue: 0,
+      revenue: 0,
+      status: 'Active',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50/50 p-6 sm:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight m-0">
-            Quản Lý Danh Mục Gói Dịch Vụ Niêm Yết
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Quản Lý Danh Mục Gói Dịch Vụ Giảng Dạy
           </h1>
-          <p className="text-xs text-slate-500 mt-1 mb-0">
-            Các gói học trọn gói được bảo chứng Escrow niêm yết công khai trên Marketplace.
+          <p className="text-xs sm:text-sm text-text-muted mt-1">
+            Tạo và điều chỉnh các gói học theo số buổi, thời lượng và cam kết đầu ra bảo chứng Escrow
           </p>
         </div>
 
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          className="rounded-xl bg-brand-indigo-600 font-bold"
-          onClick={() => message.info('Mở form tạo gói học mới.')}
+        <button
+          type="button"
+          onClick={() => message.info('Mở modal tạo gói dịch vụ mới')}
+          className="px-4 py-2.5 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 self-start sm:self-auto"
         >
+          <span className="material-symbols-outlined text-base">add</span>
           Tạo Gói Dịch Vụ Mới
-        </Button>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {services.map((svc) => (
+        {packages.map((pkg) => (
           <div
-            key={svc.id}
-            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between transition-all hover:border-brand-indigo-300 hover:shadow-md"
+            key={pkg.id}
+            className="p-6 rounded-3xl bg-white border border-border-light shadow-xs flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow"
           >
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Tag
-                  color={svc.status === 'Published' ? 'emerald' : 'default'}
-                  className="font-bold border-0 text-[10px] px-2.5 py-0.5 rounded-full"
-                >
-                  {svc.status === 'Published' ? 'ĐANG NIÊM YẾT' : 'BẢN NHÁP'}
-                </Tag>
-                <span className="text-xs text-slate-400 font-mono">ID: {svc.id}</span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-financial-available text-[10px] font-extrabold uppercase border border-emerald-200">
+                  Đang Mở Tuyển Sinh
+                </span>
+                <span className="text-xs font-bold text-brand-indigo-600 font-monospace-num">
+                  {pkg.sessionCount} buổi
+                </span>
               </div>
+              <h3 className="text-base font-bold text-slate-900">{pkg.name}</h3>
 
-              <h3 className="text-base font-bold text-slate-900 m-0 mb-2">
-                {svc.title}
-              </h3>
-
-              <div className="space-y-1.5 text-xs text-slate-600">
-                <div>Số buổi: <strong className="text-slate-800">{svc.sessions} buổi x {svc.duration}p</strong></div>
-                <div>Đang học: <strong className="text-brand-indigo-600">{svc.activeStudents} học viên</strong></div>
-                <div>Đã thu về: <strong className="text-emerald-700">{formatCurrency(svc.totalRevenue)}</strong></div>
+              <div className="space-y-1.5 text-xs text-text-secondary pt-2 border-t border-slate-100">
+                <div className="flex justify-between">
+                  <span>Thời lượng buổi:</span>
+                  <span className="font-bold text-slate-800">{pkg.duration} phút</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Hình thức:</span>
+                  <span className="font-bold text-slate-800">{pkg.mode}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Học viên đang theo học:</span>
+                  <span className="font-bold text-slate-800">{pkg.activeStudents} bạn</span>
+                </div>
               </div>
             </div>
 
-            <div className="mt-6 border-t pt-4">
-              <div className="flex items-baseline justify-between mb-3">
-                <span className="text-xs text-slate-400">Giá gói trọn gói</span>
-                <span className="text-xl font-extrabold text-brand-indigo-600">
-                  {formatCurrency(svc.price)}
+            <div className="pt-4 border-t border-border-light space-y-3">
+              <div className="flex items-baseline justify-between">
+                <span className="text-xs text-text-muted">Học phí trọn gói:</span>
+                <span className="text-xl font-extrabold text-financial-available font-monospace-num">
+                  {formatCurrency(pkg.price)}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Button size="small" icon={<EditOutlined />} className="flex-1 rounded-lg text-xs font-semibold">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="flex-1 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs transition-colors"
+                >
                   Chỉnh Sửa
-                </Button>
-                {svc.status === 'Published' ? (
-                  <Button size="small" danger className="rounded-lg text-xs">
-                    Gỡ Khỏi Sàn
-                  </Button>
-                ) : (
-                  <Button size="small" type="primary" className="rounded-lg text-xs bg-emerald-600 border-0">
-                    Đăng Bán
-                  </Button>
-                )}
+                </button>
+                <button
+                  type="button"
+                  className="py-2 px-3 rounded-xl border border-slate-200 text-slate-400 hover:text-slate-600 text-xs transition-colors"
+                  title="Ẩn gói"
+                >
+                  <span className="material-symbols-outlined text-base">visibility_off</span>
+                </button>
               </div>
             </div>
           </div>

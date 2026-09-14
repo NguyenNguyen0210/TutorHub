@@ -1,140 +1,200 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Form, Input, Button, Checkbox, Alert, message } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
-import { useAuthStore } from '../../store/authStore';
+import { message } from 'antd';
+import { useAuthStore } from '@/store/authStore';
 
 export default function Register() {
   const navigate = useNavigate();
   const { registerWithCredentials } = useAuthStore();
+  const [selectedRole, setSelectedRole] = useState('Student');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const onFinish = async (values) => {
-    setLoading(true);
-    setError(null);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!fullName || !email || !password) {
+      setErrorMsg('Vui lòng điền đầy đủ các thông tin bắt buộc.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setErrorMsg('Mật khẩu xác nhận không khớp.');
+      return;
+    }
+    if (!agreeTerms) {
+      setErrorMsg('Vui lòng đồng ý với Điều khoản Bảo chứng Escrow.');
+      return;
+    }
 
     try {
-      const result = await registerWithCredentials(
-        values.email,
-        values.password,
-        values.fullName,
-        values.phone,
-        'Student'
-      );
+      setLoading(true);
+      setErrorMsg('');
+      await registerWithCredentials(email, password, fullName, phoneNumber, selectedRole);
 
-      if (result.success) {
-        message.success('Dang ky tai khoan thanh cong! Chao mung ' + result.user.name);
-        navigate('/student/dashboard');
-      }
+      message.success('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
+      navigate('/auth/login');
     } catch (err) {
-      setError(err.message || 'Dang ky that bai. Vui long thu lai.');
+      setErrorMsg(err.message || 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-          Dang Ky Tai Khoan Hoc Vien
-        </h2>
-        <p className="mt-1 text-xs text-slate-500">
-          Tim gia su chat luong cao & duoc bao chung hoc phi 100% qua Escrow
-        </p>
-      </div>
+    <div className="min-h-[85vh] flex items-center justify-center p-4">
+      <div className="w-full max-w-lg bg-white rounded-3xl border border-border-light p-8 sm:p-10 shadow-xl space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <Link to="/" className="inline-flex items-center gap-2 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-brand-indigo-50 flex items-center justify-center border border-brand-indigo-100 shadow-xs">
+              <span className="material-symbols-outlined text-financial-available text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                verified_user
+              </span>
+            </div>
+            <span className="text-2xl font-extrabold text-brand-indigo-600 tracking-tight">
+              Tutor<span className="text-brand-navy-900">Hub</span>
+            </span>
+          </Link>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Tạo Tài Khoản Mới</h1>
+          <p className="text-xs text-text-muted">Chọn vai trò tham gia nền tảng bảo chứng học phí 2 chiều</p>
+        </div>
 
-      {error && (
-        <Alert
-          message={error}
-          type="error"
-          showIcon
-          closable
-          onClose={() => setError(null)}
-          className="rounded-xl"
-        />
-      )}
+        {/* Role Switcher Tabs */}
+        <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-2xl">
+          <button
+            type="button"
+            onClick={() => setSelectedRole('Student')}
+            className={`py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+              selectedRole === 'Student'
+                ? 'bg-white text-brand-indigo-600 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span className="material-symbols-outlined text-base">school</span>
+            Tôi Là Học Viên
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedRole('Tutor')}
+            className={`py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+              selectedRole === 'Tutor'
+                ? 'bg-white text-financial-available shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span className="material-symbols-outlined text-base">psychology</span>
+            Tôi Là Gia Sư
+          </button>
+        </div>
 
-      <Form name="registerForm" layout="vertical" onFinish={onFinish} size="large">
-        <Form.Item
-          name="fullName"
-          label={<span className="text-xs font-bold text-slate-700 uppercase">Ho va Ten</span>}
-          rules={[{ required: true, message: 'Vui long nhap ho ten!' }]}
-        >
-          <Input prefix={<UserOutlined className="text-slate-400" />} placeholder="Nguyen Van A" className="rounded-xl text-xs" autoComplete="name" />
-        </Form.Item>
+        {/* Error alert */}
+        {errorMsg && (
+          <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+            <span className="material-symbols-outlined text-base shrink-0">error</span>
+            <span>{errorMsg}</span>
+          </div>
+        )}
 
-        <Form.Item
-          name="email"
-          label={<span className="text-xs font-bold text-slate-700 uppercase">Email</span>}
-          rules={[{ required: true, message: 'Vui long nhap email!' }, { type: 'email', message: 'Email khong hop le!' }]}
-        >
-          <Input prefix={<MailOutlined className="text-slate-400" />} placeholder="student@example.com" className="rounded-xl text-xs" autoComplete="email" />
-        </Form.Item>
+        {/* Register Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 block">Họ và tên</label>
+            <input
+              type="text"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Nguyễn Văn A"
+              className="w-full px-4 py-2.5 rounded-xl border border-border-light text-slate-900 text-xs font-medium focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+            />
+          </div>
 
-        <Form.Item
-          name="phone"
-          label={<span className="text-xs font-bold text-slate-700 uppercase">So Dien Thoai</span>}
-          rules={[{ required: true, message: 'Vui long nhap so dien thoai!' }]}
-        >
-          <Input prefix={<PhoneOutlined className="text-slate-400" />} placeholder="0912345678" className="rounded-xl text-xs" autoComplete="tel" />
-        </Form.Item>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                className="w-full px-4 py-2.5 rounded-xl border border-border-light text-slate-900 text-xs font-medium focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">Số điện thoại</label>
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="0912345678"
+                className="w-full px-4 py-2.5 rounded-xl border border-border-light text-slate-900 text-xs font-medium focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+              />
+            </div>
+          </div>
 
-        <Form.Item
-          name="password"
-          label={<span className="text-xs font-bold text-slate-700 uppercase">Mat Khau</span>}
-          rules={[
-            { required: true, message: 'Vui long nhap mat khau!' },
-            { min: 6, message: 'Mat khau toi thieu 6 ky tu!' },
-          ]}
-        >
-          <Input.Password prefix={<LockOutlined className="text-slate-400" />} placeholder="••••••••" className="rounded-xl text-xs" autoComplete="new-password" />
-        </Form.Item>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">Mật khẩu</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Tối thiểu 8 ký tự"
+                className="w-full px-4 py-2.5 rounded-xl border border-border-light text-slate-900 text-xs font-medium focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">Xác nhận mật khẩu</label>
+              <input
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Nhập lại mật khẩu"
+                className="w-full px-4 py-2.5 rounded-xl border border-border-light text-slate-900 text-xs font-medium focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+              />
+            </div>
+          </div>
 
-        <Form.Item
-          name="confirmPassword"
-          label={<span className="text-xs font-bold text-slate-700 uppercase">Xac Nhan Mat Khau</span>}
-          dependencies={['password']}
-          rules={[
-            { required: true, message: 'Vui long xac nhan mat khau!' },
-            ({ getFieldValue }) => ({
-              validator(_, value) {
-                if (!value || getFieldValue('password') === value) return Promise.resolve();
-                return Promise.reject(new Error('Mat khau xac nhan khong khop!'));
-              },
-            }),
-          ]}
-        >
-          <Input.Password prefix={<LockOutlined className="text-slate-400" />} placeholder="••••••••" className="rounded-xl text-xs" autoComplete="new-password" />
-        </Form.Item>
+          <div className="pt-2">
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={agreeTerms}
+                onChange={(e) => setAgreeTerms(e.target.checked)}
+                className="w-4 h-4 mt-0.5 rounded text-brand-indigo-600 focus:ring-brand-indigo-500 border-border-light"
+              />
+              <span className="text-xs text-slate-600 leading-normal">
+                Tôi đồng ý với <a href="#" className="text-brand-indigo-600 font-bold underline">Điều khoản dịch vụ</a> và cơ chế bảo chứng ký quỹ học phí <a href="#" className="text-financial-available font-bold underline">Escrow Guarantee</a> của sàn TutorHub.
+              </span>
+            </label>
+          </div>
 
-        <Form.Item
-          name="agreement"
-          valuePropName="checked"
-          rules={[{ validator: (_, value) => value ? Promise.resolve() : Promise.reject(new Error('Vui long dong y dieu khoan!')) }]}
-        >
-          <Checkbox className="text-xs text-slate-600">
-            Toi dong y voi <a href="#" className="text-indigo-600">Dieu khoan su dung</a> va cam ket bao chung Escrow cua TutorHub.
-          </Checkbox>
-        </Form.Item>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3.5 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {loading ? 'Đang tạo tài khoản...' : 'Đăng Ký Tài Khoản'}
+            <span className="material-symbols-outlined text-base">person_add</span>
+          </button>
+        </form>
 
-        <Button
-          type="primary"
-          htmlType="submit"
-          block
-          loading={loading}
-          className="h-11 rounded-xl bg-indigo-600 font-bold text-sm shadow-md shadow-indigo-600/25 hover:bg-indigo-500"
-        >
-          Tao Tai Khoan & Bat Dau Hoc
-        </Button>
-      </Form>
-
-      <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100">
-        Da co tai khoan?{' '}
-        <Link to="/auth/login" className="font-bold text-indigo-600 hover:underline">
-          Dang nhap tai day
-        </Link>
+        <div className="pt-4 border-t border-border-light text-center">
+          <p className="text-xs text-slate-600">
+            Đã có tài khoản?{' '}
+            <Link to="/auth/login" className="font-bold text-brand-indigo-600 hover:underline">
+              Đăng nhập ngay
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

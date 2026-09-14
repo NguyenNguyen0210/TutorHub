@@ -1,278 +1,173 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, Input, Button, Badge, Avatar, Tag, Tooltip, message } from 'antd';
-import { 
-  SendOutlined, 
-  VideoCameraOutlined, 
-  PaperClipOutlined, 
-  SmileOutlined, 
-  CheckCircleFilled, 
-  ClockCircleOutlined,
-  SafetyCertificateFilled,
-  ArrowRightOutlined,
-  PhoneOutlined,
-  InfoCircleOutlined
-} from '@ant-design/icons';
-import chatService from '../../services/chat.service';
-import { formatVND } from '../../utils/formatters';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { formatCurrency } from '@/utils/formatters';
+import { message } from 'antd';
 
 export default function Messages() {
   const navigate = useNavigate();
-  const [conversations, setConversations] = useState([]);
-  const [activeConvId, setActiveConvId] = useState('conv_001');
-  const [messagesList, setMessagesList] = useState([]);
+  const [activeChat, setActiveChat] = useState('tut-001');
   const [inputText, setInputText] = useState('');
-  const [telemetryActive, setTelemetryActive] = useState(false);
+  const [messagesList, setMessagesList] = useState([
+    { id: 'm1', sender: 'tutor', text: 'Chào Tuấn, thầy đã nhận được đăng ký gói 10 buổi của em!', time: '14:20' },
+    { id: 'm2', sender: 'student', text: 'Dạ vâng thầy ơi, tối thứ 2 tuần này mình học buổi đầu tiên đúng không ạ?', time: '14:22' },
+    { id: 'm3', sender: 'tutor', text: 'Đúng rồi em, thầy có gửi thêm đề xuất gói học bổ trợ 5 buổi trọng tâm bên dưới nhé:', time: '14:25' },
+  ]);
 
-  useEffect(() => {
-    chatService.getConversations().then(data => {
-      setConversations(data);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (activeConvId) {
-      chatService.getMessages(activeConvId).then(msgs => {
-        setMessagesList(msgs);
-      });
-    }
-  }, [activeConvId]);
-
-  const activeConv = conversations.find(c => c.id === activeConvId) || conversations[0];
-
-  const handleSend = () => {
-    if (!inputText.trim()) return;
-    chatService.sendMessage(activeConvId, inputText).then(newMsg => {
-      setMessagesList(prev => [...prev, newMsg]);
-      setInputText('');
-    });
+  const customOffer = {
+    title: 'Đề Xuất Hợp Đồng Học Tập Tùy Chỉnh (Custom Agreement)',
+    desc: 'Học viên Tuấn muốn học tăng cường 5 buổi tối, tập trung chuyên đề Hàm Số & Tích Phân 9+.',
+    sessions: '5 buổi x 60 phút',
+    mode: 'Trực Tuyến (Online)',
+    price: 1000000,
   };
 
-  const handleStartMeet = () => {
-    setTelemetryActive(true);
-    message.success('Đã kết nối phòng học Google Meet với hệ thống Telemetry điểm danh tự động của sàn!');
-    window.open(activeConv?.meetUrl || 'https://meet.google.com/abc-defg-hij', '_blank');
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (!inputText.trim()) return;
+    setMessagesList((prev) => [
+      ...prev,
+      { id: Date.now().toString(), sender: 'student', text: inputText, time: 'Vừa xong' }
+    ]);
+    setInputText('');
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      {/* Telemetry Alert Banner */}
-      {telemetryActive && (
-        <div className="mb-4 bg-emerald-950/80 border border-emerald-500/40 rounded-xl p-3 px-4 flex items-center justify-between text-xs text-emerald-300 backdrop-blur-md animate-fade-in">
-          <div className="flex items-center space-x-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span className="font-semibold text-emerald-200">Google Meet Telemetry Đang Hoạt Động:</span>
-            <span>Hệ thống tự động ghi nhận nhật ký tham gia của 2 bên để bảo vệ quyền lợi Escrow.</span>
-          </div>
-          <Button size="small" className="text-xs bg-emerald-800/60 text-emerald-100 border-emerald-500/40" onClick={() => setTelemetryActive(false)}>
-            Ẩn Thông Báo
-          </Button>
-        </div>
-      )}
-
-      <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-xl grid grid-cols-1 md:grid-cols-12 h-[calc(100vh-140px)] min-h-[620px]">
-        
-        {/* Left Sidebar: Conversations List */}
-        <div className="md:col-span-4 border-r border-slate-800 flex flex-col bg-slate-950/50">
-          <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                Hộp Thư Chat
-                <span className="bg-indigo-500/20 text-indigo-400 text-xs px-2 py-0.5 rounded-full border border-indigo-500/30">
-                  SignalR Live
-                </span>
-              </h2>
-              <p className="text-xs text-slate-400">Kết nối trực tiếp Gia sư & Học viên</p>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-800/40 p-2 space-y-1">
-            {conversations.map(conv => {
-              const isActive = conv.id === activeConvId;
-              return (
-                <div
-                  key={conv.id}
-                  onClick={() => setActiveConvId(conv.id)}
-                  className={`p-3 rounded-xl cursor-pointer transition-all flex items-start space-x-3 ${
-                    isActive 
-                      ? 'bg-indigo-600/20 border border-indigo-500/30 text-white' 
-                      : 'hover:bg-slate-800/50 text-slate-300'
-                  }`}
-                >
-                  <div className="relative">
-                    <Avatar src={conv.user.avatar} size={44} className="border border-slate-700" />
-                    {conv.user.status === 'online' && (
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold text-xs text-slate-100 truncate">{conv.user.name}</h4>
-                      <span className="text-[10px] text-slate-500">{conv.lastTime}</span>
-                    </div>
-                    <p className="text-[11px] text-indigo-400 truncate mb-1">{conv.user.subject}</p>
-                    <p className="text-[11px] text-slate-400 truncate">{conv.lastMessage}</p>
-                  </div>
-                  {conv.unreadCount > 0 && (
-                    <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                      {conv.unreadCount}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+    <div className="h-[calc(100vh-140px)] min-h-[600px] rounded-3xl bg-white border border-border-light shadow-xs overflow-hidden flex flex-col md:flex-row">
+      {/* Conversations List Sidebar */}
+      <div className="w-full md:w-80 border-r border-border-light flex flex-col bg-slate-50/50">
+        <div className="p-4 border-b border-border-light flex items-center justify-between">
+          <span className="font-bold text-sm text-slate-800 flex items-center gap-2">
+            <span className="material-symbols-outlined text-brand-indigo-600 text-lg">chat</span>
+            Hộp Thư Trực Tuyến
+          </span>
         </div>
 
-        {/* Right Pane: Chat Window & Agreement */}
-        <div className="md:col-span-8 flex flex-col bg-slate-900/60">
-          
-          {/* Header */}
-          {activeConv && (
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/40 backdrop-blur-md">
-              <div className="flex items-center space-x-3">
-                <Avatar src={activeConv.user.avatar} size={42} />
-                <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    {activeConv.user.name}
-                    <Tag color={activeConv.user.role === 'Tutor' ? 'cyan' : activeConv.user.role === 'Admin' ? 'gold' : 'purple'}>
-                      {activeConv.user.role === 'Tutor' ? 'Gia Sư Xác Thực' : activeConv.user.role === 'Admin' ? 'Trọng Tài Sàn' : 'Học Viên'}
-                    </Tag>
-                  </h3>
-                  <div className="flex items-center space-x-1 text-[11px] text-slate-400">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                    <span>Sẵn sàng giảng dạy • Phản hồi trong 5 phút</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Tooltip title="Mở phòng Google Meet bảo chứng có telemetry">
-                  <Button 
-                    type="primary" 
-                    icon={<VideoCameraOutlined />} 
-                    onClick={handleStartMeet}
-                    className="bg-emerald-600 hover:bg-emerald-500 border-none font-medium text-xs flex items-center shadow-lg shadow-emerald-900/30"
-                  >
-                    Vào Google Meet
-                  </Button>
-                </Tooltip>
-              </div>
-            </div>
-          )}
-
-          {/* Messages Stream */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="text-center my-2">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 bg-slate-800/60 px-3 py-1 rounded-full border border-slate-700/50">
-                Cuộc trò chuyện bảo mật mã hóa end-to-end
-              </span>
-            </div>
-
-            {messagesList.map((msg) => {
-              return (
-                <div key={msg.id} className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'}`}>
-                  <div className="flex items-center space-x-1 mb-1 px-1">
-                    <span className="text-[10px] text-slate-400">{msg.senderName}</span>
-                    <span className="text-[10px] text-slate-500">• {msg.time}</span>
-                  </div>
-
-                  <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs shadow-md ${
-                    msg.isMe 
-                      ? 'bg-indigo-600 text-white rounded-br-none' 
-                      : 'bg-slate-800/90 text-slate-200 border border-slate-700/60 rounded-bl-none'
-                  }`}>
-                    {msg.text}
-                  </div>
-
-                  {/* If this message contains a Custom Agreement Card */}
-                  {msg.type === 'AGREEMENT' && activeConv?.customAgreement && (
-                    <div className="mt-3 max-w-[460px] w-full bg-gradient-to-br from-indigo-950/80 via-slate-900/90 to-purple-950/80 border-2 border-indigo-500/60 rounded-2xl p-4 shadow-xl text-slate-200">
-                      <div className="flex items-center justify-between pb-3 border-b border-indigo-500/30">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xl">📜</span>
-                          <div>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">Đề Xuất Hợp Đồng Riêng</span>
-                            <h4 className="text-xs font-bold text-white">{activeConv.customAgreement.title}</h4>
-                          </div>
-                        </div>
-                        <Tag color="warning" className="text-[10px] font-bold m-0">CHỜ THANH TOÁN</Tag>
-                      </div>
-
-                      <p className="text-[11px] text-slate-300 mt-2.5 leading-relaxed">
-                        {activeConv.customAgreement.description}
-                      </p>
-
-                      <div className="grid grid-cols-2 gap-2 my-3 p-2.5 bg-slate-950/60 rounded-xl border border-slate-800/80 text-[11px]">
-                        <div>
-                          <span className="text-slate-400">Số buổi học:</span>
-                          <p className="font-bold text-white">{activeConv.customAgreement.sessionsCount} buổi (60p/buổi)</p>
-                        </div>
-                        <div>
-                          <span className="text-slate-400">Đơn giá:</span>
-                          <p className="font-bold text-white">{formatVND(activeConv.customAgreement.pricePerSession)}/buổi</p>
-                        </div>
-                        <div className="col-span-2 pt-1 border-t border-slate-800 flex justify-between items-center">
-                          <span className="text-slate-300 font-semibold">Tổng Ký Quỹ Escrow:</span>
-                          <span className="text-sm font-extrabold text-amber-400">{formatVND(activeConv.customAgreement.totalAmount)}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between text-[10px] text-emerald-400 bg-emerald-950/50 p-2 rounded-lg border border-emerald-500/30 mb-3">
-                        <span className="flex items-center gap-1">
-                          <SafetyCertificateFilled /> Tiền được giữ an toàn tại TutorHub Escrow
-                        </span>
-                        <span>Hoàn tiền nếu hủy</span>
-                      </div>
-
-                      <Button
-                        type="primary"
-                        block
-                        icon={<ArrowRightOutlined />}
-                        onClick={() => navigate(`/student/bookings/${activeConv.customAgreement.bookingId}/checkout`)}
-                        className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 border-none font-bold text-xs h-9 shadow-lg shadow-indigo-900/40 flex items-center justify-center gap-1"
-                      >
-                        1-Click Checkout Ký Quỹ ({formatVND(activeConv.customAgreement.totalAmount)})
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Chat Input Bar */}
-          <div className="p-3 border-t border-slate-800 bg-slate-950/60 backdrop-blur-md">
-            <div className="flex items-center space-x-2">
-              <Tooltip title="Đính kèm tài liệu học tập">
-                <Button shape="circle" icon={<PaperClipOutlined />} className="border-slate-700 bg-slate-800 text-slate-300 hover:text-white" />
-              </Tooltip>
-              <Input
-                placeholder="Nhập tin nhắn trao đổi hoặc yêu cầu gia sư tùy chỉnh lộ trình..."
-                value={inputText}
-                onChange={e => setInputText(e.target.value)}
-                onPressEnter={handleSend}
-                className="bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500 rounded-xl text-xs py-2"
+        <div className="flex-1 overflow-y-auto divide-y divide-border-light">
+          {/* Chat Item 1 */}
+          <div
+            onClick={() => setActiveChat('tut-001')}
+            className={`p-4 flex items-center gap-3 cursor-pointer transition-colors ${
+              activeChat === 'tut-001' ? 'bg-white border-l-4 border-brand-indigo-600' : 'hover:bg-white'
+            }`}
+          >
+            <div className="relative">
+              <img
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
+                alt="ThS. Nguyễn Văn An"
+                className="w-11 h-11 rounded-2xl object-cover"
               />
-              <Button
-                type="primary"
-                icon={<SendOutlined />}
-                onClick={handleSend}
-                className="bg-indigo-600 hover:bg-indigo-500 border-none font-semibold text-xs px-4 h-9 rounded-xl flex items-center"
-              >
-                Gửi
-              </Button>
+              <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white"></span>
             </div>
-            <div className="flex items-center justify-between mt-2 px-1 text-[10px] text-slate-500">
-              <span>Nhấn Enter để gửi tin nhắn</span>
-              <span className="text-indigo-400 hover:underline cursor-pointer">
-                💡 Bạn có thể đề xuất gia sư tạo gói hợp đồng riêng phù hợp với ngân sách
-              </span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-slate-900 truncate">ThS. Nguyễn Văn An</span>
+                <span className="text-[10px] text-text-muted">14:25</span>
+              </div>
+              <p className="text-[11px] text-text-muted truncate mt-0.5">Thầy có gửi thêm đề xuất gói học...</p>
             </div>
           </div>
+        </div>
+      </div>
 
+      {/* Main Chat Stream */}
+      <div className="flex-1 flex flex-col bg-white">
+        {/* Chat Header */}
+        <div className="p-4 border-b border-border-light flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <img
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
+                alt="ThS. Nguyễn Văn An"
+                className="w-10 h-10 rounded-2xl object-cover"
+              />
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white"></span>
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-xs text-slate-900">ThS. Nguyễn Văn An</span>
+                <span className="material-symbols-outlined text-financial-available text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  verified
+                </span>
+              </div>
+              <span className="text-[10px] text-emerald-600 font-semibold">Đang hoạt động • Gia sư Toán THPT</span>
+            </div>
+          </div>
         </div>
 
+        {/* Messages Body */}
+        <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4">
+          {messagesList.map((m) => (
+            <div
+              key={m.id}
+              className={`flex ${m.sender === 'student' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-md p-3.5 rounded-2xl text-xs space-y-1 shadow-xs ${
+                  m.sender === 'student'
+                    ? 'bg-brand-indigo-600 text-white rounded-br-none'
+                    : 'bg-slate-100 text-slate-900 rounded-bl-none'
+                }`}
+              >
+                <p className="leading-relaxed">{m.text}</p>
+                <span className={`text-[9px] block text-right ${m.sender === 'student' ? 'text-indigo-200' : 'text-slate-400'}`}>
+                  {m.time}
+                </span>
+              </div>
+            </div>
+          ))}
+
+          {/* Embedded Custom Agreement Offer Card */}
+          <div className="max-w-md mx-auto p-5 rounded-3xl bg-gradient-to-br from-indigo-500/10 via-brand-indigo-50/50 to-white border-2 border-brand-indigo-500 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="px-2.5 py-0.5 rounded-full bg-brand-indigo-600 text-white text-[10px] font-extrabold uppercase">
+                Hợp Đồng Đề Xuất Riêng
+              </span>
+              <span className="text-financial-available font-bold text-xs font-monospace-num">
+                {formatCurrency(customOffer.price)}
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-slate-900">{customOffer.title}</h4>
+            <p className="text-[11px] text-slate-600 leading-normal">{customOffer.desc}</p>
+            <div className="text-[11px] text-brand-indigo-800 font-semibold space-y-0.5">
+              <p>• Quy cách: {customOffer.sessions}</p>
+              <p>• Hình thức: {customOffer.mode}</p>
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => navigate('/student/bookings/BK-CUSTOM-001/checkout')}
+                className="flex-1 py-2.5 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white text-xs font-bold shadow-xs transition-colors"
+              >
+                Chấp Nhận & Mua Ngay
+              </button>
+              <button
+                type="button"
+                onClick={() => message.info('Đã từ chối đề xuất hợp đồng')}
+                className="py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold transition-colors"
+              >
+                Từ Chối
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Input Bar */}
+        <form onSubmit={handleSendMessage} className="p-3 border-t border-border-light flex items-center gap-2">
+          <input
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder="Nhập tin nhắn trao đổi với gia sư..."
+            className="flex-1 px-4 py-2.5 rounded-xl border border-border-light text-xs text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+          />
+          <button
+            type="submit"
+            className="w-10 h-10 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white flex items-center justify-center shrink-0 transition-colors shadow-xs"
+          >
+            <span className="material-symbols-outlined text-lg">send</span>
+          </button>
+        </form>
       </div>
     </div>
   );

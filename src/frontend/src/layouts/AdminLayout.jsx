@@ -1,93 +1,111 @@
-﻿import React from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Tag, Button } from 'antd';
-import { 
-  DashboardOutlined, 
-  AuditOutlined, 
-  TeamOutlined, 
-  AlertOutlined, 
-  SafetyCertificateOutlined,
-  ArrowLeftOutlined
-} from '@ant-design/icons';
+import React from 'react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Dropdown, Avatar } from 'antd';
+import { useAuthStore } from '@/store/authStore';
 
 export default function AdminLayout() {
+  const { user, logout } = useAuthStore();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const navItems = [
-    { path: '/admin/dashboard', label: 'Bảng Điều Hành KPI', icon: <DashboardOutlined /> },
-    { path: '/admin/tutor-applications', label: 'Duyệt Hồ Sơ Gia Sư', icon: <SafetyCertificateOutlined /> },
-    { path: '/admin/disputes/ba07ba07-0001', label: 'Bàn Trọng Tài DEC-S8-025', icon: <AlertOutlined /> },
-    { path: '/admin/users', label: 'Quản Lý Người Dùng & Strikes', icon: <TeamOutlined /> },
-    { path: '/admin/audit-logs', label: 'Sổ Cái Kiểm Toán Bất Biến', icon: <AuditOutlined /> },
+  const handleLogout = async () => {
+    await logout();
+    navigate('/auth/login');
+  };
+
+  const navLinks = [
+    { path: '/admin/dashboard', label: 'Bảng Điều Hành KPI', icon: 'dashboard' },
+    { path: '/admin/tutor-applications', label: 'Duyệt Bằng Cấp Gia Sư', icon: 'verified' },
+    { path: '/admin/users', label: 'Quản Lý Người Dùng & Kỷ Luật', icon: 'group' },
+    { path: '/admin/audit-logs', label: 'Sổ Cái Kiểm Toán Audit', icon: 'receipt_long' },
   ];
 
   return (
-    <div className="min-h-screen flex bg-slate-900 font-sans text-slate-200">
-      {/* Admin Dark Slate Sidebar */}
-      <aside className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col shrink-0">
-        <div className="p-4 border-b border-slate-800 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center text-white font-black">
-            GOV
+    <div className="min-h-screen flex flex-col bg-slate-900 text-slate-100 antialiased font-sans">
+      {/* Stitch Dark Navy Executive Topbar */}
+      <header className="w-full bg-brand-navy-950 border-b border-slate-800 sticky top-0 z-50 shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+          {/* Logo + Governance Badge */}
+          <div className="flex items-center gap-6">
+            <Link to="/admin/dashboard" className="flex items-center gap-3 shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-brand-indigo-600 flex items-center justify-center text-white shadow-xs">
+                <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  admin_panel_settings
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-white text-lg tracking-tight leading-none">TutorHub</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                    GOVERNANCE DESK
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 font-mono mt-0.5">DEC-S8 Escrow Arbitration Layer</span>
+              </div>
+            </Link>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center gap-6">
+              {navLinks.map((item) => {
+                const isActive = location.pathname.startsWith(item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-1.5 text-xs font-bold py-4 border-b-2 transition-colors ${
+                      isActive
+                        ? 'border-brand-indigo-500 text-white'
+                        : 'border-transparent text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-base">{item.icon}</span>
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
-          <div>
-            <span className="font-extrabold text-sm text-white block leading-tight">TutorHub Governance</span>
-            <span className="text-[10px] text-indigo-400 font-semibold block">Quản Trị & Kiểm Toán Sàn</span>
-          </div>
-        </div>
 
-        {/* Master Policy Banner */}
-        <div className="p-3 mx-3 mt-3 bg-slate-900 rounded-lg border border-slate-800 text-[11px] text-slate-400">
-          <span className="text-emerald-400 font-bold block mb-0.5">Phí sàn: 10% (Version 2)</span>
-          <span>Bất biến: Refund ≡ Recovery + Reversal</span>
-        </div>
-
-        {/* Nav Links */}
-        <nav className="p-3 space-y-1 flex-1">
-          {navItems.map(item => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all ${
-                  isActive 
-                    ? 'bg-indigo-600 text-white shadow-md' 
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                <span className="text-base">{item.icon}</span>
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="p-4 border-t border-slate-800">
-          <Link to="/">
-            <Button size="small" icon={<ArrowLeftOutlined />} block ghost className="text-xs text-slate-300 border-slate-700">
-              Về Trang Khám Phá
-            </Button>
-          </Link>
-        </div>
-      </aside>
-
-      {/* Main Admin Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-900">
-        <header className="h-14 bg-slate-950/80 border-b border-slate-800 px-6 flex items-center justify-between shrink-0">
+          {/* Admin User Status */}
           <div className="flex items-center gap-3">
-            <Tag color="purple" className="text-xs m-0">Quản Trị Viên Toàn Quyền</Tag>
-            <span className="text-xs text-slate-500">|</span>
-            <span className="text-xs text-slate-400">Hệ thống sổ cái: <span className="text-emerald-400 font-bold">Append-Only Active</span></span>
-          </div>
-          <div className="text-xs text-slate-400 font-mono-num">
-            UTC+7 (Asia/Ho_Chi_Minh)
-          </div>
-        </header>
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-mono">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              Ledger Synchronized
+            </span>
 
-        <main className="flex-1 p-6 overflow-y-auto">
-          <Outlet />
-        </main>
-      </div>
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'logout',
+                    icon: <span className="material-symbols-outlined text-base text-rose-400">logout</span>,
+                    label: <span className="text-rose-400 font-medium">Đăng Xuất Admin</span>,
+                    onClick: handleLogout,
+                  },
+                ],
+              }}
+              trigger={['click']}
+              placement="bottomRight"
+            >
+              <div className="flex items-center gap-2.5 pl-3 border-l border-slate-800 cursor-pointer hover:opacity-80 transition-opacity">
+                <Avatar
+                  src={user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=admin`}
+                  className="bg-brand-indigo-600 border border-brand-indigo-400"
+                />
+                <div className="hidden sm:flex flex-col text-left">
+                  <span className="text-xs font-bold text-white line-clamp-1">{user?.fullName || user?.name || 'Administrator'}</span>
+                  <span className="text-[10px] font-mono text-slate-400 uppercase">Platform Officer</span>
+                </div>
+              </div>
+            </Dropdown>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Admin Workspace */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        <Outlet />
+      </main>
     </div>
   );
 }

@@ -1,108 +1,124 @@
-﻿import React from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Avatar, Badge, Tag, Button } from 'antd';
-import { 
-  DashboardOutlined, 
-  ReadOutlined, 
-  CalendarOutlined, 
-  AlertOutlined, 
-  MessageOutlined, 
-  BellOutlined,
-  SafetyCertificateOutlined,
-  ArrowLeftOutlined
-} from '@ant-design/icons';
-import { useAuthStore } from '../store/authStore';
+import React from 'react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Dropdown, Avatar } from 'antd';
+import { useAuthStore } from '@/store/authStore';
 
 export default function StudentLayout() {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const navItems = [
-    { path: '/student/dashboard', label: 'Bàn Học Của Tôi', icon: <DashboardOutlined /> },
-    { path: '/student/enrollments/e1e1e1e1-0001', label: 'Hợp Đồng Học Tập', icon: <ReadOutlined /> },
-    { path: '/student/sessions/s3s3s3s3-0003', label: 'Đối Soát Điểm Danh', icon: <CalendarOutlined /> },
-    { path: '/student/disputes/new', label: 'Nộp Đơn Khiếu Nại', icon: <AlertOutlined /> },
-    { path: '/app/messages', label: 'Tin Nhắn & Chat', icon: <MessageOutlined /> },
+  const handleLogout = async () => {
+    await logout();
+    navigate('/auth/login');
+  };
+
+  const navLinks = [
+    { path: '/student/dashboard', label: 'Bàn Học Của Tôi', icon: 'space_dashboard' },
+    { path: '/tutors', label: 'Khám Phá Gia Sư', icon: 'explore' },
+    { path: '/app/messages', label: 'Hộp Thư & Hợp Đồng', icon: 'chat' },
+    { path: '/app/notifications', label: 'Thông Báo', icon: 'notifications' },
   ];
 
   return (
-    <div className="min-h-screen flex bg-slate-50 font-sans">
-      {/* Student Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
-        <div className="p-4 border-b border-slate-100 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold">
-            TH
-          </div>
-          <div>
-            <span className="font-extrabold text-sm text-slate-900 block leading-tight">TutorHub Student</span>
-            <span className="text-[10px] text-emerald-600 font-semibold block">Ví Học Viên Bảo Chứng</span>
-          </div>
-        </div>
+    <div className="min-h-screen flex flex-col bg-surface-canvas-light text-text-primary antialiased font-sans">
+      {/* Student Sticky Topbar */}
+      <header className="bg-surface-card-glass backdrop-blur-md border-b border-border-light shadow-xs sticky top-0 z-50">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 gap-4">
+          {/* Logo & Student Badge */}
+          <div className="flex items-center gap-6">
+            <Link to="/student/dashboard" className="flex items-center gap-2.5 group shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-brand-indigo-50 flex items-center justify-center border border-brand-indigo-100 shadow-xs">
+                <span className="material-symbols-outlined text-financial-available text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  school
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-lg font-extrabold text-brand-indigo-600 tracking-tight leading-none">
+                  Tutor<span className="text-brand-navy-900">Hub</span>
+                </span>
+                <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider mt-0.5">
+                  Student Learning Hub
+                </span>
+              </div>
+            </Link>
 
-        {/* Student Profile Card in Sidebar */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-6">
+              {navLinks.map((item) => {
+                const isActive = location.pathname.startsWith(item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center gap-1.5 text-xs font-bold py-1.5 transition-colors border-b-2 ${
+                      isActive
+                        ? 'border-brand-indigo-600 text-brand-indigo-600'
+                        : 'border-transparent text-text-secondary hover:text-brand-indigo-600'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-lg">{item.icon}</span>
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Student Status & Profile */}
           <div className="flex items-center gap-3">
-            <Avatar src={user?.avatarUrl} size={40} className="border border-emerald-300" />
-            <div>
-              <span className="text-xs font-bold text-slate-900 block">{user?.name || 'Phạm Minh Tuấn'}</span>
-              <span className="text-[11px] text-slate-500 block">Mục tiêu: Toán 9+</span>
+            {/* Discipline Status Badge */}
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+              0 Vi Phạm (Uy Tín 100%)
             </div>
-          </div>
-          <div className="mt-3 p-2 bg-emerald-50 rounded-lg border border-emerald-100 text-center">
-            <span className="text-[10px] text-emerald-700 block font-semibold">TIỀN TRONG ESCROW BẢO VỆ</span>
-            <span className="font-mono-num font-bold text-emerald-800 text-sm">1.600.000 ₫</span>
+
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'profile',
+                    icon: <span className="material-symbols-outlined text-base">person</span>,
+                    label: 'Hồ Sơ Của Tôi',
+                    onClick: () => navigate('/student/dashboard'),
+                  },
+                  {
+                    key: 'dispute',
+                    icon: <span className="material-symbols-outlined text-base text-amber-600">gavel</span>,
+                    label: 'Khiếu Nại Buổi Học',
+                    onClick: () => navigate('/student/disputes/new'),
+                  },
+                  { type: 'divider' },
+                  {
+                    key: 'logout',
+                    icon: <span className="material-symbols-outlined text-base text-rose-500">logout</span>,
+                    label: <span className="text-rose-600 font-medium">Đăng Xuất</span>,
+                    onClick: handleLogout,
+                  },
+                ],
+              }}
+              trigger={['click']}
+              placement="bottomRight"
+            >
+              <div className="flex items-center gap-2.5 pl-3 border-l border-border-light cursor-pointer hover:opacity-80 transition-opacity">
+                <Avatar
+                  src={user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email || 'student'}`}
+                  className="border border-brand-indigo-200"
+                />
+                <div className="hidden sm:flex flex-col text-left">
+                  <span className="text-xs font-bold text-slate-800 line-clamp-1">{user?.fullName || user?.name || 'Học Viên'}</span>
+                  <span className="text-[10px] font-semibold text-emerald-600 uppercase">Student</span>
+                </div>
+              </div>
+            </Dropdown>
           </div>
         </div>
+      </header>
 
-        {/* Nav Links */}
-        <nav className="p-3 space-y-1 flex-1">
-          {navItems.map(item => {
-            const isActive = location.pathname.startsWith(item.path.split('/')[2] ? `/${item.path.split('/')[1]}/${item.path.split('/')[2]}` : item.path);
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all ${
-                  isActive 
-                    ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100' 
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-              >
-                <span className="text-base">{item.icon}</span>
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="p-4 border-t border-slate-100">
-          <Link to="/">
-            <Button size="small" icon={<ArrowLeftOutlined />} block className="text-xs text-slate-600">
-              Về Trang Khám Phá
-            </Button>
-          </Link>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2">
-            <Tag color="cyan" className="font-semibold text-xs m-0">Không Gian Học Viên</Tag>
-            <span className="text-xs text-slate-400">|</span>
-            <span className="text-xs font-medium text-slate-600">Hợp đồng hoạt động: 1 (Toán THPT)</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Badge count={2} size="small">
-              <Button type="text" shape="circle" icon={<BellOutlined />} />
-            </Badge>
-          </div>
-        </header>
-
-        <main className="flex-1 p-6 overflow-y-auto">
-          <Outlet />
-        </main>
-      </div>
+      {/* Main Content */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        <Outlet />
+      </main>
     </div>
   );
 }

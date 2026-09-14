@@ -1,200 +1,100 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Table, Tag, Button, Input, Modal, message, Tooltip } from 'antd';
-import { 
-  AuditOutlined, 
-  SearchOutlined, 
-  SafetyCertificateFilled, 
-  CopyOutlined,
-  CodeOutlined,
-  FilterOutlined
-} from '@ant-design/icons';
-import adminService from '../../services/admin.service';
+import React, { useState } from 'react';
 
 export default function AdminAuditLogs() {
-  const [logs, setLogs] = useState([]);
-  const [searchText, setSearchText] = useState('');
-  const [selectedLog, setSelectedLog] = useState(null);
-  const [diffModalVisible, setDiffModalVisible] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    adminService.getAuditLogs().then(setLogs);
-  }, []);
-
-  const handleCopyHash = (hash) => {
-    navigator.clipboard.writeText(hash);
-    message.success('Đã sao chép chữ ký SHA-256 HMAC vào bộ nhớ đệm!');
-  };
-
-  const filteredLogs = logs.filter(l => {
-    return l.summary.toLowerCase().includes(searchText.toLowerCase()) ||
-           l.correlationId.toLowerCase().includes(searchText.toLowerCase()) ||
-           l.actor.toLowerCase().includes(searchText.toLowerCase());
-  });
+  const auditLogs = [
+    {
+      id: 'log-1',
+      timestamp: '13/09/2026 22:30:15',
+      correlationId: 'CORR-882194',
+      action: 'DisputeResolved',
+      entity: 'Dispute (#ba07ba07-0001)',
+      actor: 'Admin (admin@tutorhub.com)',
+      desc: 'Hoàn tiền 200.000 ₫ cho học viên Phạm Minh Tuấn theo DEC-S8-025',
+    },
+    {
+      id: 'log-2',
+      timestamp: '13/09/2026 22:15:00',
+      correlationId: 'CORR-771023',
+      action: 'SessionPayoutCredit',
+      entity: 'WalletTransaction',
+      actor: 'System AutoJob (24h Window)',
+      desc: 'Giải ngân 180.000 ₫ cho gia sư Nguyễn Văn An (Buổi #1)',
+    },
+    {
+      id: 'log-3',
+      timestamp: '13/09/2026 20:45:10',
+      correlationId: 'CORR-660192',
+      action: 'AttendanceConflictRaised',
+      entity: 'Session (#s3s3s3s3-0003)',
+      actor: 'System Event',
+      desc: 'Phát hiện bất đồng điểm danh: Student Attended vs Tutor Absent',
+    },
+    {
+      id: 'log-4',
+      timestamp: '12/09/2026 14:00:00',
+      correlationId: 'CORR-554101',
+      action: 'EnrollmentCreated',
+      entity: 'Enrollment (#e1e1e1e1-0001)',
+      actor: 'Student (student.tuan)',
+      desc: 'Khởi tạo hợp đồng 10 buổi học - Snapshot phí sàn 10%',
+    }
+  ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <Tag color="cyan" className="font-mono text-[10px] uppercase tracking-wider">Append-Only Immutable Ledger</Tag>
-          </div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <AuditOutlined className="text-indigo-400" />
-            Sổ Cái Kiểm Toán Bất Biến Trung Tâm
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Lưu vết vĩnh viễn với Correlation ID (X-Correlation-ID) và mã băm toàn vẹn SHA-256 HMAC chống giả mạo
-          </p>
-        </div>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          Sổ Cái Kiểm Toán Bất Biến Trung Tâm (Central Audit Log)
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          Hệ thống sổ cái Append-Only ghi nhận vĩnh viễn mọi biến động Escrow, hợp đồng và phán quyết trọng tài
+        </p>
       </div>
 
-      {/* Search Bar */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl mb-6 shadow-xl">
-        <Input
-          prefix={<SearchOutlined className="text-slate-500" />}
-          placeholder="Tìm theo Correlation ID, Tác nhân (Actor), hoặc Nội dung kiểm toán..."
-          value={searchText}
-          onChange={e => setSearchText(e.target.value)}
-          className="bg-slate-950 border-slate-700 text-slate-200 text-xs"
+      <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-between">
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Tìm kiếm theo CorrelationId, EntityId, Actor..."
+          className="w-full max-w-md px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
         />
+        <span className="text-xs text-slate-400 font-mono">Hiển thị {auditLogs.length} bản ghi</span>
       </div>
 
-      {/* Audit Log Table */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md">
-        <Table
-          dataSource={filteredLogs}
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-          className="admin-dark-table"
-          columns={[
-            {
-              title: 'Thời Gian',
-              dataIndex: 'timestamp',
-              key: 'timestamp',
-              render: (t) => <span className="font-mono text-slate-400 text-[11px]">{t}</span>,
-              width: 155,
-            },
-            {
-              title: 'Correlation ID',
-              dataIndex: 'correlationId',
-              key: 'correlationId',
-              render: (c) => (
-                <span className="font-mono text-[11px] text-indigo-400 bg-indigo-950/40 px-2 py-0.5 rounded border border-indigo-500/20">
-                  {c}
-                </span>
-              ),
-              width: 175,
-            },
-            {
-              title: 'Tác Nhân (Actor)',
-              dataIndex: 'actor',
-              key: 'actor',
-              render: (act) => <span className="text-xs font-semibold text-slate-300">{act}</span>,
-              width: 190,
-            },
-            {
-              title: 'Hành Động & Tóm Tắt',
-              key: 'actionSummary',
-              render: (_, record) => (
-                <div>
-                  <div className="mb-1">
-                    <Tag color={record.action.includes('VERDICT') ? 'red' : record.action.includes('RELEASE') ? 'green' : 'blue'} className="text-[10px] font-mono font-bold">
-                      {record.action}
-                    </Tag>
-                  </div>
-                  <p className="text-xs text-slate-200">{record.summary}</p>
-                </div>
-              )
-            },
-            {
-              title: 'SHA-256 HMAC',
-              dataIndex: 'sha256Hash',
-              key: 'sha256Hash',
-              render: (h) => (
-                <div className="flex items-center space-x-1">
-                  <span className="font-mono text-[10px] text-emerald-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
-                    {h.substring(0, 12)}...
+      {/* Audit Table */}
+      <div className="p-6 rounded-3xl bg-slate-800/80 border border-slate-700 overflow-x-auto">
+        <table className="w-full text-xs text-left">
+          <thead className="text-slate-400 font-bold border-b border-slate-700 pb-2">
+            <tr>
+              <th className="p-3">Thời gian</th>
+              <th className="p-3">CorrelationId</th>
+              <th className="p-3">Hành động</th>
+              <th className="p-3">Thực thể</th>
+              <th className="p-3">Người thực hiện</th>
+              <th className="p-3">Chi tiết</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-700/60 text-slate-300">
+            {auditLogs.map((log) => (
+              <tr key={log.id} className="hover:bg-slate-700/30">
+                <td className="p-3 font-mono text-slate-400">{log.timestamp}</td>
+                <td className="p-3 font-mono font-bold text-brand-indigo-400">{log.correlationId}</td>
+                <td className="p-3">
+                  <span className="px-2 py-0.5 rounded bg-slate-900 text-emerald-400 font-mono text-[10px] font-bold">
+                    {log.action}
                   </span>
-                  <Tooltip title="Sao chép toàn bộ mã SHA-256">
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<CopyOutlined className="text-slate-400 hover:text-white text-xs" />}
-                      onClick={() => handleCopyHash(h)}
-                    />
-                  </Tooltip>
-                </div>
-              ),
-              width: 160,
-            },
-            {
-              title: 'State Diff',
-              key: 'diff',
-              render: (_, record) => (
-                <Button
-                  size="small"
-                  icon={<CodeOutlined />}
-                  onClick={() => {
-                    setSelectedLog(record);
-                    setDiffModalVisible(true);
-                  }}
-                  className="bg-slate-800 text-indigo-400 border-indigo-500/30 text-xs font-semibold"
-                >
-                  Xem Diff
-                </Button>
-              ),
-              width: 110,
-            }
-          ]}
-        />
+                </td>
+                <td className="p-3 font-bold text-white">{log.entity}</td>
+                <td className="p-3 text-slate-400">{log.actor}</td>
+                <td className="p-3 text-slate-300 leading-normal">{log.desc}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-
-      {/* JSON State Diff Modal */}
-      {selectedLog && (
-        <Modal
-          title={
-            <div className="text-white text-base font-bold flex items-center gap-2">
-              <CodeOutlined className="text-indigo-400" />
-              <span>Kiểm Soát Biến Động Trạng Thái (State Diff): {selectedLog.id}</span>
-            </div>
-          }
-          open={diffModalVisible}
-          onCancel={() => setDiffModalVisible(false)}
-          width={700}
-          footer={[
-            <Button key="close" onClick={() => setDiffModalVisible(false)} className="border-slate-700 text-slate-300">
-              Đóng
-            </Button>
-          ]}
-        >
-          <div className="py-3 text-xs space-y-4">
-            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex justify-between font-mono text-[11px]">
-              <span className="text-slate-400">Correlation ID: <strong className="text-indigo-400">{selectedLog.correlationId}</strong></span>
-              <span className="text-emerald-400 flex items-center gap-1">
-                <SafetyCertificateFilled /> SHA-256 HASH VERIFIED
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 font-mono text-[11px]">
-              <div>
-                <span className="text-slate-400 block mb-1">State Trước Biến Động (Before):</span>
-                <pre className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-rose-300 overflow-x-auto">
-                  {JSON.stringify(selectedLog.payloadBefore, null, 2)}
-                </pre>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-1">State Sau Biến Động (After):</span>
-                <pre className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-emerald-300 overflow-x-auto">
-                  {JSON.stringify(selectedLog.payloadAfter, null, 2)}
-                </pre>
-              </div>
-            </div>
-          </div>
-        </Modal>
-      )}
-
     </div>
   );
 }
