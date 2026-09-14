@@ -54,7 +54,7 @@ StartupSecretGuard.ValidateNoPlaceholderSecrets(builder.Configuration);
 
 // Add Layers
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddHttpContextAccessor();
 
 // Exception Handling & Problem Details

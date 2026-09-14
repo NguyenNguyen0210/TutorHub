@@ -1,8 +1,11 @@
+using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
+using Amazon.SimpleEmail;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Payments;
@@ -12,6 +15,7 @@ using TutorHub.Infrastructure.Authentication;
 using TutorHub.Infrastructure.BackgroundServices;
 using TutorHub.Infrastructure.Persistence;
 using TutorHub.Infrastructure.Services;
+using TutorHub.Infrastructure.Services.Email;
 using TutorHub.Infrastructure.Services.Storage;
 using TutorHub.Infrastructure.Services.VnPay;
 
@@ -21,7 +25,8 @@ public static class InfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(
@@ -93,7 +98,37 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddScoped<IObjectStorageService, CloudflareR2ObjectStorageService>();
         services.AddScoped<IFileStorage, LocalFileStorage>();
-        services.AddScoped<IEmailSender, LogOnlyEmailSender>();
+
+        // P0-E1: production email runs on Amazon SES. A deployment opts in by
+        // configuring a verified sender; Development may run without one (log-only,
+        // loudly), but anywhere else a missing sender is a startup failure rather
+        // than silently dropping every notification email.
+        if (!string.IsNullOrWhiteSpace(configuration["Ses:FromAddress"]))
+        {
+            services.AddOptions<SesOptions>()
+                .BindConfiguration(SesOptions.SectionName)
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
+            services.AddSingleton<IAmazonSimpleEmailService>(sp =>
+            {
+                var sesOptions = sp.GetRequiredService<IOptions<SesOptions>>().Value;
+                return new AmazonSimpleEmailServiceClient(RegionEndpoint.GetBySystemName(sesOptions.Region));
+            });
+
+            services.AddScoped<IEmailSender, SesEmailSender>();
+        }
+        else if (environment.IsDevelopment())
+        {
+            services.AddScoped<IEmailSender, LogOnlyEmailSender>();
+        }
+        else
+        {
+            throw new InvalidOperationException(
+                "Ses:FromAddress must be configured outside Development: notification email is a " +
+                "product requirement, and a log-only sender would drop it without a trace.");
+        }
+
         services.AddScoped<INotificationService, SignalRNotificationService>();
         services.AddScoped<IChatNotificationService, SignalRChatNotificationService>();
         services.AddScoped<IAuditLogService, AuditLogService>();

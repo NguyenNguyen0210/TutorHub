@@ -34,6 +34,8 @@ services:
       Jwt__Audience: ${Jwt__Audience:-TutorHubClient}
       Jwt__AccessTokenExpirationMinutes: 15
       Jwt__RefreshTokenExpirationDays: 7
+      # Required by RefreshTokenOptions (P0-D1): refresh tokens are stored hashed.
+      RefreshToken__Pepper: ${RefreshToken__Pepper}
       VnPay__TmnCode: ${VnPay__TmnCode:-TUTORHUB}
       VnPay__HashSecret: ${VnPay__HashSecret}
       VnPay__BaseUrl: ${VnPay__BaseUrl:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
@@ -42,6 +44,15 @@ services:
       CloudflareR2__BucketName: ${CloudflareR2__BucketName:-tutorhub-media}
       CloudflareR2__AccessKeyId: ${CloudflareR2__AccessKeyId}
       CloudflareR2__SecretAccessKey: ${CloudflareR2__SecretAccessKey}
+      # Amazon SES (P0-E1). The container runs in Production, so an unset sender
+      # address stops startup instead of silently logging email away. Credentials
+      # follow the standard AWS chain: these two variables, or an instance role.
+      Ses__Region: ${Ses__Region}
+      Ses__FromAddress: ${Ses__FromAddress}
+      Ses__FromDisplayName: ${Ses__FromDisplayName:-TutorHub}
+      Ses__ConfigurationSetName: ${Ses__ConfigurationSetName:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
     ports:
       - "8080:8080"
     healthcheck:
