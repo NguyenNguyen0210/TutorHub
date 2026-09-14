@@ -6,6 +6,7 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
+using TutorHub.Domain.Services;
 
 namespace TutorHub.Application.Features.Sessions.SubmitAttendance;
 
@@ -123,8 +124,7 @@ public class SubmitAttendanceCommandHandler : IRequestHandler<SubmitAttendanceCo
             // Progressive earning: Gross - snapshot PlatformFeeRate = Net (DEC-S8-020).
             var gross = session.EarningAmount;
             var commissionRate = session.Enrollment.PlatformFeeRate;
-            var commissionAmount = Math.Round(gross * commissionRate, 2, MidpointRounding.AwayFromZero);
-            var netPayout = gross - commissionAmount;
+            var (commissionAmount, netPayout) = PlatformFeeCalculator.SplitGross(gross, commissionRate);
 
             await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
             try
