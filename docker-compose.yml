@@ -53,6 +53,9 @@ services:
       Ses__ConfigurationSetName: ${Ses__ConfigurationSetName:-}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      # Browser origins allowed to call the API (P0-E2). Comma-separated for more
+      # than one; the container is not Development, so an empty list stops startup.
+      Cors__AllowedOrigins: ${Cors__AllowedOrigins}
     ports:
       - "8080:8080"
     healthcheck:

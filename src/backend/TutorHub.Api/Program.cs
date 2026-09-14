@@ -162,6 +162,20 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddHealthChecks();
 
+// P0-E2: the frontend is served from its own origin, so preflight must succeed.
+// Credentials flow with the request, hence explicit origins instead of a wildcard.
+var allowedOrigins = CorsOrigins.Resolve(builder.Configuration, builder.Environment);
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy => policy
+        .WithOrigins(allowedOrigins)
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials()
+        .WithExposedHeaders("X-Correlation-ID"));
+});
+
 // P0-D2: per-IP throttling for credential and payment endpoints.
 builder.Services.AddTutorHubRateLimiting();
 
@@ -212,6 +226,10 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseRouting();
+
+// P0-E2: before the rate limiter, so a browser preflight (which carries no
+// credentials) never consumes the caller's credential budget.
+app.UseCors();
 
 // P0-D2: throttle before authentication so credential stuffing is limited even for
 // requests that never present a valid token.
