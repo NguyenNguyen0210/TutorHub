@@ -1,5 +1,5 @@
-﻿import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import React from 'react';
+import { Navigate, useLocation, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
 export function RequireAuth({ children }) {
@@ -15,21 +15,22 @@ export function RequireAuth({ children }) {
 
 export function RequireRole({ allowedRoles, children }) {
   const { role, isAuthenticated } = useAuthStore();
+  const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth/login" replace />;
+    return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
   if (!allowedRoles.includes(role)) {
     return (
       <div className="p-8 text-center bg-white rounded-xl border border-rose-200">
-        <h2 className="text-rose-600 font-bold text-lg mb-2">403 — Không Đủ Thẩm Quyền Truy Cập</h2>
+        <h2 className="text-rose-600 font-bold text-lg mb-2">403 — Khong Du Tham Quyen Truy Cap</h2>
         <p className="text-xs text-slate-600 mb-4">
-          Tài khoản hiện tại của bạn ({role}) không có quyền truy cập khu vực này.
+          Tai khoan hien tai cua ban (<strong>{role}</strong>) khong co quyen truy cap khu vuc nay.
         </p>
-        <p className="text-xs text-indigo-600 font-semibold">
-          Vui lòng sử dụng nút "Đổi Vai Trò" trên thanh điều hướng để chuyển sang tài khoản phù hợp.
-        </p>
+        <Link to="/tutors" className="text-indigo-600 font-bold text-xs hover:underline">
+          Ve Trang Kham Pha
+        </Link>
       </div>
     );
   }

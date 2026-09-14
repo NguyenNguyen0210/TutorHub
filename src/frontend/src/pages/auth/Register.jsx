@@ -1,84 +1,121 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Form, Input, Button, Checkbox, message } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined, SafetyCertificateFilled } from '@ant-design/icons';
-import { useAuthStore } from '@/store/authStore';
+import { Form, Input, Button, Checkbox, Alert, message } from 'antd';
+import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
+import { useAuthStore } from '../../store/authStore';
 
 export default function Register() {
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { registerWithCredentials } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const onFinish = (values) => {
+  const onFinish = async (values) => {
     setLoading(true);
-    setTimeout(() => {
-      const newUser = {
-        id: 'usr-new-' + Date.now(),
-        fullName: values.fullName,
-        email: values.email,
-        phone: values.phone,
-        role: 'Student',
-        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + values.fullName,
-        status: 'Active',
-      };
-      login(newUser, { accessToken: 'jwt-reg-token', refreshToken: 'jwt-ref-token' });
+    setError(null);
+
+    try {
+      const result = await registerWithCredentials(
+        values.email,
+        values.password,
+        values.fullName,
+        values.phone,
+        'Student'
+      );
+
+      if (result.success) {
+        message.success('Dang ky tai khoan thanh cong! Chao mung ' + result.user.name);
+        navigate('/student/dashboard');
+      }
+    } catch (err) {
+      setError(err.message || 'Dang ky that bai. Vui long thu lai.');
+    } finally {
       setLoading(false);
-      message.success('Đăng ký tài khoản học viên thành công! Chào mừng ' + newUser.fullName);
-      navigate('/student/dashboard');
-    }, 400);
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-          Đăng Ký Tài Khoản Học Viên
+          Dang Ky Tai Khoan Hoc Vien
         </h2>
         <p className="mt-1 text-xs text-slate-500">
-          Tìm gia sư chất lượng cao & được bảo chứng học phí 100% qua Escrow
+          Tim gia su chat luong cao & duoc bao chung hoc phi 100% qua Escrow
         </p>
       </div>
+
+      {error && (
+        <Alert
+          message={error}
+          type="error"
+          showIcon
+          closable
+          onClose={() => setError(null)}
+          className="rounded-xl"
+        />
+      )}
 
       <Form name="registerForm" layout="vertical" onFinish={onFinish} size="large">
         <Form.Item
           name="fullName"
-          label={<span className="text-xs font-bold text-slate-700 uppercase">Họ và Tên</span>}
-          rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}
+          label={<span className="text-xs font-bold text-slate-700 uppercase">Ho va Ten</span>}
+          rules={[{ required: true, message: 'Vui long nhap ho ten!' }]}
         >
-          <Input prefix={<UserOutlined className="text-slate-400" />} placeholder="Nguyễn Văn A" className="rounded-xl text-xs" />
+          <Input prefix={<UserOutlined className="text-slate-400" />} placeholder="Nguyen Van A" className="rounded-xl text-xs" autoComplete="name" />
         </Form.Item>
 
         <Form.Item
           name="email"
           label={<span className="text-xs font-bold text-slate-700 uppercase">Email</span>}
-          rules={[{ required: true, message: 'Vui lòng nhập email!' }, { type: 'email', message: 'Email không hợp lệ!' }]}
+          rules={[{ required: true, message: 'Vui long nhap email!' }, { type: 'email', message: 'Email khong hop le!' }]}
         >
-          <Input prefix={<MailOutlined className="text-slate-400" />} placeholder="student@example.com" className="rounded-xl text-xs" />
+          <Input prefix={<MailOutlined className="text-slate-400" />} placeholder="student@example.com" className="rounded-xl text-xs" autoComplete="email" />
         </Form.Item>
 
         <Form.Item
           name="phone"
-          label={<span className="text-xs font-bold text-slate-700 uppercase">Số Điện Thoại</span>}
-          rules={[{ required: true, message: 'Vui lòng nhập số điện thoại!' }]}
+          label={<span className="text-xs font-bold text-slate-700 uppercase">So Dien Thoai</span>}
+          rules={[{ required: true, message: 'Vui long nhap so dien thoai!' }]}
         >
-          <Input prefix={<PhoneOutlined className="text-slate-400" />} placeholder="0912345678" className="rounded-xl text-xs" />
+          <Input prefix={<PhoneOutlined className="text-slate-400" />} placeholder="0912345678" className="rounded-xl text-xs" autoComplete="tel" />
         </Form.Item>
 
         <Form.Item
           name="password"
-          label={<span className="text-xs font-bold text-slate-700 uppercase">Mật Khẩu</span>}
-          rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }, { min: 6, message: 'Mật khẩu tối thiểu 6 ký tự!' }]}
+          label={<span className="text-xs font-bold text-slate-700 uppercase">Mat Khau</span>}
+          rules={[
+            { required: true, message: 'Vui long nhap mat khau!' },
+            { min: 6, message: 'Mat khau toi thieu 6 ky tu!' },
+          ]}
         >
-          <Input.Password prefix={<LockOutlined className="text-slate-400" />} placeholder="••••••••" className="rounded-xl text-xs" />
+          <Input.Password prefix={<LockOutlined className="text-slate-400" />} placeholder="••••••••" className="rounded-xl text-xs" autoComplete="new-password" />
+        </Form.Item>
+
+        <Form.Item
+          name="confirmPassword"
+          label={<span className="text-xs font-bold text-slate-700 uppercase">Xac Nhan Mat Khau</span>}
+          dependencies={['password']}
+          rules={[
+            { required: true, message: 'Vui long xac nhan mat khau!' },
+            ({ getFieldValue }) => ({
+              validator(_, value) {
+                if (!value || getFieldValue('password') === value) return Promise.resolve();
+                return Promise.reject(new Error('Mat khau xac nhan khong khop!'));
+              },
+            }),
+          ]}
+        >
+          <Input.Password prefix={<LockOutlined className="text-slate-400" />} placeholder="••••••••" className="rounded-xl text-xs" autoComplete="new-password" />
         </Form.Item>
 
         <Form.Item
           name="agreement"
           valuePropName="checked"
-          rules={[{ validator: (_, value) => value ? Promise.resolve() : Promise.reject(new Error('Vui lòng đồng ý điều khoản!')) }]}
+          rules={[{ validator: (_, value) => value ? Promise.resolve() : Promise.reject(new Error('Vui long dong y dieu khoan!')) }]}
         >
           <Checkbox className="text-xs text-slate-600">
-            Tôi đồng ý với <a href="#" className="text-brand-indigo-600">Điều khoản sử dụng</a> và cam kết bảo chứng Escrow của TutorHub.
+            Toi dong y voi <a href="#" className="text-indigo-600">Dieu khoan su dung</a> va cam ket bao chung Escrow cua TutorHub.
           </Checkbox>
         </Form.Item>
 
@@ -87,16 +124,16 @@ export default function Register() {
           htmlType="submit"
           block
           loading={loading}
-          className="h-11 rounded-xl bg-brand-indigo-600 font-bold text-sm shadow-md shadow-brand-indigo-600/25 hover:bg-brand-indigo-500"
+          className="h-11 rounded-xl bg-indigo-600 font-bold text-sm shadow-md shadow-indigo-600/25 hover:bg-indigo-500"
         >
-          Tạo Tài Khoản & Bắt Đầu Học
+          Tao Tai Khoan & Bat Dau Hoc
         </Button>
       </Form>
 
       <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100">
-        Đã có tài khoản?{' '}
-        <Link to="/auth/login" className="font-bold text-brand-indigo-600 hover:underline">
-          Đăng nhập tại đây
+        Da co tai khoan?{' '}
+        <Link to="/auth/login" className="font-bold text-indigo-600 hover:underline">
+          Dang nhap tai day
         </Link>
       </div>
     </div>

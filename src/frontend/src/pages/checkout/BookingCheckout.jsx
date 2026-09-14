@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   Button,
@@ -46,7 +46,7 @@ export default function BookingCheckout() {
     async function loadBookingData() {
       setLoading(true);
       try {
-        // Ưu tiên state truyền từ ServiceCard nếu có
+        // Æ¯u tiÃªn state truyá»n tá»« ServiceCard náº¿u cÃ³
         const state = location.state;
         if (state && state.serviceId) {
           const now = new Date();
@@ -54,10 +54,10 @@ export default function BookingCheckout() {
           setBooking({
             id: id || 'b1b1b1b1-0001-0000-0000-000000000001',
             serviceId: state.serviceId,
-            serviceTitle: state.serviceTitle || 'Luyện thi THPT Toán 10 buổi',
-            tutorName: state.tutorName || 'ThS. Nguyễn Văn An',
+            serviceTitle: state.serviceTitle || 'Luyá»‡n thi THPT ToÃ¡n 10 buá»•i',
+            tutorName: state.tutorName || 'ThS. Nguyá»…n VÄƒn An',
             tutorAvatar: state.tutorAvatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=an',
-            tutorEducation: 'Cử nhân Sư phạm Toán - ĐH Sư phạm Hà Nội',
+            tutorEducation: 'Cá»­ nhÃ¢n SÆ° pháº¡m ToÃ¡n - ÄH SÆ° pháº¡m HÃ  Ná»™i',
             totalSessions: state.totalSessions || 10,
             sessionDurationMinutes: state.sessionDurationMinutes || 60,
             teachingMode: state.teachingMode || 'Both',
@@ -71,7 +71,7 @@ export default function BookingCheckout() {
           setBooking(data);
         }
       } catch (err) {
-        console.error('Lỗi khi tải đơn đặt chỗ:', err);
+        console.error('Lá»—i khi táº£i Ä‘Æ¡n Ä‘áº·t chá»—:', err);
       } finally {
         setLoading(false);
       }
@@ -81,13 +81,13 @@ export default function BookingCheckout() {
 
   const handleExpire = () => {
     setIsExpired(true);
-    message.error('Đơn giữ chỗ 15 phút đã hết hạn! Slot học đã được giải phóng.');
+    message.error('ÄÆ¡n giá»¯ chá»— 15 phÃºt Ä‘Ã£ háº¿t háº¡n! Slot há»c Ä‘Ã£ Ä‘Æ°á»£c giáº£i phÃ³ng.');
   };
 
-  // Thanh toán VNPay Sandbox
+  // Thanh toÃ¡n VNPay Sandbox
   const handleVnPayPayment = async () => {
     if (isExpired) {
-      message.error('Đơn giữ chỗ đã hết hạn. Vui lòng đặt lại gói học.');
+      message.error('ÄÆ¡n giá»¯ chá»— Ä‘Ã£ háº¿t háº¡n. Vui lÃ²ng Ä‘áº·t láº¡i gÃ³i há»c.');
       return;
     }
 
@@ -97,33 +97,21 @@ export default function BookingCheckout() {
       if (paymentUrl) {
         window.location.href = paymentUrl;
       } else {
-        // Mô phỏng redirect sang return URL của VNPay Sandbox
+        // MÃ´ phá»ng redirect sang return URL cá»§a VNPay Sandbox
         const amountParam = booking.totalAmount * 100;
         navigate(`/payment/return?vnp_ResponseCode=00&vnp_TxnRef=${booking.id}&vnp_Amount=${amountParam}&vnp_BankCode=NCB&vnp_OrderInfo=Thanh+toan+khoa+hoc+TutorHub`);
       }
     } catch (err) {
-      message.error('Không thể khởi tạo cổng thanh toán VNPay.');
+      message.error('KhÃ´ng thá»ƒ khá»Ÿi táº¡o cá»•ng thanh toÃ¡n VNPay.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Test nhanh: Mô phỏng thanh toán thành công
-  const handleSimulateSuccess = () => {
-    const amountParam = (booking?.totalAmount || 2000000) * 100;
-    navigate(`/payment/return?vnp_ResponseCode=00&vnp_TxnRef=${booking?.id || 'THB-TEST-001'}&vnp_Amount=${amountParam}&vnp_BankCode=NCB&vnp_OrderInfo=Thanh+toan+thanh+cong+Escrow`);
-  };
-
-  // Test nhanh: Mô phỏng hủy giao dịch
-  const handleSimulateCancel = () => {
-    const amountParam = (booking?.totalAmount || 2000000) * 100;
-    navigate(`/payment/return?vnp_ResponseCode=24&vnp_TxnRef=${booking?.id || 'THB-TEST-001'}&vnp_Amount=${amountParam}&vnp_BankCode=NCB&vnp_OrderInfo=Khach+hang+huy+giao+dich`);
-  };
-
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <Spin size="large" tip="Đang khởi tạo phiên giữ chỗ 15 phút..." />
+        <Spin size="large" tip="Äang khá»Ÿi táº¡o phiÃªn giá»¯ chá»— 15 phÃºt..." />
       </div>
     );
   }
@@ -131,8 +119,8 @@ export default function BookingCheckout() {
   if (!booking) {
     return (
       <div className="p-12 text-center">
-        <h3>Không tìm thấy thông tin đơn giữ chỗ!</h3>
-        <Button onClick={() => navigate('/tutors')}>Quay lại danh sách gia sư</Button>
+        <h3>KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin Ä‘Æ¡n giá»¯ chá»—!</h3>
+        <Button onClick={() => navigate('/tutors')}>Quay láº¡i danh sÃ¡ch gia sÆ°</Button>
       </div>
     );
   }
@@ -146,16 +134,16 @@ export default function BookingCheckout() {
         <div className="mx-auto max-w-7xl flex items-center justify-between text-xs">
           <Breadcrumb
             items={[
-              { title: <Link to="/">Trang chủ</Link> },
-              { title: <Link to="/tutors">Gia sư</Link> },
-              { title: 'Thanh toán giữ chỗ 15 phút' },
+              { title: <Link to="/">Trang chá»§</Link> },
+              { title: <Link to="/tutors">Gia sÆ°</Link> },
+              { title: 'Thanh toÃ¡n giá»¯ chá»— 15 phÃºt' },
             ]}
           />
           <Link
             to="/tutors"
             className="flex items-center gap-1 font-medium text-slate-500 hover:text-brand-indigo-600"
           >
-            <ArrowLeftOutlined /> Hủy giữ chỗ & Quay lại
+            <ArrowLeftOutlined /> Há»§y giá»¯ chá»— & Quay láº¡i
           </Link>
         </div>
       </div>
@@ -166,17 +154,17 @@ export default function BookingCheckout() {
           <div className="flex items-center justify-center gap-4 text-xs font-bold text-slate-400">
             <span className="flex items-center gap-1.5 text-brand-indigo-600">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-indigo-600 text-white text-xs">1</span>
-              <span>Giữ Chỗ 15 Phút</span>
+              <span>Giá»¯ Chá»— 15 PhÃºt</span>
             </span>
             <span className="h-0.5 w-12 bg-brand-indigo-200"></span>
             <span className="flex items-center gap-1.5 text-slate-400">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-slate-600 text-xs">2</span>
-              <span>Thanh Toán VNPay</span>
+              <span>Thanh ToÃ¡n VNPay</span>
             </span>
             <span className="h-0.5 w-12 bg-slate-200"></span>
             <span className="flex items-center gap-1.5 text-slate-400">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-slate-600 text-xs">3</span>
-              <span>Kích Hoạt Hợp Đồng Escrow</span>
+              <span>KÃ­ch Hoáº¡t Há»£p Äá»“ng Escrow</span>
             </span>
           </div>
         </div>
@@ -195,12 +183,12 @@ export default function BookingCheckout() {
         {isExpired && (
           <Alert
             type="error"
-            message="Đơn Giữ Chỗ Đã Hết Hạn"
-            description="Thời gian khóa slot 15 phút đã kết thúc. Vui lòng quay lại danh mục gia sư và bấm đặt mua lại để đảm bảo slot học của bạn không bị trùng với học viên khác."
+            message="ÄÆ¡n Giá»¯ Chá»— ÄÃ£ Háº¿t Háº¡n"
+            description="Thá»i gian khÃ³a slot 15 phÃºt Ä‘Ã£ káº¿t thÃºc. Vui lÃ²ng quay láº¡i danh má»¥c gia sÆ° vÃ  báº¥m Ä‘áº·t mua láº¡i Ä‘á»ƒ Ä‘áº£m báº£o slot há»c cá»§a báº¡n khÃ´ng bá»‹ trÃ¹ng vá»›i há»c viÃªn khÃ¡c."
             showIcon
             action={
               <Button size="small" danger onClick={() => navigate('/tutors')}>
-                Đặt Chỗ Mới
+                Äáº·t Chá»— Má»›i
               </Button>
             }
             className="mb-6 rounded-2xl"
@@ -211,7 +199,7 @@ export default function BookingCheckout() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           {/* LEFT COLUMN: ORDER DETAILS & ESCROW TRUST (2/3) */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Card 1: Gói học & Gia sư */}
+            {/* Card 1: GÃ³i há»c & Gia sÆ° */}
             <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
               <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
                 <div className="flex items-center gap-4">
@@ -224,7 +212,7 @@ export default function BookingCheckout() {
                     <div className="flex items-center gap-2">
                       <span className="text-lg font-bold text-slate-900">{booking.tutorName}</span>
                       <Tag color="emerald" className="font-semibold text-[10px] rounded-full border-0 px-2 py-0.5">
-                        <CheckCircleFilled /> ĐÃ XÁC MINH
+                        <CheckCircleFilled /> ÄÃƒ XÃC MINH
                       </Tag>
                     </div>
                     <p className="m-0 mt-0.5 text-xs text-brand-indigo-600 font-medium">
@@ -234,7 +222,7 @@ export default function BookingCheckout() {
                 </div>
 
                 <Tag color="purple" className="font-semibold text-xs px-2.5 py-1 rounded-lg">
-                  {booking.teachingMode === 'Both' ? 'Online & Tại nhà' : booking.teachingMode}
+                  {booking.teachingMode === 'Both' ? 'Online & Táº¡i nhÃ ' : booking.teachingMode}
                 </Tag>
               </div>
 
@@ -245,25 +233,25 @@ export default function BookingCheckout() {
                 </h3>
                 <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 mt-2">
                   <span className="flex items-center gap-1.5 font-semibold text-brand-indigo-700 bg-brand-indigo-50 px-2.5 py-1 rounded-lg">
-                    <CalendarOutlined /> Hợp đồng {booking.totalSessions} buổi học
+                    <CalendarOutlined /> Há»£p Ä‘á»“ng {booking.totalSessions} buá»•i há»c
                   </span>
                   <span className="flex items-center gap-1.5 font-medium text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">
-                    <ClockCircleOutlined /> {booking.sessionDurationMinutes} phút / buổi
+                    <ClockCircleOutlined /> {booking.sessionDurationMinutes} phÃºt / buá»•i
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Card 2: Bảng chiết tính học phí */}
+            {/* Card 2: Báº£ng chiáº¿t tÃ­nh há»c phÃ­ */}
             <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-4">
-                Chi Tiết Chiết Tính Học Phí
+                Chi Tiáº¿t Chiáº¿t TÃ­nh Há»c PhÃ­
               </h4>
 
               <div className="space-y-3 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-600">
-                    Học phí trọn gói ({booking.totalSessions} buổi x {booking.sessionDurationMinutes}p):
+                    Há»c phÃ­ trá»n gÃ³i ({booking.totalSessions} buá»•i x {booking.sessionDurationMinutes}p):
                   </span>
                   <span className="font-bold text-slate-800 text-sm">
                     {formatCurrency(booking.price)}
@@ -271,26 +259,26 @@ export default function BookingCheckout() {
                 </div>
 
                 <div className="flex items-center justify-between text-slate-500">
-                  <span>Đơn giá tương đương mỗi buổi:</span>
+                  <span>ÄÆ¡n giÃ¡ tÆ°Æ¡ng Ä‘Æ°Æ¡ng má»—i buá»•i:</span>
                   <span className="font-medium text-slate-700">
-                    {formatCurrency(perSessionPrice)} / buổi
+                    {formatCurrency(perSessionPrice)} / buá»•i
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between text-emerald-700">
                   <span className="flex items-center gap-1">
-                    Phí nền tảng TutorHub dành cho học viên:
-                    <Tag color="green" className="m-0 text-[10px] font-bold">MIỄN PHÍ 0%</Tag>
+                    PhÃ­ ná»n táº£ng TutorHub dÃ nh cho há»c viÃªn:
+                    <Tag color="green" className="m-0 text-[10px] font-bold">MIá»„N PHÃ 0%</Tag>
                   </span>
-                  <span className="font-bold text-emerald-600">0 ₫</span>
+                  <span className="font-bold text-emerald-600">0 â‚«</span>
                 </div>
 
                 <Divider className="my-2" />
 
                 <div className="flex items-baseline justify-between pt-1">
                   <div>
-                    <span className="text-sm font-bold text-slate-900">Tổng Số Tiền Cần Thanh Toán:</span>
-                    <p className="m-0 text-[11px] text-slate-400">Đã bao gồm thuế và bảo chứng quỹ Escrow</p>
+                    <span className="text-sm font-bold text-slate-900">Tá»•ng Sá»‘ Tiá»n Cáº§n Thanh ToÃ¡n:</span>
+                    <p className="m-0 text-[11px] text-slate-400">ÄÃ£ bao gá»“m thuáº¿ vÃ  báº£o chá»©ng quá»¹ Escrow</p>
                   </div>
                   <div className="text-2xl font-extrabold text-brand-indigo-600">
                     {formatCurrency(booking.totalAmount)}
@@ -299,21 +287,21 @@ export default function BookingCheckout() {
               </div>
             </div>
 
-            {/* Card 3: Cam kết Escrow 2 Chiều */}
+            {/* Card 3: Cam káº¿t Escrow 2 Chiá»u */}
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 text-xs text-emerald-900 shadow-sm">
               <div className="flex items-center gap-2 font-bold text-sm text-emerald-800 mb-2">
                 <SafetyCertificateFilled className="text-emerald-600 text-lg" />
-                <span>Cơ Chế Bảo Chứng Dòng Tiền Escrow 2 Chiều</span>
+                <span>CÆ¡ Cháº¿ Báº£o Chá»©ng DÃ²ng Tiá»n Escrow 2 Chiá»u</span>
               </div>
               <ul className="space-y-1.5 pl-4 list-disc text-emerald-800/90 leading-relaxed text-[11px]">
                 <li>
-                  <strong>Học viên được bảo vệ 100%:</strong> Số tiền {formatCurrency(booking.totalAmount)} được giữ an toàn trong két ký quỹ trung gian của sàn. Sàn chỉ giải ngân từng buổi ({formatCurrency(perSessionPrice)}) cho gia sư sau khi buổi học hoàn thành và cả 2 bên đối soát điểm danh 24h.
+                  <strong>Há»c viÃªn Ä‘Æ°á»£c báº£o vá»‡ 100%:</strong> Sá»‘ tiá»n {formatCurrency(booking.totalAmount)} Ä‘Æ°á»£c giá»¯ an toÃ n trong kÃ©t kÃ½ quá»¹ trung gian cá»§a sÃ n. SÃ n chá»‰ giáº£i ngÃ¢n tá»«ng buá»•i ({formatCurrency(perSessionPrice)}) cho gia sÆ° sau khi buá»•i há»c hoÃ n thÃ nh vÃ  cáº£ 2 bÃªn Ä‘á»‘i soÃ¡t Ä‘iá»ƒm danh 24h.
                 </li>
                 <li>
-                  <strong>Quyền hủy hợp đồng linh hoạt (Pro-rata Refund):</strong> Nếu bạn không hài lòng sau vài buổi, bạn có quyền hủy hợp đồng sớm và nhận lại 100% tiền của các buổi học chưa diễn ra.
+                  <strong>Quyá»n há»§y há»£p Ä‘á»“ng linh hoáº¡t (Pro-rata Refund):</strong> Náº¿u báº¡n khÃ´ng hÃ i lÃ²ng sau vÃ i buá»•i, báº¡n cÃ³ quyá»n há»§y há»£p Ä‘á»“ng sá»›m vÃ  nháº­n láº¡i 100% tiá»n cá»§a cÃ¡c buá»•i há»c chÆ°a diá»…n ra.
                 </li>
                 <li>
-                  <strong>Bảo vệ gia sư chống bùng:</strong> Gia sư hoàn toàn an tâm chuẩn bị bài giảng vì học phí của cả lộ trình đã được bảo chứng đầy đủ trên hệ thống.
+                  <strong>Báº£o vá»‡ gia sÆ° chá»‘ng bÃ¹ng:</strong> Gia sÆ° hoÃ n toÃ n an tÃ¢m chuáº©n bá»‹ bÃ i giáº£ng vÃ¬ há»c phÃ­ cá»§a cáº£ lá»™ trÃ¬nh Ä‘Ã£ Ä‘Æ°á»£c báº£o chá»©ng Ä‘áº§y Ä‘á»§ trÃªn há»‡ thá»‘ng.
                 </li>
               </ul>
             </div>
@@ -321,10 +309,10 @@ export default function BookingCheckout() {
 
           {/* RIGHT COLUMN: PAYMENT GATEWAY & FAST TESTING (1/3) */}
           <div className="space-y-6">
-            {/* Phương thức thanh toán */}
+            {/* PhÆ°Æ¡ng thá»©c thanh toÃ¡n */}
             <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
-                Phương Thức Thanh Toán
+                PhÆ°Æ¡ng Thá»©c Thanh ToÃ¡n
               </h4>
 
               <div className="space-y-3">
@@ -340,24 +328,24 @@ export default function BookingCheckout() {
                   <Radio checked={paymentMethod === 'vnpay_ncb'} className="mt-1" />
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-slate-800">Cổng Thanh Toán VNPAY</span>
+                      <span className="font-bold text-xs text-slate-800">Cá»•ng Thanh ToÃ¡n VNPAY</span>
                       <span className="rounded bg-brand-indigo-600 px-1.5 py-0.5 text-[9px] font-bold text-white uppercase">
                         Sandbox 2.1
                       </span>
                     </div>
                     <p className="m-0 text-[11px] text-slate-500 mt-1">
-                      Hỗ trợ quét mã VNPAY-QR, Thẻ ATM/Tài khoản ngân hàng NCB và thẻ quốc tế Visa/Mastercard.
+                      Há»— trá»£ quÃ©t mÃ£ VNPAY-QR, Tháº» ATM/TÃ i khoáº£n ngÃ¢n hÃ ng NCB vÃ  tháº» quá»‘c táº¿ Visa/Mastercard.
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Thông tin thẻ test NCB */}
+              {/* ThÃ´ng tin tháº» test NCB */}
               <div className="mt-4">
                 <VnPayCardInfo />
               </div>
 
-              {/* Nút hành động chính */}
+              {/* NÃºt hÃ nh Ä‘á»™ng chÃ­nh */}
               <div className="mt-5 space-y-2.5">
                 <Button
                   type="primary"
@@ -367,39 +355,15 @@ export default function BookingCheckout() {
                   onClick={handleVnPayPayment}
                   className="h-11 rounded-xl bg-brand-indigo-600 font-bold shadow-md shadow-brand-indigo-600/20 text-sm hover:bg-brand-indigo-500"
                 >
-                  Thanh Toán An Toàn ({formatCurrency(booking.totalAmount)})
+                  Thanh ToÃ¡n An ToÃ n ({formatCurrency(booking.totalAmount)})
                 </Button>
-
-                {/* FAST TESTING ACTIONS FOR REVIEW & GRADING */}
-                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-3 text-center">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    Thao Tác Thử Nghiệm Nhanh (1-Click Simulators)
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      size="small"
-                      className="rounded-lg bg-emerald-600 text-white font-semibold text-xs border-0 hover:bg-emerald-500"
-                      onClick={handleSimulateSuccess}
-                    >
-                      ✓ Test Thành Công
-                    </Button>
-                    <Button
-                      size="small"
-                      className="rounded-lg bg-rose-600 text-white font-semibold text-xs border-0 hover:bg-rose-500"
-                      onClick={handleSimulateCancel}
-                    >
-                      ✕ Test Hủy / Lỗi
-                    </Button>
-                  </div>
-                </div>
-
                 <Button
                   type="text"
                   block
                   onClick={() => navigate('/tutors')}
                   className="text-xs text-slate-400 hover:text-slate-600"
                 >
-                  Hủy đơn đặt chỗ & Chọn gia sư khác
+                  Há»§y Ä‘Æ¡n Ä‘áº·t chá»— & Chá»n gia sÆ° khÃ¡c
                 </Button>
               </div>
             </div>
