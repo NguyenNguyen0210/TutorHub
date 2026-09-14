@@ -8,6 +8,14 @@ import TutorLayout from '../layouts/TutorLayout';
 import AdminLayout from '../layouts/AdminLayout';
 import AuthLayout from '../layouts/AuthLayout';
 
+// Discovery Screens
+import Marketplace from '../pages/discovery/Marketplace';
+import TutorProfile from '../pages/discovery/TutorProfile';
+
+// Checkout Screens
+import BookingCheckout from '../pages/checkout/BookingCheckout';
+import PaymentReturn from '../pages/checkout/PaymentReturn';
+
 // Placeholder Component
 import PlaceholderScreen from '../components/common/PlaceholderScreen';
 
@@ -21,65 +29,17 @@ export default function AppRoutes() {
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Navigate to="/tutors" replace />} />
         
-        {/* Screen 3: Discovery */}
-        <Route path="/tutors" element={
-          <PlaceholderScreen
-            screenId="90248f5499e448dead8bc5fe8b684ffd"
-            title="Khám Phá & Tìm Kiếm Gia Sư Bảo Chứng"
-            route="/tutors"
-            roleTag="Public"
-            description="Tìm kiếm gia sư với bộ lọc đa chiều (10 Danh mục, 15 Môn học, Online/Offline, Rating, Giá), Hero banner Escrow Guarantee và thẻ gia sư xác thực (ThS. An, Cô Bích, Thầy Nam)."
-            quickActions={[
-              { label: 'Xem Hồ Sơ ThS. Nguyễn Văn An', to: '/tutors/tutor-an-001', primary: true },
-              { label: 'Đến Checkout Giữ Chỗ 15p', to: '/student/bookings/b1b1b1b1-0001/checkout' }
-            ]}
-          />
-        } />
+        {/* Screen 3: Discovery Marketplace */}
+        <Route path="/tutors" element={<Marketplace />} />
 
-        {/* Screen 4: Tutor Profile */}
-        <Route path="/tutors/:id" element={
-          <PlaceholderScreen
-            screenId="3b87c223b2374d7ca325b96070c110f0"
-            title="Hồ Sơ Gia Sư Nguyễn Văn An & Gói Dịch Vụ"
-            route="/tutors/:id"
-            roleTag="Public"
-            description="Hồ sơ chi tiết ThS. An, bằng cử nhân ĐHSP, video bài học thử 30p, ma trận lịch rảnh hàng tuần theo giờ VN, danh mục gói học (10 buổi x 60p, 15 buổi x 90p) và đánh giá đối soát từ học viên Tuấn."
-            quickActions={[
-              { label: 'Đặt Gói 10 Buổi (Giữ Chỗ 15 Phút)', to: '/student/bookings/b1b1b1b1-0001/checkout', primary: true },
-              { label: 'Nhắn Tin Trao Đổi Trong Khung Chat', to: '/app/messages' }
-            ]}
-          />
-        } />
+        {/* Screen 4: Tutor Profile & Services */}
+        <Route path="/tutors/:id" element={<TutorProfile />} />
 
-        {/* Screen 5: Booking Checkout */}
-        <Route path="/student/bookings/:id/checkout" element={
-          <PlaceholderScreen
-            screenId="b2d7092ca69c4f2aab57cbde7a7ca252"
-            title="Thanh Toán Giữ Chỗ 15 Phút (Holding Checkout)"
-            route="/student/bookings/:id/checkout"
-            roleTag="Student"
-            description="Đồng hồ đếm ngược 15 phút (Holding Lock 13:42), snapshot hợp đồng 2.000.000 ₫ (miễn phí sàn cho học viên), cam kết Escrow từng buổi, tích hợp VNPay Sandbox 2.1.0 và thẻ test NCB."
-            quickActions={[
-              { label: 'Giả Lập Thanh Toán Thành Công', to: '/payment/return?vnp_ResponseCode=00&vnp_TxnRef=THB-992&vnp_Amount=200000000', primary: true },
-              { label: 'Quay Lại Hồ Sơ Gia Sư', to: '/tutors/tutor-an-001' }
-            ]}
-          />
-        } />
+        {/* Screen 5: Booking Checkout (Holding 15p) */}
+        <Route path="/student/bookings/:id/checkout" element={<BookingCheckout />} />
 
-        {/* Screen 6: Payment Return */}
-        <Route path="/payment/return" element={
-          <PlaceholderScreen
-            screenId="386beaf4ef1a44c48ec3c4cb20d36a63"
-            title="Kết Quả Thanh Toán VNPay & Kích Hoạt Hợp Đồng"
-            route="/payment/return"
-            roleTag="Student"
-            description="Màn hình tiếp nhận kết quả vnp_ResponseCode=00 (Thành công), thông báo Smart Escrow kích hoạt hợp đồng e1e1e1e1-0001 và tự động cấp phát 10 buổi học con."
-            quickActions={[
-              { label: 'Vào Trung Tâm Hợp Đồng Học Tập', to: '/student/enrollments/e1e1e1e1-0001', primary: true },
-              { label: 'Về Bàn Học Viên', to: '/student/dashboard' }
-            ]}
-          />
-        } />
+        {/* Screen 6: Payment Return (VNPay Result) */}
+        <Route path="/payment/return" element={<PaymentReturn />} />
 
         {/* Shared Chat & Notifications */}
         <Route path="/app/messages" element={
