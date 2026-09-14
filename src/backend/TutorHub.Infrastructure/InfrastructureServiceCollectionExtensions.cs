@@ -49,6 +49,12 @@ public static class InfrastructureServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        // Account lockout thresholds (P0-D3).
+        services.AddOptions<AuthLockoutOptions>()
+            .BindConfiguration(AuthLockoutOptions.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         // Authentication & Security Services
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IJwtService, JwtService>();

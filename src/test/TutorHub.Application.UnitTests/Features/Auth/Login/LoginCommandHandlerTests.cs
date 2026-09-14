@@ -30,7 +30,8 @@ public class LoginCommandHandlerTests
             _passwordHasherMock.Object,
             _jwtServiceMock.Object,
             new StubRefreshTokenHasher(),
-            Options.Create(new AuthTokenLifetimeOptions()));
+            Options.Create(new AuthTokenLifetimeOptions()),
+            Options.Create(new AuthLockoutOptions()));
     }
 
     [Fact]
@@ -113,6 +114,7 @@ public class LoginCommandHandlerTests
         var usersList = new List<User> { user };
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
+        _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         _passwordHasherMock
             .Setup(h => h.VerifyPassword("WrongPassword", user.PasswordHash))
@@ -129,7 +131,12 @@ public class LoginCommandHandlerTests
         ex.Which.Errors.Should().Contain("Invalid email or password.");
 
         _jwtServiceMock.Verify(j => j.GenerateAccessToken(It.IsAny<User>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
-        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+
+        // P0-D3: the failed attempt must be persisted before the exception is thrown,
+        // otherwise the lockout threshold could never be reached.
+        user.AccessFailedCount.Should().Be(1);
+        user.LockoutEndAt.Should().BeNull();
+        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
