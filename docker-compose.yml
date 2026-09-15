@@ -28,6 +28,10 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://+:8080
+      # Defaults to Production (fail-fast on missing configuration). Set Development
+      # in .env to run the container for local dev: Swagger, log-only email and the
+      # Development CORS defaults. Has no effect on `dotnet run`.
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-tutorhub};Username=${POSTGRES_USER:-tutorhub};Password=${POSTGRES_PASSWORD:-tutorhub}
       Jwt__Secret: ${Jwt__Secret}
       Jwt__Issuer: ${Jwt__Issuer:-TutorHubAPI}
@@ -44,9 +48,10 @@ services:
       CloudflareR2__BucketName: ${CloudflareR2__BucketName:-tutorhub-media}
       CloudflareR2__AccessKeyId: ${CloudflareR2__AccessKeyId}
       CloudflareR2__SecretAccessKey: ${CloudflareR2__SecretAccessKey}
-      # Amazon SES (P0-E1). The container runs in Production, so an unset sender
-      # address stops startup instead of silently logging email away. Credentials
-      # follow the standard AWS chain: these two variables, or an instance role.
+      # Amazon SES (P0-E1). Outside Development an unset sender address stops startup
+      # instead of silently logging email away; in Development the container falls back
+      # to the log-only sender. Credentials follow the standard AWS chain: these two
+      # variables, or an instance role.
       Ses__Region: ${Ses__Region}
       Ses__FromAddress: ${Ses__FromAddress}
       Ses__FromDisplayName: ${Ses__FromDisplayName:-TutorHub}
