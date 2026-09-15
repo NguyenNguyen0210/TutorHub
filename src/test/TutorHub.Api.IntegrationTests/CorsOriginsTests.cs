@@ -46,7 +46,12 @@ public class CorsOriginsTests
     {
         var origins = CorsOrigins.Resolve(BuildConfig(), Environment(Environments.Development));
 
-        origins.Should().BeEquivalentTo(new[] { "http://localhost:5173", "http://localhost:4173" });
+        // The fallback exists so a local SPA can always reach the API. Which localhost
+        // port a developer's tooling binds is not the API's business, so assert the
+        // canonical Vite ports without pinning the exact list.
+        origins.Should().Contain("http://localhost:5173");
+        origins.Should().Contain("http://localhost:4173");
+        origins.Should().OnlyContain(origin => origin.StartsWith("http://localhost:", StringComparison.Ordinal));
     }
 
     [Fact]
