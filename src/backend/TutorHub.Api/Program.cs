@@ -5,6 +5,7 @@ using System.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -65,6 +66,22 @@ builder.Services.AddProblemDetails();
 
 // Controllers with Global String Enum Converter
 builder.Services.AddControllers()
+    // P0 dev-tooling: swap in a discovery provider that drops IDevelopmentOnlyEndpoint
+    // controllers outside Development. The default provider has to be removed as well,
+    // otherwise it would still discover them.
+    .ConfigureApplicationPartManager(manager =>
+    {
+        var defaultProviders = manager.FeatureProviders
+            .OfType<ControllerFeatureProvider>()
+            .ToList();
+
+        foreach (var provider in defaultProviders)
+        {
+            manager.FeatureProviders.Remove(provider);
+        }
+
+        manager.FeatureProviders.Add(new DevelopmentOnlyControllerFeatureProvider(builder.Environment));
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
