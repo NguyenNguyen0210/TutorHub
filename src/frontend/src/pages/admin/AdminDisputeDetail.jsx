@@ -48,7 +48,7 @@ export default function AdminDisputeDetail() {
             <h1 className="text-2xl font-extrabold text-white tracking-tight">
               Bàn Trọng Tài & Phân Xử Khiếu Nại Buổi Học
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400 text-xs font-bold border border-rose-500/30">
+            <span className="px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 text-xs font-extrabold border border-rose-500/30">
               Vụ #{caseId}
             </span>
           </div>
@@ -59,52 +59,52 @@ export default function AdminDisputeDetail() {
       </div>
 
       {/* Case Details Card */}
-      <div className="p-6 rounded-3xl bg-slate-800/80 border border-slate-700 space-y-4">
+      <div className="p-6 sm:p-8 rounded-3xl bg-slate-800/90 border border-slate-700 shadow-xl space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
           <div>
             <span className="text-slate-400 block">Buổi học phát sinh:</span>
-            <span className="text-white font-bold">Buổi #3 • Môn Toán THPT</span>
+            <span className="text-white font-extrabold">Buổi #3 • Môn Toán THPT</span>
           </div>
           <div>
             <span className="text-slate-400 block">Bên khiếu nại (Học viên):</span>
-            <span className="text-white font-bold">Phạm Minh Tuấn (0 Strikes)</span>
+            <span className="text-white font-extrabold">Phạm Minh Tuấn (0 Strikes)</span>
           </div>
           <div>
             <span className="text-slate-400 block">Bên giải trình (Gia sư):</span>
-            <span className="text-white font-bold">ThS. Nguyễn Văn An (0 Strikes)</span>
+            <span className="text-white font-extrabold">ThS. Nguyễn Văn An (0 Strikes)</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-700 space-y-2 text-xs">
-          <span className="text-rose-400 font-bold block">Lý do khiếu nại: TutorNoShow (Gia sư vắng mặt không báo trước)</span>
+        <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-700 space-y-2 text-xs">
+          <span className="text-rose-400 font-extrabold block">Lý do khiếu nại: TutorNoShow (Gia sư vắng mặt không báo trước)</span>
           <p className="text-slate-300 leading-relaxed">
             "Em vào phòng học Google Meet lúc 18:00 và chờ 30 phút đến 18:30 nhưng thầy An không vào lớp và không trả lời tin nhắn của em."
           </p>
-          <div className="pt-2 flex items-center gap-2 text-text-muted">
+          <div className="pt-2 flex items-center gap-2 text-slate-400">
             <span className="material-symbols-outlined text-base">attachment</span>
             <span>Bằng chứng đính kèm: <strong>meet-waiting-18h25.png</strong> (854 KB)</span>
           </div>
         </div>
       </div>
 
-      {/* DEC-S8-025 Fee Balancing Calculator Card */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-slate-800/80 border-2 border-brand-indigo-500 space-y-6">
+      {/* DEC-S8-025 Fee Balancing Calculator Card with Glow */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-slate-800/90 border-2 border-brand-indigo-500 shadow-2xl space-y-6 glow-indigo">
         <div className="flex items-center justify-between pb-3 border-b border-slate-700">
-          <h3 className="text-base font-bold text-white flex items-center gap-2">
+          <h3 className="text-base font-extrabold text-white flex items-center gap-2">
             <span className="material-symbols-outlined text-brand-indigo-400">calculate</span>
             Bộ Cân Bằng Tài Chính DEC-S8-025 (Financial Invariant Calculator)
           </h3>
-          <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono text-[11px] font-bold">
+          <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-mono text-xs font-extrabold border border-emerald-500/30">
             Bất Biến Bảo Toàn ✅
           </span>
         </div>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs">
-            <label className="font-bold text-slate-300">
+            <label className="font-extrabold text-slate-300">
               Số tiền hoàn trả học viên (₫):
             </label>
-            <span className="text-lg font-extrabold text-emerald-400 font-monospace-num">
+            <span className="text-2xl font-extrabold text-emerald-400 font-monospace-num">
               {formatCurrency(refundAmount)}
             </span>
           </div>
@@ -116,14 +116,14 @@ export default function AdminDisputeDetail() {
             step="10000"
             value={refundAmount}
             onChange={(e) => setRefundAmount(parseInt(e.target.value))}
-            className="w-full accent-brand-indigo-500 cursor-pointer"
+            className="w-full accent-brand-indigo-500 cursor-pointer h-2 bg-slate-700 rounded-lg"
           />
 
-          {/* Automatic Distribution Breakdown */}
+          {/* Visual Distribution Breakdown */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 text-xs">
             <div className="p-4 rounded-2xl bg-slate-900 border border-slate-700 space-y-1">
               <span className="text-slate-400 block">Thu hồi từ ví gia sư (Max: 180.000 ₫):</span>
-              <span className="text-base font-extrabold text-rose-400 font-monospace-num">
+              <span className="text-lg font-extrabold text-rose-400 font-monospace-num">
                 -{formatCurrency(tutorClawback)}
               </span>
               <p className="text-[10px] text-slate-500">Khấu trừ thu nhập thực nhận, không phạt âm ví</p>
@@ -131,15 +131,15 @@ export default function AdminDisputeDetail() {
 
             <div className="p-4 rounded-2xl bg-slate-900 border border-slate-700 space-y-1">
               <span className="text-slate-400 block">Hoàn phí sàn TutorHub (Tỷ lệ 10%):</span>
-              <span className="text-base font-extrabold text-blue-400 font-monospace-num">
+              <span className="text-lg font-extrabold text-blue-400 font-monospace-num">
                 -{formatCurrency(platformFeeRefund)}
               </span>
               <p className="text-[10px] text-slate-500">Sàn TutorHub hoàn trả phí dịch vụ tương ứng</p>
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-700 text-center font-mono text-xs text-slate-400">
-            {formatCurrency(tutorClawback)} (Gia sư) + {formatCurrency(platformFeeRefund)} (Phí sàn) ≡ <strong>{formatCurrency(refundAmount)}</strong> (Học viên nhận)
+          <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-700 text-center font-mono text-xs text-slate-400">
+            {formatCurrency(tutorClawback)} (Gia sư) + {formatCurrency(platformFeeRefund)} (Phí sàn) ≡ <strong className="text-emerald-400">{formatCurrency(refundAmount)}</strong> (Học viên nhận)
           </div>
         </div>
 
@@ -149,7 +149,7 @@ export default function AdminDisputeDetail() {
             rows={3}
             value={adminNote}
             onChange={(e) => setAdminNote(e.target.value)}
-            className="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+            className="w-full p-3.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:ring-2 focus:ring-brand-indigo-500 outline-hidden leading-relaxed"
           />
         </div>
 
@@ -158,7 +158,7 @@ export default function AdminDisputeDetail() {
             type="button"
             disabled={resolving}
             onClick={() => handleResolve(true)}
-            className="py-3 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
+            className="py-3 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition-colors flex items-center gap-1.5 shadow-md shadow-emerald-600/20 sheen-btn"
           >
             <span className="material-symbols-outlined text-base">verified</span>
             Phê Duyệt Hoàn Tiền {formatCurrency(refundAmount)}
@@ -167,7 +167,7 @@ export default function AdminDisputeDetail() {
             type="button"
             disabled={resolving}
             onClick={() => handleResolve(false)}
-            className="py-3 px-6 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white font-bold text-xs transition-colors"
+            className="py-3 px-6 rounded-2xl bg-rose-600/80 hover:bg-rose-600 text-white font-extrabold text-xs transition-colors"
           >
             Bác Bỏ Khiếu Nại
           </button>

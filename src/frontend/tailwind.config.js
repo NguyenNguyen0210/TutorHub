@@ -8,7 +8,6 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Core Brand Navy & Indigo
         brand: {
           navy: {
             950: '#0B0F17',
@@ -53,7 +52,7 @@ export default {
         },
 
         // Surface & Glassmorphism Tokens
-        'surface-card-glass': 'rgba(255, 255, 255, 0.88)',
+        'surface-card-glass': 'rgba(255, 255, 255, 0.85)',
         'surface-card-light': '#FFFFFF',
         'surface-canvas-light': '#F8FAFC',
         'border-light': '#E2E8F0',
@@ -110,7 +109,20 @@ export default {
         'glass': '0 4px 20px -2px rgba(15, 23, 42, 0.05)',
         'glass-hover': '0 10px 25px -3px rgba(79, 70, 229, 0.12)',
         'card-glow': '0 0 25px -5px rgba(79, 70, 229, 0.15)',
+        'premium': '0 20px 40px -15px rgba(15, 23, 42, 0.07)',
+        'glow-indigo': '0 0 30px -5px rgba(79, 70, 229, 0.3)',
+        'glow-emerald': '0 0 30px -5px rgba(16, 185, 129, 0.3)',
       },
+      animation: {
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'float': 'float 4s ease-in-out infinite',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-6px)' },
+        }
+      }
     },
   },
   plugins: [],

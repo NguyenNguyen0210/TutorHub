@@ -85,7 +85,7 @@ api.interceptors.response.use(
         if (!refreshToken) throw new Error('Không có refresh token');
 
         // Gọi endpoint làm mới token
-        const refreshResponse = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {
+        const refreshResponse = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           refreshToken,
         });
 

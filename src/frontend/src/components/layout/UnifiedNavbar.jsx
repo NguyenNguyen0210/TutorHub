@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Dropdown, Avatar } from 'antd';
 import { useAuthStore } from '@/store/authStore';
+import MobileFloatingDock from '@/components/layout/MobileFloatingDock';
 
 export default function UnifiedNavbar() {
   const { user, role, isAuthenticated, logout } = useAuthStore();
@@ -142,7 +143,8 @@ export default function UnifiedNavbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/85 border-b border-slate-200/80 shadow-[0_2px_15px_-3px_rgba(15,23,42,0.04)] transition-all">
+    <>
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/85 border-b border-slate-200/80 shadow-[0_2px_15px_-3px_rgba(15,23,42,0.04)] transition-all">
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 gap-4">
         {/* Left: Brand Identity & Subtitle */}
         <div className="flex items-center gap-6 xl:gap-8 flex-1">
@@ -317,5 +319,8 @@ export default function UnifiedNavbar() {
         </div>
       )}
     </header>
+      {/* Mobile Floating Bottom Dock */}
+      <MobileFloatingDock />
+    </>
   );
 }
