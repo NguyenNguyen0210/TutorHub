@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { message } from 'antd';
 import { useAuthStore } from '@/store/authStore';
 
 export default function Login() {
@@ -66,12 +67,15 @@ export default function Login() {
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 block">Địa chỉ Email</label>
+            <label htmlFor="login-email" className="text-xs font-bold text-slate-700 block">
+              Địa chỉ Email
+            </label>
             <div className="relative">
               <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">
                 mail
               </span>
               <input
+                id="login-email"
                 type="email"
                 required
                 value={email}
@@ -84,16 +88,23 @@ export default function Login() {
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-700">Mật khẩu</label>
-              <a href="#" className="text-[11px] font-semibold text-brand-indigo-600 hover:underline">
+              <label htmlFor="login-password" className="text-xs font-bold text-slate-700">
+                Mật khẩu
+              </label>
+              <button
+                type="button"
+                onClick={() => message.info('Vui lòng liên hệ ban hỗ trợ TutorHub để được hướng dẫn đặt lại mật khẩu.')}
+                className="text-[11px] font-semibold text-brand-indigo-600 hover:underline"
+              >
                 Quên mật khẩu?
-              </a>
+              </button>
             </div>
             <div className="relative">
               <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">
                 lock
               </span>
               <input
+                id="login-password"
                 type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
@@ -103,6 +114,7 @@ export default function Login() {
               />
               <button
                 type="button"
+                aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
@@ -114,8 +126,9 @@ export default function Login() {
           </div>
 
           <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label htmlFor="login-remember" className="flex items-center gap-2 cursor-pointer">
               <input
+                id="login-remember"
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}

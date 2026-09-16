@@ -132,9 +132,9 @@ export default function SessionDetail() {
       {/* Learning Notes Box */}
       {session.learningRecord && (
         <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-          <label className="text-xs font-bold text-slate-800 block">
+          <span className="text-xs font-bold text-slate-800 block">
             Nhật Ký Buổi Học (Learning Record)
-          </label>
+          </span>
           <p className="text-xs text-slate-600 leading-relaxed bg-white p-3 rounded-xl border border-slate-200">
             {session.learningRecord}
           </p>

@@ -100,17 +100,18 @@ export default function TutorApplication() {
           const isDone = currentStep > s.num;
           const isCurrent = currentStep === s.num;
           return (
-            <div
+            <button
+              type="button"
               key={s.num}
               onClick={() => {
                 if (isDone) setCurrentStep(s.num);
               }}
-              className={`p-3 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all ${
+              className={`p-3 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all text-left ${
                 isDone
                   ? 'bg-emerald-50 border border-emerald-200 text-emerald-800 cursor-pointer'
                   : isCurrent
                   ? 'bg-brand-indigo-50 border-2 border-brand-indigo-500 text-brand-indigo-700 shadow-xs'
-                  : 'bg-slate-100 border border-slate-200 text-slate-400'
+                  : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-default'
               }`}
             >
               <span
@@ -121,7 +122,7 @@ export default function TutorApplication() {
                 {isDone ? 'check_circle' : s.icon}
               </span>
               <span className="truncate">Bước {s.num}: {s.label}</span>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -137,10 +138,11 @@ export default function TutorApplication() {
             </h3>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 block">
+              <label htmlFor="tutor-bio" className="text-xs font-bold text-slate-700 block">
                 Giới thiệu bản thân & Phương pháp giảng dạy (Tối thiểu 20 ký tự)
               </label>
               <textarea
+                id="tutor-bio"
                 rows={4}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
@@ -151,8 +153,11 @@ export default function TutorApplication() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">Hình thức giảng dạy</label>
+                <label htmlFor="tutor-mode" className="text-xs font-bold text-slate-700 block">
+                  Hình thức giảng dạy
+                </label>
                 <select
+                  id="tutor-mode"
                   value={teachingMode}
                   onChange={(e) => setTeachingMode(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-hidden bg-white"
@@ -164,8 +169,11 @@ export default function TutorApplication() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">Khu vực dạy chính (Offline)</label>
+                <label htmlFor="tutor-address" className="text-xs font-bold text-slate-700 block">
+                  Khu vực dạy chính (Offline)
+                </label>
                 <input
+                  id="tutor-address"
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
@@ -187,8 +195,11 @@ export default function TutorApplication() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">Trường Đại Học tốt nghiệp</label>
+                <label htmlFor="tutor-university" className="text-xs font-bold text-slate-700 block">
+                  Trường Đại Học tốt nghiệp
+                </label>
                 <input
+                  id="tutor-university"
                   type="text"
                   value={university}
                   onChange={(e) => setUniversity(e.target.value)}
@@ -196,8 +207,11 @@ export default function TutorApplication() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">Chuyên ngành đào tạo</label>
+                <label htmlFor="tutor-major" className="text-xs font-bold text-slate-700 block">
+                  Chuyên ngành đào tạo
+                </label>
                 <input
+                  id="tutor-major"
                   type="text"
                   value={major}
                   onChange={(e) => setMajor(e.target.value)}
@@ -208,8 +222,11 @@ export default function TutorApplication() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">Học vị / Bằng cấp cao nhất</label>
+                <label htmlFor="tutor-degree" className="text-xs font-bold text-slate-700 block">
+                  Học vị / Bằng cấp cao nhất
+                </label>
                 <input
+                  id="tutor-degree"
                   type="text"
                   value={degreeLevel}
                   onChange={(e) => setDegreeLevel(e.target.value)}
@@ -217,8 +234,11 @@ export default function TutorApplication() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700 block">Số năm kinh nghiệm gia sư</label>
+                <label htmlFor="tutor-exp" className="text-xs font-bold text-slate-700 block">
+                  Số năm kinh nghiệm gia sư
+                </label>
                 <input
+                  id="tutor-exp"
                   type="number"
                   min="0"
                   max="50"
@@ -297,8 +317,9 @@ export default function TutorApplication() {
             </div>
 
             <div className="p-4 rounded-2xl bg-brand-indigo-50 border border-brand-indigo-200 text-xs">
-              <label className="flex items-start gap-3 cursor-pointer">
+              <label htmlFor="tutor-agreement" className="flex items-start gap-3 cursor-pointer">
                 <input
+                  id="tutor-agreement"
                   type="checkbox"
                   checked={agreed}
                   onChange={(e) => setAgreed(e.target.checked)}

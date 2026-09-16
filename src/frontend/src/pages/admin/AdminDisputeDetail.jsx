@@ -132,7 +132,7 @@ export default function AdminDisputeDetail() {
 
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs">
-            <label className="font-extrabold text-slate-300">
+            <label htmlFor="dispute-refund-slider" className="font-extrabold text-slate-300">
               Số tiền hoàn trả học viên (₫):
             </label>
             <span className="text-2xl font-extrabold text-emerald-400 font-monospace-num">
@@ -141,7 +141,9 @@ export default function AdminDisputeDetail() {
           </div>
 
           <input
+            id="dispute-refund-slider"
             type="range"
+            aria-label="Số tiền hoàn trả học viên"
             min="0"
             max={originalSessionFee}
             step="10000"
@@ -175,8 +177,11 @@ export default function AdminDisputeDetail() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-300 block">Phán quyết & Căn cứ trọng tài</label>
+          <label htmlFor="dispute-admin-note" className="text-xs font-bold text-slate-300 block">
+            Phán quyết & Căn cứ trọng tài
+          </label>
           <textarea
+            id="dispute-admin-note"
             rows={3}
             value={adminNote}
             onChange={(e) => setAdminNote(e.target.value)}

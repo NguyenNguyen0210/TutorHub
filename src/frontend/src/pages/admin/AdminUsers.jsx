@@ -55,6 +55,7 @@ export default function AdminUsers() {
           {actionType !== 'reactivate' && (
             <textarea
               rows={3}
+              aria-label="Lý do kỷ luật tài khoản"
               defaultValue="Vi phạm quy chế sàn TutorHub"
               onChange={(e) => {
                 reasonInput = e.target.value;

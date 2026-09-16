@@ -138,8 +138,11 @@ export default function TutorWithdraw() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 block">Số tiền muốn rút (₫)</label>
+              <label htmlFor="withdraw-amount" className="text-xs font-bold text-slate-700 block">
+                Số tiền muốn rút (₫)
+              </label>
               <input
+                id="withdraw-amount"
                 type="number"
                 required
                 value={amount}
@@ -155,9 +158,9 @@ export default function TutorWithdraw() {
 
             {/* Linked Bank Card */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 block">
+              <span className="text-xs font-bold text-slate-700 block">
                 Tài khoản ngân hàng thụ hưởng đã xác thực
-              </label>
+              </span>
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
                 <div>
                   <span className="font-bold text-slate-900 block">
@@ -174,8 +177,11 @@ export default function TutorWithdraw() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 block">Ghi chú giao dịch</label>
+              <label htmlFor="withdraw-note" className="text-xs font-bold text-slate-700 block">
+                Ghi chú giao dịch
+              </label>
               <input
+                id="withdraw-note"
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}

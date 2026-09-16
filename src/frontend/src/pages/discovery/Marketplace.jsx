@@ -238,8 +238,8 @@ export default function Marketplace() {
 
             {/* Teaching Mode Filter */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 block">Hình thức giảng dạy</label>
-              <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100/80 rounded-xl">
+              <span className="text-xs font-bold text-slate-700 block">Hình thức giảng dạy</span>
+              <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100/80 rounded-xl" role="group" aria-label="Hình thức giảng dạy">
                 {['All', 'Online', 'Both'].map((m) => (
                   <button
                     key={m}
@@ -257,8 +257,11 @@ export default function Marketplace() {
 
             {/* Sort Filter */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 block">Ưu tiên sắp xếp</label>
+              <label htmlFor="marketplace-sort" className="text-xs font-bold text-slate-700 block">
+                Ưu tiên sắp xếp
+              </label>
               <select
+                id="marketplace-sort"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="w-full text-xs font-bold rounded-xl border border-slate-200 p-3 bg-white text-slate-700 focus:ring-2 focus:ring-brand-indigo-500 focus:border-brand-indigo-500 outline-hidden"

@@ -190,10 +190,11 @@ export default function Messages() {
               const isSelected = conv.id === activeConversationId;
 
               return (
-                <div
+                <button
+                  type="button"
                   key={conv.id}
                   onClick={() => setActiveConversationId(conv.id)}
-                  className={`p-4 flex items-center gap-3 cursor-pointer transition-colors ${
+                  className={`w-full text-left p-4 flex items-center gap-3 cursor-pointer transition-colors ${
                     isSelected ? 'bg-white border-l-4 border-brand-indigo-600 shadow-xs' : 'hover:bg-white'
                   }`}
                 >
@@ -213,7 +214,7 @@ export default function Messages() {
                       {conv.lastMessagePreview || 'Bắt đầu cuộc trò chuyện'}
                     </p>
                   </div>
-                </div>
+                </button>
               );
             })
           )}

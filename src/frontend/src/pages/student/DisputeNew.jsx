@@ -69,14 +69,23 @@ export default function DisputeNew() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Reason Selection Cards */}
-          <div className="space-y-3">
-            <label className="text-xs font-bold text-slate-800 block">Chọn lý do khiếu nại chính</label>
+          <div className="space-y-3" role="radiogroup" aria-label="Chọn lý do khiếu nại chính">
+            <span className="text-xs font-bold text-slate-800 block">Chọn lý do khiếu nại chính</span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {reasonsList.map((r) => (
                 <div
                   key={r.key}
+                  role="radio"
+                  aria-checked={reason === r.key}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setReason(r.key);
+                    }
+                  }}
                   onClick={() => setReason(r.key)}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all focus:outline-hidden focus:ring-2 focus:ring-rose-500 ${
                     reason === r.key
                       ? 'border-rose-500 bg-rose-50/50 text-rose-950 shadow-xs'
                       : 'border-border-light hover:bg-slate-50 text-slate-700'
@@ -96,10 +105,11 @@ export default function DisputeNew() {
 
           {/* Detailed description */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-800 block">
+            <label htmlFor="dispute-description" className="text-xs font-bold text-slate-800 block">
               Mô tả chi tiết vụ việc (Tối thiểu 20 ký tự)
             </label>
             <textarea
+              id="dispute-description"
               rows={4}
               required
               value={description}
@@ -111,7 +121,7 @@ export default function DisputeNew() {
 
           {/* Evidence Upload Box */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-800 block">Bằng chứng minh họa (Ảnh chụp màn hình, video...)</label>
+            <span className="text-xs font-bold text-slate-800 block">Bằng chứng minh họa (Ảnh chụp màn hình, video...)</span>
             <div className="p-4 rounded-2xl border-2 border-dashed border-slate-200 text-center space-y-2 bg-slate-50/50">
               <span className="material-symbols-outlined text-3xl text-slate-400">cloud_upload</span>
               <p className="text-xs text-slate-600">Đã đính kèm tệp: <strong>screenshot-google-meet-waiting-18h25.png</strong> (854 KB)</p>

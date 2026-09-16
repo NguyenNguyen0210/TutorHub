@@ -32,8 +32,8 @@ export default function PublicLayout() {
           <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-6 gap-y-2 text-xs text-slate-400">
             <Link to="/tutors" className="hover:text-white transition-colors">Khám Phá Gia Sư</Link>
             <Link to="/auth/register" className="hover:text-white transition-colors">Đăng Ký Làm Gia Sư</Link>
-            <a href="#" className="hover:text-white transition-colors">Chứng Thư Bảo Chứng Ký Quỹ</a>
-            <a href="#" className="hover:text-white transition-colors">Quy Trình Đối Soát 24 Giờ</a>
+            <Link to="/tutors" className="hover:text-white transition-colors">Chứng Thư Bảo Chứng Ký Quỹ</Link>
+            <Link to="/tutors" className="hover:text-white transition-colors">Quy Trình Đối Soát 24 Giờ</Link>
           </div>
         </div>
 

@@ -164,10 +164,11 @@ export default function AdminTutorApplications() {
               </span>
               <div className="space-y-2">
                 {applicants.map((a) => (
-                  <div
+                  <button
+                    type="button"
                     key={a.id}
                     onClick={() => setSelectedAppId(a.id)}
-                    className={`p-3.5 rounded-xl cursor-pointer transition-all border ${
+                    className={`p-3.5 rounded-xl cursor-pointer transition-all border text-left w-full block ${
                       (current?.id || selectedAppId) === a.id
                         ? 'bg-brand-indigo-600/20 border-brand-indigo-500 text-white'
                         : 'bg-slate-900/60 border-slate-700 text-slate-300 hover:bg-slate-900'
@@ -182,7 +183,7 @@ export default function AdminTutorApplications() {
                     <p className="text-[11px] text-slate-400 mt-0.5 truncate m-0">
                       {a.education || 'Chưa cập nhật học vấn'}
                     </p>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>

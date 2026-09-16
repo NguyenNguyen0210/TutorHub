@@ -103,8 +103,11 @@ export default function Register() {
         {/* Register Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700 block">Họ và tên</label>
+            <label htmlFor="reg-fullname" className="text-xs font-bold text-slate-700 block">
+              Họ và tên
+            </label>
             <input
+              id="reg-fullname"
               type="text"
               required
               value={fullName}
@@ -116,8 +119,11 @@ export default function Register() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 block">Email</label>
+              <label htmlFor="reg-email" className="text-xs font-bold text-slate-700 block">
+                Email
+              </label>
               <input
+                id="reg-email"
                 type="email"
                 required
                 value={email}
@@ -127,8 +133,11 @@ export default function Register() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 block">Số điện thoại</label>
+              <label htmlFor="reg-phone" className="text-xs font-bold text-slate-700 block">
+                Số điện thoại
+              </label>
               <input
+                id="reg-phone"
                 type="tel"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
@@ -140,8 +149,11 @@ export default function Register() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 block">Mật khẩu</label>
+              <label htmlFor="reg-password" className="text-xs font-bold text-slate-700 block">
+                Mật khẩu
+              </label>
               <input
+                id="reg-password"
                 type="password"
                 required
                 value={password}
@@ -151,8 +163,11 @@ export default function Register() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 block">Xác nhận mật khẩu</label>
+              <label htmlFor="reg-confirm-password" className="text-xs font-bold text-slate-700 block">
+                Xác nhận mật khẩu
+              </label>
               <input
+                id="reg-confirm-password"
                 type="password"
                 required
                 value={confirmPassword}
@@ -164,15 +179,16 @@ export default function Register() {
           </div>
 
           <div className="pt-2">
-            <label className="flex items-start gap-2 cursor-pointer">
+            <label htmlFor="reg-terms" className="flex items-start gap-2 cursor-pointer">
               <input
+                id="reg-terms"
                 type="checkbox"
                 checked={agreeTerms}
                 onChange={(e) => setAgreeTerms(e.target.checked)}
                 className="w-4 h-4 mt-0.5 rounded text-brand-indigo-600 focus:ring-brand-indigo-500 border-border-light"
               />
               <span className="text-xs text-slate-600 leading-normal">
-                Tôi đồng ý với <a href="#" className="text-brand-indigo-600 font-bold underline">Điều khoản dịch vụ</a> và cơ chế bảo chứng ký quỹ học phí <a href="#" className="text-financial-available font-bold underline">Escrow Guarantee</a> của sàn TutorHub.
+                Tôi đồng ý với <Link to="/tutors" className="text-brand-indigo-600 font-bold underline">Điều khoản dịch vụ</Link> và cơ chế bảo chứng ký quỹ học phí <Link to="/tutors" className="text-financial-available font-bold underline">Escrow Guarantee</Link> của sàn TutorHub.
               </span>
             </label>
           </div>

@@ -94,7 +94,7 @@ export default function ProRataRefundModal({
             <div className="flex items-baseline justify-between pt-1">
               <div>
                 <span className="font-extrabold text-slate-900 text-sm">Số Tiền Hoàn Về Ví Học Viên:</span>
-                <p className="m-0 text-[10px] text-slate-400">Tiền được cộng tức thì vào số dư ví</p>
+                <p className="m-0 text-[10px] text-slate-400">Tiền hoàn sẽ được xử lý qua cổng thanh toán theo quy chế sàn (INV-REFUND-004)</p>
               </div>
               <div className="text-xl font-extrabold text-emerald-600">
                 {formatCurrency(refundAmount)}
@@ -105,10 +105,12 @@ export default function ProRataRefundModal({
 
         {/* Form lý do hủy */}
         <div>
-          <label className="block text-slate-700 font-bold mb-1.5">
+          <label htmlFor="cancel-contract-reason" className="block text-slate-700 font-bold mb-1.5">
             Lý do dừng hợp đồng: <span className="text-rose-500">*</span>
           </label>
           <TextArea
+            id="cancel-contract-reason"
+            aria-label="Lý do dừng hợp đồng"
             rows={3}
             value={reason}
             onChange={(e) => setReason(e.target.value)}

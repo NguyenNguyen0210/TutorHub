@@ -158,8 +158,17 @@ export default function BookingCheckout() {
 
             {/* VNPay Gateway Option with Active Border */}
             <div
+              role="radio"
+              aria-checked={selectedMethod === 'vnpay'}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setSelectedMethod('vnpay');
+                }
+              }}
               onClick={() => setSelectedMethod('vnpay')}
-              className="p-4 rounded-2xl border-2 border-brand-indigo-600 bg-brand-indigo-50/50 cursor-pointer space-y-2 transition-all shadow-xs"
+              className="p-4 rounded-2xl border-2 border-brand-indigo-600 bg-brand-indigo-50/50 cursor-pointer space-y-2 transition-all shadow-xs focus:outline-hidden focus:ring-2 focus:ring-brand-indigo-500"
             >
               <div className="flex items-center justify-between">
                 <span className="font-extrabold text-xs text-brand-indigo-900 flex items-center gap-2">
