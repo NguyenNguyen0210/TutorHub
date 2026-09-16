@@ -16,5 +16,6 @@ public record SessionDto(
     DateTime? CancelledAt,
     AttendanceStatus? StudentAttendance = null,
     AttendanceStatus? TutorAttendance = null,
-    bool HasAttendanceConflict = false
+    bool HasAttendanceConflict = false,
+    DateTime? AttendanceVerificationDueAt = null
 );
