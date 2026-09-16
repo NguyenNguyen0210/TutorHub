@@ -1,39 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { formatCurrency } from '@/utils/formatters';
+import enrollmentService from '@/services/enrollment.service';
+import { formatCurrency, formatDateTime } from '@/utils/formatters';
 import { SESSION_STATUS, getSessionStatusMeta } from '@/config/enums';
+import ErrorState from '@/components/common/ErrorState';
 
 export default function EnrollmentDetail() {
   const { id } = useParams();
-  const contractId = id || 'e1e1e1e1-0001';
+  const [enrollment, setEnrollment] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const contract = {
-    id: contractId,
-    subject: 'Luyện thi THPT Toán 10 Buổi Cơ Bản Đến 8+',
-    tutorName: 'ThS. Nguyễn Văn An',
-    tutorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    totalSessions: 10,
-    completedSessions: 2,
-    totalPrice: 2000000,
-    pricePerSession: 200000,
-    platformFeeRate: '10%',
-    status: 'Active',
-    // status dùng đúng SessionStatus của backend (Unscheduled | Scheduled | Completed | Cancelled).
-    // "Chờ điểm danh" KHÔNG phải một SessionStatus: đó là cửa sổ đối soát điểm danh 24h
-    // (backend: AttendanceVerificationDueAt) nên được biểu diễn bằng cờ riêng.
-    sessions: [
-      { id: 's1', num: 1, date: '05/09/2026', time: '18:00 - 19:00', status: SESSION_STATUS.COMPLETED, tutorPayout: 180000, amount: 200000 },
-      { id: 's2', num: 2, date: '08/09/2026', time: '18:00 - 19:00', status: SESSION_STATUS.SCHEDULED, attendancePending: true, tutorPayout: 180000, amount: 200000 },
-      { id: 's3', num: 3, date: '12/09/2026', time: '18:00 - 19:00', status: SESSION_STATUS.SCHEDULED, tutorPayout: 180000, amount: 200000 },
-      { id: 's4', num: 4, date: 'Chưa xếp', time: 'Chưa xếp', status: SESSION_STATUS.UNSCHEDULED, tutorPayout: 180000, amount: 200000 },
-      { id: 's5', num: 5, date: 'Chưa xếp', time: 'Chưa xếp', status: SESSION_STATUS.UNSCHEDULED, tutorPayout: 180000, amount: 200000 },
-      { id: 's6', num: 6, date: 'Chưa xếp', time: 'Chưa xếp', status: SESSION_STATUS.UNSCHEDULED, tutorPayout: 180000, amount: 200000 },
-      { id: 's7', num: 7, date: 'Chưa xếp', time: 'Chưa xếp', status: SESSION_STATUS.UNSCHEDULED, tutorPayout: 180000, amount: 200000 },
-      { id: 's8', num: 8, date: 'Chưa xếp', time: 'Chưa xếp', status: SESSION_STATUS.UNSCHEDULED, tutorPayout: 180000, amount: 200000 },
-      { id: 's9', num: 9, date: 'Chưa xếp', time: 'Chưa xếp', status: SESSION_STATUS.UNSCHEDULED, tutorPayout: 180000, amount: 200000 },
-      { id: 's10', num: 10, date: 'Chưa xếp', time: 'Chưa xếp', status: SESSION_STATUS.UNSCHEDULED, tutorPayout: 180000, amount: 200000 },
-    ]
-  };
+  useEffect(() => {
+    let isMounted = true;
+    async function loadEnrollment() {
+      try {
+        setLoading(true);
+        const data = await enrollmentService.getEnrollmentById(id);
+        if (isMounted) {
+          setEnrollment(data);
+          setError(null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    if (id) {
+      loadEnrollment();
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
 
   const STATUS_BADGE_CLASS = {
     success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -43,8 +46,22 @@ export default function EnrollmentDetail() {
   };
 
   const getStatusBadge = (session) => {
-    if (session.status === SESSION_STATUS.SCHEDULED && session.attendancePending) {
-      return <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">Chờ Điểm Danh 24H ⏰</span>;
+    if (session.hasAttendanceConflict) {
+      return (
+        <span className="px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 border border-rose-300 text-xs font-bold">
+          Bất đồng điểm danh ⚠️
+        </span>
+      );
+    }
+    if (session.status === SESSION_STATUS.SCHEDULED && session.attendanceVerificationDueAt) {
+      const isWindowOpen = new Date(session.attendanceVerificationDueAt) > new Date();
+      if (isWindowOpen && !session.studentAttendance) {
+        return (
+          <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
+            Chờ Điểm Danh 24H ⏰
+          </span>
+        );
+      }
     }
     const meta = getSessionStatusMeta(session.status);
     const badgeClass = STATUS_BADGE_CLASS[meta.color] ?? STATUS_BADGE_CLASS.default;
@@ -55,108 +72,207 @@ export default function EnrollmentDetail() {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto py-12 text-center text-slate-500">
+        <span className="material-symbols-outlined text-3xl animate-spin text-brand-indigo-600 block mb-2">
+          sync
+        </span>
+        Đang tải chi tiết hợp đồng...
+      </div>
+    );
+  }
+
+  if (error || !enrollment) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-4 py-8">
+        <Link
+          to="/student/dashboard"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-brand-indigo-600 transition-colors"
+        >
+          <span className="material-symbols-outlined text-base">arrow_back</span>
+          Quay lại Bàn Học
+        </Link>
+        <ErrorState
+          error={error}
+          title="Không tìm thấy hợp đồng học tập"
+          backPath="/student/dashboard"
+          backLabel="Về Bàn Học"
+        />
+      </div>
+    );
+  }
+
+  const sessions = Array.isArray(enrollment.sessions) ? enrollment.sessions : [];
+  const completedCount = sessions.filter((s) => s.status === SESSION_STATUS.COMPLETED).length;
+  const progressPercent = Math.round((completedCount / (enrollment.totalSessions || 1)) * 100);
+
   return (
-    <div className="space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8">
+      {/* Top Back Navigation */}
+      <Link
+        to="/student/dashboard"
+        className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-brand-indigo-600 transition-colors"
+      >
+        <span className="material-symbols-outlined text-base">arrow_back</span>
+        Quay lại Bàn Học
+      </Link>
+
       {/* Header with Contract Summary */}
       <div className="p-6 sm:p-8 rounded-3xl bg-white border border-border-light shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <span className="font-monospace-num text-xs font-bold text-brand-indigo-600 block">HỢP ĐỒNG #{contract.id}</span>
-            <h1 className="text-2xl font-extrabold text-slate-900 mt-1">{contract.subject}</h1>
-            <p className="text-xs text-text-muted mt-0.5">Gia sư phụ trách: <strong>{contract.tutorName}</strong></p>
+            <span className="font-monospace-num text-xs font-bold text-brand-indigo-600 block">
+              HỢP ĐỒNG #{enrollment.id}
+            </span>
+            <h1 className="text-2xl font-extrabold text-slate-900 mt-1">
+              {enrollment.serviceTitle || enrollment.subjectName || 'Hợp Đồng Học Tập'}
+            </h1>
+            <p className="text-xs text-text-muted mt-0.5">
+              Gia sư phụ trách: <strong>{enrollment.tutorName}</strong>
+            </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
-              Đang Hiệu Lực (Escrow Locked)
+            <span
+              className={`px-3 py-1.5 rounded-full border text-xs font-bold ${
+                enrollment.status === 'Active'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  : 'bg-blue-50 border-blue-200 text-blue-700'
+              }`}
+            >
+              {enrollment.status === 'Active' ? 'Đang Hiệu Lực (Escrow Locked)' : enrollment.status}
             </span>
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs font-bold">
-            <span className="text-slate-700">Tiến độ hoàn thành buổi học:</span>
-            <span className="text-brand-indigo-600 font-monospace-num">2 / 10 Buổi (20%)</span>
+        {/* 4 Financial Micro-Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs border-t border-slate-100 pt-4">
+          <div className="p-3 bg-slate-50 rounded-2xl">
+            <span className="text-slate-500 block">Tổng học phí:</span>
+            <span className="font-extrabold text-slate-900 font-monospace-num">
+              {formatCurrency(enrollment.totalPrice)}
+            </span>
           </div>
-          <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
-            <div className="bg-emerald-500 h-full w-[20%] rounded-full transition-all"></div>
+          <div className="p-3 bg-slate-50 rounded-2xl">
+            <span className="text-slate-500 block">Số buổi:</span>
+            <span className="font-extrabold text-slate-900 font-monospace-num">
+              {enrollment.totalSessions} Buổi ({enrollment.sessionDurationMinutes || 60}p/buổi)
+            </span>
+          </div>
+          <div className="p-3 bg-slate-50 rounded-2xl">
+            <span className="text-slate-500 block">Tiến độ hoàn thành:</span>
+            <span className="font-extrabold text-brand-indigo-600 font-monospace-num">
+              {completedCount} / {enrollment.totalSessions} Buổi
+            </span>
+          </div>
+          <div className="p-3 bg-emerald-50 rounded-2xl">
+            <span className="text-emerald-700 block font-semibold">Tỷ lệ phí sàn:</span>
+            <span className="font-extrabold text-financial-available font-monospace-num">
+              {(Number(enrollment.platformFeeRate || 0.1) * 100).toFixed(0)}% (Snapshot)
+            </span>
           </div>
         </div>
 
-        {/* Financial Escrow Breakdown */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-border-light">
-          <div className="p-4 rounded-2xl bg-slate-50">
-            <span className="text-xs text-text-muted block">Tổng học phí đã nộp:</span>
-            <span className="text-lg font-extrabold text-slate-900 font-monospace-num">{formatCurrency(contract.totalPrice)}</span>
+        {/* Progress Bar */}
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-xs text-slate-600">
+            <span>Tiến độ hợp đồng:</span>
+            <span className="font-bold font-monospace-num">{progressPercent}%</span>
           </div>
-          <div className="p-4 rounded-2xl bg-emerald-50">
-            <span className="text-xs text-emerald-800 block">Tiền còn trong Escrow:</span>
-            <span className="text-lg font-extrabold text-financial-available font-monospace-num">{formatCurrency(1600000)}</span>
-          </div>
-          <div className="p-4 rounded-2xl bg-indigo-50">
-            <span className="text-xs text-brand-indigo-800 block">Chính sách phí sàn:</span>
-            <span className="text-lg font-extrabold text-brand-indigo-600 font-monospace-num">{contract.platformFeeRate}</span>
+          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+            <div
+              className="bg-brand-indigo-600 h-full rounded-full transition-all duration-500"
+              style={{ width: `${progressPercent}%` }}
+            />
           </div>
         </div>
       </div>
 
-      {/* 10-Session Timeline List */}
+      {/* Signature Component 5: Session Breakdown Timeline §3.5 */}
       <div className="p-6 sm:p-8 rounded-3xl bg-white border border-border-light shadow-xs space-y-6">
-        <div className="flex items-center justify-between pb-3 border-b border-border-light">
-          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <span className="material-symbols-outlined text-brand-indigo-600">view_timeline</span>
-            Danh Sách 10 Buổi Học Con (Session Breakdown)
-          </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+          <div>
+            <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <span className="material-symbols-outlined text-brand-indigo-600">timeline</span>
+              Lộ Trình & Tiến Độ Phân Rã {enrollment.totalSessions} Buổi Học (Session Timeline)
+            </h2>
+            <p className="text-xs text-text-muted mt-0.5">
+              Mỗi buổi học tương ứng một khoản ký quỹ riêng biệt được giải ngân sau khi đối soát thành công
+            </p>
+          </div>
+          <span className="text-xs font-bold text-slate-500 font-mono">
+            Tự động cấp phát qua EnrollmentSessionAllocator
+          </span>
         </div>
 
+        {/* Sessions List */}
         <div className="space-y-3">
-          {contract.sessions.map((sess) => (
+          {sessions.map((sess) => (
             <div
               key={sess.id}
-              className="p-4 rounded-2xl border border-border-light bg-slate-50/60 hover:bg-white hover:shadow-xs transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+              className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                sess.hasAttendanceConflict
+                  ? 'border-rose-300 bg-rose-50/40'
+                  : sess.status === SESSION_STATUS.COMPLETED
+                  ? 'border-emerald-200 bg-emerald-50/20'
+                  : sess.status === SESSION_STATUS.SCHEDULED
+                  ? 'border-blue-200 bg-blue-50/20'
+                  : 'border-slate-200 bg-slate-50/50'
+              }`}
             >
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-brand-indigo-100 text-brand-indigo-800 font-bold flex items-center justify-center text-sm font-monospace-num shrink-0">
-                  #{sess.num}
+                <div
+                  className={`w-10 h-10 rounded-2xl flex items-center justify-center font-monospace-num font-extrabold text-sm shrink-0 shadow-xs ${
+                    sess.status === SESSION_STATUS.COMPLETED
+                      ? 'bg-emerald-500 text-white'
+                      : sess.status === SESSION_STATUS.SCHEDULED
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  #{sess.sessionNumber}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-slate-800">Buổi Học Số {sess.num}</span>
-                    <span className="text-xs text-text-muted font-monospace-num">({formatCurrency(sess.amount)})</span>
+                    <span className="font-extrabold text-xs text-slate-900">
+                      Buổi học #{sess.sessionNumber}
+                    </span>
+                    {getStatusBadge(sess)}
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Thời gian: {sess.date} • {sess.time}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Thời gian:{' '}
+                    {sess.startAt ? formatDateTime(sess.startAt, 'DD/MM/YYYY HH:mm') : 'Chưa xếp lịch'}
+                    {sess.endAt ? ` - ${formatDateTime(sess.endAt, 'HH:mm')}` : ''}
+                  </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                {getStatusBadge(sess)}
+              <div className="flex items-center justify-between sm:justify-end gap-4 text-xs">
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 block">Ký quỹ buổi:</span>
+                  <span className="font-extrabold text-slate-800 font-monospace-num">
+                    {formatCurrency(sess.earningAmount || 0)}
+                  </span>
+                </div>
 
-                {sess.status === SESSION_STATUS.SCHEDULED && sess.attendancePending && (
+                <div className="flex items-center gap-2">
                   <Link
                     to={`/student/sessions/${sess.id}`}
-                    className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors"
+                    className="px-3.5 py-1.5 rounded-xl border border-slate-200 hover:bg-white text-slate-700 font-bold text-xs transition-colors flex items-center gap-1"
                   >
-                    Đối Soát
+                    <span>Chi tiết</span>
+                    <span className="material-symbols-outlined text-sm">chevron_right</span>
                   </Link>
-                )}
 
-                {sess.status === SESSION_STATUS.SCHEDULED && !sess.attendancePending && (
-                  <Link
-                    to={`/student/sessions/${sess.id}`}
-                    className="px-3.5 py-1.5 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white text-xs font-bold transition-colors"
-                  >
-                    Vào Học
-                  </Link>
-                )}
-
-                {sess.status === SESSION_STATUS.COMPLETED && (
-                  <Link
-                    to={`/student/sessions/${sess.id}`}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors"
-                  >
-                    Nhật Ký
-                  </Link>
-                )}
+                  {sess.hasAttendanceConflict && (
+                    <Link
+                      to={`/student/disputes/new?sessionId=${sess.id}`}
+                      className="px-3 py-1.5 rounded-xl bg-rose-600 text-white font-bold text-xs hover:bg-rose-700 transition-colors"
+                    >
+                      Khiếu nại
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
           ))}

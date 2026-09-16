@@ -1,40 +1,96 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { formatCurrency } from '@/utils/formatters';
+import enrollmentService from '@/services/enrollment.service';
+import sessionService from '@/services/session.service';
+import { useAuthStore } from '@/store/authStore';
+import { formatCurrency, formatDateTime } from '@/utils/formatters';
+import { StatsSkeleton } from '@/components/common/Skeleton';
+import EmptyState from '@/components/common/EmptyState';
+import ErrorState from '@/components/common/ErrorState';
 
 export default function StudentDashboard() {
-  const student = {
-    name: 'Phạm Minh Tuấn',
-    target: 'Đạt 9+ Môn Toán Kỳ Thi THPT QG 2026',
-    strikes: 0,
-    escrowBalance: 1600000,
-    activeContractsCount: 1,
-    nextSession: {
-      id: 'sess-003',
-      sessionNumber: 3,
-      subject: 'Toán THPT (Chuyên đề Hình Không Gian Oxyz)',
-      tutorName: 'ThS. Nguyễn Văn An',
-      time: 'Ngày mai • 18:00 - 19:00',
-      meetUrl: 'https://meet.google.com/abc-defg-hij',
-    },
-    actionableSession: {
-      id: 'sess-002',
-      sessionNumber: 2,
-      subject: 'Toán THPT (Tích phân & Ứng dụng)',
-      hoursLeft: 16,
-      amount: 200000,
-    },
-    activeContract: {
-      id: 'e1e1e1e1-0001',
-      subject: 'Luyện thi THPT Toán 10 buổi',
-      tutorName: 'ThS. Nguyễn Văn An',
-      completedSessions: 2,
-      totalSessions: 10,
-      totalAmount: 2000000,
-      usedAmount: 400000,
-      remainingAmount: 1600000,
+  const { user } = useAuthStore();
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [enrollments, setEnrollments] = useState([]);
+  const [sessions, setSessions] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadData() {
+      try {
+        setLoading(true);
+        const [enrollmentRes, sessionList] = await Promise.all([
+          enrollmentService.getMyEnrollments({ pageSize: 20 }),
+          sessionService.getMySessions(),
+        ]);
+        if (isMounted) {
+          setEnrollments(enrollmentRes?.items || []);
+          setSessions(Array.isArray(sessionList) ? sessionList : []);
+          setError(null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     }
-  };
+
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const activeEnrollments = enrollments.filter((e) => e.status === 'Active');
+  const now = new Date();
+
+  // Next scheduled session in the future
+  const upcomingSessions = sessions
+    .filter((s) => s.status === 'Scheduled' && s.startAt && new Date(s.startAt) > now)
+    .sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
+  const nextSession = upcomingSessions[0] || null;
+
+  // Actionable session: past session needing attendance confirmation
+  const pastSessions = sessions
+    .filter((s) => s.status === 'Scheduled' && s.endAt && new Date(s.endAt) <= now)
+    .sort((a, b) => new Date(b.endAt) - new Date(a.endAt));
+  const actionableSession = pastSessions[0] || null;
+
+  // Escrow remaining in active contracts
+  const escrowRemaining = activeEnrollments.reduce((sum, e) => {
+    const total = Number(e.totalPrice) || 0;
+    const totalSess = Number(e.totalSessions) || 1;
+    const completed = Number(e.completedSessions) || 0;
+    const remainingRatio = Math.max(0, (totalSess - completed) / totalSess);
+    return sum + total * remainingRatio;
+  }, 0);
+
+  const strikes = user?.absentStrikes ?? 0;
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="h-16 bg-slate-100 rounded-2xl animate-pulse" />
+        <StatsSkeleton count={4} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-12">
+        <ErrorState
+          error={error}
+          title="Không thể tải Bàn học của bạn"
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -42,10 +98,10 @@ export default function StudentDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Chào mừng trở lại, {student.name}! 👋
+            Chào mừng trở lại, {user?.fullName || user?.name || 'Học viên'}! 👋
           </h1>
           <p className="text-xs sm:text-sm text-text-muted mt-1">
-            Mục tiêu học tập: <span className="font-bold text-brand-indigo-600">{student.target}</span>
+            Không gian học tập bảo chứng Escrow hai chiều • An tâm chất lượng
           </p>
         </div>
         <Link
@@ -59,18 +115,21 @@ export default function StudentDashboard() {
 
       {/* 4 Signature Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1 */}
+        {/* Card 1: Active Contracts */}
         <div className="p-5 rounded-3xl bg-white border border-border-light shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Gói Học Đang Học</span>
+            <span className="text-xs font-bold text-slate-500">Hợp Đồng Đang Học</span>
             <span className="w-8 h-8 rounded-xl bg-brand-indigo-50 text-brand-indigo-600 flex items-center justify-center">
               <span className="material-symbols-outlined text-lg">school</span>
             </span>
           </div>
           <div className="text-2xl font-extrabold text-slate-900 font-monospace-num">
-            {student.activeContractsCount} <span className="text-xs font-normal text-text-muted">gói dịch vụ</span>
+            {activeEnrollments.length}{' '}
+            <span className="text-xs font-normal text-text-muted">hợp đồng</span>
           </div>
-          <p className="text-[11px] text-emerald-600 font-semibold">Tiến độ 2/10 buổi hoàn thành</p>
+          <p className="text-[11px] text-emerald-600 font-semibold">
+            {activeEnrollments.length > 0 ? 'Đang triển khai giảng dạy' : 'Chưa có hợp đồng nào'}
+          </p>
         </div>
 
         {/* Card 2: Escrow Protected */}
@@ -78,13 +137,15 @@ export default function StudentDashboard() {
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500">Học Phí Trong Escrow</span>
             <span className="w-8 h-8 rounded-xl bg-emerald-50 text-financial-available flex items-center justify-center">
-              <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>shield</span>
+              <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                shield
+              </span>
             </span>
           </div>
           <div className="text-2xl font-extrabold text-financial-available font-monospace-num">
-            {formatCurrency(student.escrowBalance)}
+            {formatCurrency(escrowRemaining)}
           </div>
-          <p className="text-[11px] text-text-muted">Bảo chứng an toàn cho 8 buổi còn lại</p>
+          <p className="text-[11px] text-text-muted">Bảo chứng an toàn trong ví sàn</p>
         </div>
 
         {/* Card 3: Next Session */}
@@ -96,9 +157,11 @@ export default function StudentDashboard() {
             </span>
           </div>
           <div className="text-sm font-extrabold text-slate-900">
-            Ngày mai 18:00
+            {nextSession?.startAt ? formatDateTime(nextSession.startAt, 'DD/MM HH:mm') : 'Chưa có lịch mới'}
           </div>
-          <p className="text-[11px] text-brand-indigo-600 font-semibold line-clamp-1">{student.nextSession.tutorName}</p>
+          <p className="text-[11px] text-brand-indigo-600 font-semibold line-clamp-1">
+            {nextSession?.tutorName || (nextSession?.subjectName ? `Môn: ${nextSession.subjectName}` : '—')}
+          </p>
         </div>
 
         {/* Card 4: Strike Metric */}
@@ -109,134 +172,126 @@ export default function StudentDashboard() {
               <span className="material-symbols-outlined text-lg">verified</span>
             </span>
           </div>
-          <div className="text-2xl font-extrabold text-emerald-600 font-monospace-num">
-            0 / 3 Strikes
+          <div
+            className={`text-2xl font-extrabold font-monospace-num ${
+              strikes > 0 ? 'text-rose-500' : 'text-emerald-600'
+            }`}
+          >
+            {strikes} / 3 Strikes
           </div>
-          <p className="text-[11px] text-text-muted">Uy tín 100% • Không vi phạm vắng mặt</p>
+          <p className="text-[11px] text-text-muted">
+            {strikes === 0 ? 'Uy tín 100% • Không vi phạm vắng mặt' : 'Đã ghi nhận vắng mặt'}
+          </p>
         </div>
       </div>
 
-      {/* Actionable Urgent Attendance Banner */}
-      <div className="p-6 rounded-3xl bg-gradient-to-r from-amber-500/10 via-amber-50 to-white border-2 border-amber-500/30 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-            <span className="material-symbols-outlined text-2xl">pending_actions</span>
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-amber-950">
-              Buổi học hôm qua #2 đã kết thúc — Vui lòng đối soát điểm danh!
-            </h3>
-            <p className="text-xs text-amber-800 mt-0.5">
-              Cửa sổ đối soát 24h còn lại <strong>{student.actionableSession.hoursLeft} giờ</strong> trước khi tiền học ({formatCurrency(student.actionableSession.amount)}) tự động giải ngân cho gia sư.
-            </p>
-          </div>
-        </div>
-        <Link
-          to={`/student/sessions/${student.actionableSession.id}`}
-          className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 shrink-0"
-        >
-          <span className="material-symbols-outlined text-base">check_circle</span>
-          Xác Nhận Điểm Danh Ngay
-        </Link>
-      </div>
-
-      {/* Main Workspace Split */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left 2 Cols: Upcoming Sessions & Next Schedule */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="p-6 rounded-3xl bg-white border border-border-light shadow-xs space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-border-light">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <span className="material-symbols-outlined text-brand-indigo-600">event_available</span>
-                Lịch Học Trong Tuần Này
+      {/* Actionable Urgent Attendance Banner (if any session finished and waiting) */}
+      {actionableSession && (
+        <div className="p-6 rounded-3xl bg-gradient-to-r from-amber-500/10 via-amber-50 to-white border-2 border-amber-500/30 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <span className="material-symbols-outlined text-2xl">pending_actions</span>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-amber-950">
+                Buổi học #{actionableSession.sessionNumber} ({actionableSession.subjectName}) đã diễn ra — Vui lòng đối soát điểm danh!
               </h3>
-              <span className="text-xs font-bold text-brand-indigo-600">Thời gian thực (UTC+7)</span>
-            </div>
-
-            {/* Next session card */}
-            <div className="p-5 rounded-2xl bg-brand-indigo-50/50 border border-brand-indigo-100/80 space-y-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="px-2.5 py-0.5 rounded-full bg-brand-indigo-600 text-white text-[10px] font-extrabold uppercase">
-                    Buổi #{student.nextSession.sessionNumber} Sắp Diễn Ra
-                  </span>
-                  <h4 className="text-base font-bold text-slate-900 mt-2">{student.nextSession.subject}</h4>
-                  <p className="text-xs text-slate-600 mt-0.5">Gia sư: <strong>{student.nextSession.tutorName}</strong></p>
-                </div>
-                <span className="text-xs font-bold text-brand-indigo-700 font-monospace-num">
-                  {student.nextSession.time}
-                </span>
-              </div>
-
-              <div className="flex flex-wrap gap-2 pt-2 border-t border-brand-indigo-100">
-                <a
-                  href={student.nextSession.meetUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5"
-                >
-                  <span className="material-symbols-outlined text-base">video_camera_front</span>
-                  Vào Phòng Google Meet
-                </a>
-                <Link
-                  to={`/student/sessions/${student.nextSession.id}`}
-                  className="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors"
-                >
-                  Xem Chi Tiết Buổi Học
-                </Link>
-              </div>
+              <p className="text-xs text-amber-800 mt-0.5">
+                Cửa sổ đối soát 24h đang mở để bảo vệ quyền lợi học viên trước khi giải ngân.
+              </p>
             </div>
           </div>
+          <Link
+            to={`/student/sessions/${actionableSession.id}`}
+            className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 shrink-0"
+          >
+            <span className="material-symbols-outlined text-base">check_circle</span>
+            Xác Nhận Điểm Danh Ngay
+          </Link>
+        </div>
+      )}
+
+      {/* Main Grid: Active Enrollments */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-900">Danh Sách Hợp Đồng Học Tập</h2>
+          <span className="text-xs text-slate-500 font-mono">Tổng: {enrollments.length} hợp đồng</span>
         </div>
 
-        {/* Right Col: Active Contract Hub Card */}
-        <div className="space-y-6">
-          <div className="p-6 rounded-3xl bg-white border border-border-light shadow-xs space-y-5">
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-brand-indigo-600">assignment</span>
-              Hợp Đồng Đang Hiệu Lực
-            </h3>
-
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
-              <div>
-                <h4 className="text-xs font-bold text-slate-900">{student.activeContract.subject}</h4>
-                <p className="text-[11px] text-text-muted">Gia sư: {student.activeContract.tutorName}</p>
-              </div>
-
-              {/* Progress */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs font-semibold">
-                  <span className="text-slate-600">Tiến độ khóa học:</span>
-                  <span className="text-brand-indigo-600 font-bold font-monospace-num">
-                    {student.activeContract.completedSessions}/{student.activeContract.totalSessions} buổi (20%)
-                  </span>
-                </div>
-                <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                  <div className="bg-brand-indigo-600 h-full w-[20%] rounded-full"></div>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-200 text-xs space-y-1">
-                <div className="flex justify-between text-text-muted">
-                  <span>Đã giải ngân:</span>
-                  <span className="font-monospace-num font-bold text-slate-800">{formatCurrency(student.activeContract.usedAmount)}</span>
-                </div>
-                <div className="flex justify-between text-emerald-700 font-bold">
-                  <span>Còn lại trong Escrow:</span>
-                  <span className="font-monospace-num">{formatCurrency(student.activeContract.remainingAmount)}</span>
-                </div>
-              </div>
-
-              <Link
-                to={`/student/enrollments/${student.activeContract.id}`}
-                className="w-full py-2.5 rounded-xl bg-brand-indigo-50 hover:bg-brand-indigo-100 text-brand-indigo-700 text-xs font-bold transition-colors flex items-center justify-center gap-1.5 block text-center"
+        {enrollments.length === 0 ? (
+          <EmptyState
+            icon="school"
+            title="Bạn chưa có hợp đồng học tập nào"
+            description="Tìm kiếm gia sư phù hợp và đặt mua gói học để bắt đầu hành trình học tập có bảo chứng."
+            actionLabel="Khám phá gia sư ngay"
+            actionPath="/tutors"
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {enrollments.map((enr) => (
+              <div
+                key={enr.id}
+                className="p-6 rounded-3xl bg-white border border-border-light shadow-xs space-y-4 hover:border-brand-indigo-300 transition-colors"
               >
-                Vào Trung Tâm Hợp Đồng
-                <span className="material-symbols-outlined text-base">arrow_forward</span>
-              </Link>
-            </div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={enr.tutorAvatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${enr.tutorName}`}
+                      alt={enr.tutorName}
+                      className="w-12 h-12 rounded-2xl object-cover border border-slate-200 shrink-0"
+                    />
+                    <div>
+                      <h3 className="text-sm font-extrabold text-slate-900">{enr.serviceTitle || enr.subjectName}</h3>
+                      <p className="text-xs text-brand-indigo-600 font-semibold mt-0.5">Gia sư: {enr.tutorName}</p>
+                    </div>
+                  </div>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                      enr.status === 'Active'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : enr.status === 'Completed'
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                        : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {enr.status === 'Active' ? 'Đang học' : enr.status === 'Completed' ? 'Hoàn thành' : enr.status}
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-slate-600">
+                    <span>Tiến độ học tập:</span>
+                    <span className="font-bold font-monospace-num">
+                      {enr.completedSessions} / {enr.totalSessions} buổi
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-brand-indigo-600 h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(100, Math.round(((enr.completedSessions || 0) / (enr.totalSessions || 1)) * 100))}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                  <span className="font-monospace-num font-bold text-slate-700">
+                    {formatCurrency(enr.totalPrice)}
+                  </span>
+                  <Link
+                    to={`/student/enrollments/${enr.id}`}
+                    className="font-bold text-brand-indigo-600 hover:text-brand-indigo-800 flex items-center gap-1"
+                  >
+                    Chi tiết hợp đồng
+                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                  </Link>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

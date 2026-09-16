@@ -259,6 +259,16 @@ export const tutorService = {
     }
   },
 
+  /** POST /tutors/me/application → TutorApplicationDto */
+  async submitTutorApplication(payload) {
+    return api.post('/tutors/me/application', payload);
+  },
+
+  /** GET /tutors/me/application → TutorApplicationDto */
+  async getMyTutorApplication() {
+    return api.get('/tutors/me/application');
+  },
+
   /**
    * GET /tutors/{id}/reviews → PagedResult<TutorPublicReviewDto>
    * @returns {Promise<{items: object[], totalCount: number, pageNumber: number, pageSize: number, totalPages: number, hasPreviousPage: boolean, hasNextPage: boolean}>}
