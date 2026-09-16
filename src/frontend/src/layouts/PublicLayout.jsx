@@ -8,8 +8,8 @@ export default function PublicLayout() {
       {/* Unified Persistent Topbar */}
       <UnifiedNavbar />
 
-      {/* Main Page Content */}
-      <main className="flex-1 w-full relative z-0">
+      {/* Main Page Content — pb-28 on mobile avoids overlapping the floating dock */}
+      <main className="flex-1 w-full relative z-0 pb-28 md:pb-0">
         <Outlet />
       </main>
 

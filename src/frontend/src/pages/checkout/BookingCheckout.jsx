@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import paymentService from '@/services/payment.service';
+import CountdownTimer from '@/components/feedback/CountdownTimer';
 import { formatCurrency } from '@/utils/formatters';
-import { USE_MOCK } from '@/config/constants';
 import { message } from 'antd';
 
 export default function BookingCheckout() {
@@ -10,36 +10,13 @@ export default function BookingCheckout() {
   const currentBookingId = id || paramBookingId || 'BK-2026-9021';
   const navigate = useNavigate();
 
-  const [timeLeft, setTimeLeft] = useState(822); // ~13m 42s
   const [selectedMethod, setSelectedMethod] = useState('vnpay');
   const [loading, setLoading] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
+  const [isExpired, setIsExpired] = useState(false);
 
   const isDev = import.meta.env.DEV || import.meta.env.VITE_DEV_PAYMENT_SIMULATOR === 'true';
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          message.warning('Hết thời hạn giữ chỗ 15 phút. Đơn giữ chỗ đã bị hủy.');
-          navigate('/tutors');
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [navigate]);
-
-  const formatTimer = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const timerPercentage = Math.round((timeLeft / 900) * 100);
 
   const orderData = {
     bookingId: currentBookingId,
@@ -54,6 +31,10 @@ export default function BookingCheckout() {
   };
 
   const handlePayVNPay = async () => {
+    if (isExpired) {
+      message.error('Đơn giữ chỗ đã hết hạn. Vui lòng tạo lại đơn hàng mới.');
+      return;
+    }
     try {
       setLoading(true);
       setPaymentError(null);
@@ -100,32 +81,11 @@ export default function BookingCheckout() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-      {/* 15-Minute Countdown Banner with Amber Glow */}
-      <div className="rounded-3xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-500/5 border-2 border-amber-500/30 p-6 sm:p-7 space-y-3.5 glow-amber">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 text-amber-950 font-extrabold text-sm sm:text-base">
-            <span className="material-symbols-outlined text-amber-600 animate-spin text-2xl">hourglass_top</span>
-            <span>ĐANG GIỮ CHỖ KHÓA HỌC (THỜI HẠN 15 PHÚT)</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <span className="text-xs text-amber-900 font-bold">Thời gian còn lại:</span>
-            <span className="px-4 py-1.5 rounded-2xl bg-amber-500 text-white font-monospace-num font-extrabold text-lg tracking-wider shadow-md shadow-amber-500/30">
-              {formatTimer(timeLeft)}
-            </span>
-          </div>
-        </div>
-
-        {/* Dynamic Progress Bar */}
-        <div className="w-full bg-amber-200/80 h-3 rounded-full overflow-hidden p-0.5">
-          <div
-            className="bg-gradient-to-r from-amber-500 to-amber-600 h-full transition-all duration-1000 rounded-full"
-            style={{ width: `${timerPercentage}%` }}
-          ></div>
-        </div>
-        <p className="text-[11px] text-amber-900/80 font-medium">
-          Chỗ học của bạn với gia sư đã được bảo lưu độc quyền trên hệ thống. Hoàn tất thanh toán ký quỹ để kích hoạt hợp đồng học tập.
-        </p>
-      </div>
+      {/* Signature Component: 15-Minute Countdown Timer §3.1 */}
+      <CountdownTimer
+        onExpire={() => setIsExpired(true)}
+        onReorderPath="/tutors"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left: Order Info & Escrow Certificate */}
@@ -254,11 +214,15 @@ export default function BookingCheckout() {
                 <button
                   type="button"
                   onClick={handlePayVNPay}
-                  disabled={loading || simulating}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-brand-indigo-600 to-indigo-700 hover:from-brand-indigo-500 hover:to-indigo-600 text-white font-extrabold text-sm shadow-md shadow-brand-indigo-500/30 transition-all sheen-btn flex items-center justify-center gap-2 disabled:opacity-50"
+                  disabled={loading || simulating || isExpired}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-brand-indigo-600 to-indigo-700 hover:from-brand-indigo-500 hover:to-indigo-600 text-white font-extrabold text-sm shadow-md shadow-brand-indigo-500/30 transition-all sheen-btn flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span className="material-symbols-outlined text-lg">payment</span>
-                  {loading ? 'Đang kết nối VNPay...' : `Thanh Toán ${formatCurrency(orderData.totalAmount)} Qua VNPay`}
+                  {isExpired
+                    ? 'Đơn Giữ Chỗ Đã Hết Hạn'
+                    : loading
+                      ? 'Đang kết nối VNPay...'
+                      : `Thanh Toán ${formatCurrency(orderData.totalAmount)} Qua VNPay`}
                 </button>
 
                 {isDev && (

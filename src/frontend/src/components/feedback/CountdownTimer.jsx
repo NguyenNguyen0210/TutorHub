@@ -1,93 +1,158 @@
-import React, { useState, useEffect } from 'react';
-import { Progress, Tag } from 'antd';
-import { ClockCircleFilled, AlertFilled } from '@ant-design/icons';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 
-export default function CountdownTimer({ expiresAt, onExpire }) {
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [totalDuration, setTotalDuration] = useState(15 * 60); // 15 phút (900s)
+/**
+ * DESIGN.md §3.1: Holding Countdown Timer (Bộ Đếm Ngược Giữ Chỗ 15 Phút)
+ *
+ * 3 Trạng thái hiển thị (Urgency States):
+ * - Calm (> 5 phút): bg-amber-50, border-amber-200, text-amber-900.
+ * - Caution (2 - 5 phút): bg-amber-100, border-amber-300, thanh tiến trình màu cam đậm.
+ * - Emergency (< 2 phút): bg-rose-50, border-rose-300, text-rose-700, nhấp nháy pulse.
+ * - Expired (= 00:00): Khóa CTA thanh toán, hiển thị thông báo hết hạn và nút Tạo lại đơn hàng.
+ *
+ * Tự động đồng bộ lại khi chuyển tab qua `visibilitychange`.
+ */
+export default function CountdownTimer({
+  expiresAt,
+  initialSeconds = 15 * 60,
+  onExpire,
+  onReorderPath = '/tutors',
+}) {
+  const computeDiff = useCallback(() => {
+    if (expiresAt) {
+      const targetTime = new Date(expiresAt).getTime();
+      const now = Date.now();
+      return Math.max(0, Math.floor((targetTime - now) / 1000));
+    }
+    return initialSeconds;
+  }, [expiresAt, initialSeconds]);
+
+  const [timeLeft, setTimeLeft] = useState(computeDiff);
+  const totalDuration = 15 * 60; // 900 giây chuẩn 15 phút
 
   useEffect(() => {
-    if (!expiresAt) return;
+    setTimeLeft(computeDiff());
 
-    const targetTime = new Date(expiresAt).getTime();
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          if (onExpire) onExpire();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
-    const updateTimer = () => {
-      const now = new Date().getTime();
-      const diff = Math.max(0, Math.floor((targetTime - now) / 1000));
-      setTimeLeft(diff);
-
-      if (diff === 0 && onExpire) {
-        onExpire();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const diff = computeDiff();
+        setTimeLeft(diff);
+        if (diff === 0 && onExpire) {
+          onExpire();
+        }
       }
     };
 
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [expiresAt, onExpire]);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [computeDiff, onExpire]);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
   const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  const percent = Math.min(100, Math.round((timeLeft / totalDuration) * 100));
+  const percent = Math.min(100, Math.max(0, Math.round((timeLeft / totalDuration) * 100)));
 
-  // Xác định màu sắc động: > 5 phút (Xanh) -> 2-5 phút (Vàng) -> < 2 phút (Đỏ nhấp nháy)
-  let statusColor = '#10B981'; // Emerald
-  let bgClass = 'bg-emerald-50 border-emerald-200 text-emerald-800';
-  let isPulsing = false;
+  const isExpired = timeLeft <= 0;
 
-  if (timeLeft <= 0) {
-    statusColor = '#64748B';
-    bgClass = 'bg-slate-100 border-slate-300 text-slate-500';
+  // 3 Urgency states theo DESIGN §3.1
+  let urgency = 'calm';
+  let containerStyle = 'bg-amber-50/80 border-amber-200 text-amber-900';
+  let progressBarStyle = 'bg-amber-500';
+  let timeStyle = 'text-amber-950 font-bold';
+
+  if (isExpired) {
+    urgency = 'expired';
+    containerStyle = 'bg-slate-100 border-slate-300 text-slate-600';
+    progressBarStyle = 'bg-slate-400';
+    timeStyle = 'text-rose-600 font-extrabold';
   } else if (timeLeft < 120) {
-    statusColor = '#EF4444'; // Red
-    bgClass = 'bg-rose-50 border-rose-300 text-rose-800 animate-pulse';
-    isPulsing = true;
+    // < 2 phút: Emergency
+    urgency = 'emergency';
+    containerStyle = 'bg-rose-50 border-rose-300 text-rose-800 animate-pulse';
+    progressBarStyle = 'bg-rose-600';
+    timeStyle = 'text-rose-700 font-extrabold animate-pulse';
   } else if (timeLeft < 300) {
-    statusColor = '#F59E0B'; // Amber
-    bgClass = 'bg-amber-50 border-amber-300 text-amber-800';
+    // 2 - 5 phút: Caution
+    urgency = 'caution';
+    containerStyle = 'bg-amber-100 border-amber-300 text-amber-950';
+    progressBarStyle = 'bg-amber-600';
+    timeStyle = 'text-amber-900 font-extrabold';
   }
 
   return (
-    <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border p-4 shadow-sm transition-all ${bgClass}`}>
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-xs">
-          {isPulsing ? (
-            <AlertFilled className="text-rose-500 text-xl" />
-          ) : (
-            <ClockCircleFilled style={{ color: statusColor, fontSize: '20px' }} />
-          )}
+    <div
+      className={`rounded-3xl border-2 p-5 sm:p-6 shadow-sm transition-all space-y-3.5 ${containerStyle}`}
+      role="timer"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      {/* Header Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex items-center gap-2 font-extrabold text-xs sm:text-sm tracking-wide uppercase">
+          <span className="text-base" aria-hidden="true">
+            {isExpired ? '⚠️' : '⏳'}
+          </span>
+          <span>
+            {isExpired ? 'ĐƠN GIỮ CHỖ ĐÃ HẾT HẠN (15 PHÚT)' : 'ĐANG GIỮ CHỖ THANH TOÁN (15 PHÚT)'}
+          </span>
         </div>
-        <div>
-          <div className="text-xs font-bold uppercase tracking-wider">
-            {timeLeft > 0 ? 'Thời Gian Giữ Chỗ Tạm Thời' : 'Đơn Giữ Chỗ Đã Hết Hạn'}
-          </div>
-          <p className="m-0 text-xs opacity-80 mt-0.5">
-            {timeLeft > 0
-              ? 'Lịch học của bạn đang được khóa trên hệ thống. Hãy hoàn tất thanh toán trước khi hết giờ.'
-              : 'Thời gian 15 phút đã kết thúc. Slot học đã được giải phóng cho học viên khác.'}
-          </p>
+
+        <div className="flex items-baseline gap-2">
+          <span className={`text-xl sm:text-2xl font-mono tracking-tight ${timeStyle}`}>
+            [ {formattedTime} ]
+          </span>
+          <span className="text-xs font-medium opacity-80">
+            {isExpired ? 'Đã kết thúc' : 'Còn lại'}
+          </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="text-right">
-          <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight leading-none">
-            {formattedTime}
-          </div>
-          <div className="text-[10px] opacity-70 mt-1 uppercase">Phút : Giây</div>
-        </div>
-
-        <div className="w-12 h-12 flex items-center justify-center">
-          <Progress
-            type="circle"
-            percent={percent}
-            size={44}
-            strokeColor={statusColor}
-            showInfo={false}
-            strokeWidth={10}
+      {/* Linear Progress Bar §3.1 */}
+      <div className="space-y-1">
+        <div className="w-full bg-slate-200/80 rounded-full h-2.5 overflow-hidden">
+          <div
+            className={`h-full transition-all duration-1000 ease-linear rounded-full ${progressBarStyle}`}
+            style={{ width: `${percent}%` }}
           />
         </div>
+        <div className="flex justify-between text-[11px] font-mono opacity-75">
+          <span>{isExpired ? '0% thời gian giữ chỗ' : `(${percent}% thời gian giữ chỗ còn lại)`}</span>
+          <span>Tổng hạn: 15:00</span>
+        </div>
+      </div>
+
+      {/* Guidance Message and Expiry Actions */}
+      <div className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs leading-relaxed">
+        <p className="m-0">
+          {isExpired
+            ? 'Đơn đặt chỗ đã hết hạn giữ vé 15 phút. Suất học của bạn đã được giải phóng để đảm bảo công bằng cho các học viên khác.'
+            : 'Vui lòng hoàn tất thanh toán VNPay trước khi hết hạn để xác nhận hợp đồng.'}
+        </p>
+
+        {isExpired && (
+          <Link
+            to={onReorderPath}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white font-bold text-xs shrink-0 transition-colors shadow-xs"
+          >
+            <span className="material-symbols-outlined text-base">refresh</span>
+            Tạo Lại Đơn Hàng Mới
+          </Link>
+        )}
       </div>
     </div>
   );

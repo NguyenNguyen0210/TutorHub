@@ -8,8 +8,8 @@ export default function StudentLayout() {
       {/* Unified Persistent Navbar */}
       <UnifiedNavbar />
 
-      {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      {/* Main Content — pb-28 ensures mobile floating dock does not obscure buttons */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 pb-28 md:pb-8">
         <Outlet />
       </main>
     </div>

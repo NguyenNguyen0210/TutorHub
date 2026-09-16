@@ -102,6 +102,30 @@ export default function AdminLayout() {
         </div>
       </header>
 
+      {/* Mobile & Tablet Secondary Navigation Bar (<1024px) */}
+      <nav
+        className="lg:hidden w-full bg-slate-950/95 border-b border-slate-800 px-4 py-2.5 flex items-center gap-2 overflow-x-auto no-scrollbar sticky top-16 z-40"
+        aria-label="Admin Mobile Navigation"
+      >
+        {navLinks.map((item) => {
+          const isActive = location.pathname.startsWith(item.path);
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors ${
+                isActive
+                  ? 'bg-brand-indigo-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+              }`}
+            >
+              <span className="material-symbols-outlined text-base">{item.icon}</span>
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+
       {/* Main Admin Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
         <Outlet />

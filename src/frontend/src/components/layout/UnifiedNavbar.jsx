@@ -204,12 +204,12 @@ export default function UnifiedNavbar() {
               {role === 'Student' && (
                 <div
                   className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50/90 border border-emerald-200/80 text-emerald-700 text-xs font-extrabold shadow-xs select-none"
-                  title="Tài khoản chấp hành nội quy tốt - Không có vi phạm vắng mặt"
+                  title={(user?.absentStrikes ?? 0) > 0 ? `Tài khoản ghi nhận ${user.absentStrikes} vi phạm vắng mặt` : "Tài khoản chấp hành nội quy tốt - Không có vi phạm vắng mặt"}
                 >
                   <span className="material-symbols-outlined text-base text-emerald-600" style={{ fontVariationSettings: "'FILL' 1" }}>
                     verified
                   </span>
-                  <span>0 Vi Phạm (Uy Tín 100%)</span>
+                  <span>{(user?.absentStrikes ?? 0) === 0 ? '0 Vi Phạm (Uy Tín)' : `${user.absentStrikes} Vi Phạm`}</span>
                 </div>
               )}
 
@@ -313,7 +313,7 @@ export default function UnifiedNavbar() {
           {isAuthenticated && role === 'Student' && (
             <div className="pt-2 border-t border-slate-100 flex items-center gap-2 text-xs font-extrabold text-emerald-700 px-3 py-1.5">
               <span className="material-symbols-outlined text-base text-emerald-600">verified</span>
-              0 Vi Phạm (Uy Tín 100%)
+              {(user?.absentStrikes ?? 0) === 0 ? '0 Vi Phạm (Uy Tín)' : `${user.absentStrikes} Vi Phạm`}
             </div>
           )}
         </div>
