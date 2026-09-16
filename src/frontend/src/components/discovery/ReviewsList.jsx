@@ -80,7 +80,7 @@ export default function ReviewsList({ reviews = [], rating = 4.9, totalReviews =
 
             {/* Comment */}
             <p className="mt-3 text-xs text-slate-700 leading-relaxed">
-              "{rev.comment}"
+              “{rev.comment}”
             </p>
 
             {/* Tutor Reply if any */}

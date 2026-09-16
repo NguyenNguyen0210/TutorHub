@@ -78,7 +78,7 @@ export default function AdminDisputeDetail() {
         <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-700 space-y-2 text-xs">
           <span className="text-rose-400 font-extrabold block">Lý do khiếu nại: TutorNoShow (Gia sư vắng mặt không báo trước)</span>
           <p className="text-slate-300 leading-relaxed">
-            "Em vào phòng học Google Meet lúc 18:00 và chờ 30 phút đến 18:30 nhưng thầy An không vào lớp và không trả lời tin nhắn của em."
+            “Em vào phòng học Google Meet lúc 18:00 và chờ 30 phút đến 18:30 nhưng thầy An không vào lớp và không trả lời tin nhắn của em.”
           </p>
           <div className="pt-2 flex items-center gap-2 text-slate-400">
             <span className="material-symbols-outlined text-base">attachment</span>
