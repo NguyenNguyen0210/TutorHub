@@ -333,7 +333,7 @@ export default function Messages() {
                   handleTyping();
                 }}
                 placeholder="Nhập tin nhắn..."
-                className="flex-1 px-4 py-2.5 rounded-2xl border border-slate-200 text-xs text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+                className="flex-1 px-4 py-2.5 rounded-2xl border border-slate-200 text-xs text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none"
               />
               <button
                 type="submit"

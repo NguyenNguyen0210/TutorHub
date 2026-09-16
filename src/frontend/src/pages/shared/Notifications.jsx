@@ -166,7 +166,7 @@ export default function Notifications() {
                 onClick={() => handleMarkAsRead(item.id, item.isRead)}
                 className={`p-5 rounded-2xl border border-border-light border-l-4 ${borderColor} ${
                   !item.isRead ? 'bg-indigo-50/20 shadow-xs' : 'bg-white opacity-85'
-                } transition-all space-y-2 cursor-pointer hover:shadow-sm focus:outline-hidden focus:ring-2 focus:ring-brand-indigo-500`}
+                } transition-all space-y-2 cursor-pointer hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-indigo-500`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2">

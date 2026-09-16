@@ -149,7 +149,7 @@ export default function TutorWithdraw() {
                 onChange={(e) => setAmount(e.target.value)}
                 min="50000"
                 max={withdrawableLimit}
-                className="w-full px-4 py-3 rounded-xl border border-border-light text-slate-900 font-monospace-num font-bold text-base focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+                className="w-full px-4 py-3 rounded-xl border border-border-light text-slate-900 font-monospace-num font-bold text-base focus:ring-2 focus:ring-brand-indigo-500 outline-none"
               />
               <span className="text-[11px] text-text-muted block">
                 Tối thiểu: 50.000 ₫ • Tối đa: {formatCurrency(withdrawableLimit)}
@@ -185,7 +185,7 @@ export default function TutorWithdraw() {
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-border-light text-slate-900 text-xs focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+                className="w-full px-4 py-2.5 rounded-xl border border-border-light text-slate-900 text-xs focus:ring-2 focus:ring-brand-indigo-500 outline-none"
               />
             </div>
 

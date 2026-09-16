@@ -185,7 +185,7 @@ export default function AdminDisputeDetail() {
             rows={3}
             value={adminNote}
             onChange={(e) => setAdminNote(e.target.value)}
-            className="w-full p-3.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:ring-2 focus:ring-brand-indigo-500 outline-hidden leading-relaxed"
+            className="w-full p-3.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:ring-2 focus:ring-brand-indigo-500 outline-none leading-relaxed"
           />
         </div>
 

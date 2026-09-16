@@ -132,7 +132,7 @@ export default function Marketplace() {
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 placeholder="Tìm theo môn học, gia sư, trường ĐH (VD: Toán 12, IELTS 8.0, Bách Khoa)..."
-                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-brand-indigo-500 focus:bg-white/15 transition-all text-xs sm:text-sm font-medium shadow-inner"
+                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-indigo-500 focus:bg-white/15 transition-all text-xs sm:text-sm font-medium shadow-inner"
               />
             </div>
             <button
@@ -264,7 +264,7 @@ export default function Marketplace() {
                 id="marketplace-sort"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full text-xs font-bold rounded-xl border border-slate-200 p-3 bg-white text-slate-700 focus:ring-2 focus:ring-brand-indigo-500 focus:border-brand-indigo-500 outline-hidden"
+                className="w-full text-xs font-bold rounded-xl border border-slate-200 p-3 bg-white text-slate-700 focus:ring-2 focus:ring-brand-indigo-500 focus:border-brand-indigo-500 outline-none"
               >
                 <option value="rating_desc">Đánh giá cao nhất (★ 5.0)</option>
                 <option value="price_asc">Học phí: Thấp đến cao</option>

@@ -26,6 +26,14 @@
    ======================================================== */
 
 /* Multi-layer Glassmorphism Surfaces */
+.glass-surface {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+}
+
 .glass-panel-premium {
   background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(16px);
@@ -133,4 +141,16 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(79, 70, 229, 0.6);
+}
+
+/* DESIGN §5 / P8: Accessibility Motion Guard */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

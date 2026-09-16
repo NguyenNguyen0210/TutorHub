@@ -146,7 +146,7 @@ export default function TutorApplication() {
                 rows={4}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                className="w-full p-4 rounded-xl border border-border-light text-xs text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-hidden leading-relaxed"
+                className="w-full p-4 rounded-xl border border-border-light text-xs text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none leading-relaxed"
                 placeholder="Mô tả phong cách giảng dạy, thế mạnh môn học và kinh nghiệm luyện thi..."
               />
             </div>
@@ -160,7 +160,7 @@ export default function TutorApplication() {
                   id="tutor-mode"
                   value={teachingMode}
                   onChange={(e) => setTeachingMode(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-hidden bg-white"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none bg-white"
                 >
                   <option value={TEACHING_MODE.BOTH}>Cả Trực Tuyến & Tại Nhà (Both)</option>
                   <option value={TEACHING_MODE.ONLINE}>Chỉ Dạy Online</option>
@@ -178,7 +178,7 @@ export default function TutorApplication() {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Ví dụ: Quận Cầu Giấy, Hà Nội"
-                  className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none"
                 />
               </div>
             </div>
@@ -203,7 +203,7 @@ export default function TutorApplication() {
                   type="text"
                   value={university}
                   onChange={(e) => setUniversity(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none"
                 />
               </div>
               <div className="space-y-1">
@@ -215,7 +215,7 @@ export default function TutorApplication() {
                   type="text"
                   value={major}
                   onChange={(e) => setMajor(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none"
                 />
               </div>
             </div>
@@ -230,7 +230,7 @@ export default function TutorApplication() {
                   type="text"
                   value={degreeLevel}
                   onChange={(e) => setDegreeLevel(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none"
                 />
               </div>
               <div className="space-y-1">
@@ -244,7 +244,7 @@ export default function TutorApplication() {
                   max="50"
                   value={experienceYears}
                   onChange={(e) => setExperienceYears(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none"
                 />
               </div>
             </div>

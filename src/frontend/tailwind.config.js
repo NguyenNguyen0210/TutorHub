@@ -4,9 +4,15 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: "class",
   theme: {
     extend: {
+      borderRadius: {
+        sm6: '6px',
+        md10: '10px',
+        lg16: '16px',
+        xl24: '24px',
+        '2xl32': '32px',
+      },
       colors: {
         brand: {
           navy: {
@@ -33,6 +39,7 @@ export default {
 
         // Stitch Semantic Escrow Colors
         'financial-available': '#10B981',
+        'financial-available-strong': '#047857',
         'financial-available-bg': '#ECFDF5',
         'financial-holding': '#F59E0B',
         'financial-holding-bg': '#FFFBEB',
@@ -42,6 +49,7 @@ export default {
         'financial-escrow-blue-bg': '#EFF6FF',
         financial: {
           available: '#10B981',
+          'available-strong': '#047857',
           'available-bg': '#ECFDF5',
           holding: '#F59E0B',
           'holding-bg': '#FFFBEB',
@@ -116,12 +124,23 @@ export default {
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'float': 'float 4s ease-in-out infinite',
+        'fadeIn': 'fadeIn 0.25s ease-out forwards',
+        'shake': 'shake 0.4s ease-in-out',
       },
       keyframes: {
         float: {
           '0%, 100%': { transform: 'translateY(0px)' },
           '50%': { transform: 'translateY(-6px)' },
-        }
+        },
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(4px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        shake: {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '20%, 60%': { transform: 'translateX(-4px)' },
+          '40%, 80%': { transform: 'translateX(4px)' },
+        },
       }
     },
   },

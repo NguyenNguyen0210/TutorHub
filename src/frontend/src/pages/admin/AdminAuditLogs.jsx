@@ -65,7 +65,7 @@ export default function AdminAuditLogs() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Tìm theo CorrelationId, EntityName (VD: corr-..., Dispute, Transaction)..."
-          className="w-full max-w-md px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:ring-2 focus:ring-brand-indigo-500 outline-hidden"
+          className="w-full max-w-md px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:ring-2 focus:ring-brand-indigo-500 outline-none"
         />
         <span className="text-xs text-slate-400 font-mono">
           Tổng bản ghi: <strong>{totalCount}</strong>

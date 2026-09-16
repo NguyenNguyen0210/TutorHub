@@ -85,7 +85,7 @@ export default function DisputeNew() {
                     }
                   }}
                   onClick={() => setReason(r.key)}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all focus:outline-hidden focus:ring-2 focus:ring-rose-500 ${
+                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-rose-500 ${
                     reason === r.key
                       ? 'border-rose-500 bg-rose-50/50 text-rose-950 shadow-xs'
                       : 'border-border-light hover:bg-slate-50 text-slate-700'
@@ -115,7 +115,7 @@ export default function DisputeNew() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Mô tả diễn biến cụ thể để trọng tài có đầy đủ cơ sở phân xử..."
-              className="w-full p-4 rounded-2xl border border-border-light text-xs text-slate-900 focus:ring-2 focus:ring-rose-500 outline-hidden leading-relaxed"
+              className="w-full p-4 rounded-2xl border border-border-light text-xs text-slate-900 focus:ring-2 focus:ring-rose-500 outline-none leading-relaxed"
             />
           </div>
 
