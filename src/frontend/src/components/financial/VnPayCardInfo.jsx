@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, message } from 'antd';
+import { message } from 'antd';
 import { CopyOutlined, CreditCardFilled, CheckOutlined } from '@ant-design/icons';
 
 export default function VnPayCardInfo() {

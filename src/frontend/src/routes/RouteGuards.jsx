@@ -24,12 +24,12 @@ export function RequireRole({ allowedRoles, children }) {
   if (!allowedRoles.includes(role)) {
     return (
       <div className="p-8 text-center bg-white rounded-xl border border-rose-200">
-        <h2 className="text-rose-600 font-bold text-lg mb-2">403 — Khong Du Tham Quyen Truy Cap</h2>
+        <h2 className="text-rose-600 font-bold text-lg mb-2">403 — Không Đủ Thẩm Quyền Truy Cập</h2>
         <p className="text-xs text-slate-600 mb-4">
-          Tai khoan hien tai cua ban (<strong>{role}</strong>) khong co quyen truy cap khu vuc nay.
+          Tài khoản hiện tại của bạn (<strong>{role}</strong>) không có quyền truy cập khu vực này.
         </p>
         <Link to="/tutors" className="text-indigo-600 font-bold text-xs hover:underline">
-          Ve Trang Kham Pha
+          Về Trang Khám Phá
         </Link>
       </div>
     );

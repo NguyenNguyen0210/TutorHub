@@ -5,10 +5,6 @@ export default function EscrowVaultSimulator() {
   const [activeStep, setActiveStep] = useState(2); // 1: Completed, 2: In-verification, 3: Dispute demo, 4: Locked
   const [dualConfirmed, setDualConfirmed] = useState({ student: false, tutor: false });
 
-  const totalPackageAmount = 2000000;
-  const sessionAmount = 200000;
-  const platformFeeRate = 0.10;
-
   // Calculate simulated balances based on state
   let releasedAmount = 200000;
   let inProgressAmount = 200000;

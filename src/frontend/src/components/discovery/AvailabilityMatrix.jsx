@@ -1,5 +1,4 @@
 import React from 'react';
-import { Tag } from 'antd';
 import { CheckCircleOutlined, ClockCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
 
 const DAYS = [

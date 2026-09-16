@@ -13,30 +13,35 @@ export default function AdminTutorApplications() {
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [statusFilter, setStatusFilter] = useState(null); // null = all
-
-  const loadApplications = async () => {
-    try {
-      setLoading(true);
-      const res = await adminService.getTutorApplications({
-        status: statusFilter,
-        pageSize: 20,
-      });
-      const items = res?.items || [];
-      setApplicants(items);
-      if (items.length > 0 && !selectedAppId) {
-        setSelectedAppId(items[0].id);
-      }
-      setError(null);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
+    let isMounted = true;
+    async function loadApplications() {
+      try {
+        setLoading(true);
+        const res = await adminService.getTutorApplications({
+          status: statusFilter,
+          pageSize: 20,
+        });
+        const items = res?.items || [];
+        if (isMounted) {
+          setApplicants(items);
+          setSelectedAppId((prev) => prev || (items.length > 0 ? items[0].id : null));
+          setError(null);
+        }
+      } catch (err) {
+        if (isMounted) setError(err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
     loadApplications();
-  }, [statusFilter]);
+    return () => {
+      isMounted = false;
+    };
+  }, [statusFilter, reloadToken]);
 
   const current = applicants.find((a) => a.id === selectedAppId) || applicants[0] || null;
 
@@ -52,7 +57,7 @@ export default function AdminTutorApplications() {
           setProcessing(true);
           await adminService.approveTutorApplication(current.id);
           message.success(`Đã phê duyệt và cấp Verified Badge cho ${current.userFullName || current.fullName}!`);
-          await loadApplications();
+          setReloadToken((t) => t + 1);
         } catch (err) {
           message.error(err?.message || 'Không thể phê duyệt hồ sơ gia sư.');
         } finally {
@@ -91,7 +96,7 @@ export default function AdminTutorApplications() {
             rejectReason.trim() || 'Hồ sơ chưa đạt yêu cầu minh chứng văn bằng hoặc KYC'
           );
           message.info(`Đã từ chối hồ sơ.`);
-          await loadApplications();
+          setReloadToken((t) => t + 1);
         } catch (err) {
           message.error(err?.message || 'Không thể từ chối hồ sơ gia sư.');
         } finally {
@@ -139,7 +144,7 @@ export default function AdminTutorApplications() {
         <ErrorState
           error={error}
           title="Không tải được danh sách hồ sơ"
-          onRetry={loadApplications}
+          onRetry={() => setReloadToken((t) => t + 1)}
         />
       )}
 

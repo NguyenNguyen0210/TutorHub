@@ -1,5 +1,5 @@
 import React from 'react';
-import { Result, Button } from 'antd';
+import { Button } from 'antd';
 import { WarningOutlined, HomeOutlined, ReloadOutlined } from '@ant-design/icons';
 
 export default class ErrorBoundary extends React.Component {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Link } from 'react-router-dom';
 
 // Layouts
 import PublicLayout from '../layouts/PublicLayout';
@@ -127,9 +127,9 @@ export default function AppRoutes() {
       {/* 404 Fallback */}
       <Route path="*" element={
         <div className="p-12 text-center">
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">404 — Trang Khong Ton Tai</h2>
-          <p className="text-xs text-slate-500 mb-4">Trang ban yeu cau khong ton tai hoac da bi xoa.</p>
-          <a href="/tutors" className="text-indigo-600 font-bold text-xs hover:underline">Ve Trang Kham Pha</a>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">404 — Trang Không Tồn Tại</h2>
+          <p className="text-xs text-slate-500 mb-4">Trang bạn yêu cầu không tồn tại hoặc đã bị xóa.</p>
+          <Link to="/tutors" className="text-indigo-600 font-bold text-xs hover:underline">Về Trang Khám Phá</Link>
         </div>
       } />
     </Routes>

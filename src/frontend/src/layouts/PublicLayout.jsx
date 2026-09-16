@@ -21,11 +21,11 @@ export default function PublicLayout() {
               <span className="text-xl font-extrabold text-white tracking-tight">TutorHub</span>
               <span className="px-2.5 py-0.5 text-[10px] font-monospace-num font-extrabold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                2-WAY ESCROW PROTOCOL V2
+                BẢO CHỨNG ESCROW 2 CHIỀU
               </span>
             </div>
             <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
-              Nền tảng tiên phong tại Việt Nam tích hợp hợp đồng thông minh ký quỹ học phí hai chiều, giải ngân tự động theo từng buổi học và phân xử tranh chấp DEC-S8-025 minh bạch.
+              Nền tảng tiên phong tại Việt Nam tích hợp bảo chứng học phí hai chiều, giải ngân tự động theo từng buổi học và phân xử tranh chấp công bằng, minh bạch.
             </p>
           </div>
 
@@ -40,7 +40,7 @@ export default function PublicLayout() {
         {/* Ambient bottom line */}
         <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-center text-[11px] text-slate-500 gap-2">
           <span>© 2026 TutorHub Platform. Bất biến tài chính & Bảo vệ quyền lợi người học.</span>
-          <span className="font-mono text-[10px] text-slate-400">DEC-S8 Core Engine • Security Level 4</span>
+          <span className="font-mono text-[10px] text-slate-400">TutorHub Platform • Bảo Chứng Escrow</span>
         </div>
       </footer>
     </div>

@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { Modal, Button, Input, Divider, Tag, message } from 'antd';
+import { Modal, Button, Input, Divider, message } from 'antd';
 import {
   ExclamationCircleFilled,
-  SafetyCertificateFilled,
   CalculatorOutlined,
-  CheckCircleFilled,
 } from '@ant-design/icons';
 import { formatCurrency } from '@/utils/formatters';
 
@@ -39,10 +37,10 @@ export default function ProRataRefundModal({
       if (onConfirmCancel) {
         await onConfirmCancel(reason);
       }
-      message.success(`Hủy hợp đồng thành công! Đã hoàn trả ${formatCurrency(refundAmount)} vào ví của bạn.`);
+      message.success(`Đã gửi yêu cầu dừng hợp đồng thành công! Số tiền ${formatCurrency(refundAmount)} sẽ được xử lý hoàn trả qua cổng thanh toán theo quy chế.`);
       onClose();
     } catch (err) {
-      message.error('Không thể hủy hợp đồng.');
+      message.error(err?.message || 'Không thể hủy hợp đồng.');
     } finally {
       setSubmitting(false);
     }

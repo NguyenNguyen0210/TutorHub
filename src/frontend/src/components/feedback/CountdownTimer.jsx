@@ -96,6 +96,7 @@ export default function CountdownTimer({
 
   return (
     <div
+      data-urgency={urgency}
       className={`rounded-3xl border-2 p-5 sm:p-6 shadow-sm transition-all space-y-3.5 ${containerStyle}`}
       role="timer"
       aria-live="polite"

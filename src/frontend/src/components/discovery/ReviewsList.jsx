@@ -1,5 +1,5 @@
 import React from 'react';
-import { Avatar, Rate, Progress } from 'antd';
+import { Avatar, Progress } from 'antd';
 import { CheckCircleFilled, MessageOutlined } from '@ant-design/icons';
 
 export default function ReviewsList({ reviews = [], rating = 4.9, totalReviews = 18 }) {

@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import api from '../services/api';
-import { USER_ROLES } from '../config/constants';
 
 const savedUser = JSON.parse(localStorage.getItem('tutorhub_user') || 'null');
 const savedToken = localStorage.getItem('tutorhub_token') || null;

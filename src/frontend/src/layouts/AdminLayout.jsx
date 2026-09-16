@@ -40,7 +40,7 @@ export default function AdminLayout() {
                     GOVERNANCE DESK
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-400 font-mono mt-0.5">DEC-S8 Escrow Arbitration Layer</span>
+                <span className="text-[10px] text-slate-400 font-mono mt-0.5">Ban Trọng Tài & Bảo Chứng Ký Quỹ</span>
               </div>
             </Link>
 
