@@ -26,6 +26,7 @@ public class RefreshTokenCommandHandlerTests
             _contextMock.Object,
             StubClock.Instance,
             _jwtServiceMock.Object,
+            new StubRefreshTokenHasher(),
             Options.Create(new AuthTokenLifetimeOptions()));
     }
 
@@ -39,7 +40,7 @@ public class RefreshTokenCommandHandlerTests
             Id = Guid.NewGuid(),
             UserId = user.Id,
             User = user,
-            Token = "valid-old-refresh-token",
+            TokenHash = "hash:valid-old-refresh-token",
             ExpiresAt = DateTime.UtcNow.AddDays(3),
             CreatedAt = DateTime.UtcNow.AddDays(-4),
             RevokedAt = null
@@ -67,9 +68,10 @@ public class RefreshTokenCommandHandlerTests
         result.AccessToken.Should().Be("new-access-token");
         result.RefreshToken.Should().Be("new-refresh-token");
 
-        // Verify side effects: old token revoked, new token added
+        // Verify side effects: old token revoked, new token added (stored hashed, P0-D1)
         existingToken.RevokedAt.Should().NotBeNull();
-        tokensList.Should().ContainSingle(t => t.Token == "new-refresh-token" && t.UserId == user.Id && t.RevokedAt == null);
+        tokensList.Should().ContainSingle(t =>
+            t.TokenHash == "hash:new-refresh-token" && t.UserId == user.Id && t.RevokedAt == null);
 
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -104,7 +106,7 @@ public class RefreshTokenCommandHandlerTests
             Id = Guid.NewGuid(),
             UserId = user.Id,
             User = user,
-            Token = "expired-token",
+            TokenHash = "hash:expired-token",
             ExpiresAt = DateTime.UtcNow.AddMinutes(-10), // Expired
             CreatedAt = DateTime.UtcNow.AddDays(-7),
             RevokedAt = null
@@ -137,7 +139,7 @@ public class RefreshTokenCommandHandlerTests
             Id = Guid.NewGuid(),
             UserId = userA.Id,
             User = userA,
-            Token = "already-revoked-token-A",
+            TokenHash = "hash:already-revoked-token-A",
             ExpiresAt = DateTime.UtcNow.AddDays(3),
             CreatedAt = DateTime.UtcNow.AddDays(-4),
             RevokedAt = DateTime.UtcNow.AddMinutes(-30) // Already revoked
@@ -148,7 +150,7 @@ public class RefreshTokenCommandHandlerTests
             Id = Guid.NewGuid(),
             UserId = userA.Id,
             User = userA,
-            Token = "active-sibling-token-A",
+            TokenHash = "hash:active-sibling-token-A",
             ExpiresAt = DateTime.UtcNow.AddDays(3),
             CreatedAt = DateTime.UtcNow.AddMinutes(-30),
             RevokedAt = null // Currently active
@@ -159,7 +161,7 @@ public class RefreshTokenCommandHandlerTests
             Id = Guid.NewGuid(),
             UserId = userB.Id,
             User = userB,
-            Token = "active-token-user-B",
+            TokenHash = "hash:active-token-user-B",
             ExpiresAt = DateTime.UtcNow.AddDays(3),
             CreatedAt = DateTime.UtcNow.AddMinutes(-10),
             RevokedAt = null // Should remain untouched
@@ -198,7 +200,7 @@ public class RefreshTokenCommandHandlerTests
             Id = Guid.NewGuid(),
             UserId = suspendedUser.Id,
             User = suspendedUser,
-            Token = "valid-token-suspended-user",
+            TokenHash = "hash:valid-token-suspended-user",
             ExpiresAt = DateTime.UtcNow.AddDays(3),
             CreatedAt = DateTime.UtcNow.AddDays(-1),
             RevokedAt = null
@@ -229,7 +231,7 @@ public class RefreshTokenCommandHandlerTests
             Id = Guid.NewGuid(),
             UserId = bannedUser.Id,
             User = bannedUser,
-            Token = "valid-token-banned-user",
+            TokenHash = "hash:valid-token-banned-user",
             ExpiresAt = DateTime.UtcNow.AddDays(3),
             CreatedAt = DateTime.UtcNow.AddDays(-1),
             RevokedAt = null
@@ -247,6 +249,35 @@ public class RefreshTokenCommandHandlerTests
         var ex = await act.Should().ThrowAsync<UnauthorizedException>();
         ex.Which.Errors.Should().Contain("Your account has been banned.");
 
+        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotAuthenticate_WhenARowStoresTheRawTokenInsteadOfItsHash()
+    {
+        // P0-D1 adversarial check: a legacy/plaintext row must NOT be usable, because
+        // the handler looks up the HMAC hash of the presented token, never the token.
+        var user = new UserBuilder().WithRole(UserRole.Student).Build();
+        var plaintextRow = new Domain.Entities.RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            User = user,
+            TokenHash = "raw-token-not-a-hash",
+            ExpiresAt = DateTime.UtcNow.AddDays(3),
+            CreatedAt = DateTime.UtcNow.AddDays(-1),
+            RevokedAt = null
+        };
+
+        var tokensList = new List<Domain.Entities.RefreshToken> { plaintextRow };
+        _contextMock.Setup(c => c.RefreshTokens).Returns(MockDbSetHelper.CreateMockDbSet(tokensList).Object);
+
+        var command = new RefreshTokenCommand("raw-token-not-a-hash");
+
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<UnauthorizedException>();
+        ex.Which.Errors.Should().Contain("Invalid refresh token.");
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

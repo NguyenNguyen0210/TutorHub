@@ -17,19 +17,25 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
     private readonly IClock _clock;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtService _jwtService;
+    private readonly IRefreshTokenHasher _refreshTokenHasher;
     private readonly AuthTokenLifetimeOptions _lifetimes;
+    private readonly AuthLockoutOptions _lockout;
 
     public LoginCommandHandler(
         IAppDbContext context, IClock clock,
         IPasswordHasher passwordHasher,
         IJwtService jwtService,
-        IOptions<AuthTokenLifetimeOptions> lifetimeOptions)
+        IRefreshTokenHasher refreshTokenHasher,
+        IOptions<AuthTokenLifetimeOptions> lifetimeOptions,
+        IOptions<AuthLockoutOptions> lockoutOptions)
     {
         _context = context;
         _clock = clock;
         _passwordHasher = passwordHasher;
         _jwtService = jwtService;
+        _refreshTokenHasher = refreshTokenHasher;
         _lifetimes = lifetimeOptions.Value;
+        _lockout = lockoutOptions.Value;
     }
 
     public async Task<AuthResponseDto> Handle(LoginCommand request, CancellationToken cancellationToken)
@@ -41,8 +47,26 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
             .Include(u => u.StudentProfile)
             .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail, cancellationToken);
 
+        var now = _clock.UtcNow;
+
+        // P0-D3: a locked account is rejected with the same generic message as a wrong
+        // password, so the response cannot be used to enumerate accounts.
+        if (user != null && user.IsLockedOut(now))
+        {
+            throw new UnauthorizedException("Invalid email or password.");
+        }
+
         if (user == null || !_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
         {
+            if (user != null)
+            {
+                user.RegisterFailedLogin(now, _lockout.MaxFailedAttempts, TimeSpan.FromMinutes(_lockout.LockoutMinutes));
+
+                // Persist BEFORE throwing: otherwise the failed attempt is silently lost
+                // and the lockout threshold could never be reached.
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+
             throw new UnauthorizedException("Invalid email or password.");
         }
 
@@ -56,6 +80,13 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
             throw new UnauthorizedException("Your account has been banned.");
         }
 
+        // Successful authentication clears the brute-force counters (P0-D3). It is
+        // persisted by the same SaveChangesAsync that stores the new refresh token.
+        if (user.AccessFailedCount > 0 || user.LockoutEndAt.HasValue)
+        {
+            user.ResetFailedLogin();
+        }
+
         Guid? tutorProfileId = user.TutorProfile?.Id;
         Guid? studentProfileId = user.StudentProfile?.Id;
 
@@ -66,7 +97,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
-            Token = rawRefreshToken,
+            TokenHash = _refreshTokenHasher.Hash(rawRefreshToken),
             ExpiresAt = _clock.UtcNow.AddDays(_lifetimes.RefreshTokenExpirationDays),
             CreatedAt = _clock.UtcNow
         };

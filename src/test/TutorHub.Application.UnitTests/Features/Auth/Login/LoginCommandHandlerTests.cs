@@ -29,7 +29,9 @@ public class LoginCommandHandlerTests
             StubClock.Instance,
             _passwordHasherMock.Object,
             _jwtServiceMock.Object,
-            Options.Create(new AuthTokenLifetimeOptions()));
+            new StubRefreshTokenHasher(),
+            Options.Create(new AuthTokenLifetimeOptions()),
+            Options.Create(new AuthLockoutOptions()));
     }
 
     [Fact]
@@ -76,7 +78,10 @@ public class LoginCommandHandlerTests
         result.User.Email.Should().Be(user.Email);
         result.User.FullName.Should().Be(user.FullName);
 
-        refreshTokensList.Should().ContainSingle(t => t.UserId == user.Id && t.Token == "mocked-refresh-token-string");
+        // P0-D1: the raw token goes back to the client; only its hash is persisted.
+        refreshTokensList.Should().ContainSingle(t =>
+            t.UserId == user.Id && t.TokenHash == "hash:mocked-refresh-token-string");
+        refreshTokensList.Should().NotContain(t => t.TokenHash == "mocked-refresh-token-string");
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -109,6 +114,7 @@ public class LoginCommandHandlerTests
         var usersList = new List<User> { user };
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
+        _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         _passwordHasherMock
             .Setup(h => h.VerifyPassword("WrongPassword", user.PasswordHash))
@@ -125,7 +131,12 @@ public class LoginCommandHandlerTests
         ex.Which.Errors.Should().Contain("Invalid email or password.");
 
         _jwtServiceMock.Verify(j => j.GenerateAccessToken(It.IsAny<User>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
-        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+
+        // P0-D3: the failed attempt must be persisted before the exception is thrown,
+        // otherwise the lockout threshold could never be reached.
+        user.AccessFailedCount.Should().Be(1);
+        user.LockoutEndAt.Should().BeNull();
+        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -188,5 +199,68 @@ public class LoginCommandHandlerTests
 
         _jwtServiceMock.Verify(j => j.GenerateAccessToken(It.IsAny<User>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // P0-D3 / P0-F3: account lockout through the login handler.
+    [Fact]
+    public async Task Handle_WhenAccountIsLockedOut_ShouldRejectWithoutVerifyingThePassword()
+    {
+        // Arrange
+        var lockedUser = new UserBuilder().WithEmail("locked@example.com").Build();
+        lockedUser.LockoutEndAt = StubClock.Instance.UtcNow.AddMinutes(10);
+
+        _contextMock.Setup(c => c.Users)
+            .Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { lockedUser }).Object);
+
+        // Act
+        var act = () => _handler.Handle(new LoginCommand("locked@example.com", "Password123!"), CancellationToken.None);
+
+        // Assert: the generic message plus the skipped password check keep the response
+        // indistinguishable from a wrong password, so it cannot be used to enumerate accounts.
+        var ex = await act.Should().ThrowAsync<UnauthorizedException>();
+        ex.Which.Errors.Should().Contain("Invalid email or password.");
+
+        _passwordHasherMock.Verify(h => h.VerifyPassword(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        _jwtServiceMock.Verify(j => j.GenerateAccessToken(It.IsAny<User>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
+        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheLockoutHasExpired_ShouldAuthenticateAndClearTheCounters()
+    {
+        // Arrange
+        const string rawPassword = "SecurePassword123!";
+        var user = new UserBuilder().WithEmail("expired-lockout@example.com").Build();
+        user.LockoutEndAt = StubClock.Instance.UtcNow.AddMinutes(-1);
+        user.AccessFailedCount = 2;
+
+        var refreshTokensList = new List<RefreshTokenEntity>();
+
+        _contextMock.Setup(c => c.Users)
+            .Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { user }).Object);
+        _contextMock.Setup(c => c.RefreshTokens)
+            .Returns(MockDbSetHelper.CreateMockDbSet(refreshTokensList).Object);
+        _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        _passwordHasherMock
+            .Setup(h => h.VerifyPassword(rawPassword, user.PasswordHash))
+            .Returns(true);
+
+        _jwtServiceMock
+            .Setup(j => j.GenerateAccessToken(user, It.IsAny<Guid?>(), It.IsAny<Guid?>()))
+            .Returns("mocked-jwt-access-token");
+
+        _jwtServiceMock
+            .Setup(j => j.GenerateRefreshToken())
+            .Returns("mocked-refresh-token-string");
+
+        // Act
+        var result = await _handler.Handle(
+            new LoginCommand("expired-lockout@example.com", rawPassword), CancellationToken.None);
+
+        // Assert
+        result.AccessToken.Should().Be("mocked-jwt-access-token");
+        user.AccessFailedCount.Should().Be(0);
+        user.LockoutEndAt.Should().BeNull();
     }
 }

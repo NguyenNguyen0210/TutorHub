@@ -584,24 +584,26 @@ VALUES
 
 -- -----------------------------------------------------------------------------
 -- 26. REFRESH TOKENS (15 Refresh Tokens)
+-- P0-D1: only the HMAC-SHA256 hash of a refresh token is stored, so the seeded value
+-- is a 64-char lowercase hex digest (never a usable raw token).
 -- -----------------------------------------------------------------------------
-INSERT INTO "RefreshTokens" ("Id", "UserId", "Token", "ExpiresAt", "CreatedAt", "RevokedAt")
+INSERT INTO "RefreshTokens" ("Id", "UserId", "TokenHash", "ExpiresAt", "CreatedAt", "RevokedAt")
 VALUES
-    ('ba09ba09-0001-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'token_refresh_admin_001_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000002', '22222222-1111-1111-1111-111111111111', 'token_refresh_tutor_an_002_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000003', '33333333-1111-1111-1111-111111111111', 'token_refresh_tutor_bich_003_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000004', '44444444-1111-1111-1111-111111111111', 'token_refresh_tutor_nam_004_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000005', '44444444-2222-1111-1111-111111111111', 'token_refresh_tutor_ha_005_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000006', '44444444-3333-1111-1111-111111111111', 'token_refresh_tutor_quang_006_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000007', '44444444-4444-1111-1111-111111111111', 'token_refresh_tutor_mai_007_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000008', '55555555-1111-1111-1111-111111111111', 'token_refresh_student_tuan_008_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000009', '66666666-1111-1111-1111-111111111111', 'token_refresh_student_lan_009_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000010', '77777777-1111-1111-1111-111111111111', 'token_refresh_student_bad_010_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000011', '55555555-2222-1111-1111-111111111111', 'token_refresh_student_hung_011_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000012', '55555555-3333-1111-1111-111111111111', 'token_refresh_student_linh_012_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000013', '55555555-4444-1111-1111-111111111111', 'token_refresh_student_khoa_013_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000014', '55555555-5555-1111-1111-111111111111', 'token_refresh_student_thao_014_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000015', '55555555-6666-1111-1111-111111111111', 'token_refresh_student_duc_015_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL);
+    ('ba09ba09-0001-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '01', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000002', '22222222-1111-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '02', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000003', '33333333-1111-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '03', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000004', '44444444-1111-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '04', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000005', '44444444-2222-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '05', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000006', '44444444-3333-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '06', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000007', '44444444-4444-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '07', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000008', '55555555-1111-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '08', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000009', '66666666-1111-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '09', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000010', '77777777-1111-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '10', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000011', '55555555-2222-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '11', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000012', '55555555-3333-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '12', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000013', '55555555-4444-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '13', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000014', '55555555-5555-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '14', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000015', '55555555-6666-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '15', NOW() + INTERVAL '7 days', NOW(), NULL);
 
 -- -----------------------------------------------------------------------------
 -- 27. NOTIFICATIONS (15 Notifications)

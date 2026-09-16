@@ -8,7 +8,9 @@ public class AdminUpdatePlatformFeeCommandValidator : AbstractValidator<AdminUpd
     {
         RuleFor(x => x.NewFeeRate)
             .InclusiveBetween(0.00m, 0.50m)
-            .WithMessage("Platform fee rate must be between 0% (0.00) and 50% (0.50).");
+            .WithMessage("Platform fee rate must be between 0% (0.00) and 50% (0.50).")
+            .Must(rate => decimal.Round(rate, 4) == rate)
+            .WithMessage("Platform fee rate cannot have more than 4 decimal places (the ledger stores it as numeric(5,4)).");
 
         RuleFor(x => x.Reason)
             .NotEmpty().WithMessage("Reason for fee change is required for platform governance audit.")

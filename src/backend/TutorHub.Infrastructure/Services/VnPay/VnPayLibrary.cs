@@ -56,6 +56,18 @@ public class VnPayLibrary
         return string.Equals(myChecksum, inputHash, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Builds the response checksum for the accumulated vnp_* response data — the exact
+    /// counterpart of <see cref="ValidateSignature"/>. VNPay itself computes IPN
+    /// checksums this way, so anything producing a callback (e.g. the development
+    /// payment simulator) must sign through this method instead of re-implementing the
+    /// wire format elsewhere.
+    /// </summary>
+    public string CreateResponseSignature(string secretKey)
+    {
+        return HmacSha512(secretKey, GetRawData(_responseData));
+    }
+
     private static string GetRawData(SortedList<string, string> data)
     {
         var sb = new StringBuilder();

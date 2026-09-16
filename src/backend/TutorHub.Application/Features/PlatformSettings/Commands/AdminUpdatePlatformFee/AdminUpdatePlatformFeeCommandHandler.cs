@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Features.PlatformSettings.Commands.AdminUpsertPlatformSetting;
 using TutorHub.Application.Features.PlatformSettings.DTOs;
 using TutorHub.Domain.Entities;
 
@@ -13,14 +14,18 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IAuditLogService _auditLogService;
 
-    public const string PlatformFeeKey = "PlatformFeeRate";
-
-    public AdminUpdatePlatformFeeCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
+    public AdminUpdatePlatformFeeCommandHandler(
+        IAppDbContext context,
+        IClock clock,
+        ICurrentUserService currentUserService,
+        IAuditLogService auditLogService)
     {
         _context = context;
         _clock = clock;
         _currentUserService = currentUserService;
+        _auditLogService = auditLogService;
     }
 
     public async Task<PlatformSettingDto> Handle(AdminUpdatePlatformFeeCommand request, CancellationToken cancellationToken)
@@ -29,17 +34,20 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
 
         var setting = await _context.PlatformSettings
             .Include(s => s.Versions)
-            .FirstOrDefaultAsync(s => s.Key == PlatformFeeKey, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Key == PlatformSettingKeys.PlatformFeeRate, cancellationToken);
 
         var now = _clock.UtcNow;
         var newValueStr = request.NewFeeRate.ToString("F4", CultureInfo.InvariantCulture);
+
+        // Captured before mutation so the audit trail records the real previous value.
+        var previousValue = string.Empty;
 
         if (setting == null)
         {
             setting = new PlatformSetting
             {
                 Id = Guid.NewGuid(),
-                Key = PlatformFeeKey,
+                Key = PlatformSettingKeys.PlatformFeeRate,
                 Value = newValueStr,
                 Description = "Default platform commission percentage applied to session payouts.",
                 CurrentVersion = 1,
@@ -63,15 +71,15 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
             _context.PlatformSettings.Add(setting);
 
             _context.AddOutboxMessage(new PlatformSettingChangedEvent(
-                PlatformFeeKey,
-                "0.1000",
+                PlatformSettingKeys.PlatformFeeRate,
+                previousValue,
                 newValueStr,
                 1,
                 userId));
         }
         else
         {
-            var oldVal = setting.Value;
+            previousValue = setting.Value;
             setting.CurrentVersion++;
             setting.Value = newValueStr;
             setting.LastUpdatedByAdminId = userId;
@@ -92,12 +100,29 @@ public class AdminUpdatePlatformFeeCommandHandler : IRequestHandler<AdminUpdateP
             setting.Versions.Add(version);
 
             _context.AddOutboxMessage(new PlatformSettingChangedEvent(
-                PlatformFeeKey,
-                oldVal,
+                PlatformSettingKeys.PlatformFeeRate,
+                previousValue,
                 newValueStr,
                 setting.CurrentVersion,
                 userId));
         }
+
+        // CLAUDE.md convention #6: admin platform-configuration changes are audited
+        // with the correlation id of the request.
+        await _auditLogService.LogAsync(
+            action: "PlatformFeeRateUpdated",
+            entityName: "PlatformSetting",
+            entityId: setting.Id.ToString(),
+            userId: userId,
+            oldValues: new { Key = PlatformSettingKeys.PlatformFeeRate, Value = previousValue },
+            newValues: new
+            {
+                Key = PlatformSettingKeys.PlatformFeeRate,
+                Value = newValueStr,
+                Reason = request.Reason,
+                Version = setting.CurrentVersion
+            },
+            cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
 

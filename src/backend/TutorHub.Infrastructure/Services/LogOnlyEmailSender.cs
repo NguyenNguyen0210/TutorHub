@@ -4,9 +4,10 @@ using TutorHub.Application.Common.Interfaces;
 namespace TutorHub.Infrastructure.Services;
 
 /// <summary>
-/// F-25: development stub — logs instead of sending. The name states this
-/// explicitly so nobody mistakes it for a real provider. Replace with an
-/// SMTP/API implementation (owner decision) before production email.
+/// F-25 / P0-E1: Development fallback — logs instead of sending, used only when
+/// SES is not configured. Any other environment refuses to start without a real
+/// sender (see InfrastructureServiceCollectionExtensions), so this type can never
+/// be the production transport by accident.
 /// </summary>
 public class LogOnlyEmailSender : IEmailSender
 {

@@ -1056,17 +1056,17 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("RevokedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Token")
+                    b.Property<string>("TokenHash")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Token")
+                    b.HasIndex("TokenHash")
                         .IsUnique();
 
                     b.HasIndex("UserId");
@@ -1481,8 +1481,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(12,2)");
 
                     b.Property<decimal>("CommissionRate")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
+                        .HasPrecision(5, 4)
+                        .HasColumnType("numeric(5,4)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1716,6 +1716,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
+                    b.Property<int>("AccessFailedCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("AvatarUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -1734,6 +1739,9 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<DateTime?>("LastAbsentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LockoutEndAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PasswordHash")
@@ -1767,6 +1775,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.ToTable("Users", t =>
                         {
+                            t.HasCheckConstraint("CK_User_NonNegativeFailedLogins", "\"AccessFailedCount\" >= 0");
+
                             t.HasCheckConstraint("CK_User_NonNegativeStrikes", "\"AbsentStrikes\" >= 0");
                         });
                 });

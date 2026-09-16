@@ -24,8 +24,11 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .HasMaxLength(50)
             .IsRequired();
 
+        // P0-A2: must match Enrollment.PlatformFeeRate (numeric(5,4)). At (5,2)
+        // Postgres silently rounded 0.1234 -> 0.12, and AdminResolveDispute then
+        // re-derived the DEC-S8-025 conservation identity from the truncated rate.
         builder.Property(t => t.CommissionRate)
-            .HasPrecision(5, 2)
+            .HasPrecision(5, 4)
             .IsRequired();
 
         builder.Property(t => t.CommissionAmount)

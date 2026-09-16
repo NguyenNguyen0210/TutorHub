@@ -29,7 +29,7 @@ public class CompleteUploadCommandHandler : IRequestHandler<CompleteUploadComman
     {
         var userId = _currentUserService.UserIdOrThrow();
 
-        // 1. Verify object exists on Cloudflare R2 via HEAD check
+        // 1. Verify object exists in object storage via HEAD check
         var exists = await _storageService.ExistsAsync(request.ObjectKey, cancellationToken);
         if (!exists)
         {
@@ -46,7 +46,7 @@ public class CompleteUploadCommandHandler : IRequestHandler<CompleteUploadComman
             OriginalFileName = request.OriginalFileName,
             ContentType = request.ContentType,
             FileSize = request.FileSize,
-            StorageProvider = StorageProvider.CloudflareR2,
+            StorageProvider = _storageService.Provider,
             MediaType = request.MediaType,
             IsPrivate = isPrivate,
             Status = MediaStatus.Active,
@@ -57,7 +57,7 @@ public class CompleteUploadCommandHandler : IRequestHandler<CompleteUploadComman
         _dbContext.Media.Add(media);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        // 3. Generate initial access URL (Presigned 15 minutes)
+        // 3. Generate initial short-lived access URL
         var accessUrl = await _storageService.GenerateDownloadUrlAsync(
             request.ObjectKey,
             TimeSpan.FromMinutes(15),

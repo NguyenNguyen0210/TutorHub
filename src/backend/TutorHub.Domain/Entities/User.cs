@@ -26,6 +26,11 @@ public class User
     public DateTime? StrikeWindowStart { get; set; }
     public DateTime? LastAbsentAt { get; set; }
 
+    // Brute-force lockout (P0-D3). Counted per ACCOUNT rather than per IP so a
+    // distributed credential-stuffing attempt cannot sidestep the IP rate limiter.
+    public int AccessFailedCount { get; set; }
+    public DateTime? LockoutEndAt { get; set; }
+
     // Profiles
     public TutorProfile? TutorProfile { get; set; }
     public StudentProfile? StudentProfile { get; set; }
@@ -108,5 +113,45 @@ public class User
         }
 
         return LastAbsentAt.HasValue && (now - LastAbsentAt.Value).TotalDays < 7;
+    }
+
+    /// <summary>
+    /// True while the account is temporarily locked out after too many failed
+    /// password checks (P0-D3). Once the window passes the account is usable again.
+    /// </summary>
+    public bool IsLockedOut(DateTime now) => LockoutEndAt.HasValue && LockoutEndAt.Value > now;
+
+    /// <summary>
+    /// Records one failed password check. On reaching
+    /// <paramref name="maxFailedAttempts"/> consecutive failures the account is locked
+    /// until <paramref name="now"/> + <paramref name="lockoutDuration"/> and the
+    /// counter restarts, so the user gets a fresh allowance once the lockout expires.
+    /// </summary>
+    public void RegisterFailedLogin(DateTime now, int maxFailedAttempts, TimeSpan lockoutDuration)
+    {
+        if (maxFailedAttempts <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxFailedAttempts), "Threshold must be positive.");
+        }
+
+        if (lockoutDuration <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(lockoutDuration), "Lockout duration must be positive.");
+        }
+
+        AccessFailedCount++;
+
+        if (AccessFailedCount >= maxFailedAttempts)
+        {
+            LockoutEndAt = now.Add(lockoutDuration);
+            AccessFailedCount = 0;
+        }
+    }
+
+    /// <summary>Clears the failed-attempt counter and any expired lockout (on success).</summary>
+    public void ResetFailedLogin()
+    {
+        AccessFailedCount = 0;
+        LockoutEndAt = null;
     }
 }
