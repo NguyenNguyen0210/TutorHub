@@ -1,4 +1,13 @@
 import React from 'react';
+import { ACCOUNT_STATUS, getAccountStatusMeta } from '@/config/enums';
+
+/** Map màu enum → class Tailwind (bảng nền tối của Admin). */
+const STATUS_BADGE_CLASS = {
+  success: 'bg-emerald-500/20 text-emerald-400',
+  warning: 'bg-amber-500/20 text-amber-400',
+  error: 'bg-rose-500/20 text-rose-400',
+  default: 'bg-slate-500/20 text-slate-300',
+};
 
 export default function AdminUsers() {
   const users = [
@@ -8,7 +17,8 @@ export default function AdminUsers() {
       email: 'tutor.an@tutorhub.com',
       role: 'Tutor',
       strikes: 0,
-      status: 'Active',
+      // Enum backend serialize PascalCase: Active | Suspended | Banned
+      status: ACCOUNT_STATUS.ACTIVE,
       joinedDate: '01/08/2026',
     },
     {
@@ -17,7 +27,7 @@ export default function AdminUsers() {
       email: 'student.tuan@tutorhub.com',
       role: 'Student',
       strikes: 0,
-      status: 'Active',
+      status: ACCOUNT_STATUS.ACTIVE,
       joinedDate: '15/08/2026',
     },
     {
@@ -26,7 +36,7 @@ export default function AdminUsers() {
       email: 'student.bad@tutorhub.com',
       role: 'Student',
       strikes: 2,
-      status: 'Suspended (7 Days)',
+      status: ACCOUNT_STATUS.SUSPENDED,
       joinedDate: '10/07/2026',
     },
     {
@@ -35,7 +45,7 @@ export default function AdminUsers() {
       email: 'tutor.bich@tutorhub.com',
       role: 'Tutor',
       strikes: 0,
-      status: 'Active',
+      status: ACCOUNT_STATUS.ACTIVE,
       joinedDate: '05/08/2026',
     }
   ];
@@ -81,7 +91,9 @@ export default function AdminUsers() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700/60 text-slate-300">
-            {users.map((u) => (
+            {users.map((u) => {
+              const statusMeta = getAccountStatusMeta(u.status);
+              return (
               <tr key={u.id} className="hover:bg-slate-700/30">
                 <td className="p-3">
                   <span className="font-bold text-white block">{u.name}</span>
@@ -100,10 +112,8 @@ export default function AdminUsers() {
                   </span>
                 </td>
                 <td className="p-3">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                    u.status === 'Active' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
-                  }`}>
-                    {u.status}
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${STATUS_BADGE_CLASS[statusMeta.color] ?? STATUS_BADGE_CLASS.default}`}>
+                    {statusMeta.label}
                   </span>
                 </td>
                 <td className="p-3 text-slate-400">{u.joinedDate}</td>
@@ -113,7 +123,8 @@ export default function AdminUsers() {
                   </button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -1,129 +1,170 @@
-// Chat & SignalR Service - Connected to /api/v1/conversations with graceful fallback
+/**
+ * Chat Service — /api/v1/conversations
+ *
+ * Verified payloads (curl, seeded student.lan@tutorhub.com):
+ * - GET  /conversations                     → CursorPagedResult<ConversationDto>
+ *   { items: [{ id, studentProfileId, studentUserId, studentName, studentAvatarUrl,
+ *     tutorProfileId, tutorUserId, tutorName, tutorAvatarUrl, createdAt, lastMessageId,
+ *     lastMessageAt, lastMessagePreview, unreadCount }], nextCursor, hasMore }
+ * - GET  /conversations/{id}/messages       → CursorPagedResult<MessageDto>
+ *   { items: [{ id, conversationId, senderUserId, senderName, senderAvatarUrl, content,
+ *     attachmentKey, attachmentName, attachmentContentType, attachmentSize, isRead,
+ *     readAt, createdAt }], nextCursor, hasMore }
+ * - POST /conversations/{id}/messages       → MessageDto (body { content })
+ * - PUT  /conversations/{id}/read           → số message đã đọc
+ *
+ * Mock: chỉ khi VITE_USE_MOCK === 'true'; lỗi khác được ném lại (ApiError).
+ */
 import api from './api';
+import { USE_MOCK } from '@/config/constants';
 
 const MOCK_CONVERSATIONS = [
   {
-    id: 'conv_001',
-    user: {
-      id: 'tutor_001',
-      name: 'ThS. Nguyễn Văn An',
-      role: 'Tutor',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-      status: 'online',
-      subject: 'Toán Cao Cấp & Đại Số',
-    },
-    lastMessage: 'Thầy đã gửi đề xuất hợp đồng 5 buổi Đại Số Tuyến Tính em nhé.',
-    lastTime: '10:45',
+    id: 'c0c0c0c0-0001-0000-0000-000000000001',
+    studentProfileId: null,
+    studentUserId: null,
+    studentName: null,
+    studentAvatarUrl: null,
+    tutorProfileId: '22222222-2222-2222-2222-111111111111',
+    tutorUserId: '22222222-1111-1111-1111-111111111111',
+    tutorName: 'ThS. Nguyễn Văn An',
+    tutorAvatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=an',
+    createdAt: '2026-09-10T10:30:00Z',
+    lastMessageId: 'ba03ba03-0001-0000-0000-000000000001',
+    lastMessageAt: '2026-09-10T10:45:00Z',
+    lastMessagePreview: 'Thầy đã gửi đề xuất gói học 5 buổi em nhé.',
     unreadCount: 1,
-    meetUrl: 'https://meet.google.com/abc-defg-hij',
-    customAgreement: {
-      id: 'agr_001',
-      bookingId: 'b_custom_001',
-      title: 'Hợp Đồng Dạy Kèm Chuyên Đề Đại Số Tuyến Tính',
-      sessionsCount: 5,
-      durationMinutes: 60,
-      pricePerSession: 200000,
-      totalAmount: 1000000,
-      status: 'PENDING_PAYMENT',
-      expiresAt: 'Trong 24 giờ tới',
-      description: 'Lộ trình 5 buổi trọng tâm: Ma trận nghịch đảo, Không gian Vector, Chéo hóa ma trận và bài tập ôn thi kết thúc học phần.'
-    }
   },
-  {
-    id: 'conv_002',
-    user: {
-      id: 'student_002',
-      name: 'Phạm Minh Tuấn',
-      role: 'Student',
-      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
-      status: 'online',
-      subject: 'Học viên Hợp đồng #e1e1e1e1',
-    },
-    lastMessage: 'Em đã chuẩn bị sẵn bài tập tuần này rồi ạ!',
-    lastTime: 'Hôm qua',
-    unreadCount: 0,
-    meetUrl: 'https://meet.google.com/xyz-uvwx-rst',
-  }
 ];
 
 const MOCK_MESSAGES = {
-  conv_001: [
+  'c0c0c0c0-0001-0000-0000-000000000001': [
     {
-      id: 'm1',
-      senderId: 'student_001',
-      senderName: 'Bạn (Phạm Minh Tuấn)',
-      text: 'Chào Thầy An ạ, em muốn học chuyên sâu về Không gian Vector và Chéo hóa ma trận để thi cuối kỳ.',
-      time: '10:30',
-      isMe: true,
+      id: 'ba03ba03-0001-0000-0000-000000000001',
+      conversationId: 'c0c0c0c0-0001-0000-0000-000000000001',
+      senderUserId: '66666666-1111-1111-1111-111111111111',
+      senderName: 'Hoàng Lan Anh',
+      senderAvatarUrl: null,
+      content: 'Dạ em muốn học chuyên sâu phần Oxyz ạ.',
+      attachmentKey: null,
+      attachmentName: null,
+      attachmentContentType: null,
+      attachmentSize: null,
+      isRead: true,
+      readAt: '2026-09-10T10:46:00Z',
+      createdAt: '2026-09-10T10:30:00Z',
     },
-    {
-      id: 'm2',
-      senderId: 'tutor_001',
-      senderName: 'ThS. Nguyễn Văn An',
-      text: 'Chào Tuấn! Thầy đã xem đề cương của em. Thầy thiết kế lộ trình 5 buổi ngắn hạn trọng tâm, học qua Google Meet và có ghi âm bài giảng nhé.',
-      time: '10:35',
-      isMe: false,
-    },
-    {
-      id: 'm3',
-      senderId: 'tutor_001',
-      senderName: 'ThS. Nguyễn Văn An',
-      text: 'Thầy gửi hợp đồng thỏa thuận riêng qua thẻ bên dưới, tiền học sẽ được TutorHub giữ trong Escrow an toàn đến khi hoàn thành từng buổi nhé.',
-      time: '10:42',
-      isMe: false,
-      type: 'AGREEMENT',
-      agreementId: 'agr_001',
-    }
-  ]
+  ],
 };
 
+function toNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeConversation(raw = {}) {
+  return {
+    id: raw.id,
+    studentProfileId: raw.studentProfileId ?? null,
+    studentUserId: raw.studentUserId ?? null,
+    studentName: raw.studentName ?? null,
+    studentAvatarUrl: raw.studentAvatarUrl ?? null,
+    tutorProfileId: raw.tutorProfileId ?? null,
+    tutorUserId: raw.tutorUserId ?? null,
+    tutorName: raw.tutorName ?? null,
+    tutorAvatarUrl: raw.tutorAvatarUrl ?? null,
+    createdAt: raw.createdAt ?? null,
+    lastMessageId: raw.lastMessageId ?? null,
+    lastMessageAt: raw.lastMessageAt ?? null,
+    lastMessagePreview: raw.lastMessagePreview ?? null,
+    unreadCount: toNumber(raw.unreadCount, 0),
+  };
+}
+
+function normalizeMessage(raw = {}) {
+  return {
+    id: raw.id,
+    conversationId: raw.conversationId ?? null,
+    senderUserId: raw.senderUserId ?? null,
+    senderName: raw.senderName || '',
+    senderAvatarUrl: raw.senderAvatarUrl ?? null,
+    content: raw.content || '',
+    attachmentKey: raw.attachmentKey ?? null,
+    attachmentName: raw.attachmentName ?? null,
+    attachmentContentType: raw.attachmentContentType ?? null,
+    attachmentSize: raw.attachmentSize ?? null,
+    isRead: Boolean(raw.isRead),
+    readAt: raw.readAt ?? null,
+    createdAt: raw.createdAt ?? null,
+  };
+}
+
+/** CursorPagedResult<T> → giữ `nextCursor`/`hasMore` để UI phân trang tiếp. */
+function normalizeCursorPaged(raw, normalizeItem) {
+  const source = Array.isArray(raw?.items) ? raw.items : [];
+  return {
+    items: source.map(normalizeItem),
+    nextCursor: raw?.nextCursor ?? null,
+    hasMore: Boolean(raw?.hasMore),
+  };
+}
+
 export const chatService = {
-  getConversations: async () => {
+  /**
+   * GET /conversations → CursorPagedResult<ConversationDto>
+   * @returns {Promise<{items: object[], nextCursor: string|null, hasMore: boolean}>}
+   */
+  async getConversations({ cursor = null, pageSize = 20 } = {}) {
     try {
-      const res = await api.get('/conversations');
-      if (res && res.data && Array.isArray(res.data.items) && res.data.items.length > 0) {
-        return res.data.items;
-      }
-      return MOCK_CONVERSATIONS;
+      const params = { pageSize };
+      if (cursor) params.cursor = cursor;
+      const res = await api.get('/conversations', { params });
+      return normalizeCursorPaged(res, normalizeConversation);
     } catch (err) {
-      console.warn('[chatService] Fallback to mock conversations:', err.message);
-      return MOCK_CONVERSATIONS;
+      if (!USE_MOCK) throw err;
+      console.warn('[chatService] /conversations lỗi, dùng mock (VITE_USE_MOCK=true).', err.message);
+      return normalizeCursorPaged(
+        { items: MOCK_CONVERSATIONS, nextCursor: null, hasMore: false },
+        normalizeConversation,
+      );
     }
   },
 
-  getMessages: async (conversationId) => {
+  /**
+   * GET /conversations/{id}/messages → CursorPagedResult<MessageDto>
+   * @returns {Promise<{items: object[], nextCursor: string|null, hasMore: boolean}>}
+   */
+  async getMessages(conversationId, { cursor = null, pageSize = 50 } = {}) {
     try {
-      const res = await api.get(`/conversations/${conversationId}/messages`);
-      if (res && res.data && Array.isArray(res.data.items) && res.data.items.length > 0) {
-        return res.data.items;
-      }
-      return MOCK_MESSAGES[conversationId] || [];
+      const params = { pageSize };
+      if (cursor) params.cursor = cursor;
+      const res = await api.get(`/conversations/${conversationId}/messages`, { params });
+      return normalizeCursorPaged(res, normalizeMessage);
     } catch (err) {
-      console.warn('[chatService] Fallback to mock messages:', err.message);
-      return MOCK_MESSAGES[conversationId] || [];
+      if (!USE_MOCK) throw err;
+      console.warn('[chatService] /conversations/:id/messages lỗi, dùng mock (VITE_USE_MOCK=true).', err.message);
+      return normalizeCursorPaged(
+        { items: MOCK_MESSAGES[conversationId] ?? [], nextCursor: null, hasMore: false },
+        normalizeMessage,
+      );
     }
   },
 
-  sendMessage: async (conversationId, text) => {
-    try {
-      await api.post(`/conversations/${conversationId}/messages`, { content: text });
-    } catch (err) {
-      console.warn('[chatService] Fallback message dispatch:', err.message);
+  /** POST /conversations/{id}/messages → MessageDto */
+  async sendMessage(conversationId, content, attachment = null) {
+    const body = { content };
+    if (attachment) {
+      body.attachmentKey = attachment.attachmentKey ?? null;
+      body.attachmentName = attachment.attachmentName ?? null;
+      body.attachmentContentType = attachment.attachmentContentType ?? null;
+      body.attachmentSize = attachment.attachmentSize ?? null;
     }
-    const newMsg = {
-      id: 'm_' + Date.now(),
-      senderId: 'me',
-      senderName: 'Bạn',
-      text,
-      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-      isMe: true,
-    };
-    if (!MOCK_MESSAGES[conversationId]) {
-      MOCK_MESSAGES[conversationId] = [];
-    }
-    MOCK_MESSAGES[conversationId].push(newMsg);
-    return newMsg;
-  }
+    const res = await api.post(`/conversations/${conversationId}/messages`, body);
+    return normalizeMessage(res);
+  },
+
+  /** PUT /conversations/{id}/read → số message đã đánh dấu đã đọc */
+  markConversationAsRead: (conversationId) => api.put(`/conversations/${conversationId}/read`),
 };
 
 export default chatService;

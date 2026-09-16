@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import paymentService from '@/services/payment.service';
 import { formatCurrency } from '@/utils/formatters';
+import { USE_MOCK } from '@/config/constants';
 import { message } from 'antd';
 
 export default function BookingCheckout() {
@@ -51,19 +52,28 @@ export default function BookingCheckout() {
   const handlePayVNPay = async () => {
     try {
       setLoading(true);
-      const res = await paymentService.createPaymentUrl({
-        bookingId: currentBookingId,
-        amount: orderData.totalAmount,
-        orderInfo: `Thanh toan giu cho TutorHub ${currentBookingId}`,
-      });
+      // POST /payments/vnpay/create-url { bookingId } → PaymentRedirectDto
+      // (api.js đã bóc envelope ⇒ `redirect` chính là DTO, không đọc `res.data` nữa).
+      const redirect = await paymentService.createVnPayUrl(currentBookingId);
 
-      if (res && res.data && res.data.paymentUrl) {
-        window.location.href = res.data.paymentUrl;
-      } else {
-        navigate(`/payment/return?vnp_Amount=${orderData.totalAmount * 100}&vnp_ResponseCode=00&vnp_TxnRef=${currentBookingId}&vnp_TransactionNo=14892019`);
+      if (redirect?.paymentUrl) {
+        window.location.href = redirect.paymentUrl;
+        return;
       }
+
+      // Không có paymentUrl ⇒ lỗi thật. Chỉ mô phỏng khi bật VITE_USE_MOCK.
+      if (USE_MOCK) {
+        message.info('Chưa cấu hình VNPay — mô phỏng kết quả thanh toán (VITE_USE_MOCK=true).');
+        navigate(`/payment/return?vnp_Amount=${orderData.totalAmount * 100}&vnp_ResponseCode=00&vnp_TxnRef=${currentBookingId}&vnp_TransactionNo=14892019`);
+        return;
+      }
+      message.error('VNPay không trả về đường dẫn thanh toán. Vui lòng thử lại.');
     } catch (err) {
-      navigate(`/payment/return?vnp_Amount=${orderData.totalAmount * 100}&vnp_ResponseCode=00&vnp_TxnRef=${currentBookingId}&vnp_TransactionNo=14892019`);
+      if (USE_MOCK) {
+        navigate(`/payment/return?vnp_Amount=${orderData.totalAmount * 100}&vnp_ResponseCode=00&vnp_TxnRef=${currentBookingId}&vnp_TransactionNo=14892019`);
+        return;
+      }
+      message.error(err?.message || 'Không tạo được đường dẫn thanh toán VNPay.');
     } finally {
       setLoading(false);
     }

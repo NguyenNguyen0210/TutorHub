@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { message } from 'antd';
+import { TUTOR_APPLICATION_STATUS, getTutorApplicationStatusMeta } from '@/config/enums';
 
 export default function AdminTutorApplications() {
   const [selectedApp, setSelectedApp] = useState('app-1');
 
+  // `status` dùng đúng enum backend (Pending | Approved | Rejected) để tra map chung.
   const applicants = [
     {
       id: 'app-1',
@@ -13,6 +15,7 @@ export default function AdminTutorApplications() {
       date: '12/09/2026',
       phone: '0912345678',
       email: 'tutor.an@tutorhub.com',
+      status: TUTOR_APPLICATION_STATUS.PENDING,
       files: ['Bang-Thac-Si-Toan-DHSPHN.pdf', 'CCCD-Nguyen-Van-An.jpg', 'Video-Day-Thu.mp4'],
     },
     {
@@ -23,6 +26,7 @@ export default function AdminTutorApplications() {
       date: '11/09/2026',
       phone: '0923456789',
       email: 'tutor.bich@tutorhub.com',
+      status: TUTOR_APPLICATION_STATUS.PENDING,
       files: ['Bang-Cu-Nhan-Ngoai-Thuong.pdf', 'Chung-Chi-IELTS-8.5.pdf'],
     }
   ];
@@ -79,7 +83,7 @@ export default function AdminTutorApplications() {
               <p className="text-xs text-brand-indigo-400">{current.university}</p>
             </div>
             <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-bold">
-              Chờ Xét Duyệt
+              {getTutorApplicationStatusMeta(current.status).label}
             </span>
           </div>
 

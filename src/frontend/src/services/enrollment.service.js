@@ -1,54 +1,74 @@
+/**
+ * Enrollment Service — /api/v1/enrollments
+ *
+ * Contract (EnrollmentsController):
+ * - GET  /enrollments        → PagedResult<EnrollmentSummaryDto> (đọc `items`)
+ * - GET  /enrollments/{id}   → EnrollmentDto (kèm `sessions`)
+ * - POST /enrollments/{id}/cancel body { reason } → EnrollmentDto
+ *
+ * Mock: chỉ khi VITE_USE_MOCK === 'true'; lỗi khác được ném lại (ApiError).
+ */
 import { api } from './api';
+import { USE_MOCK } from '@/config/constants';
+
+function toNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizePaged(raw) {
+  const items = Array.isArray(raw?.items) ? raw.items : [];
+  return {
+    items,
+    totalCount: toNumber(raw?.totalCount, items.length),
+    pageNumber: toNumber(raw?.pageNumber, 1),
+    pageSize: toNumber(raw?.pageSize, items.length),
+    totalPages: toNumber(raw?.totalPages, items.length > 0 ? 1 : 0),
+    hasPreviousPage: Boolean(raw?.hasPreviousPage),
+    hasNextPage: Boolean(raw?.hasNextPage),
+  };
+}
 
 export const enrollmentService = {
   /**
-   * Lấy danh sách hợp đồng học tập của người dùng
+   * GET /enrollments → PagedResult<EnrollmentSummaryDto>
+   * @returns {Promise<{items: object[], totalCount: number, pageNumber: number, pageSize: number, totalPages: number, hasPreviousPage: boolean, hasNextPage: boolean}>}
    */
-  async getMyEnrollments(status = null) {
+  async getMyEnrollments({ status = null, pageNumber = 1, pageSize = 10 } = {}) {
     try {
-      const params = {};
+      const params = { pageNumber, pageSize };
       if (status) params.status = status;
       const res = await api.get('/enrollments', { params });
-      if (res && res.items && Array.isArray(res.items)) {
-        return res.items;
-      }
-      return getMockEnrollments();
+      return normalizePaged(res);
     } catch (err) {
-      console.warn('[enrollmentService] Backend /enrollments offline, using mock enrollments.', err.message);
-      return getMockEnrollments();
+      if (!USE_MOCK) throw err;
+      console.warn('[enrollmentService] /enrollments lỗi, dùng mock (VITE_USE_MOCK=true).', err.message);
+      const items = getMockEnrollments();
+      return normalizePaged({ items, totalCount: items.length, pageNumber, pageSize });
     }
   },
 
-  /**
-   * Lấy chi tiết hợp đồng học tập kèm phân rã 10 buổi học con
-   */
+  /** GET /enrollments/{id} → EnrollmentDto (kèm danh sách `sessions`) */
   async getEnrollmentById(id) {
     try {
       const res = await api.get(`/enrollments/${id}`);
-      if (res && res.id) {
-        return res;
-      }
-      return getMockEnrollmentDetail(id);
+      return res;
     } catch (err) {
-      console.warn(`[enrollmentService] Backend /enrollments/${id} offline, using mock enrollment detail.`, err.message);
+      if (!USE_MOCK) throw err;
+      console.warn(`[enrollmentService] /enrollments/${id} lỗi, dùng mock (VITE_USE_MOCK=true).`, err.message);
       return getMockEnrollmentDetail(id);
     }
   },
 
-  /**
-   * Hủy hợp đồng học tập sớm với chính sách Pro-rata Refund
-   */
+  /** POST /enrollments/{id}/cancel body { reason } → EnrollmentDto */
   async cancelEnrollment(id, reason = 'Học viên yêu cầu dừng khóa học') {
     try {
       const res = await api.post(`/enrollments/${id}/cancel`, { reason });
       return res;
     } catch (err) {
-      console.warn(`[enrollmentService] Backend cancel /enrollments/${id} offline, returning simulated refund.`, err.message);
-      return {
-        isSuccess: true,
-        refundAmount: 1600000,
-        message: 'Đã hủy hợp đồng thành công. Số tiền 1.600.000 ₫ các buổi chưa học đã được hoàn về ví của bạn.',
-      };
+      if (!USE_MOCK) throw err;
+      console.warn(`[enrollmentService] cancel /enrollments/${id} lỗi, dùng mock (VITE_USE_MOCK=true).`, err.message);
+      return getMockEnrollmentDetail(id);
     }
   },
 };

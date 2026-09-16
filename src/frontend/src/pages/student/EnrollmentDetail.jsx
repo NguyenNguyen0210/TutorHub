@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { formatCurrency } from '@/utils/formatters';
+import { SESSION_STATUS, getSessionStatusMeta } from '@/config/enums';
 
 export default function EnrollmentDetail() {
   const { id } = useParams();
@@ -17,31 +18,41 @@ export default function EnrollmentDetail() {
     pricePerSession: 200000,
     platformFeeRate: '10%',
     status: 'Active',
+    // status dùng đúng SessionStatus của backend (Unscheduled | Scheduled | Completed | Cancelled).
+    // "Chờ điểm danh" KHÔNG phải một SessionStatus: đó là cửa sổ đối soát điểm danh 24h
+    // (backend: AttendanceVerificationDueAt) nên được biểu diễn bằng cờ riêng.
     sessions: [
-      { id: 's1', num: 1, date: '05/09/2026', time: '18:00 - 19:00', status: 'COMPLETED', tutorPayout: 180000, amount: 200000 },
-      { id: 's2', num: 2, date: '08/09/2026', time: '18:00 - 19:00', status: 'PENDING_VERIFICATION', tutorPayout: 180000, amount: 200000 },
-      { id: 's3', num: 3, date: '12/09/2026', time: '18:00 - 19:00', status: 'SCHEDULED', tutorPayout: 180000, amount: 200000 },
-      { id: 's4', num: 4, date: 'Chưa xếp', time: 'Chưa xếp', status: 'UNSCHEDULED', tutorPayout: 180000, amount: 200000 },
-      { id: 's5', num: 5, date: 'Chưa xếp', time: 'Chưa xếp', status: 'UNSCHEDULED', tutorPayout: 180000, amount: 200000 },
-      { id: 's6', num: 6, date: 'Chưa xếp', time: 'Chưa xếp', status: 'UNSCHEDULED', tutorPayout: 180000, amount: 200000 },
-      { id: 's7', num: 7, date: 'Chưa xếp', time: 'Chưa xếp', status: 'UNSCHEDULED', tutorPayout: 180000, amount: 200000 },
-      { id: 's8', num: 8, date: 'Chưa xếp', time: 'Chưa xếp', status: 'UNSCHEDULED', tutorPayout: 180000, amount: 200000 },
-      { id: 's9', num: 9, date: 'Chưa xếp', time: 'Chưa xếp', status: 'UNSCHEDULED', tutorPayout: 180000, amount: 200000 },
-      { id: 's10', num: 10, date: 'Chưa xếp', time: 'Chưa xếp', status: 'UNSCHEDULED', tutorPayout: 180000, amount: 200000 },
+      { id: 's1', num: 1, date: '05/09/2026', time: '18:00 - 19:00', status: SESSION_STATUS.COMPLETED, tutorPayout: 180000, amount: 200000 },
+      { id: 's2', num: 2, date: '08/09/2026', time: '18:00 - 19:00', status: SESSION_STATUS.SCHEDULED, attendancePending: true, tutorPayout: 180000, amount: 200000 },
+      { id: 's3', num: 3, date: '12/09/2026', time: '18:00 - 19:00', status: SESSION_STATUS.SCHEDULED, tutorPayout: 180000, amount: 200000 },
+      { id: 's4', num: 4, date: 'Chưa xếp', time: 'Chưa xếp', status: SESSION_STATUS.UNSCHEDULED, tutorPayout: 180000, amount: 200000 },
+      { id: 's5', num: 5, date: 'Chưa xếp', time: 'Chưa xếp', status: SESSION_STATUS.UNSCHEDULED, tutorPayout: 180000, amount: 200000 },
+      { id: 's6', num: 6, date: 'Chưa xếp', time: 'Chưa xếp', status: SESSION_STATUS.UNSCHEDULED, tutorPayout: 180000, amount: 200000 },
+      { id: 's7', num: 7, date: 'Chưa xếp', time: 'Chưa xếp', status: SESSION_STATUS.UNSCHEDULED, tutorPayout: 180000, amount: 200000 },
+      { id: 's8', num: 8, date: 'Chưa xếp', time: 'Chưa xếp', status: SESSION_STATUS.UNSCHEDULED, tutorPayout: 180000, amount: 200000 },
+      { id: 's9', num: 9, date: 'Chưa xếp', time: 'Chưa xếp', status: SESSION_STATUS.UNSCHEDULED, tutorPayout: 180000, amount: 200000 },
+      { id: 's10', num: 10, date: 'Chưa xếp', time: 'Chưa xếp', status: SESSION_STATUS.UNSCHEDULED, tutorPayout: 180000, amount: 200000 },
     ]
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'COMPLETED':
-        return <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">Hoàn Thành ✅</span>;
-      case 'PENDING_VERIFICATION':
-        return <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">Chờ Điểm Danh 24H ⏰</span>;
-      case 'SCHEDULED':
-        return <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold">Đã Lên Lịch 📅</span>;
-      default:
-        return <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">Chưa Xếp Lịch ⏳</span>;
+  const STATUS_BADGE_CLASS = {
+    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    processing: 'bg-blue-50 text-blue-700 border-blue-200',
+    default: 'bg-slate-100 text-slate-600 border-slate-200',
+    error: 'bg-rose-50 text-rose-700 border-rose-200',
+  };
+
+  const getStatusBadge = (session) => {
+    if (session.status === SESSION_STATUS.SCHEDULED && session.attendancePending) {
+      return <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">Chờ Điểm Danh 24H ⏰</span>;
     }
+    const meta = getSessionStatusMeta(session.status);
+    const badgeClass = STATUS_BADGE_CLASS[meta.color] ?? STATUS_BADGE_CLASS.default;
+    return (
+      <span className={`px-2.5 py-1 rounded-full border text-xs font-bold ${badgeClass}`}>
+        {meta.label}
+      </span>
+    );
   };
 
   return (
@@ -118,9 +129,9 @@ export default function EnrollmentDetail() {
               </div>
 
               <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                {getStatusBadge(sess.status)}
+                {getStatusBadge(sess)}
 
-                {sess.status === 'PENDING_VERIFICATION' && (
+                {sess.status === SESSION_STATUS.SCHEDULED && sess.attendancePending && (
                   <Link
                     to={`/student/sessions/${sess.id}`}
                     className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors"
@@ -129,7 +140,7 @@ export default function EnrollmentDetail() {
                   </Link>
                 )}
 
-                {sess.status === 'SCHEDULED' && (
+                {sess.status === SESSION_STATUS.SCHEDULED && !sess.attendancePending && (
                   <Link
                     to={`/student/sessions/${sess.id}`}
                     className="px-3.5 py-1.5 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white text-xs font-bold transition-colors"
@@ -138,7 +149,7 @@ export default function EnrollmentDetail() {
                   </Link>
                 )}
 
-                {sess.status === 'COMPLETED' && (
+                {sess.status === SESSION_STATUS.COMPLETED && (
                   <Link
                     to={`/student/sessions/${sess.id}`}
                     className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors"

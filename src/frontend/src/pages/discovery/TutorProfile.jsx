@@ -1,131 +1,158 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Alert, Button, message } from 'antd';
 import tutorService from '@/services/tutor.service';
 import bookingService from '@/services/booking.service';
-import { formatCurrency } from '@/utils/formatters';
-import { message } from 'antd';
+import { formatCurrency, formatDateTime } from '@/utils/formatters';
+import { getTeachingModeMeta, getDayOfWeekLabel } from '@/config/enums';
 
+/**
+ * Hồ sơ gia sư công khai.
+ *
+ * Nguồn dữ liệu thật:
+ * - GET /tutors/{id}            → TutorProfileDto (đã có sẵn `subjects` + `services`)
+ * - GET /tutors/{id}/reviews    → PagedResult<TutorPublicReviewDto>
+ * - GET /tutors/{id}/availability → TutorAvailabilityDto { days } (KHÔNG phải `slots`)
+ *
+ * TutorProfileDto: { id, userId, fullName, avatarUrl, bio, education, experienceYears,
+ *   teachingMode, address, latitude, longitude, ratingAvg, totalReviews,
+ *   subjects: [{ id, subjectId, subjectName, categoryId, categoryName, isActive }],
+ *   services: [{ id, title, subjectName, totalSessions, sessionDurationMinutes, price,
+ *     teachingMode, hasTrialLesson }] }
+ *
+ * Lưu ý: TutorProfileDto KHÔNG có `isVerified` / `minPrice` (chỉ TutorSummaryDto có) —
+ * nên badge "Verified" chỉ hiện khi backend thực sự trả về isVerified = true.
+ * Không dùng dữ liệu mẫu trừ khi VITE_USE_MOCK === 'true'.
+ */
 export default function TutorProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [tutor, setTutor] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [availabilityDays, setAvailabilityDays] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [secondaryWarning, setSecondaryWarning] = useState(null);
   const [bookingLoading, setBookingLoading] = useState(null);
-
-  const sampleTutor = {
-    id: id || 'tut-001',
-    fullName: 'ThS. Nguyễn Văn An',
-    title: 'Chuyên luyện thi THPT Quốc Gia môn Toán & Bồi dưỡng HSG',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-    university: 'Đại Học Sư Phạm Hà Nội (Thạc Sĩ Phương Pháp Toán)',
-    degree: 'Bằng Thạc Sĩ Sư Phạm Toán (Đã xác minh dấu đỏ)',
-    experience: '5 năm giảng dạy chuyên sâu trắc nghiệm THPT',
-    rating: 4.90,
-    reviewCount: 28,
-    verified: true,
-    teachingMode: 'Both',
-    bio: 'Phương pháp tiếp cận trực diện bản chất toán học kết hợp kỹ thuật Casio 30s giải nhanh. Đã kèm hơn 120 học viên đạt điểm 8.6+ trong kỳ thi THPT các năm 2022-2025.',
-    packages: [
-      {
-        id: 'pkg-001',
-        name: 'Gói Luyện Thi THPT Toán 10 Buổi Cơ Bản Đến 8+',
-        sessionCount: 10,
-        durationMinutes: 60,
-        totalPrice: 2000000,
-        pricePerSession: 200000,
-        teachingMode: 'Online + Offline',
-        description: 'Bao quát 5 chuyên đề trọng tâm: Hàm số, Tích phân, Oxyz, Số phức và Khối đa diện.',
-        isPopular: true,
-      },
-      {
-        id: 'pkg-002',
-        name: 'Toán Nâng Cao 15 Buổi Chuyên Đề Vận Dụng Cao 9+',
-        sessionCount: 15,
-        durationMinutes: 90,
-        totalPrice: 3500000,
-        pricePerSession: 233333,
-        teachingMode: 'Online',
-        description: 'Chinh phục câu hỏi phân loại 40-50 trong đề thi chính thức của Bộ GD&ĐT.',
-        isPopular: false,
-      },
-      {
-        id: 'pkg-003',
-        name: 'Luyện Đề Cấp Tốc 5 Buổi Trước Kỳ Thi',
-        sessionCount: 5,
-        durationMinutes: 60,
-        totalPrice: 1200000,
-        pricePerSession: 240000,
-        teachingMode: 'Online',
-        description: 'Giải đề chuẩn cấu trúc, khắc phục các lỗi bẫy trắc nghiệm thường gặp.',
-        isPopular: false,
-      }
-    ],
-    scheduleSlots: [
-      { day: 'Thứ 2', time: '18:00 - 20:00', status: 'Available' },
-      { day: 'Thứ 4', time: '18:00 - 20:00', status: 'Available' },
-      { day: 'Thứ 6', time: '18:00 - 20:00', status: 'Available' },
-      { day: 'Chủ Nhật', time: '08:00 - 11:00', status: 'Available' },
-    ],
-    reviews: [
-      {
-        id: 'rev-001',
-        studentName: 'Phạm Minh Tuấn',
-        rating: 5,
-        date: '10/09/2026',
-        comment: 'Thầy An dạy rất nhiệt tình, mẹo giải Oxyz siêu nhanh. Nhờ thầy mà em thi thử trường Chuyên Sư Phạm được 9.2 điểm.',
-        tutorReply: 'Cảm ơn Tuấn nhé! Em hãy tiếp tục rèn luyện các dạng bài hàm ẩn để giữ vững phong độ nhé.',
-      },
-      {
-        id: 'rev-002',
-        studentName: 'Nguyễn Thu Trang',
-        rating: 5,
-        date: '02/09/2026',
-        comment: 'Học phí qua Escrow TutorHub rất yên tâm, mỗi buổi học xong thầy trò cùng điểm danh xong tiền mới trừ, rất minh bạch.',
-        tutorReply: 'Cảm ơn Trang và phụ huynh đã tin tưởng đồng hành cùng thầy!',
-      }
-    ]
-  };
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchTutor() {
       try {
         setLoading(true);
-        const res = await tutorService.getTutorById(id);
-        if (res && res.data) {
-          setTutor({ ...sampleTutor, ...res.data });
-        } else {
-          setTutor(sampleTutor);
+        setError(null);
+        setSecondaryWarning(null);
+
+        const [profileResult, reviewsResult, availabilityResult] = await Promise.allSettled([
+          tutorService.getTutorById(id),
+          tutorService.getTutorReviews(id, 1, 10),
+          tutorService.getTutorAvailability(id),
+        ]);
+
+        if (cancelled) return;
+
+        if (profileResult.status === 'rejected') {
+          throw profileResult.reason;
+        }
+
+        setTutor(profileResult.value);
+        setReviews(reviewsResult.status === 'fulfilled' ? reviewsResult.value.items : []);
+        setAvailabilityDays(
+          availabilityResult.status === 'fulfilled' ? availabilityResult.value : [],
+        );
+
+        // Phần phụ (đánh giá / lịch rảnh) lỗi thì cảnh báo, không chặn cả trang.
+        const secondaryFailure = [reviewsResult, availabilityResult].find(
+          (result) => result.status === 'rejected',
+        );
+        if (secondaryFailure) {
+          setSecondaryWarning(
+            secondaryFailure.reason?.message || 'Không tải được một phần dữ liệu của gia sư.',
+          );
         }
       } catch (err) {
-        setTutor(sampleTutor);
+        if (!cancelled) setError(err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
+
     fetchTutor();
-  }, [id]);
+    return () => {
+      cancelled = true;
+    };
+  }, [id, reloadToken]);
 
-  const handleBooking = async (pkg) => {
+  const handleBooking = async (service) => {
     try {
-      setBookingLoading(pkg.id);
-      const res = await bookingService.createBooking({
-        tutorId: tutor.id,
-        servicePackageId: pkg.id,
-        totalAmount: pkg.totalPrice,
-      });
-
-      const bookingId = res?.data?.id || res?.data?.bookingId || 'BK-2026-9021';
+      setBookingLoading(service.id);
+      // POST /bookings nhận SCALAR serviceId (Guid) — không phải object.
+      const booking = await bookingService.createBooking(service.id);
+      const bookingId = booking?.id;
+      if (!bookingId) {
+        throw new Error('Backend không trả về mã đơn giữ chỗ (booking.id).');
+      }
       message.success('Đã giữ chỗ thành công 15 phút! Đang chuyển hướng...');
       navigate(`/student/bookings/${bookingId}/checkout`);
     } catch (err) {
-      message.info('Khởi tạo đơn giữ chỗ 15 phút');
-      navigate(`/student/bookings/BK-2026-9021/checkout`);
+      message.error(err?.message || 'Không tạo được đơn giữ chỗ. Vui lòng thử lại.');
     } finally {
       setBookingLoading(null);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div className="h-56 rounded-3xl bg-slate-100/80 animate-pulse" aria-hidden="true" />
+        <div className="h-72 rounded-3xl bg-slate-100/80 animate-pulse" aria-hidden="true" />
+      </div>
+    );
+  }
+
+  if (error && !tutor) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
+        <Alert
+          type="error"
+          showIcon
+          message="Không tải được hồ sơ gia sư"
+          description={
+            <div className="space-y-1 text-xs">
+              <p className="m-0">{error.message || 'Lỗi không xác định'}</p>
+              {error.traceId && (
+                <p className="m-0 font-mono text-[11px] text-slate-500">
+                  Mã đối chiếu (traceId): {error.traceId}
+                </p>
+              )}
+            </div>
+          }
+          action={
+            <Button size="small" onClick={() => setReloadToken((token) => token + 1)}>
+              Thử lại
+            </Button>
+          }
+          className="rounded-2xl"
+        />
+        <Link to="/tutors" className="inline-block mt-4 text-xs font-bold text-brand-indigo-600 hover:underline">
+          ← Quay lại danh sách gia sư
+        </Link>
+      </div>
+    );
+  }
+
   if (!tutor) return null;
+
+  const modeMeta = getTeachingModeMeta(tutor.teachingMode);
+  const services = Array.isArray(tutor.services) ? tutor.services : [];
+  const subjects = Array.isArray(tutor.subjects) ? tutor.subjects : [];
+  const ratingValue = Number(tutor.ratingAvg);
+  const hasRating = Number.isFinite(ratingValue) && ratingValue > 0;
+  const availableDays = availabilityDays.filter(
+    (day) => (day.availableSlots ?? []).length > 0,
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
@@ -134,6 +161,16 @@ export default function TutorProfile() {
         <span className="material-symbols-outlined text-base">arrow_back</span>
         Quay lại danh sách gia sư
       </Link>
+
+      {secondaryWarning && (
+        <Alert
+          type="warning"
+          showIcon
+          message="Một phần dữ liệu chưa tải được"
+          description={<span className="text-xs">{secondaryWarning}</span>}
+          className="rounded-2xl"
+        />
+      )}
 
       {/* Ultra-Premium Profile Hero Card with Gradient Cover */}
       <div className="rounded-3xl glass-panel-premium overflow-hidden shadow-xl border border-white/80">
@@ -158,27 +195,32 @@ export default function TutorProfile() {
               <div className="space-y-1.5 pb-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{tutor.fullName}</h1>
-                  {tutor.verified && (
+                  {tutor.isVerified === true && (
                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-financial-available text-xs font-extrabold border border-emerald-200 shadow-2xs">
                       <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
                       Verified Master Tutor
                     </span>
                   )}
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-brand-indigo-50 text-brand-indigo-700 text-xs font-extrabold border border-brand-indigo-100">
+                    {modeMeta.label}
+                  </span>
                 </div>
-                <p className="text-xs sm:text-sm font-bold text-brand-indigo-600">{tutor.title}</p>
+                <p className="text-xs sm:text-sm font-bold text-brand-indigo-600">{tutor.education}</p>
                 <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-1">
                   <span className="flex items-center gap-1 font-extrabold text-amber-500">
                     <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    {tutor.rating.toFixed(2)} ({tutor.reviewCount} nhận xét)
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-base text-brand-indigo-500">school</span>
-                    {tutor.university}
+                    {hasRating ? ratingValue.toFixed(2) : '—'} ({tutor.totalReviews ?? 0} nhận xét)
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="material-symbols-outlined text-base text-emerald-500">history_edu</span>
-                    {tutor.experience}
+                    {tutor.experienceYears ?? 0} năm kinh nghiệm
                   </span>
+                  {tutor.address && (
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-base text-slate-400">location_on</span>
+                      {tutor.address}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -211,11 +253,25 @@ export default function TutorProfile() {
           <div className="p-6 sm:p-8 rounded-3xl glass-panel-premium space-y-4">
             <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
               <span className="material-symbols-outlined text-brand-indigo-600">article</span>
-              Phương Pháp Sư Phạm & Cam Kết Đầu Ra
+              Giới Thiệu & Chuyên Môn
             </h3>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
               {tutor.bio}
             </p>
+
+            {/* Subjects thật từ TutorProfileDto.Subjects */}
+            {subjects.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {subjects.map((subject) => (
+                  <span
+                    key={subject.id ?? subject.subjectId ?? subject.subjectName}
+                    className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-brand-indigo-50/80 text-brand-indigo-700 border border-brand-indigo-100/50"
+                  >
+                    {subject.subjectName}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* Smart Escrow Seal Card */}
             <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-50/60 to-white border border-emerald-500/30 flex items-start gap-3.5">
@@ -242,103 +298,129 @@ export default function TutorProfile() {
               <p className="text-xs text-slate-500 mt-0.5">Chọn gói phù hợp để tiến hành giữ chỗ độc quyền trong 15 phút</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {tutor.packages.map((pkg) => (
-                <div
-                  key={pkg.id}
-                  className={`rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 card-hover-lift ${
-                    pkg.isPopular
-                      ? 'glass-panel-premium border-2 border-brand-indigo-500 glow-indigo relative'
-                      : 'glass-panel-premium border border-slate-200/80'
-                  }`}
-                >
-                  {pkg.isPopular && (
-                    <div className="absolute -top-3.5 right-6 px-3 py-1 rounded-full bg-gradient-to-r from-brand-indigo-600 to-indigo-700 text-white text-[10px] font-extrabold uppercase shadow-sm tracking-wider">
-                      Khuyên Dùng Phổ Biến ★
-                    </div>
-                  )}
-
-                  <div className="space-y-4">
-                    <h3 className="text-base font-extrabold text-slate-900 leading-snug">{pkg.name}</h3>
-                    <p className="text-xs text-slate-600 leading-relaxed">{pkg.description}</p>
-
-                    <div className="pt-3 space-y-2 text-xs text-slate-600 border-t border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <span>Số buổi cấp phát:</span>
-                        <span className="font-extrabold text-slate-900">{pkg.sessionCount} buổi ({pkg.durationMinutes}p/buổi)</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>Hình thức học:</span>
-                        <span className="font-extrabold text-slate-900">{pkg.teachingMode}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>Đơn giá từng buổi:</span>
-                        <span className="font-extrabold text-brand-indigo-600 font-monospace-num">{formatCurrency(pkg.pricePerSession)} / buổi</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-6 mt-4 border-t border-slate-100 space-y-3">
-                    <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-500/20 text-[11px] text-emerald-800 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-sm text-financial-available" style={{ fontVariationSettings: "'FILL' 1" }}>shield</span>
-                        <span>Bảo chứng Escrow từng buổi • Đối soát 2 chiều 24h</span>
-                      </div>
-                      <div className="flex items-baseline justify-between">
-                      <span className="text-xs text-slate-400 font-bold">Học phí trọn gói:</span>
-                      <span className="text-2xl font-extrabold text-financial-available font-monospace-num">
-                        {formatCurrency(pkg.totalPrice)}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleBooking(pkg)}
-                      disabled={bookingLoading === pkg.id}
-                      className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-brand-indigo-600 to-indigo-700 hover:from-brand-indigo-500 hover:to-indigo-600 text-white font-extrabold text-xs shadow-md shadow-brand-indigo-500/25 transition-all sheen-btn flex items-center justify-center gap-2"
+            {services.length === 0 ? (
+              <div className="p-10 rounded-3xl glass-panel-premium text-center space-y-2">
+                <span className="material-symbols-outlined text-4xl text-slate-300">inventory_2</span>
+                <p className="text-sm font-extrabold text-slate-700">Gia sư chưa niêm yết gói học nào</p>
+                <p className="text-xs text-slate-500">Hãy nhắn tin để thương lượng gói học riêng.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {services.map((service) => {
+                  const totalSessions = Number(service.totalSessions) || 0;
+                  const price = Number(service.price);
+                  // ServiceSummaryDto không có giá/buổi ⇒ suy ra từ giá gói / số buổi.
+                  const pricePerSession =
+                    Number.isFinite(price) && totalSessions > 0 ? price / totalSessions : null;
+                  const serviceModeMeta = getTeachingModeMeta(service.teachingMode);
+                  return (
+                    <div
+                      key={service.id}
+                      className={`rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 card-hover-lift ${
+                        service.hasTrialLesson
+                          ? 'glass-panel-premium border-2 border-brand-indigo-500 glow-indigo relative'
+                          : 'glass-panel-premium border border-slate-200/80'
+                      }`}
                     >
-                      <span className="material-symbols-outlined text-base">lock_clock</span>
-                      {bookingLoading === pkg.id ? 'Đang Khóa Giữ Chỗ...' : 'Đặt gói & Khóa ký quỹ 15 phút'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                      {service.hasTrialLesson && (
+                        <div className="absolute -top-3.5 right-6 px-3 py-1 rounded-full bg-gradient-to-r from-brand-indigo-600 to-indigo-700 text-white text-[10px] font-extrabold uppercase shadow-sm tracking-wider">
+                          Có Buổi Học Thử
+                        </div>
+                      )}
+
+                      <div className="space-y-4">
+                        <h3 className="text-base font-extrabold text-slate-900 leading-snug">{service.title}</h3>
+                        <p className="text-xs font-bold text-brand-indigo-600">{service.subjectName}</p>
+
+                        <div className="pt-3 space-y-2 text-xs text-slate-600 border-t border-slate-100">
+                          <div className="flex items-center justify-between">
+                            <span>Số buổi cấp phát:</span>
+                            <span className="font-extrabold text-slate-900">
+                              {totalSessions} buổi ({service.sessionDurationMinutes}p/buổi)
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Hình thức học:</span>
+                            <span className="font-extrabold text-slate-900">{serviceModeMeta.label}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Đơn giá từng buổi:</span>
+                            <span className="font-extrabold text-brand-indigo-600 font-monospace-num">
+                              {pricePerSession === null ? '—' : `${formatCurrency(pricePerSession)} / buổi`}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-6 mt-4 border-t border-slate-100 space-y-3">
+                        <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-500/20 text-[11px] text-emerald-800 flex items-center gap-2">
+                          <span className="material-symbols-outlined text-sm text-financial-available" style={{ fontVariationSettings: "'FILL' 1" }}>shield</span>
+                          <span>Bảo chứng Escrow từng buổi • Đối soát 2 chiều 24h</span>
+                        </div>
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-xs text-slate-400 font-bold">Học phí trọn gói:</span>
+                          <span className="text-2xl font-extrabold text-financial-available font-monospace-num">
+                            {formatCurrency(service.price)}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleBooking(service)}
+                          disabled={bookingLoading === service.id}
+                          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-brand-indigo-600 to-indigo-700 hover:from-brand-indigo-500 hover:to-indigo-600 text-white font-extrabold text-xs shadow-md shadow-brand-indigo-500/25 transition-all sheen-btn flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-base">lock_clock</span>
+                          {bookingLoading === service.id ? 'Đang Khóa Giữ Chỗ...' : 'Đặt gói & Khóa ký quỹ 15 phút'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Student Reviews Section */}
           <div className="p-6 sm:p-8 rounded-3xl glass-panel-premium space-y-6">
             <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
               <span className="material-symbols-outlined text-amber-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-              Nhận Xét & Đánh Giá Thực Tế Từ Học Viên ({tutor.reviewCount})
+              Nhận Xét & Đánh Giá Thực Tế Từ Học Viên ({tutor.totalReviews ?? 0})
             </h3>
 
-            <div className="space-y-4">
-              {tutor.reviews.map((rev) => (
-                <div key={rev.id} className="p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-brand-indigo-100 text-brand-indigo-700 font-extrabold flex items-center justify-center text-xs">
-                        {rev.studentName[0]}
+            {reviews.length === 0 ? (
+              <p className="text-xs text-slate-500">Gia sư chưa có nhận xét nào.</p>
+            ) : (
+              <div className="space-y-4">
+                {reviews.map((review) => (
+                  <div key={review.id} className="p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-brand-indigo-100 text-brand-indigo-700 font-extrabold flex items-center justify-center text-xs">
+                          {(review.studentName || '?').charAt(0)}
+                        </div>
+                        <div>
+                          <span className="text-xs font-extrabold text-slate-900 block">{review.studentName}</span>
+                          <span className="text-[10px] text-slate-400">
+                            {formatDateTime(review.createdAt, 'DD/MM/YYYY')}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-xs font-extrabold text-slate-900 block">{rev.studentName}</span>
-                        <span className="text-[10px] text-slate-400">{rev.date}</span>
+                      <div className="flex text-amber-400 text-sm">
+                        {'★'.repeat(Math.max(0, Math.round(Number(review.rating) || 0)))}
                       </div>
                     </div>
-                    <div className="flex text-amber-400 text-sm">
-                      {'★'.repeat(rev.rating)}
-                    </div>
+                    <p className="text-xs text-slate-700 leading-relaxed">{review.comment}</p>
+                    {review.tutorReply && (
+                      <div className="p-3.5 rounded-xl bg-white border border-brand-indigo-100 text-xs text-slate-600 ml-3 space-y-1">
+                        <span className="font-extrabold text-brand-indigo-600 block text-[11px]">Phản hồi từ gia sư:</span>
+                        <p>{review.tutorReply}</p>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-slate-700 leading-relaxed">{rev.comment}</p>
-                  {rev.tutorReply && (
-                    <div className="p-3.5 rounded-xl bg-white border border-brand-indigo-100 text-xs text-slate-600 ml-3 space-y-1">
-                      <span className="font-extrabold text-brand-indigo-600 block text-[11px]">Phản hồi từ gia sư:</span>
-                      <p>{rev.tutorReply}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -353,20 +435,38 @@ export default function TutorProfile() {
               Múi giờ Asia/Ho_Chi_Minh (UTC+7). Các buổi học con sẽ được đối chiếu và xếp lịch dựa trên các slot này.
             </p>
 
-            <div className="space-y-2.5 pt-1">
-              {tutor.scheduleSlots.map((slot, idx) => (
-                <div
-                  key={idx}
-                  className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex items-center justify-between text-xs"
-                >
-                  <span className="font-extrabold text-slate-800">{slot.day}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-brand-indigo-600 font-monospace-num">{slot.time}</span>
-                    <span className="w-2 h-2 rounded-full bg-financial-available animate-pulse"></span>
+            {availableDays.length === 0 ? (
+              <p className="text-xs text-slate-500 pt-1">
+                Gia sư chưa mở khung giờ rảnh trong khoảng thời gian tới.
+              </p>
+            ) : (
+              <div className="space-y-2.5 pt-1">
+                {availableDays.map((day) => (
+                  <div
+                    key={`${day.date ?? day.dayOfWeekName}`}
+                    className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-1.5 text-xs"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-slate-800">
+                        {getDayOfWeekLabel(day.dayOfWeekName) || day.dayOfWeekName}
+                        {day.date ? <span className="text-slate-400 font-medium"> • {day.date}</span> : null}
+                      </span>
+                      <span className="w-2 h-2 rounded-full bg-financial-available animate-pulse"></span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(day.availableSlots ?? []).map((slot, index) => (
+                        <span
+                          key={`${slot.startTime}-${index}`}
+                          className="px-2 py-0.5 rounded-lg bg-white border border-slate-200 font-extrabold text-brand-indigo-600 font-monospace-num text-[11px]"
+                        >
+                          {String(slot.startTime ?? '').slice(0, 5)} - {String(slot.endTime ?? '').slice(0, 5)}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             <div className="pt-3 border-t border-slate-100">
               <Link

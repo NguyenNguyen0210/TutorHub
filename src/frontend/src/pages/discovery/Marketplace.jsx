@@ -1,115 +1,97 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { Alert, Button } from 'antd';
 import tutorService from '@/services/tutor.service';
 import EscrowVaultSimulator from '@/components/discovery/EscrowVaultSimulator';
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency, formatRating } from '@/utils/formatters';
+import { getTeachingModeMeta } from '@/config/enums';
 
 export default function Marketplace() {
   const [searchParams] = useSearchParams();
   const [tutors, setTutors] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reloadToken, setReloadToken] = useState(0);
   const [searchKeyword, setSearchKeyword] = useState(searchParams.get('q') || '');
-  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'All');
+  // '' = tất cả danh mục; ngược lại là categoryId thật từ GET /categories
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [teachingMode, setTeachingMode] = useState('All');
   const [sortBy, setSortBy] = useState('rating_desc');
 
-  const initialTutors = [
-    {
-      id: 'tut-001',
-      fullName: 'ThS. Nguyễn Văn An',
-      title: 'Chuyên luyện thi THPT QG môn Toán 5 năm kinh nghiệm',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-      university: 'Đại Học Sư Phạm Hà Nội',
-      degree: 'Cử Nhân Xuất Sắc',
-      rating: 4.90,
-      reviewCount: 28,
-      verified: true,
-      subjects: ['Toán THPT', 'Hình Không Gian Oxyz', 'Luyện Đề 9+'],
-      teachingMode: 'Both',
-      startingPrice: 2000000,
-      sessionsCount: 10,
-      bio: 'Tốt nghiệp thủ khoa ĐHSP, phương pháp tư duy giải nhanh trắc nghiệm 30s không cần máy tính.',
-    },
-    {
-      id: 'tut-002',
-      fullName: 'Trần Thị Bích, M.Ed',
-      title: 'Luyện thi IELTS 7.5+ & Tiếng Anh Học Thuật Chuyên Sâu',
-      avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80',
-      university: 'Đại Học Ngoại Thương',
-      degree: 'IELTS 8.5 Overall',
-      rating: 5.00,
-      reviewCount: 42,
-      verified: true,
-      subjects: ['IELTS 6.5+', 'Writing Task 2', 'Speaking VIP'],
-      teachingMode: 'Online',
-      startingPrice: 6000000,
-      sessionsCount: 20,
-      bio: 'Chuyên gia sửa bài Writing 1-1 theo tiêu chuẩn chấm thi IDP/BC, cam kết tăng tối thiểu 1.0 band sau khóa.',
-    },
-    {
-      id: 'tut-003',
-      fullName: 'Lê Hoàng Nam',
-      title: 'Thạc Sĩ CNTT & Luyện Thi Chuyên Lý THPT Chuyên',
-      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
-      university: 'Đại Học Bách Khoa Hà Nội',
-      degree: 'Kỹ Sư Xuất Sắc',
-      rating: 4.85,
-      reviewCount: 19,
-      verified: true,
-      subjects: ['Vật Lý 12', 'Lập Trình C# .NET', 'Điện Xoay Chiều'],
-      teachingMode: 'Both',
-      startingPrice: 1800000,
-      sessionsCount: 8,
-      bio: 'Tập trung xây dựng nền tảng bản chất vật lý và tư duy kiến trúc thuật toán cho học sinh giỏi.',
-    },
-    {
-      id: 'tut-004',
-      fullName: 'Vũ Minh Trang',
-      title: 'Giáo Viên Ngữ Văn Trường Chuyên & Luyện Thi Đại Học',
-      avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=300&q=80',
-      university: 'ĐH Sư Phạm TP.HCM',
-      degree: 'Thạc Sĩ Văn Học',
-      rating: 4.95,
-      reviewCount: 35,
-      verified: true,
-      subjects: ['Văn Học THPT', 'Nghị Luận Xã Hội', 'Luyện Đề Bộ GD'],
-      teachingMode: 'Online',
-      startingPrice: 2400000,
-      sessionsCount: 12,
-      bio: 'Hơn 8 năm kinh nghiệm chấm thi tốt nghiệp, hướng dẫn kỹ năng mở bài gây ấn tượng và triển khai luận điểm sáng tạo.',
-    }
-  ];
-
+  // Tải danh mục thật từ GET /categories (backend trả mảng PublicCategoryDto).
   useEffect(() => {
+    let cancelled = false;
+    async function loadCategories() {
+      try {
+        const list = await tutorService.getCategories();
+        if (!cancelled) setCategories(Array.isArray(list) ? list : []);
+      } catch (err) {
+        // Danh mục lỗi không nên chặn danh sách gia sư: chỉ log và bỏ trống bộ lọc.
+        console.warn('[Marketplace] Không tải được /categories:', err.message);
+      }
+    }
+    loadCategories();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // P1: gọi thẳng PagedResult<TutorSummaryDto> đã chuẩn hoá — không đọc `res.data` nữa.
+  useEffect(() => {
+    let cancelled = false;
+
     async function loadTutors() {
       try {
         setLoading(true);
-        const res = await tutorService.getTutors({
-          searchTerm: searchKeyword,
-          category: selectedCategory !== 'All' ? selectedCategory : undefined,
-          teachingMode: teachingMode !== 'All' ? teachingMode : undefined,
+        setError(null);
+
+        // GET /tutors chỉ nhận MỘT tham số `search`; backend match cả tên môn lẫn tên
+        // danh mục (xem GetTutorsQueryHandler). Ưu tiên từ khóa người dùng nhập, nếu
+        // trống thì dùng tên danh mục đang chọn.
+        const selected = categories.find((category) => category.id === selectedCategory);
+        const effectiveSearch = searchKeyword.trim() || selected?.name || '';
+
+        const page = await tutorService.getTutors({
+          search: effectiveSearch,
+          teachingMode: teachingMode !== 'All' ? teachingMode : null,
           sortBy,
+          pageNumber: 1,
+          pageSize: 9,
         });
-        if (res && res.data && res.data.length > 0) {
-          setTutors(res.data);
-        } else {
-          setTutors(initialTutors);
-        }
+
+        if (cancelled) return;
+        setTutors(Array.isArray(page.items) ? page.items : []);
+        setTotalCount(page.totalCount ?? 0);
       } catch (err) {
-        setTutors(initialTutors);
+        if (cancelled) return;
+        setTutors([]);
+        setTotalCount(0);
+        setError(err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
-    loadTutors();
-  }, [searchKeyword, selectedCategory, teachingMode, sortBy]);
 
-  const categories = [
-    { key: 'All', label: 'Tất Cả Bộ Môn', icon: 'auto_stories' },
-    { key: 'Math', label: 'Toán Học & KHTN', icon: 'calculate' },
-    { key: 'Languages', label: 'Ngoại Ngữ & IELTS', icon: 'translate' },
-    { key: 'IT', label: 'Công Nghệ Thông Tin', icon: 'terminal' },
-    { key: 'Exam', label: 'Luyện Thi THPT QG', icon: 'military_tech' },
+    loadTutors();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchKeyword, selectedCategory, teachingMode, sortBy, categories, reloadToken]);
+
+
+  // Pill danh mục lấy từ GET /categories (không còn danh sách hardcode).
+  // Backend /tutors chỉ lọc theo `search`/`subjectId`, và `search` có match cả
+  // Category.Name ⇒ chọn danh mục = truyền tên danh mục vào `search`.
+  const CATEGORY_ICONS = ['auto_stories', 'calculate', 'translate', 'terminal', 'military_tech', 'science'];
+  const categoryPills = [
+    { id: '', name: 'Tất Cả Bộ Môn', icon: 'auto_stories' },
+    ...categories.map((category, index) => ({
+      id: category.id,
+      name: category.name,
+      icon: CATEGORY_ICONS[(index + 1) % CATEGORY_ICONS.length],
+    })),
   ];
 
   return (
@@ -212,19 +194,19 @@ export default function Marketplace() {
 
       {/* Category Pills Bar */}
       <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none">
-        {categories.map((cat) => (
+        {categoryPills.map((pill) => (
           <button
-            key={cat.key}
+            key={pill.id || 'all'}
             type="button"
-            onClick={() => setSelectedCategory(cat.key)}
+            onClick={() => setSelectedCategory(pill.id)}
             className={`px-4 py-2.5 rounded-2xl font-extrabold text-xs shrink-0 flex items-center gap-2 transition-all duration-200 ${
-              selectedCategory === cat.key
+              selectedCategory === pill.id
                 ? 'bg-brand-indigo-600 text-white shadow-md shadow-brand-indigo-500/20'
                 : 'bg-white border border-slate-200/80 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
             }`}
           >
-            <span className="material-symbols-outlined text-base">{cat.icon}</span>
-            {cat.label}
+            <span className="material-symbols-outlined text-base">{pill.icon}</span>
+            {pill.name}
           </button>
         ))}
       </div>
@@ -244,6 +226,7 @@ export default function Marketplace() {
                 onClick={() => {
                   setTeachingMode('All');
                   setSearchKeyword('');
+                  setSelectedCategory('');
                 }}
                 className="text-[11px] text-brand-indigo-600 font-bold hover:underline"
               >
@@ -281,7 +264,7 @@ export default function Marketplace() {
                 <option value="rating_desc">Đánh giá cao nhất (★ 5.0)</option>
                 <option value="price_asc">Học phí: Thấp đến cao</option>
                 <option value="price_desc">Học phí: Cao đến thấp</option>
-                <option value="reviews_desc">Nhiều đánh giá nhất</option>
+                <option value="reviews">Nhiều đánh giá nhất</option>
               </select>
             </div>
 
@@ -304,12 +287,62 @@ export default function Marketplace() {
         <div className="lg:col-span-3 space-y-6">
           <div className="flex items-center justify-between">
             <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">
-              {tutors.length} Gia Sư Bảo Chứng Uy Tín
+              {totalCount} Gia Sư Bảo Chứng Uy Tín
             </span>
           </div>
 
+          {/* P1: lỗi API được hiển thị thật (kèm traceId) thay vì âm thầm dùng mock data. */}
+          {error && !loading && (
+            <Alert
+              type="error"
+              showIcon
+              message="Không tải được danh sách gia sư"
+              description={
+                <div className="space-y-1 text-xs">
+                  <p className="m-0">{error.message || 'Lỗi không xác định'}</p>
+                  {error.traceId && (
+                    <p className="m-0 font-mono text-[11px] text-slate-500">
+                      Mã đối chiếu (traceId): {error.traceId}
+                    </p>
+                  )}
+                </div>
+              }
+              action={
+                <Button size="small" onClick={() => setReloadToken((token) => token + 1)}>
+                  Thử lại
+                </Button>
+              }
+              className="rounded-2xl"
+            />
+          )}
+
+          {loading && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[0, 1, 2, 3].map((skeleton) => (
+                <div
+                  key={skeleton}
+                  className="h-64 rounded-3xl bg-slate-100/80 animate-pulse"
+                  aria-hidden="true"
+                />
+              ))}
+            </div>
+          )}
+
+          {!loading && !error && tutors.length === 0 && (
+            <div className="p-10 rounded-3xl glass-panel-premium text-center space-y-2">
+              <span className="material-symbols-outlined text-4xl text-slate-300">search_off</span>
+              <p className="text-sm font-extrabold text-slate-700">Không tìm thấy gia sư phù hợp</p>
+              <p className="text-xs text-slate-500">
+                Hãy thử từ khóa khác hoặc bỏ bộ lọc hình thức giảng dạy.
+              </p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {tutors.map((tut) => (
+            {tutors.map((tut) => {
+              const modeMeta = getTeachingModeMeta(tut.teachingMode);
+              const hasRating = Number.isFinite(Number(tut.ratingAvg)) && Number(tut.ratingAvg) > 0;
+              return (
               <div
                 key={tut.id}
                 className="rounded-3xl glass-panel-premium card-hover-lift overflow-hidden flex flex-col justify-between group"
@@ -331,7 +364,7 @@ export default function Marketplace() {
                         <h3 className="text-base font-extrabold text-slate-900 truncate group-hover:text-brand-indigo-600 transition-colors">
                           {tut.fullName}
                         </h3>
-                        {tut.verified && (
+                        {tut.isVerified && (
                           <span
                             className="material-symbols-outlined text-financial-available text-lg shrink-0"
                             style={{ fontVariationSettings: "'FILL' 1" }}
@@ -341,45 +374,49 @@ export default function Marketplace() {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs font-bold text-brand-indigo-600 line-clamp-1">{tut.university}</p>
+                      {/* TutorSummaryDto không có `university`; dùng `education` thật. */}
+                      <p className="text-xs font-bold text-brand-indigo-600 line-clamp-1">{tut.education}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="flex items-center text-amber-500 text-xs font-extrabold">
                           <span className="material-symbols-outlined text-sm mr-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                          {tut.rating.toFixed(2)}
+                          {hasRating ? formatRating(tut.ratingAvg, 2) : '—'}
                         </span>
-                        <span className="text-[11px] text-slate-400">({tut.reviewCount} đánh giá)</span>
+                        <span className="text-[11px] text-slate-400">({tut.totalReviews} đánh giá)</span>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                          {tut.teachingMode === 'Both' ? 'Online + Offline' : tut.teachingMode}
+                          {modeMeta.label}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Headline / Bio */}
+                  {/* Headline / Bio — DTO chỉ có `bio` (không có `title`) */}
                   <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                    {tut.title || tut.bio}
+                    {tut.bio}
                   </p>
 
-                  {/* Subject Tags */}
+                  {/* Subject Tags — summary trả về mảng TÊN môn */}
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    {tut.subjects.map((sub, idx) => (
+                    {(tut.subjects ?? []).map((subject) => (
                       <span
-                        key={idx}
+                        key={subject}
                         className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-brand-indigo-50/80 text-brand-indigo-700 border border-brand-indigo-100/50"
                       >
-                        {sub}
+                        {subject}
                       </span>
                     ))}
                   </div>
                 </div>
 
-                {/* Footer Price & CTAs */}
+                {/* Footer Price & CTAs — MinPrice là giá gói thấp nhất (backend đang bổ sung) */}
                 <div className="p-4 bg-slate-50/80 border-t border-slate-200/60 flex items-center justify-between gap-3">
                   <div>
                     <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Gói Từ</span>
                     <div className="text-base font-extrabold text-financial-available font-monospace-num">
-                      {formatCurrency(tut.startingPrice)}
-                      <span className="text-[11px] font-normal text-slate-500"> / {tut.sessionsCount} buổi</span>
+                      {tut.minPrice === null || tut.minPrice === undefined ? (
+                        <span className="text-sm text-slate-500">Liên hệ</span>
+                      ) : (
+                        formatCurrency(tut.minPrice)
+                      )}
                     </div>
                   </div>
 
@@ -401,7 +438,8 @@ export default function Marketplace() {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

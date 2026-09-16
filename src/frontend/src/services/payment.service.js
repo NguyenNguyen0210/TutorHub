@@ -1,24 +1,50 @@
+/**
+ * Payment Service — /api/v1/payments
+ *
+ * Contract (PaymentsController + PaymentRedirectDto/PaymentResultDto):
+ * - POST /payments/vnpay/create-url  body { bookingId: Guid } → PaymentRedirectDto
+ *   { paymentUrl, merchantReference, bookingId, expireAt }
+ * - GET  /payments/vnpay/return      → PaymentResultDto (đọc-only, không mutate trạng thái)
+ *
+ * Mock: chỉ khi VITE_USE_MOCK === 'true'; lỗi khác được ném lại (ApiError) để
+ * checkout hiển thị lỗi thật thay vì giả lập "thanh toán thành công".
+ */
 import { api } from './api';
+import { USE_MOCK } from '@/config/constants';
+
+function normalizeRedirect(raw = {}) {
+  return {
+    paymentUrl: raw.paymentUrl ?? null,
+    merchantReference: raw.merchantReference ?? null,
+    bookingId: raw.bookingId ?? null,
+    expireAt: raw.expireAt ?? null,
+  };
+}
 
 export const paymentService = {
   /**
-   * Tạo đường link thanh toán bảo mật qua VNPay Sandbox
+   * POST /payments/vnpay/create-url → PaymentRedirectDto
+   * @returns {Promise<{paymentUrl: string|null, merchantReference: string|null, bookingId: string|null, expireAt: string|null}>}
    */
   async createVnPayUrl(bookingId) {
     try {
       const res = await api.post('/payments/vnpay/create-url', { bookingId });
-      if (res && res.paymentUrl) {
-        return res.paymentUrl;
-      }
-      return null;
+      return normalizeRedirect(res);
     } catch (err) {
-      console.warn('[paymentService] Backend /payments/vnpay/create-url offline, using mock payment simulation.', err.message);
-      return null;
+      if (!USE_MOCK) throw err;
+      console.warn('[paymentService] /payments/vnpay/create-url lỗi, dùng mock (VITE_USE_MOCK=true).', err.message);
+      return {
+        paymentUrl: null,
+        merchantReference: `MOCK-${bookingId}`,
+        bookingId,
+        expireAt: null,
+      };
     }
   },
 
   /**
-   * Xử lý kết quả trả về từ cổng VNPay sau khi khách hàng hoàn tất hoặc hủy
+   * GET /payments/vnpay/return → PaymentResultDto
+   * VNPay redirect về kèm query params; backend tự verify chữ ký và trả kết quả.
    */
   async processPaymentReturn(searchParams) {
     try {
@@ -26,19 +52,20 @@ export const paymentService = {
       const res = await api.get('/payments/vnpay/return', { params });
       return res;
     } catch (err) {
-      console.warn('[paymentService] Backend /payments/vnpay/return offline, parsing parameters locally.', err.message);
+      if (!USE_MOCK) throw err;
+      console.warn('[paymentService] /payments/vnpay/return lỗi, dùng mock (VITE_USE_MOCK=true).', err.message);
       const code = searchParams.get('vnp_ResponseCode') || '00';
       const txnRef = searchParams.get('vnp_TxnRef') || 'THB-TEST-001';
-      const amount = Number(searchParams.get('vnp_Amount') || '200000000') / 100;
-      const bankCode = searchParams.get('vnp_BankCode') || 'NCB';
-
       return {
         isSuccess: code === '00',
         code,
-        message: code === '00' ? 'Giao dịch thanh toán thành công qua VNPay' : 'Giao dịch thanh toán không thành công hoặc bị hủy',
+        message:
+          code === '00'
+            ? 'Giao dịch thanh toán thành công qua VNPay (mock)'
+            : 'Giao dịch thanh toán không thành công hoặc bị hủy (mock)',
         transactionId: txnRef,
-        amount,
-        bankCode,
+        amount: Number(searchParams.get('vnp_Amount') || '200000000') / 100,
+        bankCode: searchParams.get('vnp_BankCode') || 'NCB',
         payDate: new Date().toISOString(),
       };
     }

@@ -4,6 +4,14 @@
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5129/api/v1';
 
+/**
+ * P1 mock policy: services must NEVER silently fall back to demo data.
+ * A failed call rejects with the structured ApiError so the UI can render the real
+ * error. Demo data is only reachable when VITE_USE_MOCK === 'true' (default false),
+ * which is meant for offline UI work / demos — never for a real environment.
+ */
+export const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+
 export const USER_ROLES = {
   ADMIN: 'Admin',
   TUTOR: 'Tutor',
