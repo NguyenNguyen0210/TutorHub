@@ -13,6 +13,23 @@
  */
 import api from './api';
 import { USE_MOCK } from '@/config/constants';
+import { HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
+import { useAuthStore } from '@/store/authStore';
+
+/**
+ * Tạo kết nối SignalR realtime tới /hubs/notifications.
+ */
+export function createNotificationHubConnection() {
+  const hubUrl = import.meta.env.VITE_NOTIFICATION_HUB_URL || 'http://localhost:5129/hubs/notifications';
+  return new HubConnectionBuilder()
+    .withUrl(hubUrl, {
+      accessTokenFactory: () => useAuthStore.getState().accessToken || '',
+      transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling,
+    })
+    .withAutomaticReconnect([0, 2000, 5000, 10000])
+    .configureLogging(LogLevel.Warning)
+    .build();
+}
 
 const MOCK_NOTIFICATIONS = [
   {

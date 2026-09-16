@@ -17,6 +17,24 @@
  */
 import api from './api';
 import { USE_MOCK } from '@/config/constants';
+import { HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
+import { useAuthStore } from '@/store/authStore';
+
+/**
+ * Tạo kết nối SignalR realtime tới /hubs/chat.
+ * Tự động đính kèm access_token vào query params và tự reconnect khi đứt mạng.
+ */
+export function createChatHubConnection() {
+  const hubUrl = import.meta.env.VITE_SIGNALR_HUB_URL || 'http://localhost:5129/hubs/chat';
+  return new HubConnectionBuilder()
+    .withUrl(hubUrl, {
+      accessTokenFactory: () => useAuthStore.getState().accessToken || '',
+      transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling,
+    })
+    .withAutomaticReconnect([0, 2000, 5000, 10000])
+    .configureLogging(LogLevel.Warning)
+    .build();
+}
 
 const MOCK_CONVERSATIONS = [
   {
