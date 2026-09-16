@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Alert, Button, message } from 'antd';
+import { Alert, message } from 'antd';
 import tutorService from '@/services/tutor.service';
 import bookingService from '@/services/booking.service';
+import { ProfileSkeleton } from '@/components/common/Skeleton';
+import ErrorState from '@/components/common/ErrorState';
+import EmptyState from '@/components/common/EmptyState';
 import { formatCurrency, formatDateTime } from '@/utils/formatters';
 import { getTeachingModeMeta, getDayOfWeekLabel } from '@/config/enums';
 
@@ -104,46 +107,36 @@ export default function TutorProfile() {
   };
 
   if (loading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <div className="h-56 rounded-3xl bg-slate-100/80 animate-pulse" aria-hidden="true" />
-        <div className="h-72 rounded-3xl bg-slate-100/80 animate-pulse" aria-hidden="true" />
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (error && !tutor) {
     return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-        <Alert
-          type="error"
-          showIcon
-          message="Không tải được hồ sơ gia sư"
-          description={
-            <div className="space-y-1 text-xs">
-              <p className="m-0">{error.message || 'Lỗi không xác định'}</p>
-              {error.traceId && (
-                <p className="m-0 font-mono text-[11px] text-slate-500">
-                  Mã đối chiếu (traceId): {error.traceId}
-                </p>
-              )}
-            </div>
-          }
-          action={
-            <Button size="small" onClick={() => setReloadToken((token) => token + 1)}>
-              Thử lại
-            </Button>
-          }
-          className="rounded-2xl"
+      <div className="py-16">
+        <ErrorState
+          error={error}
+          title="Không tải được hồ sơ gia sư"
+          onRetry={() => setReloadToken((token) => token + 1)}
+          backPath="/tutors"
+          backLabel="Quay lại danh sách gia sư"
         />
-        <Link to="/tutors" className="inline-block mt-4 text-xs font-bold text-brand-indigo-600 hover:underline">
-          ← Quay lại danh sách gia sư
-        </Link>
       </div>
     );
   }
 
-  if (!tutor) return null;
+  if (!tutor) {
+    return (
+      <div className="py-16">
+        <EmptyState
+          icon="person_off"
+          title="Không tìm thấy hồ sơ gia sư"
+          description="Hồ sơ gia sư này không tồn tại hoặc đã ngừng nhận lịch học."
+          actionLabel="Quay lại danh sách gia sư"
+          actionPath="/tutors"
+        />
+      </div>
+    );
+  }
 
   const modeMeta = getTeachingModeMeta(tutor.teachingMode);
   const services = Array.isArray(tutor.services) ? tutor.services : [];

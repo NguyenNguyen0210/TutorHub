@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Alert, Button } from 'antd';
 import tutorService from '@/services/tutor.service';
 import EscrowVaultSimulator from '@/components/discovery/EscrowVaultSimulator';
+import { CardSkeleton } from '@/components/common/Skeleton';
+import EmptyState from '@/components/common/EmptyState';
+import ErrorState from '@/components/common/ErrorState';
 import { formatCurrency, formatRating } from '@/utils/formatters';
 import { getTeachingModeMeta } from '@/config/enums';
 
@@ -291,54 +293,33 @@ export default function Marketplace() {
             </span>
           </div>
 
-          {/* P1: lỗi API được hiển thị thật (kèm traceId) thay vì âm thầm dùng mock data. */}
+          {/* P4: State Infrastructure (Error, Skeleton, Empty) */}
           {error && !loading && (
-            <Alert
-              type="error"
-              showIcon
-              message="Không tải được danh sách gia sư"
-              description={
-                <div className="space-y-1 text-xs">
-                  <p className="m-0">{error.message || 'Lỗi không xác định'}</p>
-                  {error.traceId && (
-                    <p className="m-0 font-mono text-[11px] text-slate-500">
-                      Mã đối chiếu (traceId): {error.traceId}
-                    </p>
-                  )}
-                </div>
-              }
-              action={
-                <Button size="small" onClick={() => setReloadToken((token) => token + 1)}>
-                  Thử lại
-                </Button>
-              }
-              className="rounded-2xl"
+            <ErrorState
+              error={error}
+              title="Không tải được danh sách gia sư"
+              onRetry={() => setReloadToken((token) => token + 1)}
             />
           )}
 
-          {loading && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[0, 1, 2, 3].map((skeleton) => (
-                <div
-                  key={skeleton}
-                  className="h-64 rounded-3xl bg-slate-100/80 animate-pulse"
-                  aria-hidden="true"
-                />
-              ))}
-            </div>
-          )}
+          {loading && <CardSkeleton count={4} />}
 
           {!loading && !error && tutors.length === 0 && (
-            <div className="p-10 rounded-3xl glass-panel-premium text-center space-y-2">
-              <span className="material-symbols-outlined text-4xl text-slate-300">search_off</span>
-              <p className="text-sm font-extrabold text-slate-700">Không tìm thấy gia sư phù hợp</p>
-              <p className="text-xs text-slate-500">
-                Hãy thử từ khóa khác hoặc bỏ bộ lọc hình thức giảng dạy.
-              </p>
-            </div>
+            <EmptyState
+              icon="person_search"
+              title="Không tìm thấy gia sư phù hợp"
+              description="Hãy thử từ khóa khác hoặc điều chỉnh lại danh mục và hình thức giảng dạy."
+              actionLabel="Xem tất cả gia sư"
+              onAction={() => {
+                setSelectedCategory('');
+                setSearchKeyword('');
+                setTeachingMode('All');
+              }}
+            />
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {!loading && !error && tutors.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {tutors.map((tut) => {
               const modeMeta = getTeachingModeMeta(tut.teachingMode);
               const hasRating = Number.isFinite(Number(tut.ratingAvg)) && Number(tut.ratingAvg) > 0;
@@ -441,6 +422,7 @@ export default function Marketplace() {
               );
             })}
           </div>
+          )}
         </div>
       </div>
     </div>
