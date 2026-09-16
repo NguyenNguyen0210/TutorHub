@@ -1,4 +1,4 @@
-# =====================
+    # =====================
 # .NET / dotnet
 # =====================
 bin/
@@ -102,3 +102,6 @@ Desktop.ini
 # =====================
 .commandcode/
 .kombai/canvas/tutorhub-uiux-plan.canvas
+docs/project-guide.md
+design.md
+docs/frontend-specification.md
