@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { message } from 'antd';
+import adminService from '@/services/admin.service';
+import { message, Modal } from 'antd';
 import { TUTOR_APPLICATION_STATUS, getTutorApplicationStatusMeta } from '@/config/enums';
 
 export default function AdminTutorApplications() {
   const [selectedApp, setSelectedApp] = useState('app-1');
+  const [processing, setProcessing] = useState(false);
 
   // `status` dùng đúng enum backend (Pending | Approved | Rejected) để tra map chung.
   const applicants = [
@@ -34,7 +36,44 @@ export default function AdminTutorApplications() {
   const current = applicants.find((a) => a.id === selectedApp) || applicants[0];
 
   const handleApprove = () => {
-    message.success(`Đã phê duyệt và cấp Verified Badge cho ${current.fullName}!`);
+    Modal.confirm({
+      title: `Phê duyệt hồ sơ gia sư: ${current.fullName}`,
+      content: 'Gia sư sẽ được cấp Verified Badge và hiển thị trong danh mục tìm kiếm.',
+      okText: 'Xác nhận phê duyệt',
+      cancelText: 'Hủy bỏ',
+      onOk: async () => {
+        try {
+          setProcessing(true);
+          await adminService.approveTutorApplication(current.id);
+          message.success(`Đã phê duyệt và cấp Verified Badge cho ${current.fullName}!`);
+        } catch (err) {
+          message.error(err?.message || 'Không thể phê duyệt hồ sơ gia sư.');
+        } finally {
+          setProcessing(false);
+        }
+      },
+    });
+  };
+
+  const handleReject = () => {
+    Modal.confirm({
+      title: `Từ chối hồ sơ gia sư: ${current.fullName}`,
+      content: 'Hồ sơ sẽ bị đánh dấu từ chối và gia sư nhận được thông báo bổ sung minh chứng.',
+      okText: 'Xác nhận từ chối',
+      okButtonProps: { danger: true },
+      cancelText: 'Hủy bỏ',
+      onOk: async () => {
+        try {
+          setProcessing(true);
+          await adminService.rejectTutorApplication(current.id, 'Hồ sơ chưa đạt yêu cầu minh chứng văn bằng');
+          message.info(`Đã từ chối hồ sơ của ${current.fullName}.`);
+        } catch (err) {
+          message.error(err?.message || 'Không thể từ chối hồ sơ gia sư.');
+        } finally {
+          setProcessing(false);
+        }
+      },
+    });
   };
 
   return (
@@ -120,18 +159,20 @@ export default function AdminTutorApplications() {
           <div className="flex gap-3 pt-4 border-t border-slate-700">
             <button
               type="button"
+              disabled={processing}
               onClick={handleApprove}
-              className="py-3 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
+              className="py-3 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-base">verified</span>
-              Phê Duyệt & Cấp Verified Badge
+              {processing ? 'Đang xử lý...' : 'Phê Duyệt & Cấp Verified Badge'}
             </button>
             <button
               type="button"
-              onClick={() => message.info('Đã gửi yêu cầu bổ sung minh chứng')}
-              className="py-3 px-6 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-700 text-xs font-bold transition-colors"
+              disabled={processing}
+              onClick={handleReject}
+              className="py-3 px-6 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-700 text-xs font-bold transition-colors disabled:opacity-50"
             >
-              Yêu Cầu Bổ Sung
+              Từ Chối Hồ Sơ
             </button>
           </div>
         </div>

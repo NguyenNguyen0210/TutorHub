@@ -10,36 +10,47 @@ import {
 } from '@ant-design/icons';
 import { formatCurrency } from '@/utils/formatters';
 
-export default function AttendanceCard({ session, onAttendanceSubmitted }) {
-  const [studentChoice, setStudentChoice] = useState(session.studentAttended);
-  const [tutorChoice, setTutorChoice] = useState(session.tutorAttended);
+export default function AttendanceCard({ session = {}, onAttendanceSubmitted }) {
+  const getInitialStudentChoice = () => {
+    if (session.studentAttendance === 'Attended') return true;
+    if (session.studentAttendance === 'Absent') return false;
+    return session.studentAttended ?? null;
+  };
+
+  const getInitialTutorChoice = () => {
+    if (session.tutorAttendance === 'Attended') return true;
+    if (session.tutorAttendance === 'Absent') return false;
+    return session.tutorAttended ?? null;
+  };
+
+  const [studentChoice, setStudentChoice] = useState(getInitialStudentChoice);
+  const [tutorChoice] = useState(getInitialTutorChoice);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Kịch bản xung đột: Học viên và Gia sư có câu trả lời đối lập
+  // Kịch bản xung đột: Học viên và Gia sư có câu trả lời đối lập hoặc flag từ backend
   const hasConflict =
-    studentChoice !== null &&
-    tutorChoice !== null &&
-    studentChoice !== tutorChoice;
+    session.hasAttendanceConflict ||
+    (studentChoice !== null && tutorChoice !== null && studentChoice !== tutorChoice);
 
-  // Kịch bản đồng thuận: Cả 2 cùng Attended
+  // Kịch bản đồng thuận: Cả 2 cùng Attended hoặc backend đã hoàn tất
   const hasConsensus =
-    studentChoice === true &&
-    tutorChoice === true;
+    session.isPayoutReleased ||
+    session.status === 'Completed' ||
+    (studentChoice === true && tutorChoice === true);
 
-  const handleSubmit = (outcome) => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setStudentChoice(outcome === 'Attended');
-      // Mô phỏng gia sư cũng đã điểm danh để tạo kịch bản đối soát
-      if (tutorChoice === null) {
-        setTutorChoice(true); // Gia sư báo có mặt
-      }
-      setIsSubmitting(false);
-      message.success(`Đã ghi nhận điểm danh: ${outcome === 'Attended' ? 'Có Mặt' : 'Vắng Mặt'}`);
+  const handleSubmit = async (outcome) => {
+    try {
+      setIsSubmitting(true);
       if (onAttendanceSubmitted) {
-        onAttendanceSubmitted(outcome);
+        await onAttendanceSubmitted(outcome);
       }
-    }, 400);
+      setStudentChoice(outcome === 'Attended');
+      message.success(`Đã gửi xác nhận điểm danh: ${outcome === 'Attended' ? 'Có Mặt' : 'Vắng Mặt'}`);
+    } catch (err) {
+      message.error(err?.message || 'Không thể gửi điểm danh.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

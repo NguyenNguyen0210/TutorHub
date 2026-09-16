@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import adminService from '@/services/admin.service';
 import { formatCurrency } from '@/utils/formatters';
-import { message } from 'antd';
+import { message, Modal } from 'antd';
 
 export default function AdminDisputeDetail() {
   const { id } = useParams();
@@ -23,16 +24,46 @@ export default function AdminDisputeDetail() {
   const platformFeeRefund = refundAmount - tutorClawback; // 20,000
 
   const handleResolve = (isApproved) => {
-    setResolving(true);
-    setTimeout(() => {
-      setResolving(false);
-      if (isApproved) {
-        message.success(`Đã phê duyệt hoàn tiền ${formatCurrency(refundAmount)} cho học viên. Tiền đã giải phóng khỏi Escrow.`);
-      } else {
-        message.info('Đã bác bỏ khiếu nại. Học phí giải ngân cho gia sư.');
-      }
-      navigate('/admin/dashboard');
-    }, 800);
+    if (!adminNote || adminNote.trim().length < 10) {
+      message.error('Vui lòng nhập căn cứ trọng tài chi tiết (tối thiểu 10 ký tự).');
+      return;
+    }
+
+    const decision = isApproved
+      ? (refundAmount >= originalSessionFee ? 'StudentWinsFullRefund' : 'StudentWinsPartialRefund')
+      : 'DismissedNoFinancialChange';
+
+    const customRefundAmount = (isApproved && refundAmount < originalSessionFee) ? refundAmount : null;
+
+    Modal.confirm({
+      title: isApproved ? 'Xác nhận phán quyết hoàn tiền' : 'Xác nhận bác bỏ khiếu nại',
+      content: isApproved
+        ? `Bạn có chắc chắn muốn hoàn ${formatCurrency(refundAmount)} cho học viên? Thu hồi từ gia sư: ${formatCurrency(tutorClawback)}, hoàn phí sàn: ${formatCurrency(platformFeeRefund)}.`
+        : 'Bạn có chắc chắn muốn bác bỏ khiếu nại này? Tiền học sẽ không được hoàn trả.',
+      okText: 'Xác nhận phán quyết',
+      cancelText: 'Hủy bỏ',
+      okButtonProps: { danger: !isApproved },
+      onOk: async () => {
+        try {
+          setResolving(true);
+          await adminService.applyDisputeVerdict(caseId, {
+            decision,
+            customRefundAmount,
+            adminNotes: adminNote.trim(),
+          });
+          message.success(
+            isApproved
+              ? `Đã ghi nhận phán quyết hoàn tiền ${formatCurrency(refundAmount)} thành công.`
+              : 'Đã bác bỏ khiếu nại thành công.'
+          );
+          navigate('/admin/dashboard');
+        } catch (err) {
+          message.error(err?.message || 'Không thể thực hiện phán quyết phân xử.');
+        } finally {
+          setResolving(false);
+        }
+      },
+    });
   };
 
   return (

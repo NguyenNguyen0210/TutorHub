@@ -43,30 +43,48 @@ export const paymentService = {
   },
 
   /**
+   * POST /dev/payments/simulate-ipn body { bookingId, success } → SimulatedPaymentDto
+   * Chỉ hoạt động ở Development (backend dev simulator).
+   */
+  async simulateIpn(bookingId, success = true) {
+    const res = await api.post('/dev/payments/simulate-ipn', { bookingId, success });
+    return res;
+  },
+
+  /**
    * GET /payments/vnpay/return → PaymentResultDto
-   * VNPay redirect về kèm query params; backend tự verify chữ ký và trả kết quả.
+   * { success, message, bookingId, merchantReference, transactionNo, amount }
+   * VNPay redirect về kèm query params; backend tự verify chữ ký và trả kết quả thật.
    */
   async processPaymentReturn(searchParams) {
+    const params = Object.fromEntries(searchParams.entries());
+    if (Object.keys(params).length === 0) {
+      return {
+        success: false,
+        message: 'Không tìm thấy thông tin giao dịch trong URL chuyển hướng.',
+        bookingId: null,
+        merchantReference: null,
+        transactionNo: null,
+        amount: 0,
+      };
+    }
     try {
-      const params = Object.fromEntries(searchParams.entries());
       const res = await api.get('/payments/vnpay/return', { params });
       return res;
     } catch (err) {
       if (!USE_MOCK) throw err;
       console.warn('[paymentService] /payments/vnpay/return lỗi, dùng mock (VITE_USE_MOCK=true).', err.message);
-      const code = searchParams.get('vnp_ResponseCode') || '00';
-      const txnRef = searchParams.get('vnp_TxnRef') || 'THB-TEST-001';
+      const code = searchParams.get('vnp_ResponseCode');
+      const isOk = code === '00';
       return {
-        isSuccess: code === '00',
-        code,
-        message:
-          code === '00'
-            ? 'Giao dịch thanh toán thành công qua VNPay (mock)'
-            : 'Giao dịch thanh toán không thành công hoặc bị hủy (mock)',
-        transactionId: txnRef,
-        amount: Number(searchParams.get('vnp_Amount') || '200000000') / 100,
-        bankCode: searchParams.get('vnp_BankCode') || 'NCB',
-        payDate: new Date().toISOString(),
+        success: isOk,
+        message: isOk
+          ? 'Giao dịch thanh toán thành công qua VNPay (mock).'
+          : 'Giao dịch thanh toán không thành công hoặc bị hủy (mock).',
+        bookingId: searchParams.get('vnp_TxnRef') || 'MOCK-BOOKING-001',
+        merchantReference: searchParams.get('vnp_TxnRef') || 'THB-MOCK-001',
+        transactionNo: searchParams.get('vnp_TransactionNo') || null,
+        amount: Number(searchParams.get('vnp_Amount') || '0') / 100,
       };
     }
   },

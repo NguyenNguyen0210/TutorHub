@@ -34,11 +34,10 @@ export default function DisputeNew() {
         description,
         evidenceUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80',
       });
-      message.success('Đã mở đơn khiếu nại thành công! Tiền học buổi này đã được phong tỏa trong Escrow.');
+      message.success('Đã gửi đơn khiếu nại thành công! Tiền học buổi này sẽ được bảo chứng chờ Admin xử lý.');
       navigate('/student/dashboard');
     } catch (err) {
-      message.info('Đơn khiếu nại đã được chuyển đến Bàn Trọng Tài.');
-      navigate('/student/dashboard');
+      message.error(err?.message || 'Không thể gửi đơn khiếu nại. Vui lòng kiểm tra lại thông tin.');
     } finally {
       setLoading(false);
     }
@@ -124,7 +123,7 @@ export default function DisputeNew() {
             <span className="material-symbols-outlined text-rose-600 text-xl shrink-0">lock</span>
             <div>
               <span className="font-bold block">Quy tắc bảo chứng tài chính:</span>
-              <span>Học phí buổi học (200.000 ₫) sẽ tiếp tục bị phong tỏa trong Escrow và chỉ được hoàn trả hoặc giải ngân theo phán quyết phân xử của Admin.</span>
+              <span>Sau khi gửi khiếu nại thành công, học phí buổi học sẽ được bảo chứng trong Escrow và chỉ được giải ngân hoặc hoàn trả theo phán quyết phân xử của Admin.</span>
             </div>
           </div>
 

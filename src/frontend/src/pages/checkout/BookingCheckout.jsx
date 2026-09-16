@@ -13,6 +13,10 @@ export default function BookingCheckout() {
   const [timeLeft, setTimeLeft] = useState(822); // ~13m 42s
   const [selectedMethod, setSelectedMethod] = useState('vnpay');
   const [loading, setLoading] = useState(false);
+  const [simulating, setSimulating] = useState(false);
+  const [paymentError, setPaymentError] = useState(null);
+
+  const isDev = import.meta.env.DEV || import.meta.env.VITE_DEV_PAYMENT_SIMULATOR === 'true';
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -52,8 +56,8 @@ export default function BookingCheckout() {
   const handlePayVNPay = async () => {
     try {
       setLoading(true);
+      setPaymentError(null);
       // POST /payments/vnpay/create-url { bookingId } → PaymentRedirectDto
-      // (api.js đã bóc envelope ⇒ `redirect` chính là DTO, không đọc `res.data` nữa).
       const redirect = await paymentService.createVnPayUrl(currentBookingId);
 
       if (redirect?.paymentUrl) {
@@ -61,21 +65,36 @@ export default function BookingCheckout() {
         return;
       }
 
-      // Không có paymentUrl ⇒ lỗi thật. Chỉ mô phỏng khi bật VITE_USE_MOCK.
-      if (USE_MOCK) {
-        message.info('Chưa cấu hình VNPay — mô phỏng kết quả thanh toán (VITE_USE_MOCK=true).');
-        navigate(`/payment/return?vnp_Amount=${orderData.totalAmount * 100}&vnp_ResponseCode=00&vnp_TxnRef=${currentBookingId}&vnp_TransactionNo=14892019`);
-        return;
-      }
-      message.error('VNPay không trả về đường dẫn thanh toán. Vui lòng thử lại.');
+      setPaymentError('Cổng thanh toán VNPay không trả về đường dẫn thanh toán. Vui lòng thử lại.');
     } catch (err) {
-      if (USE_MOCK) {
-        navigate(`/payment/return?vnp_Amount=${orderData.totalAmount * 100}&vnp_ResponseCode=00&vnp_TxnRef=${currentBookingId}&vnp_TransactionNo=14892019`);
-        return;
-      }
-      message.error(err?.message || 'Không tạo được đường dẫn thanh toán VNPay.');
+      setPaymentError(err?.message || 'Không tạo được đường dẫn thanh toán VNPay.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSimulatePayment = async (success = true) => {
+    try {
+      setSimulating(true);
+      setPaymentError(null);
+      // Đảm bảo gateway attempt đã tồn tại
+      try {
+        await paymentService.createVnPayUrl(currentBookingId);
+      } catch {
+        // Tiếp tục gọi simulator
+      }
+
+      const result = await paymentService.simulateIpn(currentBookingId, success);
+      if (result?.success || result?.ackCode === '00') {
+        message.success('Giả lập thanh toán thành công! Hợp đồng học tập đã được kích hoạt.');
+        navigate('/student/dashboard');
+      } else {
+        message.warning(`Giả lập kết thúc với mã ${result?.ackCode || 'thất bại'}.`);
+      }
+    } catch (err) {
+      message.error(err?.message || 'Không thể gọi dev payment simulator.');
+    } finally {
+      setSimulating(false);
     }
   };
 
@@ -214,26 +233,60 @@ export default function BookingCheckout() {
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="space-y-2.5 pt-2">
-              <button
-                type="button"
-                onClick={handlePayVNPay}
-                disabled={loading}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-brand-indigo-600 to-indigo-700 hover:from-brand-indigo-500 hover:to-indigo-600 text-white font-extrabold text-sm shadow-md shadow-brand-indigo-500/30 transition-all sheen-btn flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-lg">payment</span>
-                {loading ? 'Đang kết nối VNPay...' : `Thanh Toán ${formatCurrency(orderData.totalAmount)} Qua VNPay`}
-              </button>
+              {paymentError && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2">
+                  <span className="material-symbols-outlined text-rose-600 text-base shrink-0">error</span>
+                  <div className="flex-1">
+                    <p className="font-bold">{paymentError}</p>
+                    <button
+                      type="button"
+                      onClick={handlePayVNPay}
+                      className="mt-1.5 text-xs text-rose-700 underline font-bold hover:text-rose-900"
+                    >
+                      Thử lại kết nối VNPay
+                    </button>
+                  </div>
+                </div>
+              )}
 
-              <button
-                type="button"
-                onClick={() => navigate('/tutors')}
-                className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold transition-colors"
-              >
-                Hủy Đơn Giữ Chỗ
-              </button>
-            </div>
+              {/* Action Buttons */}
+              <div className="space-y-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={handlePayVNPay}
+                  disabled={loading || simulating}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-brand-indigo-600 to-indigo-700 hover:from-brand-indigo-500 hover:to-indigo-600 text-white font-extrabold text-sm shadow-md shadow-brand-indigo-500/30 transition-all sheen-btn flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-lg">payment</span>
+                  {loading ? 'Đang kết nối VNPay...' : `Thanh Toán ${formatCurrency(orderData.totalAmount)} Qua VNPay`}
+                </button>
+
+                {isDev && (
+                  <div className="pt-2 border-t border-dashed border-amber-300/80 space-y-1.5">
+                    <div className="flex items-center gap-1 text-[11px] text-amber-800 font-bold">
+                      <span className="material-symbols-outlined text-sm text-amber-600">developer_mode</span>
+                      Công cụ kiểm thử (Dev Simulator):
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSimulatePayment(true)}
+                      disabled={loading || simulating}
+                      className="w-full py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-900 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <span className="material-symbols-outlined text-base text-amber-600">bolt</span>
+                      {simulating ? 'Đang kích hoạt...' : 'Giả lập VNPay thành công (Kích hoạt hợp đồng)'}
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => navigate('/tutors')}
+                  className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold transition-colors"
+                >
+                  Hủy Đơn Giữ Chỗ
+                </button>
+              </div>
           </div>
         </div>
       </div>

@@ -369,6 +369,18 @@ export const adminService = {
   rejectTutorApplication: (id, reason) =>
     api.post(`/admin/tutor-applications/${id}/reject`, { reason }),
 
+  /** POST /admin/users/{id}/suspend { reason } → AdminUserSummaryDto */
+  suspendUser: (id, reason = 'Vi phạm quy chế sàn') =>
+    api.post(`/admin/users/${id}/suspend`, { reason }),
+
+  /** POST /admin/users/{id}/reactivate → AdminUserSummaryDto */
+  reactivateUser: (id) =>
+    api.post(`/admin/users/${id}/reactivate`),
+
+  /** POST /admin/users/{id}/ban { reason } → AdminUserSummaryDto */
+  banUser: (id, reason = 'Vi phạm nghiêm trọng quy chế sàn') =>
+    api.post(`/admin/users/${id}/ban`, { reason }),
+
   /**
    * POST /admin/disputes/{id}/resolve → DisputeDto
    * Body thật của AdminResolveDisputeRequest: { decision, customRefundAmount, adminNotes }
