@@ -211,7 +211,7 @@ export default function PaymentReturn() {
                 <span className="material-symbols-outlined text-base">arrow_back</span>
                 Khám Phá Gia Sư Khác
               </Link>
-              {result?.bookingId && (
+              {result?.bookingId && result?.bookingId !== '00000000-0000-0000-0000-000000000000' && (
                 <Link
                   to={`/student/bookings/${result.bookingId}/checkout`}
                   className="py-3 px-5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors flex items-center justify-center gap-1.5"

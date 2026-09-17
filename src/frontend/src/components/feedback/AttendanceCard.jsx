@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Tag, Alert, message } from 'antd';
 import {
   CheckCircleFilled,
@@ -6,35 +6,41 @@ import {
   SafetyCertificateFilled,
   AlertFilled,
 } from '@ant-design/icons';
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency, formatDateTime } from '@/utils/formatters';
+
+function getInitialStudentChoice(session = {}) {
+  if (session.studentAttendance === 'Attended' || session.studentAttendance === 0) return true;
+  if (session.studentAttendance === 'Absent' || session.studentAttendance === 1) return false;
+  return session.studentAttended ?? null;
+}
+
+function getInitialTutorChoice(session = {}) {
+  if (session.tutorAttendance === 'Attended' || session.tutorAttendance === 0) return true;
+  if (session.tutorAttendance === 'Absent' || session.tutorAttendance === 1) return false;
+  return session.tutorAttended ?? null;
+}
 
 export default function AttendanceCard({ session = {}, onAttendanceSubmitted }) {
-  const getInitialStudentChoice = () => {
-    if (session.studentAttendance === 'Attended') return true;
-    if (session.studentAttendance === 'Absent') return false;
-    return session.studentAttended ?? null;
-  };
-
-  const getInitialTutorChoice = () => {
-    if (session.tutorAttendance === 'Attended') return true;
-    if (session.tutorAttendance === 'Absent') return false;
-    return session.tutorAttended ?? null;
-  };
-
-  const [studentChoice, setStudentChoice] = useState(getInitialStudentChoice);
-  const [tutorChoice] = useState(getInitialTutorChoice);
+  const [studentChoice, setStudentChoice] = useState(() => getInitialStudentChoice(session));
+  const [tutorChoice, setTutorChoice] = useState(() => getInitialTutorChoice(session));
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Kịch bản xung đột: Học viên và Gia sư có câu trả lời đối lập hoặc flag từ backend
+  useEffect(() => {
+    setStudentChoice(getInitialStudentChoice(session));
+    setTutorChoice(getInitialTutorChoice(session));
+  }, [session]);
+
   const hasConflict =
     session.hasAttendanceConflict ||
     (studentChoice !== null && tutorChoice !== null && studentChoice !== tutorChoice);
 
-  // Kịch bản đồng thuận: Cả 2 cùng Attended hoặc backend đã hoàn tất
   const hasConsensus =
     session.isPayoutReleased ||
     session.status === 'Completed' ||
     (studentChoice === true && tutorChoice === true);
+
+  const tutorDisplayName = session.tutorName || 'Gia sư';
+  const sessionAmount = Number(session.earningAmount || 0);
 
   const handleSubmit = async (outcome) => {
     try {
@@ -60,19 +66,27 @@ export default function AttendanceCard({ session = {}, onAttendanceSubmitted }) 
             <span className="font-bold text-sm text-slate-900 uppercase tracking-wide">
               Cửa Sổ Đối Soát Điểm Danh 2 Chiều 24 Giờ
             </span>
-            <Tag color="processing" className="font-bold text-[10px] rounded-full border-0 px-2 py-0.5">
-              ĐANG MỞ ĐỐI SOÁT
+            <Tag color={session.status === 'Completed' ? 'success' : 'processing'} className="font-bold text-[10px] rounded-full border-0 px-2 py-0.5">
+              {session.status === 'Completed' ? 'ĐÃ HOÀN TẤT' : 'ĐANG MỞ ĐỐI SOÁT'}
             </Tag>
           </div>
           <p className="m-0 text-xs text-slate-500 mt-1">
-            Hạn chót đối soát: <strong className="text-slate-700">19:00 ngày mai (24h sau giờ học)</strong>. Tiền sẽ tự động giải ngân nếu cả hai bên xác nhận.
+            Hạn chót đối soát:{' '}
+            <strong className="text-slate-700">
+              {session.attendanceVerificationDueAt
+                ? formatDateTime(session.attendanceVerificationDueAt)
+                : 'Trong vòng 24h sau buổi học'}
+            </strong>
+            . Tiền sẽ tự động giải ngân khi hai bên cùng xác nhận có mặt.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-          <SafetyCertificateFilled className="text-emerald-600" />
-          <span>Số tiền bảo chứng: {formatCurrency(session.payoutAmount || 200000)}</span>
-        </div>
+        {sessionAmount > 0 && (
+          <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+            <SafetyCertificateFilled className="text-emerald-600" />
+            <span>Số tiền bảo chứng: {formatCurrency(sessionAmount)}</span>
+          </div>
+        )}
       </div>
 
       {/* 2-Column Direct Verification Grid */}
@@ -126,7 +140,7 @@ export default function AttendanceCard({ session = {}, onAttendanceSubmitted }) 
         {/* Column 2: Gia Sư */}
         <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="font-bold text-xs text-slate-800 uppercase">2. Gia Sư ({session.tutorName})</span>
+            <span className="font-bold text-xs text-slate-800 uppercase">2. Gia Sư ({tutorDisplayName})</span>
             {tutorChoice === true ? (
               <Tag color="success" className="font-bold border-0 px-2 py-0.5 text-xs">
                 <CheckCircleFilled /> GIA SƯ ĐÃ XÁC NHẬN CÓ MẶT
@@ -143,11 +157,11 @@ export default function AttendanceCard({ session = {}, onAttendanceSubmitted }) 
           </div>
 
           <p className="text-xs text-slate-500 mb-3 leading-relaxed">
-            Gia sư ThS. Nguyễn Văn An có trách nhiệm xác nhận điểm danh trong vòng 24 giờ sau khi lớp học kết thúc.
+            {tutorDisplayName} có trách nhiệm xác nhận điểm danh trong vòng 24 giờ sau khi lớp học kết thúc.
           </p>
 
           <div className="text-xs text-slate-400 italic">
-            Trạng thái hệ thống: {tutorChoice === true ? 'Gia sư đã ký xác nhận buổi học đạt chuẩn.' : 'Đang chờ ký số từ gia sư...'}
+            Trạng thái hệ thống: {tutorChoice === true ? 'Gia sư đã xác nhận hoàn thành buổi học.' : 'Đang chờ đối soát từ gia sư...'}
           </div>
         </div>
       </div>
@@ -157,11 +171,13 @@ export default function AttendanceCard({ session = {}, onAttendanceSubmitted }) 
         <Alert
           type="success"
           showIcon
-          message="Đối Soát Thành Công — Cả Hai Bên Đều Có Mặt"
+          message="Đối Soát Thành Công — Hai Bên Đều Xác Nhận Hoàn Thành"
           description={
             <span>
-              Buổi học đã được đánh dấu là <strong>Completed</strong>. Hệ thống tự động giải ngân{' '}
-              <strong>{formatCurrency(session.payoutAmount || 200000)}</strong> từ két ký quỹ Escrow vào ví khả dụng của gia sư (đã trừ phí sàn 10%).
+              Buổi học đã được ghi nhận hoàn tất.
+              {session.isPayoutReleased
+                ? ` Hệ thống đã giải ngân thu nhập buổi học (${formatCurrency(sessionAmount)}) từ Escrow vào ví của gia sư.`
+                : ' Hệ thống đang tiến hành thủ tục giải ngân từ quỹ bảo chứng Escrow.'}
             </span>
           }
           className="rounded-xl mb-2"
@@ -177,7 +193,7 @@ export default function AttendanceCard({ session = {}, onAttendanceSubmitted }) 
           description={
             <div className="space-y-2">
               <p className="m-0 text-xs text-rose-800">
-                Có sự bất đồng giữa xác nhận của Học viên và Gia sư. Số tiền {formatCurrency(session.payoutAmount || 200000)} của buổi học này đã được <strong>tự động phong tỏa trong Escrow</strong>.
+                Có sự bất đồng giữa xác nhận của Học viên và Gia sư. Số tiền {formatCurrency(sessionAmount)} của buổi học này đã được <strong>tự động phong tỏa trong Escrow</strong> để đảm bảo an toàn.
               </p>
               <div className="pt-1">
                 <Button
@@ -185,9 +201,9 @@ export default function AttendanceCard({ session = {}, onAttendanceSubmitted }) 
                   type="primary"
                   size="small"
                   className="rounded-lg font-bold text-xs"
-                  href="/student/disputes/new"
+                  href={`/student/disputes/new?sessionId=${session.id || ''}`}
                 >
-                  Mở Khiếu Nại Lên Ban Trọng Tài DEC-S8 Ngay
+                  Mở Đơn Khiếu Nại Tranh Chấp Ngay
                 </Button>
               </div>
             </div>

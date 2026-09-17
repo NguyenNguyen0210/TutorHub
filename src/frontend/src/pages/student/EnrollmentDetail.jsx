@@ -129,7 +129,7 @@ export default function EnrollmentDetail() {
               {enrollment.serviceTitle || enrollment.subjectName || 'Hợp Đồng Học Tập'}
             </h1>
             <p className="text-xs text-text-muted mt-0.5">
-              Gia sư phụ trách: <strong>{enrollment.tutorName}</strong>
+              Gia sư phụ trách: <strong>{enrollment.tutorName || enrollment.sessions?.[0]?.tutorName || 'Gia sư'}</strong>
             </p>
           </div>
           <div className="flex items-center gap-3">

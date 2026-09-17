@@ -1,9 +1,15 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/vi';
 
+dayjs.extend(utc);
+dayjs.extend(timezone);
 dayjs.extend(relativeTime);
 dayjs.locale('vi');
+
+const VIETNAM_TIMEZONE = 'Asia/Ho_Chi_Minh';
 
 /**
  * Format currency to Vietnam Dong (e.g. 2.000.000 ₫)
@@ -18,18 +24,19 @@ export function formatCurrency(amount) {
 
 /**
  * Format date & time in Vietnam timezone (UTC+7)
+ * CLAUDE.md Trap #3: Input date is strict UTC, converted to Asia/Ho_Chi_Minh for display.
  */
 export function formatDateTime(date, format = 'DD/MM/YYYY HH:mm') {
   if (!date) return '';
-  return dayjs(date).format(format);
+  return dayjs.utc(date).tz(VIETNAM_TIMEZONE).format(format);
 }
 
 /**
- * Format relative time (e.g. "15 phút trước", "Còn lại 16 giờ")
+ * Format relative time in Vietnam timezone (e.g. "15 phút trước", "Còn lại 16 giờ")
  */
 export function formatRelativeTime(date) {
   if (!date) return '';
-  return dayjs(date).fromNow();
+  return dayjs.utc(date).tz(VIETNAM_TIMEZONE).fromNow();
 }
 
 /**
@@ -39,8 +46,6 @@ export const formatVND = formatCurrency;
 
 /**
  * Null-safe number formatting.
- * Backend có field nullable (`decimal? MinPrice`, `RatingAvg`, ...) — gọi
- * `value.toFixed()` trực tiếp trên payload thật sẽ ném TypeError và trắng trang.
  */
 export function formatNumber(value, digits = 0, fallback = '—') {
   if (value === null || value === undefined || value === '') return fallback;

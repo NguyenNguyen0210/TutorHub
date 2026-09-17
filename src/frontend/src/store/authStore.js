@@ -62,6 +62,9 @@ export const useAuthStore = create((set, get) => ({
         role: u.role,
         phone: u.phone || null,
         avatarUrl: u.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.email}`,
+        idProfile: u.idProfile || null,
+        tutorProfileId: u.role === 'Tutor' ? (u.idProfile || null) : null,
+        absentStrikes: u.absentStrikes ?? 0,
       };
       get().login(mappedUser, {
         accessToken: res.accessToken,

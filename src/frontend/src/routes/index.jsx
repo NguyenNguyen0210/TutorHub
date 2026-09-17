@@ -41,6 +41,7 @@ import Notifications from '../pages/shared/Notifications';
 // Admin Space Screens
 import AdminDashboard from '../pages/admin/AdminDashboard';
 import AdminTutorApplications from '../pages/admin/AdminTutorApplications';
+import AdminDisputes from '../pages/admin/AdminDisputes';
 import AdminDisputeDetail from '../pages/admin/AdminDisputeDetail';
 import AdminUsers from '../pages/admin/AdminUsers';
 import AdminAuditLogs from '../pages/admin/AdminAuditLogs';
@@ -76,7 +77,7 @@ export default function AppRoutes() {
         <Route path="/login" element={<Navigate to="/auth/login" replace />} />
         <Route path="/auth/register" element={<GuestGuard><Register /></GuestGuard>} />
         <Route path="/register" element={<Navigate to="/auth/register" replace />} />
-        <Route path="/tutor/application" element={<TutorApplication />} />
+        <Route path="/tutor/application" element={<RequireAuth><TutorApplication /></RequireAuth>} />
         <Route path="/tutor/onboarding" element={<Navigate to="/tutor/application" replace />} />
       </Route>
 
@@ -118,6 +119,7 @@ export default function AppRoutes() {
         </RequireAuth>
       }>
         <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="disputes" element={<AdminDisputes />} />
         <Route path="tutor-applications" element={<AdminTutorApplications />} />
         <Route path="disputes/:id" element={<AdminDisputeDetail />} />
         <Route path="users" element={<AdminUsers />} />

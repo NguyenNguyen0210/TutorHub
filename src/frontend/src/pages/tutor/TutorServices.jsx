@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import tutorService from '@/services/tutor.service';
-import { useAuthStore } from '@/store/authStore';
 import { formatCurrency } from '@/utils/formatters';
 import { getTeachingModeMeta } from '@/config/enums';
 import { CardSkeleton } from '@/components/common/Skeleton';
@@ -8,9 +7,6 @@ import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
 
 export default function TutorServices() {
-  const { user } = useAuthStore();
-  const tutorId = user?.tutorProfileId || user?.id;
-
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,13 +14,9 @@ export default function TutorServices() {
   useEffect(() => {
     let isMounted = true;
     async function loadServices() {
-      if (!tutorId) {
-        setLoading(false);
-        return;
-      }
       try {
         setLoading(true);
-        const list = await tutorService.getTutorServices(tutorId);
+        const list = await tutorService.getMyServices();
         if (isMounted) {
           setServices(Array.isArray(list) ? list : []);
           setError(null);
@@ -42,7 +34,7 @@ export default function TutorServices() {
     return () => {
       isMounted = false;
     };
-  }, [tutorId]);
+  }, []);
 
   return (
     <div className="space-y-8">

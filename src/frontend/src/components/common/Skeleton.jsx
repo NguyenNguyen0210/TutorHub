@@ -109,10 +109,23 @@ export function ListSkeleton({ count = 4 }) {
   );
 }
 
+export function DetailSkeleton() {
+  return (
+    <div className="w-full space-y-6 animate-pulse">
+      <div className="h-32 bg-slate-100 rounded-3xl w-full" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="h-48 bg-slate-100 rounded-2xl" />
+        <div className="h-48 bg-slate-100 rounded-2xl" />
+      </div>
+    </div>
+  );
+}
+
 export default {
   CardSkeleton,
   TableSkeleton,
   StatsSkeleton,
   ProfileSkeleton,
   ListSkeleton,
+  DetailSkeleton,
 };

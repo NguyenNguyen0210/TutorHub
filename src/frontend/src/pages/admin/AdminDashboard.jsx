@@ -61,22 +61,22 @@ export default function AdminDashboard() {
   const actionCards = [
     {
       id: 'disputes',
-      title: 'Vụ Tranh Chấp Cần Phân Xử',
-      count: `${actionQueue.openDisputes} vụ việc`,
+      title: 'Vụ Tranh Chấp & Báo Cáo Cần Phân Xử',
+      count: `${actionQueue.openReportsCount} vụ việc`,
       desc:
-        actionQueue.openDisputes > 0
-          ? 'Có khiếu nại tranh chấp đang chờ ban trọng tài ra phán quyết.'
+        actionQueue.openReportsCount > 0
+          ? 'Có khiếu nại tranh chấp hoặc báo cáo vi phạm đang chờ xử lý.'
           : 'Hiện không có khiếu nại nào đang mở.',
-      link: '/admin/audit-logs',
-      btnText: 'Xem Sổ Kiểm Toán',
+      link: '/admin/disputes',
+      btnText: 'Xem Bàn Trọng Tài',
       color: 'border-l-rose-500 bg-rose-50/10 text-rose-400',
     },
     {
       id: 'withdrawals',
       title: 'Lệnh Rút Tiền Gia Sư Chờ Duyệt',
-      count: `${actionQueue.pendingWithdrawals} lệnh`,
+      count: `${actionQueue.pendingWithdrawalsCount} lệnh`,
       desc:
-        actionQueue.pendingWithdrawals > 0
+        actionQueue.pendingWithdrawalsCount > 0
           ? 'Gia sư yêu cầu rút thu nhập khả dụng về tài khoản ngân hàng.'
           : 'Không có yêu cầu rút tiền đang chờ duyệt.',
       link: '/admin/audit-logs',
@@ -86,9 +86,9 @@ export default function AdminDashboard() {
     {
       id: 'applications',
       title: 'Hồ Sơ Gia Sư Chờ Xác Minh',
-      count: `${actionQueue.pendingTutorApplications} hồ sơ`,
+      count: `${actionQueue.pendingTutorsCount} hồ sơ`,
       desc:
-        actionQueue.pendingTutorApplications > 0
+        actionQueue.pendingTutorsCount > 0
           ? 'Hồ sơ bằng cấp và thông tin KYC đang chờ phê duyệt huy hiệu.'
           : 'Không có hồ sơ gia sư mới chờ duyệt.',
       link: '/admin/tutor-applications',
@@ -140,10 +140,10 @@ export default function AdminDashboard() {
             <span className="material-symbols-outlined text-emerald-400">payments</span>
           </div>
           <div className="text-2xl font-extrabold text-emerald-400 font-monospace-num">
-            {formatCurrency(financials.totalRevenue)}
+            {formatCurrency(financials.totalPlatformRevenue)}
           </div>
           <p className="text-[11px] text-slate-400">
-            Tỷ lệ phí sàn: {(financials.platformCommissionRate * 100).toFixed(0)}%
+            Tổng GMV sàn: {formatCurrency(financials.totalGmv)}
           </p>
         </div>
 
@@ -169,14 +169,14 @@ export default function AdminDashboard() {
         {/* Card 4: Tutors Active */}
         <div className="p-5 rounded-3xl bg-slate-800/80 border border-slate-700 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400">Gia Sư Hoạt Động</span>
+            <span className="text-xs font-bold text-slate-400">Gia Sư Đã Xác Minh</span>
             <span className="material-symbols-outlined text-amber-400">verified</span>
           </div>
           <div className="text-2xl font-extrabold text-amber-400 font-monospace-num">
-            {tutors.activeTutors} / {tutors.totalTutors}
+            {tutors.verifiedTutors} / {users.totalTutors}
           </div>
           <p className="text-[11px] text-slate-400">
-            {tutors.pendingApplications} hồ sơ đang chờ xét duyệt
+            {tutors.pendingReviewTutors} hồ sơ đang chờ xét duyệt
           </p>
         </div>
       </div>

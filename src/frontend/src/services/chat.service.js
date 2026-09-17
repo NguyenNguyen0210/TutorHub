@@ -1,28 +1,18 @@
 /**
  * Chat Service — /api/v1/conversations
  *
- * Verified payloads (curl, seeded student.lan@tutorhub.com):
+ * Verified payloads:
  * - GET  /conversations                     → CursorPagedResult<ConversationDto>
- *   { items: [{ id, studentProfileId, studentUserId, studentName, studentAvatarUrl,
- *     tutorProfileId, tutorUserId, tutorName, tutorAvatarUrl, createdAt, lastMessageId,
- *     lastMessageAt, lastMessagePreview, unreadCount }], nextCursor, hasMore }
  * - GET  /conversations/{id}/messages       → CursorPagedResult<MessageDto>
- *   { items: [{ id, conversationId, senderUserId, senderName, senderAvatarUrl, content,
- *     attachmentKey, attachmentName, attachmentContentType, attachmentSize, isRead,
- *     readAt, createdAt }], nextCursor, hasMore }
- * - POST /conversations/{id}/messages       → MessageDto (body { content })
+ * - POST /conversations/{id}/messages       → MessageDto (body { content, attachmentKey... })
  * - PUT  /conversations/{id}/read           → số message đã đọc
- *
- * Mock: chỉ khi VITE_USE_MOCK === 'true'; lỗi khác được ném lại (ApiError).
  */
 import api from './api';
-import { USE_MOCK } from '@/config/constants';
 import { HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
 import { useAuthStore } from '@/store/authStore';
 
 /**
  * Tạo kết nối SignalR realtime tới /hubs/chat.
- * Tự động đính kèm access_token vào query params và tự reconnect khi đứt mạng.
  */
 export function createChatHubConnection() {
   const hubUrl = import.meta.env.VITE_SIGNALR_HUB_URL || 'http://localhost:5129/hubs/chat';
@@ -35,45 +25,6 @@ export function createChatHubConnection() {
     .configureLogging(LogLevel.Warning)
     .build();
 }
-
-const MOCK_CONVERSATIONS = [
-  {
-    id: 'c0c0c0c0-0001-0000-0000-000000000001',
-    studentProfileId: null,
-    studentUserId: null,
-    studentName: null,
-    studentAvatarUrl: null,
-    tutorProfileId: '22222222-2222-2222-2222-111111111111',
-    tutorUserId: '22222222-1111-1111-1111-111111111111',
-    tutorName: 'ThS. Nguyễn Văn An',
-    tutorAvatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=an',
-    createdAt: '2026-09-10T10:30:00Z',
-    lastMessageId: 'ba03ba03-0001-0000-0000-000000000001',
-    lastMessageAt: '2026-09-10T10:45:00Z',
-    lastMessagePreview: 'Thầy đã gửi đề xuất gói học 5 buổi em nhé.',
-    unreadCount: 1,
-  },
-];
-
-const MOCK_MESSAGES = {
-  'c0c0c0c0-0001-0000-0000-000000000001': [
-    {
-      id: 'ba03ba03-0001-0000-0000-000000000001',
-      conversationId: 'c0c0c0c0-0001-0000-0000-000000000001',
-      senderUserId: '66666666-1111-1111-1111-111111111111',
-      senderName: 'Hoàng Lan Anh',
-      senderAvatarUrl: null,
-      content: 'Dạ em muốn học chuyên sâu phần Oxyz ạ.',
-      attachmentKey: null,
-      attachmentName: null,
-      attachmentContentType: null,
-      attachmentSize: null,
-      isRead: true,
-      readAt: '2026-09-10T10:46:00Z',
-      createdAt: '2026-09-10T10:30:00Z',
-    },
-  ],
-};
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -130,42 +81,22 @@ function normalizeCursorPaged(raw, normalizeItem) {
 export const chatService = {
   /**
    * GET /conversations → CursorPagedResult<ConversationDto>
-   * @returns {Promise<{items: object[], nextCursor: string|null, hasMore: boolean}>}
    */
   async getConversations({ cursor = null, pageSize = 20 } = {}) {
-    try {
-      const params = { pageSize };
-      if (cursor) params.cursor = cursor;
-      const res = await api.get('/conversations', { params });
-      return normalizeCursorPaged(res, normalizeConversation);
-    } catch (err) {
-      if (!USE_MOCK) throw err;
-      console.warn('[chatService] /conversations lỗi, dùng mock (VITE_USE_MOCK=true).', err.message);
-      return normalizeCursorPaged(
-        { items: MOCK_CONVERSATIONS, nextCursor: null, hasMore: false },
-        normalizeConversation,
-      );
-    }
+    const params = { pageSize };
+    if (cursor) params.cursor = cursor;
+    const res = await api.get('/conversations', { params });
+    return normalizeCursorPaged(res, normalizeConversation);
   },
 
   /**
    * GET /conversations/{id}/messages → CursorPagedResult<MessageDto>
-   * @returns {Promise<{items: object[], nextCursor: string|null, hasMore: boolean}>}
    */
   async getMessages(conversationId, { cursor = null, pageSize = 50 } = {}) {
-    try {
-      const params = { pageSize };
-      if (cursor) params.cursor = cursor;
-      const res = await api.get(`/conversations/${conversationId}/messages`, { params });
-      return normalizeCursorPaged(res, normalizeMessage);
-    } catch (err) {
-      if (!USE_MOCK) throw err;
-      console.warn('[chatService] /conversations/:id/messages lỗi, dùng mock (VITE_USE_MOCK=true).', err.message);
-      return normalizeCursorPaged(
-        { items: MOCK_MESSAGES[conversationId] ?? [], nextCursor: null, hasMore: false },
-        normalizeMessage,
-      );
-    }
+    const params = { pageSize };
+    if (cursor) params.cursor = cursor;
+    const res = await api.get(`/conversations/${conversationId}/messages`, { params });
+    return normalizeCursorPaged(res, normalizeMessage);
   },
 
   /** POST /conversations/{id}/messages → MessageDto */

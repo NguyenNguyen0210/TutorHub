@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import chatService, { createChatHubConnection } from '@/services/chat.service';
+import agreementService from '@/services/agreement.service';
 import { useAuthStore } from '@/store/authStore';
 import { formatDateTime, formatCurrency } from '@/utils/formatters';
 import { message } from 'antd';
@@ -13,6 +14,7 @@ export default function Messages() {
 
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
+  const [agreements, setAgreements] = useState([]);
   const [messagesList, setMessagesList] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -23,16 +25,22 @@ export default function Messages() {
   const hubConnectionRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-  // Load conversations list
+  // Load conversations list & user agreements
   useEffect(() => {
     let isMounted = true;
     async function loadConversations() {
       try {
         setLoading(true);
-        const res = await chatService.getConversations();
+        const [res, agrList] = await Promise.allSettled([
+          chatService.getConversations(),
+          agreementService.getMyAgreements(),
+        ]);
         if (isMounted) {
-          const items = res?.items || [];
+          const items = res.status === 'fulfilled' ? res.value?.items || [] : [];
           setConversations(items);
+          if (agrList.status === 'fulfilled') {
+            setAgreements(Array.isArray(agrList.value) ? agrList.value : []);
+          }
           if (items.length > 0) {
             setActiveConversationId(items[0].id);
           }
@@ -288,30 +296,57 @@ export default function Messages() {
                 })
               )}
 
-              {/* DESIGN §3.6: Custom Agreement Card embedded in stream */}
-              {activeConv && (
-                <div className="my-3 p-5 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-white to-indigo-50/30 border-2 border-brand-indigo-200 shadow-sm space-y-3 max-w-lg mx-auto">
-                  <div className="flex items-center gap-2 text-brand-indigo-900 font-extrabold text-xs uppercase tracking-wide">
-                    <span className="material-symbols-outlined text-brand-indigo-600 text-base">description</span>
-                    Đề Xuất Hợp Đồng Học Tập Tùy Chỉnh (Custom Agreement §3.6)
+              {/* Custom Agreement Card: only shown if there is an actual agreement for this conversation */}
+              {(() => {
+                const activeAgreement = agreements.find(
+                  (a) => a.conversationId === activeConv?.id,
+                );
+                if (!activeAgreement) return null;
+
+                return (
+                  <div className="my-3 p-5 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-white to-indigo-50/30 border-2 border-brand-indigo-200 shadow-sm space-y-3 max-w-lg mx-auto">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-brand-indigo-900 font-extrabold text-xs uppercase tracking-wide">
+                        <span className="material-symbols-outlined text-brand-indigo-600 text-base">description</span>
+                        {activeAgreement.title || 'Hợp Đồng Học Tập Tùy Chỉnh'}
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-brand-indigo-100 text-brand-indigo-800">
+                        {activeAgreement.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-700 leading-relaxed m-0">
+                      {activeAgreement.description || 'Thỏa thuận đào tạo riêng giữa Gia sư và Học viên.'}
+                    </p>
+                    <div className="flex items-center justify-between pt-2 border-t border-brand-indigo-100 text-xs">
+                      <div>
+                        <span className="font-extrabold text-financial-available font-monospace-num text-sm block">
+                          {formatCurrency(activeAgreement.totalPrice || 0)}
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          {activeAgreement.totalSessions} buổi ({activeAgreement.sessionDurationMinutes || 60}p/buổi)
+                        </span>
+                      </div>
+                      {activeAgreement.bookingId ? (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/student/bookings/${activeAgreement.bookingId}/checkout`)}
+                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors"
+                        >
+                          Thanh Toán Giữ Chỗ
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => navigate('/student/dashboard')}
+                          className="px-4 py-2 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white font-bold text-xs shadow-xs transition-colors"
+                        >
+                          Xem Khóa Học
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-700 leading-relaxed m-0">
-                    Thỏa thuận riêng giữa Gia Sư và Học Viên: số buổi và học phí được bảo toàn trong Escrow.
-                  </p>
-                  <div className="flex items-center justify-between pt-2 border-t border-brand-indigo-100 text-xs">
-                    <span className="font-extrabold text-financial-available font-monospace-num text-sm">
-                      {formatCurrency(1000000)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => navigate('/tutors')}
-                      className="px-4 py-2 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white font-bold text-xs shadow-xs transition-colors"
-                    >
-                      Xem Gói Học Của Gia Sư
-                    </button>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
 
               {typingUser && (
                 <div className="text-[11px] text-slate-400 italic flex items-center gap-1">

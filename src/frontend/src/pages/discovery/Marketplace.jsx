@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
-import EscrowVaultSimulator from '@/components/discovery/EscrowVaultSimulator';
 import { CardSkeleton } from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
@@ -148,18 +147,15 @@ export default function Marketplace() {
           <div className="flex flex-wrap items-center gap-3 pt-4 text-xs font-semibold text-slate-300">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
               <span className="material-symbols-outlined text-sm text-financial-available">check_circle</span>
-              99.8% Buổi học được giải ngân suôn sẻ
+              Ký quỹ bảo chứng Escrow trung lập từng buổi học
             </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
               <span className="material-symbols-outlined text-sm text-financial-available">check_circle</span>
-              100% Hoàn tiền nếu gia sư vắng mặt
+              Đối soát điểm danh 2 chiều minh bạch trong 24 giờ
             </span>
           </div>
         </div>
       </div>
-
-      {/* Interactive Dual Escrow Vault Simulator - Core Value Proposition */}
-      <EscrowVaultSimulator />
 
       {/* 3 Steps Escrow Guarantee Indicator with Glass Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -239,8 +235,8 @@ export default function Marketplace() {
             {/* Teaching Mode Filter */}
             <div className="space-y-2">
               <span className="text-xs font-bold text-slate-700 block">Hình thức giảng dạy</span>
-              <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100/80 rounded-xl" role="group" aria-label="Hình thức giảng dạy">
-                {['All', 'Online', 'Both'].map((m) => (
+              <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-100/80 rounded-xl" role="group" aria-label="Hình thức giảng dạy">
+                {['All', 'Online', 'Offline', 'Both'].map((m) => (
                   <button
                     key={m}
                     type="button"

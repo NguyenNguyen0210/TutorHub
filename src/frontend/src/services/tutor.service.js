@@ -1,35 +1,33 @@
 /**
  * Tutor Service — Khám phá gia sư, danh mục, gói học và lịch rảnh.
  *
- * Contract: mọi method bóc tách `ApiResponse<T>.data` đã xảy ra ở tầng `api.js`,
- * nên ở đây `res` CHÍNH LÀ payload (PagedResult<T> / TutorProfileDto / ...).
- * Dữ liệu trả về được chuẩn hoá về đúng field name của backend DTO để component
- * chỉ đọc field thật (`ratingAvg`, `totalReviews`, `subjects: string[]`, `days`, ...).
- *
- * Mock: chỉ dùng khi VITE_USE_MOCK === 'true'. Ngoài mock mode, lỗi được ném lại
- * (ApiError) để UI hiển thị lỗi thật thay vì âm thầm hiển thị dữ liệu giả.
+ * Contract:
+ * - GET /categories                 → CategoryDto[]
+ * - GET /subjects                   → SubjectDto[]
+ * - GET /tutors                     → PagedResult<TutorSummaryDto>
+ * - GET /tutors/{id}                → TutorProfileDto
+ * - GET /tutors/{id}/availability   → TutorAvailabilityDto { days: DailyAvailabilityDto[] }
+ * - GET /tutors/{id}/services       → ServiceSummaryDto[]
+ * - GET /tutors/{id}/reviews        → PagedResult<TutorPublicReviewDto>
+ * - GET /tutors/me/services         → ServiceDto[]
+ * - GET /tutors/me/availability-slots → AvailabilitySlotDto[]
+ * - POST /tutors/me/application     → TutorApplicationDto
+ * - GET /tutors/me/application      → TutorApplicationDto
  */
 import { api } from './api';
-import { USE_MOCK } from '@/config/constants';
 import { getDayOfWeekLabel } from '@/config/enums';
-import { MOCK_CATEGORIES, MOCK_SUBJECTS, MOCK_TUTORS } from '@/config/mockData';
-
-/** Giá trị `sortBy` mà GetTutorsQueryHandler thực sự hiểu (xem GetTutorsQueryHandler.cs). */
-const SORT_BY_WHITELIST = ['price_asc', 'price_desc', 'reviews'];
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-/** `decimal?` / `int?` của backend có thể null — giữ null thay vì biến thành 0. */
 function toNullableNumber(value) {
   if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-/** TutorSummaryDto.Subjects là List<string>; mockData dùng [{ id, name }]. */
 function normalizeSubjectNames(subjects) {
   if (!Array.isArray(subjects)) return [];
   return subjects
@@ -47,11 +45,6 @@ function normalizeTimeRange(range) {
   };
 }
 
-/**
- * TutorSummaryDto → view model.
- * `minPrice` / `isVerified` đang được bổ sung ở backend: đọc defensive để payload
- * cũ (chưa có field) không làm vỡ UI (`undefined.toFixed` / formatCurrency(undefined)).
- */
 export function normalizeTutorSummary(raw = {}) {
   return {
     id: raw.id,
@@ -71,7 +64,6 @@ export function normalizeTutorSummary(raw = {}) {
   };
 }
 
-/** ServiceSummaryDto [+ mock shape có trialLessonUrl] → view model. */
 export function normalizeServiceSummary(raw = {}) {
   return {
     id: raw.id,
@@ -81,11 +73,10 @@ export function normalizeServiceSummary(raw = {}) {
     sessionDurationMinutes: toNumber(raw.sessionDurationMinutes, 0),
     price: toNullableNumber(raw.price),
     teachingMode: raw.teachingMode || null,
-    hasTrialLesson: raw.hasTrialLesson ?? Boolean(raw.trialLessonUrl),
+    hasTrialLesson: Boolean(raw.hasTrialLesson),
   };
 }
 
-/** TutorProfileDto → view model (Subjects là object, Services nhúng sẵn). */
 export function normalizeTutorProfile(raw = {}) {
   return {
     ...normalizeTutorSummary(raw),
@@ -99,33 +90,36 @@ export function normalizeTutorProfile(raw = {}) {
         }))
       : [],
     services: Array.isArray(raw.services) ? raw.services.map(normalizeServiceSummary) : [],
+    reviews: Array.isArray(raw.reviews) ? raw.reviews.map(normalizeTutorReview) : [],
+    availabilitySlots: Array.isArray(raw.availabilitySlots) ? raw.availabilitySlots : [],
   };
 }
 
-/** TutorPublicReviewDto + mock shape (date/studentAvatar) → view model. */
-export function normalizeTutorReview(raw = {}) {
-  return {
-    id: raw.id,
-    studentName: raw.studentName || '',
-    studentAvatarUrl: raw.studentAvatarUrl ?? raw.studentAvatar ?? null,
-    rating: toNumber(raw.rating, 0),
-    comment: raw.comment || '',
-    tutorReply: raw.tutorReply || null,
-    createdAt: raw.createdAt ?? raw.date ?? null,
-  };
-}
-
-/** DailyAvailabilityDto → view model (backend trả `days`, KHÔNG phải `slots`). */
 export function normalizeAvailabilityDay(raw = {}) {
+  const dayOfWeek = raw.dayOfWeek || '';
   return {
     date: raw.date ?? null,
-    dayOfWeek: raw.dayOfWeek ?? null,
-    dayOfWeekName: raw.dayOfWeekName ?? raw.dayOfWeek ?? null,
+    dayOfWeek,
+    dayOfWeekName: raw.dayOfWeekName || getDayOfWeekLabel(dayOfWeek),
     hasAvailableSlots: Boolean(raw.hasAvailableSlots),
     availableSlots: Array.isArray(raw.availableSlots)
       ? raw.availableSlots.map(normalizeTimeRange)
       : [],
-    bookedSlots: Array.isArray(raw.bookedSlots) ? raw.bookedSlots.map(normalizeTimeRange) : [],
+    bookedSlots: Array.isArray(raw.bookedSlots)
+      ? raw.bookedSlots.map(normalizeTimeRange)
+      : [],
+  };
+}
+
+export function normalizeTutorReview(raw = {}) {
+  return {
+    id: raw.id,
+    enrollmentId: raw.enrollmentId ?? null,
+    studentName: raw.studentName || 'Học viên ẩn danh',
+    studentAvatarUrl: raw.studentAvatarUrl || null,
+    rating: toNumber(raw.rating, 5),
+    comment: raw.comment || '',
+    createdAt: raw.createdAt ?? null,
   };
 }
 
@@ -144,119 +138,88 @@ function normalizePaged(raw, normalizeItem) {
 }
 
 export const tutorService = {
-  /** GET /categories → PublicCategoryDto[] */
+  /** GET /categories → CategoryDto[] */
   async getCategories() {
-    try {
-      const res = await api.get('/categories');
-      if (Array.isArray(res)) return res;
-      if (Array.isArray(res?.items)) return res.items;
-      return [];
-    } catch (err) {
-      if (!USE_MOCK) throw err;
-      console.warn('[tutorService] /categories lỗi, dùng mock (VITE_USE_MOCK=true).', err.message);
-      return MOCK_CATEGORIES;
-    }
+    const res = await api.get('/categories');
+    return Array.isArray(res) ? res : [];
   },
 
-  /** GET /subjects → PagedResult<PublicSubjectDto> (đọc `items`) */
-  async getSubjects(categoryId = null, search = '') {
-    try {
-      const params = {};
-      if (categoryId) params.categoryId = categoryId;
-      if (search) params.search = search;
-      const res = await api.get('/subjects', { params });
-      if (Array.isArray(res?.items)) return res.items;
-      if (Array.isArray(res)) return res;
-      return [];
-    } catch (err) {
-      if (!USE_MOCK) throw err;
-      console.warn('[tutorService] /subjects lỗi, dùng mock (VITE_USE_MOCK=true).', err.message);
-      return filterMockSubjects(categoryId, search);
-    }
+  /** GET /subjects → SubjectDto[] */
+  async getSubjects(params = {}) {
+    const res = await api.get('/subjects', { params });
+    return Array.isArray(res) ? res : [];
   },
 
   /**
    * GET /tutors → PagedResult<TutorSummaryDto>
-   * @returns {Promise<{items: object[], totalCount: number, pageNumber: number, pageSize: number, totalPages: number, hasPreviousPage: boolean, hasNextPage: boolean}>}
    */
-  async getTutors({
-    subjectId = null,
-    minPrice = null,
-    maxPrice = null,
-    teachingMode = null,
-    minRating = null,
-    search = '',
-    sortBy = null,
-    pageNumber = 1,
-    pageSize = 9,
-  } = {}) {
-    const filters = { subjectId, minPrice, maxPrice, teachingMode, minRating, search, sortBy, pageNumber, pageSize };
-    try {
-      const params = { pageNumber, pageSize };
-      if (subjectId) params.subjectId = subjectId;
-      if (minPrice) params.minPrice = minPrice;
-      if (maxPrice) params.maxPrice = maxPrice;
-      if (teachingMode && teachingMode !== 'All') params.teachingMode = teachingMode;
-      if (minRating) params.minRating = minRating;
-      if (search) params.search = search;
-      // `rating_desc` không phải giá trị backend hiểu — bỏ trống để dùng default (rating giảm dần).
-      if (SORT_BY_WHITELIST.includes(sortBy)) params.sortBy = sortBy;
+  async getTutors(filters = {}) {
+    const {
+      categoryId = null,
+      subjectId = null,
+      minPrice = null,
+      maxPrice = null,
+      teachingMode = null,
+      minRating = null,
+      search = '',
+      sortBy = null,
+      pageNumber = 1,
+      pageSize = 12,
+    } = filters;
 
-      const res = await api.get('/tutors', { params });
-      return normalizePaged(res, normalizeTutorSummary);
-    } catch (err) {
-      if (!USE_MOCK) throw err;
-      console.warn('[tutorService] /tutors lỗi, dùng mock (VITE_USE_MOCK=true).', err.message);
-      return normalizePaged(
-        filterMockTutors(filters),
-        normalizeTutorSummary,
-      );
-    }
+    const params = { pageNumber, pageSize };
+    if (categoryId) params.categoryId = categoryId;
+    if (subjectId) params.subjectId = subjectId;
+    if (minPrice != null) params.minPrice = minPrice;
+    if (maxPrice != null) params.maxPrice = maxPrice;
+    if (teachingMode && teachingMode !== 'All') params.teachingMode = teachingMode;
+    if (minRating != null) params.minRating = minRating;
+    if (search && search.trim()) params.search = search.trim();
+    if (sortBy) params.sortBy = sortBy;
+
+    const res = await api.get('/tutors', { params });
+    return normalizePaged(res, normalizeTutorSummary);
   },
 
   /** GET /tutors/{id} → TutorProfileDto */
   async getTutorById(id) {
-    try {
-      const res = await api.get(`/tutors/${id}`);
-      return normalizeTutorProfile(res ?? {});
-    } catch (err) {
-      if (!USE_MOCK) throw err;
-      console.warn(`[tutorService] /tutors/${id} lỗi, dùng mock (VITE_USE_MOCK=true).`, err.message);
-      return normalizeTutorProfile(findMockTutor(id) ?? {});
-    }
+    const res = await api.get(`/tutors/${id}`);
+    return normalizeTutorProfile(res);
   },
 
   /**
    * GET /tutors/{id}/availability → TutorAvailabilityDto { days: DailyAvailabilityDto[] }
-   * @returns {Promise<object[]>} mảng `days` (mỗi ngày gồm availableSlots/bookedSlots)
    */
   async getTutorAvailability(id, fromDate = null, toDate = null) {
-    try {
-      const params = {};
-      if (fromDate) params.fromDate = fromDate;
-      if (toDate) params.toDate = toDate;
-      const res = await api.get(`/tutors/${id}/availability`, { params });
-      if (Array.isArray(res?.days)) return res.days.map(normalizeAvailabilityDay);
-      return [];
-    } catch (err) {
-      if (!USE_MOCK) throw err;
-      console.warn(`[tutorService] /tutors/${id}/availability lỗi, dùng mock (VITE_USE_MOCK=true).`);
-      return (findMockTutor(id)?.availability ?? []).map(mockWeeklySlotToDay);
-    }
+    const params = {};
+    if (fromDate) params.fromDate = fromDate;
+    if (toDate) params.toDate = toDate;
+    const res = await api.get(`/tutors/${id}/availability`, { params });
+    if (Array.isArray(res?.days)) return res.days.map(normalizeAvailabilityDay);
+    return [];
   },
 
   /** GET /tutors/{id}/services → ServiceSummaryDto[] */
   async getTutorServices(id) {
-    try {
-      const res = await api.get(`/tutors/${id}/services`);
-      if (Array.isArray(res)) return res.map(normalizeServiceSummary);
-      if (Array.isArray(res?.items)) return res.items.map(normalizeServiceSummary);
-      return [];
-    } catch (err) {
-      if (!USE_MOCK) throw err;
-      console.warn(`[tutorService] /tutors/${id}/services lỗi, dùng mock (VITE_USE_MOCK=true).`);
-      return (findMockTutor(id)?.services ?? []).map(normalizeServiceSummary);
-    }
+    const res = await api.get(`/tutors/${id}/services`);
+    if (Array.isArray(res)) return res.map(normalizeServiceSummary);
+    if (Array.isArray(res?.items)) return res.items.map(normalizeServiceSummary);
+    return [];
+  },
+
+  /** GET /tutors/me/services → ServiceDto[] (Tutor workspace) */
+  async getMyServices() {
+    const res = await api.get('/tutors/me/services');
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res?.items)) return res.items;
+    return [];
+  },
+
+  /** GET /tutors/me/availability-slots → AvailabilitySlotDto[] (Tutor workspace) */
+  async getMyAvailabilitySlots() {
+    const res = await api.get('/tutors/me/availability-slots');
+    if (Array.isArray(res)) return res;
+    return [];
   },
 
   /** POST /tutors/me/application → TutorApplicationDto */
@@ -271,120 +234,11 @@ export const tutorService = {
 
   /**
    * GET /tutors/{id}/reviews → PagedResult<TutorPublicReviewDto>
-   * @returns {Promise<{items: object[], totalCount: number, pageNumber: number, pageSize: number, totalPages: number, hasPreviousPage: boolean, hasNextPage: boolean}>}
    */
   async getTutorReviews(id, pageNumber = 1, pageSize = 10) {
-    try {
-      const res = await api.get(`/tutors/${id}/reviews`, { params: { pageNumber, pageSize } });
-      return normalizePaged(res, normalizeTutorReview);
-    } catch (err) {
-      if (!USE_MOCK) throw err;
-      console.warn(`[tutorService] /tutors/${id}/reviews lỗi, dùng mock (VITE_USE_MOCK=true).`);
-      const reviews = findMockTutor(id)?.reviews ?? [];
-      return normalizePaged(
-        { items: reviews, totalCount: reviews.length, pageNumber, pageSize },
-        normalizeTutorReview,
-      );
-    }
+    const res = await api.get(`/tutors/${id}/reviews`, { params: { pageNumber, pageSize } });
+    return normalizePaged(res, normalizeTutorReview);
   },
 };
-
-/** Mock availability là lịch tuần (không có ngày cụ thể) — chuyển về hình dạng `days`. */
-function mockWeeklySlotToDay(slot) {
-  return normalizeAvailabilityDay({
-    date: null,
-    dayOfWeek: slot.dayOfWeek,
-    dayOfWeekName: slot.dayLabel ?? getDayOfWeekLabel(slot.dayOfWeek),
-    hasAvailableSlots: true,
-    availableSlots: [{ startTime: slot.startTime, endTime: slot.endTime }],
-    bookedSlots: [],
-  });
-}
-
-// ---------------------------------------------------------------------------
-// MOCK HELPERS (chỉ chạy khi VITE_USE_MOCK === 'true')
-// ---------------------------------------------------------------------------
-
-function filterMockSubjects(categoryId, search) {
-  return MOCK_SUBJECTS.filter((subject) => {
-    if (categoryId && subject.categoryId !== categoryId) return false;
-    if (search && !subject.name.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
-}
-
-function findMockTutor(id) {
-  if (!id) return MOCK_TUTORS[0];
-  const found = MOCK_TUTORS.find(
-    (tutor) => tutor.id === id || tutor.profileId === id,
-  );
-  return found || MOCK_TUTORS[0];
-}
-
-function filterMockTutors({
-  subjectId,
-  minPrice,
-  maxPrice,
-  teachingMode,
-  minRating,
-  search,
-  sortBy,
-  pageNumber,
-  pageSize,
-}) {
-  let list = [...MOCK_TUTORS];
-
-  if (subjectId) {
-    list = list.filter((tutor) => tutor.subjects.some((subject) => subject.id === subjectId));
-  }
-  if (teachingMode && teachingMode !== 'All') {
-    list = list.filter(
-      (tutor) => tutor.teachingMode === teachingMode || tutor.teachingMode === 'Both',
-    );
-  }
-  if (minPrice != null) {
-    list = list.filter((tutor) => tutor.minPrice >= minPrice);
-  }
-  if (maxPrice != null) {
-    list = list.filter((tutor) => tutor.minPrice <= maxPrice);
-  }
-  if (minRating != null) {
-    list = list.filter((tutor) => tutor.rating >= minRating);
-  }
-  if (search && search.trim()) {
-    const keyword = search.trim().toLowerCase();
-    list = list.filter(
-      (tutor) =>
-        tutor.fullName.toLowerCase().includes(keyword) ||
-        tutor.education.toLowerCase().includes(keyword) ||
-        tutor.bio.toLowerCase().includes(keyword) ||
-        tutor.subjects.some((subject) => subject.name.toLowerCase().includes(keyword)),
-    );
-  }
-
-  if (sortBy === 'price_asc') {
-    list.sort((a, b) => a.minPrice - b.minPrice);
-  } else if (sortBy === 'price_desc') {
-    list.sort((a, b) => b.minPrice - a.minPrice);
-  } else if (sortBy === 'reviews') {
-    list.sort((a, b) => b.totalReviews - a.totalReviews);
-  } else {
-    list.sort((a, b) => b.rating - a.rating);
-  }
-
-  const totalCount = list.length;
-  const startIndex = (pageNumber - 1) * pageSize;
-  const items = list.slice(startIndex, startIndex + pageSize);
-
-  return {
-    items,
-    totalCount,
-    pageNumber,
-    pageSize,
-    totalPages: pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0,
-    hasPreviousPage: pageNumber > 1,
-    hasNextPage: pageNumber * pageSize < totalCount,
-  };
-}
 
 export default tutorService;

@@ -1,31 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import tutorService from '@/services/tutor.service';
-import { useAuthStore } from '@/store/authStore';
 import { getDayOfWeekLabel } from '@/config/enums';
-import { message } from 'antd';
 import ErrorState from '@/components/common/ErrorState';
 
+const DAYS_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
 export default function TutorAvailability() {
-  const { user } = useAuthStore();
-  const [acceptingStudents, setAcceptingStudents] = useState(true);
   const [days, setDays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const tutorId = user?.tutorProfileId || user?.id;
-
   useEffect(() => {
     let isMounted = true;
     async function loadAvailability() {
-      if (!tutorId) {
-        setLoading(false);
-        return;
-      }
       try {
         setLoading(true);
-        const list = await tutorService.getTutorAvailability(tutorId);
+        const rawSlots = await tutorService.getMyAvailabilitySlots();
         if (isMounted) {
-          setDays(Array.isArray(list) ? list : []);
+          const slotList = Array.isArray(rawSlots) ? rawSlots : [];
+          const groupedDays = DAYS_ORDER.map((dayName) => ({
+            dayOfWeek: dayName,
+            dayOfWeekName: dayName,
+            availableSlots: slotList
+              .filter((s) => s.dayOfWeek === dayName && s.isActive)
+              .map((s) => ({ startTime: s.startTime, endTime: s.endTime })),
+            bookedSlots: [],
+          }));
+          setDays(groupedDays);
           setError(null);
         }
       } catch (err) {
@@ -41,11 +42,11 @@ export default function TutorAvailability() {
     return () => {
       isMounted = false;
     };
-  }, [tutorId]);
+  }, []);
 
   return (
     <div className="space-y-8">
-      {/* Header & Controls */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -54,24 +55,6 @@ export default function TutorAvailability() {
           <p className="text-xs sm:text-sm text-text-muted mt-1">
             Thiết lập lịch rảnh hàng tuần theo múi giờ Asia/Ho_Chi_Minh (UTC+7)
           </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              setAcceptingStudents(!acceptingStudents);
-              message.info(`Trạng thái nhận học viên: ${!acceptingStudents ? 'Đang nhận dạy' : 'Tạm dừng'}`);
-            }}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors ${
-              acceptingStudents
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : 'bg-slate-100 text-slate-500'
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            {acceptingStudents ? 'Đang Nhận Dạy ✅' : 'Tạm Dừng Tuyển Sinh'}
-          </button>
         </div>
       </div>
 
@@ -95,18 +78,7 @@ export default function TutorAvailability() {
       {/* Weekly Matrix Calendar Grid (7 Columns) */}
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
-          {(days.length > 0
-            ? days
-            : [
-                { dayOfWeek: 'Monday', dayOfWeekName: 'Monday', availableSlots: [], bookedSlots: [] },
-                { dayOfWeek: 'Tuesday', dayOfWeekName: 'Tuesday', availableSlots: [], bookedSlots: [] },
-                { dayOfWeek: 'Wednesday', dayOfWeekName: 'Wednesday', availableSlots: [], bookedSlots: [] },
-                { dayOfWeek: 'Thursday', dayOfWeekName: 'Thursday', availableSlots: [], bookedSlots: [] },
-                { dayOfWeek: 'Friday', dayOfWeekName: 'Friday', availableSlots: [], bookedSlots: [] },
-                { dayOfWeek: 'Saturday', dayOfWeekName: 'Saturday', availableSlots: [], bookedSlots: [] },
-                { dayOfWeek: 'Sunday', dayOfWeekName: 'Sunday', availableSlots: [], bookedSlots: [] },
-              ]
-          ).map((day, idx) => {
+          {days.map((day, idx) => {
             const dayLabel = getDayOfWeekLabel(day.dayOfWeekName || day.dayOfWeek);
             const slots = day.availableSlots || [];
             const booked = day.bookedSlots || [];
@@ -131,7 +103,7 @@ export default function TutorAvailability() {
                         className="p-2.5 rounded-xl border border-emerald-200 bg-emerald-50/60 text-emerald-900 text-xs font-semibold"
                       >
                         <div className="font-monospace-num text-[11px]">
-                          {s.startTime || s.start || '18:00'} - {s.endTime || s.end || '19:00'}
+                          {s.startTime} - {s.endTime}
                         </div>
                         <span className="text-[10px] text-emerald-700 font-bold block mt-0.5">
                           ✓ Trống (Rảnh)
@@ -145,7 +117,7 @@ export default function TutorAvailability() {
                         className="p-2.5 rounded-xl border border-blue-200 bg-blue-50/70 text-blue-900 text-xs font-semibold"
                       >
                         <div className="font-monospace-num text-[11px]">
-                          {b.startTime || b.start} - {b.endTime || b.end}
+                          {b.startTime} - {b.endTime}
                         </div>
                         <span className="text-[10px] text-blue-700 font-bold block mt-0.5">
                           Đã có học viên

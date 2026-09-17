@@ -52,7 +52,7 @@ export default function Notifications() {
   const getCategoryFromType = (type) => {
     if (!type) return 'System';
     const lower = type.toLowerCase();
-    if (lower.includes('payment') || lower.includes('earning') || lower.includes('refund') || lower.includes('wallet')) return 'Financial';
+    if (lower.includes('payment') || lower.includes('earning') || lower.includes('refund') || lower.includes('wallet') || lower.includes('payout')) return 'Financial';
     if (lower.includes('attendance') || lower.includes('session')) return 'Attendance';
     if (lower.includes('dispute')) return 'Dispute';
     return 'System';

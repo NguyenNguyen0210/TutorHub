@@ -25,7 +25,7 @@ import { getTeachingModeMeta, getDayOfWeekLabel } from '@/config/enums';
  *
  * Lưu ý: TutorProfileDto KHÔNG có `isVerified` / `minPrice` (chỉ TutorSummaryDto có) —
  * nên badge "Verified" chỉ hiện khi backend thực sự trả về isVerified = true.
- * Không dùng dữ liệu mẫu trừ khi VITE_USE_MOCK === 'true'.
+ * Dữ liệu hồ sơ gia sư được tải từ API thật.
  */
 export default function TutorProfile() {
   const { id } = useParams();

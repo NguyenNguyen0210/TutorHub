@@ -15,6 +15,7 @@ export default function AdminLayout() {
 
   const navLinks = [
     { path: '/admin/dashboard', label: 'Bảng Điều Hành KPI', icon: 'dashboard' },
+    { path: '/admin/disputes', label: 'Bàn Trọng Tài Tranh Chấp', icon: 'gavel' },
     { path: '/admin/tutor-applications', label: 'Duyệt Bằng Cấp Gia Sư', icon: 'verified' },
     { path: '/admin/users', label: 'Quản Lý Người Dùng & Kỷ Luật', icon: 'group' },
     { path: '/admin/audit-logs', label: 'Sổ Cái Kiểm Toán Audit', icon: 'receipt_long' },

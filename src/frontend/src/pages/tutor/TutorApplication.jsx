@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
-import { TEACHING_MODE } from '@/config/enums';
 import { message } from 'antd';
 
 export default function TutorApplication() {
@@ -9,21 +8,13 @@ export default function TutorApplication() {
   const [currentStep, setCurrentStep] = useState(1);
 
   // Form State
-  const [bio, setBio] = useState(
-    'Cử nhân Sư phạm Toán với 5 năm kinh nghiệm giảng dạy và luyện thi đại học điểm 9+.'
-  );
-  const [teachingMode, setTeachingMode] = useState(TEACHING_MODE.BOTH);
-  const [address, setAddress] = useState('Quận Cầu Giấy, Hà Nội');
-
-  const [university, setUniversity] = useState('Đại Học Sư Phạm Hà Nội');
-  const [major, setMajor] = useState('Sư phạm Toán học');
-  const [degreeLevel, setDegreeLevel] = useState('Cử nhân Xuất sắc (GPA 3.8/4.0)');
-  const [experienceYears, setExperienceYears] = useState(5);
-
-  const [files, setFiles] = useState([
-    'Bang-Cu-Nhan-DHSPHN.pdf',
-    'Chung-Chi-Nghiep-Vu-Su-Pham.pdf',
-  ]);
+  const [bio, setBio] = useState('');
+  const [teachingMode, setTeachingMode] = useState('Online');
+  const [address, setAddress] = useState('');
+  const [university, setUniversity] = useState('');
+  const [major, setMajor] = useState('');
+  const [degreeLevel, setDegreeLevel] = useState('Cử nhân');
+  const [experienceYears, setExperienceYears] = useState(3);
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -35,17 +26,11 @@ export default function TutorApplication() {
       }
       setCurrentStep(2);
     } else if (currentStep === 2) {
-      if (!university || !major) {
+      if (!university.trim() || !major.trim()) {
         message.error('Vui lòng nhập đầy đủ trường đào tạo và chuyên ngành.');
         return;
       }
       setCurrentStep(3);
-    } else if (currentStep === 3) {
-      if (files.length === 0) {
-        message.error('Vui lòng đính kèm ít nhất 1 tài liệu chứng chỉ.');
-        return;
-      }
-      setCurrentStep(4);
     }
   };
 
@@ -57,7 +42,7 @@ export default function TutorApplication() {
 
     try {
       setSubmitting(true);
-      const educationString = `${degreeLevel} - ${major} (${university})`;
+      const educationString = `${degreeLevel} - ${major.trim()} (${university.trim()})`;
       await tutorService.submitTutorApplication({
         bio: bio.trim(),
         education: educationString,
@@ -77,165 +62,194 @@ export default function TutorApplication() {
 
   const steps = [
     { num: 1, label: 'Thông Tin & Giới Thiệu', icon: 'person' },
-    { num: 2, label: 'Bằng Cấp & Học Thuật', icon: 'school' },
-    { num: 3, label: 'Minh Chứng Văn Bằng', icon: 'description' },
-    { num: 4, label: 'Cam Kết & Nộp Hồ Sơ', icon: 'verified' },
+    { num: 2, label: 'Học Vấn & Bằng Cấp', icon: 'school' },
+    { num: 3, label: 'Cam Kết & Nộp Hồ Sơ', icon: 'verified' },
   ];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-3xl mx-auto space-y-8">
       {/* Header */}
-      <div>
+      <div className="text-center space-y-2">
+        <span className="px-3 py-1 rounded-full bg-brand-indigo-50 text-brand-indigo-700 text-xs font-bold uppercase tracking-wider">
+          Gia Nhập Đội Ngũ Gia Sư Chuyên Nghiệp
+        </span>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-          Quy Trình Xác Thực Hồ Sơ Gia Sư Bảo Chứng
+          Đăng Ký Hồ Sơ Giảng Dạy TutorHub
         </h1>
-        <p className="text-xs sm:text-sm text-text-muted mt-1">
-          Hoàn thành 4 bước để nhận huy hiệu Verified Master Tutor và kích hoạt nhận giải ngân Escrow
+        <p className="text-xs sm:text-sm text-text-muted max-w-lg mx-auto">
+          Hoàn thành hồ sơ thông tin và học vấn để được cấp huy hiệu xác thực và mở lớp trên sàn
         </p>
       </div>
 
-      {/* Stepper Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        {steps.map((s) => {
-          const isDone = currentStep > s.num;
-          const isCurrent = currentStep === s.num;
-          return (
-            <button
-              type="button"
+      {/* Stepper Progress */}
+      <div className="p-6 rounded-3xl bg-white border border-border-light shadow-xs">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 relative">
+          {steps.map((s) => (
+            <div
               key={s.num}
-              onClick={() => {
-                if (isDone) setCurrentStep(s.num);
-              }}
-              className={`p-3 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all text-left ${
-                isDone
-                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-800 cursor-pointer'
-                  : isCurrent
-                  ? 'bg-brand-indigo-50 border-2 border-brand-indigo-500 text-brand-indigo-700 shadow-xs'
-                  : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-default'
+              className={`flex flex-col items-center text-center space-y-2 z-10 transition-colors ${
+                currentStep >= s.num ? 'text-brand-indigo-600' : 'text-slate-400'
               }`}
             >
-              <span
-                className={`material-symbols-outlined text-lg ${
-                  isDone ? 'text-financial-available' : isCurrent ? 'text-brand-indigo-600' : 'text-slate-400'
+              <div
+                className={`w-10 h-10 rounded-2xl flex items-center justify-center font-extrabold text-sm transition-all ${
+                  currentStep === s.num
+                    ? 'bg-brand-indigo-600 text-white shadow-md shadow-brand-indigo-600/30 ring-4 ring-brand-indigo-50'
+                    : currentStep > s.num
+                    ? 'bg-brand-indigo-100 text-brand-indigo-700'
+                    : 'bg-slate-100 text-slate-400'
                 }`}
               >
-                {isDone ? 'check_circle' : s.icon}
-              </span>
-              <span className="truncate">Bước {s.num}: {s.label}</span>
-            </button>
-          );
-        })}
+                {currentStep > s.num ? (
+                  <span className="material-symbols-outlined text-lg">check</span>
+                ) : (
+                  s.num
+                )}
+              </div>
+              <span className="text-[11px] font-bold hidden sm:inline">{s.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Form Card */}
+      {/* Form Content */}
       <div className="p-6 sm:p-8 rounded-3xl bg-white border border-border-light shadow-xs space-y-6">
-        {/* Step 1: Info & Bio */}
+        {/* Step 1: Personal Bio & Mode */}
         {currentStep === 1 && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-brand-indigo-600">person</span>
-              Bước 1: Thông Tin Chung & Giới Thiệu
+              <span className="material-symbols-outlined text-brand-indigo-600">badge</span>
+              Bước 1: Giới Thiệu Bản Thân & Phương Thức Dạy
             </h3>
 
-            <div className="space-y-1">
-              <label htmlFor="tutor-bio" className="text-xs font-bold text-slate-700 block">
-                Giới thiệu bản thân & Phương pháp giảng dạy (Tối thiểu 20 ký tự)
+            <div className="space-y-1.5">
+              <label htmlFor="tutor-bio" className="text-xs font-bold text-slate-800 block">
+                Tiểu sử giới thiệu (Tối thiểu 20 ký tự) *
               </label>
               <textarea
                 id="tutor-bio"
-                rows={4}
+                rows={5}
+                required
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                className="w-full p-4 rounded-xl border border-border-light text-xs text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none leading-relaxed"
-                placeholder="Mô tả phong cách giảng dạy, thế mạnh môn học và kinh nghiệm luyện thi..."
+                placeholder="Giới thiệu về phương pháp giảng dạy, kinh nghiệm, thành tích học sinh từng đạt được..."
+                className="w-full p-4 rounded-2xl border border-border-light text-xs text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none leading-relaxed"
               />
+              <span className="text-[11px] text-text-muted block text-right">
+                {bio.length} ký tự
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label htmlFor="tutor-mode" className="text-xs font-bold text-slate-700 block">
-                  Hình thức giảng dạy
-                </label>
-                <select
-                  id="tutor-mode"
-                  value={teachingMode}
-                  onChange={(e) => setTeachingMode(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none bg-white"
-                >
-                  <option value={TEACHING_MODE.BOTH}>Cả Trực Tuyến & Tại Nhà (Both)</option>
-                  <option value={TEACHING_MODE.ONLINE}>Chỉ Dạy Online</option>
-                  <option value={TEACHING_MODE.OFFLINE}>Chỉ Dạy Tại Nhà (Offline)</option>
-                </select>
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-slate-800 block">Hình thức giảng dạy *</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" role="radiogroup" aria-label="Hình thức giảng dạy">
+                {[
+                  { key: 'Online', label: 'Dạy Trực Tuyến', desc: 'Google Meet / Zoom' },
+                  { key: 'Offline', label: 'Dạy Tại Nhà', desc: 'Gặp trực tiếp học viên' },
+                  { key: 'Both', label: 'Cả Hai Hình Thức', desc: 'Linh hoạt theo yêu cầu' },
+                ].map((m) => (
+                  <div
+                    key={m.key}
+                    role="radio"
+                    aria-checked={teachingMode === m.key}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setTeachingMode(m.key);
+                      }
+                    }}
+                    onClick={() => setTeachingMode(m.key)}
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-brand-indigo-500 ${
+                      teachingMode === m.key
+                        ? 'border-brand-indigo-600 bg-brand-indigo-50/50 text-brand-indigo-950'
+                        : 'border-border-light hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <span className="font-bold text-xs block">{m.label}</span>
+                    <span className="text-[11px] text-text-muted mt-0.5 block">{m.desc}</span>
+                  </div>
+                ))}
               </div>
+            </div>
 
-              <div className="space-y-1">
-                <label htmlFor="tutor-address" className="text-xs font-bold text-slate-700 block">
-                  Khu vực dạy chính (Offline)
+            {(teachingMode === 'Offline' || teachingMode === 'Both') && (
+              <div className="space-y-1.5">
+                <label htmlFor="tutor-address" className="text-xs font-bold text-slate-800 block">
+                  Khu vực có thể dạy (Quận/Huyện, Thành phố) *
                 </label>
                 <input
                   id="tutor-address"
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Ví dụ: Quận Cầu Giấy, Hà Nội"
+                  placeholder="Ví dụ: Quận Cầu Giấy, Quận Đống Đa, Hà Nội"
                   className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none"
                 />
               </div>
-            </div>
+            )}
           </div>
         )}
 
-        {/* Step 2: Academic Credentials */}
+        {/* Step 2: Academic & Education */}
         {currentStep === 2 && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <span className="material-symbols-outlined text-brand-indigo-600">school</span>
-              Bước 2: Thông Tin Học Thuật & Văn Bằng Chuyên Môn
+              Bước 2: Trình Độ Học Vấn & Kinh Nghiệm
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label htmlFor="tutor-university" className="text-xs font-bold text-slate-700 block">
-                  Trường Đại Học tốt nghiệp
+              <div className="space-y-1.5">
+                <label htmlFor="tutor-uni" className="text-xs font-bold text-slate-800 block">
+                  Trường Đại học / Cao đẳng đào tạo *
                 </label>
                 <input
-                  id="tutor-university"
+                  id="tutor-uni"
                   type="text"
+                  required
                   value={university}
                   onChange={(e) => setUniversity(e.target.value)}
+                  placeholder="Ví dụ: ĐH Sư Phạm Hà Nội, ĐH Ngoại Thương..."
                   className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none"
                 />
               </div>
-              <div className="space-y-1">
-                <label htmlFor="tutor-major" className="text-xs font-bold text-slate-700 block">
-                  Chuyên ngành đào tạo
+
+              <div className="space-y-1.5">
+                <label htmlFor="tutor-major" className="text-xs font-bold text-slate-800 block">
+                  Chuyên ngành đào tạo *
                 </label>
                 <input
                   id="tutor-major"
                   type="text"
+                  required
                   value={major}
                   onChange={(e) => setMajor(e.target.value)}
+                  placeholder="Ví dụ: Sư phạm Toán, Ngôn ngữ Anh..."
                   className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none"
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label htmlFor="tutor-degree" className="text-xs font-bold text-slate-700 block">
-                  Học vị / Bằng cấp cao nhất
+              <div className="space-y-1.5">
+                <label htmlFor="tutor-degree" className="text-xs font-bold text-slate-800 block">
+                  Học vị cao nhất
                 </label>
-                <input
+                <select
                   id="tutor-degree"
-                  type="text"
                   value={degreeLevel}
                   onChange={(e) => setDegreeLevel(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none"
-                />
+                  className="w-full px-4 py-2.5 rounded-xl border border-border-light text-xs font-medium text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none bg-white"
+                >
+                  <option value="Cử nhân">Cử nhân</option>
+                  <option value="Thạc sĩ">Thạc sĩ</option>
+                  <option value="Tiến sĩ">Tiến sĩ</option>
+                  <option value="Sinh viên năm 3-4">Sinh viên năm 3-4</option>
+                </select>
               </div>
-              <div className="space-y-1">
-                <label htmlFor="tutor-exp" className="text-xs font-bold text-slate-700 block">
-                  Số năm kinh nghiệm gia sư
+
+              <div className="space-y-1.5">
+                <label htmlFor="tutor-exp" className="text-xs font-bold text-slate-800 block">
+                  Số năm kinh nghiệm gia sư/giảng dạy
                 </label>
                 <input
                   id="tutor-exp"
@@ -251,50 +265,12 @@ export default function TutorApplication() {
           </div>
         )}
 
-        {/* Step 3: Documents */}
+        {/* Step 3: Review & Legal Commit */}
         {currentStep === 3 && (
           <div className="space-y-4">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-brand-indigo-600">description</span>
-              Bước 3: Minh Chứng Văn Bằng & Chứng Chỉ
-            </h3>
-
-            <div className="p-6 rounded-2xl border-2 border-dashed border-slate-200 text-center space-y-2 bg-slate-50/50">
-              <span className="material-symbols-outlined text-4xl text-slate-400">cloud_upload</span>
-              <p className="text-xs font-bold text-slate-700 m-0">Tải lên scan văn bằng (PDF, PNG, JPG)</p>
-              <p className="text-[11px] text-slate-400 m-0">Hỗ trợ bằng đại học, thạc sĩ, chứng chỉ IELTS / sư phạm (tối đa 10MB/tệp)</p>
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-slate-700 block">Tệp đính kèm đã sẵn sàng ({files.length}):</span>
-              {files.map((file, idx) => (
-                <div
-                  key={idx}
-                  className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs"
-                >
-                  <div className="flex items-center gap-2 text-slate-800">
-                    <span className="material-symbols-outlined text-brand-indigo-600 text-lg">check_circle</span>
-                    <span className="font-medium">{file}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setFiles(files.filter((_, i) => i !== idx))}
-                    className="text-xs text-rose-600 hover:text-rose-800 font-bold"
-                  >
-                    Xóa
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Review & Legal Commit */}
-        {currentStep === 4 && (
-          <div className="space-y-4">
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <span className="material-symbols-outlined text-brand-indigo-600">verified</span>
-              Bước 4: Xác Nhận Cam Kết & Nộp Hồ Sơ
+              Bước 3: Xác Nhận Cam Kết & Nộp Hồ Sơ
             </h3>
 
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
@@ -333,38 +309,37 @@ export default function TutorApplication() {
           </div>
         )}
 
-        {/* Action buttons */}
-        <div className="flex justify-between items-center pt-4 border-t border-border-light">
+        {/* Action Controls */}
+        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
           {currentStep > 1 ? (
             <button
               type="button"
-              onClick={() => setCurrentStep((c) => c - 1)}
-              className="py-2.5 px-5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs transition-colors"
+              onClick={() => setCurrentStep((s) => s - 1)}
+              className="py-2.5 px-5 rounded-xl border border-border-light text-slate-600 hover:bg-slate-50 text-xs font-bold transition-colors"
             >
-              Quay Lại Bước {currentStep - 1}
+              Quay lại
             </button>
           ) : (
             <div />
           )}
 
-          {currentStep < 4 ? (
+          {currentStep < 3 ? (
             <button
               type="button"
               onClick={handleNext}
-              className="py-2.5 px-6 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5"
+              className="py-2.5 px-6 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white font-bold text-xs shadow-xs transition-colors"
             >
-              <span>Tiếp Tục Sang Bước {currentStep + 1}</span>
-              <span className="material-symbols-outlined text-base">arrow_forward</span>
+              Tiếp tục
             </button>
           ) : (
             <button
               type="button"
               disabled={submitting || !agreed}
               onClick={handleSubmit}
-              className="py-3 px-7 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="py-3 px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5"
             >
               <span className="material-symbols-outlined text-base">send</span>
-              {submitting ? 'Đang gửi hồ sơ...' : 'Xác Nhận Nộp Hồ Sơ Xét Duyệt'}
+              {submitting ? 'Đang gửi hồ sơ...' : 'Nộp Hồ Sơ Xét Duyệt Ngay'}
             </button>
           )}
         </div>
