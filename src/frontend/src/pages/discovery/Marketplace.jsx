@@ -20,6 +20,8 @@ export default function Marketplace() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [teachingMode, setTeachingMode] = useState('All');
   const [sortBy, setSortBy] = useState('rating_desc');
+  const [pageNumber, setPageNumber] = useState(1);
+  const pageSize = 12;
 
   // Tải danh mục thật từ GET /categories (backend trả mảng PublicCategoryDto).
   useEffect(() => {
@@ -58,8 +60,8 @@ export default function Marketplace() {
           search: effectiveSearch,
           teachingMode: teachingMode !== 'All' ? teachingMode : null,
           sortBy,
-          pageNumber: 1,
-          pageSize: 9,
+          pageNumber,
+          pageSize,
         });
 
         if (cancelled) return;
@@ -79,7 +81,7 @@ export default function Marketplace() {
     return () => {
       cancelled = true;
     };
-  }, [searchKeyword, selectedCategory, teachingMode, sortBy, categories, reloadToken]);
+  }, [searchKeyword, selectedCategory, teachingMode, sortBy, categories, reloadToken, pageNumber]);
 
 
   // Pill danh mục lấy từ GET /categories (không còn danh sách hardcode).
@@ -94,6 +96,8 @@ export default function Marketplace() {
       icon: CATEGORY_ICONS[(index + 1) % CATEGORY_ICONS.length],
     })),
   ];
+
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
@@ -129,7 +133,10 @@ export default function Marketplace() {
               <input
                 type="text"
                 value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
+                onChange={(e) => {
+                  setSearchKeyword(e.target.value);
+                  setPageNumber(1);
+                }}
                 placeholder="Tìm theo môn học, gia sư, trường ĐH (VD: Toán 12, IELTS 8.0, Bách Khoa)..."
                 className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-indigo-500 focus:bg-white/15 transition-all text-xs sm:text-sm font-medium shadow-inner"
               />
@@ -196,7 +203,10 @@ export default function Marketplace() {
           <button
             key={pill.id || 'all'}
             type="button"
-            onClick={() => setSelectedCategory(pill.id)}
+            onClick={() => {
+              setSelectedCategory(pill.id);
+              setPageNumber(1);
+            }}
             className={`px-4 py-2.5 rounded-2xl font-extrabold text-xs shrink-0 flex items-center gap-2 transition-all duration-200 ${
               selectedCategory === pill.id
                 ? 'bg-brand-indigo-600 text-white shadow-md shadow-brand-indigo-500/20'
@@ -225,6 +235,7 @@ export default function Marketplace() {
                   setTeachingMode('All');
                   setSearchKeyword('');
                   setSelectedCategory('');
+                  setPageNumber(1);
                 }}
                 className="text-[11px] text-brand-indigo-600 font-bold hover:underline"
               >
@@ -240,7 +251,10 @@ export default function Marketplace() {
                   <button
                     key={m}
                     type="button"
-                    onClick={() => setTeachingMode(m)}
+                    onClick={() => {
+                      setTeachingMode(m);
+                      setPageNumber(1);
+                    }}
                     className={`py-2 text-xs font-extrabold rounded-lg transition-all ${
                       teachingMode === m ? 'bg-white text-brand-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                     }`}
@@ -259,7 +273,10 @@ export default function Marketplace() {
               <select
                 id="marketplace-sort"
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => {
+                  setSortBy(e.target.value);
+                  setPageNumber(1);
+                }}
                 className="w-full text-xs font-bold rounded-xl border border-slate-200 p-3 bg-white text-slate-700 focus:ring-2 focus:ring-brand-indigo-500 focus:border-brand-indigo-500 outline-none"
               >
                 <option value="rating_desc">Đánh giá cao nhất (★ 5.0)</option>
@@ -421,6 +438,71 @@ export default function Marketplace() {
               );
             })}
           </div>
+          )}
+
+          {/* Pagination Controls */}
+          {!loading && !error && totalPages > 1 && (
+            <div className="pt-6 pb-4 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+              <span className="text-slate-500 font-medium">
+                Hiển thị <strong className="text-slate-800 font-bold">{(pageNumber - 1) * pageSize + 1}</strong> –{' '}
+                <strong className="text-slate-800 font-bold">{Math.min(pageNumber * pageSize, totalCount)}</strong> trong{' '}
+                <strong className="text-slate-800 font-bold">{totalCount}</strong> gia sư
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={pageNumber <= 1}
+                  onClick={() => {
+                    setPageNumber((p) => Math.max(1, p - 1));
+                    window.scrollTo({ top: 380, behavior: 'smooth' });
+                  }}
+                  className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1 shadow-2xs"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_left</span>
+                  Trang trước
+                </button>
+
+                <div className="flex items-center gap-1 px-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - pageNumber) <= 1)
+                    .map((p, idx, arr) => (
+                      <React.Fragment key={p}>
+                        {idx > 0 && arr[idx - 1] !== p - 1 && (
+                          <span className="px-1 text-slate-400 select-none">…</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPageNumber(p);
+                            window.scrollTo({ top: 380, behavior: 'smooth' });
+                          }}
+                          className={`w-8 h-8 rounded-xl font-extrabold text-xs transition-all ${
+                            pageNumber === p
+                              ? 'bg-brand-indigo-600 text-white shadow-sm shadow-brand-indigo-500/30'
+                              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      </React.Fragment>
+                    ))}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={pageNumber >= totalPages}
+                  onClick={() => {
+                    setPageNumber((p) => Math.min(totalPages, p + 1));
+                    window.scrollTo({ top: 380, behavior: 'smooth' });
+                  }}
+                  className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1 shadow-2xs"
+                >
+                  Trang sau
+                  <span className="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>
