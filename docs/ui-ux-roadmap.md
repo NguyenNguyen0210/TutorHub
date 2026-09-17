@@ -2,8 +2,8 @@
 
 **Phạm vi:** `TutorHub-frontend/src/frontend` (React 18 + Vite 5 + AntD v5 + Tailwind 3.4, JavaScript thuần — không TypeScript)
 **Nguồn chuẩn thiết kế:** `../DESIGN.md` (§2 tokens, §3 signature components, §4.1 responsive, §5 motion/loading, §6 checklist)
-**Nguồn rà soát:** `../UI-AUDIT.md` (audit UI/UX), `../PROJECT-REVIEW.md` (review toàn dự án), `../docs/frontend-specification.md`
-**Trạng thái:** đang thực thi — P0 hoàn tất, P1 là bước tiếp theo
+**Nguồn rà soát:** `../docs/frontend-specification.md`
+**Trạng thái:** hoàn tất — toàn bộ các phase P0 đến P10 đã nghiệm thu thành công
 
 > Tài liệu này là roadmap **thực thi**: mỗi phase là một đơn vị commit độc lập, có acceptance đo được và bảng truy vết tới từng phát hiện của audit.
 
@@ -106,7 +106,7 @@
 
 | # | Phase | Trạng thái | Nội dung chính | Acceptance |
 |---|---|---|---|---|
-| **P0** | Baseline & guardrail | ✅ **xong** (`a69d281`) | `eslint.config.js` + `eslint@9` + `jsx-a11y` + `react-hooks` + script `lint`; sửa 4 error `react/no-unescaped-entities`; `public/favicon.svg` + `index.html`; commit `UI-AUDIT.md` + `PROJECT-REVIEW.md`; tài liệu này | `npm run build` pass; `npm run lint` **0 error** (138 warning = backlog) |
+| **P0** | Baseline & guardrail | ✅ **xong** (`a69d281`) | `eslint.config.js` + `eslint@9` + `jsx-a11y` + `react-hooks` + script `lint`; sửa 4 error `react/no-unescaped-entities`; `public/favicon.svg` + `index.html`; tài liệu này | `npm run build` pass; `npm run lint` **0 error** (138 warning = backlog) |
 | **P1** | API contract + backend gaps | ✅ **xong** (`f4b0ad2`, `5867c2b`, `108c923`, merge `4f3bb42`) | `api.js` error object + 1 lần bóc; xoá 13 double-unwrap; PATCH notifications; map field/enum theo §2.3; bỏ mock ngầm. **Backend:** `GET /sessions/{id}` (+`AttendanceVerificationDueAt`), `TutorSummaryDto.MinPrice/IsVerified`, `AdminUserSummaryDto.AbsentStrikes` | API local: Marketplace/TutorProfile/AdminUsers/wallet/notifications hiện **dữ liệu thật**; `grep res\.data` = 0 |
 | **P2** | **Sự thật tiền tệ** | ✅ **xong** (`0e7a69d`) | Checkout gọi `createVnPayUrl` + lỗi thật + retry + nút dev "Giả lập thanh toán" (`VITE_DEV_PAYMENT_SIMULATOR`); PaymentReturn lấy kết quả **từ server**, không param ⇒ "không tìm thấy giao dịch"; AttendanceCard chỉ đọc `tutorAttendance` từ server; SessionDetail gắn `onClick` gọi `submitAttendance`; AdminDisputeDetail gọi service + `Modal.confirm` + bắt buộc nhập lý do; DisputeNew surface lỗi thật; AdminUsers map enum | Không còn `vnp_ResponseCode=00` sinh ở client; money action chỉ toast sau khi promise resolve |
 | **P3** | DESIGN §3.1 + §4.1 | ✅ **xong** (`a910bdc`) | Countdown: deadline từ `holdingExpiresAt`, re-sync `visibilitychange`, 3 urgency state, hết hạn ⇒ `disabled` + `00:00` + nút "Tạo lại đơn hàng"; shell: sidebar 260px ≥1024, rail 768–1023, dock <640 + `pb-24`, admin nav <1024, container trong `PublicLayout` | Countdown khớp booking; hết hạn khoá CTA; admin vào được 4 route trên mobile |

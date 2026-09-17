@@ -22,7 +22,7 @@ $suspiciousPatterns = @(
 $violations = @()
 
 foreach ($relPath in $trackedFiles) {
-    if ($relPath -match "^docs/|^CODE-REVIEW\.md|^PROJECT-REVIEW\.md|^UI-AUDIT\.md|scan-secrets\.ps1|StartupSecretGuardTests\.cs") {
+    if ($relPath -match "^docs/|scan-secrets\.ps1|StartupSecretGuardTests\.cs") {
         continue
     }
 
