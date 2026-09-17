@@ -48,7 +48,8 @@ public class AdminGetAuditLogsQueryHandler : IRequestHandler<AdminGetAuditLogsQu
 
         if (request.DateTo.HasValue)
         {
-            query = query.Where(a => a.CreatedAt <= request.DateTo.Value);
+            var endOfDayExclusive = request.DateTo.Value.Date.AddDays(1);
+            query = query.Where(a => a.CreatedAt < endOfDayExclusive);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -58,6 +59,7 @@ public class AdminGetAuditLogsQueryHandler : IRequestHandler<AdminGetAuditLogsQu
 
         var items = await query
             .OrderByDescending(a => a.CreatedAt)
+            .ThenByDescending(a => a.Id)
             .Skip((page - 1) * size)
             .Take(size)
             .ToListAsync(cancellationToken);

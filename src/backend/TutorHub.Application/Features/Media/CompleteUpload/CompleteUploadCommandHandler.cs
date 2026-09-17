@@ -28,6 +28,25 @@ public class CompleteUploadCommandHandler : IRequestHandler<CompleteUploadComman
     public async Task<MediaDto> Handle(CompleteUploadCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
+        var role = _currentUserService.Role;
+
+        if (request.MediaType == MediaType.Certificate && role is not UserRole.Tutor and not UserRole.Admin)
+        {
+            throw new ForbiddenException("You do not have permission to upload certificates. Only Tutors and Admins can upload certificates.");
+        }
+
+        var expectedPrefix = request.MediaType switch
+        {
+            MediaType.Avatar => $"profiles/{userId}/",
+            MediaType.Certificate => $"tutors/{userId}/",
+            MediaType.DisputeEvidence => $"reports/{userId}/",
+            _ => $"general/{userId}/"
+        };
+
+        if (!request.ObjectKey.StartsWith(expectedPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ForbiddenException("Object storage key does not match the authenticated user partition.");
+        }
 
         // 1. Verify object exists in object storage via HEAD check
         var exists = await _storageService.ExistsAsync(request.ObjectKey, cancellationToken);

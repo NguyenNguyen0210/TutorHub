@@ -20,9 +20,11 @@ public class GetLearningRecordQueryHandler : IRequestHandler<GetLearningRecordQu
     public async Task<LearningRecordDto?> Handle(GetLearningRecordQuery request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
+        var role = _currentUserService.Role;
 
         var session = await _context.Sessions
-            .Include(s => s.Enrollment)
+            .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
+            .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
 
@@ -31,8 +33,9 @@ public class GetLearningRecordQueryHandler : IRequestHandler<GetLearningRecordQu
             throw new NotFoundException("Session", request.SessionId);
         }
 
-        // F-14: student or tutor participant read-only.
-        if (session.Enrollment.StudentProfile.UserId != userId &&
+        // F-14: student, tutor participant or admin read-only.
+        if (role != Domain.Enums.UserRole.Admin &&
+            session.Enrollment.StudentProfile.UserId != userId &&
             session.Enrollment.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("You do not have permission to view this learning record.");

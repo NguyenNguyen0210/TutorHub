@@ -42,6 +42,7 @@ public class GetMyAgreementsQueryHandler : IRequestHandler<GetMyAgreementsQuery,
 
         var items = await query
             .OrderByDescending(a => a.CreatedAt)
+            .ThenByDescending(a => a.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .Select(a => new CustomAgreementDto(

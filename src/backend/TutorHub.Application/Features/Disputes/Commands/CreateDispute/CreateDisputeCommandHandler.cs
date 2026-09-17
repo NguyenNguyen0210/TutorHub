@@ -77,6 +77,17 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
             throw new ConflictException("An active dispute already exists for this session.");
         }
 
+        // P1-4: Prevent double-disputing / double-refunding if a dispute was already resolved with financial consequences
+        var alreadyResolvedDispute = await _context.Disputes
+            .AnyAsync(d => d.SessionId == session.Id &&
+                           (d.Status == DisputeStatus.Resolved || d.Status == DisputeStatus.RequiresAdminRefundSettlement) &&
+                           d.AffectsFinancialResolution, cancellationToken);
+
+        if (alreadyResolvedDispute)
+        {
+            throw new ConflictException("This session has already been resolved with financial settlement and cannot be disputed again.");
+        }
+
         var dispute = new Dispute
         {
             Id = Guid.NewGuid(),
@@ -104,14 +115,20 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
             var originalTx = await _context.Transactions
                 .FirstOrDefaultAsync(t => t.SessionId == session.Id && t.Type == TransactionType.SessionPayoutCredit, cancellationToken);
 
-            var maxTutorRecovery = originalTx?.PayoutAmount ?? session.EarningAmount;
+            // P1-3: Fallback must be 0 (never gross EarningAmount) if original payout tx is missing
+            var maxTutorRecovery = originalTx?.PayoutAmount ?? 0m;
 
             // Concurrency-safe atomic wallet lock before reading balances (DEC-S8-028, INV-CONCURRENCY-003)
             var tutorWallet = await _context.Wallets
                 .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {session.Enrollment.TutorProfileId} FOR UPDATE")
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (tutorWallet != null)
+            if (originalTx == null)
+            {
+                dispute.SetFinancialHold(0m, FinancialHoldType.BalanceHold, FinancialHoldStatus.InsufficientFunds, now);
+                dispute.MarkRequiresAdminFinancialIntervention("Original payout transaction not found for session earning recovery.");
+            }
+            else if (tutorWallet != null)
             {
                 var withdrawableBalance = tutorWallet.AvailableBalance - tutorWallet.HeldBalance;
 
@@ -142,6 +159,12 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
                     dispute.MarkRequiresAdminFinancialIntervention(
                         $"Tutor withdrawable balance ({withdrawableBalance:N0} VND) is insufficient for required hold ({maxTutorRecovery:N0} VND).");
                 }
+            }
+            else
+            {
+                // P2-2: Missing else branch handled safely
+                dispute.SetFinancialHold(0m, FinancialHoldType.BalanceHold, FinancialHoldStatus.InsufficientFunds, now);
+                dispute.MarkRequiresAdminFinancialIntervention("Tutor wallet not found for financial hold reservation.");
             }
         }
 

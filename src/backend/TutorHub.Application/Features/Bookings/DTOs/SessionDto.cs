@@ -17,5 +17,7 @@ public record SessionDto(
     AttendanceStatus? StudentAttendance = null,
     AttendanceStatus? TutorAttendance = null,
     bool HasAttendanceConflict = false,
-    DateTime? AttendanceVerificationDueAt = null
+    DateTime? AttendanceVerificationDueAt = null,
+    string? TutorName = null,
+    string? SubjectName = null
 );

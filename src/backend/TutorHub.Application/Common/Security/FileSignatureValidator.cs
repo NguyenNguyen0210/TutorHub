@@ -7,12 +7,13 @@ public static class FileSignatureValidator
     private static readonly byte[] PdfHeader = [0x25, 0x50, 0x44, 0x46]; // %PDF
     private static readonly byte[] RiffHeader = [0x52, 0x49, 0x46, 0x46]; // RIFF
     private static readonly byte[] WebpHeader = [0x57, 0x45, 0x42, 0x50]; // WEBP
+    private static readonly byte[] GifHeader = [0x47, 0x49, 0x46, 0x38]; // GIF8
 
     public static bool IsValidSignature(Stream stream, string extension, out string detectedMime)
     {
         detectedMime = "application/octet-stream";
 
-        if (stream == null || stream.Length < 12)
+        if (stream == null || (stream.Length < 12 && !extension.Equals(".txt", StringComparison.OrdinalIgnoreCase)))
         {
             return false;
         }
@@ -67,6 +68,21 @@ public static class FileSignatureValidator
         {
             detectedMime = "image/webp";
             return ext is "webp";
+        }
+
+        // 5. Check GIF (GIF87a or GIF89a)
+        if (bytesRead >= 4 &&
+            header[0] == GifHeader[0] && header[1] == GifHeader[1] && header[2] == GifHeader[2] && header[3] == GifHeader[3])
+        {
+            detectedMime = "image/gif";
+            return ext is "gif";
+        }
+
+        // 6. Check plain text (.txt)
+        if (ext is "txt")
+        {
+            detectedMime = "text/plain";
+            return true;
         }
 
         return false;

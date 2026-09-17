@@ -299,15 +299,14 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                 var tutorNetRecovery = settlement.TutorNetRecovery;
                 var platformFeeReversal = settlement.PlatformFeeReversal;
 
-                // Insufficient reserve guard (DEC-S8-026).
-                // Note: HeldBalance already includes this dispute's reserved hold, so the
-                // check is against AvailableBalance (which contains the hold), not
-                // WithdrawableBalance (hold creation in CreateDispute already enforces
-                // Withdrawable >= maxRecovery per DEC-S8-028).
-                if (tutorWallet.AvailableBalance < tutorNetRecovery)
+                // Insufficient reserve guard (DEC-S8-026 / DEC-S8-028 / P1-5).
+                // Must account for holds of OTHER active disputes so this recovery never
+                // cannibalizes funds reserved for other disputes (preserves HeldBalance <= AvailableBalance).
+                var availableExcludingOtherHolds = tutorWallet.AvailableBalance - Math.Max(0m, tutorWallet.HeldBalance - dispute.HeldAmount);
+                if (availableExcludingOtherHolds < tutorNetRecovery)
                 {
                     dispute.MarkRequiresAdminFinancialIntervention(
-                        $"Tutor available balance ({tutorWallet.AvailableBalance:N0} VND) is insufficient for required recovery ({tutorNetRecovery:N0} VND).");
+                        $"Tutor available balance excluding other active holds ({availableExcludingOtherHolds:N0} VND) is insufficient for required recovery ({tutorNetRecovery:N0} VND).");
                     await _auditLogService.LogAsync(
                         action: "DisputeRequiresFinancialIntervention",
                         entityName: "Dispute",

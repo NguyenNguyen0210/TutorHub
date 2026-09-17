@@ -25,7 +25,8 @@ public class GetSessionByIdQueryHandler : IRequestHandler<GetSessionByIdQuery, S
 
         var session = await _context.Sessions
             .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
-            .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
+            .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(tp => tp.User)
+            .Include(s => s.Enrollment).ThenInclude(e => e.Subject)
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
 

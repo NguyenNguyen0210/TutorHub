@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -228,6 +229,18 @@ if (builder.Configuration.GetValue<bool>("ReverseProxy:Enabled"))
 
 var app = builder.Build();
 
+// Optional schema bootstrap for containerised runs. Nothing else applies migrations
+// (the documented local path is scripts/dev-bootstrap.ps1), so a fresh pgdata volume
+// left the API answering 503 from the readiness probe. Off by default — production and
+// `dotnet run` are unaffected — and only docker-compose turns it on for the api service.
+if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
+{
+    using var migrationScope = app.Services.CreateScope();
+    var migrationDb = migrationScope.ServiceProvider
+        .GetRequiredService<TutorHub.Infrastructure.Persistence.AppDbContext>();
+    await migrationDb.Database.MigrateAsync();
+}
+
 // P0-D2: must run before anything that reads Connection.RemoteIpAddress.
 if (app.Configuration.GetValue<bool>("ReverseProxy:Enabled"))
 {
@@ -249,7 +262,12 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
     ResponseWriter = HealthCheckResponseWriter.WriteAsync
 });
 
-app.UseExceptionHandler(_ => { });
+app.UseExceptionHandler();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
 
 app.UseMiddleware<TutorHub.Api.Middlewares.CorrelationIdMiddleware>();
 

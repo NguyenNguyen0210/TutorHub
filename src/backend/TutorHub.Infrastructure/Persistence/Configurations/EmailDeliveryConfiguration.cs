@@ -40,6 +40,12 @@ public class EmailDeliveryConfiguration : IEntityTypeConfiguration<EmailDelivery
         builder.Property(e => e.ProviderMessageId)
             .HasMaxLength(128);
 
+        // Optimistic concurrency token (xmin in PostgreSQL)
+        builder.Property<uint>("xmin")
+            .HasColumnType("xid")
+            .ValueGeneratedOnAddOrUpdate()
+            .IsConcurrencyToken();
+
         builder.HasOne(e => e.Notification)
             .WithOne()
             .HasForeignKey<EmailDelivery>(e => e.NotificationId)

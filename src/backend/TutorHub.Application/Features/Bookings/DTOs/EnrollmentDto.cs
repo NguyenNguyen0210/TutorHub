@@ -21,5 +21,7 @@ public record EnrollmentDto(
     DateTime? CancelledAt,
     CancelledBy? CancelledBy,
     string? CancellationReason,
-    List<SessionDto> Sessions
+    List<SessionDto> Sessions,
+    decimal PlatformFeeRate = 0.10m,
+    int FeePolicyVersion = 1
 );

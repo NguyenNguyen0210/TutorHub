@@ -38,13 +38,16 @@ public class GetAdminTutorApplicationsQueryHandler
                 a.User.Email.ToLower().Contains(search));
         }
 
-        query = query.OrderByDescending(a => a.SubmittedAt);
+        query = query.OrderByDescending(a => a.SubmittedAt).ThenByDescending(a => a.Id);
 
         var totalCount = await query.CountAsync(cancellationToken);
 
+        var page = request.PageNumber <= 0 ? 1 : request.PageNumber;
+        var size = request.PageSize <= 0 ? 10 : (request.PageSize > 100 ? 100 : request.PageSize);
+
         var items = await query
-            .Skip((request.PageNumber - 1) * request.PageSize)
-            .Take(request.PageSize)
+            .Skip((page - 1) * size)
+            .Take(size)
             .Select(a => new AdminTutorApplicationListItemDto(
                 a.Id,
                 a.UserId,
@@ -54,7 +57,12 @@ public class GetAdminTutorApplicationsQueryHandler
                 a.Status.ToString(),
                 a.SubmittedAt,
                 a.ReviewedAt,
-                a.RejectionReason
+                a.RejectionReason,
+                a.Bio,
+                a.Education,
+                a.ExperienceYears,
+                a.TeachingMode.ToString(),
+                a.Address
             ))
             .ToListAsync(cancellationToken);
 
