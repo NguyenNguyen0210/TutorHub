@@ -4,9 +4,8 @@
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?style=flat&logo=vite)](https://vitejs.dev/)
 [![Ant Design](https://img.shields.io/badge/Ant%20Design-5.20-1890FF?style=flat&logo=antdesign)](https://ant.design/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
-[![Zero--Mock](https://img.shields.io/badge/Zero--Mock-Policy%20Passed-success?style=flat)](../../scripts/verify-frontend-api-contract.mjs)
 
-Giao diện người dùng Web dành cho học viên, gia sư và quản trị viên của nền tảng **TutorHub**, được xây dựng bằng React 18, Vite, Ant Design 5, TailwindCSS và kết nối trực tiếp 100% với Backend .NET 8 Web API.
+Giao diện người dùng Web dành cho học viên, gia sư và quản trị viên của nền tảng **TutorHub**, được xây dựng bằng React 18, Vite, Ant Design 5, TailwindCSS và kết nối trực tiếp với Backend .NET 8 Web API.
 
 ---
 
@@ -49,7 +48,7 @@ npm run build
 
 ---
 
-## 🔌 Cấu Hình Kết Nối API & Nguyên Tắc Zero-Mock
+## 🔌 Cấu Hình Kết Nối API
 
 * **API Endpoints:**
   * Local .NET Development: `http://localhost:5129/api/v1`
@@ -57,9 +56,3 @@ npm run build
 * **Realtime SignalR Hubs:**
   * Trò chuyện 1-1: `/hubs/chat`
   * Thông báo tức thời: `/hubs/notifications`
-* **Zero-Mock Policy:**
-  * Dự án tuân thủ nghiêm ngặt chính sách Zero-Mock: Toàn bộ 60 dịch vụ gọi API trong `src/frontend/src/services/` đều gọi trực tiếp tới Backend Web API và được đối soát 100% với `docs/openapi.json`.
-  * Chạy script kiểm tra hợp đồng bất kỳ lúc nào:
-    ```bash
-    node scripts/verify-frontend-api-contract.mjs
-    ```

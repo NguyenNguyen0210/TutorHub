@@ -6,9 +6,8 @@
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?style=flat&logo=react)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?style=flat&logo=vite)](https://vitejs.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker)](https://www.docker.com/)
-[![Tests](https://img.shields.io/badge/Tests-573%20Passed%20(100%25)-success?style=flat&logo=xunit)](http://localhost:5129)
-[![API Contract](https://img.shields.io/badge/API%20Contract-60%2F60%20Verified-success?style=flat)](docs/openapi.json)
-[![Zero--Mock](https://img.shields.io/badge/Zero--Mock-Policy%20Passed-success?style=flat)](scripts/verify-frontend-api-contract.mjs)
+[![Tests](https://img.shields.io/badge/Tests-573%20Passed-success?style=flat&logo=xunit)](http://localhost:5129)
+[![API Contract](https://img.shields.io/badge/API%20Contract-Verified-success?style=flat)](docs/openapi.json)
 
 **TutorHub** là nền tảng trực tuyến kết nối Gia Sư (Tutor) và Học Viên (Student) theo mô hình **Service / Package-based Learning**. Hệ thống gồm tầng **Backend ASP.NET Core Web API (.NET 8)** kiến trúc Clean Architecture + CQRS (MediatR), và tầng **Frontend React 18 + Vite + Ant Design + TailwindCSS**.
 
@@ -81,7 +80,7 @@ TutorHub/
 │   │   ├── package.json                # Dependencies & scripts
 │   │   └── vite.config.js              # Cấu hình Vite & Proxy
 │   │
-│   └── test/                           # Kiểm thử tự động (573 test cases deterministics)
+│   └── test/                           # Kiểm thử tự động (573 test cases)
 │       ├── TutorHub.Domain.UnitTests/          # 196 cases (Invariants & Allocators)
 │       ├── TutorHub.Application.UnitTests/     # 283 cases (CQRS Handlers & Validators)
 │       ├── TutorHub.Infrastructure.UnitTests/  # 21 cases (VNPay, Security, Integrations)
@@ -91,11 +90,6 @@ TutorHub/
 │   ├── openapi.json                    # OpenAPI v3 spec
 │   ├── prd.md                          # Product Requirements Document
 │   └── functional-requirements.md      # Đặc tả yêu cầu chức năng
-│
-├── scripts/                            # Scripts kiểm thử và CI/CD guardrails
-│   ├── verify-frontend-api-contract.mjs # Đối soát 60/60 API contracts & Zero-Mock
-│   ├── scan-secrets.ps1                # Quét bảo mật lộ credential/secret
-│   └── verify-seed.sql                 # Kiểm tra tính toàn vẹn dữ liệu tài chính
 │
 ├── docker-compose.yml                  # Khởi chạy cụm PostgreSQL, API, Seed Container
 ├── .env.example                        # Cấu hình mẫu biến môi trường
@@ -130,13 +124,13 @@ docker-compose up -d --build
 
 #### Backend (.NET 8):
 ```bash
-# 1. Build Solution (Zero-Warning Policy)
+# 1. Build Solution
 dotnet build src/backend/TutorHub.sln
 
-# 2. Chạy toàn bộ 573 automated tests
+# 2. Chạy toàn bộ automated tests
 dotnet test src/backend/TutorHub.sln
 
-# 3. Chạy API
+# 3. Chạy API Server
 dotnet run --project src/backend/TutorHub.Api
 ```
 * Local API: `http://localhost:5129` | Swagger UI: `http://localhost:5129/swagger`
@@ -163,29 +157,3 @@ Mật khẩu dùng chung cho tất cả tài khoản seed: `Test@123`
 | **Tutor** | `long.vu.dev@tutorhub.vn` | Gia sư Lập trình C# .NET & Clean Architecture |
 | **Student** | `student.lan@tutorhub.com` | Học viên mẫu (đã có hợp đồng học tập) |
 | **Student** | `nguyen.hoang.nam.1@gmail.com` | Học viên mẫu |
-
----
-
-## 🔍 Kiểm Chuẩn Chất Lượng (Quality Guardrails)
-
-Dự án tích hợp các công cụ tự động hóa kiểm soát chất lượng mã nguồn:
-
-```bash
-# 1. Kiểm tra chính sách Zero-Mock & đối soát 60/60 API Contracts
-node scripts/verify-frontend-api-contract.mjs
-
-# 2. Quét phát hiện rò rỉ secret / credentials
-powershell -ExecutionPolicy Bypass -File scripts/scan-secrets.ps1
-
-# 3. Kiểm tra tính toàn vẹn số dư ví & tài chính trên PostgreSQL
-psql -h localhost -p 5433 -U tutorhub -d tutorhub -f scripts/verify-seed.sql
-```
-
----
-
-## 📜 Quy Ước Phát Triển
-
-* **Conventional Commits:** Sử dụng tiền tố chuẩn `feat:`, `fix:`, `refactor:`, `docs:`.
-* **Zero-Warning Policy:** `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` được bật trên toàn bộ solution.
-* **Zero-Mock Policy:** Tất cả các service client phải gọi trực tiếp tới API backend và tuân thủ OpenAPI contract.
-* **Append-Only Financial Ledger:** Không xóa hay sửa đổi các bản ghi giao dịch và nhật ký kiểm toán đã quyết toán.
