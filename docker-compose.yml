@@ -1,3 +1,9 @@
+# Fixed project name: Compose otherwise derives it from the checkout directory, so a
+# second working copy (e.g. ./TutorHub vs ./TutorHub-frontend) becomes a *different*
+# project that collides on the fixed container_name and creates a second empty pgdata
+# volume. Pinning the name makes both checkouts share one stack.
+name: tutorhub
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -33,6 +39,9 @@ services:
       # Development CORS defaults. Has no effect on `dotnet run`.
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-tutorhub};Username=${POSTGRES_USER:-tutorhub};Password=${POSTGRES_PASSWORD:-tutorhub}
+      # A fresh pgdata volume has no schema, and nothing else applies migrations.
+      # Gated flag, off by default everywhere except this container.
+      Database__MigrateOnStartup: "true"
       Jwt__Secret: ${Jwt__Secret}
       Jwt__Issuer: ${Jwt__Issuer:-TutorHubAPI}
       Jwt__Audience: ${Jwt__Audience:-TutorHubClient}
@@ -68,6 +77,37 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  # One-shot loader. Waits for the api service to create the schema, then loads
+  # src/backend/seedData.sql ONLY while the database is still empty — so a repeat
+  # `docker compose up` never wipes existing domain data (seedData.sql TRUNCATEs).
+  seed:
+    image: postgres:16-alpine
+    container_name: tutorhub-seed
+    restart: "no"
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-tutorhub}
+      PGUSER: ${POSTGRES_USER:-tutorhub}
+      PGDATABASE: ${POSTGRES_DB:-tutorhub}
+    volumes:
+      - ./src/backend/seedData.sql:/seed/seedData.sql:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        echo "[seed] waiting for the Users table (api applies migrations on startup)..."
+        until psql -h postgres -tAc "select to_regclass('public.\"Users\"')" | grep -q Users; do sleep 2; done
+        count=$$(psql -h postgres -tAc 'select count(*) from "Users"')
+        if [ "$$count" = "0" ]; then
+          echo "[seed] database is empty -> loading seedData.sql"
+          psql -h postgres -v ON_ERROR_STOP=1 -q -f /seed/seedData.sql
+          echo "[seed] seedData.sql loaded"
+        else
+          echo "[seed] skipped: $$count user(s) already present"
+        fi
 
 volumes:
   pgdata:

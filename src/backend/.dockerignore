@@ -1,0 +1,22 @@
+# Build context is ./src/backend (see docker-compose.yml). Docker only reads the
+# .dockerignore at the ROOT of the build context, so the repo-root .dockerignore was
+# never applied and host bin/obj leaked into the image — `COPY . .` then overwrote the
+# container's restore with Windows project.assets.json and `publish --no-restore` broke.
+**/bin
+**/obj
+**/node_modules
+
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+*.md
+TestResults
+coverage
+artifacts
+publish
+.idea
+.vs
+.vscode
