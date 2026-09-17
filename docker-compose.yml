@@ -98,13 +98,16 @@ services:
     command:
       - |
         set -e
-        echo "[seed] waiting for the Users table (api applies migrations on startup)..."
-        until psql -h postgres -tAc "select to_regclass('public.\"Users\"')" | grep -q Users; do sleep 2; done
+        echo "[seed] waiting for database migrations to complete..."
+        until psql -h postgres -tAc "select to_regclass('public.\"__EFMigrationsHistory\"')" 2>/dev/null | grep -q __EFMigrationsHistory && \
+              psql -h postgres -tAc "select count(*) from \"__EFMigrationsHistory\" where \"MigrationId\" = '20260914142220_AddAccountLockout'" 2>/dev/null | grep -q 1; do
+          sleep 2
+        done
         count=$$(psql -h postgres -tAc 'select count(*) from "Users"')
         if [ "$$count" = "0" ]; then
           echo "[seed] database is empty -> loading seedData.sql"
           psql -h postgres -v ON_ERROR_STOP=1 -q -f /seed/seedData.sql
-          echo "[seed] seedData.sql loaded"
+          echo "[seed] seedData.sql loaded successfully"
         else
           echo "[seed] skipped: $$count user(s) already present"
         fi
