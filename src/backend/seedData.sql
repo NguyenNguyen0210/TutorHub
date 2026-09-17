@@ -710,6 +710,14 @@ COMMIT;
 
 -- =============================================================================
 -- TUTORHUB VOLUME SEED DATA (REALISTIC, PRODUCTION-GRADE & IDEMPOTENT)
+-- Scale:
+--   - 50 Specialized Tutors (Real names, domains, bios, addresses, verified banks)
+--   - 200 Students (Realistic Vietnamese names & emails)
+--   - 150 Domain-aligned Services (Tailored titles, syllabus, expected outcomes)
+--   - 500 Bookings, 400 Enrollments (220 Active, 150 Completed, 30 Cancelled)
+--   - ~3,800 Sessions (Strict sum(EarningAmount) == TotalPrice allocation)
+--   - Exact Ledger & Wallet Settlement (INV-LEDGER-005, INV-LEDGER-006)
+--   - Authentic Reviews, Messages, Disputes, Notifications & LearningRecords
 -- =============================================================================
 
 BEGIN;
@@ -1426,10 +1434,6 @@ JOIN "Services" svc ON svc."Id" = s.svc_id
 ON CONFLICT ("Id") DO NOTHING;
 
 -- 11. ENROLLMENTS (400 Enrollments for the 400 Paid bookings)
--- 1..220: Active (sessions in progress)
--- 221..370: Completed (all sessions completed)
--- 371..400: Cancelled
--- -----------------------------------------------------------------------------
 INSERT INTO "Enrollments" (
     "Id", "BookingId", "StudentProfileId", "TutorProfileId", "ServiceId", "SubjectId",
     "TotalPrice", "TotalSessions", "CompletedSessions", "SessionDurationMinutes", 
@@ -1446,14 +1450,14 @@ SELECT
     b."TotalPrice",
     b."TotalSessions",
     CASE 
-        WHEN b.i <= 220 THEN (b.i % (b."TotalSessions" - 1)) + 1 -- partially completed
-        WHEN b.i <= 370 THEN b."TotalSessions"                   -- all completed
-        ELSE 1                                                   -- cancelled after 1
+        WHEN b.i <= 220 THEN (b.i % (b."TotalSessions" - 1)) + 1
+        WHEN b.i <= 370 THEN b."TotalSessions"
+        ELSE 1
     END,
     b."SessionDurationMinutes",
     b."TeachingMode",
-    0.1000, -- 10% snapshot
-    2,      -- policy version 2
+    0.1000,
+    2,
     CASE 
         WHEN b.i <= 220 THEN 'Active'
         WHEN b.i <= 370 THEN 'Completed'
@@ -1463,7 +1467,7 @@ SELECT
     CASE WHEN b.i > 220 AND b.i <= 370 THEN NOW() - '2 days'::interval ELSE NULL END,
     CASE WHEN b.i > 370 THEN NOW() - '5 days'::interval ELSE NULL END,
     CASE WHEN b.i > 370 THEN 'Student' ELSE NULL END,
-    CASE WHEN b.i > 370 THEN 'Bận việc gia đình đột xuất' ELSE NULL END
+    CASE WHEN b.i > 370 THEN 'Học viên bận việc gia đình đột xuất' ELSE NULL END
 FROM (
     SELECT 
         ROW_NUMBER() OVER (ORDER BY "Id") AS i,
@@ -1472,16 +1476,9 @@ FROM (
     FROM "Bookings"
     WHERE "Status" = 'Paid' AND "Id"::text LIKE 'b8000000-%'
 ) b
-WHERE b.i <= 400
 ON CONFLICT ("Id") DO NOTHING;
 
--- -----------------------------------------------------------------------------
--- 12. SESSIONS (Generated for each Enrollment strictly respecting allocator math!)
--- EarningAmount:
---   For session 1..(N-1): floor(TotalPrice / TotalSessions)
---   For session N: TotalPrice - (floor(TotalPrice / TotalSessions) * (TotalSessions - 1))
---   => Sum(EarningAmount) == TotalPrice 100% Guaranteed!
--- -----------------------------------------------------------------------------
+-- 12. SESSIONS (sum(EarningAmount) == TotalPrice 100% Guaranteed per Enrollment)
 WITH enrolled_sessions AS (
     SELECT 
         e."Id" AS enrollment_id,
@@ -1513,28 +1510,23 @@ SELECT
     es.enrollment_id,
     es.s_num,
     es.earning_amount,
-    -- Timing:
     CASE 
         WHEN es.s_num <= es.completed_sessions THEN es.enrollment_created_at + ((es.s_num * 3) || ' days')::interval + '18 hours'::interval
         WHEN es.s_num = es.completed_sessions + 1 THEN NOW() + '2 days'::interval
-        ELSE NULL -- Unscheduled
+        ELSE NULL
     END AS start_at,
     CASE 
         WHEN es.s_num <= es.completed_sessions THEN es.enrollment_created_at + ((es.s_num * 3) || ' days')::interval + '19 hours 30 minutes'::interval
         WHEN es.s_num = es.completed_sessions + 1 THEN NOW() + '2 days 1 hour 30 minutes'::interval
         ELSE NULL
     END AS end_at,
-    -- Status:
     CASE 
         WHEN es.s_num <= es.completed_sessions THEN 'Completed'
         WHEN es.s_num = es.completed_sessions + 1 AND es.enrollment_status != 'Cancelled' THEN 'Scheduled'
         ELSE 'Unscheduled'
     END AS status,
-    -- Attendance conflict:
     CASE WHEN (es.s_num = 2 AND es.enrollment_id::text LIKE '%000000000010') THEN true ELSE false END,
-    -- IsPayoutReleased:
     CASE WHEN es.s_num <= es.completed_sessions THEN true ELSE false END,
-    -- Attendance status: 0=Attended, 1=Absent
     CASE WHEN es.s_num <= es.completed_sessions THEN 0 ELSE NULL END,
     CASE WHEN es.s_num <= es.completed_sessions THEN es.enrollment_created_at + ((es.s_num * 3) || ' days')::interval + '20 hours'::interval ELSE NULL END,
     CASE 
@@ -1552,11 +1544,7 @@ SELECT
 FROM enrolled_sessions es
 ON CONFLICT ("Id") DO NOTHING;
 
--- -----------------------------------------------------------------------------
--- 13. TRANSACTIONS
--- (A) BookingPayment for all 400 Paid bookings (Status = 'Held')
--- (B) SessionPayoutCredit for each Completed session with IsPayoutReleased = true
--- -----------------------------------------------------------------------------
+-- 13. TRANSACTIONS (BookingPayments & SessionPayoutCredits)
 INSERT INTO "Transactions" (
     "Id", "BookingId", "SessionId", "DisputeId", "RelatedTransactionId", 
     "Amount", "Type", "Status", "CommissionRate", "CommissionAmount", 
@@ -1576,7 +1564,7 @@ SELECT
     0.00,
     0.00,
     'VNPay-Vol-' || substr(replace(b."Id"::text, '-', ''), 21, 12),
-    'Thanh toÃ¡n gÃ³i há»c qua cá»•ng VNPay',
+    'Thanh toán gói học qua cổng VNPay',
     false,
     b."CreatedAt",
     NULL,
@@ -1605,7 +1593,7 @@ SELECT
     round(s."EarningAmount" * e."PlatformFeeRate", 2),
     s."EarningAmount" - round(s."EarningAmount" * e."PlatformFeeRate", 2),
     'EscrowRelease-Vol-' || replace(s."Id"::text, '-', ''),
-    'Giáº£i ngÃ¢n thu nháº­p buá»•i há»c #' || s."SessionNumber",
+    'Giải ngân thu nhập buổi học #' || s."SessionNumber",
     false,
     s."CompletedAt",
     s."CompletedAt",
@@ -1615,9 +1603,7 @@ JOIN "Enrollments" e ON e."Id" = s."EnrollmentId"
 WHERE s."Id"::text LIKE 'ba%' AND s."Status" = 'Completed' AND s."IsPayoutReleased" = true
 ON CONFLICT ("Id") DO NOTHING;
 
--- -----------------------------------------------------------------------------
--- 14. WALLET TRANSACTIONS (Record matching ledger rows for all Released sessions)
--- -----------------------------------------------------------------------------
+-- 14. WALLET TRANSACTIONS
 INSERT INTO "WalletTransactions" (
     "Id", "WalletId", "Type", "Amount", "BalanceAfter", "Description", "CreatedAt"
 )
@@ -1626,8 +1612,8 @@ SELECT
     w."Id",
     'SessionPayoutCredit',
     t."PayoutAmount",
-    t."PayoutAmount", -- Baseline value; updated dynamically below
-    t."Description",
+    t."PayoutAmount",
+    'Cộng thu nhập buổi học #' || s."SessionNumber",
     t."CreatedAt"
 FROM "Transactions" t
 JOIN "Sessions" s ON s."Id" = t."SessionId"
@@ -1636,9 +1622,7 @@ JOIN "Wallets" w ON w."TutorProfileId" = e."TutorProfileId"
 WHERE t."Type" = 'SessionPayoutCredit' AND t."Id"::text LIKE 'bc%'
 ON CONFLICT ("Id") DO NOTHING;
 
--- -----------------------------------------------------------------------------
--- 15. WITHDRAWALS (80 Withdrawals across various tutors and statuses)
--- -----------------------------------------------------------------------------
+-- 15. WITHDRAWALS
 WITH tutor_wallets AS (
     SELECT 
         ROW_NUMBER() OVER (ORDER BY w."Id") AS row_num,
@@ -1671,18 +1655,18 @@ SELECT
     tw."BankCode",
     tw."AccountNumber",
     tw."AccountHolderName",
-    'Rút thu nhập định kỳ đợt ' || i,
+    'Rút thu nhập giảng dạy định kỳ đợt ' || i,
     NOW() - ((25 - (i % 20)) || ' days')::interval,
     CASE WHEN (i % 4) IN (0, 1) THEN NOW() - ((24 - (i % 20)) || ' days')::interval ELSE NULL END,
     CASE WHEN (i % 4) IN (0, 1) THEN '11111111-1111-1111-1111-111111111111'::uuid ELSE NULL END,
     CASE WHEN (i % 4) = 0 THEN NOW() - ((23 - (i % 20)) || ' days')::interval ELSE NULL END,
     CASE WHEN (i % 4) = 0 THEN '11111111-1111-1111-1111-111111111111'::uuid ELSE NULL END,
-    CASE WHEN (i % 4) = 3 THEN 'Số tài khoản ngân hàng không hợp lệ' ELSE NULL END
+    CASE WHEN (i % 4) = 3 THEN 'Số tài khoản ngân hàng thụ hưởng không hợp lệ' ELSE NULL END
 FROM generate_series(1, 80) AS i
 JOIN tutor_wallets tw ON tw.row_num = ((i - 1) % 50) + 1
 ON CONFLICT ("Id") DO NOTHING;
 
--- Record matching WalletTransactions for Completed Withdrawals
+-- WalletTransactions for Completed Withdrawals
 INSERT INTO "WalletTransactions" (
     "Id", "WalletId", "Type", "Amount", "BalanceAfter", "Description", "CreatedAt"
 )
@@ -1692,16 +1676,13 @@ SELECT
     'WithdrawalDebit',
     w."Amount",
     0.00,
-    'RÃºt tiá»n vá» tÃ i khoáº£n ' || w."AccountNumber",
+    'Rút tiền về tài khoản ngân hàng ' || w."AccountNumber",
     w."RequestedAt"
 FROM "Withdrawals" w
 WHERE w."Id"::text LIKE 'c2000000-%' AND w."Status" = 'Completed'
 ON CONFLICT ("Id") DO NOTHING;
 
--- -----------------------------------------------------------------------------
--- 16. DISPUTES (50 disputes: mix of Pre-release EscrowHold and Post-release BalanceHold)
--- Note: Satisfies IX_Disputes_ActiveSessionId (at most 1 active dispute per session)
--- -----------------------------------------------------------------------------
+-- 16. DISPUTES
 WITH candidate_sessions AS (
     SELECT 
         ROW_NUMBER() OVER (ORDER BY s."Id") AS row_num,
@@ -1716,7 +1697,7 @@ WITH candidate_sessions AS (
     JOIN "Enrollments" e ON e."Id" = s."EnrollmentId"
     JOIN "StudentProfiles" sp ON sp."Id" = e."StudentProfileId"
     JOIN "TutorProfiles" tp ON tp."Id" = e."TutorProfileId"
-    WHERE s."Id"::text LIKE 'ba%' AND s."SessionNumber" = 1 -- pick session 1 of distinct enrollments
+    WHERE s."Id"::text LIKE 'ba%' AND s."SessionNumber" = 1
     LIMIT 50
 )
 INSERT INTO "Disputes" (
@@ -1735,7 +1716,12 @@ SELECT
         WHEN 2 THEN 'IncompleteSession'
         ELSE 'QualityIssue'
     END,
-    'Há»c viÃªn khiáº¿u náº¡i vá» cháº¥t lÆ°á»£ng buá»•i há»c vÃ  thá»i lÆ°á»£ng tham gia.',
+    CASE (cs.row_num % 4)
+        WHEN 0 THEN 'Học viên vào phòng học đúng giờ nhưng gia sư vắng mặt không lý do và không phản hồi tin nhắn.'
+        WHEN 1 THEN 'Gia sư vào lớp trễ 20 phút trong 2 buổi học liên tiếp mà không thông báo trước cho học viên.'
+        WHEN 2 THEN 'Buổi học bị gián đoạn do đường truyền mạng phía gia sư bị ngắt quãng, thời lượng thực tế chỉ diễn ra 35 phút.'
+        ELSE 'Nội dung giảng dạy trong buổi học không bám sát giáo trình và mục tiêu kiến thức đã thống nhất trong gói học.'
+    END,
     CASE (cs.row_num % 4)
         WHEN 0 THEN 'Open'
         WHEN 1 THEN 'UnderReview'
@@ -1757,7 +1743,11 @@ SELECT
     END,
     CASE WHEN (cs.row_num % 4) IN (0, 1) THEN NOW() - ((20 - (cs.row_num % 15)) || ' days')::interval ELSE NULL END,
     true,
-    CASE WHEN (cs.row_num % 4) >= 2 THEN 'Trá»ng tÃ i viÃªn Ä‘Ã£ xem xÃ©t log phÃ²ng há»c vÃ  Ä‘Æ°a ra phÃ¡n quyáº¿t.' ELSE NULL END,
+    CASE 
+        WHEN (cs.row_num % 4) = 2 THEN 'Trọng tài viên đã xem xét log phòng học, đối soát dữ liệu và đưa ra phán quyết hoàn trả lượt học cho học viên theo quy chế sàn.'
+        WHEN (cs.row_num % 4) = 3 THEN 'Ban quản trị đã đối chiếu thời gian đăng nhập của hai bên và xác nhận khiếu nại không có căn cứ.'
+        ELSE NULL 
+    END,
     CASE WHEN (cs.row_num % 4) >= 2 THEN '11111111-1111-1111-1111-111111111111'::uuid ELSE NULL END,
     CASE WHEN (cs.row_num % 4) >= 2 THEN NOW() - '1 day'::interval ELSE NULL END,
     CASE WHEN (cs.row_num % 4) = 2 THEN NOW() - '1 day'::interval ELSE NULL END,
@@ -1766,7 +1756,7 @@ SELECT
 FROM candidate_sessions cs
 ON CONFLICT ("Id") DO NOTHING;
 
--- DisputeEvidences for each dispute
+-- DisputeEvidences
 INSERT INTO "DisputeEvidences" (
     "Id", "DisputeId", "UploadedByUserId", "FileName", "FileUrl", 
     "ContentType", "FileSizeBytes", "CreatedAt"
@@ -1787,9 +1777,7 @@ FROM (
 ) d
 ON CONFLICT ("Id") DO NOTHING;
 
--- -----------------------------------------------------------------------------
--- 17. REVIEWS (150 Reviews on Completed enrollments)
--- -----------------------------------------------------------------------------
+-- 17. REVIEWS (150 Realistic Reviews)
 WITH completed_enrollments AS (
     SELECT 
         ROW_NUMBER() OVER (ORDER BY "Id") AS row_num,
@@ -1814,19 +1802,17 @@ SELECT
         ELSE 4
     END,
     CASE (ce.row_num % 4)
-        WHEN 0 THEN 'Gia sÆ° giáº£ng dáº¡y cá»±c ká»³ nhiá»‡t tÃ¬nh, phÆ°Æ¡ng phÃ¡p tÆ° duy dá»… hiá»ƒu, bÃ i táº­p bÃ¡m sÃ¡t Ä‘á» thi.'
+        WHEN 0 THEN 'Gia sư giảng dạy cực kỳ nhiệt tình, phương pháp tư duy dễ hiểu, bài tập bám sát đề thi.'
         WHEN 1 THEN 'Thầy dạy rất kỹ tính, luôn kiểm tra bài cũ và hỗ trợ giải đáp thắc mắc 24/7.'
-        WHEN 2 THEN 'KhÃ³a há»c cháº¥t lÆ°á»£ng cao, con tÃ´i tiáº¿n bá»™ rÃµ rá»‡t sau 10 buá»•i há»c.'
-        ELSE 'Ráº¥t hÃ i lÃ²ng vá» tÃ¡c phong Ä‘Ãºng giá» vÃ  sá»± táº­n tÃ¢m cá»§a gia sÆ°.'
+        WHEN 2 THEN 'Khóa học chất lượng cao, con tôi tiến bộ rõ rệt sau 10 buổi học.'
+        ELSE 'Rất hài lòng về tác phong đúng giờ và sự tận tâm của gia sư.'
     END,
     ce.created_at + '20 days'::interval,
     false, NULL, NULL, NULL
 FROM completed_enrollments ce
 ON CONFLICT ("Id") DO NOTHING;
 
--- -----------------------------------------------------------------------------
 -- 18. CONVERSATIONS & MESSAGES (100 Conversations, 200 Messages)
--- -----------------------------------------------------------------------------
 WITH conv_pairs AS (
     SELECT 
         i,
@@ -1845,11 +1831,11 @@ SELECT
     NOW() - ((40 - (cp.i % 30)) || ' days')::interval,
     NULL,
     NOW() - ((10 - (cp.i % 9)) || ' days')::interval,
-    'Dáº¡ em chÃ o tháº§y, em Ä‘Ã£ lÃ m xong bÃ i táº­p vá» nhÃ  rá»“i áº¡!'
+    'Dạ em chào thầy, em đã làm xong bài tập về nhà rồi ạ!'
 FROM conv_pairs cp
 ON CONFLICT ("Id") DO NOTHING;
 
--- Messages for these conversations
+-- Messages
 INSERT INTO "Messages" (
     "Id", "ConversationId", "SenderUserId", "Content", "IsRead", "ReadAt", "CreatedAt"
 )
@@ -1857,7 +1843,7 @@ SELECT
     ('c5000000-0000-0000-0001-' || lpad(i::text, 12, '0'))::uuid,
     ('c4000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
     sp."UserId",
-    'Dáº¡ em chÃ o tháº§y, em muá»‘n há»i thÃªm vá» lá»‹ch há»c tuáº§n nÃ y áº¡.',
+    'Dạ em chào thầy, em muốn hỏi thêm về lịch học tuần này ạ.',
     true,
     c."CreatedAt" + '10 minutes'::interval,
     c."CreatedAt" + '5 minutes'::interval
@@ -1873,7 +1859,7 @@ SELECT
     ('c5000000-0000-0000-0002-' || lpad(i::text, 12, '0'))::uuid,
     ('c4000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
     tp."UserId",
-    'ChÃ o em, tháº§y Ä‘Ã£ nháº­n Ä‘Æ°á»£c bÃ i lÃ m. Thá»© 4 tuáº§n nÃ y 18h mÃ¬nh vÃ o phÃ²ng há»c nhÃ©.',
+    'Chào em, thầy đã nhận được bài làm. Thứ 4 tuần này 18h mình vào phòng học nhé.',
     true,
     c."CreatedAt" + '1 hour'::interval,
     c."CreatedAt" + '30 minutes'::interval
@@ -1882,9 +1868,7 @@ JOIN "Conversations" c ON c."Id" = ('c4000000-0000-0000-0000-' || lpad(i::text, 
 JOIN "TutorProfiles" tp ON tp."Id" = c."TutorProfileId"
 ON CONFLICT ("Id") DO NOTHING;
 
--- -----------------------------------------------------------------------------
--- 19. LEARNING RECORDS (150 Learning Records for completed sessions)
--- -----------------------------------------------------------------------------
+-- 19. LEARNING RECORDS (150 Learning Records)
 WITH comp_sessions AS (
     SELECT 
         ROW_NUMBER() OVER (ORDER BY s."Id") AS row_num,
@@ -1901,14 +1885,12 @@ SELECT
     ('c6000000-0000-0000-0000-' || lpad(cs.row_num::text, 12, '0'))::uuid,
     cs.session_id,
     cs."TutorProfileId",
-    'Ná»™i dung buá»•i há»c: Ã”n táº­p dáº¡ng bÃ i trá»ng tÃ¢m, sá»­a 15 cÃ¢u tráº¯c nghiá»‡m váº­n dá»¥ng cao. Há»c viÃªn tiáº¿p thu tá»‘t, lÃ m bÃ i Ä‘Ãºng 85%. BÃ i táº­p vá» nhÃ : Äá» sá»‘ 4 tá»« cÃ¢u 30 Ä‘áº¿n 45.',
+    'Nội dung buổi học: Ôn tập dạng bài trọng tâm, sửa 15 câu trắc nghiệm vận dụng cao. Học viên tiếp thu tốt, làm bài đúng 85%. Bài tập về nhà: Đề số 4 từ câu 30 đến 45.',
     cs."CompletedAt" + '30 minutes'::interval
 FROM comp_sessions cs
 ON CONFLICT ("Id") DO NOTHING;
 
--- -----------------------------------------------------------------------------
 -- 20. NOTIFICATIONS (300 Notifications: 150 for students, 150 for tutors)
--- -----------------------------------------------------------------------------
 INSERT INTO "Notifications" (
     "Id", "UserId", "Title", "Message", "Type", "DeepLink",
     "IsRead", "ReadAt", "IsCritical", "EventId", "DeduplicationKey", "CreatedAt"
@@ -1916,8 +1898,8 @@ INSERT INTO "Notifications" (
 SELECT
     ('c3000000-0000-0000-0001-' || lpad(i::text, 12, '0'))::uuid,
     ('b5000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
-    'Lá»‹ch há»c má»›i Ä‘Ã£ Ä‘Æ°á»£c xÃ¡c nháº­n',
-    'Buá»•i há»c tiáº¿p theo cá»§a báº¡n sáº½ diá»…n ra vÃ o lÃºc 18:00.',
+    'Lịch học mới đã được xác nhận',
+    'Buổi học tiếp theo của bạn sẽ diễn ra vào lúc 18:00.',
     'SessionScheduled',
     '/student/dashboard',
     (i % 2 = 0),
@@ -1936,8 +1918,8 @@ INSERT INTO "Notifications" (
 SELECT
     ('c3000000-0000-0000-0002-' || lpad(i::text, 12, '0'))::uuid,
     ('b1000000-0000-0000-0000-' || lpad((((i - 1) % 50) + 1)::text, 12, '0'))::uuid,
-    'Thu nháº­p buá»•i há»c Ä‘Ã£ Ä‘Æ°á»£c giáº£i ngÃ¢n',
-    'Há»‡ thá»‘ng Ä‘Ã£ giáº£i ngÃ¢n thu nháº­p buá»•i há»c vÃ o vÃ­ cá»§a báº¡n sau khi hoÃ n thÃ nh Ä‘á»‘i soÃ¡t.',
+    'Thu nhập buổi học đã được giải ngân',
+    'Hệ thống đã giải ngân thu nhập buổi học vào ví của bạn sau khi hoàn thành đối soát.',
     'SessionPayoutReleased',
     '/tutor/wallet',
     (i % 3 = 0),
@@ -1949,16 +1931,14 @@ SELECT
 FROM generate_series(1, 150) AS i
 ON CONFLICT ("Id") DO NOTHING;
 
--- -----------------------------------------------------------------------------
--- 21. AUDIT LOGS (Record administrative events)
--- -----------------------------------------------------------------------------
+-- 21. AUDIT LOGS
 INSERT INTO "AuditLogs" (
     "Id", "UserId", "Action", "EntityName", "EntityId", "OldValuesJson", 
     "NewValuesJson", "CorrelationId", "IpAddress", "UserAgent", "CreatedAt"
 )
 SELECT
     ('c7000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
-    '11111111-1111-1111-1111-111111111111'::uuid, -- Admin
+    '11111111-1111-1111-1111-111111111111'::uuid,
     CASE (i % 3)
         WHEN 0 THEN 'ApproveTutorApplication'
         WHEN 1 THEN 'ProcessWithdrawal'
@@ -1979,23 +1959,11 @@ SELECT
 FROM generate_series(1, 60) AS i
 ON CONFLICT ("Id") DO NOTHING;
 
--- -----------------------------------------------------------------------------
--- 22. RECONCILE WALLET BALANCES ACCORDING TO FINANCIAL INVARIANTS
---
--- PendingBalance = Gross earnings of unreleased sessions of Paid enrollments
--- ReleasedNet    = Sum of Net Payouts of Released sessions
--- DebitCompleted = Sum of Completed withdrawals
--- HeldAmount     = Sum of active BalanceHold disputes
--- AvailableBalance = ReleasedNet - DebitCompleted - HeldAmount
---
--- All balances are guaranteed >= 0 and WithdrawableBalance >= 0!
--- -----------------------------------------------------------------------------
+-- 22. RECONCILE WALLET BALANCES
 WITH wallet_payout_totals AS (
     SELECT 
         e."TutorProfileId",
-        -- Pending escrow: sessions not yet released
         COALESCE(SUM(CASE WHEN s."IsPayoutReleased" = false THEN s."EarningAmount" ELSE 0 END), 0) AS pending_gross,
-        -- Released net earnings
         COALESCE(SUM(CASE WHEN s."IsPayoutReleased" = true THEN (s."EarningAmount" - round(s."EarningAmount" * e."PlatformFeeRate", 2)) ELSE 0 END), 0) AS released_net
     FROM "Enrollments" e
     JOIN "Sessions" s ON s."EnrollmentId" = e."Id"
