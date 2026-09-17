@@ -13,7 +13,7 @@
 * **Framework:** ASP.NET Core Web API (.NET 8)
 * **Database & ORM:** PostgreSQL 16 (`Npgsql.EntityFrameworkCore.PostgreSQL 8.0.11`), EF Core 8.0.11
 * **Architecture Patterns:** Clean Architecture + CQRS + Vertical Slice Architecture
-* **Libraries:** MediatR 12.4.1, FluentValidation 11.11.0, BCrypt.Net-Next 4.0.3, System.IdentityModel.Tokens.Jwt 8.0.1, Swashbuckle.AspNetCore 6.6.2, AWSSDK.S3 3.7.400 (Cloudflare R2)
+* **Libraries:** MediatR 12.4.1, FluentValidation 11.11.0, BCrypt.Net-Next 4.0.3, System.IdentityModel.Tokens.Jwt 8.0.1, Swashbuckle.AspNetCore 6.6.2, AWSSDK.S3 3.7.400 (Cloudflare R2), AWSSDK.SimpleEmail 3.7.400 (Amazon SES)
 * **Realtime & Messaging:** ASP.NET Core SignalR (`/hubs/chat`, `/hubs/notifications`), Transactional Outbox Pattern
 * **DevOps:** Docker, Docker Compose
 
@@ -28,11 +28,19 @@ dotnet run --project src/backend/TutorHub.Api
 # Build Solution (Strict Zero Warning Policy)
 dotnet build src/backend/TutorHub.sln
 
-# Run Test Suite (398 Unit Tests - 100% Deterministic Pass)
+# Run Test Suite (573 Executed Tests - 100% Deterministic Pass)
 dotnet test src/backend/TutorHub.sln
 
 # Run Docker Environment (Postgres + API Container)
 docker-compose up -d --build
+
+# Frontend (Development, Lint, Build)
+cd src/frontend && npm run dev
+cd src/frontend && npm run lint
+cd src/frontend && npm run build
+
+# API Contract & Zero-Mock CI Guardrail
+node scripts/verify-frontend-api-contract.mjs
 
 # Dừng process API bị lock trên Windows (nếu có)
 Stop-Process -Name "TutorHub.Api" -Force -ErrorAction SilentlyContinue
@@ -46,7 +54,7 @@ Stop-Process -Name "TutorHub.Api" -Force -ErrorAction SilentlyContinue
 Service Offering (Tutor tạo gói học: giá, số buổi, thời lượng, trial)
        ↓ (Student chọn gói)
 Booking Checkout (Tạm giữ thanh toán 15 phút - Holding)
-       ↓ (VNPay IPN / Mock Pay)
+       ↓ (VNPay IPN / Dev Simulator)
 Enrollment (Hợp đồng học tập trung tâm - Snapshot PlatformFeeRate & FeePolicyVersion)
        ↓ (EnrollmentSessionAllocator tự động sinh N Sessions)
 Sessions (Unscheduled → Scheduled trong AvailabilitySlots của Tutor)
@@ -62,11 +70,11 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
 
 ### Phân Bổ Mã Nguồn:
 * `src/backend/TutorHub.Domain/`: **Domain Cốt Lõi Độc Lập**. Entities (`User`, `TutorProfile`, `StudentProfile`, `Service`, `Booking`, `Enrollment`, `Session`, `Wallet`, `Transaction`, `Dispute`, `PlatformSetting`, `AuditLog`), Enums, Allocators (`EnrollmentSessionAllocator`), và Domain Invariants.
-* `src/backend/TutorHub.Application/`: **Nghiệp Vụ Ứng Dụng (Vertical Slice / CQRS)**. Chia theo feature (`Features/{Module}/{FeatureName}/`). Chứa `Command/Query`, `Validator`, `Handler`, `DTOs`, Business Events, và Abstractions (`IAppDbContext`, `IAuditLogService`, `IVnPayService`, `IObjectStorageService`, `IJwtService`).
+* `src/backend/TutorHub.Application/`: **Nghiệp Vụ Ứng Dụng (Vertical Slice / CQRS)**. Chia theo feature (`Features/{Module}/{FeatureName}/`). Chứa `Command/Query`, `Validator`, `Handler`, `DTOs`, Business Events, và Abstractions (`IAppDbContext`, `IAuditLogService`, `IPaymentGateway`, `IObjectStorageService`, `IJwtService`).
 * `src/backend/TutorHub.Infrastructure/`: **Hạ Tầng Kỹ Thuật**. `AppDbContext` (interceptor bảo vệ sổ cái bất biến), Background Jobs (`BookingTimeoutBackgroundService`, `OutboxDispatcherJob`, `EmailDeliveryJob`, `SessionReminderJob`, `AttendanceReminderJob`, `AttendanceVerificationJob`), VNPay SHA512, Cloudflare R2, và SignalR hubs.
 * `src/backend/TutorHub.Api/`: **Giao Tiếp Ngoại Vi (Thin Controllers)**. Controller chỉ dispatch MediatR, Middlewares (`CorrelationIdMiddleware`, `GlobalExceptionHandler`).
 * `docs/`: **Baseline Nghiệp Vụ Chuẩn**. `prd.md` (PRD v1.0 Baseline Frozen), `functional-requirements.md` (FR v1.0 - 50 Chương), `user-stories.md` (US v1.0).
-* `src/test/`: **Kiểm Thử Tự Động** (406 executed cases). `TutorHub.Domain.UnitTests` (159), `TutorHub.Application.UnitTests` (240), `TutorHub.Api.IntegrationTests` (7, Postgres container).
+* `src/test/`: **Kiểm Thử Tự Động** (573 executed cases). `TutorHub.Domain.UnitTests` (196), `TutorHub.Application.UnitTests` (283), `TutorHub.Infrastructure.UnitTests` (21), `TutorHub.Api.IntegrationTests` (73, Postgres).
 
 ---
 

@@ -5,7 +5,7 @@
 [![EF Core](https://img.shields.io/badge/EF%20Core-8.0-512BD4?style=flat)](https://learn.microsoft.com/ef/core/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker)](https://www.docker.com/)
 [![Swagger](https://img.shields.io/badge/OpenAPI-Swagger-85EA2D?style=flat&logo=swagger)](http://localhost:5129/swagger)
-[![Tests](https://img.shields.io/badge/Tests-571%20Passed%20(100%25)-success?style=flat&logo=xunit)](http://localhost:5129)
+[![Tests](https://img.shields.io/badge/Tests-573%20Passed%20(100%25)-success?style=flat&logo=xunit)](http://localhost:5129)
 
 **TutorHub** là hệ thống backend RESTful API chuyên nghiệp cho nền tảng marketplace kết nối Gia Sư (Tutor) và Học Viên (Student). Hệ thống được thiết kế theo kiến trúc **Clean Architecture kết hợp Vertical Slice Architecture và CQRS (MediatR)**, vận hành trên mô hình **Service / Package-based Learning**, tích hợp cơ chế giữ chỗ checkout 15 phút, kích hoạt hợp đồng học tập (**Enrollment**), phân rã buổi học (**Sessions**), đối soát điểm danh 2 chiều (**Attendance Verification Window**), giải ngân theo từng buổi vào ví bảo chứng (**Escrow Wallet**), thanh toán thực tế **VNPay 2.1.0**, trao đổi thời gian thực **SignalR**, **Transactional Outbox** (26 sự kiện + MessageSent), công cụ phân xử tranh chấp 2 giai đoạn (**Dispute Engine**), và sổ cái kiểm toán bất biến (**Central Audit Log**).
 
@@ -93,11 +93,11 @@ TutorHub/
 │   ├── frontend/                       # Mã nguồn ứng dụng Client Frontend
 │   │   └── README.md
 │   │
-│   └── test/                           # Kiểm thử tự động (196 + 283 + 21 + 71 = 571 executed cases)
+│   └── test/                           # Kiểm thử tự động (196 + 283 + 21 + 73 = 573 executed cases)
 │       ├── TutorHub.Domain.UnitTests/          # 196 cases (Domain invariants, allocators, lockout state machine)
 │       ├── TutorHub.Application.UnitTests/     # 283 cases (CQRS handlers, background jobs, audit integrity)
 │       ├── TutorHub.Infrastructure.UnitTests/  # 21 cases (VNPay wire format, refresh-token hashing, email wiring)
-│       └── TutorHub.Api.IntegrationTests/      # 71 cases (Postgres: payments, disputes, append-only triggers, CORS/health)
+│       └── TutorHub.Api.IntegrationTests/      # 73 cases (Postgres: payments, disputes, evidence multipart upload, append-only triggers, CORS/health)
 │
 ├── scripts/
 │   └── dev-bootstrap.ps1               # Dựng môi trường dev một lệnh (migrate + seed + health)
@@ -138,7 +138,7 @@ docker-compose up -d --build
 dotnet build src/backend/TutorHub.sln
 ```
 
-#### Bước 2: Chạy bộ kiểm thử (Test Suite — 571 Passed: 196 Domain + 283 Application + 21 Infrastructure + 71 Integration)
+#### Bước 2: Chạy bộ kiểm thử (Test Suite — 573 Passed: 196 Domain + 283 Application + 21 Infrastructure + 73 Integration)
 ```bash
 dotnet test src/backend/TutorHub.sln
 ```

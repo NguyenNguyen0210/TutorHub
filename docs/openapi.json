@@ -10172,6 +10172,107 @@
         }
       }
     },
+    "/api/v1/sessions/{id}": {
+      "get": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Get a single session by id (Admin, or Student/Tutor of the owning enrollment).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Bookings.DTOs.SessionDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Bookings.DTOs.SessionDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Bookings.DTOs.SessionDto]"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/sessions/{id}/reschedule-requests": {
       "post": {
         "tags": [
@@ -18421,6 +18522,10 @@
             "type": "string",
             "format": "date-time"
           },
+          "absentStrikes": {
+            "type": "integer",
+            "format": "int32"
+          },
           "tutorApplicationStatus": {
             "type": "string",
             "nullable": true
@@ -19356,6 +19461,11 @@
           },
           "hasAttendanceConflict": {
             "type": "boolean"
+          },
+          "attendanceVerificationDueAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -21408,6 +21518,14 @@
               "type": "string"
             },
             "nullable": true
+          },
+          "minPrice": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "isVerified": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
