@@ -1,10 +1,10 @@
 import React from 'react';
-import { ConfigProvider } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
-import { antdTheme } from './config/theme';
 import AppRoutes from './routes';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import { ToastProvider } from './components/ui/Toast';
+import { DialogProvider } from './components/ui/Dialog';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,13 +19,15 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <ErrorBoundary>
-      <ConfigProvider theme={antdTheme}>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </QueryClientProvider>
-      </ConfigProvider>
+      <ToastProvider>
+        <DialogProvider>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </QueryClientProvider>
+        </DialogProvider>
+      </ToastProvider>
     </ErrorBoundary>
   );
 }

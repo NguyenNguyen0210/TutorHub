@@ -23,12 +23,12 @@ export function RequireRole({ allowedRoles, children }) {
 
   if (!allowedRoles.includes(role)) {
     return (
-      <div className="p-8 text-center bg-white rounded-xl border border-rose-200">
-        <h2 className="text-rose-600 font-bold text-lg mb-2">403 — Không Đủ Thẩm Quyền Truy Cập</h2>
-        <p className="text-xs text-slate-600 mb-4">
+      <div className="p-8 text-center bg-surface rounded-brand-lg border border-danger/25">
+        <h2 className="text-danger-strong font-bold text-headline-3 mb-2">403 — Không đủ thẩm quyền truy cập</h2>
+        <p className="text-caption text-fg-secondary mb-4">
           Tài khoản hiện tại của bạn (<strong>{role}</strong>) không có quyền truy cập khu vực này.
         </p>
-        <Link to="/tutors" className="text-indigo-600 font-bold text-xs hover:underline">
+        <Link to="/tutors" className="text-brand-primary-700 font-bold text-xs hover:underline">
           Về Trang Khám Phá
         </Link>
       </div>

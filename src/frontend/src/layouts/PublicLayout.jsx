@@ -1,48 +1,61 @@
 import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
-import UnifiedNavbar from '@/components/layout/UnifiedNavbar';
+import PublicTopbar from '@/components/layout/PublicTopbar';
+import MobileFloatingDock from '@/components/layout/MobileFloatingDock';
+import Logo from '@/components/ui/Logo';
+import Badge from '@/components/ui/Badge';
+import Icon from '@/components/ui/Icon';
 
 export default function PublicLayout() {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50/60 text-slate-900 antialiased font-sans relative overflow-x-hidden">
-      {/* Unified Persistent Topbar */}
-      <UnifiedNavbar />
+    <div className="min-h-screen flex flex-col bg-canvas text-fg antialiased">
+      <PublicTopbar />
 
-      {/* Main Page Content — pb-28 on mobile avoids overlapping the floating dock */}
       <main className="flex-1 w-full relative z-0 pb-28 md:pb-0">
         <Outlet />
       </main>
 
-      {/* Ultra-Premium Trust Footer */}
-      <footer className="bg-gradient-to-b from-slate-900 via-slate-950 to-brand-navy-950 text-slate-300 py-12 px-4 sm:px-6 lg:px-8 mt-16 border-t border-slate-800 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+      <footer className="bg-brand-navy-950 text-slate-300 py-12 px-4 sm:px-6 lg:px-8 mt-16">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-2">
             <div className="flex items-center gap-3">
-              <span className="text-xl font-extrabold text-white tracking-tight">TutorHub</span>
-              <span className="px-2.5 py-0.5 text-[10px] font-monospace-num font-extrabold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <Logo variant="horizontal" size={32} tone="light" />
+              <Badge variant="success" size="sm" dot>
                 BẢO CHỨNG ESCROW 2 CHIỀU
-              </span>
+              </Badge>
             </div>
-            <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
-              Nền tảng tiên phong tại Việt Nam tích hợp bảo chứng học phí hai chiều, giải ngân tự động theo từng buổi học và phân xử tranh chấp công bằng, minh bạch.
+            <p className="text-caption text-slate-400 max-w-xl leading-relaxed">
+              Nền tảng kết nối gia sư và học viên với bảo chứng học phí hai chiều, giải ngân
+              từng buổi học và phân xử tranh chấp minh bạch.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-6 gap-y-2 text-xs text-slate-400">
-            <Link to="/tutors" className="hover:text-white transition-colors">Khám Phá Gia Sư</Link>
-            <Link to="/auth/register" className="hover:text-white transition-colors">Đăng Ký Làm Gia Sư</Link>
-            <Link to="/tutors" className="hover:text-white transition-colors">Chứng Thư Bảo Chứng Ký Quỹ</Link>
-            <Link to="/tutors" className="hover:text-white transition-colors">Quy Trình Đối Soát 24 Giờ</Link>
-          </div>
+          <nav
+            className="flex flex-wrap items-center justify-center md:justify-end gap-x-6 gap-y-2 text-caption text-slate-400"
+            aria-label="Liên kết chân trang"
+          >
+            <Link to="/tutors" className="hover:text-white transition-colors">
+              Khám phá gia sư
+            </Link>
+            <Link to="/auth/register" className="hover:text-white transition-colors">
+              Đăng ký làm gia sư
+            </Link>
+            <Link to="/tutors" className="hover:text-white transition-colors">
+              Quy trình đối soát 24 giờ
+            </Link>
+          </nav>
         </div>
 
-        {/* Ambient bottom line */}
-        <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-center text-[11px] text-slate-500 gap-2">
-          <span>© 2026 TutorHub Platform. Bất biến tài chính & Bảo vệ quyền lợi người học.</span>
-          <span className="font-mono text-[10px] text-slate-400">TutorHub Platform • Bảo Chứng Escrow</span>
+        <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center text-[11px] text-slate-500 gap-2">
+          <span>© 2026 TutorHub Platform. Bảo vệ quyền lợi người học.</span>
+          <span className="font-mono flex items-center gap-1.5">
+            <Icon name="shield" size="sm" />
+            Bảo chứng Escrow
+          </span>
         </div>
       </footer>
+
+      <MobileFloatingDock />
     </div>
   );
 }

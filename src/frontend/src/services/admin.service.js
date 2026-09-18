@@ -209,6 +209,10 @@ export const adminService = {
   banUser: (id, reason = 'Vi phạm nghiêm trọng quy chế sàn') =>
     api.post(`/admin/users/${id}/ban`, { reason }),
 
+  /** POST /admin/disputes/{id}/under-review → DisputeDto */
+  moveDisputeUnderReview: (id) =>
+    api.post(`/admin/disputes/${id}/under-review`),
+
   /**
    * POST /admin/disputes/{id}/resolve → DisputeDto
    * Body: { decision, customRefundAmount, adminNotes }

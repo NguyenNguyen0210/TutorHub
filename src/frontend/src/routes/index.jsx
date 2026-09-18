@@ -1,5 +1,26 @@
 import React from 'react';
-import { Routes, Route, Navigate, Link } from 'react-router-dom';
+import { Routes, Route, Navigate, Link, useParams } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+
+// Deep link redirect helpers for notifications and external URLs
+function EnrollmentRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/student/enrollments/${id}`} replace />;
+}
+
+function SessionRedirect() {
+  const { id } = useParams();
+  const { role } = useAuthStore();
+  if (role === 'Tutor') {
+    return <Navigate to={`/tutor/sessions/${id}`} replace />;
+  }
+  return <Navigate to={`/student/sessions/${id}`} replace />;
+}
+
+function BookingRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/student/bookings/${id}/checkout`} replace />;
+}
 
 // Layouts
 import PublicLayout from '../layouts/PublicLayout';
@@ -108,6 +129,7 @@ export default function AppRoutes() {
         <Route path="services" element={<TutorServices />} />
         <Route path="wallet" element={<TutorWallet />} />
         <Route path="wallet/withdraw" element={<TutorWithdraw />} />
+        <Route path="sessions/:id" element={<SessionDetail />} />
       </Route>
 
       {/* 5. Admin Routes (auth + Admin role) */}
@@ -126,12 +148,19 @@ export default function AppRoutes() {
         <Route path="audit-logs" element={<AdminAuditLogs />} />
       </Route>
 
+      {/* Deep Link Redirections (from notifications & external URLs) */}
+      <Route path="/enrollments/:id" element={<RequireAuth><EnrollmentRedirect /></RequireAuth>} />
+      <Route path="/sessions/:id" element={<RequireAuth><SessionRedirect /></RequireAuth>} />
+      <Route path="/bookings/:id" element={<RequireAuth><BookingRedirect /></RequireAuth>} />
+      <Route path="/chat/:id" element={<RequireAuth><Navigate to="/app/messages" replace /></RequireAuth>} />
+      <Route path="/chat" element={<RequireAuth><Navigate to="/app/messages" replace /></RequireAuth>} />
+
       {/* 404 Fallback */}
       <Route path="*" element={
         <div className="p-12 text-center">
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">404 — Trang Không Tồn Tại</h2>
-          <p className="text-xs text-slate-500 mb-4">Trang bạn yêu cầu không tồn tại hoặc đã bị xóa.</p>
-          <Link to="/tutors" className="text-indigo-600 font-bold text-xs hover:underline">Về Trang Khám Phá</Link>
+          <h2 className="text-headline-1 text-fg mb-2">404 — Trang không tồn tại</h2>
+          <p className="text-caption text-fg-muted mb-4">Trang bạn yêu cầu không tồn tại hoặc đã bị xóa.</p>
+          <Link to="/tutors" className="text-brand-primary-700 font-semibold text-caption hover:underline">Về trang khám phá</Link>
         </div>
       } />
     </Routes>
