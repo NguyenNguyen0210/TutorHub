@@ -1,9 +1,11 @@
 # Roadmap UI/UX — TutorHub Frontend (Execution Roadmap)
 
-**Phạm vi:** `TutorHub-frontend/src/frontend` (React 18 + Vite 5 + AntD v5 + Tailwind 3.4, JavaScript thuần — không TypeScript)
-**Nguồn chuẩn thiết kế:** `../DESIGN.md` (§2 tokens, §3 signature components, §4.1 responsive, §5 motion/loading, §6 checklist)
+**Phạm vi:** `TutorHub-frontend/src/frontend` (React 18 + Vite 5 + Tailwind 3.4 + Lucide, JavaScript thuần — không TypeScript; AntD đã loại bỏ ở Brand v2)
+**Nguồn chuẩn thiết kế:** `../DESIGN.md` **v2** (Brand Style Guide: Primary Blue #2563EB, Secondary Orange, Inter, sidebar tối + canvas sáng)
 **Nguồn rà soát:** `../docs/frontend-specification.md`
-**Trạng thái:** hoàn tất — toàn bộ các phase P0 đến P10 đã nghiệm thu thành công
+**Trạng thái:**
+- P0–P10 (nền tảng cũ): hoàn tất, đã nghiệm thu.
+- **Brand v2 (đại tu toàn bộ 22 màn, Phase A–L): hoàn tất** — xem §11. Mọi màn đã chuyển sang token ngữ nghĩa, Lucide, UI primitives tự xây; AntD/Material Symbols đã gỡ.
 
 > Tài liệu này là roadmap **thực thi**: mỗi phase là một đơn vị commit độc lập, có acceptance đo được và bảng truy vết tới từng phát hiện của audit.
 
@@ -195,3 +197,32 @@ catch { return MOCK             → 0
 ## 10. Phi mục tiêu
 
 TypeScript/đổi framework; dark mode; Vitest/Playwright; thiết kế lại visual/branding (bám `DESIGN.md`); rewrite git history; các mục backend không phục vụ UI (S2 outbox atomic, S4 HSTS, S8 validate bằng chứng, S9 MIME drift…).
+
+---
+
+## 11. Brand Style Guide v2 — Đại tu toàn bộ (Phase A–L, đã nghiệm thu)
+
+**Nguồn:** Brand Style Guide (Primary Blue `#2563EB`, Secondary Orange `#F59E0B`, Inter, sidebar tối + canvas sáng, Lucide outline 2px).
+
+| Phase | Nội dung | Trạng thái |
+|---|---|---|
+| A | `DESIGN.md` v2, `styles/tokens.css`, `tailwind.config.js` (token → CSS var), `index.html` (Inter), `index.css`, xoá `config/theme.js` | ✅ |
+| B | `Logo.jsx` 5 biến thể + favicon mới | ✅ |
+| C | `lib/cn.js`, `lib/iconMap.js`, `lib/lucideRegistry.js`, `ui/*` (Button, Card, Badge, Toast, Dialog, Input, Callout, StatCard, Tabs, Table, Avatar/Menu/Drawer/Modal, Skeleton); convert 18 file khỏi AntD; xoá dep `antd`/`@ant-design/icons`; `enums.js` → Badge variant; `Withdrawable = Available − Held` giữ nguyên | ✅ |
+| D | Icon sweep gộp vào E–K (shell convert ở E, page convert khi rewrite) | ✅ |
+| E | `navConfig.js`, `PublicTopbar`, `WorkspaceShell` (sidebar navy 240px + canvas sáng + drawer < 1024px), 5 layouts, `MobileFloatingDock` mới, xoá `UnifiedNavbar` | ✅ |
+| F | Login, Register, TutorApplication, Marketplace, TutorProfile | ✅ |
+| G | BookingCheckout, PaymentReturn (read-only; countdown 15m từ `holdingExpiresAt`) | ✅ |
+| H | StudentDashboard, EnrollmentDetail, SessionDetail, DisputeNew | ✅ |
+| I | TutorDashboard, TutorAvailability, TutorServices, TutorWallet (4 thẻ DEC-WD-001), TutorWithdraw (gate 50.000 ₫) | ✅ |
+| J | Messages (SignalR giữ nguyên), Notifications (Tabs + PATCH read) | ✅ |
+| K | AdminDashboard, AdminTutorApplications, AdminDisputes, AdminDisputeDetail (DEC-S8-025 + DEC-S8-028 giữ nguyên), AdminUsers, AdminAuditLogs | ✅ |
+| L | Quality gate: xem dưới | ✅ |
+
+**Quyết định kiến trúc:**
+- Token-first: mọi màu qua `tokens.css`; alias cũ (`brand-indigo-*`, `financial-*`, `indigo-*`) trỏ về var để app không vỡ giữa chừng; còn sót `indigo-*` đã dọn, chỉ giữ alias trong config cho an toàn build.
+- `financial-holding` tách sang `#D97706` để không trùng `secondary` `#F59E0B` (bất biến đọc trạng thái tiền).
+- Bundle `vendor-icons`: 774 KB → 55 KB nhờ `lucideRegistry.js` import tường minh (tree-shake được).
+- Material Symbols đã gỡ hoàn toàn (font + CSS); `enums.js` dùng Badge variant native.
+
+**Gate cuối:** `npm run lint` 0 error 0 warning · `npm run build` pass · `node scripts/verify-frontend-api-contract.mjs` pass (60 calls) · keyboard walkthrough + responsive 360→2560 do dev tự verify với API local.
