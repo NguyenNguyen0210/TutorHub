@@ -26,10 +26,11 @@ public class LogOnlyEmailSender : IEmailSender
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(
-            "Dispatched Email: To={ToEmail}, Subject={Subject}, IdempotencyKey={IdempotencyKey}",
+            "[DEV EMAIL DISPATCHED] To={ToEmail} | Subject=\"{Subject}\" | IdempotencyKey={IdempotencyKey}\n----- Email Content -----\n{Body}\n---------------------------",
             toEmail,
             subject,
-            idempotencyKey);
+            idempotencyKey,
+            body);
 
         return Task.CompletedTask;
     }

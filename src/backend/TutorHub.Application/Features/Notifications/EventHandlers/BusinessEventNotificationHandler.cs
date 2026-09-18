@@ -31,6 +31,7 @@ public class BusinessEventNotificationHandler :
     INotificationHandler<WithdrawalFailedEvent>,
     INotificationHandler<RefundCreatedEvent>,
     INotificationHandler<RefundCompletedEvent>,
+    INotificationHandler<RefundFailedEvent>,
     INotificationHandler<ReviewCreatedEvent>,
     INotificationHandler<DisputeCreatedEvent>,
     INotificationHandler<DisputeResolvedEvent>,
@@ -407,6 +408,21 @@ public class BusinessEventNotificationHandler :
                 UserId: notification.StudentUserId,
                 Title: "Refund Completed",
                 Message: $"Your refund of {notification.Amount.Amount:N0} VND has been successfully completed.",
+                DeepLink: NotificationRouteRegistry.Enrollment(notification.EnrollmentId)
+            )
+        };
+
+        await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
+    }
+
+    public async Task Handle(RefundFailedEvent notification, CancellationToken cancellationToken)
+    {
+        var recipients = new[]
+        {
+            (
+                UserId: notification.StudentUserId,
+                Title: "Refund Processing Notice",
+                Message: $"Automated refund of {notification.Amount.Amount:N0} VND encountered an issue and requires administrative offline settlement. Reason: {notification.Reason}",
                 DeepLink: NotificationRouteRegistry.Enrollment(notification.EnrollmentId)
             )
         };

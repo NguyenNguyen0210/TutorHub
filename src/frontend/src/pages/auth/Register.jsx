@@ -47,7 +47,7 @@ export default function Register() {
       setErrorMsg('');
       await registerWithCredentials(email, password, fullName, phoneNumber, selectedRole);
 
-      toast.success('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
+      toast.success('Đăng ký tài khoản thành công! Email xác thực tài khoản đã được gửi đến hòm thư của bạn.');
       navigate('/auth/login');
     } catch (err) {
       setErrorMsg(err.message || 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.');

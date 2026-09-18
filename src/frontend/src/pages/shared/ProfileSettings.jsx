@@ -177,7 +177,7 @@ export default function ProfileSettings() {
     try {
       setChangingPassword(true);
       await userService.changePassword(currentPassword, newPassword);
-      toast.success('Đổi mật khẩu thành công! Vui lòng ghi nhớ mật khẩu mới.');
+      toast.success('Đổi mật khẩu thành công! Email thông báo bảo mật đã được gửi tới hòm thư của bạn.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');

@@ -62,6 +62,52 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
         }
 
         _context.Users.Add(user);
+
+        // Dispatched account verification & welcome notification + email delivery
+        var welcomeNotif = new Notification
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Title = "Chào mừng bạn đến với TutorHub — Xác thực tài khoản",
+            Message = $"Xin chào {user.FullName}! Tài khoản của bạn đã được khởi tạo thành công trên TutorHub với vai trò {user.Role}. Hãy đăng nhập để hoàn tất hồ sơ và trải nghiệm các khóa học chất lượng cao.",
+            Type = "AccountVerification",
+            DeepLink = "/auth/login",
+            IsCritical = true,
+            DeduplicationKey = $"account:welcome:{user.Id}",
+            CreatedAt = _clock.UtcNow
+        };
+        _context.Notifications?.Add(welcomeNotif);
+
+        var welcomeEmail = new EmailDelivery
+        {
+            Id = Guid.NewGuid(),
+            NotificationId = welcomeNotif.Id,
+            Notification = welcomeNotif,
+            UserId = user.Id,
+            ToEmail = user.Email,
+            Subject = "Chào mừng bạn đến với TutorHub — Xác thực tài khoản",
+            Body = $@"Kính gửi {user.FullName},
+
+Chào mừng bạn đã gia nhập nền tảng học tập trực tuyến TutorHub!
+
+Thông tin tài khoản đã đăng ký:
+- Họ và tên: {user.FullName}
+- Email định danh: {user.Email}
+- Vai trò: {user.Role}
+- Thời gian tạo: {_clock.UtcNow:dd/MM/yyyy HH:mm:ss} UTC
+
+Tài khoản của bạn đã được kích hoạt thành công. Bạn có thể đăng nhập ngay tại:
+https://tutorhub.vn/login
+
+Nếu bạn cần hỗ trợ, vui lòng liên hệ đội ngũ chăm sóc khách hàng TutorHub.
+
+Trân trọng,
+Đội ngũ TutorHub",
+            Status = EmailDeliveryStatus.Pending,
+            CreatedAt = _clock.UtcNow
+        };
+        _context.EmailDeliveries?.Add(welcomeEmail);
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return new RegisterResponseDto(
