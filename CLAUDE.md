@@ -113,7 +113,7 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
   - `src/components/`, `src/pages/`, `src/layouts/`: Giao diện chia theo vai trò (Admin, Student, Tutor, Discovery, Checkout, Shared).
 * `src/test/`: **Kiểm Thử Tự Động** (588 test cases - 100% Deterministic Pass): `Domain.UnitTests` (204), `Application.UnitTests` (290), `Infrastructure.UnitTests` (21), `Api.IntegrationTests` (73, Postgres).
 * `docs/`: **Baseline Nghiệp Vụ Chuẩn**: `prd.md`, `functional-requirements.md`, `user-stories.md`, `openapi.json`.
-* `scripts/`: CI contract verification, dev bootstrap, secret scanning.
+* `scripts/` *(untracked local tooling)*: CI contract verification, dev bootstrap, secret scanning.
 
 ---
 
