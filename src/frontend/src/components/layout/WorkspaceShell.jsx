@@ -61,6 +61,12 @@ export default function WorkspaceShell({ userRole: role, children }) {
           },
         ]
       : []),
+    {
+      key: 'settings',
+      icon: <Icon name="settings" size="sm" />,
+      label: <span className="font-semibold text-body-reg">Hồ sơ & Cài đặt</span>,
+      onClick: () => navigate(role === 'Tutor' ? '/tutor/settings' : role === 'Student' ? '/student/settings' : '/admin/settings'),
+    },
     { type: 'divider' },
     {
       key: 'logout',
@@ -105,15 +111,22 @@ export default function WorkspaceShell({ userRole: role, children }) {
       </nav>
 
       <div className="p-3 border-t border-white/10">
-        <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-brand-md bg-white/5 border border-white/10">
-          <span className="w-2 h-2 rounded-full bg-success animate-pulse shrink-0" aria-hidden="true" />
-          <div className="min-w-0">
-            <p className="text-caption font-semibold text-white truncate">
-              {user?.fullName || user?.name || 'Tài khoản'}
-            </p>
-            <p className="text-[11px] text-slate-400 uppercase tracking-wide">{role}</p>
+        <Link
+          to={role === 'Tutor' ? '/tutor/settings' : role === 'Student' ? '/student/settings' : '/admin/settings'}
+          className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-brand-md bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group"
+          title="Hồ sơ & Cài đặt tài khoản"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="w-2 h-2 rounded-full bg-success animate-pulse shrink-0" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="text-caption font-semibold text-white truncate group-hover:text-brand-primary-300 transition-colors">
+                {user?.fullName || user?.name || 'Tài khoản'}
+              </p>
+              <p className="text-[11px] text-slate-400 uppercase tracking-wide">{role}</p>
+            </div>
           </div>
-        </div>
+          <Icon name="settings" size="xs" className="text-slate-400 group-hover:text-white transition-colors shrink-0" />
+        </Link>
       </div>
     </div>
   );

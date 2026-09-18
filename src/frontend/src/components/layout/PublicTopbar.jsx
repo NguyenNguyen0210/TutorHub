@@ -31,6 +31,12 @@ export default function PublicTopbar() {
           label: <span className="font-semibold text-body-reg">Trang tổng quan</span>,
           onClick: () => navigate(getDashboardPath(role)),
         },
+        {
+          key: 'settings',
+          icon: <Icon name="settings" size="sm" />,
+          label: <span className="font-semibold text-body-reg">Hồ sơ & Cài đặt</span>,
+          onClick: () => navigate(role === 'Tutor' ? '/tutor/settings' : role === 'Student' ? '/student/settings' : '/admin/settings'),
+        },
         { type: 'divider' },
         {
           key: 'logout',

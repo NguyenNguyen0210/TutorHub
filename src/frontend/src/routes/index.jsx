@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate, Link, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
 // Deep link redirect helpers for notifications and external URLs
@@ -20,6 +20,13 @@ function SessionRedirect() {
 function BookingRedirect() {
   const { id } = useParams();
   return <Navigate to={`/student/bookings/${id}/checkout`} replace />;
+}
+
+function SettingsRedirect() {
+  const { role } = useAuthStore();
+  if (role === 'Tutor') return <Navigate to="/tutor/settings" replace />;
+  if (role === 'Admin') return <Navigate to="/admin/settings" replace />;
+  return <Navigate to="/student/settings" replace />;
 }
 
 // Layouts
@@ -58,6 +65,8 @@ import TutorWithdraw from '../pages/tutor/TutorWithdraw';
 // Shared Realtime Screens
 import Messages from '../pages/shared/Messages';
 import Notifications from '../pages/shared/Notifications';
+import ProfileSettings from '../pages/shared/ProfileSettings';
+import NotFound from '../pages/shared/NotFound';
 
 // Admin Space Screens
 import AdminDashboard from '../pages/admin/AdminDashboard';
@@ -115,6 +124,8 @@ export default function AppRoutes() {
         <Route path="enrollments/:id" element={<EnrollmentDetail />} />
         <Route path="sessions/:id" element={<SessionDetail />} />
         <Route path="disputes/new" element={<DisputeNew />} />
+        <Route path="settings" element={<ProfileSettings />} />
+        <Route path="profile" element={<Navigate to="/student/settings" replace />} />
       </Route>
 
       {/* 4. Tutor Routes (auth + Tutor role) */}
@@ -131,6 +142,8 @@ export default function AppRoutes() {
         <Route path="wallet" element={<TutorWallet />} />
         <Route path="wallet/withdraw" element={<TutorWithdraw />} />
         <Route path="sessions/:id" element={<SessionDetail />} />
+        <Route path="settings" element={<ProfileSettings />} />
+        <Route path="profile" element={<Navigate to="/tutor/settings" replace />} />
       </Route>
 
       {/* 5. Admin Routes (auth + Admin role) */}
@@ -148,23 +161,21 @@ export default function AppRoutes() {
         <Route path="disputes/:id" element={<AdminDisputeDetail />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="audit-logs" element={<AdminAuditLogs />} />
+        <Route path="settings" element={<ProfileSettings />} />
+        <Route path="profile" element={<Navigate to="/admin/settings" replace />} />
       </Route>
 
       {/* Deep Link Redirections (from notifications & external URLs) */}
       <Route path="/enrollments/:id" element={<RequireAuth><EnrollmentRedirect /></RequireAuth>} />
       <Route path="/sessions/:id" element={<RequireAuth><SessionRedirect /></RequireAuth>} />
       <Route path="/bookings/:id" element={<RequireAuth><BookingRedirect /></RequireAuth>} />
+      <Route path="/settings" element={<RequireAuth><SettingsRedirect /></RequireAuth>} />
+      <Route path="/profile" element={<RequireAuth><SettingsRedirect /></RequireAuth>} />
       <Route path="/chat/:id" element={<RequireAuth><Navigate to="/app/messages" replace /></RequireAuth>} />
       <Route path="/chat" element={<RequireAuth><Navigate to="/app/messages" replace /></RequireAuth>} />
 
       {/* 404 Fallback */}
-      <Route path="*" element={
-        <div className="p-12 text-center">
-          <h2 className="text-headline-1 text-fg mb-2">404 — Trang không tồn tại</h2>
-          <p className="text-caption text-fg-muted mb-4">Trang bạn yêu cầu không tồn tại hoặc đã bị xóa.</p>
-          <Link to="/tutors" className="text-brand-primary-700 font-semibold text-caption hover:underline">Về trang khám phá</Link>
-        </div>
-      } />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

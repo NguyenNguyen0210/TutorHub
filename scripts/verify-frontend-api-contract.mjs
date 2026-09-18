@@ -132,7 +132,11 @@ function matchesOpenApiPath(clientPath, openApiCandidate) {
 
 let contractErrors = [];
 for (const call of apiCalls) {
-  const matchedCandidate = openApiPaths.find((p) => matchesOpenApiPath(call.normalizedPath, p));
+  // Prioritize exact path match if present (e.g. /tutors/me over /tutors/{id})
+  const matchedCandidate =
+    openApiPaths.find((p) => p === call.normalizedPath) ||
+    openApiPaths.find((p) => matchesOpenApiPath(call.normalizedPath, p) && Object.keys(openApi.paths[p] || {}).map(m => m.toLowerCase()).includes(call.verb)) ||
+    openApiPaths.find((p) => matchesOpenApiPath(call.normalizedPath, p));
   if (!matchedCandidate) {
     contractErrors.push(`${call.file}: ${call.verb.toUpperCase()} ${call.rawPath} -> No matching route in openapi.json`);
   } else {

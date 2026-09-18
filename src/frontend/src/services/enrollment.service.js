@@ -48,6 +48,18 @@ export const enrollmentService = {
     const res = await api.post(`/enrollments/${id}/cancel`, { reason });
     return res;
   },
+
+  /** POST /enrollments/{id}/reviews body { rating, comment } → ReviewDto */
+  async createReview(id, rating, comment) {
+    const res = await api.post(`/enrollments/${id}/reviews`, { rating, comment });
+    return res;
+  },
+
+  /** GET /enrollments/{id}/reviews → ReviewDto */
+  async getReview(id) {
+    const res = await api.get(`/enrollments/${id}/reviews`);
+    return res;
+  },
 };
 
 export default enrollmentService;
