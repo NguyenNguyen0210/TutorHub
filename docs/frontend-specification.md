@@ -288,14 +288,17 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
       $$\text{Số tiền hoàn trả} = \text{Tổng học phí (2.000.000 ₫)} - \text{Học phí buổi đã học (200.000 ₫)} = \mathbf{1.800.000\text{ ₫}}$$
 
 #### Màn hình 3.2: Chi tiết Buổi học, Xếp lịch & Dời lịch (`/student/sessions/:id`)
-- **API sử dụng:** `POST /api/v1/sessions/:id/schedule`, `POST /api/v1/sessions/:id/reschedule-request`, `POST /api/v1/sessions/reschedule-requests/:id/respond`, `POST /api/v1/sessions/:id/cancel`
+- **API sử dụng:** `GET /api/v1/sessions/:id/reschedule-requests`, `POST /api/v1/sessions/:id/reschedule-requests`, `POST /api/v1/sessions/:id/reschedule-requests/{requestId}/accept`, `POST /api/v1/sessions/:id/reschedule-requests/{requestId}/reject`, `POST /api/v1/sessions/:id/cancel`
 - **Chi tiết giao diện:**
   - **Modal Xếp lịch:** Hiển thị lịch rảnh của gia sư theo múi giờ `Asia/Ho_Chi_Minh` để học viên chọn ngày và giờ bắt đầu.
-  - **Card Đề xuất Dời lịch (Reschedule Request):**
-    - Khi gia sư gửi: *"Thầy có lịch tập huấn tại trường, xin phép dời sang tối thứ 6 nhé."* (Lịch mới: Thứ 6 18:00 - 19:00).
-    - Học viên có 2 nút: **"Đồng ý đổi lịch"** (`Accept`) hoặc **"Từ chối"** (`Reject` kèm lý do: *"Học viên vướng lịch học thêm tiếng Anh"*).
-  - **Nút Hủy Buổi học Đơn lẻ (F-19 Single Session Cancel):**
-    - Chỉ cho phép khi buổi học chưa diễn ra (`StartAt > Now`). Tiền học buổi đó vẫn giữ nguyên trong Escrow chờ giải quyết khi kết thúc khóa học.
+  - **Card Đề xuất Dời lịch (Reschedule Request Banner):**
+    - Hiển thị khi có yêu cầu đổi lịch `Pending`: Gia sư hoặc Học viên đề xuất giờ mới kèm lý do.
+    - Phía đối phương có 2 nút hành động: **"Đồng ý đổi lịch"** (`acceptReschedule`) hoặc **"Từ chối"** (`rejectReschedule` kèm lý do bắt buộc).
+  - **Modal Đề xuất Dời lịch Mới:** Cho phép gia sư chọn khung giờ mới trong lịch rảnh và nhập lý do dời lịch.
+  - **Nút Hủy Buổi học Đơn lẻ (Single Session Cancel with Escrow Refund):**
+    - Cho phép khi buổi học ở trạng thái `Unscheduled` hoặc `Scheduled` trước giờ bắt đầu.
+    - Hộp thoại xác nhận yêu cầu nhập lý do hủy (tối thiểu 5 ký tự) và hiển thị cảnh báo: *"Hệ thống sẽ hoàn trả tiền ký quỹ của buổi học này cho học viên theo quy chế bảo chứng Escrow."*
+    - Khi hủy thành công: Buổi học chuyển sang `Cancelled`, `PendingBalance` của gia sư được khấu trừ, transaction `StudentRefund` được tạo với `SettlementRequired = true`, và phát các sự kiện tương ứng.
 
 ---
 
@@ -389,6 +392,20 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
     - Kiểm tra bất biến: $180.000 + 20.000 \equiv 200.000\text{ ₫}$ $\rightarrow$ Hợp lệ.
   - Nhập biên bản phân xử của Admin: *"Admin đã kiểm tra log Google Meet, xác nhận buổi học không diễn ra."*
 
+#### Màn hình 6.3: Quản trị Lệnh Rút tiền của Admin (`/admin/withdrawals`)
+- **API sử dụng:** `GET /api/v1/admin/withdrawals`, `GET /api/v1/admin/withdrawals/:id`, `POST /api/v1/admin/withdrawals/:id/process`, `POST /api/v1/admin/withdrawals/:id/complete`, `POST /api/v1/admin/withdrawals/:id/fail`
+- **Chi tiết giao diện:**
+  - **Header & Thống kê:** 3 thẻ chỉ số nhanh: Số lệnh chờ xử lý (`Pending`), Số lệnh đang chi trả (`Processing`), Tổng số tiền đang yêu cầu rút (VND).
+  - **Filter Tabs:** Tất cả, Chờ xử lý (`Pending`), Đang chi trả (`Processing`), Hoàn thành (`Completed`), Thất bại (`Failed`).
+  - **Bảng dữ liệu lệnh rút tiền:**
+    - Gia sư: Họ tên, Email, Avatar.
+    - Số tiền: Định dạng tiền VND chuẩn dấu chấm.
+    - Tài khoản thụ hưởng: Tên ngân hàng, Số tài khoản, Tên chủ thẻ.
+    - Trạng thái: Badge trực quan (`Pending`, `Processing`, `Completed`, `Failed`).
+    - Thao tác:
+      - `Pending`: Nút "Tiếp nhận" (chuyển sang `Processing`).
+      - `Processing`: Nút "Xác nhận chi trả" (`complete`) và nút "Báo lỗi" (`fail` yêu cầu nhập lý do lỗi để hệ thống tự động hoàn tiền về ví gia sư).
+
 ---
 
 ### Giai đoạn 7: Tin nhắn Realtime & Trung tâm Thông báo Đa kênh (SignalR)
@@ -413,6 +430,17 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
   - ⏰ *Nhắc nhở buổi học:* "Buổi học Vật lý sắp diễn ra sau 30 phút."
   - ⚠️ *Thông báo tranh chấp:* "Học viên Tuấn đã mở khiếu nại vắng mặt đối với buổi học #3."
   - 🚫 *Cảnh báo vi phạm No-show:* "Bạn đã tích lũy 2 gậy phạt vắng mặt. Quyền đặt lịch mới tạm thời bị khóa 7 ngày."
+
+#### Màn hình 7.3: Hồ sơ Cá nhân & Cài đặt Bảo mật (`/settings`)
+- **API sử dụng:** `GET /api/v1/users/me`, `PUT /api/v1/users/me`, `GET /api/v1/tutors/me/profile`, `PUT /api/v1/tutors/me/profile`, `POST /api/v1/auth/change-password`
+- **Chi tiết giao diện:**
+  - **Tab Thông tin cá nhân:**
+    - Cập nhật Họ và tên hiển thị, Số điện thoại, Địa chỉ email định danh (chỉ đọc).
+    - Avatar: Upload trực tiếp hoặc tạo avatar ngẫu nhiên theo chuẩn DiceBear Avataaars.
+    - Với Gia sư: Cập nhật thông tin chuyên môn, Số năm kinh nghiệm, Hình thức dạy (`Online`, `Offline`, `Both`), Khu vực địa lý, Học vấn & Bằng cấp, Tiểu sử sư phạm.
+  - **Tab Đổi mật khẩu & Bảo mật:**
+    - Nhập mật khẩu hiện tại, mật khẩu mới (tối thiểu 8 ký tự), xác nhận mật khẩu mới.
+    - Khi đổi thành công: Thu hồi toàn bộ phiên đăng nhập cũ, phát thông báo bảo mật và tự động gửi email cảnh báo bảo mật tới hòm thư người dùng.
 
 ---
 
