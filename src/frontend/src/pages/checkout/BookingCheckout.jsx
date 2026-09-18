@@ -67,6 +67,27 @@ export default function BookingCheckout() {
     };
   }, [id, navigate, toast]);
 
+  // Background status sync (polls every 5s while waiting for payment)
+  useEffect(() => {
+    if (!id || isExpired || !booking || booking.status === 'Paid') return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const fresh = await bookingService.getBookingById(id);
+        if (fresh?.status === 'Paid') {
+          toast.success('Thanh toán thành công! Hợp đồng học tập đã được kích hoạt.');
+          navigate('/student/dashboard');
+        } else if (fresh?.status === 'Cancelled' || fresh?.status === 'Expired') {
+          setIsExpired(true);
+        }
+      } catch {
+        // Silently ignore transient background poll errors
+      }
+    }, 5000);
+
+    return () => clearInterval(pollInterval);
+  }, [id, isExpired, booking, navigate, toast]);
+
   if (loadingBooking) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12 space-y-6">

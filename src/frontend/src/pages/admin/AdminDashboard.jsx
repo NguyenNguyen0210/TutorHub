@@ -105,8 +105,8 @@ export default function AdminDashboard() {
         actionQueue.pendingWithdrawalsCount > 0
           ? 'Gia sư yêu cầu rút thu nhập khả dụng về tài khoản ngân hàng đã liên kết (DEC-WD-001).'
           : 'Không có yêu cầu rút tiền mới chờ đối soát.',
-      link: '/admin/audit-logs',
-      btnText: 'Kiểm tra sổ cái',
+      link: '/admin/withdrawals',
+      btnText: 'Duyệt lệnh rút tiền',
       tone: 'holding',
       icon: 'payments',
     },

@@ -26,6 +26,13 @@ const POPULAR_SEARCH_TAGS = [
   'Tiếng Anh',
 ];
 
+const PRICE_RANGES = [
+  { label: 'Tất cả mức giá', min: null, max: null },
+  { label: 'Dưới 1.000.000 ₫', min: null, max: 1000000 },
+  { label: '1.000.000 – 2.500.000 ₫', min: 1000000, max: 2500000 },
+  { label: 'Trên 2.500.000 ₫', min: 2500000, max: null },
+];
+
 export default function Marketplace() {
   const [searchParams] = useSearchParams();
   const [tutors, setTutors] = useState([]);
@@ -37,6 +44,8 @@ export default function Marketplace() {
   const [searchKeyword, setSearchKeyword] = useState(searchParams.get('q') || '');
   const [debouncedKeyword, setDebouncedKeyword] = useState(searchParams.get('q') || '');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
+  const [selectedPriceRange, setSelectedPriceRange] = useState(0);
   const [teachingMode, setTeachingMode] = useState('All');
   const [minRating, setMinRating] = useState(null);
   const [sortBy, setSortBy] = useState('rating_desc');
@@ -75,10 +84,15 @@ export default function Marketplace() {
         setLoading(true);
         setError(null);
 
+        const activePrice = PRICE_RANGES[selectedPriceRange];
         const selected = categories.find((category) => category.id === selectedCategory);
-        const effectiveSearch = debouncedKeyword.trim() || selected?.name || '';
+        const effectiveSearch =
+          debouncedKeyword.trim() || (!selectedSubjectId ? selected?.name : '') || '';
 
         const page = await tutorService.getTutors({
+          subjectId: selectedSubjectId || null,
+          minPrice: activePrice.min,
+          maxPrice: activePrice.max,
           search: effectiveSearch,
           teachingMode: teachingMode !== 'All' ? teachingMode : null,
           minRating: minRating || null,
@@ -107,6 +121,8 @@ export default function Marketplace() {
   }, [
     debouncedKeyword,
     selectedCategory,
+    selectedSubjectId,
+    selectedPriceRange,
     teachingMode,
     minRating,
     sortBy,
@@ -125,14 +141,19 @@ export default function Marketplace() {
     })),
   ];
 
+  const activeCategoryObj = categories.find((c) => c.id === selectedCategory);
+  const categorySubjects = activeCategoryObj?.subjects || [];
+
   const totalPages = Math.ceil(totalCount / pageSize);
 
   const resetFilters = () => {
     setTeachingMode('All');
     setMinRating(null);
+    setSelectedPriceRange(0);
     setSearchKeyword('');
     setDebouncedKeyword('');
     setSelectedCategory('');
+    setSelectedSubjectId('');
     setPageNumber(1);
   };
 
@@ -140,6 +161,8 @@ export default function Marketplace() {
     (teachingMode !== 'All' ? 1 : 0) +
     (minRating !== null ? 1 : 0) +
     (selectedCategory ? 1 : 0) +
+    (selectedSubjectId ? 1 : 0) +
+    (selectedPriceRange > 0 ? 1 : 0) +
     (debouncedKeyword.trim() ? 1 : 0);
 
   return (
@@ -226,6 +249,7 @@ export default function Marketplace() {
                   setSearchKeyword(tag);
                   setDebouncedKeyword(tag);
                   setSelectedCategory('');
+                  setSelectedSubjectId('');
                   setPageNumber(1);
                 }}
                 className="text-[11px] px-2.5 py-1 rounded-pill bg-white/5 hover:bg-white/15 text-slate-200 transition-colors cursor-pointer border border-white/10"
@@ -307,31 +331,77 @@ export default function Marketplace() {
         ))}
       </section>
 
-      {/* Category Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none" role="group" aria-label="Lọc theo danh mục">
-        {categoryPills.map((pill) => {
-          const active = selectedCategory === pill.id;
-          return (
+      {/* Category Pills & Secondary Subject Filter */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none" role="group" aria-label="Lọc theo danh mục">
+          {categoryPills.map((pill) => {
+            const active = selectedCategory === pill.id;
+            return (
+              <button
+                key={pill.id || 'all'}
+                type="button"
+                aria-pressed={active}
+                onClick={() => {
+                  setSelectedCategory(pill.id);
+                  setSelectedSubjectId('');
+                  setPageNumber(1);
+                }}
+                className={cn(
+                  'px-4 py-2.5 rounded-brand-md font-semibold text-body-reg shrink-0 flex items-center gap-2 transition-all cursor-pointer',
+                  active
+                    ? 'bg-brand-primary-600 text-white shadow-brand-sm ring-2 ring-brand-primary-600/20'
+                    : 'bg-surface border border-border text-fg-secondary hover:bg-neutral-50 hover:text-fg'
+                )}
+              >
+                <Icon name={pill.icon} size="sm" />
+                {pill.name}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Secondary Subject Chips when Category is selected */}
+        {categorySubjects.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pl-1 animate-fade-in">
+            <span className="text-[11px] font-bold text-fg-muted uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
+              <Icon name="subdirectory_arrow_right" size="xs" />
+              Bộ môn:
+            </span>
             <button
-              key={pill.id || 'all'}
               type="button"
-              aria-pressed={active}
               onClick={() => {
-                setSelectedCategory(pill.id);
+                setSelectedSubjectId('');
                 setPageNumber(1);
               }}
               className={cn(
-                'px-4 py-2.5 rounded-brand-md font-semibold text-body-reg shrink-0 flex items-center gap-2 transition-all cursor-pointer',
-                active
-                  ? 'bg-brand-primary-600 text-white shadow-brand-sm ring-2 ring-brand-primary-600/20'
-                  : 'bg-surface border border-border text-fg-secondary hover:bg-neutral-50 hover:text-fg'
+                'px-3 py-1 rounded-pill text-[12px] font-semibold shrink-0 transition-colors cursor-pointer',
+                !selectedSubjectId
+                  ? 'bg-brand-primary-100 text-brand-primary-800'
+                  : 'bg-neutral-100 text-fg-secondary hover:bg-neutral-200'
               )}
             >
-              <Icon name={pill.icon} size="sm" />
-              {pill.name}
+              Tất cả ({activeCategoryObj?.name})
             </button>
-          );
-        })}
+            {categorySubjects.map((sub) => (
+              <button
+                key={sub.id}
+                type="button"
+                onClick={() => {
+                  setSelectedSubjectId(sub.id === selectedSubjectId ? '' : sub.id);
+                  setPageNumber(1);
+                }}
+                className={cn(
+                  'px-3 py-1 rounded-pill text-[12px] font-semibold shrink-0 transition-colors cursor-pointer',
+                  selectedSubjectId === sub.id
+                    ? 'bg-brand-primary-600 text-white shadow-brand-xs'
+                    : 'bg-neutral-100 text-fg-secondary hover:bg-neutral-200'
+                )}
+              >
+                {sub.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Main Content Layout */}
@@ -358,6 +428,45 @@ export default function Marketplace() {
                   Đặt lại
                 </button>
               )}
+            </div>
+
+            {/* Price Range Filter */}
+            <div className="space-y-2">
+              <span
+                id="price-filter-label"
+                className="text-caption font-semibold text-fg-secondary uppercase tracking-wide block"
+              >
+                Khoảng học phí
+              </span>
+              <div
+                className="space-y-1"
+                role="radiogroup"
+                aria-labelledby="price-filter-label"
+              >
+                {PRICE_RANGES.map((range, idx) => (
+                  <button
+                    key={range.label}
+                    type="button"
+                    role="radio"
+                    aria-checked={selectedPriceRange === idx}
+                    onClick={() => {
+                      setSelectedPriceRange(idx);
+                      setPageNumber(1);
+                    }}
+                    className={cn(
+                      'w-full text-left px-3 py-2 text-caption font-medium rounded-brand-sm transition-colors cursor-pointer flex items-center justify-between',
+                      selectedPriceRange === idx
+                        ? 'bg-brand-primary-50 text-brand-primary-700 font-bold border border-brand-primary-200'
+                        : 'text-fg-secondary hover:bg-neutral-50 hover:text-fg'
+                    )}
+                  >
+                    <span>{range.label}</span>
+                    {selectedPriceRange === idx && (
+                      <Icon name="check" size="xs" className="text-brand-primary-600" />
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Teaching Mode Filter */}
@@ -488,7 +597,7 @@ export default function Marketplace() {
             <EmptyState
               icon="person_search"
               title="Không tìm thấy gia sư phù hợp"
-              description="Hãy thử từ khóa khác hoặc điều chỉnh lại danh mục và hình thức giảng dạy."
+              description="Hãy thử từ khóa khác hoặc điều chỉnh lại danh mục, khoảng học phí và hình thức giảng dạy."
               actionLabel="Xem tất cả gia sư"
               onAction={resetFilters}
             />

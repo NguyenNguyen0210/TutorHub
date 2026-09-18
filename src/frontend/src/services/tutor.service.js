@@ -147,7 +147,9 @@ export const tutorService = {
   /** GET /subjects → SubjectDto[] */
   async getSubjects(params = {}) {
     const res = await api.get('/subjects', { params });
-    return Array.isArray(res) ? res : [];
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res?.items)) return res.items;
+    return [];
   },
 
   /**
@@ -213,6 +215,30 @@ export const tutorService = {
     if (Array.isArray(res)) return res;
     if (Array.isArray(res?.items)) return res.items;
     return [];
+  },
+
+  /** POST /tutors/me/services → ServiceDto */
+  async createService(data) {
+    const res = await api.post('/tutors/me/services', data);
+    return res;
+  },
+
+  /** PATCH /tutors/me/services/{serviceId} → ServiceDto */
+  async updateService(serviceId, data) {
+    const res = await api.patch(`/tutors/me/services/${serviceId}`, data);
+    return res;
+  },
+
+  /** POST /tutors/me/services/{serviceId}/publish → ServiceDto */
+  async publishService(serviceId) {
+    const res = await api.post(`/tutors/me/services/${serviceId}/publish`);
+    return res;
+  },
+
+  /** POST /tutors/me/services/{serviceId}/unpublish → ServiceDto */
+  async unpublishService(serviceId) {
+    const res = await api.post(`/tutors/me/services/${serviceId}/unpublish`);
+    return res;
   },
 
   /** GET /tutors/me/availability-slots → AvailabilitySlotDto[] (Tutor workspace) */

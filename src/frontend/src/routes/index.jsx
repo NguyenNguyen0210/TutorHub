@@ -61,6 +61,7 @@ import Notifications from '../pages/shared/Notifications';
 
 // Admin Space Screens
 import AdminDashboard from '../pages/admin/AdminDashboard';
+import AdminWithdrawals from '../pages/admin/AdminWithdrawals';
 import AdminTutorApplications from '../pages/admin/AdminTutorApplications';
 import AdminDisputes from '../pages/admin/AdminDisputes';
 import AdminDisputeDetail from '../pages/admin/AdminDisputeDetail';
@@ -141,6 +142,7 @@ export default function AppRoutes() {
         </RequireAuth>
       }>
         <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="withdrawals" element={<AdminWithdrawals />} />
         <Route path="disputes" element={<AdminDisputes />} />
         <Route path="tutor-applications" element={<AdminTutorApplications />} />
         <Route path="disputes/:id" element={<AdminDisputeDetail />} />

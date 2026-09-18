@@ -108,6 +108,31 @@ function normalizeAuditLog(raw = {}) {
   };
 }
 
+function normalizeWithdrawal(raw = {}) {
+  return {
+    id: raw.id,
+    walletId: raw.walletId,
+    tutorProfileId: raw.tutorProfileId,
+    tutorName: raw.tutorName || '',
+    tutorEmail: raw.tutorEmail || '',
+    amount: toNumber(raw.amount, 0),
+    status: raw.status || 'Pending',
+    bankName: raw.bankName || '',
+    bankCode: raw.bankCode ?? null,
+    accountNumber: raw.accountNumber || '',
+    accountHolderName: raw.accountHolderName || '',
+    note: raw.note ?? null,
+    requestedAt: raw.requestedAt ?? null,
+    processingStartedAt: raw.processingStartedAt ?? null,
+    processingStartedByAdminId: raw.processingStartedByAdminId ?? null,
+    processingStartedByAdminName: raw.processingStartedByAdminName ?? null,
+    processedAt: raw.processedAt ?? null,
+    processedByAdminId: raw.processedByAdminId ?? null,
+    processedByAdminName: raw.processedByAdminName ?? null,
+    failureReason: raw.failureReason ?? null,
+  };
+}
+
 function normalizePaged(raw, normalizeItem) {
   const source = Array.isArray(raw?.items) ? raw.items : [];
   const items = source.map(normalizeItem);
@@ -220,6 +245,31 @@ export const adminService = {
    */
   applyDisputeVerdict: (caseId, { decision, customRefundAmount = null, adminNotes = '' }) =>
     api.post(`/admin/disputes/${caseId}/resolve`, { decision, customRefundAmount, adminNotes }),
+
+  /**
+   * GET /admin/withdrawals → PagedResult<WithdrawalDto>
+   */
+  async getWithdrawals({ status = null, pageNumber = 1, pageSize = 10 } = {}) {
+    const params = { pageNumber, pageSize };
+    if (status) params.status = status;
+    const res = await api.get('/admin/withdrawals', { params });
+    return normalizePaged(res, normalizeWithdrawal);
+  },
+
+  /** GET /admin/withdrawals/{id} → WithdrawalDto */
+  async getWithdrawalById(id) {
+    const res = await api.get(`/admin/withdrawals/${id}`);
+    return normalizeWithdrawal(res);
+  },
+
+  /** POST /admin/withdrawals/{id}/process → WithdrawalDto */
+  processWithdrawal: (id) => api.post(`/admin/withdrawals/${id}/process`),
+
+  /** POST /admin/withdrawals/{id}/complete → WithdrawalDto */
+  completeWithdrawal: (id) => api.post(`/admin/withdrawals/${id}/complete`),
+
+  /** POST /admin/withdrawals/{id}/fail { reason } → WithdrawalDto */
+  failWithdrawal: (id, reason) => api.post(`/admin/withdrawals/${id}/fail`, { reason }),
 };
 
 export default adminService;
