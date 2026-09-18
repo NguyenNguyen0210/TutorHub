@@ -1,35 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Alert, message } from 'antd';
+import Callout from '@/components/ui/Callout';
+import { useToast } from '@/components/ui/Toast';
 import tutorService from '@/services/tutor.service';
 import bookingService from '@/services/booking.service';
+import { useAuthStore } from '@/store/authStore';
 import { ProfileSkeleton } from '@/components/common/Skeleton';
 import ErrorState from '@/components/common/ErrorState';
 import EmptyState from '@/components/common/EmptyState';
-import { formatCurrency, formatDateTime } from '@/utils/formatters';
+import Card, { CardHeader } from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Badge, { Tag } from '@/components/ui/Badge';
+import Icon from '@/components/ui/Icon';
+import Avatar from '@/components/ui/Avatar';
+import { formatDateTime } from '@/utils/formatters';
+import Money from '@/components/ui/Money';
 import { getTeachingModeMeta, getDayOfWeekLabel } from '@/config/enums';
 
 /**
- * Hồ sơ gia sư công khai.
+ * Hồ sơ gia sư công khai — Chuẩn SaaS Minimal v2.
  *
- * Nguồn dữ liệu thật:
- * - GET /tutors/{id}            → TutorProfileDto (đã có sẵn `subjects` + `services`)
+ * Nguồn dữ liệu:
+ * - GET /tutors/{id}            → TutorProfileDto (kèm `subjects` + `services`)
  * - GET /tutors/{id}/reviews    → PagedResult<TutorPublicReviewDto>
- * - GET /tutors/{id}/availability → TutorAvailabilityDto { days } (KHÔNG phải `slots`)
+ * - GET /tutors/{id}/availability → TutorAvailabilityDto { days }
  *
- * TutorProfileDto: { id, userId, fullName, avatarUrl, bio, education, experienceYears,
- *   teachingMode, address, latitude, longitude, ratingAvg, totalReviews,
- *   subjects: [{ id, subjectId, subjectName, categoryId, categoryName, isActive }],
- *   services: [{ id, title, subjectName, totalSessions, sessionDurationMinutes, price,
- *     teachingMode, hasTrialLesson }] }
- *
- * Lưu ý: TutorProfileDto KHÔNG có `isVerified` / `minPrice` (chỉ TutorSummaryDto có) —
- * nên badge "Verified" chỉ hiện khi backend thực sự trả về isVerified = true.
- * Dữ liệu hồ sơ gia sư được tải từ API thật.
+ * Tuân thủ bất biến & Design System:
+ * - DEC-S8-020: Package-based checkout, giữ chỗ 15 phút.
+ * - Single source of truth: tokens.css, font Inter, Lucide icons qua Icon.jsx.
+ * - Format tiền chuẩn bằng <Money>.
  */
 export default function TutorProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
+  const { isAuthenticated, role } = useAuthStore();
+
   const [tutor, setTutor] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [availabilityDays, setAvailabilityDays] = useState([]);
@@ -41,39 +47,38 @@ export default function TutorProfile() {
 
   useEffect(() => {
     let cancelled = false;
-
-    async function fetchTutor() {
+    async function loadProfile() {
       try {
         setLoading(true);
         setError(null);
         setSecondaryWarning(null);
 
-        const [profileResult, reviewsResult, availabilityResult] = await Promise.allSettled([
+        const [tutorRes, reviewsRes, availabilityRes] = await Promise.allSettled([
           tutorService.getTutorById(id),
-          tutorService.getTutorReviews(id, 1, 10),
+          tutorService.getTutorReviews(id),
           tutorService.getTutorAvailability(id),
         ]);
 
         if (cancelled) return;
 
-        if (profileResult.status === 'rejected') {
-          throw profileResult.reason;
+        if (tutorRes.status === 'rejected') {
+          setError(tutorRes.reason);
+          setLoading(false);
+          return;
         }
 
-        setTutor(profileResult.value);
-        setReviews(reviewsResult.status === 'fulfilled' ? reviewsResult.value.items : []);
-        setAvailabilityDays(
-          availabilityResult.status === 'fulfilled' ? availabilityResult.value : [],
-        );
+        setTutor(tutorRes.value);
 
-        // Phần phụ (đánh giá / lịch rảnh) lỗi thì cảnh báo, không chặn cả trang.
-        const secondaryFailure = [reviewsResult, availabilityResult].find(
-          (result) => result.status === 'rejected',
-        );
-        if (secondaryFailure) {
-          setSecondaryWarning(
-            secondaryFailure.reason?.message || 'Không tải được một phần dữ liệu của gia sư.',
-          );
+        if (reviewsRes.status === 'fulfilled') {
+          setReviews(reviewsRes.value?.items || []);
+        } else {
+          setSecondaryWarning('Không tải được danh sách đánh giá. Các thông tin khác vẫn hiển thị đầy đủ.');
+        }
+
+        if (availabilityRes.status === 'fulfilled') {
+          setAvailabilityDays(availabilityRes.value?.days || []);
+        } else {
+          setSecondaryWarning('Không tải được khung giờ rảnh. Các thông tin khác vẫn hiển thị đầy đủ.');
         }
       } catch (err) {
         if (!cancelled) setError(err);
@@ -82,25 +87,35 @@ export default function TutorProfile() {
       }
     }
 
-    fetchTutor();
+    loadProfile();
     return () => {
       cancelled = true;
     };
   }, [id, reloadToken]);
 
   const handleBooking = async (service) => {
+    if (!isAuthenticated) {
+      toast.info('Vui lòng đăng nhập với tài khoản học viên để tiến hành đăng ký giữ chỗ.');
+      navigate(`/auth/login?redirect=/tutors/${id}`);
+      return;
+    }
+
+    if (role === 'Tutor') {
+      toast.warning('Bạn đang đăng nhập bằng tài khoản Gia sư. Vui lòng dùng tài khoản Học viên để đặt lịch.');
+      return;
+    }
+
     try {
       setBookingLoading(service.id);
-      // POST /bookings nhận SCALAR serviceId (Guid) — không phải object.
       const booking = await bookingService.createBooking(service.id);
       const bookingId = booking?.id;
       if (!bookingId) {
         throw new Error('Backend không trả về mã đơn giữ chỗ (booking.id).');
       }
-      message.success('Đã giữ chỗ thành công 15 phút! Đang chuyển hướng...');
+      toast.success('Đã giữ chỗ thành công 15 phút! Đang chuyển đến cổng thanh toán...');
       navigate(`/student/bookings/${bookingId}/checkout`);
     } catch (err) {
-      message.error(err?.message || 'Không tạo được đơn giữ chỗ. Vui lòng thử lại.');
+      toast.error(err?.message || 'Không tạo được đơn giữ chỗ. Vui lòng thử lại.');
     } finally {
       setBookingLoading(null);
     }
@@ -148,327 +163,504 @@ export default function TutorProfile() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
-      {/* Back button */}
-      <Link to="/tutors" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-brand-indigo-600 transition-colors">
-        <span className="material-symbols-outlined text-base">arrow_back</span>
-        Quay lại danh sách gia sư
-      </Link>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Navigation breadcrumb */}
+      <nav aria-label="Breadcrumb">
+        <Link
+          to="/tutors"
+          className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-muted hover:text-brand-primary-700 transition-colors"
+        >
+          <Icon name="arrow_back" size="sm" />
+          Quay lại danh sách gia sư
+        </Link>
+      </nav>
 
       {secondaryWarning && (
-        <Alert
-          type="warning"
-          showIcon
-          message="Một phần dữ liệu chưa tải được"
-          description={<span className="text-xs">{secondaryWarning}</span>}
-          className="rounded-2xl"
-        />
+        <Callout variant="warning" title="Một phần dữ liệu chưa tải được">
+          {secondaryWarning}
+        </Callout>
       )}
 
-      {/* Ultra-Premium Profile Hero Card with Gradient Cover */}
-      <div className="rounded-3xl glass-panel-premium overflow-hidden shadow-xl border border-white/80">
-        {/* Cover Strip */}
-        <div className="h-32 bg-gradient-to-r from-brand-indigo-900 via-indigo-800 to-slate-900 relative">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.2),transparent_50%)]"></div>
+      {/* Hero Profile Banner */}
+      <Card padding="none" className="overflow-hidden border border-border/80 shadow-brand-sm">
+        {/* Dark Slate Hero Cover with ambient trust badge */}
+        <div className="h-32 sm:h-36 bg-gradient-to-r from-brand-navy-950 via-slate-900 to-brand-navy-900 relative flex items-start justify-end p-4 sm:p-6" aria-hidden="true">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(37,99,235,0.25),transparent_60%)]" />
+          <div className="relative z-10 flex items-center gap-2 px-3 py-1.5 rounded-pill bg-white/10 backdrop-blur-md border border-white/15 text-white text-[11px] font-semibold tracking-wide">
+            <Icon name="shield" size="xs" className="text-emerald-400" filled />
+            <span>Học phí bảo chứng 100% Escrow • Giải ngân từng buổi</span>
+          </div>
         </div>
 
-        {/* Profile Content Body */}
-        <div className="px-6 sm:px-10 pb-8 pt-0 relative">
-          <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6 -mt-16 sm:-mt-14">
+        {/* Profile Details Container */}
+        <div className="px-6 sm:px-8 pb-6 relative">
+          <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6 -mt-16 sm:-mt-18">
             <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
               <div className="relative shrink-0">
-                <img
+                <Avatar
                   src={tutor.avatarUrl}
-                  alt={tutor.fullName}
-                  className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl object-cover border-4 border-white shadow-xl ring-2 ring-brand-indigo-500/20"
+                  name={tutor.fullName}
+                  size="xl"
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-brand-xl border-4 border-white shadow-brand-lg ring-1 ring-border"
                 />
-                <span className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-financial-available border-2 border-white" title="Trực tuyến"></span>
+                <span
+                  className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-success border-2 border-white ring-1 ring-border"
+                  title="Gia sư sẵn sàng nhận lớp"
+                />
               </div>
 
-              <div className="space-y-1.5 pb-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{tutor.fullName}</h1>
-                  {tutor.isVerified === true && (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-financial-available text-xs font-extrabold border border-emerald-200 shadow-2xs">
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-                      Verified Master Tutor
-                    </span>
+              <div className="space-y-2 pb-1">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="text-headline-1 sm:text-display-sm text-fg font-bold tracking-tight">
+                    {tutor.fullName}
+                  </h1>
+                  {tutor.isVerified && (
+                    <Badge variant="success" size="sm" icon={<Icon name="verified" size="xs" filled />}>
+                      Đã thẩm định bằng cấp
+                    </Badge>
                   )}
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-brand-indigo-50 text-brand-indigo-700 text-xs font-extrabold border border-brand-indigo-100">
+                  <Badge variant={modeMeta.color} size="sm">
                     {modeMeta.label}
-                  </span>
+                  </Badge>
                 </div>
-                <p className="text-xs sm:text-sm font-bold text-brand-indigo-600">{tutor.education}</p>
-                <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-1">
-                  <span className="flex items-center gap-1 font-extrabold text-amber-500">
-                    <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    {hasRating ? ratingValue.toFixed(2) : '—'} ({tutor.totalReviews ?? 0} nhận xét)
+
+                {tutor.education && (
+                  <p className="text-body-reg font-semibold text-brand-primary-700 flex items-center gap-1.5">
+                    <Icon name="school" size="sm" className="text-brand-primary-500 shrink-0" />
+                    {tutor.education}
+                  </p>
+                )}
+
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-caption text-fg-muted pt-0.5">
+                  <span className="flex items-center gap-1 font-bold text-brand-secondary-600 bg-brand-secondary-50 px-2 py-0.5 rounded-brand-sm border border-brand-secondary-200">
+                    <Icon name="star" size="xs" filled className="text-brand-secondary-500" />
+                    {hasRating ? ratingValue.toFixed(2) : '—'} ({tutor.totalReviews ?? 0} đánh giá)
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-base text-emerald-500">history_edu</span>
-                    {tutor.experienceYears ?? 0} năm kinh nghiệm
+                    <Icon name="history_edu" size="sm" className="text-emerald-600" />
+                    {tutor.experienceYears ?? 0} năm giảng dạy
                   </span>
                   {tutor.address && (
                     <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-base text-slate-400">location_on</span>
+                      <Icon name="location_on" size="sm" className="text-neutral-400" />
                       {tutor.address}
                     </span>
                   )}
+                  <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                    <Icon name="check_circle" size="xs" className="text-emerald-500" />
+                    Phản hồi nhanh trong ngày
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Header Actions */}
-            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto pb-1">
-              <Link
+            {/* Header action buttons */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+              <Button
+                as={Link}
                 to={`/app/messages?tutorId=${tutor.id}`}
-                className="px-5 py-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-extrabold text-xs transition-colors flex items-center justify-center gap-2 shadow-2xs"
+                variant="outline"
+                size="md"
+                icon={<Icon name="chat" size="sm" />}
               >
-                <span className="material-symbols-outlined text-lg">chat</span>
-                Thương Lượng Riêng
-              </Link>
-              <a
+                Nhắn tin trao đổi
+              </Button>
+              <Button
+                as="a"
                 href="#packages"
-                className="px-6 py-3 rounded-2xl bg-gradient-to-r from-brand-indigo-600 to-indigo-700 hover:from-brand-indigo-500 hover:to-indigo-600 text-white font-extrabold text-xs shadow-md shadow-brand-indigo-500/25 transition-all sheen-btn flex items-center justify-center gap-2"
+                variant="primary"
+                size="md"
+                iconRight={<Icon name="arrow_forward" size="sm" />}
               >
-                <span className="material-symbols-outlined text-lg">payments</span>
-                Xem Gói Dịch Vụ
-              </a>
+                Xem gói học niêm yết
+              </Button>
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
-      {/* Main Split View: Packages & Matrix */}
+      {/* Main Layout: Content (2 cols) + Sidebar Schedule (1 col) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left 2 Columns: Bio, Guarantee, Packages, Reviews */}
         <div className="lg:col-span-2 space-y-8">
-          {/* Bio & Intro Card */}
-          <div className="p-6 sm:p-8 rounded-3xl glass-panel-premium space-y-4">
-            <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-brand-indigo-600">article</span>
-              Giới Thiệu & Chuyên Môn
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-              {tutor.bio}
+          {/* About & Specialization */}
+          <Card padding="lg" className="space-y-4">
+            <CardHeader
+              title="Giới thiệu & Chuyên môn sư phạm"
+              icon={<Icon name="article" size="sm" className="text-brand-primary-600" />}
+            />
+            <p className="text-body-reg text-fg-secondary leading-relaxed whitespace-pre-line">
+              {tutor.bio || 'Chưa có thông tin giới thiệu chi tiết từ gia sư.'}
             </p>
 
-            {/* Subjects thật từ TutorProfileDto.Subjects */}
             {subjects.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {subjects.map((subject) => (
-                  <span
-                    key={subject.id ?? subject.subjectId ?? subject.subjectName}
-                    className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-brand-indigo-50/80 text-brand-indigo-700 border border-brand-indigo-100/50"
-                  >
-                    {subject.subjectName}
-                  </span>
-                ))}
+              <div className="pt-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-fg-muted block mb-2">
+                  Lĩnh vực & Môn học giảng dạy:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {subjects.map((subject) => (
+                    <Tag key={subject.id ?? subject.subjectId ?? subject.subjectName}>
+                      {subject.subjectName}
+                    </Tag>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Smart Escrow Seal Card */}
-            <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-50/60 to-white border border-emerald-500/30 flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-2xl bg-financial-available text-white flex items-center justify-center shrink-0 shadow-xs">
-                <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  shield
-                </span>
+            {/* 3-Pillar Security & Trust Banner */}
+            <div className="mt-4 p-4 rounded-brand-lg bg-emerald-50/70 border border-emerald-200/80 text-caption space-y-3">
+              <div className="flex items-center gap-2 text-emerald-800 font-bold text-body-reg">
+                <Icon name="shield" size="sm" filled className="text-emerald-600" />
+                <span>Bảo chứng chất lượng học tập & tài chính 3 lớp</span>
               </div>
-              <div className="text-xs space-y-1">
-                <span className="font-extrabold text-emerald-950 block text-sm">
-                  Chứng Thư Ký Quỹ Học Phí Escrow Độc Quyền
-                </span>
-                <p className="text-slate-600 leading-relaxed text-[11px]">
-                  Mọi khoản học phí bạn thanh toán đều được khóa cứng tại ví Escrow của sàn TutorHub. Gia sư chỉ được nhận tiền từng buổi sau khi học viên xác nhận tham gia buổi học qua đối soát 2 chiều 24h.
-                </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div className="p-2.5 rounded-brand-md bg-white/80 border border-emerald-100 space-y-1">
+                  <div className="font-bold text-emerald-900 flex items-center gap-1.5">
+                    <Icon name="hourglass_top" size="xs" className="text-emerald-600" />
+                    <span>Giữ chỗ 15 phút</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-700 leading-snug">
+                    Khóa lịch độc quyền theo server-time, đảm bảo slot học không bị trùng lặp.
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-brand-md bg-white/80 border border-emerald-100 space-y-1">
+                  <div className="font-bold text-emerald-900 flex items-center gap-1.5">
+                    <Icon name="account_balance_wallet" size="xs" className="text-emerald-600" />
+                    <span>Ví bảo chứng Escrow</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-700 leading-snug">
+                    Học phí được giữ an toàn, chỉ giải ngân cho gia sư sau khi từng buổi kết thúc.
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-brand-md bg-white/80 border border-emerald-100 space-y-1">
+                  <div className="font-bold text-emerald-900 flex items-center gap-1.5">
+                    <Icon name="done_all" size="xs" className="text-emerald-600" />
+                    <span>Đối soát 2 chiều 24h</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-700 leading-snug">
+                    Xác nhận hoàn thành hai chiều minh bạch, có trọng tài giải quyết tranh chấp.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          </Card>
 
-          {/* Service Packages Cards Section */}
-          <div id="packages" className="space-y-6">
-            <div>
-              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Danh Mục Gói Học Niêm Yết</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Chọn gói phù hợp để tiến hành giữ chỗ độc quyền trong 15 phút</p>
+          {/* Service Packages List */}
+          <section id="packages" className="space-y-4 scroll-mt-24" aria-labelledby="packages-title">
+            <div className="flex items-baseline justify-between">
+              <div>
+                <h2 id="packages-title" className="text-headline-2 text-fg font-bold">
+                  Danh mục gói học niêm yết
+                </h2>
+                <p className="text-caption text-fg-muted mt-0.5">
+                  Lựa chọn gói học phù hợp để tiến hành giữ chỗ độc quyền trong 15 phút
+                </p>
+              </div>
+              <Badge variant="primary" size="sm">
+                {services.length} gói học
+              </Badge>
             </div>
 
             {services.length === 0 ? (
-              <div className="p-10 rounded-3xl glass-panel-premium text-center space-y-2">
-                <span className="material-symbols-outlined text-4xl text-slate-300">inventory_2</span>
-                <p className="text-sm font-extrabold text-slate-700">Gia sư chưa niêm yết gói học nào</p>
-                <p className="text-xs text-slate-500">Hãy nhắn tin để thương lượng gói học riêng.</p>
-              </div>
+              <EmptyState
+                icon="inventory_2"
+                title="Gia sư chưa niêm yết gói học nào"
+                description="Bạn có thể gửi tin nhắn để trao đổi lộ trình và thương lượng gói học riêng."
+                actionLabel="Nhắn tin với gia sư"
+                actionPath={`/app/messages?tutorId=${tutor.id}`}
+              />
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {services.map((service) => {
                   const totalSessions = Number(service.totalSessions) || 0;
                   const price = Number(service.price);
-                  // ServiceSummaryDto không có giá/buổi ⇒ suy ra từ giá gói / số buổi.
                   const pricePerSession =
                     Number.isFinite(price) && totalSessions > 0 ? price / totalSessions : null;
                   const serviceModeMeta = getTeachingModeMeta(service.teachingMode);
+                  const hasTrial = Boolean(service.hasTrialLesson);
+
                   return (
-                    <div
+                    <Card
                       key={service.id}
-                      className={`rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 card-hover-lift ${
-                        service.hasTrialLesson
-                          ? 'glass-panel-premium border-2 border-brand-indigo-500 glow-indigo relative'
-                          : 'glass-panel-premium border border-slate-200/80'
+                      hoverable
+                      className={`relative flex flex-col justify-between overflow-hidden transition-all duration-200 ${
+                        hasTrial
+                          ? 'border-2 border-brand-primary-400 shadow-brand-md hover:border-brand-primary-600'
+                          : 'border border-border hover:border-brand-primary-300 hover:shadow-brand-md'
                       }`}
                     >
-                      {service.hasTrialLesson && (
-                        <div className="absolute -top-3.5 right-6 px-3 py-1 rounded-full bg-gradient-to-r from-brand-indigo-600 to-indigo-700 text-white text-[10px] font-extrabold uppercase shadow-sm tracking-wider">
-                          Có Buổi Học Thử
+                      {/* Top ribbon for trial lesson */}
+                      {hasTrial && (
+                        <div className="bg-gradient-to-r from-brand-secondary-500 to-amber-500 text-white text-[11px] font-bold px-3 py-1 text-center tracking-wide flex items-center justify-center gap-1.5">
+                          <Icon name="star" size="xs" filled />
+                          <span>HỖ TRỢ BUỔI HỌC THỬ TRẢI NGHIỆM</span>
                         </div>
                       )}
 
-                      <div className="space-y-4">
-                        <h3 className="text-base font-extrabold text-slate-900 leading-snug">{service.title}</h3>
-                        <p className="text-xs font-bold text-brand-indigo-600">{service.subjectName}</p>
-
-                        <div className="pt-3 space-y-2 text-xs text-slate-600 border-t border-slate-100">
-                          <div className="flex items-center justify-between">
-                            <span>Số buổi cấp phát:</span>
-                            <span className="font-extrabold text-slate-900">
-                              {totalSessions} buổi ({service.sessionDurationMinutes}p/buổi)
+                      <div className="p-5 space-y-4">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-bold text-brand-primary-700 uppercase tracking-wide">
+                              {service.subjectName}
                             </span>
+                            <Badge variant={serviceModeMeta.color} size="sm">
+                              {serviceModeMeta.label}
+                            </Badge>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span>Hình thức học:</span>
-                            <span className="font-extrabold text-slate-900">{serviceModeMeta.label}</span>
+                          <h3 className="text-headline-3 text-fg font-bold leading-snug">
+                            {service.title}
+                          </h3>
+                        </div>
+
+                        {/* Price Hero Callout */}
+                        <div className="p-3.5 rounded-brand-md bg-neutral-50/90 border border-border space-y-1.5">
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-caption text-fg-muted font-medium">Học phí trọn gói:</span>
+                            <div className="text-headline-1 text-success-strong font-bold">
+                              <Money value={service.price} />
+                            </div>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span>Đơn giá từng buổi:</span>
-                            <span className="font-extrabold text-brand-indigo-600 font-monospace-num">
-                              {pricePerSession === null ? '—' : `${formatCurrency(pricePerSession)} / buổi`}
+                          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/70">
+                            <span className="text-fg-secondary">Đơn giá chia theo buổi:</span>
+                            <span className="font-bold text-brand-primary-700">
+                              {pricePerSession === null ? '—' : <Money value={pricePerSession} />} / buổi
                             </span>
                           </div>
                         </div>
+
+                        {/* Value Checklist */}
+                        <ul className="space-y-2 text-caption text-fg-secondary">
+                          <li className="flex items-start gap-2">
+                            <Icon name="check_circle" size="xs" className="text-emerald-500 shrink-0 mt-0.5" />
+                            <span>
+                              <strong>{totalSessions} buổi học 1 kèm 1</strong> ({service.sessionDurationMinutes} phút / buổi)
+                            </span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Icon name="check_circle" size="xs" className="text-emerald-500 shrink-0 mt-0.5" />
+                            <span>Hình thức: <strong>{serviceModeMeta.label}</strong> linh hoạt</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Icon name="check_circle" size="xs" className="text-emerald-500 shrink-0 mt-0.5" />
+                            <span>Giải ngân từng buổi học sau khi học viên xác nhận</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Icon name="check_circle" size="xs" className="text-emerald-500 shrink-0 mt-0.5" />
+                            <span>Được hỗ trợ dời lịch học trước 24 giờ</span>
+                          </li>
+                        </ul>
                       </div>
 
-                      <div className="pt-6 mt-4 border-t border-slate-100 space-y-3">
-                        <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-500/20 text-[11px] text-emerald-800 flex items-center gap-2">
-                          <span className="material-symbols-outlined text-sm text-financial-available" style={{ fontVariationSettings: "'FILL' 1" }}>shield</span>
-                          <span>Bảo chứng Escrow từng buổi • Đối soát 2 chiều 24h</span>
-                        </div>
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-xs text-slate-400 font-bold">Học phí trọn gói:</span>
-                          <span className="text-2xl font-extrabold text-financial-available font-monospace-num">
-                            {formatCurrency(service.price)}
-                          </span>
-                        </div>
-
-                        <button
-                          type="button"
+                      {/* Card Footer with CTA */}
+                      <div className="p-5 pt-0 space-y-2.5">
+                        <Button
+                          variant="primary"
+                          fullWidth
+                          size="md"
+                          loading={bookingLoading === service.id}
                           onClick={() => handleBooking(service)}
-                          disabled={bookingLoading === service.id}
-                          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-brand-indigo-600 to-indigo-700 hover:from-brand-indigo-500 hover:to-indigo-600 text-white font-extrabold text-xs shadow-md shadow-brand-indigo-500/25 transition-all sheen-btn flex items-center justify-center gap-2 disabled:opacity-50"
+                          icon={
+                            bookingLoading !== service.id && (
+                              <Icon name="lock_clock" size="sm" />
+                            )
+                          }
                         >
-                          <span className="material-symbols-outlined text-base">lock_clock</span>
-                          {bookingLoading === service.id ? 'Đang Khóa Giữ Chỗ...' : 'Đặt gói & Khóa ký quỹ 15 phút'}
-                        </button>
+                          Đăng ký gói học (Giữ chỗ 15 phút)
+                        </Button>
+                        <p className="text-[10px] text-center text-fg-muted">
+                          Thanh toán an toàn qua VNPay • Tạm giữ bảo chứng Escrow
+                        </p>
                       </div>
-                    </div>
+                    </Card>
                   );
                 })}
               </div>
             )}
-          </div>
+          </section>
 
           {/* Student Reviews Section */}
-          <div className="p-6 sm:p-8 rounded-3xl glass-panel-premium space-y-6">
-            <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-amber-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-              Nhận Xét & Đánh Giá Thực Tế Từ Học Viên ({tutor.totalReviews ?? 0})
-            </h3>
+          <Card padding="lg" className="space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border">
+              <CardHeader
+                title={`Nhận xét & Đánh giá từ học viên (${tutor.totalReviews ?? 0})`}
+                icon={<Icon name="star" size="sm" filled className="text-brand-secondary-500" />}
+              />
+              {hasRating && (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center text-brand-secondary-500">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Icon
+                        key={i}
+                        name="star"
+                        size="sm"
+                        filled={i < Math.round(ratingValue)}
+                        className={i < Math.round(ratingValue) ? 'text-brand-secondary-500' : 'text-neutral-300'}
+                      />
+                    ))}
+                  </div>
+                  <span className="font-bold text-fg text-headline-3">{ratingValue.toFixed(1)}</span>
+                  <span className="text-caption text-fg-muted">/ 5.0</span>
+                </div>
+              )}
+            </div>
 
             {reviews.length === 0 ? (
-              <p className="text-xs text-slate-500">Gia sư chưa có nhận xét nào.</p>
+              <div className="py-6 text-center text-caption text-fg-muted">
+                <Icon name="chat" size="md" className="mx-auto text-neutral-300 mb-2" />
+                <p>Gia sư chưa có đánh giá nào từ học viên.</p>
+              </div>
             ) : (
-              <div className="space-y-4">
+              <ul className="space-y-4">
                 {reviews.map((review) => (
-                  <div key={review.id} className="p-5 rounded-2xl bg-slate-50/70 border border-slate-200/70 space-y-3">
-                    <div className="flex items-center justify-between">
+                  <li
+                    key={review.id}
+                    className="p-4 rounded-brand-md bg-neutral-50/80 border border-border space-y-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-brand-indigo-100 text-brand-indigo-700 font-extrabold flex items-center justify-center text-xs">
-                          {(review.studentName || '?').charAt(0)}
-                        </div>
+                        <Avatar name={review.studentName} size="md" className="shrink-0" />
                         <div>
-                          <span className="text-xs font-extrabold text-slate-900 block">{review.studentName}</span>
-                          <span className="text-[10px] text-slate-400">
+                          <div className="flex items-center gap-2">
+                            <span className="text-body-reg font-bold text-fg">
+                              {review.studentName}
+                            </span>
+                            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium border border-emerald-200">
+                              Đã hoàn thành khóa học
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-fg-muted">
                             {formatDateTime(review.createdAt, 'DD/MM/YYYY')}
                           </span>
                         </div>
                       </div>
-                      <div className="flex text-amber-400 text-sm">
-                        {'★'.repeat(Math.max(0, Math.round(Number(review.rating) || 0)))}
+
+                      <div
+                        className="flex items-center gap-0.5"
+                        role="img"
+                        aria-label={`Đánh giá ${review.rating} trên 5 sao`}
+                      >
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Icon
+                            key={i}
+                            name="star"
+                            size="xs"
+                            filled={i < Math.round(Number(review.rating) || 0)}
+                            className={
+                              i < Math.round(Number(review.rating) || 0)
+                                ? 'text-brand-secondary-500'
+                                : 'text-neutral-300'
+                            }
+                          />
+                        ))}
                       </div>
                     </div>
-                    <p className="text-xs text-slate-700 leading-relaxed">{review.comment}</p>
+
+                    <p className="text-caption text-fg-secondary leading-relaxed pl-1">
+                      {review.comment}
+                    </p>
+
                     {review.tutorReply && (
-                      <div className="p-3.5 rounded-xl bg-white border border-brand-indigo-100 text-xs text-slate-600 ml-3 space-y-1">
-                        <span className="font-extrabold text-brand-indigo-600 block text-[11px]">Phản hồi từ gia sư:</span>
-                        <p>{review.tutorReply}</p>
+                      <div className="p-3.5 rounded-brand-md bg-white border border-brand-primary-100 text-caption text-fg-secondary ml-4 space-y-1.5 shadow-brand-sm">
+                        <div className="flex items-center gap-1.5 text-brand-primary-700 font-bold text-[11px]">
+                          <Icon name="support_agent" size="xs" className="text-brand-primary-600" />
+                          <span>Phản hồi từ gia sư {tutor.fullName}:</span>
+                        </div>
+                        <p className="text-fg-secondary leading-relaxed">{review.tutorReply}</p>
                       </div>
                     )}
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
-          </div>
+          </Card>
         </div>
 
-        {/* Right Sidebar: Weekly Availability Matrix */}
-        <div className="space-y-6">
-          <div className="p-6 sm:p-7 rounded-3xl glass-panel-premium space-y-4 sticky top-24">
-            <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-brand-indigo-600">calendar_month</span>
-              Khung Giờ Rảnh Định Kỳ
-            </h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Múi giờ Asia/Ho_Chi_Minh (UTC+7). Các buổi học con sẽ được đối chiếu và xếp lịch dựa trên các slot này.
-            </p>
-
-            {availableDays.length === 0 ? (
-              <p className="text-xs text-slate-500 pt-1">
-                Gia sư chưa mở khung giờ rảnh trong khoảng thời gian tới.
-              </p>
-            ) : (
-              <div className="space-y-2.5 pt-1">
-                {availableDays.map((day) => (
-                  <div
-                    key={`${day.date ?? day.dayOfWeekName}`}
-                    className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-1.5 text-xs"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-slate-800">
-                        {getDayOfWeekLabel(day.dayOfWeekName) || day.dayOfWeekName}
-                        {day.date ? <span className="text-slate-400 font-medium"> • {day.date}</span> : null}
-                      </span>
-                      <span className="w-2 h-2 rounded-full bg-financial-available animate-pulse"></span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(day.availableSlots ?? []).map((slot, index) => (
-                        <span
-                          key={`${slot.startTime}-${index}`}
-                          className="px-2 py-0.5 rounded-lg bg-white border border-slate-200 font-extrabold text-brand-indigo-600 font-monospace-num text-[11px]"
-                        >
-                          {String(slot.startTime ?? '').slice(0, 5)} - {String(slot.endTime ?? '').slice(0, 5)}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+        {/* Right 1 Column: Sticky Weekly Schedule Card */}
+        <div>
+          <div className="lg:sticky lg:top-24 space-y-6">
+            <Card padding="lg" className="space-y-4 border border-border/90 shadow-brand-sm">
+              <div className="flex items-center justify-between pb-2 border-b border-border">
+                <CardHeader
+                  title="Khung giờ rảnh định kỳ"
+                  icon={<Icon name="calendar_month" size="sm" className="text-brand-primary-600" />}
+                />
+                <span className="text-[10px] font-mono text-fg-muted bg-neutral-100 px-2 py-0.5 rounded">
+                  UTC+7
+                </span>
               </div>
-            )}
 
-            <div className="pt-3 border-t border-slate-100">
-              <Link
-                to={`/app/messages?tutorId=${tutor.id}`}
-                className="w-full py-3 rounded-2xl border border-slate-200 hover:bg-slate-50 text-xs font-extrabold text-slate-700 flex items-center justify-center gap-2 transition-colors"
-              >
-                <span className="material-symbols-outlined text-base">edit_calendar</span>
-                Đề Xuất Khung Giờ Riêng
-              </Link>
+              <p className="text-caption text-fg-muted leading-relaxed">
+                Múi giờ Asia/Ho_Chi_Minh. Các buổi học sẽ được đối soát và xếp lịch tự động dựa theo các slot này.
+              </p>
+
+              {availableDays.length === 0 ? (
+                <div className="p-4 rounded-brand-md bg-neutral-50 border border-dashed border-border text-center space-y-2 text-caption text-fg-muted">
+                  <Icon name="event_available" size="md" className="mx-auto text-neutral-400" />
+                  <p>Gia sư chưa cập nhật lịch cố định tuần này.</p>
+                  <p className="text-[11px] text-fg-secondary">
+                    Bạn có thể nhắn tin trực tiếp để đề xuất khung giờ học linh hoạt theo mong muốn.
+                  </p>
+                </div>
+              ) : (
+                <ul className="space-y-3 pt-1">
+                  {availableDays.map((day) => (
+                    <li
+                      key={`${day.date ?? day.dayOfWeekName}`}
+                      className="p-3 rounded-brand-md bg-neutral-50/80 border border-border space-y-2 text-caption"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-fg">
+                          {getDayOfWeekLabel(day.dayOfWeekName) || day.dayOfWeekName}
+                          {day.date ? (
+                            <span className="text-fg-muted font-normal text-[11px]"> • {day.date}</span>
+                          ) : null}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-medium">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Sẵn sàng
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {(day.availableSlots ?? []).map((slot, index) => (
+                          <span
+                            key={`${slot.startTime}-${index}`}
+                            className="px-2.5 py-1 rounded-brand-sm bg-white border border-brand-primary-200 font-bold text-brand-primary-700 font-mono text-[11px] shadow-brand-sm inline-flex items-center gap-1"
+                          >
+                            <Icon name="hourglass_top" size="xs" className="text-brand-primary-500" />
+                            {String(slot.startTime ?? '').slice(0, 5)} - {String(slot.endTime ?? '').slice(0, 5)}
+                          </span>
+                        ))}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <div className="pt-3 border-t border-border">
+                <Button
+                  as={Link}
+                  to={`/app/messages?tutorId=${tutor.id}`}
+                  variant="outline"
+                  fullWidth
+                  size="md"
+                  icon={<Icon name="edit_calendar" size="sm" />}
+                >
+                  Đề xuất khung giờ riêng
+                </Button>
+              </div>
+            </Card>
+
+            {/* Platform commitment micro card */}
+            <div className="p-4 rounded-brand-lg bg-brand-navy-950 text-white space-y-2 shadow-brand-md">
+              <div className="flex items-center gap-2 text-emerald-400 font-bold text-caption">
+                <Icon name="verified" size="xs" filled />
+                <span>Quy trình bảo đảm học tập</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                TutorHub bảo vệ toàn vẹn quyền lợi của bạn. Mọi vấn đề về chất lượng hoặc vắng mặt đều được xử lý qua công cụ Trọng tài Dispute Engine.
+              </p>
             </div>
           </div>
         </div>

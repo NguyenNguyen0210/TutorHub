@@ -2,10 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import walletService from '@/services/wallet.service';
 import { formatCurrency, formatDateTime } from '@/utils/formatters';
-import { message } from 'antd';
+import Money from '@/components/ui/Money';
+import { useToast } from '@/components/ui/Toast';
 import ErrorState from '@/components/common/ErrorState';
+import { DetailSkeleton } from '@/components/common/Skeleton';
+import Card, { CardHeader } from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import Callout from '@/components/ui/Callout';
+import Icon from '@/components/ui/Icon';
+import Input, { Field } from '@/components/ui/Input';
+import { PageHeader } from '@/components/ui/StatCard';
+import { getWithdrawalStatusMeta } from '@/config/enums';
 
 export default function TutorWithdraw() {
+  const toast = useToast();
   const navigate = useNavigate();
   const [wallet, setWallet] = useState(null);
   const [payoutAccount, setPayoutAccount] = useState(null);
@@ -51,21 +62,22 @@ export default function TutorWithdraw() {
     };
   }, []);
 
+  // DEC-WD-001
   const withdrawableLimit = Math.max(0, (wallet?.availableBalance || 0) - (wallet?.heldBalance || 0));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const num = parseInt(amount, 10);
     if (!num || num < 50000) {
-      message.error('Số tiền rút tối thiểu là 50.000 ₫');
+      toast.error('Số tiền rút tối thiểu là 50.000 ₫');
       return;
     }
     if (num > withdrawableLimit) {
-      message.error('Số tiền rút vượt quá hạn mức được phép');
+      toast.error('Số tiền rút vượt quá hạn mức được phép');
       return;
     }
     if (!payoutAccount?.accountNumber) {
-      message.error('Chưa có thông tin tài khoản ngân hàng thụ hưởng.');
+      toast.error('Chưa có thông tin tài khoản ngân hàng thụ hưởng.');
       return;
     }
 
@@ -79,10 +91,10 @@ export default function TutorWithdraw() {
         accountHolderName: payoutAccount.accountHolderName,
         note: note.trim() || 'Rút thù lao giảng dạy',
       });
-      message.success(`Đã tạo lệnh rút ${formatCurrency(num)} thành công! Lệnh đang chờ xử lý.`);
+      toast.success(`Đã tạo lệnh rút ${formatCurrency(num)} thành công! Lệnh đang chờ xử lý.`);
       navigate('/tutor/wallet');
     } catch (err) {
-      message.error(err?.message || 'Không thể tạo lệnh rút tiền.');
+      toast.error(err?.message || 'Không thể tạo lệnh rút tiền.');
     } finally {
       setSubmitting(false);
     }
@@ -90,11 +102,8 @@ export default function TutorWithdraw() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto py-12 text-center text-slate-500">
-        <span className="material-symbols-outlined text-3xl animate-spin text-brand-indigo-600 block mb-2">
-          sync
-        </span>
-        Đang tải thông tin ví và tài khoản ngân hàng...
+      <div className="max-w-4xl mx-auto py-8">
+        <DetailSkeleton />
       </div>
     );
   }
@@ -108,40 +117,36 @@ export default function TutorWithdraw() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-6">
       <Link
         to="/tutor/wallet"
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-brand-indigo-600 transition-colors"
+        className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
       >
-        <span className="material-symbols-outlined text-base">arrow_back</span>
-        Quay lại Ví Bảo Chứng
+        <Icon name="arrow_back" size="sm" />
+        Quay lại ví bảo chứng
       </Link>
 
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-          Yêu Cầu Rút Tiền Về Tài Khoản Ngân Hàng
-        </h1>
-        <p className="text-xs sm:text-sm text-text-muted mt-1">
-          Chỉ được rút từ Số dư khả dụng (Available) sau khi trừ đi các khoản tiền đang bị phong tỏa tranh chấp (Held)
-        </p>
-      </div>
+      <PageHeader
+        title="Yêu cầu rút tiền về tài khoản ngân hàng"
+        subtitle="Chỉ được rút từ Số dư khả dụng (Available) sau khi trừ đi các khoản tiền đang bị phong tỏa tranh chấp (Held)"
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Form Card */}
-        <div className="lg:col-span-2 p-6 sm:p-8 rounded-3xl bg-white border border-border-light shadow-xs space-y-6">
-          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
-            <span className="font-bold text-emerald-900">Hạn mức được phép rút hiện tại:</span>
-            <span className="text-lg font-extrabold text-financial-available font-monospace-num">
-              {formatCurrency(withdrawableLimit)}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card padding="lg" className="lg:col-span-2 space-y-5">
+          <Callout variant="success" title="Hạn mức được phép rút hiện tại">
+            <span className="text-headline-2 font-semibold">
+              <Money value={withdrawableLimit} />
             </span>
-          </div>
+          </Callout>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1">
-              <label htmlFor="withdraw-amount" className="text-xs font-bold text-slate-700 block">
-                Số tiền muốn rút (₫)
-              </label>
-              <input
+            <Field
+              label="Số tiền muốn rút (₫)"
+              htmlFor="withdraw-amount"
+              required
+              hint={`Tối thiểu: 50.000 ₫ • Tối đa: ${formatCurrency(withdrawableLimit)}`}
+            >
+              <Input
                 id="withdraw-amount"
                 type="number"
                 required
@@ -149,109 +154,89 @@ export default function TutorWithdraw() {
                 onChange={(e) => setAmount(e.target.value)}
                 min="50000"
                 max={withdrawableLimit}
-                className="w-full px-4 py-3 rounded-xl border border-border-light text-slate-900 font-monospace-num font-bold text-base focus:ring-2 focus:ring-brand-indigo-500 outline-none"
+                className="tabular-nums font-bold text-body-lg"
               />
-              <span className="text-[11px] text-text-muted block">
-                Tối thiểu: 50.000 ₫ • Tối đa: {formatCurrency(withdrawableLimit)}
-              </span>
-            </div>
+            </Field>
 
-            {/* Linked Bank Card */}
             <div className="space-y-2">
-              <span className="text-xs font-bold text-slate-700 block">
+              <span className="block text-caption font-semibold text-fg-secondary uppercase tracking-wide">
                 Tài khoản ngân hàng thụ hưởng đã xác thực
               </span>
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
+              <div className="p-4 rounded-brand-md bg-neutral-50 border border-border flex items-center justify-between text-caption">
                 <div>
-                  <span className="font-bold text-slate-900 block">
+                  <span className="font-semibold text-fg block">
                     {payoutAccount?.bankName || 'Ngân hàng thụ hưởng'}
                   </span>
-                  <span className="text-slate-600 font-monospace-num">
-                    STK: {payoutAccount?.accountNumber || '—'} • {payoutAccount?.accountHolderName || ''}
+                  <span className="text-fg-secondary font-mono">
+                    STK: {payoutAccount?.accountNumber || '—'} •{' '}
+                    {payoutAccount?.accountHolderName || ''}
                   </span>
                 </div>
-                <span className="px-2 py-0.5 rounded bg-emerald-100 text-financial-available text-[10px] font-bold">
-                  ĐÃ XÁC THỰC KYC ✅
-                </span>
+                <Badge variant="success" size="sm">
+                  Đã xác thực KYC
+                </Badge>
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label htmlFor="withdraw-note" className="text-xs font-bold text-slate-700 block">
-                Ghi chú giao dịch
-              </label>
-              <input
+            <Field label="Ghi chú giao dịch" htmlFor="withdraw-note">
+              <Input
                 id="withdraw-note"
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-border-light text-slate-900 text-xs focus:ring-2 focus:ring-brand-indigo-500 outline-none"
               />
-            </div>
+            </Field>
 
-            <button
+            <Button
               type="submit"
-              disabled={submitting || withdrawableLimit < 50000}
-              className="w-full py-3.5 rounded-2xl bg-financial-available hover:bg-emerald-600 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="success"
+              size="lg"
+              fullWidth
+              loading={submitting}
+              disabled={withdrawableLimit < 50000}
+              icon={!submitting && <Icon name="send" size="sm" />}
             >
-              <span className="material-symbols-outlined text-base">send</span>
-              {submitting
-                ? 'Đang gửi lệnh...'
-                : `Xác Nhận Rút ${formatCurrency(parseInt(amount, 10) || 0)} Về Ngân Hàng`}
-            </button>
+              {`Xác nhận rút ${formatCurrency(parseInt(amount, 10) || 0)} về ngân hàng`}
+            </Button>
           </form>
-        </div>
+        </Card>
 
-        {/* Withdrawal History Card */}
-        <div className="space-y-6">
-          <div className="p-6 rounded-3xl bg-white border border-border-light shadow-xs space-y-4">
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-brand-indigo-600">history</span>
-              Lệnh Rút Gần Đây
-            </h3>
+        <Card padding="md" className="space-y-4">
+          <CardHeader title="Lệnh rút gần đây" icon={<Icon name="history" size="sm" />} />
 
-            {withdrawals.length === 0 ? (
-              <p className="text-xs text-slate-400 m-0 text-center py-4">Chưa có giao dịch rút tiền nào.</p>
-            ) : (
-              <div className="space-y-3 text-xs">
-                {withdrawals.map((w) => (
-                  <div key={w.id} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-                    <div className="flex justify-between">
-                      <span className="font-monospace-num font-bold text-slate-800">
+          {withdrawals.length === 0 ? (
+            <p className="text-caption text-fg-muted text-center py-4">
+              Chưa có giao dịch rút tiền nào.
+            </p>
+          ) : (
+            <ul className="space-y-3 text-caption">
+              {withdrawals.map((w) => {
+                const meta = getWithdrawalStatusMeta(w.status);
+                return (
+                  <li
+                    key={w.id}
+                    className="p-3.5 rounded-brand-md bg-neutral-50 border border-border space-y-1"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-mono font-bold text-fg">
                         {w.id.slice(0, 8).toUpperCase()}
                       </span>
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          w.status === 'Completed'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : w.status === 'Processing'
-                            ? 'bg-blue-100 text-blue-800'
-                            : w.status === 'Failed'
-                            ? 'bg-rose-100 text-rose-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {w.status === 'Completed'
-                          ? 'Thành công ✅'
-                          : w.status === 'Processing'
-                          ? 'Đang xử lý'
-                          : w.status === 'Failed'
-                          ? 'Thất bại'
-                          : 'Chờ duyệt ⏳'}
-                      </span>
+                      <Badge variant={meta.color} size="sm">
+                        {meta.label}
+                      </Badge>
                     </div>
-                    <div className="flex justify-between text-text-muted">
+                    <div className="flex justify-between text-fg-muted">
                       <span>{formatDateTime(w.requestedAt, 'DD/MM/YYYY')}</span>
-                      <span className="font-bold text-slate-800 font-monospace-num">
+                      <span className="font-bold text-fg tabular-nums">
                         {formatCurrency(w.amount)}
                       </span>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
       </div>
     </div>
   );

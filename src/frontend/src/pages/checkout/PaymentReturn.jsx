@@ -1,8 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import paymentService from '@/services/payment.service';
-import { formatCurrency } from '@/utils/formatters';
+import Money from '@/components/ui/Money';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Callout from '@/components/ui/Callout';
+import Icon from '@/components/ui/Icon';
+import { Spinner } from '@/components/ui/StatCard';
 
+/**
+ * Màn hình tiếp nhận kết quả VNPay — READ-ONLY.
+ * Mọi mutation tài chính nằm trong IPN webhook + DB transaction ở backend.
+ * Trang này chỉ đọc kết quả đã được server xác nhận qua `processPaymentReturn`.
+ */
 export default function PaymentReturn() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -78,14 +88,17 @@ export default function PaymentReturn() {
 
   if (verifying) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center p-4">
-        <div className="w-full max-w-xl bg-white rounded-3xl border border-border-light p-8 sm:p-10 shadow-xl space-y-4 text-center">
-          <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center bg-brand-indigo-50 text-brand-indigo-600">
-            <span className="material-symbols-outlined text-3xl animate-spin">sync</span>
+      <div className="min-h-[60vh] flex items-center justify-center p-4">
+        <Card padding="lg" className="w-full max-w-xl text-center space-y-4">
+          <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center bg-brand-primary-50 text-brand-primary-600">
+            <Spinner size="lg" label="Đang đối soát kết quả với VNPay" />
           </div>
-          <h2 className="text-xl font-extrabold text-slate-900">Đang đối soát kết quả với VNPay...</h2>
-          <p className="text-xs text-slate-500">Vui lòng chờ trong giây lát, hệ thống đang kiểm tra chữ ký số và cập nhật hợp đồng học tập.</p>
-        </div>
+          <h2 className="text-headline-2 text-fg">Đang đối soát kết quả với VNPay...</h2>
+          <p className="text-caption text-fg-muted">
+            Vui lòng chờ trong giây lát, hệ thống đang kiểm tra chữ ký số và cập nhật hợp đồng
+            học tập.
+          </p>
+        </Card>
       </div>
     );
   }
@@ -93,26 +106,25 @@ export default function PaymentReturn() {
   const isSuccess = Boolean(result?.success);
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center p-4">
-      <div className="w-full max-w-xl bg-white rounded-3xl border border-border-light p-8 sm:p-10 shadow-xl space-y-6 text-center">
-        {/* Status Icon */}
+    <div className="min-h-[60vh] flex items-center justify-center p-4">
+      <Card padding="lg" className="w-full max-w-xl text-center space-y-5">
         <div
-          className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center border-4 ${
+          className={
             isSuccess
-              ? 'bg-emerald-100 text-financial-available border-emerald-50'
-              : 'bg-rose-100 text-rose-600 border-rose-50'
-          }`}
+              ? 'w-20 h-20 mx-auto rounded-full flex items-center justify-center bg-success-subtle text-success border-4 border-success/10'
+              : 'w-20 h-20 mx-auto rounded-full flex items-center justify-center bg-danger-subtle text-danger border-4 border-danger/10'
+          }
+          role="img"
+          aria-label={isSuccess ? 'Thanh toán thành công' : 'Thanh toán thất bại'}
         >
-          <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-            {isSuccess ? 'check_circle' : 'cancel'}
-          </span>
+          <Icon name={isSuccess ? 'check_circle' : 'cancel'} size="xl" filled />
         </div>
 
         <div className="space-y-1">
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            {isSuccess ? 'Thanh Toán Ký Quỹ Thành Công!' : 'Thanh Toán Không Thành Công'}
+          <h1 className="text-headline-1 text-fg">
+            {isSuccess ? 'Thanh toán ký quỹ thành công!' : 'Thanh toán không thành công'}
           </h1>
-          <p className="text-xs text-text-muted">
+          <p className="text-caption text-fg-muted">
             {result?.message ||
               (isSuccess
                 ? 'Hợp đồng học tập đã được kích hoạt & học phí đã được bảo toàn trong ví Escrow.'
@@ -120,110 +132,118 @@ export default function PaymentReturn() {
           </p>
         </div>
 
-        {/* Receipt Details Card */}
-        <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3 text-left text-xs">
-          <div className="flex justify-between pb-2 border-b border-slate-200">
-            <span className="text-slate-500">Cổng thanh toán:</span>
-            <span className="font-bold text-slate-800">VNPay Sandbox 2.1.0</span>
+        <dl className="p-5 rounded-brand-md bg-neutral-50 border border-border space-y-3 text-left text-caption">
+          <div className="flex justify-between pb-2 border-b border-border">
+            <dt className="text-fg-muted">Cổng thanh toán:</dt>
+            <dd className="font-semibold text-fg">VNPay Sandbox 2.1.0</dd>
           </div>
           {result?.transactionNo && (
-            <div className="flex justify-between pb-2 border-b border-slate-200">
-              <span className="text-slate-500">Mã giao dịch VNPay:</span>
-              <span className="font-monospace-num font-bold text-slate-800">{result.transactionNo}</span>
+            <div className="flex justify-between pb-2 border-b border-border">
+              <dt className="text-fg-muted">Mã giao dịch VNPay:</dt>
+              <dd className="font-mono font-bold text-fg">{result.transactionNo}</dd>
             </div>
           )}
           {result?.merchantReference && (
-            <div className="flex justify-between pb-2 border-b border-slate-200">
-              <span className="text-slate-500">Mã đơn đặt chỗ:</span>
-              <span className="font-monospace-num font-bold text-brand-indigo-600">{result.merchantReference}</span>
+            <div className="flex justify-between pb-2 border-b border-border">
+              <dt className="text-fg-muted">Mã đơn đặt chỗ:</dt>
+              <dd className="font-mono font-bold text-brand-primary-700">
+                {result.merchantReference}
+              </dd>
             </div>
           )}
           <div className="flex justify-between items-baseline pt-1">
-            <span className="text-slate-500 font-bold">Số tiền:</span>
-            <span
-              className={`text-lg font-extrabold font-monospace-num ${
-                isSuccess ? 'text-financial-available' : 'text-slate-700'
-              }`}
+            <dt className="text-fg-muted font-semibold">Số tiền:</dt>
+            <dd
+              className={
+                isSuccess
+                  ? 'text-headline-2 text-success-strong font-semibold'
+                  : 'text-headline-2 text-fg font-semibold'
+              }
             >
-              {formatCurrency(result?.amount || 0)}
-            </span>
+              <Money value={result?.amount || 0} />
+            </dd>
           </div>
-        </div>
+        </dl>
 
-        {/* Escrow Information (Success only) */}
         {isSuccess ? (
           <>
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-left space-y-1.5 text-xs text-emerald-900">
-              <div className="flex items-center gap-1.5 font-bold">
-                <span className="material-symbols-outlined text-financial-available text-lg">verified_user</span>
-                Hệ Thống Smart Escrow Đã Tiếp Nhận Học Phí:
-              </div>
-              <ul className="list-disc list-inside space-y-1 text-[11px] text-emerald-800 pl-1">
+            <Callout
+              variant="success"
+              title="Hệ thống Escrow đã tiếp nhận học phí"
+              icon={<Icon name="verified_user" size="md" filled />}
+            >
+              <ul className="list-disc list-inside space-y-1 pl-1">
                 <li>Hợp đồng học tập đã chính thức có hiệu lực.</li>
                 <li>Tự động phân rã các buổi học con tương ứng.</li>
-                <li>Học phí chỉ giải ngân từng buổi sau khi học viên và gia sư đối soát điểm danh 2 chiều.</li>
+                <li>
+                  Học phí chỉ giải ngân từng buổi sau khi học viên và gia sư đối soát điểm danh 2
+                  chiều.
+                </li>
               </ul>
-            </div>
+            </Callout>
 
-            <p className="text-xs text-slate-500">
+            <p className="text-caption text-fg-muted">
               Đang tự động chuyển hướng đến Bàn học sau{' '}
-              <span className="font-bold text-brand-indigo-600 font-monospace-num">{countdown}</span> giây...
+              <span className="font-bold text-brand-primary-700 font-mono">{countdown}</span>{' '}
+              giây...
             </p>
           </>
         ) : (
-          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-left text-xs text-amber-900 space-y-1">
-            <p className="font-bold m-0 flex items-center gap-1">
-              <span className="material-symbols-outlined text-amber-600 text-sm">info</span>
-              Lưu ý an toàn:
-            </p>
-            <p className="m-0 text-[11px] text-amber-800">
-              Nếu bạn đã bị trừ tiền trong tài khoản ngân hàng nhưng màn hình thông báo thất bại, vui lòng giữ lại mã tham chiếu và liên hệ ban hỗ trợ TutorHub để đối soát.
-            </p>
-          </div>
+          <Callout variant="holding" title="Lưu ý an toàn">
+            Nếu bạn đã bị trừ tiền trong tài khoản ngân hàng nhưng màn hình thông báo thất bại,
+            vui lòng giữ lại mã tham chiếu và liên hệ ban hỗ trợ TutorHub để đối soát.
+          </Callout>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row gap-3 pt-1">
           {isSuccess ? (
             <>
-              <Link
+              <Button
+                as={Link}
                 to="/student/dashboard"
-                className="flex-1 py-3 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5"
+                variant="primary"
+                size="lg"
+                className="flex-1"
+                icon={<Icon name="space_dashboard" size="sm" />}
               >
-                <span className="material-symbols-outlined text-base">space_dashboard</span>
-                Vào Bàn Học Của Tôi
-              </Link>
-              <button
-                type="button"
+                Vào bàn học của tôi
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
                 onClick={() => window.print()}
-                className="py-3 px-5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
+                icon={<Icon name="receipt" size="sm" />}
               >
-                <span className="material-symbols-outlined text-base">receipt</span>
-                In Biên Lai
-              </button>
+                In biên lai
+              </Button>
             </>
           ) : (
             <>
-              <Link
+              <Button
+                as={Link}
                 to="/tutors"
-                className="flex-1 py-3 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5"
+                variant="primary"
+                size="lg"
+                className="flex-1"
+                icon={<Icon name="arrow_back" size="sm" />}
               >
-                <span className="material-symbols-outlined text-base">arrow_back</span>
-                Khám Phá Gia Sư Khác
-              </Link>
+                Khám phá gia sư khác
+              </Button>
               {result?.bookingId && result?.bookingId !== '00000000-0000-0000-0000-000000000000' && (
-                <Link
+                <Button
+                  as={Link}
                   to={`/student/bookings/${result.bookingId}/checkout`}
-                  className="py-3 px-5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors flex items-center justify-center gap-1.5"
+                  variant="outline"
+                  size="lg"
+                  icon={<Icon name="refresh" size="sm" />}
                 >
-                  <span className="material-symbols-outlined text-base">refresh</span>
-                  Thử Thanh Toán Lại
-                </Link>
+                  Thử thanh toán lại
+                </Button>
               )}
             </>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

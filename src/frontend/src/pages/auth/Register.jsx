@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { message } from 'antd';
+import { cn } from '@/lib/cn';
+import { useToast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/store/authStore';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Input, { Field, Checkbox } from '@/components/ui/Input';
+import Callout from '@/components/ui/Callout';
+import Icon from '@/components/ui/Icon';
 
 export default function Register() {
+  const toast = useToast();
   const navigate = useNavigate();
   const { registerWithCredentials } = useAuthStore();
   const [selectedRole, setSelectedRole] = useState('Student');
@@ -22,12 +29,16 @@ export default function Register() {
       setErrorMsg('Vui lòng điền đầy đủ các thông tin bắt buộc.');
       return;
     }
+    if (password.length < 8) {
+      setErrorMsg('Mật khẩu cần tối thiểu 8 ký tự.');
+      return;
+    }
     if (password !== confirmPassword) {
       setErrorMsg('Mật khẩu xác nhận không khớp.');
       return;
     }
     if (!agreeTerms) {
-      setErrorMsg('Vui lòng đồng ý với Điều khoản Bảo chứng Escrow.');
+      setErrorMsg('Vui lòng đồng ý với Điều khoản dịch vụ và chính sách bảo chứng.');
       return;
     }
 
@@ -36,7 +47,7 @@ export default function Register() {
       setErrorMsg('');
       await registerWithCredentials(email, password, fullName, phoneNumber, selectedRole);
 
-      message.success('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
+      toast.success('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
       navigate('/auth/login');
     } catch (err) {
       setErrorMsg(err.message || 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.');
@@ -46,172 +57,199 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center p-4">
-      <div className="w-full max-w-lg bg-white rounded-3xl border border-border-light p-8 sm:p-10 shadow-xl space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <Link to="/" className="inline-flex items-center gap-2 mb-1">
-            <div className="w-10 h-10 rounded-xl bg-brand-indigo-50 flex items-center justify-center border border-brand-indigo-100 shadow-xs">
-              <span className="material-symbols-outlined text-financial-available text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                verified_user
+    <Card padding="lg" className="w-full shadow-brand-lg border border-border space-y-6">
+      <div className="space-y-1 text-center sm:text-left">
+        <h1 className="text-headline-1 text-fg font-bold">Tạo tài khoản mới</h1>
+        <p className="text-caption text-fg-muted">
+          Chọn vai trò của bạn để bắt đầu học tập hoặc giảng dạy có bảo chứng
+        </p>
+      </div>
+
+      {/* Role Selection Cards */}
+      <div
+        className="grid grid-cols-2 gap-3"
+        role="radiogroup"
+        aria-label="Chọn vai trò của bạn"
+      >
+        <button
+          type="button"
+          role="radio"
+          aria-checked={selectedRole === 'Student'}
+          onClick={() => setSelectedRole('Student')}
+          className={cn(
+            'p-3.5 rounded-brand-md border-2 text-left transition-all cursor-pointer flex flex-col justify-between space-y-1',
+            selectedRole === 'Student'
+              ? 'border-brand-primary-600 bg-brand-primary-50/40 shadow-brand-sm'
+              : 'border-border bg-surface hover:border-neutral-300'
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <Icon
+              name="school"
+              size="sm"
+              className={selectedRole === 'Student' ? 'text-brand-primary-600' : 'text-fg-muted'}
+            />
+            {selectedRole === 'Student' && (
+              <span className="w-4 h-4 rounded-full bg-brand-primary-600 text-white flex items-center justify-center">
+                <Icon name="check" size="xs" />
               </span>
-            </div>
-            <span className="text-2xl font-extrabold text-brand-indigo-600 tracking-tight">
-              Tutor<span className="text-brand-navy-900">Hub</span>
-            </span>
-          </Link>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Tạo Tài Khoản Mới</h1>
-          <p className="text-xs text-text-muted">Chọn vai trò tham gia nền tảng bảo chứng học phí 2 chiều</p>
-        </div>
-
-        {/* Role Switcher Tabs */}
-        <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-2xl">
-          <button
-            type="button"
-            onClick={() => setSelectedRole('Student')}
-            className={`py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-              selectedRole === 'Student'
-                ? 'bg-white text-brand-indigo-600 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <span className="material-symbols-outlined text-base">school</span>
-            Tôi Là Học Viên
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedRole('Tutor')}
-            className={`py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-              selectedRole === 'Tutor'
-                ? 'bg-white text-financial-available shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <span className="material-symbols-outlined text-base">psychology</span>
-            Tôi Là Gia Sư
-          </button>
-        </div>
-
-        {/* Error alert */}
-        {errorMsg && (
-          <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-            <span className="material-symbols-outlined text-base shrink-0">error</span>
-            <span>{errorMsg}</span>
+            )}
           </div>
-        )}
+          <div>
+            <span className="font-bold text-caption text-fg block">Tôi là Học viên</span>
+            <span className="text-[10px] text-fg-muted block">Tìm gia sư & học tập có bảo chứng</span>
+          </div>
+        </button>
 
-        {/* Register Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <label htmlFor="reg-fullname" className="text-xs font-bold text-slate-700 block">
-              Họ và tên
-            </label>
-            <input
+        <button
+          type="button"
+          role="radio"
+          aria-checked={selectedRole === 'Tutor'}
+          onClick={() => setSelectedRole('Tutor')}
+          className={cn(
+            'p-3.5 rounded-brand-md border-2 text-left transition-all cursor-pointer flex flex-col justify-between space-y-1',
+            selectedRole === 'Tutor'
+              ? 'border-emerald-600 bg-emerald-50/40 shadow-brand-sm'
+              : 'border-border bg-surface hover:border-neutral-300'
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <Icon
+              name="psychology"
+              size="sm"
+              className={selectedRole === 'Tutor' ? 'text-emerald-600' : 'text-fg-muted'}
+            />
+            {selectedRole === 'Tutor' && (
+              <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                <Icon name="check" size="xs" />
+              </span>
+            )}
+          </div>
+          <div>
+            <span className="font-bold text-caption text-fg block">Tôi là Gia sư</span>
+            <span className="text-[10px] text-fg-muted block">Mở lớp & nhận thù lao qua Escrow</span>
+          </div>
+        </button>
+      </div>
+
+      {errorMsg && <Callout variant="danger">{errorMsg}</Callout>}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Field label="Họ và tên đầy đủ" htmlFor="reg-fullname" required>
+          <div className="relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-muted pointer-events-none">
+              <Icon name="person" size="sm" />
+            </span>
+            <Input
               id="reg-fullname"
               type="text"
               required
+              autoComplete="name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Nguyễn Văn A"
-              className="w-full px-4 py-2.5 rounded-xl border border-border-light text-slate-900 text-xs font-medium focus:ring-2 focus:ring-brand-indigo-500 outline-none"
+              className="pl-10"
             />
           </div>
+        </Field>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label htmlFor="reg-email" className="text-xs font-bold text-slate-700 block">
-                Email
-              </label>
-              <input
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Địa chỉ email" htmlFor="reg-email" required>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-muted pointer-events-none">
+                <Icon name="mail" size="sm" />
+              </span>
+              <Input
                 id="reg-email"
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
-                className="w-full px-4 py-2.5 rounded-xl border border-border-light text-slate-900 text-xs font-medium focus:ring-2 focus:ring-brand-indigo-500 outline-none"
+                className="pl-10"
               />
             </div>
-            <div className="space-y-1">
-              <label htmlFor="reg-phone" className="text-xs font-bold text-slate-700 block">
-                Số điện thoại
-              </label>
-              <input
+          </Field>
+
+          <Field label="Số điện thoại" htmlFor="reg-phone">
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-muted pointer-events-none">
+                <Icon name="phone" size="sm" />
+              </span>
+              <Input
                 id="reg-phone"
                 type="tel"
+                autoComplete="tel"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="0912345678"
-                className="w-full px-4 py-2.5 rounded-xl border border-border-light text-slate-900 text-xs font-medium focus:ring-2 focus:ring-brand-indigo-500 outline-none"
+                className="pl-10"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label htmlFor="reg-password" className="text-xs font-bold text-slate-700 block">
-                Mật khẩu
-              </label>
-              <input
-                id="reg-password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Tối thiểu 8 ký tự"
-                className="w-full px-4 py-2.5 rounded-xl border border-border-light text-slate-900 text-xs font-medium focus:ring-2 focus:ring-brand-indigo-500 outline-none"
-              />
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="reg-confirm-password" className="text-xs font-bold text-slate-700 block">
-                Xác nhận mật khẩu
-              </label>
-              <input
-                id="reg-confirm-password"
-                type="password"
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Nhập lại mật khẩu"
-                className="w-full px-4 py-2.5 rounded-xl border border-border-light text-slate-900 text-xs font-medium focus:ring-2 focus:ring-brand-indigo-500 outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="pt-2">
-            <label htmlFor="reg-terms" className="flex items-start gap-2 cursor-pointer">
-              <input
-                id="reg-terms"
-                type="checkbox"
-                checked={agreeTerms}
-                onChange={(e) => setAgreeTerms(e.target.checked)}
-                className="w-4 h-4 mt-0.5 rounded text-brand-indigo-600 focus:ring-brand-indigo-500 border-border-light"
-              />
-              <span className="text-xs text-slate-600 leading-normal">
-                Tôi đồng ý với <Link to="/tutors" className="text-brand-indigo-600 font-bold underline">Điều khoản dịch vụ</Link> và cơ chế bảo chứng ký quỹ học phí <Link to="/tutors" className="text-financial-available font-bold underline">Escrow Guarantee</Link> của sàn TutorHub.
-              </span>
-            </label>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3.5 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            {loading ? 'Đang tạo tài khoản...' : 'Đăng Ký Tài Khoản'}
-            <span className="material-symbols-outlined text-base">person_add</span>
-          </button>
-        </form>
-
-        <div className="pt-4 border-t border-border-light text-center">
-          <p className="text-xs text-slate-600">
-            Đã có tài khoản?{' '}
-            <Link to="/auth/login" className="font-bold text-brand-indigo-600 hover:underline">
-              Đăng nhập ngay
-            </Link>
-          </p>
+          </Field>
         </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Mật khẩu" htmlFor="reg-password" required>
+            <Input
+              id="reg-password"
+              type="password"
+              required
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Tối thiểu 8 ký tự"
+            />
+          </Field>
+          <Field label="Xác nhận mật khẩu" htmlFor="reg-confirm-password" required>
+            <Input
+              id="reg-confirm-password"
+              type="password"
+              required
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Nhập lại mật khẩu"
+            />
+          </Field>
+        </div>
+
+        <Checkbox
+          id="reg-terms"
+          checked={agreeTerms}
+          onChange={(e) => setAgreeTerms(e.target.checked)}
+          label={
+            <span className="text-[12px] leading-tight text-fg-secondary">
+              Tôi đồng ý với{' '}
+              <Link to="/tutors" className="text-brand-primary-700 font-semibold underline">
+                Điều khoản dịch vụ
+              </Link>{' '}
+              và cam kết tuân thủ chính sách bảo chứng Escrow của TutorHub.
+            </span>
+          }
+        />
+
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          fullWidth
+          loading={loading}
+          icon={!loading && <Icon name="person_add" size="sm" />}
+        >
+          Đăng ký tài khoản ngay
+        </Button>
+      </form>
+
+      <div className="pt-4 border-t border-border text-center">
+        <p className="text-caption text-fg-secondary">
+          Đã có tài khoản TutorHub?{' '}
+          <Link to="/auth/login" className="font-semibold text-brand-primary-700 hover:underline">
+            Đăng nhập tại đây
+          </Link>
+        </p>
       </div>
-    </div>
+    </Card>
   );
 }

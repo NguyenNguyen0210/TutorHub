@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { cn } from '@/lib/cn';
 import paymentService from '@/services/payment.service';
 import bookingService from '@/services/booking.service';
 import CountdownTimer from '@/components/feedback/CountdownTimer';
 import { formatCurrency } from '@/utils/formatters';
-import { message } from 'antd';
+import Money from '@/components/ui/Money';
+import { useToast } from '@/components/ui/Toast';
 import { DetailSkeleton } from '@/components/common/Skeleton';
 import ErrorState from '@/components/common/ErrorState';
+import Card, { CardHeader } from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Callout from '@/components/ui/Callout';
+import Icon from '@/components/ui/Icon';
+import Avatar from '@/components/ui/Avatar';
+import Badge from '@/components/ui/Badge';
 
 export default function BookingCheckout() {
+  const toast = useToast();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -39,7 +48,7 @@ export default function BookingCheckout() {
         if (!cancelled) {
           setBooking(data);
           if (data?.status === 'Paid') {
-            message.info('Đơn hàng này đã được thanh toán.');
+            toast.info('Đơn hàng này đã được thanh toán thành công.');
             navigate('/student/dashboard');
           } else if (data?.status === 'Cancelled' || data?.status === 'Expired') {
             setIsExpired(true);
@@ -56,7 +65,7 @@ export default function BookingCheckout() {
     return () => {
       cancelled = true;
     };
-  }, [id, navigate]);
+  }, [id, navigate, toast]);
 
   if (loadingBooking) {
     return (
@@ -86,13 +95,12 @@ export default function BookingCheckout() {
 
   const handlePayVNPay = async () => {
     if (isExpired) {
-      message.error('Đơn giữ chỗ đã hết hạn. Vui lòng tạo lại đơn hàng mới.');
+      toast.error('Đơn giữ chỗ đã hết hạn. Vui lòng tạo lại đơn hàng mới.');
       return;
     }
     try {
       setLoading(true);
       setPaymentError(null);
-      // POST /payments/vnpay/create-url { bookingId } → PaymentRedirectDto
       const redirect = await paymentService.createVnPayUrl(booking.id);
 
       if (redirect?.paymentUrl) {
@@ -112,7 +120,6 @@ export default function BookingCheckout() {
     try {
       setSimulating(true);
       setPaymentError(null);
-      // Đảm bảo gateway attempt đã tồn tại
       try {
         await paymentService.createVnPayUrl(booking.id);
       } catch {
@@ -121,20 +128,44 @@ export default function BookingCheckout() {
 
       const result = await paymentService.simulateIpn(booking.id, success);
       if (result?.success || result?.ackCode === '00') {
-        message.success('Giả lập thanh toán thành công! Hợp đồng học tập đã được kích hoạt.');
+        toast.success('Giả lập thanh toán thành công! Hợp đồng học tập đã được kích hoạt.');
         navigate('/student/dashboard');
       } else {
-        message.warning(`Giả lập kết thúc với mã ${result?.ackCode || 'thất bại'}.`);
+        toast.warning(`Giả lập kết thúc với mã ${result?.ackCode || 'thất bại'}.`);
       }
     } catch (err) {
-      message.error(err?.message || 'Không thể gọi dev payment simulator.');
+      toast.error(err?.message || 'Không thể gọi dev payment simulator.');
     } finally {
       setSimulating(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      {/* Checkout Progress Stepper */}
+      <div className="flex items-center justify-between px-2 sm:px-6 py-3 rounded-brand-lg bg-surface border border-border text-caption">
+        <div className="flex items-center gap-2 text-emerald-700 font-semibold">
+          <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
+            <Icon name="check" size="xs" />
+          </span>
+          <span className="hidden sm:inline">1. Chọn gói học</span>
+        </div>
+        <div className="w-8 sm:w-16 h-0.5 bg-brand-primary-200" />
+        <div className="flex items-center gap-2 text-brand-primary-700 font-bold">
+          <span className="w-6 h-6 rounded-full bg-brand-primary-600 text-white flex items-center justify-center text-[11px] font-bold">
+            2
+          </span>
+          <span>Khóa giữ chỗ & Thanh toán</span>
+        </div>
+        <div className="w-8 sm:w-16 h-0.5 bg-neutral-200" />
+        <div className="flex items-center gap-2 text-fg-muted font-medium">
+          <span className="w-6 h-6 rounded-full bg-neutral-100 text-fg-muted flex items-center justify-center text-[11px] font-bold">
+            3
+          </span>
+          <span className="hidden sm:inline">Kích hoạt hợp đồng</span>
+        </div>
+      </div>
+
       {/* 15-Minute Countdown Timer */}
       <CountdownTimer
         expiresAt={booking.holdingExpiresAt}
@@ -142,165 +173,203 @@ export default function BookingCheckout() {
         onReorderPath="/tutors"
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left: Order Info & Escrow Certificate */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Order Details Card */}
-          <div className="p-6 sm:p-8 rounded-3xl glass-panel-premium space-y-5 bg-white border border-slate-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
-              <span className="font-extrabold text-sm text-slate-900">Chi Tiết Đơn Giữ Chỗ</span>
-              <span className="font-monospace-num text-xs font-extrabold text-brand-indigo-600 truncate max-w-[200px]">
-                #{booking.id}
-              </span>
-            </div>
-
-            {/* Tutor Snapshot */}
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-brand-indigo-50 border-2 border-brand-indigo-100 flex items-center justify-center text-brand-indigo-700 font-extrabold text-lg shrink-0">
-                {booking.tutorName?.charAt(0) || 'G'}
-              </div>
-              <div>
-                <h4 className="text-base font-extrabold text-slate-900 m-0">{booking.tutorName || 'Gia sư'}</h4>
-                <p className="text-xs text-brand-indigo-600 font-bold m-0">{booking.subjectName || 'Khóa học'}</p>
-              </div>
-            </div>
-
-            {/* Spec Breakdown */}
-            <div className="p-4 rounded-2xl bg-slate-50/80 space-y-2 text-xs text-slate-600">
-              <div className="flex justify-between">
-                <span>Số buổi học cấp phát:</span>
-                <span className="font-extrabold text-slate-900">
-                  {totalSessions} buổi ({booking.sessionDurationMinutes || 60}p/buổi)
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Hình thức học:</span>
-                <span className="font-extrabold text-slate-900">{booking.teachingMode || 'Online'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Đơn giá từng buổi:</span>
-                <span className="font-extrabold text-slate-900 font-monospace-num">
-                  {formatCurrency(pricePerSession)} / buổi
-                </span>
-              </div>
-              <div className="flex justify-between pt-2 border-t border-slate-200 text-sm font-extrabold text-slate-900">
-                <span>Tổng chi phí trọn gói:</span>
-                <span className="text-financial-available font-monospace-num">
-                  {formatCurrency(totalPrice)}
+      {/* Main 2-Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Left Column: Order Summary & Escrow Guarantee */}
+        <div className="lg:col-span-2 space-y-5">
+          <Card padding="lg" className="space-y-4 border border-border shadow-brand-sm">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <CardHeader
+                title="Chi tiết đơn đặt giữ chỗ"
+                icon={<Icon name="shopping_bag" size="sm" className="text-brand-primary-600" />}
+              />
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold text-fg-muted">Mã đơn:</span>
+                <span className="font-mono text-[11px] font-bold text-brand-primary-700 bg-brand-primary-50 px-2 py-0.5 rounded border border-brand-primary-200">
+                  #{String(booking.id).slice(0, 8)}
                 </span>
               </div>
             </div>
-          </div>
 
-          {/* Escrow Certificate */}
-          <div className="p-6 rounded-3xl bg-emerald-50/60 border border-emerald-200/80 space-y-3">
-            <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs uppercase tracking-wide">
-              <span className="material-symbols-outlined text-base">verified_user</span>
-              Chứng Thư Ký Quỹ Bảo Chứng Escrow
+            {/* Tutor identity block */}
+            <div className="flex items-center gap-4 p-3.5 rounded-brand-md bg-neutral-50/80 border border-border">
+              <Avatar name={booking.tutorName} size="lg" className="rounded-brand-md shrink-0 shadow-brand-sm" />
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-headline-3 text-fg font-bold truncate m-0">
+                    {booking.tutorName || 'Gia sư chuyên môn'}
+                  </h2>
+                  <Badge variant="success" size="sm">Giữ chỗ 15p</Badge>
+                </div>
+                <p className="text-caption text-brand-primary-700 font-semibold m-0 truncate">
+                  {booking.subjectName || 'Khóa học'}
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-emerald-950/80 leading-relaxed m-0">
+
+            {/* Financial breakdown */}
+            <dl className="p-4 rounded-brand-md bg-neutral-50 border border-border space-y-2.5 text-caption text-fg-secondary">
+              <div className="flex justify-between items-center">
+                <dt>Số buổi học được phân bổ:</dt>
+                <dd className="font-bold text-fg">
+                  {totalSessions} buổi ({booking.sessionDurationMinutes || 60} phút/buổi)
+                </dd>
+              </div>
+              <div className="flex justify-between items-center">
+                <dt>Hình thức giảng dạy:</dt>
+                <dd className="font-bold text-fg">{booking.teachingMode || 'Online'}</dd>
+              </div>
+              <div className="flex justify-between items-center">
+                <dt>Đơn giá từng buổi học:</dt>
+                <dd className="font-bold text-brand-primary-700 tabular-nums">
+                  <Money value={pricePerSession} /> / buổi
+                </dd>
+              </div>
+              <div className="flex justify-between items-center text-[11px] text-emerald-700">
+                <dt className="flex items-center gap-1">
+                  <Icon name="check" size="xs" />
+                  <span>Phí dịch vụ bảo chứng nền tảng:</span>
+                </dt>
+                <dd className="font-bold">0 ₫ (Miễn phí cho học viên)</dd>
+              </div>
+              <div className="flex justify-between items-baseline pt-3 border-t border-border text-body-reg font-bold text-fg">
+                <dt className="text-body-reg font-bold">Tổng thanh toán gói học:</dt>
+                <dd className="text-headline-1 text-success-strong font-bold">
+                  <Money value={totalPrice} />
+                </dd>
+              </div>
+            </dl>
+          </Card>
+
+          {/* High-Trust Escrow Certificate */}
+          <div className="p-4 rounded-brand-lg bg-emerald-50/80 border border-emerald-200/90 text-caption space-y-2 shadow-brand-sm">
+            <div className="flex items-center gap-2 text-emerald-900 font-bold text-body-reg">
+              <Icon name="shield" size="sm" filled className="text-emerald-600 shrink-0" />
+              <span>Chứng thư ký quỹ bảo chứng Escrow 100%</span>
+            </div>
+            <p className="text-emerald-800 leading-relaxed text-[12px]">
               Số tiền <strong>{formatCurrency(totalPrice)}</strong> của bạn được bảo đảm an toàn 100% trong két ký quỹ trung lập của TutorHub. Tiền chỉ được giải ngân từng buổi sau khi học viên và gia sư hoàn tất đối soát xác nhận điểm danh 2 chiều.
             </p>
+            <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-emerald-700 font-medium">
+              <span className="flex items-center gap-1">
+                <Icon name="check_circle" size="xs" className="text-emerald-500" />
+                Không thanh toán trực tiếp cho gia sư
+              </span>
+              <span className="flex items-center gap-1">
+                <Icon name="check_circle" size="xs" className="text-emerald-500" />
+                Hoàn tiền 100% khi có khiếu nại hợp lệ
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Right: Payment Gateway Selection */}
-        <div className="space-y-6">
-          <div className="p-6 rounded-3xl glass-panel-premium space-y-5 bg-white border border-slate-200">
-            <h4 className="text-sm font-extrabold text-slate-900 pb-2 border-b border-slate-100 m-0">
-              Phương Thức Thanh Toán
-            </h4>
+        {/* Right Column: Payment Gateway Selector & CTA */}
+        <div className="space-y-5">
+          <Card padding="lg" className="space-y-5 border border-border shadow-brand-sm">
+            <CardHeader
+              title="Cổng thanh toán"
+              icon={<Icon name="credit_card" size="sm" className="text-brand-primary-600" />}
+            />
 
-            {paymentError && (
-              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
-                {paymentError}
-              </div>
-            )}
+            {paymentError && <Callout variant="danger">{paymentError}</Callout>}
 
             <div className="space-y-3" role="radiogroup" aria-label="Phương thức thanh toán">
-              {/* VNPay Option */}
-              <div
+              <button
+                type="button"
                 role="radio"
                 aria-checked={selectedMethod === 'vnpay'}
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setSelectedMethod('vnpay');
-                  }
-                }}
                 onClick={() => setSelectedMethod('vnpay')}
-                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                className={cn(
+                  'w-full p-3.5 rounded-brand-md border-2 transition-all flex items-center justify-between text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 cursor-pointer',
                   selectedMethod === 'vnpay'
-                    ? 'border-brand-indigo-600 bg-brand-indigo-50/30'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
+                    ? 'border-brand-primary-600 bg-brand-primary-50/40 shadow-brand-sm'
+                    : 'border-border hover:border-neutral-300'
+                )}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-600 text-white font-extrabold text-[10px] flex items-center justify-center tracking-tighter">
+                  <div className="w-10 h-10 rounded-brand-md bg-gradient-to-br from-blue-600 to-red-600 text-white font-extrabold text-[9px] flex items-center justify-center tracking-tight shrink-0 shadow-brand-sm">
                     VNPAY
                   </div>
                   <div>
-                    <span className="font-bold text-xs text-slate-900 block">Cổng VNPay 2.1.0</span>
-                    <span className="text-[10px] text-text-muted">ATM, QR Pay, Thẻ quốc tế</span>
+                    <span className="font-bold text-caption sm:text-body-reg text-fg block">
+                      Cổng VNPay 2.1.0
+                    </span>
+                    <span className="text-[10px] text-fg-muted block">
+                      ATM nội địa, VNPAY-QR, Visa/Mastercard
+                    </span>
                   </div>
                 </div>
-                <span className="material-symbols-outlined text-brand-indigo-600">
-                  {selectedMethod === 'vnpay' ? 'radio_button_checked' : 'radio_button_unchecked'}
-                </span>
-              </div>
+                <div className="w-5 h-5 rounded-full border-2 border-brand-primary-600 flex items-center justify-center shrink-0">
+                  <div className="w-2.5 h-2.5 rounded-full bg-brand-primary-600" />
+                </div>
+              </button>
             </div>
 
-            {/* Pay CTA */}
-            <button
-              type="button"
-              disabled={loading || isExpired || simulating}
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              loading={loading}
+              disabled={isExpired || simulating}
               onClick={handlePayVNPay}
-              className={`w-full py-4 rounded-2xl font-extrabold text-xs text-white shadow-sm transition-all flex items-center justify-center gap-2 ${
-                isExpired
-                  ? 'bg-slate-400 cursor-not-allowed'
-                  : 'bg-brand-indigo-600 hover:bg-brand-indigo-700'
-              }`}
+              icon={!loading && <Icon name="lock" size="sm" />}
             >
-              <span className="material-symbols-outlined text-base">lock</span>
-              {loading
-                ? 'Đang kết nối cổng VNPay...'
-                : isExpired
-                ? 'Đơn Giữ Chỗ Đã Hết Hạn'
-                : `Thanh Toán ${formatCurrency(totalPrice)} Qua VNPay`}
-            </button>
+              {isExpired
+                ? 'Đơn giữ chỗ đã hết hạn'
+                : `Thanh toán ${formatCurrency(totalPrice)}`}
+            </Button>
 
-            {/* Development-only payment simulator button */}
+            <div className="space-y-1.5 text-center text-[11px] text-fg-muted pt-1">
+              <p className="flex items-center justify-center gap-1">
+                <Icon name="lock" size="xs" className="text-emerald-600" />
+                <span>Bảo mật SSL 256-bit chuẩn quốc tế PCI-DSS</span>
+              </p>
+              <p>Hợp đồng và N buổi học sẽ được kích hoạt ngay sau thanh toán</p>
+            </div>
+
+            {/* Dev Simulator Panel */}
             {isDev && (
-              <div className="pt-3 border-t border-dashed border-amber-300 space-y-2">
+              <div className="pt-4 border-t border-dashed border-holding/40 space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-holding-strong flex items-center gap-1">
+                    <Icon name="terminal" size="xs" />
                     Dev IPN Simulator
                   </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-mono">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-holding-subtle text-holding-strong font-mono font-bold">
                     DEV ONLY
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
+                  <Button
+                    variant="success"
+                    size="sm"
                     disabled={simulating || isExpired || loading}
                     onClick={() => handleSimulatePayment(true)}
-                    className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1"
+                    loading={simulating}
                   >
-                    ✓ Giả Lập Thành Công
-                  </button>
-                  <button
-                    type="button"
+                    Giả lập thành công
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     disabled={simulating || isExpired || loading}
                     onClick={() => handleSimulatePayment(false)}
-                    className="py-2 px-3 rounded-xl bg-slate-700 hover:bg-slate-800 text-slate-200 font-bold text-xs transition-colors flex items-center justify-center gap-1"
                   >
-                    ✕ Giả Lập Thất Bại
-                  </button>
+                    Giả lập thất bại
+                  </Button>
                 </div>
               </div>
             )}
+          </Card>
+
+          <div className="text-center">
+            <Link
+              to="/tutors"
+              className="text-caption text-fg-muted hover:text-brand-primary-700 font-semibold inline-flex items-center gap-1 transition-colors"
+            >
+              <Icon name="arrow_back" size="xs" />
+              Chọn gia sư hoặc khóa học khác
+            </Link>
           </div>
         </div>
       </div>

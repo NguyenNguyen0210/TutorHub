@@ -1,31 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { cn } from '@/lib/cn';
 import notificationService from '@/services/notification.service';
 import { formatRelativeTime } from '@/utils/formatters';
 import { ListSkeleton } from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
-import { message } from 'antd';
+import { useToast } from '@/components/ui/Toast';
+import Card from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
+import Icon from '@/components/ui/Icon';
+import Tabs from '@/components/ui/Tabs';
+import { PageHeader } from '@/components/ui/StatCard';
+import { useAuthStore } from '@/store/authStore';
+
+function resolveDeepLink(link, role) {
+  if (!link) return null;
+  if (link.startsWith('/enrollments/')) {
+    return `/student${link}`;
+  }
+  if (link.startsWith('/sessions/')) {
+    return role === 'Tutor' ? `/tutor${link}` : `/student${link}`;
+  }
+  if (link.startsWith('/bookings/')) {
+    return `/student${link}/checkout`;
+  }
+  if (link.startsWith('/chat/') || link.startsWith('/chat')) {
+    return '/app/messages';
+  }
+  return link;
+}
 
 export default function Notifications() {
+  const toast = useToast();
+  const { role } = useAuthStore();
   const [activeTab, setActiveTab] = useState('All');
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const loadNotifications = async () => {
-    try {
-      setLoading(true);
-      const res = await notificationService.getNotifications({ pageSize: 50 });
-      setNotifications(res?.items || []);
-    } catch (err) {
-      message.error(err?.message || 'Không thể tải danh sách thông báo.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    let cancelled = false;
+    async function loadNotifications() {
+      try {
+        setLoading(true);
+        const res = await notificationService.getNotifications({ pageSize: 50 });
+        if (!cancelled) setNotifications(res?.items || []);
+      } catch (err) {
+        if (!cancelled) toast.error(err?.message || 'Không thể tải danh sách thông báo.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
     loadNotifications();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [toast]);
 
   const handleMarkAsRead = async (id, isRead) => {
     if (isRead) return;
@@ -35,7 +65,7 @@ export default function Notifications() {
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       );
     } catch (err) {
-      message.error(err?.message || 'Không thể đánh dấu đã đọc.');
+      toast.error(err?.message || 'Không thể đánh dấu đã đọc.');
     }
   };
 
@@ -43,9 +73,9 @@ export default function Notifications() {
     try {
       await notificationService.markAllAsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      message.success('Đã đánh dấu tất cả thông báo là đã đọc');
+      toast.success('Đã đánh dấu tất cả thông báo là đã đọc');
     } catch (err) {
-      message.error(err?.message || 'Không thể đánh dấu tất cả đã đọc.');
+      toast.error(err?.message || 'Không thể đánh dấu tất cả đã đọc.');
     }
   };
 
@@ -64,60 +94,51 @@ export default function Notifications() {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
+  const CATEGORY_STYLE = {
+    Financial: { bar: 'border-l-brand-primary-600', icon: 'payment', iconCls: 'text-brand-primary-600' },
+    Attendance: { bar: 'border-l-holding', icon: 'schedule', iconCls: 'text-holding' },
+    Dispute: { bar: 'border-l-danger', icon: 'gavel', iconCls: 'text-danger' },
+    System: { bar: 'border-l-neutral-400', icon: 'info', iconCls: 'text-fg-muted' },
+  };
+
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              Trung Tâm Thông Báo & Cảnh Báo Hệ Thống
-            </h1>
+    <div className="max-w-3xl mx-auto space-y-5">
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2 flex-wrap">
+            Trung tâm thông báo & Cảnh báo hệ thống
             {unreadCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-extrabold font-mono">
+              <Badge variant="danger" size="sm">
                 {unreadCount} mới
-              </span>
+              </Badge>
             )}
-          </div>
-          <p className="text-xs text-text-muted mt-1">
-            Theo dõi tức thời các biến động tài chính, đối soát điểm danh 24h và cập nhật hợp đồng
-          </p>
-        </div>
+          </span>
+        }
+        subtitle="Theo dõi tức thời các biến động tài chính, đối soát điểm danh 24h và cập nhật hợp đồng"
+        actions={
+          unreadCount > 0 && (
+            <button
+              type="button"
+              onClick={handleMarkAllRead}
+              className="text-caption font-semibold text-brand-primary-700 hover:underline"
+            >
+              Đánh dấu tất cả đã đọc
+            </button>
+          )
+        }
+      />
 
-        {unreadCount > 0 && (
-          <button
-            type="button"
-            onClick={handleMarkAllRead}
-            className="text-xs font-bold text-brand-indigo-600 hover:underline self-start sm:self-auto"
-          >
-            Đánh dấu tất cả đã đọc
-          </button>
-        )}
-      </div>
+      <Tabs
+        value={activeTab}
+        onChange={setActiveTab}
+        tabs={[
+          { key: 'All', label: 'Tất cả' },
+          { key: 'Financial', label: 'Tài chính & Ký quỹ' },
+          { key: 'Attendance', label: 'Điểm danh 24h' },
+          { key: 'Dispute', label: 'Tranh chấp' },
+        ]}
+      />
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-border-light pb-2 text-xs font-bold overflow-x-auto">
-        {[
-          { key: 'All', label: 'Tất Cả' },
-          { key: 'Financial', label: 'Tài Chính & Ký Quỹ' },
-          { key: 'Attendance', label: 'Điểm Danh 24H' },
-          { key: 'Dispute', label: 'Tranh Chấp' },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors ${
-              activeTab === tab.key
-                ? 'bg-brand-indigo-50 text-brand-indigo-700'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Notifications List */}
       <div className="space-y-3">
         {loading ? (
           <ListSkeleton count={4} />
@@ -134,69 +155,56 @@ export default function Notifications() {
         ) : (
           filtered.map((item) => {
             const category = getCategoryFromType(item.type);
-            const borderColor =
-              category === 'Financial'
-                ? 'border-l-brand-indigo-600'
-                : category === 'Attendance'
-                ? 'border-l-amber-500'
-                : category === 'Dispute'
-                ? 'border-l-rose-500'
-                : 'border-l-slate-400';
-
-            const iconName =
-              category === 'Financial'
-                ? 'payment'
-                : category === 'Attendance'
-                ? 'schedule'
-                : category === 'Dispute'
-                ? 'gavel'
-                : 'info';
+            const style = CATEGORY_STYLE[category] || CATEGORY_STYLE.System;
 
             return (
-              <div
+              <Card
                 key={item.id}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleMarkAsRead(item.id, item.isRead);
-                  }
-                }}
-                onClick={() => handleMarkAsRead(item.id, item.isRead)}
-                className={`p-5 rounded-2xl border border-border-light border-l-4 ${borderColor} ${
-                  !item.isRead ? 'bg-indigo-50/20 shadow-xs' : 'bg-white opacity-85'
-                } transition-all space-y-2 cursor-pointer hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-indigo-500`}
+                padding="md"
+                className={cn(
+                  'w-full text-left border-l-4 space-y-2 hover:shadow-brand-md',
+                  style.bar,
+                  !item.isRead ? 'bg-brand-primary-50/20' : 'opacity-85'
+                )}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-brand-indigo-600 text-lg">
-                      {iconName}
-                    </span>
-                    <h3 className="font-extrabold text-xs text-slate-900 m-0">{item.title}</h3>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Icon name={style.icon} size="sm" className={style.iconCls} />
+                    <h3 className="font-bold text-body-reg text-fg m-0 truncate">
+                      {item.title}
+                    </h3>
                     {!item.isRead && (
-                      <span className="w-2 h-2 rounded-full bg-brand-indigo-600 shrink-0" />
+                      <button
+                        type="button"
+                        onClick={() => handleMarkAsRead(item.id, item.isRead)}
+                        aria-label={`Đánh dấu đã đọc: ${item.title}`}
+                        title="Đánh dấu đã đọc"
+                        className="w-2.5 h-2.5 rounded-full bg-brand-primary-600 shrink-0 hover:ring-2 hover:ring-brand-primary-300 transition-shadow"
+                      />
                     )}
                   </div>
-                  <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                  <span className="text-[10px] text-fg-muted font-mono shrink-0">
                     {item.createdAt ? formatRelativeTime(item.createdAt) : ''}
                   </span>
                 </div>
 
-                <p className="text-xs text-slate-600 leading-relaxed m-0 pl-6.5">{item.message}</p>
+                <p className="text-caption text-fg-secondary leading-relaxed m-0 pl-7">
+                  {item.message}
+                </p>
 
                 {item.deepLink && (
-                  <div className="pl-6.5 pt-1">
+                  <div className="pl-7 pt-1">
                     <Link
-                      to={item.deepLink}
-                      className="text-xs font-bold text-brand-indigo-600 hover:underline inline-flex items-center gap-1"
+                      to={resolveDeepLink(item.deepLink, role)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-caption font-semibold text-brand-primary-700 hover:underline inline-flex items-center gap-1"
                     >
-                      <span>Xem chi tiết</span>
-                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                      Xem chi tiết
+                      <Icon name="arrow_forward" size="sm" />
                     </Link>
                   </div>
                 )}
-              </div>
+              </Card>
             );
           })
         )}

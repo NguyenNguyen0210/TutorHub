@@ -1,11 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { cn } from '@/lib/cn';
 import tutorService from '@/services/tutor.service';
 import { CardSkeleton } from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
-import { formatCurrency, formatRating } from '@/utils/formatters';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Badge, { Tag } from '@/components/ui/Badge';
+import Input, { Select, Field } from '@/components/ui/Input';
+import Icon from '@/components/ui/Icon';
+import Avatar from '@/components/ui/Avatar';
+import Callout from '@/components/ui/Callout';
+import { Pagination } from '@/components/ui/Table';
+import { formatRating } from '@/utils/formatters';
+import Money from '@/components/ui/Money';
 import { getTeachingModeMeta } from '@/config/enums';
+
+const POPULAR_SEARCH_TAGS = [
+  'Toán THPT',
+  'IELTS',
+  'Lập trình',
+  'Vật lý',
+  'Ngữ văn',
+  'Tiếng Anh',
+];
 
 export default function Marketplace() {
   const [searchParams] = useSearchParams();
@@ -16,14 +35,22 @@ export default function Marketplace() {
   const [error, setError] = useState(null);
   const [reloadToken, setReloadToken] = useState(0);
   const [searchKeyword, setSearchKeyword] = useState(searchParams.get('q') || '');
-  // '' = tất cả danh mục; ngược lại là categoryId thật từ GET /categories
+  const [debouncedKeyword, setDebouncedKeyword] = useState(searchParams.get('q') || '');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [teachingMode, setTeachingMode] = useState('All');
+  const [minRating, setMinRating] = useState(null);
   const [sortBy, setSortBy] = useState('rating_desc');
   const [pageNumber, setPageNumber] = useState(1);
   const pageSize = 12;
 
-  // Tải danh mục thật từ GET /categories (backend trả mảng PublicCategoryDto).
+  // Debounce search input to avoid request floods
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedKeyword(searchKeyword);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchKeyword]);
+
   useEffect(() => {
     let cancelled = false;
     async function loadCategories() {
@@ -31,7 +58,6 @@ export default function Marketplace() {
         const list = await tutorService.getCategories();
         if (!cancelled) setCategories(Array.isArray(list) ? list : []);
       } catch (err) {
-        // Danh mục lỗi không nên chặn danh sách gia sư: chỉ log và bỏ trống bộ lọc.
         console.warn('[Marketplace] Không tải được /categories:', err.message);
       }
     }
@@ -41,7 +67,6 @@ export default function Marketplace() {
     };
   }, []);
 
-  // P1: gọi thẳng PagedResult<TutorSummaryDto> đã chuẩn hoá — không đọc `res.data` nữa.
   useEffect(() => {
     let cancelled = false;
 
@@ -50,15 +75,13 @@ export default function Marketplace() {
         setLoading(true);
         setError(null);
 
-        // GET /tutors chỉ nhận MỘT tham số `search`; backend match cả tên môn lẫn tên
-        // danh mục (xem GetTutorsQueryHandler). Ưu tiên từ khóa người dùng nhập, nếu
-        // trống thì dùng tên danh mục đang chọn.
         const selected = categories.find((category) => category.id === selectedCategory);
-        const effectiveSearch = searchKeyword.trim() || selected?.name || '';
+        const effectiveSearch = debouncedKeyword.trim() || selected?.name || '';
 
         const page = await tutorService.getTutors({
           search: effectiveSearch,
           teachingMode: teachingMode !== 'All' ? teachingMode : null,
+          minRating: minRating || null,
           sortBy,
           pageNumber,
           pageSize,
@@ -81,15 +104,20 @@ export default function Marketplace() {
     return () => {
       cancelled = true;
     };
-  }, [searchKeyword, selectedCategory, teachingMode, sortBy, categories, reloadToken, pageNumber]);
+  }, [
+    debouncedKeyword,
+    selectedCategory,
+    teachingMode,
+    minRating,
+    sortBy,
+    categories,
+    reloadToken,
+    pageNumber,
+  ]);
 
-
-  // Pill danh mục lấy từ GET /categories (không còn danh sách hardcode).
-  // Backend /tutors chỉ lọc theo `search`/`subjectId`, và `search` có match cả
-  // Category.Name ⇒ chọn danh mục = truyền tên danh mục vào `search`.
   const CATEGORY_ICONS = ['auto_stories', 'calculate', 'translate', 'terminal', 'military_tech', 'science'];
   const categoryPills = [
-    { id: '', name: 'Tất Cả Bộ Môn', icon: 'auto_stories' },
+    { id: '', name: 'Tất cả bộ môn', icon: 'auto_stories' },
     ...categories.map((category, index) => ({
       id: category.id,
       name: category.name,
@@ -99,38 +127,64 @@ export default function Marketplace() {
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
+  const resetFilters = () => {
+    setTeachingMode('All');
+    setMinRating(null);
+    setSearchKeyword('');
+    setDebouncedKeyword('');
+    setSelectedCategory('');
+    setPageNumber(1);
+  };
+
+  const activeFilterCount =
+    (teachingMode !== 'All' ? 1 : 0) +
+    (minRating !== null ? 1 : 0) +
+    (selectedCategory ? 1 : 0) +
+    (debouncedKeyword.trim() ? 1 : 0);
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
-      {/* Hero Banner with Ambient Radial Lighting & 3D Escrow Trust Badges */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-navy-950 via-slate-900 to-indigo-950 p-8 sm:p-14 text-white shadow-2xl border border-white/10">
-        {/* Soft Ambient Radial Lights */}
-        <div className="absolute top-0 right-10 w-96 h-96 bg-brand-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-0 left-10 w-80 h-80 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden rounded-brand-xl bg-brand-navy-950 px-6 py-10 sm:p-12 text-white shadow-brand-lg">
+        <div
+          className="absolute -top-24 right-10 w-96 h-96 bg-brand-primary-600/20 rounded-full blur-3xl pointer-events-none"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute -bottom-24 left-10 w-80 h-80 bg-success/15 rounded-full blur-3xl pointer-events-none"
+          aria-hidden="true"
+        />
 
         <div className="relative z-10 max-w-3xl space-y-5">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-extrabold uppercase tracking-wider backdrop-blur-md shadow-xs">
-            <span className="material-symbols-outlined text-base animate-pulse" style={{ fontVariationSettings: "'FILL' 1" }}>
-              verified
-            </span>
-            <span>Bảo Chứng Học Phí Hai Chiều (Dual Escrow Guarantee)</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-pill bg-white/10 border border-white/15 backdrop-blur-sm text-caption font-semibold text-emerald-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            HỌC TẬP AN TOÀN &amp; ĐẢM BẢO CHẤT LƯỢNG
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.15] text-white">
-            Khám Phá Gia Sư Tinh Anh Theo Gói Học{' '}
-            <span className="text-gradient-emerald">Bảo Chứng Ký Quỹ</span>
+          <h1 className="text-display-hero sm:text-[48px] sm:leading-[1.15] text-white font-bold tracking-tight">
+            Tìm gia sư giỏi &amp; khóa học chất lượng cao
           </h1>
 
-          <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-2xl font-normal">
-            Học phí an tâm tuyệt đối: tiền chỉ giải ngân theo từng buổi học thực tế sau khi cả học viên và gia sư đối soát điểm danh 24 giờ.
+          <p className="text-body-reg sm:text-body-lg text-slate-300 leading-relaxed max-w-2xl">
+            Học tập an tâm và hiệu quả: kết nối trực tiếp với các gia sư hàng đầu, lộ trình
+            cá nhân hóa và thanh toán minh bạch bảo chứng Escrow theo từng buổi học.
           </p>
 
-          {/* Interactive Search Bar in Hero */}
-          <div className="pt-3 flex flex-col sm:flex-row gap-3">
+          <form
+            className="pt-2 flex flex-col sm:flex-row gap-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setDebouncedKeyword(searchKeyword);
+              setPageNumber(1);
+            }}
+            role="search"
+            aria-label="Tìm kiếm gia sư"
+          >
             <div className="relative flex-1">
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl pointer-events-none">
-                search
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-fg-muted pointer-events-none">
+                <Icon name="search" size="md" />
               </span>
-              <input
+              <Input
                 type="text"
                 value={searchKeyword}
                 onChange={(e) => {
@@ -138,126 +192,203 @@ export default function Marketplace() {
                   setPageNumber(1);
                 }}
                 placeholder="Tìm theo môn học, gia sư, trường ĐH (VD: Toán 12, IELTS 8.0, Bách Khoa)..."
-                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-indigo-500 focus:bg-white/15 transition-all text-xs sm:text-sm font-medium shadow-inner"
+                aria-label="Từ khóa tìm kiếm gia sư"
+                className="pl-12 pr-10 h-12 rounded-brand-md bg-white border-white text-fg placeholder:text-fg-muted shadow-brand-md focus:ring-2 focus:ring-brand-primary-400"
               />
+              {searchKeyword && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchKeyword('');
+                    setDebouncedKeyword('');
+                    setPageNumber(1);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-fg-muted hover:text-fg transition-colors cursor-pointer"
+                  aria-label="Xóa từ khóa tìm kiếm"
+                >
+                  <Icon name="close" size="sm" />
+                </button>
+              )}
             </div>
-            <button
-              type="button"
-              className="px-7 py-4 rounded-2xl bg-gradient-to-r from-brand-indigo-600 to-indigo-700 hover:from-brand-indigo-500 hover:to-indigo-600 font-extrabold text-white shadow-lg shadow-brand-indigo-500/30 transition-all sheen-btn flex items-center justify-center gap-2 text-xs sm:text-sm shrink-0"
-            >
-              <span className="material-symbols-outlined text-lg">tune</span>
-              Tìm Kiếm Ngay
-            </button>
-          </div>
+            <Button type="submit" variant="primary" size="lg" icon={<Icon name="tune" size="sm" />}>
+              Tìm kiếm ngay
+            </Button>
+          </form>
 
-          {/* Trust Floating Metric Pills */}
-          <div className="flex flex-wrap items-center gap-3 pt-4 text-xs font-semibold text-slate-300">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
-              <span className="material-symbols-outlined text-sm text-financial-available">check_circle</span>
-              Ký quỹ bảo chứng Escrow trung lập từng buổi học
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
-              <span className="material-symbols-outlined text-sm text-financial-available">check_circle</span>
-              Đối soát điểm danh 2 chiều minh bạch trong 24 giờ
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* 3 Steps Escrow Guarantee Indicator with Glass Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-5 rounded-3xl glass-panel-premium card-hover-lift flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center shrink-0 shadow-xs">
-            <span className="material-symbols-outlined text-2xl">hourglass_top</span>
-          </div>
-          <div>
-            <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wide">1. Đặt Giữ Chỗ 15 Phút</h4>
-            <p className="text-[11px] text-slate-500 mt-0.5">Khóa độc quyền lịch dạy, tránh trùng lịch</p>
-          </div>
-        </div>
-
-        <div className="p-5 rounded-3xl glass-panel-premium card-hover-lift flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-financial-available flex items-center justify-center shrink-0 shadow-xs">
-            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>shield</span>
-          </div>
-          <div>
-            <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wide">2. Ký Quỹ Bảo Chứng Escrow</h4>
-            <p className="text-[11px] text-slate-500 mt-0.5">Học phí giữ an toàn, tự động phân rã N buổi</p>
-          </div>
-        </div>
-
-        <div className="p-5 rounded-3xl glass-panel-premium card-hover-lift flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-brand-indigo-500/10 border border-brand-indigo-500/20 text-brand-indigo-600 flex items-center justify-center shrink-0 shadow-xs">
-            <span className="material-symbols-outlined text-2xl">verified_user</span>
-          </div>
-          <div>
-            <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wide">3. Điểm Danh 2 Chiều 24H</h4>
-            <p className="text-[11px] text-slate-500 mt-0.5">Giải ngân từng buổi sau khi 2 bên xác nhận</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Category Pills Bar */}
-      <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none">
-        {categoryPills.map((pill) => (
-          <button
-            key={pill.id || 'all'}
-            type="button"
-            onClick={() => {
-              setSelectedCategory(pill.id);
-              setPageNumber(1);
-            }}
-            className={`px-4 py-2.5 rounded-2xl font-extrabold text-xs shrink-0 flex items-center gap-2 transition-all duration-200 ${
-              selectedCategory === pill.id
-                ? 'bg-brand-indigo-600 text-white shadow-md shadow-brand-indigo-500/20'
-                : 'bg-white border border-slate-200/80 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
-            }`}
-          >
-            <span className="material-symbols-outlined text-base">{pill.icon}</span>
-            {pill.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Main Layout: Filters Sidebar + Tutor Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Left Filter Sidebar */}
-        <div className="space-y-6 lg:col-span-1">
-          <div className="p-6 rounded-3xl glass-panel-premium space-y-6 sticky top-24">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
-              <span className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
-                <span className="material-symbols-outlined text-brand-indigo-600 text-xl">filter_list</span>
-                Bộ Lọc Nâng Cao
-              </span>
+          {/* Quick search tags */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-caption text-slate-300">
+            <span className="text-[11px] font-medium text-slate-400">Gợi ý tìm kiếm:</span>
+            {POPULAR_SEARCH_TAGS.map((tag) => (
               <button
+                key={tag}
                 type="button"
                 onClick={() => {
-                  setTeachingMode('All');
-                  setSearchKeyword('');
+                  setSearchKeyword(tag);
+                  setDebouncedKeyword(tag);
                   setSelectedCategory('');
                   setPageNumber(1);
                 }}
-                className="text-[11px] text-brand-indigo-600 font-bold hover:underline"
+                className="text-[11px] px-2.5 py-1 rounded-pill bg-white/5 hover:bg-white/15 text-slate-200 transition-colors cursor-pointer border border-white/10"
               >
-                Đặt lại
+                {tag}
               </button>
+            ))}
+          </div>
+
+          <dl className="flex flex-wrap items-center gap-x-8 gap-y-3 pt-4 mt-2 border-t border-white/10">
+            {[
+              { value: String(totalCount), label: 'gia sư đang giảng dạy' },
+              { value: String(categories.length), label: 'lĩnh vực & bộ môn' },
+              { value: '100%', label: 'học phí bảo chứng Escrow' },
+            ].map((s) => (
+              <div key={s.label}>
+                <dt className="sr-only">{s.label}</dt>
+                <dd className="text-headline-2 text-white tabular-nums m-0 font-bold">{s.value}</dd>
+                <dd className="text-[11px] text-slate-400 m-0">{s.label}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* 3 Value Proposition Bento Cards */}
+      <section
+        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+        aria-label="Cam kết bảo chứng nền tảng"
+      >
+        {[
+          {
+            icon: 'hourglass_top',
+            tone: 'holding',
+            badge: 'BẢO CHỨNG THỜI GIAN',
+            title: '1. Giữ chỗ chuẩn xác 15 phút',
+            desc: 'Giữ lịch hẹn thuận tiện với đồng hồ đếm ngược server-sync, thanh toán nhanh chóng qua VNPay.',
+          },
+          {
+            icon: 'shield',
+            tone: 'success',
+            badge: 'ESCROW BẢO VỆ DÒNG TIỀN',
+            title: '2. Thanh toán bảo chứng an toàn',
+            desc: 'Học phí được bảo chứng trong ví ký quỹ, chỉ giải ngân cho gia sư khi buổi học hoàn thành.',
+          },
+          {
+            icon: 'verified_user',
+            tone: 'primary',
+            badge: 'ĐỐI SOÁT 2 CHIỀU',
+            title: '3. Điểm danh & Trọng tài tranh chấp',
+            desc: 'Đối soát điểm danh 2 chiều minh bạch, có cơ chế phân xử tài chính DEC-S8-025 bảo vệ quyền lợi.',
+          },
+        ].map((s) => (
+          <Card
+            key={s.title}
+            hoverable
+            className="p-5 border border-border/80 hover:border-brand-primary-300 hover:shadow-brand-md transition-all duration-200 flex flex-col justify-between"
+          >
+            <div className="flex items-start gap-3.5">
+              <span
+                className={cn(
+                  'w-11 h-11 rounded-brand-md flex items-center justify-center shrink-0 shadow-brand-sm',
+                  s.tone === 'holding' && 'bg-holding-subtle text-holding-strong border border-holding/20',
+                  s.tone === 'success' && 'bg-success-subtle text-success-strong border border-success/20',
+                  s.tone === 'primary' && 'bg-brand-primary-50 text-brand-primary-600 border border-brand-primary-200'
+                )}
+              >
+                <Icon name={s.icon} size="md" />
+              </span>
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-fg-muted tracking-wider uppercase block">
+                  {s.badge}
+                </span>
+                <h2 className="text-caption font-bold text-fg tracking-wide">{s.title}</h2>
+                <p className="text-[12px] text-fg-secondary leading-relaxed">{s.desc}</p>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </section>
+
+      {/* Category Pills */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none" role="group" aria-label="Lọc theo danh mục">
+        {categoryPills.map((pill) => {
+          const active = selectedCategory === pill.id;
+          return (
+            <button
+              key={pill.id || 'all'}
+              type="button"
+              aria-pressed={active}
+              onClick={() => {
+                setSelectedCategory(pill.id);
+                setPageNumber(1);
+              }}
+              className={cn(
+                'px-4 py-2.5 rounded-brand-md font-semibold text-body-reg shrink-0 flex items-center gap-2 transition-all cursor-pointer',
+                active
+                  ? 'bg-brand-primary-600 text-white shadow-brand-sm ring-2 ring-brand-primary-600/20'
+                  : 'bg-surface border border-border text-fg-secondary hover:bg-neutral-50 hover:text-fg'
+              )}
+            >
+              <Icon name={pill.icon} size="sm" />
+              {pill.name}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Main Content Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Sidebar Filters */}
+        <div className="lg:col-span-1">
+          <Card padding="md" className="space-y-5 lg:sticky lg:top-24 border border-border/80 shadow-brand-sm">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <span className="font-bold text-body-reg text-fg flex items-center gap-2">
+                <Icon name="filter_list" size="sm" className="text-brand-primary-600" />
+                Bộ lọc nâng cao
+                {activeFilterCount > 0 && (
+                  <Badge variant="primary" size="sm">
+                    {activeFilterCount}
+                  </Badge>
+                )}
+              </span>
+              {activeFilterCount > 0 && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="text-[11px] text-brand-primary-700 font-semibold hover:underline cursor-pointer"
+                >
+                  Đặt lại
+                </button>
+              )}
             </div>
 
             {/* Teaching Mode Filter */}
             <div className="space-y-2">
-              <span className="text-xs font-bold text-slate-700 block">Hình thức giảng dạy</span>
-              <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-100/80 rounded-xl" role="group" aria-label="Hình thức giảng dạy">
+              <span
+                id="mode-filter-label"
+                className="text-caption font-semibold text-fg-secondary uppercase tracking-wide block"
+              >
+                Hình thức giảng dạy
+              </span>
+              <div
+                className="grid grid-cols-4 gap-1 p-1 bg-neutral-100 rounded-brand-md"
+                role="radiogroup"
+                aria-labelledby="mode-filter-label"
+              >
                 {['All', 'Online', 'Offline', 'Both'].map((m) => (
                   <button
                     key={m}
                     type="button"
+                    role="radio"
+                    aria-checked={teachingMode === m}
                     onClick={() => {
                       setTeachingMode(m);
                       setPageNumber(1);
                     }}
-                    className={`py-2 text-xs font-extrabold rounded-lg transition-all ${
-                      teachingMode === m ? 'bg-white text-brand-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                    className={cn(
+                      'py-2 text-caption font-bold rounded-brand-sm transition-colors cursor-pointer',
+                      teachingMode === m
+                        ? 'bg-surface text-brand-primary-700 shadow-brand-sm'
+                        : 'text-fg-secondary hover:text-fg'
+                    )}
                   >
                     {m === 'All' ? 'Tất cả' : m === 'Both' ? 'Cả hai' : m}
                   </button>
@@ -265,51 +396,84 @@ export default function Marketplace() {
               </div>
             </div>
 
-            {/* Sort Filter */}
+            {/* Rating Filter */}
             <div className="space-y-2">
-              <label htmlFor="marketplace-sort" className="text-xs font-bold text-slate-700 block">
-                Ưu tiên sắp xếp
-              </label>
-              <select
+              <span
+                id="rating-filter-label"
+                className="text-caption font-semibold text-fg-secondary uppercase tracking-wide block"
+              >
+                Đánh giá tối thiểu
+              </span>
+              <div
+                className="grid grid-cols-4 gap-1 p-1 bg-neutral-100 rounded-brand-md"
+                role="radiogroup"
+                aria-labelledby="rating-filter-label"
+              >
+                {[
+                  { label: 'Tất cả', value: null },
+                  { label: '4.0', value: 4.0 },
+                  { label: '4.5', value: 4.5 },
+                  { label: '4.8', value: 4.8 },
+                ].map((r) => (
+                  <button
+                    key={r.label}
+                    type="button"
+                    role="radio"
+                    aria-checked={minRating === r.value}
+                    onClick={() => {
+                      setMinRating(r.value);
+                      setPageNumber(1);
+                    }}
+                    className={cn(
+                      'py-1.5 text-caption font-bold rounded-brand-sm transition-colors cursor-pointer flex items-center justify-center gap-1',
+                      minRating === r.value
+                        ? 'bg-surface text-brand-primary-700 shadow-brand-sm'
+                        : 'text-fg-secondary hover:text-fg'
+                    )}
+                  >
+                    <span>{r.label}</span>
+                    {r.value && <Icon name="star" size="xs" filled className="text-amber-500" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sorting Dropdown */}
+            <Field label="Ưu tiên sắp xếp" htmlFor="marketplace-sort">
+              <Select
                 id="marketplace-sort"
                 value={sortBy}
                 onChange={(e) => {
                   setSortBy(e.target.value);
                   setPageNumber(1);
                 }}
-                className="w-full text-xs font-bold rounded-xl border border-slate-200 p-3 bg-white text-slate-700 focus:ring-2 focus:ring-brand-indigo-500 focus:border-brand-indigo-500 outline-none"
               >
-                <option value="rating_desc">Đánh giá cao nhất (★ 5.0)</option>
+                <option value="rating_desc">Đánh giá cao nhất (5.0)</option>
                 <option value="price_asc">Học phí: Thấp đến cao</option>
                 <option value="price_desc">Học phí: Cao đến thấp</option>
                 <option value="reviews">Nhiều đánh giá nhất</option>
-              </select>
-            </div>
+              </Select>
+            </Field>
 
-            {/* Verification Guarantee Callout */}
-            <div className="p-4 rounded-2xl bg-indigo-50/70 border border-brand-indigo-100 space-y-1 text-xs">
-              <span className="font-extrabold text-brand-indigo-950 flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-base text-financial-available" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  verified
-                </span>
-                Gia Sư Đã Xác Minh Bằng Cấp
-              </span>
-              <p className="text-[11px] text-slate-600 leading-relaxed">
-                100% gia sư đều được Admin thẩm định bằng cử nhân/thạc sĩ có dấu đỏ trước khi cấp quyền niêm yết.
-              </p>
-            </div>
-          </div>
+            <Callout variant="info" title="Gia sư đã thẩm định">
+              100% gia sư đều được xác thực bằng cấp cử nhân/thạc sĩ có dấu đỏ trước khi cấp quyền niêm yết.
+            </Callout>
+          </Card>
         </div>
 
-        {/* Right Cards Grid */}
-        <div className="lg:col-span-3 space-y-6">
+        {/* Tutor Directory List */}
+        <div className="lg:col-span-3 space-y-5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">
-              {totalCount} Gia Sư Bảo Chứng Uy Tín
-            </span>
+            <p className="text-caption font-bold text-fg-muted uppercase tracking-wide">
+              {totalCount} gia sư uy tín sẵn sàng
+            </p>
+            {activeFilterCount > 0 && (
+              <span className="text-[12px] text-fg-secondary">
+                Đang áp dụng <strong className="text-brand-primary-600">{activeFilterCount}</strong> bộ lọc
+              </span>
+            )}
           </div>
 
-          {/* P4: State Infrastructure (Error, Skeleton, Empty) */}
           {error && !loading && (
             <ErrorState
               error={error}
@@ -326,182 +490,144 @@ export default function Marketplace() {
               title="Không tìm thấy gia sư phù hợp"
               description="Hãy thử từ khóa khác hoặc điều chỉnh lại danh mục và hình thức giảng dạy."
               actionLabel="Xem tất cả gia sư"
-              onAction={() => {
-                setSelectedCategory('');
-                setSearchKeyword('');
-                setTeachingMode('All');
-              }}
+              onAction={resetFilters}
             />
           )}
 
           {!loading && !error && tutors.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {tutors.map((tut) => {
-              const modeMeta = getTeachingModeMeta(tut.teachingMode);
-              const hasRating = Number.isFinite(Number(tut.ratingAvg)) && Number(tut.ratingAvg) > 0;
-              return (
-              <div
-                key={tut.id}
-                className="rounded-3xl glass-panel-premium card-hover-lift overflow-hidden flex flex-col justify-between group"
-              >
-                <div className="p-6 space-y-4">
-                  {/* Tutor Avatar & Header */}
-                  <div className="flex items-start gap-4">
-                    <div className="relative shrink-0">
-                      <img
-                        src={tut.avatarUrl}
-                        alt={tut.fullName}
-                        className="w-16 h-16 rounded-2xl object-cover border-2 border-white shadow-md group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-financial-available border-2 border-white" title="Trực tuyến"></span>
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <h3 className="text-base font-extrabold text-slate-900 truncate group-hover:text-brand-indigo-600 transition-colors">
-                          {tut.fullName}
-                        </h3>
-                        {tut.isVerified && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {tutors.map((tut) => {
+                const modeMeta = getTeachingModeMeta(tut.teachingMode);
+                const hasRating =
+                  Number.isFinite(Number(tut.ratingAvg)) && Number(tut.ratingAvg) > 0;
+                return (
+                  <Card
+                    key={tut.id}
+                    padding="none"
+                    hoverable
+                    className="flex flex-col justify-between overflow-hidden group border border-border/80 hover:border-brand-primary-300 hover:shadow-brand-md transition-all duration-200"
+                  >
+                    <div className="p-5 space-y-3.5">
+                      <div className="flex items-start gap-4">
+                        <Link to={`/tutors/${tut.id}`} className="relative shrink-0 block">
+                          <Avatar
+                            src={tut.avatarUrl}
+                            name={tut.fullName}
+                            size="lg"
+                            className="rounded-brand-md w-16 h-16 text-headline-2 ring-2 ring-transparent group-hover:ring-brand-primary-400 transition-all"
+                          />
                           <span
-                            className="material-symbols-outlined text-financial-available text-lg shrink-0"
-                            style={{ fontVariationSettings: "'FILL' 1" }}
-                            title="Gia Sư Đã Xác Thực Bằng Cấp"
-                          >
-                            verified
-                          </span>
-                        )}
+                            className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-success border-2 border-white"
+                            title="Trực tuyến"
+                          />
+                        </Link>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <Link
+                              to={`/tutors/${tut.id}`}
+                              className="text-headline-3 text-fg font-bold truncate group-hover:text-brand-primary-600 transition-colors"
+                            >
+                              {tut.fullName}
+                            </Link>
+                            {tut.isVerified && (
+                              <span title="Gia sư đã xác thực bằng cấp">
+                                <Icon name="verified" size="sm" className="text-success shrink-0" filled />
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-caption font-semibold text-brand-primary-700 line-clamp-1 flex items-center gap-1 mt-0.5">
+                            <Icon name="school" size="xs" className="shrink-0 text-brand-primary-500" />
+                            {tut.education || 'Gia sư chuyên môn'}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            <span className="flex items-center text-brand-secondary-600 text-caption font-bold">
+                              <Icon name="star" size="sm" filled className="mr-0.5 text-brand-secondary-500" />
+                              {hasRating ? formatRating(tut.ratingAvg, 2) : '—'}
+                            </span>
+                            <span className="text-[11px] text-fg-muted">
+                              ({tut.totalReviews} đánh giá)
+                            </span>
+                            <Badge variant={modeMeta.color} size="sm">
+                              {modeMeta.label}
+                            </Badge>
+                            {tut.experienceYears > 0 && (
+                              <Badge variant="neutral" size="sm">
+                                {tut.experienceYears} năm KN
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      {/* TutorSummaryDto không có `university`; dùng `education` thật. */}
-                      <p className="text-xs font-bold text-brand-indigo-600 line-clamp-1">{tut.education}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="flex items-center text-amber-500 text-xs font-extrabold">
-                          <span className="material-symbols-outlined text-sm mr-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                          {hasRating ? formatRating(tut.ratingAvg, 2) : '—'}
-                        </span>
-                        <span className="text-[11px] text-slate-400">({tut.totalReviews} đánh giá)</span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                          {modeMeta.label}
-                        </span>
+
+                      <p className="text-caption text-fg-secondary line-clamp-2 leading-relaxed">
+                        {tut.bio || 'Chưa có thông tin giới thiệu chi tiết.'}
+                      </p>
+
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {(tut.subjects ?? []).map((subject) => (
+                          <Tag key={subject}>{subject}</Tag>
+                        ))}
                       </div>
                     </div>
-                  </div>
 
-                  {/* Headline / Bio — DTO chỉ có `bio` (không có `title`) */}
-                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                    {tut.bio}
-                  </p>
+                    <div className="px-5 py-3.5 bg-neutral-50/80 border-t border-border flex items-center justify-between gap-3">
+                      <div>
+                        <span className="text-[10px] text-fg-muted font-bold uppercase tracking-wide block">
+                          Gói học từ
+                        </span>
+                        <div className="text-headline-2 text-success-strong font-bold">
+                          {tut.minPrice === null || tut.minPrice === undefined ? (
+                            <span className="text-body-reg text-fg-muted font-normal">Liên hệ</span>
+                          ) : (
+                            <Money value={tut.minPrice} />
+                          )}
+                        </div>
+                      </div>
 
-                  {/* Subject Tags — summary trả về mảng TÊN môn */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {(tut.subjects ?? []).map((subject) => (
-                      <span
-                        key={subject}
-                        className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-brand-indigo-50/80 text-brand-indigo-700 border border-brand-indigo-100/50"
-                      >
-                        {subject}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Footer Price & CTAs — MinPrice là giá gói thấp nhất (backend đang bổ sung) */}
-                <div className="p-4 bg-slate-50/80 border-t border-slate-200/60 flex items-center justify-between gap-3">
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Gói Từ</span>
-                    <div className="text-base font-extrabold text-financial-available font-monospace-num">
-                      {tut.minPrice === null || tut.minPrice === undefined ? (
-                        <span className="text-sm text-slate-500">Liên hệ</span>
-                      ) : (
-                        formatCurrency(tut.minPrice)
-                      )}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          as={Link}
+                          to={`/app/messages?tutorId=${tut.id}`}
+                          variant="outline"
+                          size="sm"
+                          icon={<Icon name="chat" size="sm" />}
+                        >
+                          Nhắn tin
+                        </Button>
+                        <Button
+                          as={Link}
+                          to={`/tutors/${tut.id}`}
+                          variant="primary"
+                          size="sm"
+                          iconRight={<Icon name="arrow_forward" size="sm" />}
+                        >
+                          Xem hồ sơ
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Link
-                      to={`/app/messages?tutorId=${tut.id}`}
-                      className="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-extrabold text-xs transition-colors flex items-center gap-1 shadow-2xs"
-                    >
-                      <span className="material-symbols-outlined text-base">chat</span>
-                      Nhắn tin
-                    </Link>
-                    <Link
-                      to={`/tutors/${tut.id}`}
-                      className="px-4 py-2.5 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white font-extrabold text-xs shadow-md shadow-brand-indigo-500/20 transition-all sheen-btn flex items-center gap-1"
-                    >
-                      Xem Hồ Sơ
-                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-              );
-            })}
-          </div>
+                  </Card>
+                );
+              })}
+            </div>
           )}
 
-          {/* Pagination Controls */}
           {!loading && !error && totalPages > 1 && (
-            <div className="pt-6 pb-4 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-              <span className="text-slate-500 font-medium">
-                Hiển thị <strong className="text-slate-800 font-bold">{(pageNumber - 1) * pageSize + 1}</strong> –{' '}
-                <strong className="text-slate-800 font-bold">{Math.min(pageNumber * pageSize, totalCount)}</strong> trong{' '}
-                <strong className="text-slate-800 font-bold">{totalCount}</strong> gia sư
+            <div className="pt-5 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-caption">
+              <span className="text-fg-muted">
+                Hiển thị{' '}
+                <strong className="text-fg">{(pageNumber - 1) * pageSize + 1}</strong> –{' '}
+                <strong className="text-fg">{Math.min(pageNumber * pageSize, totalCount)}</strong>{' '}
+                trong <strong className="text-fg">{totalCount}</strong> gia sư
               </span>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={pageNumber <= 1}
-                  onClick={() => {
-                    setPageNumber((p) => Math.max(1, p - 1));
-                    window.scrollTo({ top: 380, behavior: 'smooth' });
-                  }}
-                  className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1 shadow-2xs"
-                >
-                  <span className="material-symbols-outlined text-sm">chevron_left</span>
-                  Trang trước
-                </button>
-
-                <div className="flex items-center gap-1 px-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - pageNumber) <= 1)
-                    .map((p, idx, arr) => (
-                      <React.Fragment key={p}>
-                        {idx > 0 && arr[idx - 1] !== p - 1 && (
-                          <span className="px-1 text-slate-400 select-none">…</span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setPageNumber(p);
-                            window.scrollTo({ top: 380, behavior: 'smooth' });
-                          }}
-                          className={`w-8 h-8 rounded-xl font-extrabold text-xs transition-all ${
-                            pageNumber === p
-                              ? 'bg-brand-indigo-600 text-white shadow-sm shadow-brand-indigo-500/30'
-                              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      </React.Fragment>
-                    ))}
-                </div>
-
-                <button
-                  type="button"
-                  disabled={pageNumber >= totalPages}
-                  onClick={() => {
-                    setPageNumber((p) => Math.min(totalPages, p + 1));
-                    window.scrollTo({ top: 380, behavior: 'smooth' });
-                  }}
-                  className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1 shadow-2xs"
-                >
-                  Trang sau
-                  <span className="material-symbols-outlined text-sm">chevron_right</span>
-                </button>
-              </div>
+              <Pagination
+                page={pageNumber}
+                totalPages={totalPages}
+                onChange={(p) => {
+                  setPageNumber(p);
+                  window.scrollTo({ top: 380, behavior: 'smooth' });
+                }}
+              />
             </div>
           )}
         </div>

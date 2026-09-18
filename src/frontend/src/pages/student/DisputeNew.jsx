@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { cn } from '@/lib/cn';
 import disputeService from '@/services/dispute.service';
 import sessionService from '@/services/session.service';
-import { formatCurrency, formatDateTime } from '@/utils/formatters';
-import { message } from 'antd';
+import { formatDateTime } from '@/utils/formatters';
+import Money from '@/components/ui/Money';
+import { useToast } from '@/components/ui/Toast';
 import { DetailSkeleton } from '@/components/common/Skeleton';
 import ErrorState from '@/components/common/ErrorState';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Callout from '@/components/ui/Callout';
+import Icon from '@/components/ui/Icon';
+import { Textarea, Field } from '@/components/ui/Input';
 
 export default function DisputeNew() {
+  const toast = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('sessionId');
@@ -60,7 +68,7 @@ export default function DisputeNew() {
           title="Không tìm thấy thông tin buổi học"
           error={new Error('Đường dẫn thiếu mã buổi học (sessionId). Vui lòng chọn buổi học từ trang chi tiết khóa học.')}
           backPath="/student/dashboard"
-          backLabel="Quay lại Bàn Học"
+          backLabel="Quay lại bàn học"
         />
       </div>
     );
@@ -82,7 +90,7 @@ export default function DisputeNew() {
           title="Không tải được thông tin buổi học"
           onRetry={() => window.location.reload()}
           backPath="/student/dashboard"
-          backLabel="Quay lại Bàn Học"
+          backLabel="Quay lại bàn học"
         />
       </div>
     );
@@ -91,7 +99,7 @@ export default function DisputeNew() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!description.trim() || description.trim().length < 20) {
-      message.error('Mô tả chi tiết phải từ 20 ký tự trở lên để trọng tài có đủ căn cứ.');
+      toast.error('Mô tả chi tiết phải từ 20 ký tự trở lên để trọng tài có đủ căn cứ.');
       return;
     }
 
@@ -108,159 +116,167 @@ export default function DisputeNew() {
           await disputeService.uploadEvidence(created.id, evidenceFile);
         } catch (uploadErr) {
           console.warn('Lỗi tải tệp bằng chứng:', uploadErr);
-          message.warning('Đã tạo đơn khiếu nại nhưng tệp bằng chứng tải lên thất bại. Bạn có thể bổ sung sau.');
+          toast.warning('Đã tạo đơn khiếu nại nhưng tệp bằng chứng tải lên thất bại. Bạn có thể bổ sung sau.');
         }
       }
 
-      message.success('Đã gửi đơn khiếu nại thành công! Tiền học buổi này đã được bảo chứng trong Escrow.');
+      toast.success('Đã gửi đơn khiếu nại thành công! Tiền học buổi này đã được bảo chứng trong Escrow.');
       navigate('/student/dashboard');
     } catch (err) {
-      message.error(err?.message || 'Không thể gửi đơn khiếu nại. Vui lòng kiểm tra lại thông tin.');
+      toast.error(err?.message || 'Không thể gửi đơn khiếu nại. Vui lòng kiểm tra lại thông tin.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      <Link to="/student/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-brand-indigo-600 transition-colors">
-        <span className="material-symbols-outlined text-base">arrow_back</span>
-        Quay lại Bàn Học
+    <div className="max-w-3xl mx-auto space-y-6">
+      <Link
+        to="/student/dashboard"
+        className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
+      >
+        <Icon name="arrow_back" size="sm" />
+        Quay lại bàn học
       </Link>
 
-      <div className="p-6 sm:p-8 rounded-3xl bg-white border border-border-light shadow-xs space-y-6">
+      <Card padding="lg" className="space-y-5">
         <div className="space-y-1">
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Mở Đơn Khiếu Nại Tranh Chấp Buổi Học</h1>
-          <p className="text-xs text-text-muted">
-            Hệ thống Bàn Trọng Tài bảo vệ quyền lợi tài chính minh bạch cho cả học viên và gia sư
+          <h1 className="text-headline-1 text-fg">Mở đơn khiếu nại tranh chấp buổi học</h1>
+          <p className="text-caption text-fg-muted">
+            Hệ thống bàn trọng tài bảo vệ quyền lợi tài chính minh bạch cho cả học viên và gia sư
           </p>
         </div>
 
-        {/* Real Session Snapshot */}
         {session && (
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
+          <div className="p-4 rounded-brand-md bg-neutral-50 border border-border flex items-center justify-between text-caption">
             <div>
-              <span className="font-bold text-slate-800 block">
+              <span className="font-bold text-fg block">
                 Buổi #{session.sessionNumber} {session.subjectName ? `• ${session.subjectName}` : ''}
               </span>
-              <span className="text-text-muted">
+              <span className="text-fg-muted">
                 {session.tutorName ? `Gia sư: ${session.tutorName}` : ''}
                 {session.startAt ? ` • Giờ học: ${formatDateTime(session.startAt)}` : ''}
               </span>
             </div>
-            <span className="font-monospace-num font-extrabold text-financial-available text-sm">
-              {formatCurrency(session.earningAmount || 0)}
+            <span className="font-bold text-success-strong text-body-reg">
+              <Money value={session.earningAmount || 0} />
             </span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Reason Selection Cards */}
-          <div className="space-y-3" role="radiogroup" aria-label="Chọn lý do khiếu nại chính">
-            <span className="text-xs font-bold text-slate-800 block">Chọn lý do khiếu nại chính</span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {reasonsList.map((r) => (
-                <div
-                  key={r.key}
-                  role="radio"
-                  aria-checked={reason === r.key}
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setReason(r.key);
-                    }
-                  }}
-                  onClick={() => setReason(r.key)}
-                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-rose-500 ${
-                    reason === r.key
-                      ? 'border-rose-500 bg-rose-50/50 text-rose-950 shadow-xs'
-                      : 'border-border-light hover:bg-slate-50 text-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs">{r.title}</span>
-                    {reason === r.key && (
-                      <span className="material-symbols-outlined text-rose-600 text-lg">radio_button_checked</span>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-3">
+            <span
+              id="dispute-reason-label"
+              className="text-caption font-semibold text-fg-secondary uppercase tracking-wide block"
+            >
+              Chọn lý do khiếu nại chính
+            </span>
+            <div
+              className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+              role="radiogroup"
+              aria-labelledby="dispute-reason-label"
+            >
+              {reasonsList.map((r) => {
+                const selected = reason === r.key;
+                return (
+                  <button
+                    key={r.key}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setReason(r.key)}
+                    className={cn(
+                      'p-4 rounded-brand-md border-2 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger',
+                      selected
+                        ? 'border-danger bg-danger-subtle'
+                        : 'border-border hover:bg-neutral-50'
                     )}
-                  </div>
-                  <p className="text-[11px] text-text-muted mt-1 leading-normal m-0">{r.desc}</p>
-                </div>
-              ))}
+                  >
+                    <span className="flex items-center justify-between">
+                      <span className="font-semibold text-body-reg text-fg">{r.title}</span>
+                      {selected && <Icon name="radio_button_checked" size="sm" className="text-danger" />}
+                    </span>
+                    <span className="text-[11px] text-fg-muted mt-1 leading-normal block">
+                      {r.desc}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Detailed description */}
-          <div className="space-y-2">
-            <label htmlFor="dispute-description" className="text-xs font-bold text-slate-800 block">
-              Mô tả chi tiết vụ việc (Tối thiểu 20 ký tự, bắt buộc)
-            </label>
-            <textarea
+          <Field
+            label="Mô tả chi tiết vụ việc (tối thiểu 20 ký tự, bắt buộc)"
+            htmlFor="dispute-description"
+            required
+          >
+            <Textarea
               id="dispute-description"
               rows={4}
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Mô tả diễn biến cụ thể (thời gian vào lớp, sự cố phát sinh...) để trọng tài có đầy đủ cơ sở đối soát..."
-              className="w-full p-4 rounded-2xl border border-border-light text-xs text-slate-900 focus:ring-2 focus:ring-rose-500 outline-none leading-relaxed"
             />
-          </div>
+          </Field>
 
-          {/* Evidence Upload Box */}
-          <div className="space-y-2">
-            <label htmlFor="dispute-evidence-input" className="text-xs font-bold text-slate-800 block">
-              Tệp bằng chứng minh họa (Ảnh chụp màn hình, tài liệu PDF, văn bản...)
-            </label>
-            <div className="p-4 rounded-2xl border-2 border-dashed border-slate-200 text-center space-y-2 bg-slate-50/50">
-              <span className="material-symbols-outlined text-3xl text-slate-400">cloud_upload</span>
+          <Field
+            label="Tệp bằng chứng minh họa (Ảnh chụp màn hình, tài liệu PDF, văn bản...)"
+            htmlFor="dispute-evidence-input"
+          >
+            <div className="p-4 rounded-brand-md border-2 border-dashed border-border text-center space-y-2 bg-neutral-50">
+              <Icon name="cloud_upload" size="lg" strokeWidth={1.5} className="text-fg-muted mx-auto" />
               <div>
                 <input
                   id="dispute-evidence-input"
                   type="file"
                   accept="image/jpeg,image/png,image/webp,application/pdf,text/plain"
                   onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)}
-                  className="text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-indigo-50 file:text-brand-indigo-700 hover:file:bg-brand-indigo-100 cursor-pointer"
+                  className="text-caption text-fg-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-brand-md file:border-0 file:text-caption file:font-semibold file:bg-brand-primary-50 file:text-brand-primary-700 hover:file:bg-brand-primary-100 cursor-pointer"
                 />
               </div>
               {evidenceFile && (
-                <p className="text-xs text-emerald-700 font-bold m-0">
-                  ✓ Đã chọn: {evidenceFile.name} ({Math.round(evidenceFile.size / 1024)} KB)
+                <p className="text-caption text-success-strong font-semibold m-0">
+                  Đã chọn: {evidenceFile.name} ({Math.round(evidenceFile.size / 1024)} KB)
                 </p>
               )}
-              <p className="text-[11px] text-text-muted m-0">
+              <p className="text-[11px] text-fg-muted m-0">
                 Hỗ trợ JPG, PNG, WEBP, PDF, TXT (tối đa 10 MB)
               </p>
             </div>
-          </div>
+          </Field>
 
-          {/* Escrow Freeze Warning */}
-          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900 flex items-start gap-3">
-            <span className="material-symbols-outlined text-rose-600 text-xl shrink-0">lock</span>
-            <div>
-              <span className="font-bold block">Quy tắc bảo chứng tài chính:</span>
-              <span>Sau khi gửi khiếu nại thành công, học phí buổi học sẽ được bảo chứng trong Escrow và chỉ được giải ngân hoặc hoàn trả theo phán quyết phân xử của Admin.</span>
-            </div>
-          </div>
+          <Callout
+            variant="danger"
+            title="Quy tắc bảo chứng tài chính"
+            icon={<Icon name="lock" size="md" />}
+          >
+            Sau khi gửi khiếu nại thành công, học phí buổi học sẽ được bảo chứng trong Escrow và
+            chỉ được giải ngân hoặc hoàn trả theo phán quyết phân xử của Admin.
+          </Callout>
 
-          <div className="flex gap-3 pt-2">
-            <button
+          <div className="flex gap-3 pt-1">
+            <Button
               type="submit"
-              disabled={loading}
-              className="py-3 px-6 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5"
+              variant="danger"
+              size="lg"
+              loading={loading}
+              icon={!loading && <Icon name="send" size="sm" />}
             >
-              <span className="material-symbols-outlined text-base">send</span>
-              {loading ? 'Đang gửi...' : 'Gửi Đơn Khiếu Nại Lên Admin'}
-            </button>
-            <button
+              Gửi đơn khiếu nại lên Admin
+            </Button>
+            <Button
               type="button"
+              variant="outline"
+              size="lg"
               onClick={() => navigate('/student/dashboard')}
-              className="py-3 px-6 rounded-2xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold transition-colors"
             >
-              Hủy Bỏ
-            </button>
+              Hủy bỏ
+            </Button>
           </div>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

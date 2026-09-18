@@ -1,13 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/cn';
 import chatService, { createChatHubConnection } from '@/services/chat.service';
 import agreementService from '@/services/agreement.service';
 import { useAuthStore } from '@/store/authStore';
-import { formatDateTime, formatCurrency } from '@/utils/formatters';
-import { message } from 'antd';
+import { formatDateTime } from '@/utils/formatters';
+import Money from '@/components/ui/Money';
+import { useToast } from '@/components/ui/Toast';
 import EmptyState from '@/components/common/EmptyState';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import Icon from '@/components/ui/Icon';
+import Avatar from '@/components/ui/Avatar';
+import Input from '@/components/ui/Input';
+import { Spinner } from '@/components/ui/StatCard';
 
 export default function Messages() {
+  const toast = useToast();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const currentUserId = user?.id || user?.userId;
@@ -25,7 +35,6 @@ export default function Messages() {
   const hubConnectionRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-  // Load conversations list & user agreements
   useEffect(() => {
     let isMounted = true;
     async function loadConversations() {
@@ -47,7 +56,7 @@ export default function Messages() {
         }
       } catch (err) {
         if (isMounted) {
-          message.error(err?.message || 'Không thể tải danh sách cuộc trò chuyện.');
+          toast.error(err?.message || 'Không thể tải danh sách cuộc trò chuyện.');
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -58,9 +67,8 @@ export default function Messages() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [toast]);
 
-  // Active conversation change: load messages & wire SignalR
   useEffect(() => {
     if (!activeConversationId) return;
 
@@ -72,12 +80,11 @@ export default function Messages() {
         const res = await chatService.getMessages(activeConversationId, { pageSize: 50 });
         if (isMounted) {
           setMessagesList(res?.items || []);
-          // Mark as read in background
           chatService.markConversationAsRead(activeConversationId).catch(() => {});
         }
       } catch (err) {
         if (isMounted) {
-          message.error(err?.message || 'Không tải được tin nhắn.');
+          toast.error(err?.message || 'Không tải được tin nhắn.');
         }
       } finally {
         if (isMounted) setLoadingMessages(false);
@@ -86,7 +93,6 @@ export default function Messages() {
 
     loadMessages();
 
-    // Setup SignalR connection
     const connection = createChatHubConnection();
     hubConnectionRef.current = connection;
 
@@ -126,9 +132,8 @@ export default function Messages() {
           });
       }
     };
-  }, [activeConversationId, currentUserId]);
+  }, [activeConversationId, currentUserId, toast]);
 
-  // Scroll to bottom on new message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messagesList]);
@@ -146,12 +151,11 @@ export default function Messages() {
       setSending(true);
       const sentMsg = await chatService.sendMessage(activeConversationId, content);
       setMessagesList((prev) => {
-        // Prevent duplicate if SignalR echo already arrived
         if (prev.some((m) => m.id === sentMsg.id)) return prev;
         return [...prev, sentMsg];
       });
     } catch (err) {
-      message.error(err?.message || 'Không thể gửi tin nhắn.');
+      toast.error(err?.message || 'Không thể gửi tin nhắn.');
       setInputText(content);
     } finally {
       setSending(false);
@@ -165,29 +169,28 @@ export default function Messages() {
   };
 
   return (
-    <div className="h-[calc(100vh-140px)] min-h-[600px] rounded-3xl bg-white border border-border-light shadow-xs overflow-hidden flex flex-col md:flex-row">
-      {/* Conversations List Sidebar */}
-      <div className="w-full md:w-80 border-r border-border-light flex flex-col bg-slate-50/50">
-        <div className="p-4 border-b border-border-light flex items-center justify-between">
-          <span className="font-bold text-sm text-slate-800 flex items-center gap-2">
-            <span className="material-symbols-outlined text-brand-indigo-600 text-lg">chat</span>
-            Hộp Thư Trực Tuyến
+    <Card padding="none" className="h-[calc(100vh-140px)] min-h-[600px] overflow-hidden flex flex-col md:flex-row">
+      <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-border flex flex-col bg-neutral-50">
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          <span className="font-bold text-body-reg text-fg flex items-center gap-2">
+            <Icon name="chat" size="sm" className="text-brand-primary-600" />
+            Hộp thư trực tuyến
           </span>
           {conversations.length > 0 && (
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
-              {conversations.length} cuộc trò chuyện
-            </span>
+            <Badge size="sm">{conversations.length} cuộc trò chuyện</Badge>
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-border-light">
+        <div className="flex-1 overflow-y-auto divide-y divide-border">
           {loading ? (
-            <div className="p-6 text-center text-slate-400 text-xs">
-              <span className="material-symbols-outlined animate-spin text-xl block mb-1">sync</span>
-              Đang tải danh sách...
+            <div className="p-6 text-center text-fg-muted text-caption space-y-2">
+              <Spinner size="md" className="mx-auto" />
+              <p>Đang tải danh sách...</p>
             </div>
           ) : conversations.length === 0 ? (
-            <div className="p-6 text-center text-slate-400 text-xs">Chưa có cuộc trò chuyện nào.</div>
+            <div className="p-6 text-center text-fg-muted text-caption">
+              Chưa có cuộc trò chuyện nào.
+            </div>
           ) : (
             conversations.map((conv) => {
               const otherName = conv.tutorName || conv.studentName || 'Người dùng';
@@ -202,23 +205,25 @@ export default function Messages() {
                   type="button"
                   key={conv.id}
                   onClick={() => setActiveConversationId(conv.id)}
-                  className={`w-full text-left p-4 flex items-center gap-3 cursor-pointer transition-colors ${
-                    isSelected ? 'bg-white border-l-4 border-brand-indigo-600 shadow-xs' : 'hover:bg-white'
-                  }`}
+                  aria-current={isSelected ? 'true' : undefined}
+                  className={cn(
+                    'w-full text-left p-4 flex items-center gap-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary-600',
+                    isSelected
+                      ? 'bg-surface border-l-4 border-brand-primary-600'
+                      : 'hover:bg-surface border-l-4 border-transparent'
+                  )}
                 >
-                  <div className="relative shrink-0">
-                    <img src={otherAvatar} alt={otherName} className="w-11 h-11 rounded-2xl object-cover" />
-                  </div>
+                  <Avatar src={otherAvatar} name={otherName} size="lg" className="rounded-brand-md" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-slate-900 truncate">{otherName}</span>
+                      <span className="font-bold text-caption text-fg truncate">{otherName}</span>
                       {conv.lastMessageAt && (
-                        <span className="text-[10px] text-text-muted">
+                        <span className="text-[10px] text-fg-muted">
                           {formatDateTime(conv.lastMessageAt, 'HH:mm')}
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-text-muted truncate mt-0.5 m-0">
+                    <p className="text-[11px] text-fg-muted truncate mt-0.5 m-0">
                       {conv.lastMessagePreview || 'Bắt đầu cuộc trò chuyện'}
                     </p>
                   </div>
@@ -229,43 +234,41 @@ export default function Messages() {
         </div>
       </div>
 
-      {/* Main Chat Stream */}
-      <div className="flex-1 flex flex-col bg-white">
+      <div className="flex-1 flex flex-col bg-surface min-h-0">
         {activeConv ? (
           <>
-            {/* Chat Header */}
-            <div className="p-4 border-b border-border-light flex items-center justify-between">
+            <div className="p-4 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <img
+                <Avatar
                   src={
                     activeConv.tutorAvatarUrl ||
                     activeConv.studentAvatarUrl ||
                     `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeConv.id}`
                   }
-                  alt="avatar"
-                  className="w-10 h-10 rounded-2xl object-cover"
+                  name={activeConv.tutorName || activeConv.studentName}
+                  size="md"
+                  className="rounded-brand-md"
                 />
                 <div>
-                  <h3 className="text-sm font-extrabold text-slate-900 m-0 leading-tight">
+                  <h2 className="text-body-reg font-bold text-fg m-0 leading-tight">
                     {activeConv.tutorName || activeConv.studentName || 'Cuộc trò chuyện'}
-                  </h3>
-                  <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  </h2>
+                  <span className="text-[11px] text-success-strong font-semibold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                     Kênh nhắn tin mã hóa bảo mật
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Messages Body */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/30">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-neutral-50/50">
               {loadingMessages ? (
-                <div className="text-center py-8 text-xs text-slate-400">
-                  <span className="material-symbols-outlined animate-spin text-xl block mb-1">sync</span>
-                  Đang tải tin nhắn...
+                <div className="text-center py-8 text-caption text-fg-muted space-y-2">
+                  <Spinner size="md" className="mx-auto" />
+                  <p>Đang tải tin nhắn...</p>
                 </div>
               ) : messagesList.length === 0 ? (
-                <div className="text-center py-12 text-xs text-slate-400">
+                <div className="text-center py-12 text-caption text-fg-muted">
                   Chưa có tin nhắn nào. Hãy gửi lời chào đầu tiên!
                 </div>
               ) : (
@@ -275,20 +278,21 @@ export default function Messages() {
                   return (
                     <div
                       key={msg.id}
-                      className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} space-y-1`}
+                      className={cn('flex flex-col space-y-1', isMine ? 'items-end' : 'items-start')}
                     >
                       <div className="flex items-end gap-2 max-w-[85%] sm:max-w-[70%]">
                         <div
-                          className={`p-3.5 rounded-2xl text-xs leading-relaxed shadow-2xs ${
+                          className={cn(
+                            'p-3.5 rounded-brand-lg text-caption leading-relaxed shadow-brand-sm',
                             isMine
-                              ? 'bg-brand-indigo-600 text-white rounded-br-xs'
-                              : 'bg-white border border-slate-200 text-slate-800 rounded-bl-xs'
-                          }`}
+                              ? 'bg-brand-primary-600 text-white rounded-br-brand-sm'
+                              : 'bg-surface border border-border text-fg rounded-bl-brand-sm'
+                          )}
                         >
                           <p className="m-0 break-words">{msg.content}</p>
                         </div>
                       </div>
-                      <span className="text-[10px] text-slate-400 px-1 font-mono">
+                      <span className="text-[10px] text-fg-muted px-1 font-mono">
                         {msg.createdAt ? formatDateTime(msg.createdAt, 'HH:mm') : ''}
                       </span>
                     </div>
@@ -296,7 +300,6 @@ export default function Messages() {
                 })
               )}
 
-              {/* Custom Agreement Card: only shown if there is an actual agreement for this conversation */}
               {(() => {
                 const activeAgreement = agreements.find(
                   (a) => a.conversationId === activeConv?.id,
@@ -304,53 +307,55 @@ export default function Messages() {
                 if (!activeAgreement) return null;
 
                 return (
-                  <div className="my-3 p-5 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-white to-indigo-50/30 border-2 border-brand-indigo-200 shadow-sm space-y-3 max-w-lg mx-auto">
+                  <Card className="my-3 border-2 border-brand-primary-200 space-y-3 max-w-lg mx-auto">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-brand-indigo-900 font-extrabold text-xs uppercase tracking-wide">
-                        <span className="material-symbols-outlined text-brand-indigo-600 text-base">description</span>
-                        {activeAgreement.title || 'Hợp Đồng Học Tập Tùy Chỉnh'}
+                      <div className="flex items-center gap-2 text-brand-primary-900 font-bold text-caption uppercase tracking-wide">
+                        <Icon name="description" size="sm" className="text-brand-primary-600" />
+                        {activeAgreement.title || 'Hợp đồng học tập tùy chỉnh'}
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-brand-indigo-100 text-brand-indigo-800">
+                      <Badge variant="primary" size="sm">
                         {activeAgreement.status}
-                      </span>
+                      </Badge>
                     </div>
-                    <p className="text-xs text-slate-700 leading-relaxed m-0">
+                    <p className="text-caption text-fg-secondary leading-relaxed m-0">
                       {activeAgreement.description || 'Thỏa thuận đào tạo riêng giữa Gia sư và Học viên.'}
                     </p>
-                    <div className="flex items-center justify-between pt-2 border-t border-brand-indigo-100 text-xs">
+                    <div className="flex items-center justify-between pt-2 border-t border-border text-caption">
                       <div>
-                        <span className="font-extrabold text-financial-available font-monospace-num text-sm block">
-                          {formatCurrency(activeAgreement.totalPrice || 0)}
+                        <span className="font-bold text-success-strong text-body-reg block">
+                          <Money value={activeAgreement.totalPrice || 0} />
                         </span>
-                        <span className="text-[10px] text-slate-500">
+                        <span className="text-[10px] text-fg-muted">
                           {activeAgreement.totalSessions} buổi ({activeAgreement.sessionDurationMinutes || 60}p/buổi)
                         </span>
                       </div>
                       {activeAgreement.bookingId ? (
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/student/bookings/${activeAgreement.bookingId}/checkout`)}
-                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors"
+                        <Button
+                          variant="success"
+                          size="sm"
+                          onClick={() =>
+                            navigate(`/student/bookings/${activeAgreement.bookingId}/checkout`)
+                          }
                         >
-                          Thanh Toán Giữ Chỗ
-                        </button>
+                          Thanh toán giữ chỗ
+                        </Button>
                       ) : (
-                        <button
-                          type="button"
+                        <Button
+                          variant="primary"
+                          size="sm"
                           onClick={() => navigate('/student/dashboard')}
-                          className="px-4 py-2 rounded-xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white font-bold text-xs shadow-xs transition-colors"
                         >
-                          Xem Khóa Học
-                        </button>
+                          Xem khóa học
+                        </Button>
                       )}
                     </div>
-                  </div>
+                  </Card>
                 );
               })()}
 
               {typingUser && (
-                <div className="text-[11px] text-slate-400 italic flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
+                <div className="text-[11px] text-fg-muted italic flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-neutral-400 animate-pulse" />
                   {typingUser}
                 </div>
               )}
@@ -358,9 +363,11 @@ export default function Messages() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Bar */}
-            <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-border-light flex items-center gap-2">
-              <input
+            <form
+              onSubmit={handleSendMessage}
+              className="p-3 sm:p-4 border-t border-border flex items-center gap-2"
+            >
+              <Input
                 type="text"
                 value={inputText}
                 onChange={(e) => {
@@ -368,16 +375,18 @@ export default function Messages() {
                   handleTyping();
                 }}
                 placeholder="Nhập tin nhắn..."
-                className="flex-1 px-4 py-2.5 rounded-2xl border border-slate-200 text-xs text-slate-900 focus:ring-2 focus:ring-brand-indigo-500 outline-none"
+                aria-label="Nhập tin nhắn"
+                className="flex-1"
               />
-              <button
+              <Button
                 type="submit"
+                variant="primary"
                 disabled={sending || !inputText.trim()}
-                className="px-5 py-2.5 rounded-2xl bg-brand-indigo-600 hover:bg-brand-indigo-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1 disabled:opacity-50"
+                loading={sending}
+                icon={!sending && <Icon name="send" size="sm" />}
               >
-                <span className="material-symbols-outlined text-base">send</span>
                 Gửi
-              </button>
+              </Button>
             </form>
           </>
         ) : (
@@ -392,6 +401,6 @@ export default function Messages() {
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

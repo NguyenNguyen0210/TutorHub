@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { cn } from '@/lib/cn';
 import enrollmentService from '@/services/enrollment.service';
-import { formatCurrency, formatDateTime } from '@/utils/formatters';
+import { formatDateTime } from '@/utils/formatters';
+import Money from '@/components/ui/Money';
 import { SESSION_STATUS, getSessionStatusMeta } from '@/config/enums';
 import ErrorState from '@/components/common/ErrorState';
+import Card, { CardHeader } from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import Icon from '@/components/ui/Icon';
+import { Progress } from '@/components/ui/Callout';
+import { DetailSkeleton } from '@/components/common/Skeleton';
 
 export default function EnrollmentDetail() {
   const { id } = useParams();
@@ -38,47 +46,32 @@ export default function EnrollmentDetail() {
     };
   }, [id]);
 
-  const STATUS_BADGE_CLASS = {
-    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    processing: 'bg-blue-50 text-blue-700 border-blue-200',
-    default: 'bg-slate-100 text-slate-600 border-slate-200',
-    error: 'bg-rose-50 text-rose-700 border-rose-200',
-  };
-
   const getStatusBadge = (session) => {
     if (session.hasAttendanceConflict) {
       return (
-        <span className="px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 border border-rose-300 text-xs font-bold">
-          Bất đồng điểm danh ⚠️
-        </span>
+        <Badge variant="danger" size="sm" icon={<Icon name="warning" size="sm" />}>
+          Bất đồng điểm danh
+        </Badge>
       );
     }
     if (session.status === SESSION_STATUS.SCHEDULED && session.attendanceVerificationDueAt) {
       const isWindowOpen = new Date(session.attendanceVerificationDueAt) > new Date();
       if (isWindowOpen && !session.studentAttendance) {
         return (
-          <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
-            Chờ Điểm Danh 24H ⏰
-          </span>
+          <Badge variant="holding" size="sm" icon={<Icon name="timer" size="sm" />}>
+            Chờ điểm danh 24h
+          </Badge>
         );
       }
     }
     const meta = getSessionStatusMeta(session.status);
-    const badgeClass = STATUS_BADGE_CLASS[meta.color] ?? STATUS_BADGE_CLASS.default;
-    return (
-      <span className={`px-2.5 py-1 rounded-full border text-xs font-bold ${badgeClass}`}>
-        {meta.label}
-      </span>
-    );
+    return <Badge variant={meta.color} size="sm">{meta.label}</Badge>;
   };
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto py-12 text-center text-slate-500">
-        <span className="material-symbols-outlined text-3xl animate-spin text-brand-indigo-600 block mb-2">
-          sync
-        </span>
-        Đang tải chi tiết hợp đồng...
+      <div className="max-w-4xl mx-auto py-8">
+        <DetailSkeleton />
       </div>
     );
   }
@@ -88,16 +81,16 @@ export default function EnrollmentDetail() {
       <div className="max-w-4xl mx-auto space-y-4 py-8">
         <Link
           to="/student/dashboard"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-brand-indigo-600 transition-colors"
+          className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
         >
-          <span className="material-symbols-outlined text-base">arrow_back</span>
-          Quay lại Bàn Học
+          <Icon name="arrow_back" size="sm" />
+          Quay lại bàn học
         </Link>
         <ErrorState
           error={error}
           title="Không tìm thấy hợp đồng học tập"
           backPath="/student/dashboard"
-          backLabel="Về Bàn Học"
+          backLabel="Về bàn học"
         />
       </div>
     );
@@ -108,176 +101,163 @@ export default function EnrollmentDetail() {
   const progressPercent = Math.round((completedCount / (enrollment.totalSessions || 1)) * 100);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      {/* Top Back Navigation */}
+    <div className="max-w-4xl mx-auto space-y-6">
       <Link
         to="/student/dashboard"
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-brand-indigo-600 transition-colors"
+        className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
       >
-        <span className="material-symbols-outlined text-base">arrow_back</span>
-        Quay lại Bàn Học
+        <Icon name="arrow_back" size="sm" />
+        Quay lại bàn học
       </Link>
 
-      {/* Header with Contract Summary */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white border border-border-light shadow-xs space-y-6">
+      <Card padding="lg" className="space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <span className="font-monospace-num text-xs font-bold text-brand-indigo-600 block">
+            <span className="font-mono text-caption font-bold text-brand-primary-700 block">
               HỢP ĐỒNG #{enrollment.id}
             </span>
-            <h1 className="text-2xl font-extrabold text-slate-900 mt-1">
-              {enrollment.serviceTitle || enrollment.subjectName || 'Hợp Đồng Học Tập'}
+            <h1 className="text-headline-1 text-fg mt-1">
+              {enrollment.serviceTitle || enrollment.subjectName || 'Hợp đồng học tập'}
             </h1>
-            <p className="text-xs text-text-muted mt-0.5">
-              Gia sư phụ trách: <strong>{enrollment.tutorName || enrollment.sessions?.[0]?.tutorName || 'Gia sư'}</strong>
+            <p className="text-caption text-fg-muted mt-0.5">
+              Gia sư phụ trách:{' '}
+              <strong>
+                {enrollment.tutorName || enrollment.sessions?.[0]?.tutorName || 'Gia sư'}
+              </strong>
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <span
-              className={`px-3 py-1.5 rounded-full border text-xs font-bold ${
-                enrollment.status === 'Active'
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                  : 'bg-blue-50 border-blue-200 text-blue-700'
-              }`}
-            >
-              {enrollment.status === 'Active' ? 'Đang Hiệu Lực (Escrow Locked)' : enrollment.status}
-            </span>
-          </div>
+          <Badge
+            variant={enrollment.status === 'Active' ? 'success' : 'info'}
+            icon={<Icon name="shield" size="sm" />}
+          >
+            {enrollment.status === 'Active' ? 'Đang hiệu lực (Escrow Locked)' : enrollment.status}
+          </Badge>
         </div>
 
-        {/* 4 Financial Micro-Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs border-t border-slate-100 pt-4">
-          <div className="p-3 bg-slate-50 rounded-2xl">
-            <span className="text-slate-500 block">Tổng học phí:</span>
-            <span className="font-extrabold text-slate-900 font-monospace-num">
-              {formatCurrency(enrollment.totalPrice)}
-            </span>
+        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-caption border-t border-border pt-4">
+          <div className="p-3 bg-neutral-50 rounded-brand-md">
+            <dt className="text-fg-muted block">Tổng học phí:</dt>
+            <dd className="font-bold text-fg">
+              <Money value={enrollment.totalPrice} />
+            </dd>
           </div>
-          <div className="p-3 bg-slate-50 rounded-2xl">
-            <span className="text-slate-500 block">Số buổi:</span>
-            <span className="font-extrabold text-slate-900 font-monospace-num">
-              {enrollment.totalSessions} Buổi ({enrollment.sessionDurationMinutes || 60}p/buổi)
-            </span>
+          <div className="p-3 bg-neutral-50 rounded-brand-md">
+            <dt className="text-fg-muted block">Số buổi:</dt>
+            <dd className="font-bold text-fg font-mono">
+              {enrollment.totalSessions} buổi ({enrollment.sessionDurationMinutes || 60}p/buổi)
+            </dd>
           </div>
-          <div className="p-3 bg-slate-50 rounded-2xl">
-            <span className="text-slate-500 block">Tiến độ hoàn thành:</span>
-            <span className="font-extrabold text-brand-indigo-600 font-monospace-num">
-              {completedCount} / {enrollment.totalSessions} Buổi
-            </span>
+          <div className="p-3 bg-neutral-50 rounded-brand-md">
+            <dt className="text-fg-muted block">Tiến độ hoàn thành:</dt>
+            <dd className="font-bold text-brand-primary-700 tabular-nums">
+              {completedCount} / {enrollment.totalSessions} buổi
+            </dd>
           </div>
-          <div className="p-3 bg-emerald-50 rounded-2xl">
-            <span className="text-emerald-700 block font-semibold">Tỷ lệ phí sàn:</span>
-            <span className="font-extrabold text-financial-available font-monospace-num">
+          <div className="p-3 bg-success-subtle rounded-brand-md">
+            <dt className="text-success-strong block font-semibold">Tỷ lệ phí sàn:</dt>
+            <dd className="font-bold text-success-strong tabular-nums">
               {(Number(enrollment.platformFeeRate || 0.1) * 100).toFixed(0)}% (Snapshot)
-            </span>
+            </dd>
           </div>
-        </div>
+        </dl>
 
-        {/* Progress Bar */}
         <div className="space-y-1.5">
-          <div className="flex justify-between text-xs text-slate-600">
+          <div className="flex justify-between text-caption text-fg-secondary">
             <span>Tiến độ hợp đồng:</span>
-            <span className="font-bold font-monospace-num">{progressPercent}%</span>
+            <span className="font-bold tabular-nums">{progressPercent}%</span>
           </div>
-          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-            <div
-              className="bg-brand-indigo-600 h-full rounded-full transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
+          <Progress value={progressPercent} label="Tiến độ hợp đồng" />
         </div>
-      </div>
+      </Card>
 
-      {/* Signature Component 5: Session Breakdown Timeline §3.5 */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white border border-border-light shadow-xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
-          <div>
-            <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-brand-indigo-600">timeline</span>
-              Lộ Trình & Tiến Độ Phân Rã {enrollment.totalSessions} Buổi Học (Session Timeline)
-            </h2>
-            <p className="text-xs text-text-muted mt-0.5">
-              Mỗi buổi học tương ứng một khoản ký quỹ riêng biệt được giải ngân sau khi đối soát thành công
-            </p>
-          </div>
-          <span className="text-xs font-bold text-slate-500 font-mono">
-            Tự động cấp phát qua EnrollmentSessionAllocator
-          </span>
-        </div>
+      <Card padding="lg" className="space-y-5">
+        <CardHeader
+          title={`Lộ trình & Tiến độ phân rã ${enrollment.totalSessions} buổi học`}
+          subtitle="Mỗi buổi học tương ứng một khoản ký quỹ riêng biệt được giải ngân sau khi đối soát thành công"
+          icon={<Icon name="timeline" size="sm" />}
+        />
 
-        {/* Sessions List */}
-        <div className="space-y-3">
+        <ol className="space-y-3">
           {sessions.map((sess) => (
-            <div
+            <li
               key={sess.id}
-              className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+              className={cn(
+                'p-4 rounded-brand-md border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3',
                 sess.hasAttendanceConflict
-                  ? 'border-rose-300 bg-rose-50/40'
+                  ? 'border-danger/40 bg-danger-subtle'
                   : sess.status === SESSION_STATUS.COMPLETED
-                  ? 'border-emerald-200 bg-emerald-50/20'
-                  : sess.status === SESSION_STATUS.SCHEDULED
-                  ? 'border-blue-200 bg-blue-50/20'
-                  : 'border-slate-200 bg-slate-50/50'
-              }`}
+                    ? 'border-success/40 bg-success-subtle'
+                    : sess.status === SESSION_STATUS.SCHEDULED
+                      ? 'border-info/40 bg-info-subtle'
+                      : 'border-border bg-neutral-50'
+              )}
             >
               <div className="flex items-center gap-4">
-                <div
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center font-monospace-num font-extrabold text-sm shrink-0 shadow-xs ${
+                <span
+                  className={cn(
+                    'w-10 h-10 rounded-brand-md flex items-center justify-center font-mono font-bold text-body-reg shrink-0',
                     sess.status === SESSION_STATUS.COMPLETED
-                      ? 'bg-emerald-500 text-white'
+                      ? 'bg-success text-white'
                       : sess.status === SESSION_STATUS.SCHEDULED
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-slate-200 text-slate-600'
-                  }`}
+                        ? 'bg-info text-white'
+                        : 'bg-neutral-200 text-fg-secondary'
+                  )}
+                  aria-hidden="true"
                 >
-                  #{sess.sessionNumber}
-                </div>
+                  {sess.sessionNumber}
+                </span>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-xs text-slate-900">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-body-reg text-fg">
                       Buổi học #{sess.sessionNumber}
                     </span>
                     {getStatusBadge(sess)}
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-caption text-fg-muted mt-0.5">
                     Thời gian:{' '}
-                    {sess.startAt ? formatDateTime(sess.startAt, 'DD/MM/YYYY HH:mm') : 'Chưa xếp lịch'}
+                    {sess.startAt
+                      ? formatDateTime(sess.startAt, 'DD/MM/YYYY HH:mm')
+                      : 'Chưa xếp lịch'}
                     {sess.endAt ? ` - ${formatDateTime(sess.endAt, 'HH:mm')}` : ''}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between sm:justify-end gap-4 text-xs">
+              <div className="flex items-center justify-between sm:justify-end gap-4 text-caption">
                 <div className="text-right">
-                  <span className="text-[10px] text-slate-400 block">Ký quỹ buổi:</span>
-                  <span className="font-extrabold text-slate-800 font-monospace-num">
-                    {formatCurrency(sess.earningAmount || 0)}
+                  <span className="text-[10px] text-fg-muted block">Ký quỹ buổi:</span>
+                  <span className="font-bold text-fg">
+                    <Money value={sess.earningAmount || 0} />
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Link
+                  <Button
+                    as={Link}
                     to={`/student/sessions/${sess.id}`}
-                    className="px-3.5 py-1.5 rounded-xl border border-slate-200 hover:bg-white text-slate-700 font-bold text-xs transition-colors flex items-center gap-1"
+                    variant="outline"
+                    size="sm"
+                    iconRight={<Icon name="chevron_right" size="sm" />}
                   >
-                    <span>Chi tiết</span>
-                    <span className="material-symbols-outlined text-sm">chevron_right</span>
-                  </Link>
+                    Chi tiết
+                  </Button>
 
                   {sess.hasAttendanceConflict && (
-                    <Link
+                    <Button
+                      as={Link}
                       to={`/student/disputes/new?sessionId=${sess.id}`}
-                      className="px-3 py-1.5 rounded-xl bg-rose-600 text-white font-bold text-xs hover:bg-rose-700 transition-colors"
+                      variant="danger"
+                      size="sm"
                     >
                       Khiếu nại
-                    </Link>
+                    </Button>
                   )}
                 </div>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
-      </div>
+        </ol>
+      </Card>
     </div>
   );
 }

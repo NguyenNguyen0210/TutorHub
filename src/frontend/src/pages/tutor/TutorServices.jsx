@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import tutorService from '@/services/tutor.service';
-import { formatCurrency } from '@/utils/formatters';
+import Money from '@/components/ui/Money';
 import { getTeachingModeMeta } from '@/config/enums';
 import { CardSkeleton } from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
+import Card from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
+import { PageHeader } from '@/components/ui/StatCard';
 
 export default function TutorServices() {
   const [services, setServices] = useState([]);
@@ -37,17 +40,11 @@ export default function TutorServices() {
   }, []);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Quản Lý Danh Mục Gói Dịch Vụ Giảng Dạy
-          </h1>
-          <p className="text-xs sm:text-sm text-text-muted mt-1">
-            Các gói học theo số buổi, thời lượng và cam kết đầu ra bảo chứng Escrow
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Quản lý danh mục gói dịch vụ giảng dạy"
+        subtitle="Các gói học theo số buổi, thời lượng và cam kết đầu ra bảo chứng Escrow"
+      />
 
       {loading && <CardSkeleton count={3} />}
 
@@ -68,52 +65,49 @@ export default function TutorServices() {
       )}
 
       {!loading && !error && services.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {services.map((pkg) => {
             const modeMeta = getTeachingModeMeta(pkg.teachingMode);
             return (
-              <div
-                key={pkg.id}
-                className="p-6 rounded-3xl bg-white border border-border-light shadow-xs flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow"
-              >
+              <Card key={pkg.id} hoverable className="flex flex-col justify-between space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-financial-available text-[10px] font-extrabold uppercase border border-emerald-200">
-                      Đang Tuyển Sinh
-                    </span>
-                    <span className="text-xs font-bold text-brand-indigo-600 font-monospace-num">
+                    <Badge variant="success" size="sm">
+                      Đang tuyển sinh
+                    </Badge>
+                    <span className="text-caption font-bold text-brand-primary-700 font-mono">
                       {pkg.totalSessions} buổi
                     </span>
                   </div>
-                  <h3 className="text-base font-bold text-slate-900">{pkg.title}</h3>
+                  <h3 className="text-headline-3 text-fg">{pkg.title}</h3>
 
-                  <div className="space-y-1.5 text-xs text-text-secondary pt-2 border-t border-slate-100">
+                  <dl className="space-y-1.5 text-caption text-fg-secondary pt-2 border-t border-border">
                     <div className="flex justify-between">
-                      <span>Môn học:</span>
-                      <span className="font-bold text-slate-800">{pkg.subjectName || '—'}</span>
+                      <dt>Môn học:</dt>
+                      <dd className="font-semibold text-fg">{pkg.subjectName || '—'}</dd>
                     </div>
                     <div className="flex justify-between">
-                      <span>Thời lượng buổi:</span>
-                      <span className="font-bold text-slate-800">
+                      <dt>Thời lượng buổi:</dt>
+                      <dd className="font-semibold text-fg">
                         {pkg.sessionDurationMinutes || 60} phút
-                      </span>
+                      </dd>
                     </div>
                     <div className="flex justify-between">
-                      <span>Hình thức:</span>
-                      <span className="font-bold text-slate-800">{modeMeta.label}</span>
+                      <dt>Hình thức:</dt>
+                      <dd className="font-semibold text-fg">{modeMeta.label}</dd>
                     </div>
-                  </div>
+                  </dl>
                 </div>
 
-                <div className="pt-4 border-t border-border-light space-y-3">
+                <div className="pt-4 border-t border-border">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-xs text-text-muted">Học phí trọn gói:</span>
-                    <span className="text-xl font-extrabold text-financial-available font-monospace-num">
-                      {formatCurrency(pkg.price)}
+                    <span className="text-caption text-fg-muted">Học phí trọn gói:</span>
+                    <span className="text-headline-2 text-success-strong font-semibold">
+                      <Money value={pkg.price} />
                     </span>
                   </div>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>
