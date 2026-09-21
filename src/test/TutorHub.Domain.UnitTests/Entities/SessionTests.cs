@@ -334,5 +334,105 @@ public class SessionTests
         // Assert
         session.HasAttendanceConflict.Should().BeTrue();
     }
+
+    [Fact]
+    public void CancelSingle_FromUnscheduled_TransitionsToCancelled()
+    {
+        // Arrange
+        var session = new Session();
+        var now = DateTime.UtcNow;
+
+        // Act
+        session.CancelSingle("Student requested cancellation", now);
+
+        // Assert
+        session.Status.Should().Be(SessionStatus.Cancelled);
+        session.ResolutionNotes.Should().Be("Student requested cancellation");
+        session.ResolutionSource.Should().Be("SingleSessionCancel");
+        session.CancelledAt.Should().Be(now);
+    }
+
+    [Fact]
+    public void CancelSingle_FromFutureScheduled_TransitionsToCancelled()
+    {
+        // Arrange
+        var session = new Session();
+        var now = DateTime.UtcNow;
+        session.Schedule(now.AddDays(2), now.AddDays(2).AddHours(1));
+
+        // Act
+        session.CancelSingle("Tutor emergency", now);
+
+        // Assert
+        session.Status.Should().Be(SessionStatus.Cancelled);
+        session.ResolutionNotes.Should().Be("Tutor emergency");
+        session.ResolutionSource.Should().Be("SingleSessionCancel");
+        session.CancelledAt.Should().Be(now);
+    }
+
+    [Fact]
+    public void CancelSingle_FromPastScheduled_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var session = new Session();
+        var now = DateTime.UtcNow;
+        session.Schedule(now.AddDays(-1), now.AddDays(-1).AddHours(1));
+
+        // Act
+        var act = () => session.CancelSingle("Trying to cancel past session", now);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Cannot cancel a session that has already started.");
+    }
+
+    [Fact]
+    public void CancelSingle_FromCompleted_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var session = new Session();
+        session.Schedule(DateTime.UtcNow.AddDays(1), DateTime.UtcNow.AddDays(1).AddHours(1));
+        session.Complete();
+
+        // Act
+        var act = () => session.CancelSingle("Session already completed", DateTime.UtcNow);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Cannot cancel a completed session.");
+    }
+
+    [Fact]
+    public void CancelSingle_FromAlreadyCancelled_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var session = new Session();
+        var now = DateTime.UtcNow;
+        session.CancelSingle("First cancellation", now);
+
+        // Act
+        var act = () => session.CancelSingle("Second cancellation", now);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Session is already cancelled.");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void CancelSingle_WithoutReason_ThrowsArgumentException(string? invalidReason)
+    {
+        // Arrange
+        var session = new Session();
+
+        // Act
+        var act = () => session.CancelSingle(invalidReason!, DateTime.UtcNow);
+
+        // Assert
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*Cancellation reason is required.*");
+    }
 }
 

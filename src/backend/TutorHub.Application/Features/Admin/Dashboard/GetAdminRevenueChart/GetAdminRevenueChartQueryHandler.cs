@@ -72,19 +72,19 @@ public class GetAdminRevenueChartQueryHandler : IRequestHandler<GetAdminRevenueC
             var monthTx = rawTransactions.Where(t => t.CreatedAt.AddHours(7).ToString("yyyy-MM") == month).ToList();
             var monthBk = rawBookings.Where(b => b.CreatedAt.AddHours(7).ToString("yyyy-MM") == month).ToList();
 
-            var heldTx = monthTx.Where(t => t.Status == TransactionStatus.Held).ToList();
             var releasedTx = monthTx.Where(t => t.Status == TransactionStatus.Released).ToList();
             // Refunds are counted by type (StudentRefund), independent of their
             // Pending/Succeeded settlement state (DEC-S8-032).
             var refundedTx = monthTx.Where(t => t.Type == TransactionType.StudentRefund).ToList();
+            var bookingPayments = monthTx.Where(t => t.Type == TransactionType.BookingPayment && t.Status == TransactionStatus.Held).ToList();
 
-            decimal heldAmount = heldTx.Sum(t => t.Amount);
-            decimal releasedAmount = releasedTx.Sum(t => t.Amount);
+            decimal bookingGmv = bookingPayments.Sum(t => t.Amount);
             decimal refundedAmount = refundedTx.Sum(t => t.Amount);
+            decimal feeReversals = monthTx.Where(t => t.Type == TransactionType.PlatformFeeReversal).Sum(t => t.CommissionAmount);
 
-            decimal totalGmv = heldAmount + releasedAmount + refundedAmount;
-            decimal netGmv = heldAmount + releasedAmount;
-            decimal platformRevenue = releasedTx.Sum(t => t.CommissionAmount);
+            decimal totalGmv = bookingGmv;
+            decimal netGmv = Math.Max(0m, bookingGmv - refundedAmount);
+            decimal platformRevenue = Math.Max(0m, releasedTx.Sum(t => t.CommissionAmount) - feeReversals);
             decimal tutorPayouts = releasedTx.Sum(t => t.PayoutAmount);
 
             int totalBookings = monthBk.Count;

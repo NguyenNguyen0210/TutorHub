@@ -84,6 +84,22 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
 
         var now = _clock.UtcNow;
 
+        // Enforce minimum withdrawal amount configured on platform (DEC-WD-001)
+        var minWithdrawalSetting = await _context.PlatformSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Key == "MinWithdrawalAmount", cancellationToken);
+
+        decimal minAmount = 50_000m;
+        if (minWithdrawalSetting != null && decimal.TryParse(minWithdrawalSetting.Value, out var parsedMin) && parsedMin > 0)
+        {
+            minAmount = parsedMin;
+        }
+
+        if (request.Amount < minAmount)
+        {
+            throw new BadRequestException($"Withdrawal amount must be at least {minAmount:N0} VND.");
+        }
+
         // Row-level locking (FOR UPDATE)
         var wallet = await _context.Wallets
             .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {tutor.Id} FOR UPDATE")

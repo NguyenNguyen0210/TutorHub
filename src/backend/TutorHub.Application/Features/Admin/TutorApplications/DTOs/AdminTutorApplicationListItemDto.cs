@@ -9,5 +9,10 @@ public record AdminTutorApplicationListItemDto(
     string Status,
     DateTime SubmittedAt,
     DateTime? ReviewedAt,
-    string? RejectionReason
+    string? RejectionReason,
+    string? Bio = null,
+    string? Education = null,
+    int ExperienceYears = 0,
+    string? TeachingMode = null,
+    string? Address = null
 );

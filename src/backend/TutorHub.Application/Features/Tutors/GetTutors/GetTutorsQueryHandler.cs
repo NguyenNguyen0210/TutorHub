@@ -103,7 +103,9 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
                 t.Address,
                 t.RatingAvg,
                 t.TotalReviews,
-                t.TutorSubjects.Where(ts => ts.IsActive).Select(ts => ts.Subject.Name).ToList()
+                t.TutorSubjects.Where(ts => ts.IsActive).Select(ts => ts.Subject.Name).ToList(),
+                t.Services.Where(s => s.Status == ServiceStatus.Published).Select(s => (decimal?)s.Price).Min(),
+                t.User.TutorApplications.Any(a => a.Status == TutorApplicationStatus.Approved)
             ))
             .ToListAsync(cancellationToken);
 

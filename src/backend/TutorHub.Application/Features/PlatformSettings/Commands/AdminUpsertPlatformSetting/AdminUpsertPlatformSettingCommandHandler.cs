@@ -12,12 +12,18 @@ public class AdminUpsertPlatformSettingCommandHandler : IRequestHandler<AdminUps
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IAuditLogService _auditLogService;
 
-    public AdminUpsertPlatformSettingCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
+    public AdminUpsertPlatformSettingCommandHandler(
+        IAppDbContext context,
+        IClock clock,
+        ICurrentUserService currentUserService,
+        IAuditLogService auditLogService)
     {
         _context = context;
         _clock = clock;
         _currentUserService = currentUserService;
+        _auditLogService = auditLogService;
     }
 
     public async Task<PlatformSettingDto> Handle(AdminUpsertPlatformSettingCommand request, CancellationToken cancellationToken)
@@ -35,6 +41,9 @@ public class AdminUpsertPlatformSettingCommandHandler : IRequestHandler<AdminUps
             .FirstOrDefaultAsync(s => s.Key == request.Key, cancellationToken);
 
         var now = _clock.UtcNow;
+
+        // Captured before mutation so the audit trail records the real previous value.
+        var previousValue = string.Empty;
 
         if (setting == null)
         {
@@ -65,14 +74,14 @@ public class AdminUpsertPlatformSettingCommandHandler : IRequestHandler<AdminUps
 
             _context.AddOutboxMessage(new PlatformSettingChangedEvent(
                 request.Key,
-                string.Empty,
+                previousValue,
                 setting.Value,
                 1,
                 userId));
         }
         else
         {
-            var oldVal = setting.Value;
+            previousValue = setting.Value;
             setting.CurrentVersion++;
             setting.Value = request.Value.Trim();
             setting.LastUpdatedByAdminId = userId;
@@ -92,11 +101,27 @@ public class AdminUpsertPlatformSettingCommandHandler : IRequestHandler<AdminUps
 
             _context.AddOutboxMessage(new PlatformSettingChangedEvent(
                 request.Key,
-                oldVal,
+                previousValue,
                 setting.Value,
                 setting.CurrentVersion,
                 userId));
         }
+
+        // CLAUDE.md convention #6: admin platform-configuration changes are audited.
+        await _auditLogService.LogAsync(
+            action: "PlatformSettingUpdated",
+            entityName: "PlatformSetting",
+            entityId: setting.Id.ToString(),
+            userId: userId,
+            oldValues: new { Key = request.Key, Value = previousValue },
+            newValues: new
+            {
+                Key = request.Key,
+                Value = setting.Value,
+                Reason = request.Reason,
+                Version = setting.CurrentVersion
+            },
+            cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
 

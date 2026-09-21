@@ -18,7 +18,22 @@ public class LocalFileStorage : IFileStorage
 
     public async Task<string> SaveAsync(Stream fileStream, string fileName, string contentType, CancellationToken cancellationToken = default)
     {
-        var extension = Path.GetExtension(fileName);
+        var extension = contentType switch
+        {
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            "image/webp" => ".webp",
+            "image/gif" => ".gif",
+            "application/pdf" => ".pdf",
+            "text/plain" => ".txt",
+            _ => Path.GetExtension(fileName).ToLowerInvariant()
+        };
+
+        if (string.IsNullOrWhiteSpace(extension) || extension.Contains('/') || extension.Contains('\\'))
+        {
+            extension = ".bin";
+        }
+
         var uniqueKey = $"{Guid.NewGuid():N}{extension}";
         var fullPath = Path.Combine(_storageDirectory, uniqueKey);
 

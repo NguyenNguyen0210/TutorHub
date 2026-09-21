@@ -6,6 +6,14 @@ namespace TutorHub.Application.Features.PlatformSettings.Commands.AdminUpsertPla
 /// </summary>
 public static class PlatformSettingKeys
 {
+    /// <summary>
+    /// Platform commission rate snapshot source (DEC-S8-020). Deliberately NOT part of
+    /// <see cref="All"/>: it is writable only through the dedicated AdminUpdatePlatformFee
+    /// endpoint (so every change records a version + reason), and enrollment activation
+    /// reads it with no fallback.
+    /// </summary>
+    public const string PlatformFeeRate = "PlatformFeeRate";
+
     public const string VerificationWindowHours = "VerificationWindowHours";
     public const string ReviewWindowDays = "ReviewWindowDays";
     public const string CancellationPolicy = "CancellationPolicy";

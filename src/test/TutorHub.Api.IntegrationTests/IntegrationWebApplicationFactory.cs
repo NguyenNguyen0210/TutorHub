@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Npgsql;
+using TutorHub.Domain.Entities;
 using TutorHub.Infrastructure.Persistence;
 
 namespace TutorHub.Api.IntegrationTests;
@@ -101,6 +102,25 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
             using (var context = new AppDbContext(options))
             {
                 context.Database.Migrate();
+
+                // P0-A1: enrollment activation no longer falls back to a guessed fee,
+                // so the platform fee setting is a hard prerequisite — exactly as in
+                // production. Seed it once; tests that exercise fee changes create
+                // their own versions on top.
+                if (!context.PlatformSettings.Any(s => s.Key == "PlatformFeeRate"))
+                {
+                    context.PlatformSettings.Add(new PlatformSetting
+                    {
+                        Id = Guid.NewGuid(),
+                        Key = "PlatformFeeRate",
+                        Value = "0.10",
+                        Description = "Platform commission rate snapshot source (DEC-S8-020).",
+                        CurrentVersion = 1,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+
+                    context.SaveChanges();
+                }
             }
 
             _initialized = true;

@@ -59,6 +59,7 @@ public class GetAdminUsersQueryHandler : IRequestHandler<GetAdminUsersQuery, Pag
                 u.Role,
                 u.Status,
                 u.CreatedAt,
+                u.AbsentStrikes,
                 u.TutorApplications
                     .OrderBy(a => a.Status == TutorApplicationStatus.Approved ? 0 : a.Status == TutorApplicationStatus.Pending ? 1 : 2)
                     .ThenByDescending(a => a.SubmittedAt)

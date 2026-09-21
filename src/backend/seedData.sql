@@ -584,24 +584,26 @@ VALUES
 
 -- -----------------------------------------------------------------------------
 -- 26. REFRESH TOKENS (15 Refresh Tokens)
+-- P0-D1: only the HMAC-SHA256 hash of a refresh token is stored, so the seeded value
+-- is a 64-char lowercase hex digest (never a usable raw token).
 -- -----------------------------------------------------------------------------
-INSERT INTO "RefreshTokens" ("Id", "UserId", "Token", "ExpiresAt", "CreatedAt", "RevokedAt")
+INSERT INTO "RefreshTokens" ("Id", "UserId", "TokenHash", "ExpiresAt", "CreatedAt", "RevokedAt")
 VALUES
-    ('ba09ba09-0001-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'token_refresh_admin_001_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000002', '22222222-1111-1111-1111-111111111111', 'token_refresh_tutor_an_002_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000003', '33333333-1111-1111-1111-111111111111', 'token_refresh_tutor_bich_003_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000004', '44444444-1111-1111-1111-111111111111', 'token_refresh_tutor_nam_004_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000005', '44444444-2222-1111-1111-111111111111', 'token_refresh_tutor_ha_005_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000006', '44444444-3333-1111-1111-111111111111', 'token_refresh_tutor_quang_006_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000007', '44444444-4444-1111-1111-111111111111', 'token_refresh_tutor_mai_007_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000008', '55555555-1111-1111-1111-111111111111', 'token_refresh_student_tuan_008_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000009', '66666666-1111-1111-1111-111111111111', 'token_refresh_student_lan_009_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000010', '77777777-1111-1111-1111-111111111111', 'token_refresh_student_bad_010_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000011', '55555555-2222-1111-1111-111111111111', 'token_refresh_student_hung_011_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000012', '55555555-3333-1111-1111-111111111111', 'token_refresh_student_linh_012_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000013', '55555555-4444-1111-1111-111111111111', 'token_refresh_student_khoa_013_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000014', '55555555-5555-1111-1111-111111111111', 'token_refresh_student_thao_014_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL),
-    ('ba09ba09-0001-0000-0000-000000000015', '55555555-6666-1111-1111-111111111111', 'token_refresh_student_duc_015_sample_1234567890abcdef', NOW() + INTERVAL '7 days', NOW(), NULL);
+    ('ba09ba09-0001-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '01', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000002', '22222222-1111-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '02', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000003', '33333333-1111-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '03', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000004', '44444444-1111-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '04', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000005', '44444444-2222-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '05', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000006', '44444444-3333-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '06', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000007', '44444444-4444-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '07', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000008', '55555555-1111-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '08', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000009', '66666666-1111-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '09', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000010', '77777777-1111-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '10', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000011', '55555555-2222-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '11', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000012', '55555555-3333-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '12', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000013', '55555555-4444-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '13', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000014', '55555555-5555-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '14', NOW() + INTERVAL '7 days', NOW(), NULL),
+    ('ba09ba09-0001-0000-0000-000000000015', '55555555-6666-1111-1111-111111111111', 'ba09ba09' || repeat('0', 54) || '15', NOW() + INTERVAL '7 days', NOW(), NULL);
 
 -- -----------------------------------------------------------------------------
 -- 27. NOTIFICATIONS (15 Notifications)
@@ -703,5 +705,1587 @@ VALUES
     ('ba0dba0d-0001-0000-0000-000000000010', '11111111-1111-1111-1111-111111111111', 'ResolveDispute', 'Dispute', 'ba07ba07-0001-0000-0000-000000000002', '{"Status":"UnderReview"}', '{"Status":"Resolved"}', 'corr-admin-010', '127.0.0.1', 'Postman', NOW() - INTERVAL '4 days'),
     ('ba0dba0d-0001-0000-0000-000000000011', '11111111-1111-1111-1111-111111111111', 'ApproveWithdrawal', 'Withdrawal', 'fa01fa01-0001-0000-0000-000000000006', '{"Status":"Processing"}', '{"Status":"Completed"}', 'corr-admin-011', '127.0.0.1', 'Postman', NOW() - INTERVAL '7 days'),
     ('ba0dba0d-0001-0000-0000-000000000012', '11111111-1111-1111-1111-111111111111', 'ResolveDispute', 'Dispute', 'ba07ba07-0001-0000-0000-000000000003', '{"Status":"UnderReview"}', '{"Status":"Dismissed"}', 'corr-admin-012', '127.0.0.1', 'Postman', NOW() - INTERVAL '3 days');
+
+COMMIT;
+
+-- =============================================================================
+-- TUTORHUB VOLUME SEED DATA (PRODUCTION-GRADE, REALISTIC & RELATIONALLY SOUND)
+-- Scale:
+--   - 50 Specialized Tutors across 15 Subjects
+--   - 200 Distinct Vietnamese Students
+--   - 150 Domain-tailored Services
+--   - 500 Bookings, 400 Enrollments (220 Active, 150 Completed, 30 Cancelled)
+--   - ~3,800 Sessions (Strict sum(EarningAmount) == TotalPrice allocation)
+--   - 150 Unique LearningRecords with authentic subject syllabus
+--   - 150 Unique Reviews with personalized tutor replies
+--   - 100 Realistic Conversations with 2-way Dialogues
+--   - 50 Detailed Disputes with authentic Admin arbitration notes
+-- =============================================================================
+
+BEGIN;
+
+-- 1. USERS: 50 Tutors (b1000000-0000-0000-0000-000000000001 .. 0050)
+INSERT INTO "Users" (
+    "Id", "Email", "PasswordHash", "FullName", "Phone", "AvatarUrl", 
+    "Role", "Status", "CreatedAt", "AbsentStrikes", "StrikeWindowStart", 
+    "LastAbsentAt", "AccessFailedCount", "LockoutEndAt"
+) VALUES
+    ('b1000000-0000-0000-0000-000000000001', 'thutrang.math@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'ThS. Nguyễn Thị Thu Trang', '0912384920', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_1_female', 'Tutor', 'Active', NOW() - INTERVAL '71 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000002', 'hoang.tran.math@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'TS. Trần Minh Hoàng', '0983214578', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_2_male', 'Tutor', 'Active', NOW() - INTERVAL '72 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000003', 'quoc.le.geometry@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Lê Bảo Quốc', '0904556721', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_3_male', 'Tutor', 'Active', NOW() - INTERVAL '73 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000004', 'linh.pham.math@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Phạm Phương Linh', '0976129845', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_4_female', 'Tutor', 'Active', NOW() - INTERVAL '74 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000005', 'thai.hoang.olympic@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'ThS. Hoàng Văn Thái', '0934982103', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_5_male', 'Tutor', 'Active', NOW() - INTERVAL '75 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000006', 'dung.vu.math@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Vũ Thùy Dung', '0967341908', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_6_female', 'Tutor', 'Active', NOW() - INTERVAL '76 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000007', 'tung.do.math@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Đỗ Thanh Tùng', '0915893420', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_7_male', 'Tutor', 'Active', NOW() - INTERVAL '77 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000008', 'anh.bui.math@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Bùi Ngọc Ánh', '0982349012', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_8_female', 'Tutor', 'Active', NOW() - INTERVAL '78 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000009', 'khoa.dang.ielts@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'ThS. Đặng Đình Khoa', '0909123847', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_9_male', 'Tutor', 'Active', NOW() - INTERVAL '79 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000010', 'ha.ngo.ielts@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Ngô Thu Hà', '0978234190', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_10_female', 'Tutor', 'Active', NOW() - INTERVAL '80 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000011', 'nghia.phan.english@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Phan Hữu Nghĩa', '0938491029', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_11_male', 'Tutor', 'Active', NOW() - INTERVAL '81 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000012', 'dieulinh.japanese@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Dương Diệu Linh', '0918239045', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_12_female', 'Tutor', 'Active', NOW() - INTERVAL '82 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000013', 'nam.ly.ielts@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Lý Hoàng Nam', '0981928374', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_13_male', 'Tutor', 'Active', NOW() - INTERVAL '83 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000014', 'maianh.japanese@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Võ Thị Mai Anh', '0969123840', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_14_female', 'Tutor', 'Active', NOW() - INTERVAL '84 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000015', 'bao.trinh.ielts@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Trịnh Quốc Bảo', '0903829104', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_15_male', 'Tutor', 'Active', NOW() - INTERVAL '85 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000016', 'thaovy.communication@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Đinh Thảo Vy', '0974829103', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_16_female', 'Tutor', 'Active', NOW() - INTERVAL '86 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000017', 'quan.ha.physics@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'ThS. Hà Minh Quân', '0912903847', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_17_male', 'Tutor', 'Active', NOW() - INTERVAL '87 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000018', 'huong.mai.chemistry@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Mai Lan Hương', '0984920183', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_18_female', 'Tutor', 'Active', NOW() - INTERVAL '88 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000019', 'huy.ta.physics@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Tạ Quang Huy', '0908239104', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_19_male', 'Tutor', 'Active', NOW() - INTERVAL '89 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000020', 'linh.luong.biology@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Lương Khánh Linh', '0971928374', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_20_female', 'Tutor', 'Active', NOW() - INTERVAL '90 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000021', 'thang.cao.chemistry@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Cao Đức Thắng', '0932849102', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_21_male', 'Tutor', 'Active', NOW() - INTERVAL '91 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000022', 'tuyetmai.physics@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Đoàn Tuyết Mai', '0989201948', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_22_female', 'Tutor', 'Active', NOW() - INTERVAL '92 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000023', 'kiet.truong.biology@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Trương Tuấn Kiệt', '0918392018', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_23_male', 'Tutor', 'Active', NOW() - INTERVAL '93 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000024', 'haiyen.chemistry@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Lưu Hải Yến', '0973910294', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_24_female', 'Tutor', 'Active', NOW() - INTERVAL '94 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000025', 'long.vu.dev@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'ThS. Vũ Hoàng Long', '0904819203', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_25_male', 'Tutor', 'Active', NOW() - INTERVAL '95 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000026', 'hoaian.python@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Nguyễn Hoài An', '0968291048', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_26_female', 'Tutor', 'Active', NOW() - INTERVAL '96 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000027', 'chau.tran.net@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Trần Bảo Châu', '0915920194', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_27_male', 'Tutor', 'Active', NOW() - INTERVAL '97 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000028', 'tuananh.python@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Lê Tuấn Anh', '0987391028', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_28_male', 'Tutor', 'Active', NOW() - INTERVAL '98 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000029', 'linh.pham.dev@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Phạm Nhật Linh', '0939102847', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_29_male', 'Tutor', 'Active', NOW() - INTERVAL '99 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000030', 'ngan.hoang.python@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Hoàng Kim Ngân', '0972849103', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_30_female', 'Tutor', 'Active', NOW() - INTERVAL '100 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000031', 'huy.do.backend@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Đỗ Gia Huy', '0908392019', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_31_male', 'Tutor', 'Active', NOW() - INTERVAL '101 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000032', 'nghia.bui.code@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Bùi Trọng Nghĩa', '0914920183', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_32_male', 'Tutor', 'Active', NOW() - INTERVAL '102 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000033', 'myduyen.literature@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'ThS. Đặng Mỹ Duyên', '0983910284', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_33_female', 'Tutor', 'Active', NOW() - INTERVAL '103 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000034', 'dung.ngo.debate@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Ngô Quang Dũng', '0907291048', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_34_male', 'Tutor', 'Active', NOW() - INTERVAL '104 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000035', 'truc.phan.literature@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Phan Thanh Trúc', '0971029384', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_35_female', 'Tutor', 'Active', NOW() - INTERVAL '105 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000036', 'khoi.duong.negotiation@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Dương Minh Khôi', '0913920194', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_36_male', 'Tutor', 'Active', NOW() - INTERVAL '106 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000037', 'thuyhang.van@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Lý Thúy Hằng', '0982019482', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_37_female', 'Tutor', 'Active', NOW() - INTERVAL '107 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000038', 'hau.vo.speech@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Võ Văn Hậu', '0906291048', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_38_male', 'Tutor', 'Active', NOW() - INTERVAL '108 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000039', 'minhtrang.literature@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Trịnh Minh Trang', '0974910283', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_39_female', 'Tutor', 'Active', NOW() - INTERVAL '109 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000040', 'phu.dinh.communication@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Đinh Thiên Phú', '0938102948', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_40_male', 'Tutor', 'Active', NOW() - INTERVAL '110 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000041', 'kieu.ha.accounting@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Hà Thúy Kiều', '0981920384', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_41_female', 'Tutor', 'Active', NOW() - INTERVAL '111 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000042', 'trong.mai.chess@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Mai Đình Trọng', '0904820194', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_42_male', 'Tutor', 'Active', NOW() - INTERVAL '112 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000043', 'nguyen.ta.finance@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Tạ Thảo Nguyên', '0972019482', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_43_female', 'Tutor', 'Active', NOW() - INTERVAL '113 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000044', 'bach.luong.chess@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Lương Hoàng Bách', '0915928104', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_44_male', 'Tutor', 'Active', NOW() - INTERVAL '114 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000045', 'thanhmai.accounting@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Cao Thanh Mai', '0984920193', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_45_female', 'Tutor', 'Active', NOW() - INTERVAL '70 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000046', 'thanh.doan.dgnl@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Đoàn Công Thành', '0908192840', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_46_male', 'Tutor', 'Active', NOW() - INTERVAL '71 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000047', 'quynhnga.dgnl@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Trương Quỳnh Nga', '0968192048', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_47_female', 'Tutor', 'Active', NOW() - INTERVAL '72 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000048', 'dat.luu.science@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Lưu Thành Đạt', '0918291048', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_48_male', 'Tutor', 'Active', NOW() - INTERVAL '73 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000049', 'dieu.anh.english@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cô Chu Diệu Anh', '0975820194', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_49_female', 'Tutor', 'Active', NOW() - INTERVAL '74 days', 0, NULL, NULL, 0, NULL),
+    ('b1000000-0000-0000-0000-000000000050', 'nhatminh.math@tutorhub.vn', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Thầy Tạ Nhật Minh', '0934819204', 'https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_50_male', 'Tutor', 'Active', NOW() - INTERVAL '75 days', 0, NULL, NULL, 0, NULL)
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 2. USERS: 200 Students (b5000000-0000-0000-0000-000000000001 .. 0200)
+INSERT INTO "Users" (
+    "Id", "Email", "PasswordHash", "FullName", "Phone", "AvatarUrl", 
+    "Role", "Status", "CreatedAt", "AbsentStrikes", "StrikeWindowStart", 
+    "LastAbsentAt", "AccessFailedCount", "LockoutEndAt"
+) VALUES
+    ('b5000000-0000-0000-0000-000000000001', 'nguyen.hoang.nam.1@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Nguyễn Hoàng Nam', '098003791', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_1', 'Student', 'Active', NOW() - INTERVAL '61 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000002', 'tran.khanh.huyen.2@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trần Khánh Huyền', '098007582', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_2', 'Student', 'Active', NOW() - INTERVAL '62 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000003', 'le.minh.triet.3@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lê Minh Triết', '098011373', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_3', 'Student', 'Active', NOW() - INTERVAL '63 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000004', 'pham.quynh.anh.4@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phạm Quỳnh Anh', '098015164', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_4', 'Student', 'Active', NOW() - INTERVAL '64 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000005', 'vu.hoang.long.5@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Vũ Hoàng Long', '098018955', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_5', 'Student', 'Active', NOW() - INTERVAL '65 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000006', 'do.mai.anh.6@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đỗ Mai Anh', '098022746', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_6', 'Student', 'Active', NOW() - INTERVAL '66 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000007', 'bui.quoc.anh.7@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Bùi Quốc Anh', '098026537', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_7', 'Student', 'Active', NOW() - INTERVAL '67 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000008', 'dang.thao.nhi.8@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đặng Thảo Nhi', '098030328', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_8', 'Student', 'Active', NOW() - INTERVAL '68 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000009', 'ngo.tuan.khang.9@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Ngô Tuấn Khang', '098034119', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_9', 'Student', 'Active', NOW() - INTERVAL '69 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000010', 'phan.gia.hung.10@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phan Gia Hưng', '098037910', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_10', 'Student', 'Active', NOW() - INTERVAL '70 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000011', 'duong.bao.ngoc.11@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Dương Bảo Ngọc', '098041701', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_11', 'Student', 'Active', NOW() - INTERVAL '71 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000012', 'ly.gia.huy.12@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lý Gia Huy', '098045492', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_12', 'Student', 'Active', NOW() - INTERVAL '72 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000013', 'vo.phuong.vy.13@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Võ Phương Vy', '098049283', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_13', 'Student', 'Active', NOW() - INTERVAL '73 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000014', 'trinh.anh.dung.14@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trịnh Anh Dũng', '098053074', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_14', 'Student', 'Active', NOW() - INTERVAL '74 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000015', 'dinh.ngoc.diep.15@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đinh Ngọc Diệp', '098056865', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_15', 'Student', 'Active', NOW() - INTERVAL '75 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000016', 'ha.quang.minh.16@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Hà Quang Minh', '098060656', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_16', 'Student', 'Active', NOW() - INTERVAL '76 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000017', 'mai.phuong.thao.17@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Mai Phương Thảo', '098064447', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_17', 'Student', 'Active', NOW() - INTERVAL '77 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000018', 'ta.nhat.huy.18@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Tạ Nhật Huy', '098068238', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_18', 'Student', 'Active', NOW() - INTERVAL '78 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000019', 'luong.thuy.linh.19@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lương Thùy Linh', '098072029', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_19', 'Student', 'Active', NOW() - INTERVAL '79 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000020', 'cao.tien.dat.20@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cao Tiến Đạt', '098075820', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_20', 'Student', 'Active', NOW() - INTERVAL '80 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000021', 'doan.minh.chau.21@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đoàn Minh Châu', '098079611', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_21', 'Student', 'Active', NOW() - INTERVAL '81 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000022', 'truong.duc.anh.22@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trương Đức Anh', '098083402', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_22', 'Student', 'Active', NOW() - INTERVAL '82 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000023', 'luu.bao.tram.23@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lưu Bảo Trâm', '098087193', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_23', 'Student', 'Active', NOW() - INTERVAL '83 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000024', 'nguyen.tuan.kiet.24@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Nguyễn Tuấn Kiệt', '098090984', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_24', 'Student', 'Active', NOW() - INTERVAL '84 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000025', 'tran.hai.dang.25@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trần Hải Đăng', '098094775', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_25', 'Student', 'Active', NOW() - INTERVAL '85 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000026', 'le.ngoc.han.26@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lê Ngọc Hân', '098098566', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_26', 'Student', 'Active', NOW() - INTERVAL '86 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000027', 'pham.duc.duy.27@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phạm Đức Duy', '098102357', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_27', 'Student', 'Active', NOW() - INTERVAL '87 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000028', 'vu.ha.my.28@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Vũ Hà My', '098106148', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_28', 'Student', 'Active', NOW() - INTERVAL '88 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000029', 'do.dinh.trong.29@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đỗ Đình Trọng', '098109939', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_29', 'Student', 'Active', NOW() - INTERVAL '89 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000030', 'bui.khanh.linh.30@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Bùi Khánh Linh', '098113730', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_30', 'Student', 'Active', NOW() - INTERVAL '90 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000031', 'dang.hoang.phuc.31@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đặng Hoàng Phúc', '098117521', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_31', 'Student', 'Active', NOW() - INTERVAL '91 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000032', 'ngo.thanh.hang.32@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Ngô Thanh Hằng', '098121312', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_32', 'Student', 'Active', NOW() - INTERVAL '92 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000033', 'phan.tuan.tu.33@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phan Tuấn Tú', '098125103', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_33', 'Student', 'Active', NOW() - INTERVAL '93 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000034', 'duong.thuy.tien.34@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Dương Thuỳ Tiên', '098128894', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_34', 'Student', 'Active', NOW() - INTERVAL '94 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000035', 'ly.minh.khoa.35@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lý Minh Khoa', '098132685', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_35', 'Student', 'Active', NOW() - INTERVAL '95 days', 1, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000036', 'vo.ngoc.anh.36@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Võ Ngọc Ánh', '098136476', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_36', 'Student', 'Active', NOW() - INTERVAL '96 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000037', 'trinh.bao.long.37@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trịnh Bảo Long', '098140267', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_37', 'Student', 'Active', NOW() - INTERVAL '97 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000038', 'dinh.phuong.linh.38@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đinh Phương Linh', '098144058', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_38', 'Student', 'Active', NOW() - INTERVAL '98 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000039', 'ha.minh.tri.39@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Hà Minh Trí', '098147849', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_39', 'Student', 'Active', NOW() - INTERVAL '99 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000040', 'mai.thanh.truc.40@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Mai Thanh Trúc', '098151640', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_40', 'Student', 'Active', NOW() - INTERVAL '60 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000041', 'ta.dinh.phong.41@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Tạ Đình Phong', '098155431', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_41', 'Student', 'Active', NOW() - INTERVAL '61 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000042', 'luong.my.duyen.42@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lương Mỹ Duyên', '098159222', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_42', 'Student', 'Active', NOW() - INTERVAL '62 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000043', 'cao.hoang.quan.43@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cao Hoàng Quân', '098163013', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_43', 'Student', 'Active', NOW() - INTERVAL '63 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000044', 'doan.dieu.linh.44@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đoàn Diệu Linh', '098166804', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_44', 'Student', 'Active', NOW() - INTERVAL '64 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000045', 'truong.huu.thang.45@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trương Hữu Thắng', '098170595', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_45', 'Student', 'Active', NOW() - INTERVAL '65 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000046', 'luu.yen.nhi.46@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lưu Yến Nhi', '098174386', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_46', 'Student', 'Active', NOW() - INTERVAL '66 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000047', 'nguyen.thanh.long.47@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Nguyễn Thành Long', '098178177', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_47', 'Student', 'Active', NOW() - INTERVAL '67 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000048', 'tran.kim.ngan.48@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trần Kim Ngân', '098181968', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_48', 'Student', 'Active', NOW() - INTERVAL '68 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000049', 'le.hoang.bach.49@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lê Hoàng Bách', '098185759', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_49', 'Student', 'Active', NOW() - INTERVAL '69 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000050', 'pham.tra.my.50@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phạm Trà My', '098189550', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_50', 'Student', 'Active', NOW() - INTERVAL '70 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000051', 'vu.quoc.bao.51@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Vũ Quốc Bảo', '098193341', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_51', 'Student', 'Active', NOW() - INTERVAL '71 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000052', 'do.quynh.nhu.52@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đỗ Quỳnh Như', '098197132', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_52', 'Student', 'Active', NOW() - INTERVAL '72 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000053', 'bui.duc.thinh.53@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Bùi Đức Thịnh', '098200923', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_53', 'Student', 'Active', NOW() - INTERVAL '73 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000054', 'dang.anh.duong.54@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đặng Ánh Dương', '098204714', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_54', 'Student', 'Active', NOW() - INTERVAL '74 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000055', 'ngo.van.hung.55@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Ngô Văn Hùng', '098208505', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_55', 'Student', 'Active', NOW() - INTERVAL '75 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000056', 'phan.hoai.nam.56@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phan Hoài Nam', '098212296', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_56', 'Student', 'Active', NOW() - INTERVAL '76 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000057', 'duong.gia.bao.57@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Dương Gia Bảo', '098216087', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_57', 'Student', 'Active', NOW() - INTERVAL '77 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000058', 'ly.thu.trang.58@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lý Thu Trang', '098219878', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_58', 'Student', 'Active', NOW() - INTERVAL '78 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000059', 'vo.nhat.quang.59@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Võ Nhật Quang', '098223669', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_59', 'Student', 'Active', NOW() - INTERVAL '79 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000060', 'trinh.ngoc.anh.60@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trịnh Ngọc Anh', '098227460', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_60', 'Student', 'Active', NOW() - INTERVAL '80 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000061', 'dinh.viet.cuong.61@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đinh Việt Cường', '098231251', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_61', 'Student', 'Active', NOW() - INTERVAL '81 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000062', 'ha.quynh.chi.62@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Hà Quỳnh Chi', '098235042', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_62', 'Student', 'Active', NOW() - INTERVAL '82 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000063', 'mai.the.vinh.63@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Mai Thế Vinh', '098238833', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_63', 'Student', 'Active', NOW() - INTERVAL '83 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000064', 'ta.lan.anh.64@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Tạ Lan Anh', '098242624', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_64', 'Student', 'Active', NOW() - INTERVAL '84 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000065', 'luong.nhat.minh.65@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lương Nhật Minh', '098246415', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_65', 'Student', 'Active', NOW() - INTERVAL '85 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000066', 'cao.bao.yen.66@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cao Bảo Yến', '098250206', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_66', 'Student', 'Active', NOW() - INTERVAL '86 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000067', 'doan.van.hau.67@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đoàn Văn Hậu', '098253997', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_67', 'Student', 'Active', NOW() - INTERVAL '87 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000068', 'truong.minh.tuan.68@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trương Minh Tuấn', '098257788', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_68', 'Student', 'Active', NOW() - INTERVAL '88 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000069', 'luu.bao.khanh.69@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lưu Bảo Khánh', '098261579', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_69', 'Student', 'Active', NOW() - INTERVAL '89 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000070', 'nguyen.diep.anh.70@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Nguyễn Diệp Anh', '098265370', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_70', 'Student', 'Active', NOW() - INTERVAL '90 days', 1, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000071', 'tran.huu.kien.71@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trần Hữu Kiên', '098269161', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_71', 'Student', 'Active', NOW() - INTERVAL '91 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000072', 'le.thanh.nha.72@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lê Thanh Nhã', '098272952', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_72', 'Student', 'Active', NOW() - INTERVAL '92 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000073', 'pham.quoc.huy.73@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phạm Quốc Huy', '098276743', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_73', 'Student', 'Active', NOW() - INTERVAL '93 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000074', 'vu.hong.nhung.74@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Vũ Hồng Nhung', '098280534', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_74', 'Student', 'Active', NOW() - INTERVAL '94 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000075', 'do.tuan.minh.75@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đỗ Tuấn Minh', '098284325', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_75', 'Student', 'Active', NOW() - INTERVAL '95 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000076', 'bui.thi.mai.76@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Bùi Thị Mai', '098288116', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_76', 'Student', 'Active', NOW() - INTERVAL '96 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000077', 'dang.minh.quan.77@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đặng Minh Quân', '098291907', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_77', 'Student', 'Active', NOW() - INTERVAL '97 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000078', 'ngo.thu.uyen.78@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Ngô Thu Uyên', '098295698', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_78', 'Student', 'Active', NOW() - INTERVAL '98 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000079', 'phan.duc.huy.79@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phan Đức Huy', '098299489', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_79', 'Student', 'Active', NOW() - INTERVAL '99 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000080', 'duong.hong.phuc.80@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Dương Hồng Phúc', '098303280', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_80', 'Student', 'Active', NOW() - INTERVAL '60 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000081', 'ly.gia.linh.81@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lý Gia Linh', '098307071', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_81', 'Student', 'Active', NOW() - INTERVAL '61 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000082', 'vo.hoang.nam.82@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Võ Hoàng Nam', '098310862', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_82', 'Student', 'Active', NOW() - INTERVAL '62 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000083', 'trinh.thao.nguyen.83@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trịnh Thảo Nguyên', '098314653', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_83', 'Student', 'Active', NOW() - INTERVAL '63 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000084', 'dinh.huu.phuoc.84@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đinh Hữu Phước', '098318444', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_84', 'Student', 'Active', NOW() - INTERVAL '64 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000085', 'ha.phuong.linh.85@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Hà Phương Linh', '098322235', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_85', 'Student', 'Active', NOW() - INTERVAL '65 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000086', 'mai.duc.toan.86@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Mai Đức Toàn', '098326026', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_86', 'Student', 'Active', NOW() - INTERVAL '66 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000087', 'ta.minh.chau.87@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Tạ Minh Châu', '098329817', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_87', 'Student', 'Active', NOW() - INTERVAL '67 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000088', 'luong.quang.khai.88@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lương Quang Khải', '098333608', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_88', 'Student', 'Active', NOW() - INTERVAL '68 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000089', 'cao.thi.lan.89@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cao Thị Lan', '098337399', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_89', 'Student', 'Active', NOW() - INTERVAL '69 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000090', 'doan.quoc.tuan.90@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đoàn Quốc Tuấn', '098341190', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_90', 'Student', 'Active', NOW() - INTERVAL '70 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000091', 'truong.bao.uyen.91@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trương Bảo Uyên', '098344981', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_91', 'Student', 'Active', NOW() - INTERVAL '71 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000092', 'luu.tien.thanh.92@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lưu Tiến Thành', '098348772', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_92', 'Student', 'Active', NOW() - INTERVAL '72 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000093', 'nguyen.mai.phuong.93@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Nguyễn Mai Phương', '098352563', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_93', 'Student', 'Active', NOW() - INTERVAL '73 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000094', 'tran.quoc.dat.94@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trần Quốc Đạt', '098356354', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_94', 'Student', 'Active', NOW() - INTERVAL '74 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000095', 'le.thuy.duong.95@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lê Thùy Dương', '098360145', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_95', 'Student', 'Active', NOW() - INTERVAL '75 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000096', 'pham.hoang.quan.96@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phạm Hoàng Quân', '098363936', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_96', 'Student', 'Active', NOW() - INTERVAL '76 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000097', 'vu.ngoc.mai.97@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Vũ Ngọc Mai', '098367727', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_97', 'Student', 'Active', NOW() - INTERVAL '77 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000098', 'do.huu.nghia.98@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đỗ Hữu Nghĩa', '098371518', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_98', 'Student', 'Active', NOW() - INTERVAL '78 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000099', 'bui.quynh.giang.99@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Bùi Quỳnh Giang', '098375309', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_99', 'Student', 'Active', NOW() - INTERVAL '79 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000100', 'dang.tuan.anh.100@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đặng Tuấn Anh', '098379100', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_100', 'Student', 'Active', NOW() - INTERVAL '80 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000101', 'ngo.bao.han.101@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Ngô Bảo Hân', '098382891', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_101', 'Student', 'Active', NOW() - INTERVAL '81 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000102', 'phan.minh.khoi.102@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phan Minh Khôi', '098386682', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_102', 'Student', 'Active', NOW() - INTERVAL '82 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000103', 'duong.thu.thao.103@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Dương Thu Thảo', '098390473', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_103', 'Student', 'Active', NOW() - INTERVAL '83 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000104', 'ly.dinh.khoi.104@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lý Đình Khôi', '098394264', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_104', 'Student', 'Active', NOW() - INTERVAL '84 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000105', 'vo.thi.bich.105@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Võ Thị Bích', '098398055', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_105', 'Student', 'Active', NOW() - INTERVAL '85 days', 1, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000106', 'trinh.van.quyet.106@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trịnh Văn Quyết', '098401846', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_106', 'Student', 'Active', NOW() - INTERVAL '86 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000107', 'dinh.thuy.hang.107@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đinh Thúy Hằng', '098405637', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_107', 'Student', 'Active', NOW() - INTERVAL '87 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000108', 'ha.minh.dat.108@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Hà Minh Đạt', '098409428', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_108', 'Student', 'Active', NOW() - INTERVAL '88 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000109', 'mai.cam.tu.109@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Mai Cẩm Tú', '098413219', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_109', 'Student', 'Active', NOW() - INTERVAL '89 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000110', 'ta.hoang.viet.110@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Tạ Hoàng Việt', '098417010', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_110', 'Student', 'Active', NOW() - INTERVAL '90 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000111', 'luong.thuy.dung.111@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lương Thuỳ Dung', '098420801', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_111', 'Student', 'Active', NOW() - INTERVAL '91 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000112', 'cao.minh.khang.112@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cao Minh Khang', '098424592', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_112', 'Student', 'Active', NOW() - INTERVAL '92 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000113', 'doan.thao.vy.113@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đoàn Thảo Vy', '098428383', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_113', 'Student', 'Active', NOW() - INTERVAL '93 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000114', 'truong.dang.khoa.114@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trương Đăng Khoa', '098432174', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_114', 'Student', 'Active', NOW() - INTERVAL '94 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000115', 'luu.thi.huong.115@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lưu Thị Hương', '098435965', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_115', 'Student', 'Active', NOW() - INTERVAL '95 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000116', 'nguyen.khanh.toan.116@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Nguyễn Khánh Toàn', '098439756', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_116', 'Student', 'Active', NOW() - INTERVAL '96 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000117', 'tran.dieu.huong.117@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trần Diệu Hương', '098443547', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_117', 'Student', 'Active', NOW() - INTERVAL '97 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000118', 'le.quang.dai.118@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lê Quang Đại', '098447338', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_118', 'Student', 'Active', NOW() - INTERVAL '98 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000119', 'pham.thuy.chi.119@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phạm Thùy Chi', '098451129', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_119', 'Student', 'Active', NOW() - INTERVAL '99 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000120', 'vu.minh.hieu.120@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Vũ Minh Hiếu', '098454920', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_120', 'Student', 'Active', NOW() - INTERVAL '60 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000121', 'do.ngoc.huyen.121@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đỗ Ngọc Huyền', '098458711', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_121', 'Student', 'Active', NOW() - INTERVAL '61 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000122', 'bui.cong.minh.122@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Bùi Công Minh', '098462502', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_122', 'Student', 'Active', NOW() - INTERVAL '62 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000123', 'dang.hong.hanh.123@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đặng Hồng Hạnh', '098466293', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_123', 'Student', 'Active', NOW() - INTERVAL '63 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000124', 'ngo.gia.khiem.124@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Ngô Gia Khiêm', '098470084', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_124', 'Student', 'Active', NOW() - INTERVAL '64 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000125', 'phan.kim.oanh.125@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phan Kim Oanh', '098473875', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_125', 'Student', 'Active', NOW() - INTERVAL '65 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000126', 'duong.quoc.cuong.126@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Dương Quốc Cường', '098477666', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_126', 'Student', 'Active', NOW() - INTERVAL '66 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000127', 'ly.thi.kim.127@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lý Thị Kim', '098481457', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_127', 'Student', 'Active', NOW() - INTERVAL '67 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000128', 'vo.minh.thong.128@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Võ Minh Thông', '098485248', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_128', 'Student', 'Active', NOW() - INTERVAL '68 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000129', 'trinh.my.tam.129@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trịnh Mỹ Tâm', '098489039', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_129', 'Student', 'Active', NOW() - INTERVAL '69 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000130', 'dinh.quoc.toan.130@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đinh Quốc Toản', '098492830', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_130', 'Student', 'Active', NOW() - INTERVAL '70 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000131', 'ha.phuong.thao.131@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Hà Phương Thảo', '098496621', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_131', 'Student', 'Active', NOW() - INTERVAL '71 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000132', 'mai.van.quyen.132@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Mai Văn Quyền', '098500412', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_132', 'Student', 'Active', NOW() - INTERVAL '72 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000133', 'ta.thi.tuyet.133@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Tạ Thị Tuyết', '098504203', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_133', 'Student', 'Active', NOW() - INTERVAL '73 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000134', 'luong.thanh.cong.134@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lương Thành Công', '098507994', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_134', 'Student', 'Active', NOW() - INTERVAL '74 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000135', 'cao.bao.ngan.135@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cao Bảo Ngân', '098511785', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_135', 'Student', 'Active', NOW() - INTERVAL '75 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000136', 'doan.the.anh.136@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đoàn Thế Anh', '098515576', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_136', 'Student', 'Active', NOW() - INTERVAL '76 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000137', 'truong.diem.my.137@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trương Diễm My', '098519367', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_137', 'Student', 'Active', NOW() - INTERVAL '77 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000138', 'luu.quang.vu.138@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lưu Quang Vũ', '098523158', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_138', 'Student', 'Active', NOW() - INTERVAL '78 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000139', 'nguyen.ha.phuong.139@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Nguyễn Hà Phương', '098526949', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_139', 'Student', 'Active', NOW() - INTERVAL '79 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000140', 'tran.van.nam.140@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trần Văn Nam', '098530740', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_140', 'Student', 'Active', NOW() - INTERVAL '80 days', 1, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000141', 'le.thi.thao.141@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lê Thị Thảo', '098534531', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_141', 'Student', 'Active', NOW() - INTERVAL '81 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000142', 'pham.van.tuan.142@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phạm Văn Tuấn', '098538322', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_142', 'Student', 'Active', NOW() - INTERVAL '82 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000143', 'vu.thi.sen.143@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Vũ Thị Sen', '098542113', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_143', 'Student', 'Active', NOW() - INTERVAL '83 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000144', 'do.van.toan.144@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đỗ Văn Toàn', '098545904', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_144', 'Student', 'Active', NOW() - INTERVAL '84 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000145', 'bui.thi.ly.145@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Bùi Thị Lý', '098549695', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_145', 'Student', 'Active', NOW() - INTERVAL '85 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000146', 'dang.van.tung.146@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đặng Văn Tùng', '098553486', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_146', 'Student', 'Active', NOW() - INTERVAL '86 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000147', 'ngo.thi.hoa.147@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Ngô Thị Hoa', '098557277', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_147', 'Student', 'Active', NOW() - INTERVAL '87 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000148', 'phan.van.hau.148@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phan Văn Hậu', '098561068', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_148', 'Student', 'Active', NOW() - INTERVAL '88 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000149', 'duong.thi.mai.149@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Dương Thị Mai', '098564859', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_149', 'Student', 'Active', NOW() - INTERVAL '89 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000150', 'ly.van.sang.150@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lý Văn Sáng', '098568650', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_150', 'Student', 'Active', NOW() - INTERVAL '90 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000151', 'vo.thi.nhan.151@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Võ Thị Nhàn', '098572441', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_151', 'Student', 'Active', NOW() - INTERVAL '91 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000152', 'trinh.van.lam.152@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trịnh Văn Lâm', '098576232', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_152', 'Student', 'Active', NOW() - INTERVAL '92 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000153', 'dinh.thi.thoa.153@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đinh Thị Thoa', '098580023', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_153', 'Student', 'Active', NOW() - INTERVAL '93 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000154', 'ha.van.thang.154@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Hà Văn Thắng', '098583814', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_154', 'Student', 'Active', NOW() - INTERVAL '94 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000155', 'mai.thi.yen.155@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Mai Thị Yến', '098587605', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_155', 'Student', 'Active', NOW() - INTERVAL '95 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000156', 'ta.van.kien.156@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Tạ Văn Kiên', '098591396', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_156', 'Student', 'Active', NOW() - INTERVAL '96 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000157', 'luong.thi.hue.157@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lương Thị Huệ', '098595187', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_157', 'Student', 'Active', NOW() - INTERVAL '97 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000158', 'cao.van.dung.158@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cao Văn Dũng', '098598978', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_158', 'Student', 'Active', NOW() - INTERVAL '98 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000159', 'doan.thi.ha.159@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đoàn Thị Hà', '098602769', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_159', 'Student', 'Active', NOW() - INTERVAL '99 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000160', 'truong.van.bang.160@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trương Văn Bằng', '098606560', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_160', 'Student', 'Active', NOW() - INTERVAL '60 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000161', 'luu.thi.dung.161@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lưu Thị Dung', '098610351', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_161', 'Student', 'Active', NOW() - INTERVAL '61 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000162', 'nguyen.van.hoa.162@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Nguyễn Văn Hoà', '098614142', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_162', 'Student', 'Active', NOW() - INTERVAL '62 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000163', 'tran.thi.anh.163@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trần Thị Ánh', '098617933', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_163', 'Student', 'Active', NOW() - INTERVAL '63 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000164', 'le.van.tien.164@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lê Văn Tiến', '098621724', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_164', 'Student', 'Active', NOW() - INTERVAL '64 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000165', 'pham.thi.loan.165@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phạm Thị Loan', '098625515', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_165', 'Student', 'Active', NOW() - INTERVAL '65 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000166', 'vu.van.binh.166@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Vũ Văn Bình', '098629306', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_166', 'Student', 'Active', NOW() - INTERVAL '66 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000167', 'do.thi.luong.167@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đỗ Thị Lương', '098633097', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_167', 'Student', 'Active', NOW() - INTERVAL '67 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000168', 'bui.van.sam.168@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Bùi Văn Sâm', '098636888', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_168', 'Student', 'Active', NOW() - INTERVAL '68 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000169', 'dang.thi.tham.169@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đặng Thị Thắm', '098640679', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_169', 'Student', 'Active', NOW() - INTERVAL '69 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000170', 'ngo.van.tai.170@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Ngô Văn Tài', '098644470', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_170', 'Student', 'Active', NOW() - INTERVAL '70 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000171', 'phan.thi.thu.171@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phan Thị Thu', '098648261', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_171', 'Student', 'Active', NOW() - INTERVAL '71 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000172', 'duong.van.tan.172@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Dương Văn Tân', '098652052', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_172', 'Student', 'Active', NOW() - INTERVAL '72 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000173', 'ly.thi.nga.173@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lý Thị Nga', '098655843', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_173', 'Student', 'Active', NOW() - INTERVAL '73 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000174', 'vo.van.tho.174@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Võ Văn Thọ', '098659634', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_174', 'Student', 'Active', NOW() - INTERVAL '74 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000175', 'trinh.thi.gam.175@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trịnh Thị Gấm', '098663425', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_175', 'Student', 'Active', NOW() - INTERVAL '75 days', 1, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000176', 'dinh.van.thuan.176@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đinh Văn Thuận', '098667216', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_176', 'Student', 'Active', NOW() - INTERVAL '76 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000177', 'ha.thi.oanh.177@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Hà Thị Oanh', '098671007', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_177', 'Student', 'Active', NOW() - INTERVAL '77 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000178', 'mai.van.loi.178@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Mai Văn Lợi', '098674798', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_178', 'Student', 'Active', NOW() - INTERVAL '78 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000179', 'ta.thi.huong.179@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Tạ Thị Hường', '098678589', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_179', 'Student', 'Active', NOW() - INTERVAL '79 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000180', 'luong.van.duc.180@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lương Văn Đức', '098682380', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_180', 'Student', 'Active', NOW() - INTERVAL '80 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000181', 'cao.thi.sen.181@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Cao Thị Sen', '098686171', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_181', 'Student', 'Active', NOW() - INTERVAL '81 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000182', 'doan.van.son.182@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đoàn Văn Sơn', '098689962', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_182', 'Student', 'Active', NOW() - INTERVAL '82 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000183', 'truong.thi.hong.183@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trương Thị Hồng', '098693753', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_183', 'Student', 'Active', NOW() - INTERVAL '83 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000184', 'luu.van.dat.184@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lưu Văn Đạt', '098697544', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_184', 'Student', 'Active', NOW() - INTERVAL '84 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000185', 'nguyen.thi.thuy.185@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Nguyễn Thị Thủy', '098701335', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_185', 'Student', 'Active', NOW() - INTERVAL '85 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000186', 'tran.van.khanh.186@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trần Văn Khánh', '098705126', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_186', 'Student', 'Active', NOW() - INTERVAL '86 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000187', 'le.thi.bich.187@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lê Thị Bích', '098708917', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_187', 'Student', 'Active', NOW() - INTERVAL '87 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000188', 'pham.van.toi.188@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phạm Văn Tới', '098712708', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_188', 'Student', 'Active', NOW() - INTERVAL '88 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000189', 'vu.thi.nguyet.189@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Vũ Thị Nguyệt', '098716499', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_189', 'Student', 'Active', NOW() - INTERVAL '89 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000190', 'do.van.hung.190@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đỗ Văn Hưng', '098720290', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_190', 'Student', 'Active', NOW() - INTERVAL '90 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000191', 'bui.thi.phuong.191@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Bùi Thị Phượng', '098724081', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_191', 'Student', 'Active', NOW() - INTERVAL '91 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000192', 'dang.van.lam.192@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đặng Văn Lâm', '098727872', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_192', 'Student', 'Active', NOW() - INTERVAL '92 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000193', 'ngo.thi.xuan.193@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Ngô Thị Xuân', '098731663', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_193', 'Student', 'Active', NOW() - INTERVAL '93 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000194', 'phan.van.minh.194@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phan Văn Minh', '098735454', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_194', 'Student', 'Active', NOW() - INTERVAL '94 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000195', 'duong.thi.thanh.195@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Dương Thị Thanh', '098739245', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_195', 'Student', 'Active', NOW() - INTERVAL '95 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000196', 'ly.van.dong.196@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lý Văn Đông', '098743036', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_196', 'Student', 'Active', NOW() - INTERVAL '96 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000197', 'vo.thi.hang.197@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Võ Thị Hằng', '098746827', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_197', 'Student', 'Active', NOW() - INTERVAL '97 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000198', 'trinh.van.trung.198@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trịnh Văn Trung', '098750618', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_198', 'Student', 'Active', NOW() - INTERVAL '98 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000199', 'dinh.thi.hanh.199@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đinh Thị Hạnh', '098754409', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_199', 'Student', 'Active', NOW() - INTERVAL '99 days', 0, NULL, NULL, 0, NULL),
+    ('b5000000-0000-0000-0000-000000000200', 'ha.van.canh.200@gmail.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Hà Văn Cảnh', '098758200', 'https://api.dicebear.com/7.x/avataaars/svg?seed=student_200', 'Student', 'Active', NOW() - INTERVAL '60 days', 0, NULL, NULL, 0, NULL)
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 3. TUTOR PROFILES (b2000000-0000-0000-0000-000000000001 .. 0050)
+INSERT INTO "TutorProfiles" (
+    "Id", "UserId", "Bio", "Education", "ExperienceYears", "TeachingMode", 
+    "Address", "RatingAvg", "TotalReviews", "BankName", "BankCode", "AccountNumber", "AccountHolderName"
+) VALUES
+    ('b2000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'Hơn 8 năm kinh nghiệm luyện thi THPT Quốc Gia môn Toán và thi vào 10 chuyên. Phương pháp giảng dạy tư duy bản chất, không học vẹt công thức, học sinh tăng từ 2-3 điểm sau 2 tháng.', 'Thạc sĩ Toán giải tích - ĐH Sư Phạm Hà Nội (Thủ khoa tốt nghiệp)', 8, 'Both', 'Số 45 Ngõ 165 Cầu Giấy, Phường Dịch Vọng, Quận Cầu Giấy, Hà Nội', 4.8, 17, 'Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)', 'VCB', '0011004829102', 'NGUYEN THI THU TRANG'),
+    ('b2000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000002', 'Giảng viên thỉnh giảng đại học, chuyên gia bồi dưỡng học sinh giỏi Toán Quốc gia và các kỳ thi đánh giá năng lực ĐHQG. Hướng dẫn kỹ năng tư duy logic và giải toán trắc nghiệm siêu tốc.', 'Tiến sĩ Toán ứng dụng - ĐH Khoa học Tự nhiên ĐHQG-HN', 10, 'Online', 'Tòa Park 3, Times City, 458 Minh Khai, Phường Vĩnh Tuy, Quận Hai Bà Trưng, Hà Nội', 4.9, 20, 'Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)', 'TCB', '19034829105018', 'TRAN MINH HOANG'),
+    ('b2000000-0000-0000-0000-000000000003', 'b1000000-0000-0000-0000-000000000003', 'Chuyên trị hình học không gian và tích phân hàm ẩn. Hơn 6 năm bồi dưỡng học sinh thi vào trường chuyên Lê Hồng Phong và Trần Đại Nghĩa.', 'Cử nhân Sư phạm Toán chất lượng cao - ĐH Sư Phạm TP.HCM', 6, 'Both', 'Số 112/8 Nguyễn Đình Chiểu, Phường Đa Kao, Quận 1, TP. Hồ Chí Minh', 5.0, 23, 'Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (BIDV)', 'BIDV', '12410008392019', 'LE BAO QUOC'),
+    ('b2000000-0000-0000-0000-000000000004', 'b1000000-0000-0000-0000-000000000004', 'Đạt giải Nhì kỳ thi Olympic Toán sinh viên toàn quốc. Chuyên giảng dạy phương pháp toán sơ cấp và rèn tư duy toán học nền tảng cho học sinh THCS mất gốc.', 'Cử nhân Toán Tin - ĐH Bách Khoa Hà Nội (GPA 3.8/4.0)', 5, 'Offline', 'Số 88 Phố Chùa Láng, Phường Láng Thượng, Quận Đống Đa, Hà Nội', 4.7, 26, 'Ngân hàng TMCP Quân Đội (MBBank)', 'MB', '0880193849102', 'PHAM PHUONG LINH'),
+    ('b2000000-0000-0000-0000-000000000005', 'b1000000-0000-0000-0000-000000000005', 'Từng đoạt giải Ba Toán Quốc gia THPT, 7 năm giảng dạy chuyên đề Bất đẳng thức và Tổ hợp nâng cao cho đội tuyển thi chuyên KHTN và Amsterdam.', 'Thạc sĩ Toán lý thuyết - ĐH Sư Phạm Hà Nội', 7, 'Both', 'Số 26 Ngõ 20 Phố Ngụy Như Kon Tum, Phường Nhân Chính, Quận Thanh Xuân, Hà Nội', 4.8, 29, 'Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)', 'VCB', '0451000392014', 'HOANG VAN THAI'),
+    ('b2000000-0000-0000-0000-000000000006', 'b1000000-0000-0000-0000-000000000006', 'Tận tâm, kiên nhẫn, chuyên kèm cặp học sinh lớp 6-9 từ sợ toán chuyển sang tự tin giải toán hình học và đại số. Đã giúp hơn 120 học viên đạt điểm 8+ học kỳ.', 'Cử nhân Giáo dục Tiểu học & THCS - ĐH Thủ Đô Hà Nội', 5, 'Both', 'Tòa Landmark 2, Vinhomes Central Park, 208 Nguyễn Hữu Cảnh, Quận Bình Thạnh, TP. Hồ Chí Minh', 4.9, 32, 'Ngân hàng TMCP Việt Nam Thịnh Vượng (VPBank)', 'VPB', '15928391024', 'VU THUY DUNG'),
+    ('b2000000-0000-0000-0000-000000000007', 'b1000000-0000-0000-0000-000000000007', 'Chuyên luyện đề thi đánh giá năng lực ĐHQG-HCM phân mục tư duy định lượng và logic. Phong cách giảng dạy dí dỏm, thực tế, tạo động lực cao.', 'Cử nhân Toán học - ĐH Khoa học Tự nhiên TP.HCM', 6, 'Online', 'Số 34 Đường Số 9, Khu Đô Thị Him Lam, Phường Tân Hưng, Quận 7, TP. Hồ Chí Minh', 5.0, 35, 'Ngân hàng TMCP Á Châu (ACB)', 'ACB', '238910293', 'DO THANH TUNG'),
+    ('b2000000-0000-0000-0000-000000000008', 'b1000000-0000-0000-0000-000000000008', 'Tập trung áp dụng sơ đồ tư duy (Mindmap) vào hình học không gian và phương trình lượng giác. Biên soạn hơn 20 bộ đề bám sát ma trận thi THPT của Bộ GD.', 'Thạc sĩ Phương pháp Giảng dạy Toán - ĐH Giáo Dục ĐHQG-HN', 7, 'Both', 'Căn hộ 12A08 Tòa R2, Goldmark City, 136 Hồ Tùng Mậu, Quận Bắc Từ Liêm, Hà Nội', 4.7, 38, 'Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)', 'TCB', '19028391023910', 'BUI NGOC ANH'),
+    ('b2000000-0000-0000-0000-000000000009', 'b1000000-0000-0000-0000-000000000009', 'Hơn 9 năm luyện thi IELTS chuyên sâu 2 kỹ năng Writing và Speaking. Từng là Examiner chấm thi thử nghiệm, giúp hơn 300 học viên đạt Target 6.5 - 8.0.', 'Thạc sĩ TESOL - ĐH Melbourne (Úc), IELTS 8.5 (Listening 9.0, Reading 9.0)', 9, 'Both', 'Số 18/4B Nguyễn Thị Minh Khai, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh', 4.8, 41, 'Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)', 'VCB', '0071001293845', 'DANG DINH KHOA'),
+    ('b2000000-0000-0000-0000-000000000010', 'b1000000-0000-0000-0000-000000000010', 'Chuyên gia chỉnh phát âm chuẩn IPA và phản xạ giao tiếp tự nhiên kiểu người bản xứ. Phương pháp Shadowing và Spaced Repetition độc quyền.', 'Cử nhân Ngôn ngữ Anh - ĐH Ngoại Thương Hà Nội, IELTS 8.0, CELTA Certificate', 6, 'Online', 'Số 72 Phố Bà Triệu, Phường Hàng Bài, Quận Hoàn Kiếm, Hà Nội', 4.9, 44, 'Ngân hàng TMCP Quân Đội (MBBank)', 'MB', '0720192830192', 'NGO THU HA'),
+    ('b2000000-0000-0000-0000-000000000011', 'b1000000-0000-0000-0000-000000000011', 'Chuyên đào tạo tiếng Anh doanh nghiệp, đàm phán thương mại và thuyết trình tiếng Anh trước đám đông. Đã đào tạo nhân viên tại FPT, Viettel, VNG.', 'Cử nhân Sư phạm Tiếng Anh - ĐH Ngoại ngữ ĐHQG-HN', 8, 'Both', 'Số 15 Phố Duy Tân, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội', 5.0, 47, 'Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)', 'TCB', '19038291048192', 'PHAN HUU NGHIA'),
+    ('b2000000-0000-0000-0000-000000000012', 'b1000000-0000-0000-0000-000000000012', '3 năm tu nghiệp tại Tokyo, 5 năm giảng dạy tiếng Nhật N5-N3 cho kỹ sư IT sang Nhật làm việc và du học sinh. Giảng bài sinh động bằng văn hóa Anime & Manga.', 'Cử nhân Tiếng Nhật Thương mại - ĐH Ngoại Thương, JLPT N1', 5, 'Both', 'Số 142/6 Đường D2, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh', 4.7, 50, 'Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (BIDV)', 'BIDV', '13510009283719', 'DUONG DIEU LINH'),
+    ('b2000000-0000-0000-0000-000000000013', 'b1000000-0000-0000-0000-000000000013', 'Chuyên bẻ gãy các bẫy đề thi IELTS Reading & Listening. Chiến thuật tư duy phản biện (Critical Thinking) cho Task 2 Writing đạt band 7.5+.', 'Cử nhân Quan hệ Quốc tế - ĐH Quốc tế RMIT Việt Nam, IELTS 8.5', 7, 'Online', 'Tòa Sunrise City, 23 Nguyễn Hữu Thọ, Phường Tân Hưng, Quận 7, TP. Hồ Chí Minh', 4.8, 53, 'Ngân hàng TMCP Á Châu (ACB)', 'ACB', '389201948', 'LY HOANG NAM'),
+    ('b2000000-0000-0000-0000-000000000014', 'b1000000-0000-0000-0000-000000000014', 'Luyện thi cấp tốc JLPT N4, N3 tỷ lệ đỗ trên 92%. Lộ trình học ngữ pháp qua tình huống thực tế kết hợp luyện hội thoại Kanji ghi nhớ sâu.', 'Cử nhân Sư phạm Tiếng Nhật - ĐH Hà Nội, JLPT N1, Học bổng MEXT', 6, 'Both', 'Số 28 Ngõ 198 Lê Trọng Tấn, Phường Định Công, Quận Hoàng Mai, Hà Nội', 4.9, 56, 'Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)', 'VCB', '0021008492019', 'VO THI MAI ANH'),
+    ('b2000000-0000-0000-0000-000000000015', 'b1000000-0000-0000-0000-000000000015', 'Tác giả chuỗi bài giảng ''Tự tin nói tiếng Anh không vấp''. Chuyên đào tạo học sinh du học định cư Canada, Úc và xin học bổng toàn phần.', 'Thạc sĩ Lý luận và Phương pháp Dạy học Tiếng Anh - ĐH Sư Phạm TP.HCM, IELTS 8.0', 8, 'Both', 'Số 56/3 Đường Trần Quang Khải, Phường Tân Định, Quận 1, TP. Hồ Chí Minh', 5.0, 59, 'Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)', 'TCB', '19039201847102', 'TRINH QUOC BAO'),
+    ('b2000000-0000-0000-0000-000000000016', 'b1000000-0000-0000-0000-000000000016', '5 năm biên dịch viên và gia sư phát âm chuẩn giọng Mỹ cho trẻ em và người đi làm. Phương pháp học qua kịch bản giao tiếp công sở hàng ngày.', 'Cử nhân Ngôn ngữ Anh Biên Phiên Dịch - ĐH Ngoại Ngữ Huế', 5, 'Online', 'Số 92 Đường Bạch Đằng, Phường Hải Châu 1, Quận Hải Châu, TP. Đà Nẵng', 4.7, 62, 'Ngân hàng TMCP Quân Đội (MBBank)', 'MB', '0920194820193', 'DINH THAO VY'),
+    ('b2000000-0000-0000-0000-000000000017', 'b1000000-0000-0000-0000-000000000017', 'Chuyên gia luyện thi Vật lý 12 THPT Quốc Gia và thi Đánh giá tư duy Bách Khoa. Giúp học sinh xử lý đồ thị dao động cơ và mạch RLC nối tiếp cực nhanh.', 'Thạc sĩ Vật lý chất rắn - ĐH Bách Khoa Hà Nội', 8, 'Both', 'Số 12 Phố Tạ Quang Bửu, Phường Bách Khoa, Quận Hai Bà Trưng, Hà Nội', 4.8, 65, 'Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)', 'VCB', '0011003928104', 'HA MINH QUAN'),
+    ('b2000000-0000-0000-0000-000000000018', 'b1000000-0000-0000-0000-000000000018', 'Hơn 7 năm ôn luyện Hóa học lớp 10-12. Phương pháp ''Quy đổi & Đồng đẳng hóa'' giúp học sinh giải bài toán Este và Peptit điểm 9-10 trong vòng 2 phút.', 'Thạc sĩ Hóa hữu cơ - ĐH Khoa học Tự nhiên ĐHQG-HN', 7, 'Both', 'Số 39 Ngõ 105 Phố Vọng, Phường Đồng Tâm, Quận Hai Bà Trưng, Hà Nội', 4.9, 68, 'Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (BIDV)', 'BIDV', '12810003920184', 'MAI LAN HUONG'),
+    ('b2000000-0000-0000-0000-000000000019', 'b1000000-0000-0000-0000-000000000019', 'Chuyên luyện thi học sinh giỏi Vật lý cấp Tỉnh/Thành phố. Sử dụng thí nghiệm mô phỏng 3D giúp học sinh hiểu sâu bản chất sóng ánh sáng và lượng tử.', 'Cử nhân Sư phạm Vật lý - ĐH Sư Phạm TP.HCM (Tốt nghiệp loại Xuất sắc)', 6, 'Both', 'Số 280 An Dương Vương, Phường 4, Quận 5, TP. Hồ Chí Minh', 5.0, 71, 'Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)', 'TCB', '19029104829103', 'TA QUANG HUY'),
+    ('b2000000-0000-0000-0000-000000000020', 'b1000000-0000-0000-0000-000000000020', 'Thủ khoa khối B 29.35 điểm. Chuyên ôn thi môn Sinh học xét tuyển Y Dược. Phương pháp sơ đồ hóa di truyền học quần thể và phả hệ học dễ hiểu.', 'Bác sĩ Đa khoa - ĐH Y Hà Nội (Thủ khoa khối B tỉnh Thái Bình)', 5, 'Online', 'Số 1 Tôn Thất Tùng, Phường Kim Liên, Quận Đống Đa, Hà Nội', 4.7, 74, 'Ngân hàng TMCP Quân Đội (MBBank)', 'MB', '0010192839102', 'LUONG KHANH LINH'),
+    ('b2000000-0000-0000-0000-000000000021', 'b1000000-0000-0000-0000-000000000021', '6 năm kinh nghiệm dạy kèm Hóa học thi tốt nghiệp THPT và kỳ thi ĐGNL ĐHQG-HCM. Hướng dẫn bấm máy tính Casio giải nhanh bài toán hóa vô cơ.', 'Cử nhân Hóa học Dược phẩm - ĐH Khoa học Tự nhiên TP.HCM', 6, 'Both', 'Số 68 Đường Số 1, Cư Xá Đô Thành, Phường 4, Quận 3, TP. Hồ Chí Minh', 4.8, 77, 'Ngân hàng TMCP Á Châu (ACB)', 'ACB', '192830194', 'CAO DUC THANG'),
+    ('b2000000-0000-0000-0000-000000000022', 'b1000000-0000-0000-0000-000000000022', 'Chuyên bồi dưỡng học sinh lớp 10, 11 làm quen với chương trình Giáo dục Phổ thông mới. Tạo động lực học tập qua các ứng dụng thực tế của vật lý đời sống.', 'Thạc sĩ Phương pháp Giảng dạy Vật lý - ĐH Sư Phạm Hà Nội', 7, 'Both', 'Số 18 Ngõ 133 Xuân Thủy, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội', 4.9, 80, 'Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)', 'VCB', '0491000293847', 'DOAN TUYET MAI'),
+    ('b2000000-0000-0000-0000-000000000023', 'b1000000-0000-0000-0000-000000000023', 'Gia sư chuyên khối B (Toán - Hóa - Sinh). Từng đạt 10 điểm tuyệt đối môn Sinh học kỳ thi THPT Quốc Gia, chia sẻ chiến thuật làm đề 50 câu trong 40 phút.', 'Bác sĩ Răng Hàm Mặt - ĐH Y Dược TP.HCM', 5, 'Online', 'Số 217 Hồng Bàng, Phường 11, Quận 5, TP. Hồ Chí Minh', 5.0, 83, 'Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)', 'TCB', '19038291049281', 'TRUONG TUAN KIET'),
+    ('b2000000-0000-0000-0000-000000000024', 'b1000000-0000-0000-0000-000000000024', 'Kinh nghiệm 6 năm dạy kèm học sinh trường chuyên và lớp chọn. Nắm vững cấu trúc câu hỏi phân loại cao trong đề thi Đánh giá năng lực Hà Nội.', 'Cử nhân Sư phạm Hóa học - ĐH Sư Phạm Hà Nội (Lớp Tài năng)', 6, 'Both', 'Số 42 Phố Trần Phú, Phường Điện Biên, Quận Ba Đình, Hà Nội', 4.7, 86, 'Ngân hàng TMCP Quân Đội (MBBank)', 'MB', '0420194820194', 'LUU HAI YEN'),
+    ('b2000000-0000-0000-0000-000000000025', 'b1000000-0000-0000-0000-000000000025', 'Senior Software Architect với 10 năm kinh nghiệm trong hệ thống ngân hàng. Chuyên dạy lập trình C# .NET 8, Clean Architecture, CQRS và Microservices từ gốc.', 'Thạc sĩ Khoa học Máy tính - ĐH Bách Khoa Hà Nội', 10, 'Online', 'Tòa Keangnam Landmark 72, Đường Phạm Hùng, Phường Mễ Trì, Quận Nam Từ Liêm, Hà Nội', 4.8, 89, 'Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)', 'TCB', '19028391048291', 'VU HOANG LONG'),
+    ('b2000000-0000-0000-0000-000000000026', 'b1000000-0000-0000-0000-000000000026', 'Data Engineer tại tập đoàn công nghệ đa quốc gia. Hướng dẫn lập trình Python cho người mới bắt đầu, xử lý dữ liệu Pandas/Numpy và ứng dụng Trí tuệ Nhân tạo AI.', 'Kỹ sư Công nghệ Thông tin - ĐH Bách Khoa TP.HCM (Data Science Major)', 6, 'Both', 'Tòa S3.02 Vinhomes Grand Park, Phường Long Bình, TP. Thủ Đức, TP. Hồ Chí Minh', 4.9, 92, 'Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)', 'VCB', '0071004928104', 'NGUYEN HOAI AN'),
+    ('b2000000-0000-0000-0000-000000000027', 'b1000000-0000-0000-0000-000000000027', 'Lead Backend Developer. Hướng dẫn sinh viên CNTT làm đồ án tốt nghiệp ASP.NET Core Web API, Entity Framework Core và luyện phỏng vấn kỹ thuật vào các công ty Outsource/Product.', 'Kỹ sư Kỹ thuật Phần mềm - ĐH FPT Hà Nội', 7, 'Online', 'Số 8 Ngõ 180 Phố Hoàng Quốc Việt, Phường Cổ Nhuế 1, Quận Bắc Từ Liêm, Hà Nội', 5.0, 95, 'Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (BIDV)', 'BIDV', '12610002938471', 'TRAN BAO CHAU'),
+    ('b2000000-0000-0000-0000-000000000028', 'b1000000-0000-0000-0000-000000000028', 'Gia sư lập trình thuật toán Python cho học sinh cấp 2-3 thi Tin học trẻ và học sinh chuyên Tin. Rèn luyện tư duy cấu trúc dữ liệu và giải thuật LeetCode.', 'Cử nhân Toán Tin Ứng dụng - ĐH Khoa học Tự nhiên ĐHQG-HN', 5, 'Both', 'Số 334 Phố Nguyễn Trãi, Phường Thanh Xuân Trung, Quận Thanh Xuân, Hà Nội', 4.7, 98, 'Ngân hàng TMCP Quân Đội (MBBank)', 'MB', '0330192849102', 'LE TUAN ANH'),
+    ('b2000000-0000-0000-0000-000000000029', 'b1000000-0000-0000-0000-000000000029', 'Chuyên dạy lập trình Fullstack với C# ASP.NET Core Web API và React TypeScript cho người chuyển ngành (Non-tech). Đã giúp hơn 40 học viên tìm được việc làm Junior Dev.', 'Kỹ sư Hệ thống Thông tin - ĐH Công nghệ ĐHQG-HN', 6, 'Both', 'Số 144 Phố Xuân Thủy, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội', 4.8, 101, 'Ngân hàng TMCP Á Châu (ACB)', 'ACB', '284910294', 'PHAM NHAT LINH'),
+    ('b2000000-0000-0000-0000-000000000030', 'b1000000-0000-0000-0000-000000000030', 'Chuyên dạy Python tự động hóa công việc (Automation), phân tích dữ liệu kinh doanh và lập trình Web scraper. Giáo trình thực chiến cầm tay chỉ việc.', 'Thạc sĩ Khoa học Dữ liệu - ĐH Công nghệ Thông tin ĐHQG-HCM', 5, 'Online', 'Số 1 Đường Hàn Thuyên, Phường Linh Trung, TP. Thủ Đức, TP. Hồ Chí Minh', 4.9, 104, 'Ngân hàng TMCP Việt Nam Thịnh Vượng (VPBank)', 'VPB', '19284019284', 'HOANG KIM NGAN'),
+    ('b2000000-0000-0000-0000-000000000031', 'b1000000-0000-0000-0000-000000000031', 'Senior .NET Developer tại công ty phần mềm Phần Lan. Dạy chuyên sâu Docker, CI/CD, PostgreSQL, Redis và tối ưu hóa hiệu năng ứng dụng High Load.', 'Cử nhân Kỹ thuật Máy tính - ĐH Bách Khoa TP.HCM', 8, 'Online', 'Số 268 Lý Thường Kiệt, Phường 14, Quận 10, TP. Hồ Chí Minh', 5.0, 107, 'Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)', 'VCB', '0071003948201', 'DO GIA HUY'),
+    ('b2000000-0000-0000-0000-000000000032', 'b1000000-0000-0000-0000-000000000032', 'Chuyên dạy lập trình hướng đối tượng OOP và bảo mật ứng dụng Web trong môi trường .NET. Phương pháp code review từng dòng, sửa lỗi tận tâm.', 'Kỹ sư An toàn Thông tin - Học viện Kỹ thuật Mật mã', 6, 'Both', 'Số 141 Đường Chiến Thắng, Xã Tân Triều, Huyện Thanh Trì, Hà Nội', 4.7, 110, 'Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)', 'TCB', '19039281048201', 'BUI TRONG NGHIA'),
+    ('b2000000-0000-0000-0000-000000000033', 'b1000000-0000-0000-0000-000000000033', 'Giáo viên trường chuyên có 9 năm kinh nghiệm luyện thi vào 10 và THPT Quốc gia môn Ngữ văn. Phương pháp tư duy nghị luận xã hội sắc bén, hành văn mượt mà không khuôn mẫu.', 'Thạc sĩ Văn học Việt Nam - ĐH Sư Phạm Hà Nội', 9, 'Both', 'Số 55 Phố Hàng Chuối, Phường Phạm Đình Hổ, Quận Hai Bà Trưng, Hà Nội', 4.8, 113, 'Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)', 'VCB', '0011002938471', 'DANG MY DUYEN'),
+    ('b2000000-0000-0000-0000-000000000034', 'b1000000-0000-0000-0000-000000000034', 'MC truyền hình và huấn luyện viên tranh biện (Debate Coach). Đào tạo kỹ năng thuyết trình tự tin, làm chủ sân khấu và nghệ thuật đàm phán thuyết phục.', 'Thạc sĩ Báo chí & Truyền thông - Học viện Báo chí và Tuyên truyền', 8, 'Both', 'Số 36 Phố Xuân Thủy, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội', 4.9, 116, 'Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)', 'TCB', '19028391048201', 'NGO QUANG DUNG'),
+    ('b2000000-0000-0000-0000-000000000035', 'b1000000-0000-0000-0000-000000000035', 'Chuyên bồi dưỡng học sinh thi học sinh giỏi Văn cấp Thành phố. Luyện kỹ năng phân tích tác phẩm văn học trung đại và hiện đại đạt điểm 8.5+.', 'Cử nhân Sư phạm Ngữ văn - ĐH Sư Phạm TP.HCM (Thủ khoa đầu ra)', 5, 'Both', 'Số 182 Đường Lê Văn Sỹ, Phường 10, Quận Phú Nhuận, TP. Hồ Chí Minh', 5.0, 119, 'Ngân hàng TMCP Quân Đội (MBBank)', 'MB', '0182019482019', 'PHAN THANH TRUC'),
+    ('b2000000-0000-0000-0000-000000000036', 'b1000000-0000-0000-0000-000000000036', 'Cố vấn đàm phán hợp đồng thương mại cho các startup. Chuyên dạy nghệ thuật thương lượng Win-Win, kỹ năng lắng nghe thấu cảm và giải quyết mâu thuẫn đối tác.', 'Thạc sĩ Quản trị Kinh doanh (MBA) - ĐH Kinh tế Quốc dân', 10, 'Online', 'Số 207 Đường Giải Phóng, Phường Đồng Tâm, Quận Hai Bà Trưng, Hà Nội', 4.7, 122, 'Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (BIDV)', 'BIDV', '12810004928102', 'DUONG MINH KHOI'),
+    ('b2000000-0000-0000-0000-000000000037', 'b1000000-0000-0000-0000-000000000037', 'Chuyên ôn thi Ngữ văn lớp 9 lên 10 trường công lập top đầu tại Hà Nội. Phương pháp lập dàn ý chi tiết giúp học sinh viết bài mạch lạc, không lan man.', 'Thạc sĩ Ngôn ngữ học - ĐH Khoa học Xã hội và Nhân văn Hà Nội', 7, 'Both', 'Số 336 Phố Nguyễn Trãi, Phường Thanh Xuân Trung, Quận Thanh Xuân, Hà Nội', 4.8, 125, 'Ngân hàng TMCP Á Châu (ACB)', 'ACB', '392019482', 'LY THUY HANG'),
+    ('b2000000-0000-0000-0000-000000000038', 'b1000000-0000-0000-0000-000000000038', 'Huấn luyện viên giải phóng hình thể và giọng nói. Giúp học viên vượt qua nỗi sợ nói trước đám đông, rèn luyện chất giọng ấm, biểu cảm và truyền cảm hứng.', 'Cử nhân Đạo diễn Sân khấu - ĐH Sân khấu Điện ảnh TP.HCM', 8, 'Both', 'Số 125 Đường Cống Quỳnh, Phường Nguyễn Cư Trinh, Quận 1, TP. Hồ Chí Minh', 4.9, 128, 'Ngân hàng TMCP Việt Nam Thịnh Vượng (VPBank)', 'VPB', '19284019201', 'VO VAN HAU'),
+    ('b2000000-0000-0000-0000-000000000039', 'b1000000-0000-0000-0000-000000000039', '6 năm kinh nghiệm dạy kèm môn Ngữ văn cấp THCS và THPT. Hướng dẫn kỹ năng phân tích thơ hiện đại, mở bài và kết bài ấn tượng tạo thiện cảm với giám khảo chấm thi.', 'Cử nhân Sư phạm Ngữ văn - ĐH Sư Phạm Hà Nội', 6, 'Both', 'Số 23 Ngõ 82 Phố Chùa Láng, Phường Láng Thượng, Quận Đống Đa, Hà Nội', 5.0, 131, 'Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)', 'VCB', '0011004928103', 'TRINH MINH TRANG'),
+    ('b2000000-0000-0000-0000-000000000040', 'b1000000-0000-0000-0000-000000000040', 'Chuyên đào tạo kỹ năng kể chuyện (Storytelling) trong kinh doanh và thuyết trình gọi vốn đầu tư (Pitching). Đã huấn luyện hơn 50 đội thi khởi nghiệp sinh viên.', 'Thạc sĩ Truyền thông Quốc tế - ĐH Westminster (Anh Quốc)', 7, 'Online', 'Tòa Diamond Island, Số 1 Đường Số 104, Phường Bình Trưng Tây, TP. Thủ Đức, TP. Hồ Chí Minh', 4.7, 134, 'Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)', 'TCB', '19028391049281', 'DINH THIEN PHU'),
+    ('b2000000-0000-0000-0000-000000000041', 'b1000000-0000-0000-0000-000000000041', 'Kế toán trưởng với 11 năm kinh nghiệm tại doanh nghiệp sản xuất và thương mại. Chuyên dạy nguyên lý kế toán, hạch toán định khoản và lập báo cáo tài chính từ số 0.', 'Thạc sĩ Kế toán Kiểm toán - ĐH Kinh tế Quốc dân, Chứng chỉ CPA Việt Nam', 11, 'Both', 'Tòa Green Bay G3, Đường Lương Thế Vinh, Phường Mễ Trì, Quận Nam Từ Liêm, Hà Nội', 4.8, 137, 'Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (BIDV)', 'BIDV', '12810003928104', 'HA THUY KIEU'),
+    ('b2000000-0000-0000-0000-000000000042', 'b1000000-0000-0000-0000-000000000042', 'Kiện tướng cờ vua quốc gia với hơn 8 năm giảng dạy trẻ em và thiếu niên. Giúp học sinh rèn luyện tính kiên trì, khả năng tập trung cao độ và tư duy chiến lược nhiều bước.', 'Kiện tướng Quốc gia Cờ vua, Cử nhân Huấn luyện Thể thao - ĐH TDTT Bắc Ninh', 8, 'Both', 'Số 10 Phố Trịnh Hoài Đức, Phường Cát Linh, Quận Đống Đa, Hà Nội', 4.9, 140, 'Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)', 'VCB', '0011003928192', 'MAI DINH TRONG'),
+    ('b2000000-0000-0000-0000-000000000043', 'b1000000-0000-0000-0000-000000000043', 'Chuyên gia phân tích tài chính doanh nghiệp. Dạy kèm sinh viên đại học môn Nguyên lý kế toán, Kế toán quản trị và phân tích chỉ số tài chính doanh nghiệp thực tế.', 'Cử nhân Tài chính Doanh nghiệp - Học viện Tài chính (GPA 3.85/4.0), ACCA Member', 6, 'Online', 'Số 58 Phố Lê Văn Thiêm, Phường Nhân Chính, Quận Thanh Xuân, Hà Nội', 5.0, 143, 'Ngân hàng TMCP Quân Đội (MBBank)', 'MB', '0580192840192', 'TA THAO NGUYEN'),
+    ('b2000000-0000-0000-0000-000000000044', 'b1000000-0000-0000-0000-000000000044', 'Huy chương Vàng giải Cờ vua trẻ toàn quốc. Chuyên bồi dưỡng các thế cờ tàn nghệ thuật, bẫy khai cuộc kinh điển và huấn luyện thi đấu cờ chớp trực tuyến Chess.com.', 'Cử nhân Toán học - ĐH Khoa học Tự nhiên TP.HCM, VĐV Cờ vua TP.HCM', 7, 'Both', 'Số 43 Đường Điện Biên Phủ, Phường Đa Kao, Quận 1, TP. Hồ Chí Minh', 4.7, 146, 'Ngân hàng TMCP Á Châu (ACB)', 'ACB', '381920194', 'LUONG HOANG BACH'),
+    ('b2000000-0000-0000-0000-000000000045', 'b1000000-0000-0000-0000-000000000045', '7 năm giảng viên thỉnh giảng và đào tạo chứng chỉ kế toán viên. Phương pháp giảng dạy liên hệ thực tiễn chứng từ hóa đơn, thực hành trực tiếp trên phần mềm MISA.', 'Thạc sĩ Tài chính Ngân hàng - ĐH Kinh tế TP.HCM (UEH)', 7, 'Both', 'Số 59C Nguyễn Đình Chiểu, Phường 6, Quận 3, TP. Hồ Chí Minh', 4.8, 149, 'Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)', 'TCB', '19038291048291', 'CAO THANH MAI'),
+    ('b2000000-0000-0000-0000-000000000046', 'b1000000-0000-0000-0000-000000000046', 'Chuyên gia nghiên cứu đề thi Đánh giá năng lực ĐHQG Hà Nội (HSA) và ĐHQG TP.HCM (APT). Chiến thuật làm bài phân bổ thời gian và mẹo loại trừ phương án nhiễu.', 'Thạc sĩ Đo lường và Đánh giá Giáo dục - ĐH Giáo Dục ĐHQG-HN', 8, 'Both', 'Số 16 Phố Nguyễn Cơ Thạch, Phường Mỹ Đình 2, Quận Nam Từ Liêm, Hà Nội', 4.9, 152, 'Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)', 'VCB', '0011004829104', 'DOAN CONG THANH'),
+    ('b2000000-0000-0000-0000-000000000047', 'b1000000-0000-0000-0000-000000000047', 'Chuyên phụ trách phần tư duy định tính (Ngôn ngữ tiếng Việt & Văn học) trong đề thi HSA. Đã hướng dẫn nhiều học sinh đạt trên 110/150 điểm bài thi ĐGNL.', 'Thạc sĩ Sư phạm Ngữ văn - ĐH Sư Phạm Hà Nội', 6, 'Both', 'Số 71 Phố Nguyễn Chí Thanh, Phường Láng Hạ, Quận Đống Đa, Hà Nội', 5.0, 155, 'Ngân hàng TMCP Quân Đội (MBBank)', 'MB', '0710192840192', 'TRUONG QUYNH NGA'),
+    ('b2000000-0000-0000-0000-000000000048', 'b1000000-0000-0000-0000-000000000048', 'Chuyên bồi dưỡng phần Khoa học tự nhiên (Lý - Hóa - Sinh) trong kỳ thi Đánh giá năng lực. Tổng hợp kiến thức cốt lõi qua mindmap và sơ đồ tư duy liên môn.', 'Kỹ sư Hóa - Dược - ĐH Bách Khoa TP.HCM', 7, 'Online', 'Số 104 Đường D1, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh', 4.7, 158, 'Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (BIDV)', 'BIDV', '13510003928104', 'LUU THANH DAT'),
+    ('b2000000-0000-0000-0000-000000000049', 'b1000000-0000-0000-0000-000000000049', 'Chuyên luyện phần thi tiếng Anh trong đề thi ĐGNL và kỳ thi THPT Quốc Gia. Hệ thống hóa toàn bộ chuyên đề ngữ pháp trọng tâm và kỹ năng đọc hiểu văn bản học thuật.', 'Cử nhân Sư phạm Tiếng Anh - ĐH Sư Phạm TP.HCM, IELTS 8.0', 6, 'Both', 'Số 85 Đường Pasteur, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh', 4.8, 161, 'Ngân hàng TMCP Á Châu (ACB)', 'ACB', '392810294', 'CHU DIEU ANH'),
+    ('b2000000-0000-0000-0000-000000000050', 'b1000000-0000-0000-0000-000000000050', '8 năm kinh nghiệm giảng dạy toán tư duy và thống kê xác suất. Chuyên luyện phần tư duy logic và phân tích số liệu cho học sinh dự thi đánh giá năng lực.', 'Thạc sĩ Toán Ứng dụng - ĐH Khoa học Tự nhiên ĐHQG-HN', 8, 'Both', 'Số 98 Phố Thái Hà, Phường Trung Liệt, Quận Đống Đa, Hà Nội', 4.9, 164, 'Ngân hàng TMCP Kỹ Thương Việt Nam (Techcombank)', 'TCB', '19039281049201', 'TA NHAT MINH')
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 4. STUDENT PROFILES (b6000000-0000-0000-0000-000000000001 .. 0200)
+INSERT INTO "StudentProfiles" ("Id", "UserId")
+SELECT
+    ('b6000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
+    ('b5000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid
+FROM generate_series(1, 200) AS i
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 5. TUTOR APPLICATIONS (b4000000-0000-0000-0000-000000000001 .. 0050)
+INSERT INTO "TutorApplications" (
+    "Id", "UserId", "Bio", "Education", "ExperienceYears", "TeachingMode", 
+    "Address", "Status", "RejectionReason", "SubmittedAt", "ReviewedAt", "ReviewedByAdminId"
+) VALUES
+    ('b4000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'Hơn 8 năm kinh nghiệm luyện thi THPT Quốc Gia môn Toán và thi vào 10 chuyên. Phương pháp giảng dạy tư duy bản chất, không học vẹt công thức, học sinh tăng từ 2-3 điểm sau 2 tháng.', 'Thạc sĩ Toán giải tích - ĐH Sư Phạm Hà Nội (Thủ khoa tốt nghiệp)', 8, 'Both', 'Số 45 Ngõ 165 Cầu Giấy, Phường Dịch Vọng, Quận Cầu Giấy, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '71 days', NOW() - INTERVAL '70 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000002', 'Giảng viên thỉnh giảng đại học, chuyên gia bồi dưỡng học sinh giỏi Toán Quốc gia và các kỳ thi đánh giá năng lực ĐHQG. Hướng dẫn kỹ năng tư duy logic và giải toán trắc nghiệm siêu tốc.', 'Tiến sĩ Toán ứng dụng - ĐH Khoa học Tự nhiên ĐHQG-HN', 10, 'Online', 'Tòa Park 3, Times City, 458 Minh Khai, Phường Vĩnh Tuy, Quận Hai Bà Trưng, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '72 days', NOW() - INTERVAL '71 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000003', 'b1000000-0000-0000-0000-000000000003', 'Chuyên trị hình học không gian và tích phân hàm ẩn. Hơn 6 năm bồi dưỡng học sinh thi vào trường chuyên Lê Hồng Phong và Trần Đại Nghĩa.', 'Cử nhân Sư phạm Toán chất lượng cao - ĐH Sư Phạm TP.HCM', 6, 'Both', 'Số 112/8 Nguyễn Đình Chiểu, Phường Đa Kao, Quận 1, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '73 days', NOW() - INTERVAL '72 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000004', 'b1000000-0000-0000-0000-000000000004', 'Đạt giải Nhì kỳ thi Olympic Toán sinh viên toàn quốc. Chuyên giảng dạy phương pháp toán sơ cấp và rèn tư duy toán học nền tảng cho học sinh THCS mất gốc.', 'Cử nhân Toán Tin - ĐH Bách Khoa Hà Nội (GPA 3.8/4.0)', 5, 'Offline', 'Số 88 Phố Chùa Láng, Phường Láng Thượng, Quận Đống Đa, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '74 days', NOW() - INTERVAL '73 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000005', 'b1000000-0000-0000-0000-000000000005', 'Từng đoạt giải Ba Toán Quốc gia THPT, 7 năm giảng dạy chuyên đề Bất đẳng thức và Tổ hợp nâng cao cho đội tuyển thi chuyên KHTN và Amsterdam.', 'Thạc sĩ Toán lý thuyết - ĐH Sư Phạm Hà Nội', 7, 'Both', 'Số 26 Ngõ 20 Phố Ngụy Như Kon Tum, Phường Nhân Chính, Quận Thanh Xuân, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '75 days', NOW() - INTERVAL '74 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000006', 'b1000000-0000-0000-0000-000000000006', 'Tận tâm, kiên nhẫn, chuyên kèm cặp học sinh lớp 6-9 từ sợ toán chuyển sang tự tin giải toán hình học và đại số. Đã giúp hơn 120 học viên đạt điểm 8+ học kỳ.', 'Cử nhân Giáo dục Tiểu học & THCS - ĐH Thủ Đô Hà Nội', 5, 'Both', 'Tòa Landmark 2, Vinhomes Central Park, 208 Nguyễn Hữu Cảnh, Quận Bình Thạnh, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '76 days', NOW() - INTERVAL '75 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000007', 'b1000000-0000-0000-0000-000000000007', 'Chuyên luyện đề thi đánh giá năng lực ĐHQG-HCM phân mục tư duy định lượng và logic. Phong cách giảng dạy dí dỏm, thực tế, tạo động lực cao.', 'Cử nhân Toán học - ĐH Khoa học Tự nhiên TP.HCM', 6, 'Online', 'Số 34 Đường Số 9, Khu Đô Thị Him Lam, Phường Tân Hưng, Quận 7, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '77 days', NOW() - INTERVAL '76 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000008', 'b1000000-0000-0000-0000-000000000008', 'Tập trung áp dụng sơ đồ tư duy (Mindmap) vào hình học không gian và phương trình lượng giác. Biên soạn hơn 20 bộ đề bám sát ma trận thi THPT của Bộ GD.', 'Thạc sĩ Phương pháp Giảng dạy Toán - ĐH Giáo Dục ĐHQG-HN', 7, 'Both', 'Căn hộ 12A08 Tòa R2, Goldmark City, 136 Hồ Tùng Mậu, Quận Bắc Từ Liêm, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '78 days', NOW() - INTERVAL '77 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000009', 'b1000000-0000-0000-0000-000000000009', 'Hơn 9 năm luyện thi IELTS chuyên sâu 2 kỹ năng Writing và Speaking. Từng là Examiner chấm thi thử nghiệm, giúp hơn 300 học viên đạt Target 6.5 - 8.0.', 'Thạc sĩ TESOL - ĐH Melbourne (Úc), IELTS 8.5 (Listening 9.0, Reading 9.0)', 9, 'Both', 'Số 18/4B Nguyễn Thị Minh Khai, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '79 days', NOW() - INTERVAL '78 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000010', 'b1000000-0000-0000-0000-000000000010', 'Chuyên gia chỉnh phát âm chuẩn IPA và phản xạ giao tiếp tự nhiên kiểu người bản xứ. Phương pháp Shadowing và Spaced Repetition độc quyền.', 'Cử nhân Ngôn ngữ Anh - ĐH Ngoại Thương Hà Nội, IELTS 8.0, CELTA Certificate', 6, 'Online', 'Số 72 Phố Bà Triệu, Phường Hàng Bài, Quận Hoàn Kiếm, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '80 days', NOW() - INTERVAL '79 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000011', 'b1000000-0000-0000-0000-000000000011', 'Chuyên đào tạo tiếng Anh doanh nghiệp, đàm phán thương mại và thuyết trình tiếng Anh trước đám đông. Đã đào tạo nhân viên tại FPT, Viettel, VNG.', 'Cử nhân Sư phạm Tiếng Anh - ĐH Ngoại ngữ ĐHQG-HN', 8, 'Both', 'Số 15 Phố Duy Tân, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '81 days', NOW() - INTERVAL '80 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000012', 'b1000000-0000-0000-0000-000000000012', '3 năm tu nghiệp tại Tokyo, 5 năm giảng dạy tiếng Nhật N5-N3 cho kỹ sư IT sang Nhật làm việc và du học sinh. Giảng bài sinh động bằng văn hóa Anime & Manga.', 'Cử nhân Tiếng Nhật Thương mại - ĐH Ngoại Thương, JLPT N1', 5, 'Both', 'Số 142/6 Đường D2, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '82 days', NOW() - INTERVAL '81 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000013', 'b1000000-0000-0000-0000-000000000013', 'Chuyên bẻ gãy các bẫy đề thi IELTS Reading & Listening. Chiến thuật tư duy phản biện (Critical Thinking) cho Task 2 Writing đạt band 7.5+.', 'Cử nhân Quan hệ Quốc tế - ĐH Quốc tế RMIT Việt Nam, IELTS 8.5', 7, 'Online', 'Tòa Sunrise City, 23 Nguyễn Hữu Thọ, Phường Tân Hưng, Quận 7, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '83 days', NOW() - INTERVAL '82 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000014', 'b1000000-0000-0000-0000-000000000014', 'Luyện thi cấp tốc JLPT N4, N3 tỷ lệ đỗ trên 92%. Lộ trình học ngữ pháp qua tình huống thực tế kết hợp luyện hội thoại Kanji ghi nhớ sâu.', 'Cử nhân Sư phạm Tiếng Nhật - ĐH Hà Nội, JLPT N1, Học bổng MEXT', 6, 'Both', 'Số 28 Ngõ 198 Lê Trọng Tấn, Phường Định Công, Quận Hoàng Mai, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '84 days', NOW() - INTERVAL '83 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000015', 'b1000000-0000-0000-0000-000000000015', 'Tác giả chuỗi bài giảng ''Tự tin nói tiếng Anh không vấp''. Chuyên đào tạo học sinh du học định cư Canada, Úc và xin học bổng toàn phần.', 'Thạc sĩ Lý luận và Phương pháp Dạy học Tiếng Anh - ĐH Sư Phạm TP.HCM, IELTS 8.0', 8, 'Both', 'Số 56/3 Đường Trần Quang Khải, Phường Tân Định, Quận 1, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '85 days', NOW() - INTERVAL '84 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000016', 'b1000000-0000-0000-0000-000000000016', '5 năm biên dịch viên và gia sư phát âm chuẩn giọng Mỹ cho trẻ em và người đi làm. Phương pháp học qua kịch bản giao tiếp công sở hàng ngày.', 'Cử nhân Ngôn ngữ Anh Biên Phiên Dịch - ĐH Ngoại Ngữ Huế', 5, 'Online', 'Số 92 Đường Bạch Đằng, Phường Hải Châu 1, Quận Hải Châu, TP. Đà Nẵng', 'Approved', NULL, NOW() - INTERVAL '86 days', NOW() - INTERVAL '85 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000017', 'b1000000-0000-0000-0000-000000000017', 'Chuyên gia luyện thi Vật lý 12 THPT Quốc Gia và thi Đánh giá tư duy Bách Khoa. Giúp học sinh xử lý đồ thị dao động cơ và mạch RLC nối tiếp cực nhanh.', 'Thạc sĩ Vật lý chất rắn - ĐH Bách Khoa Hà Nội', 8, 'Both', 'Số 12 Phố Tạ Quang Bửu, Phường Bách Khoa, Quận Hai Bà Trưng, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '87 days', NOW() - INTERVAL '86 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000018', 'b1000000-0000-0000-0000-000000000018', 'Hơn 7 năm ôn luyện Hóa học lớp 10-12. Phương pháp ''Quy đổi & Đồng đẳng hóa'' giúp học sinh giải bài toán Este và Peptit điểm 9-10 trong vòng 2 phút.', 'Thạc sĩ Hóa hữu cơ - ĐH Khoa học Tự nhiên ĐHQG-HN', 7, 'Both', 'Số 39 Ngõ 105 Phố Vọng, Phường Đồng Tâm, Quận Hai Bà Trưng, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '88 days', NOW() - INTERVAL '87 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000019', 'b1000000-0000-0000-0000-000000000019', 'Chuyên luyện thi học sinh giỏi Vật lý cấp Tỉnh/Thành phố. Sử dụng thí nghiệm mô phỏng 3D giúp học sinh hiểu sâu bản chất sóng ánh sáng và lượng tử.', 'Cử nhân Sư phạm Vật lý - ĐH Sư Phạm TP.HCM (Tốt nghiệp loại Xuất sắc)', 6, 'Both', 'Số 280 An Dương Vương, Phường 4, Quận 5, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '89 days', NOW() - INTERVAL '88 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000020', 'b1000000-0000-0000-0000-000000000020', 'Thủ khoa khối B 29.35 điểm. Chuyên ôn thi môn Sinh học xét tuyển Y Dược. Phương pháp sơ đồ hóa di truyền học quần thể và phả hệ học dễ hiểu.', 'Bác sĩ Đa khoa - ĐH Y Hà Nội (Thủ khoa khối B tỉnh Thái Bình)', 5, 'Online', 'Số 1 Tôn Thất Tùng, Phường Kim Liên, Quận Đống Đa, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '90 days', NOW() - INTERVAL '89 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000021', 'b1000000-0000-0000-0000-000000000021', '6 năm kinh nghiệm dạy kèm Hóa học thi tốt nghiệp THPT và kỳ thi ĐGNL ĐHQG-HCM. Hướng dẫn bấm máy tính Casio giải nhanh bài toán hóa vô cơ.', 'Cử nhân Hóa học Dược phẩm - ĐH Khoa học Tự nhiên TP.HCM', 6, 'Both', 'Số 68 Đường Số 1, Cư Xá Đô Thành, Phường 4, Quận 3, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '91 days', NOW() - INTERVAL '90 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000022', 'b1000000-0000-0000-0000-000000000022', 'Chuyên bồi dưỡng học sinh lớp 10, 11 làm quen với chương trình Giáo dục Phổ thông mới. Tạo động lực học tập qua các ứng dụng thực tế của vật lý đời sống.', 'Thạc sĩ Phương pháp Giảng dạy Vật lý - ĐH Sư Phạm Hà Nội', 7, 'Both', 'Số 18 Ngõ 133 Xuân Thủy, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '92 days', NOW() - INTERVAL '91 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000023', 'b1000000-0000-0000-0000-000000000023', 'Gia sư chuyên khối B (Toán - Hóa - Sinh). Từng đạt 10 điểm tuyệt đối môn Sinh học kỳ thi THPT Quốc Gia, chia sẻ chiến thuật làm đề 50 câu trong 40 phút.', 'Bác sĩ Răng Hàm Mặt - ĐH Y Dược TP.HCM', 5, 'Online', 'Số 217 Hồng Bàng, Phường 11, Quận 5, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '93 days', NOW() - INTERVAL '92 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000024', 'b1000000-0000-0000-0000-000000000024', 'Kinh nghiệm 6 năm dạy kèm học sinh trường chuyên và lớp chọn. Nắm vững cấu trúc câu hỏi phân loại cao trong đề thi Đánh giá năng lực Hà Nội.', 'Cử nhân Sư phạm Hóa học - ĐH Sư Phạm Hà Nội (Lớp Tài năng)', 6, 'Both', 'Số 42 Phố Trần Phú, Phường Điện Biên, Quận Ba Đình, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '94 days', NOW() - INTERVAL '93 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000025', 'b1000000-0000-0000-0000-000000000025', 'Senior Software Architect với 10 năm kinh nghiệm trong hệ thống ngân hàng. Chuyên dạy lập trình C# .NET 8, Clean Architecture, CQRS và Microservices từ gốc.', 'Thạc sĩ Khoa học Máy tính - ĐH Bách Khoa Hà Nội', 10, 'Online', 'Tòa Keangnam Landmark 72, Đường Phạm Hùng, Phường Mễ Trì, Quận Nam Từ Liêm, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '95 days', NOW() - INTERVAL '94 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000026', 'b1000000-0000-0000-0000-000000000026', 'Data Engineer tại tập đoàn công nghệ đa quốc gia. Hướng dẫn lập trình Python cho người mới bắt đầu, xử lý dữ liệu Pandas/Numpy và ứng dụng Trí tuệ Nhân tạo AI.', 'Kỹ sư Công nghệ Thông tin - ĐH Bách Khoa TP.HCM (Data Science Major)', 6, 'Both', 'Tòa S3.02 Vinhomes Grand Park, Phường Long Bình, TP. Thủ Đức, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '96 days', NOW() - INTERVAL '95 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000027', 'b1000000-0000-0000-0000-000000000027', 'Lead Backend Developer. Hướng dẫn sinh viên CNTT làm đồ án tốt nghiệp ASP.NET Core Web API, Entity Framework Core và luyện phỏng vấn kỹ thuật vào các công ty Outsource/Product.', 'Kỹ sư Kỹ thuật Phần mềm - ĐH FPT Hà Nội', 7, 'Online', 'Số 8 Ngõ 180 Phố Hoàng Quốc Việt, Phường Cổ Nhuế 1, Quận Bắc Từ Liêm, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '97 days', NOW() - INTERVAL '96 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000028', 'b1000000-0000-0000-0000-000000000028', 'Gia sư lập trình thuật toán Python cho học sinh cấp 2-3 thi Tin học trẻ và học sinh chuyên Tin. Rèn luyện tư duy cấu trúc dữ liệu và giải thuật LeetCode.', 'Cử nhân Toán Tin Ứng dụng - ĐH Khoa học Tự nhiên ĐHQG-HN', 5, 'Both', 'Số 334 Phố Nguyễn Trãi, Phường Thanh Xuân Trung, Quận Thanh Xuân, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '98 days', NOW() - INTERVAL '97 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000029', 'b1000000-0000-0000-0000-000000000029', 'Chuyên dạy lập trình Fullstack với C# ASP.NET Core Web API và React TypeScript cho người chuyển ngành (Non-tech). Đã giúp hơn 40 học viên tìm được việc làm Junior Dev.', 'Kỹ sư Hệ thống Thông tin - ĐH Công nghệ ĐHQG-HN', 6, 'Both', 'Số 144 Phố Xuân Thủy, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '99 days', NOW() - INTERVAL '98 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000030', 'b1000000-0000-0000-0000-000000000030', 'Chuyên dạy Python tự động hóa công việc (Automation), phân tích dữ liệu kinh doanh và lập trình Web scraper. Giáo trình thực chiến cầm tay chỉ việc.', 'Thạc sĩ Khoa học Dữ liệu - ĐH Công nghệ Thông tin ĐHQG-HCM', 5, 'Online', 'Số 1 Đường Hàn Thuyên, Phường Linh Trung, TP. Thủ Đức, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '100 days', NOW() - INTERVAL '99 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000031', 'b1000000-0000-0000-0000-000000000031', 'Senior .NET Developer tại công ty phần mềm Phần Lan. Dạy chuyên sâu Docker, CI/CD, PostgreSQL, Redis và tối ưu hóa hiệu năng ứng dụng High Load.', 'Cử nhân Kỹ thuật Máy tính - ĐH Bách Khoa TP.HCM', 8, 'Online', 'Số 268 Lý Thường Kiệt, Phường 14, Quận 10, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '101 days', NOW() - INTERVAL '100 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000032', 'b1000000-0000-0000-0000-000000000032', 'Chuyên dạy lập trình hướng đối tượng OOP và bảo mật ứng dụng Web trong môi trường .NET. Phương pháp code review từng dòng, sửa lỗi tận tâm.', 'Kỹ sư An toàn Thông tin - Học viện Kỹ thuật Mật mã', 6, 'Both', 'Số 141 Đường Chiến Thắng, Xã Tân Triều, Huyện Thanh Trì, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '102 days', NOW() - INTERVAL '101 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000033', 'b1000000-0000-0000-0000-000000000033', 'Giáo viên trường chuyên có 9 năm kinh nghiệm luyện thi vào 10 và THPT Quốc gia môn Ngữ văn. Phương pháp tư duy nghị luận xã hội sắc bén, hành văn mượt mà không khuôn mẫu.', 'Thạc sĩ Văn học Việt Nam - ĐH Sư Phạm Hà Nội', 9, 'Both', 'Số 55 Phố Hàng Chuối, Phường Phạm Đình Hổ, Quận Hai Bà Trưng, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '103 days', NOW() - INTERVAL '102 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000034', 'b1000000-0000-0000-0000-000000000034', 'MC truyền hình và huấn luyện viên tranh biện (Debate Coach). Đào tạo kỹ năng thuyết trình tự tin, làm chủ sân khấu và nghệ thuật đàm phán thuyết phục.', 'Thạc sĩ Báo chí & Truyền thông - Học viện Báo chí và Tuyên truyền', 8, 'Both', 'Số 36 Phố Xuân Thủy, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '104 days', NOW() - INTERVAL '103 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000035', 'b1000000-0000-0000-0000-000000000035', 'Chuyên bồi dưỡng học sinh thi học sinh giỏi Văn cấp Thành phố. Luyện kỹ năng phân tích tác phẩm văn học trung đại và hiện đại đạt điểm 8.5+.', 'Cử nhân Sư phạm Ngữ văn - ĐH Sư Phạm TP.HCM (Thủ khoa đầu ra)', 5, 'Both', 'Số 182 Đường Lê Văn Sỹ, Phường 10, Quận Phú Nhuận, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '105 days', NOW() - INTERVAL '104 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000036', 'b1000000-0000-0000-0000-000000000036', 'Cố vấn đàm phán hợp đồng thương mại cho các startup. Chuyên dạy nghệ thuật thương lượng Win-Win, kỹ năng lắng nghe thấu cảm và giải quyết mâu thuẫn đối tác.', 'Thạc sĩ Quản trị Kinh doanh (MBA) - ĐH Kinh tế Quốc dân', 10, 'Online', 'Số 207 Đường Giải Phóng, Phường Đồng Tâm, Quận Hai Bà Trưng, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '106 days', NOW() - INTERVAL '105 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000037', 'b1000000-0000-0000-0000-000000000037', 'Chuyên ôn thi Ngữ văn lớp 9 lên 10 trường công lập top đầu tại Hà Nội. Phương pháp lập dàn ý chi tiết giúp học sinh viết bài mạch lạc, không lan man.', 'Thạc sĩ Ngôn ngữ học - ĐH Khoa học Xã hội và Nhân văn Hà Nội', 7, 'Both', 'Số 336 Phố Nguyễn Trãi, Phường Thanh Xuân Trung, Quận Thanh Xuân, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '107 days', NOW() - INTERVAL '106 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000038', 'b1000000-0000-0000-0000-000000000038', 'Huấn luyện viên giải phóng hình thể và giọng nói. Giúp học viên vượt qua nỗi sợ nói trước đám đông, rèn luyện chất giọng ấm, biểu cảm và truyền cảm hứng.', 'Cử nhân Đạo diễn Sân khấu - ĐH Sân khấu Điện ảnh TP.HCM', 8, 'Both', 'Số 125 Đường Cống Quỳnh, Phường Nguyễn Cư Trinh, Quận 1, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '108 days', NOW() - INTERVAL '107 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000039', 'b1000000-0000-0000-0000-000000000039', '6 năm kinh nghiệm dạy kèm môn Ngữ văn cấp THCS và THPT. Hướng dẫn kỹ năng phân tích thơ hiện đại, mở bài và kết bài ấn tượng tạo thiện cảm với giám khảo chấm thi.', 'Cử nhân Sư phạm Ngữ văn - ĐH Sư Phạm Hà Nội', 6, 'Both', 'Số 23 Ngõ 82 Phố Chùa Láng, Phường Láng Thượng, Quận Đống Đa, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '109 days', NOW() - INTERVAL '108 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000040', 'b1000000-0000-0000-0000-000000000040', 'Chuyên đào tạo kỹ năng kể chuyện (Storytelling) trong kinh doanh và thuyết trình gọi vốn đầu tư (Pitching). Đã huấn luyện hơn 50 đội thi khởi nghiệp sinh viên.', 'Thạc sĩ Truyền thông Quốc tế - ĐH Westminster (Anh Quốc)', 7, 'Online', 'Tòa Diamond Island, Số 1 Đường Số 104, Phường Bình Trưng Tây, TP. Thủ Đức, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '110 days', NOW() - INTERVAL '109 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000041', 'b1000000-0000-0000-0000-000000000041', 'Kế toán trưởng với 11 năm kinh nghiệm tại doanh nghiệp sản xuất và thương mại. Chuyên dạy nguyên lý kế toán, hạch toán định khoản và lập báo cáo tài chính từ số 0.', 'Thạc sĩ Kế toán Kiểm toán - ĐH Kinh tế Quốc dân, Chứng chỉ CPA Việt Nam', 11, 'Both', 'Tòa Green Bay G3, Đường Lương Thế Vinh, Phường Mễ Trì, Quận Nam Từ Liêm, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '111 days', NOW() - INTERVAL '110 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000042', 'b1000000-0000-0000-0000-000000000042', 'Kiện tướng cờ vua quốc gia với hơn 8 năm giảng dạy trẻ em và thiếu niên. Giúp học sinh rèn luyện tính kiên trì, khả năng tập trung cao độ và tư duy chiến lược nhiều bước.', 'Kiện tướng Quốc gia Cờ vua, Cử nhân Huấn luyện Thể thao - ĐH TDTT Bắc Ninh', 8, 'Both', 'Số 10 Phố Trịnh Hoài Đức, Phường Cát Linh, Quận Đống Đa, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '112 days', NOW() - INTERVAL '111 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000043', 'b1000000-0000-0000-0000-000000000043', 'Chuyên gia phân tích tài chính doanh nghiệp. Dạy kèm sinh viên đại học môn Nguyên lý kế toán, Kế toán quản trị và phân tích chỉ số tài chính doanh nghiệp thực tế.', 'Cử nhân Tài chính Doanh nghiệp - Học viện Tài chính (GPA 3.85/4.0), ACCA Member', 6, 'Online', 'Số 58 Phố Lê Văn Thiêm, Phường Nhân Chính, Quận Thanh Xuân, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '113 days', NOW() - INTERVAL '112 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000044', 'b1000000-0000-0000-0000-000000000044', 'Huy chương Vàng giải Cờ vua trẻ toàn quốc. Chuyên bồi dưỡng các thế cờ tàn nghệ thuật, bẫy khai cuộc kinh điển và huấn luyện thi đấu cờ chớp trực tuyến Chess.com.', 'Cử nhân Toán học - ĐH Khoa học Tự nhiên TP.HCM, VĐV Cờ vua TP.HCM', 7, 'Both', 'Số 43 Đường Điện Biên Phủ, Phường Đa Kao, Quận 1, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '114 days', NOW() - INTERVAL '113 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000045', 'b1000000-0000-0000-0000-000000000045', '7 năm giảng viên thỉnh giảng và đào tạo chứng chỉ kế toán viên. Phương pháp giảng dạy liên hệ thực tiễn chứng từ hóa đơn, thực hành trực tiếp trên phần mềm MISA.', 'Thạc sĩ Tài chính Ngân hàng - ĐH Kinh tế TP.HCM (UEH)', 7, 'Both', 'Số 59C Nguyễn Đình Chiểu, Phường 6, Quận 3, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '70 days', NOW() - INTERVAL '69 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000046', 'b1000000-0000-0000-0000-000000000046', 'Chuyên gia nghiên cứu đề thi Đánh giá năng lực ĐHQG Hà Nội (HSA) và ĐHQG TP.HCM (APT). Chiến thuật làm bài phân bổ thời gian và mẹo loại trừ phương án nhiễu.', 'Thạc sĩ Đo lường và Đánh giá Giáo dục - ĐH Giáo Dục ĐHQG-HN', 8, 'Both', 'Số 16 Phố Nguyễn Cơ Thạch, Phường Mỹ Đình 2, Quận Nam Từ Liêm, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '71 days', NOW() - INTERVAL '70 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000047', 'b1000000-0000-0000-0000-000000000047', 'Chuyên phụ trách phần tư duy định tính (Ngôn ngữ tiếng Việt & Văn học) trong đề thi HSA. Đã hướng dẫn nhiều học sinh đạt trên 110/150 điểm bài thi ĐGNL.', 'Thạc sĩ Sư phạm Ngữ văn - ĐH Sư Phạm Hà Nội', 6, 'Both', 'Số 71 Phố Nguyễn Chí Thanh, Phường Láng Hạ, Quận Đống Đa, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '72 days', NOW() - INTERVAL '71 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000048', 'b1000000-0000-0000-0000-000000000048', 'Chuyên bồi dưỡng phần Khoa học tự nhiên (Lý - Hóa - Sinh) trong kỳ thi Đánh giá năng lực. Tổng hợp kiến thức cốt lõi qua mindmap và sơ đồ tư duy liên môn.', 'Kỹ sư Hóa - Dược - ĐH Bách Khoa TP.HCM', 7, 'Online', 'Số 104 Đường D1, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '73 days', NOW() - INTERVAL '72 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000049', 'b1000000-0000-0000-0000-000000000049', 'Chuyên luyện phần thi tiếng Anh trong đề thi ĐGNL và kỳ thi THPT Quốc Gia. Hệ thống hóa toàn bộ chuyên đề ngữ pháp trọng tâm và kỹ năng đọc hiểu văn bản học thuật.', 'Cử nhân Sư phạm Tiếng Anh - ĐH Sư Phạm TP.HCM, IELTS 8.0', 6, 'Both', 'Số 85 Đường Pasteur, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '74 days', NOW() - INTERVAL '73 days', '11111111-1111-1111-1111-111111111111'::uuid),
+    ('b4000000-0000-0000-0000-000000000050', 'b1000000-0000-0000-0000-000000000050', '8 năm kinh nghiệm giảng dạy toán tư duy và thống kê xác suất. Chuyên luyện phần tư duy logic và phân tích số liệu cho học sinh dự thi đánh giá năng lực.', 'Thạc sĩ Toán Ứng dụng - ĐH Khoa học Tự nhiên ĐHQG-HN', 8, 'Both', 'Số 98 Phố Thái Hà, Phường Trung Liệt, Quận Đống Đa, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '75 days', NOW() - INTERVAL '74 days', '11111111-1111-1111-1111-111111111111'::uuid)
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 6. WALLETS FOR 50 TUTORS (b3000000-0000-0000-0000-000000000001 .. 0050)
+INSERT INTO "Wallets" (
+    "Id", "TutorProfileId", "PendingBalance", "AvailableBalance", "HeldBalance", "UpdatedAt"
+)
+SELECT
+    ('b3000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
+    ('b2000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
+    0.00, 0.00, 0.00, NOW()
+FROM generate_series(1, 50) AS i
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 7. TUTOR SUBJECTS (Each tutor linked to their 2 authentic subjects)
+INSERT INTO "TutorSubjects" ("Id", "TutorProfileId", "SubjectId", "IsActive") VALUES
+    ('b0010000-0000-0000-0000-000000000001', 'b2000000-0000-0000-0000-000000000001', 'aaaaaaaa-0001-0000-0000-000000000001', true),
+    ('b0020000-0000-0000-0000-000000000001', 'b2000000-0000-0000-0000-000000000001', 'aaaaaaaa-0001-0000-0000-000000000002', true),
+    ('b0010000-0000-0000-0000-000000000002', 'b2000000-0000-0000-0000-000000000002', 'aaaaaaaa-0001-0000-0000-000000000001', true),
+    ('b0020000-0000-0000-0000-000000000002', 'b2000000-0000-0000-0000-000000000002', 'aaaaaaaa-0001-0000-0000-000000000012', true),
+    ('b0010000-0000-0000-0000-000000000003', 'b2000000-0000-0000-0000-000000000003', 'aaaaaaaa-0001-0000-0000-000000000001', true),
+    ('b0020000-0000-0000-0000-000000000003', 'b2000000-0000-0000-0000-000000000003', 'aaaaaaaa-0001-0000-0000-000000000002', true),
+    ('b0010000-0000-0000-0000-000000000004', 'b2000000-0000-0000-0000-000000000004', 'aaaaaaaa-0001-0000-0000-000000000002', true),
+    ('b0020000-0000-0000-0000-000000000004', 'b2000000-0000-0000-0000-000000000004', 'aaaaaaaa-0001-0000-0000-000000000001', true),
+    ('b0010000-0000-0000-0000-000000000005', 'b2000000-0000-0000-0000-000000000005', 'aaaaaaaa-0001-0000-0000-000000000001', true),
+    ('b0020000-0000-0000-0000-000000000005', 'b2000000-0000-0000-0000-000000000005', 'aaaaaaaa-0001-0000-0000-000000000012', true),
+    ('b0010000-0000-0000-0000-000000000006', 'b2000000-0000-0000-0000-000000000006', 'aaaaaaaa-0001-0000-0000-000000000002', true),
+    ('b0020000-0000-0000-0000-000000000006', 'b2000000-0000-0000-0000-000000000006', 'aaaaaaaa-0001-0000-0000-000000000001', true),
+    ('b0010000-0000-0000-0000-000000000007', 'b2000000-0000-0000-0000-000000000007', 'aaaaaaaa-0001-0000-0000-000000000001', true),
+    ('b0020000-0000-0000-0000-000000000007', 'b2000000-0000-0000-0000-000000000007', 'aaaaaaaa-0001-0000-0000-000000000012', true),
+    ('b0010000-0000-0000-0000-000000000008', 'b2000000-0000-0000-0000-000000000008', 'aaaaaaaa-0001-0000-0000-000000000001', true),
+    ('b0020000-0000-0000-0000-000000000008', 'b2000000-0000-0000-0000-000000000008', 'aaaaaaaa-0001-0000-0000-000000000002', true),
+    ('b0010000-0000-0000-0000-000000000009', 'b2000000-0000-0000-0000-000000000009', 'aaaaaaaa-0001-0000-0000-000000000004', true),
+    ('b0020000-0000-0000-0000-000000000009', 'b2000000-0000-0000-0000-000000000009', 'aaaaaaaa-0001-0000-0000-000000000003', true),
+    ('b0010000-0000-0000-0000-000000000010', 'b2000000-0000-0000-0000-000000000010', 'aaaaaaaa-0001-0000-0000-000000000004', true),
+    ('b0020000-0000-0000-0000-000000000010', 'b2000000-0000-0000-0000-000000000010', 'aaaaaaaa-0001-0000-0000-000000000003', true),
+    ('b0010000-0000-0000-0000-000000000011', 'b2000000-0000-0000-0000-000000000011', 'aaaaaaaa-0001-0000-0000-000000000003', true),
+    ('b0020000-0000-0000-0000-000000000011', 'b2000000-0000-0000-0000-000000000011', 'aaaaaaaa-0001-0000-0000-000000000014', true),
+    ('b0010000-0000-0000-0000-000000000012', 'b2000000-0000-0000-0000-000000000012', 'aaaaaaaa-0001-0000-0000-000000000005', true),
+    ('b0020000-0000-0000-0000-000000000012', 'b2000000-0000-0000-0000-000000000012', 'aaaaaaaa-0001-0000-0000-000000000003', true),
+    ('b0010000-0000-0000-0000-000000000013', 'b2000000-0000-0000-0000-000000000013', 'aaaaaaaa-0001-0000-0000-000000000004', true),
+    ('b0020000-0000-0000-0000-000000000013', 'b2000000-0000-0000-0000-000000000013', 'aaaaaaaa-0001-0000-0000-000000000003', true),
+    ('b0010000-0000-0000-0000-000000000014', 'b2000000-0000-0000-0000-000000000014', 'aaaaaaaa-0001-0000-0000-000000000005', true),
+    ('b0020000-0000-0000-0000-000000000014', 'b2000000-0000-0000-0000-000000000014', 'aaaaaaaa-0001-0000-0000-000000000004', true),
+    ('b0010000-0000-0000-0000-000000000015', 'b2000000-0000-0000-0000-000000000015', 'aaaaaaaa-0001-0000-0000-000000000004', true),
+    ('b0020000-0000-0000-0000-000000000015', 'b2000000-0000-0000-0000-000000000015', 'aaaaaaaa-0001-0000-0000-000000000014', true),
+    ('b0010000-0000-0000-0000-000000000016', 'b2000000-0000-0000-0000-000000000016', 'aaaaaaaa-0001-0000-0000-000000000003', true),
+    ('b0020000-0000-0000-0000-000000000016', 'b2000000-0000-0000-0000-000000000016', 'aaaaaaaa-0001-0000-0000-000000000004', true),
+    ('b0010000-0000-0000-0000-000000000017', 'b2000000-0000-0000-0000-000000000017', 'aaaaaaaa-0001-0000-0000-000000000006', true),
+    ('b0020000-0000-0000-0000-000000000017', 'b2000000-0000-0000-0000-000000000017', 'aaaaaaaa-0001-0000-0000-000000000012', true),
+    ('b0010000-0000-0000-0000-000000000018', 'b2000000-0000-0000-0000-000000000018', 'aaaaaaaa-0001-0000-0000-000000000007', true),
+    ('b0020000-0000-0000-0000-000000000018', 'b2000000-0000-0000-0000-000000000018', 'aaaaaaaa-0001-0000-0000-000000000008', true),
+    ('b0010000-0000-0000-0000-000000000019', 'b2000000-0000-0000-0000-000000000019', 'aaaaaaaa-0001-0000-0000-000000000006', true),
+    ('b0020000-0000-0000-0000-000000000019', 'b2000000-0000-0000-0000-000000000019', 'aaaaaaaa-0001-0000-0000-000000000001', true),
+    ('b0010000-0000-0000-0000-000000000020', 'b2000000-0000-0000-0000-000000000020', 'aaaaaaaa-0001-0000-0000-000000000008', true),
+    ('b0020000-0000-0000-0000-000000000020', 'b2000000-0000-0000-0000-000000000020', 'aaaaaaaa-0001-0000-0000-000000000007', true),
+    ('b0010000-0000-0000-0000-000000000021', 'b2000000-0000-0000-0000-000000000021', 'aaaaaaaa-0001-0000-0000-000000000007', true),
+    ('b0020000-0000-0000-0000-000000000021', 'b2000000-0000-0000-0000-000000000021', 'aaaaaaaa-0001-0000-0000-000000000012', true),
+    ('b0010000-0000-0000-0000-000000000022', 'b2000000-0000-0000-0000-000000000022', 'aaaaaaaa-0001-0000-0000-000000000006', true),
+    ('b0020000-0000-0000-0000-000000000022', 'b2000000-0000-0000-0000-000000000022', 'aaaaaaaa-0001-0000-0000-000000000002', true),
+    ('b0010000-0000-0000-0000-000000000023', 'b2000000-0000-0000-0000-000000000023', 'aaaaaaaa-0001-0000-0000-000000000008', true),
+    ('b0020000-0000-0000-0000-000000000023', 'b2000000-0000-0000-0000-000000000023', 'aaaaaaaa-0001-0000-0000-000000000007', true),
+    ('b0010000-0000-0000-0000-000000000024', 'b2000000-0000-0000-0000-000000000024', 'aaaaaaaa-0001-0000-0000-000000000007', true),
+    ('b0020000-0000-0000-0000-000000000024', 'b2000000-0000-0000-0000-000000000024', 'aaaaaaaa-0001-0000-0000-000000000012', true),
+    ('b0010000-0000-0000-0000-000000000025', 'b2000000-0000-0000-0000-000000000025', 'aaaaaaaa-0001-0000-0000-000000000009', true),
+    ('b0020000-0000-0000-0000-000000000025', 'b2000000-0000-0000-0000-000000000025', 'aaaaaaaa-0001-0000-0000-000000000010', true),
+    ('b0010000-0000-0000-0000-000000000026', 'b2000000-0000-0000-0000-000000000026', 'aaaaaaaa-0001-0000-0000-000000000010', true),
+    ('b0020000-0000-0000-0000-000000000026', 'b2000000-0000-0000-0000-000000000026', 'aaaaaaaa-0001-0000-0000-000000000009', true),
+    ('b0010000-0000-0000-0000-000000000027', 'b2000000-0000-0000-0000-000000000027', 'aaaaaaaa-0001-0000-0000-000000000009', true),
+    ('b0020000-0000-0000-0000-000000000027', 'b2000000-0000-0000-0000-000000000027', 'aaaaaaaa-0001-0000-0000-000000000010', true),
+    ('b0010000-0000-0000-0000-000000000028', 'b2000000-0000-0000-0000-000000000028', 'aaaaaaaa-0001-0000-0000-000000000010', true),
+    ('b0020000-0000-0000-0000-000000000028', 'b2000000-0000-0000-0000-000000000028', 'aaaaaaaa-0001-0000-0000-000000000013', true),
+    ('b0010000-0000-0000-0000-000000000029', 'b2000000-0000-0000-0000-000000000029', 'aaaaaaaa-0001-0000-0000-000000000009', true),
+    ('b0020000-0000-0000-0000-000000000029', 'b2000000-0000-0000-0000-000000000029', 'aaaaaaaa-0001-0000-0000-000000000010', true),
+    ('b0010000-0000-0000-0000-000000000030', 'b2000000-0000-0000-0000-000000000030', 'aaaaaaaa-0001-0000-0000-000000000010', true),
+    ('b0020000-0000-0000-0000-000000000030', 'b2000000-0000-0000-0000-000000000030', 'aaaaaaaa-0001-0000-0000-000000000015', true),
+    ('b0010000-0000-0000-0000-000000000031', 'b2000000-0000-0000-0000-000000000031', 'aaaaaaaa-0001-0000-0000-000000000009', true),
+    ('b0020000-0000-0000-0000-000000000031', 'b2000000-0000-0000-0000-000000000031', 'aaaaaaaa-0001-0000-0000-000000000010', true),
+    ('b0010000-0000-0000-0000-000000000032', 'b2000000-0000-0000-0000-000000000032', 'aaaaaaaa-0001-0000-0000-000000000009', true),
+    ('b0020000-0000-0000-0000-000000000032', 'b2000000-0000-0000-0000-000000000032', 'aaaaaaaa-0001-0000-0000-000000000010', true),
+    ('b0010000-0000-0000-0000-000000000033', 'b2000000-0000-0000-0000-000000000033', 'aaaaaaaa-0001-0000-0000-000000000011', true),
+    ('b0020000-0000-0000-0000-000000000033', 'b2000000-0000-0000-0000-000000000033', 'aaaaaaaa-0001-0000-0000-000000000014', true),
+    ('b0010000-0000-0000-0000-000000000034', 'b2000000-0000-0000-0000-000000000034', 'aaaaaaaa-0001-0000-0000-000000000014', true),
+    ('b0020000-0000-0000-0000-000000000034', 'b2000000-0000-0000-0000-000000000034', 'aaaaaaaa-0001-0000-0000-000000000003', true),
+    ('b0010000-0000-0000-0000-000000000035', 'b2000000-0000-0000-0000-000000000035', 'aaaaaaaa-0001-0000-0000-000000000011', true),
+    ('b0020000-0000-0000-0000-000000000035', 'b2000000-0000-0000-0000-000000000035', 'aaaaaaaa-0001-0000-0000-000000000014', true),
+    ('b0010000-0000-0000-0000-000000000036', 'b2000000-0000-0000-0000-000000000036', 'aaaaaaaa-0001-0000-0000-000000000014', true),
+    ('b0020000-0000-0000-0000-000000000036', 'b2000000-0000-0000-0000-000000000036', 'aaaaaaaa-0001-0000-0000-000000000015', true),
+    ('b0010000-0000-0000-0000-000000000037', 'b2000000-0000-0000-0000-000000000037', 'aaaaaaaa-0001-0000-0000-000000000011', true),
+    ('b0020000-0000-0000-0000-000000000037', 'b2000000-0000-0000-0000-000000000037', 'aaaaaaaa-0001-0000-0000-000000000012', true),
+    ('b0010000-0000-0000-0000-000000000038', 'b2000000-0000-0000-0000-000000000038', 'aaaaaaaa-0001-0000-0000-000000000014', true),
+    ('b0020000-0000-0000-0000-000000000038', 'b2000000-0000-0000-0000-000000000038', 'aaaaaaaa-0001-0000-0000-000000000003', true),
+    ('b0010000-0000-0000-0000-000000000039', 'b2000000-0000-0000-0000-000000000039', 'aaaaaaaa-0001-0000-0000-000000000011', true),
+    ('b0020000-0000-0000-0000-000000000039', 'b2000000-0000-0000-0000-000000000039', 'aaaaaaaa-0001-0000-0000-000000000014', true),
+    ('b0010000-0000-0000-0000-000000000040', 'b2000000-0000-0000-0000-000000000040', 'aaaaaaaa-0001-0000-0000-000000000014', true),
+    ('b0020000-0000-0000-0000-000000000040', 'b2000000-0000-0000-0000-000000000040', 'aaaaaaaa-0001-0000-0000-000000000003', true),
+    ('b0010000-0000-0000-0000-000000000041', 'b2000000-0000-0000-0000-000000000041', 'aaaaaaaa-0001-0000-0000-000000000015', true),
+    ('b0020000-0000-0000-0000-000000000041', 'b2000000-0000-0000-0000-000000000041', 'aaaaaaaa-0001-0000-0000-000000000010', true),
+    ('b0010000-0000-0000-0000-000000000042', 'b2000000-0000-0000-0000-000000000042', 'aaaaaaaa-0001-0000-0000-000000000013', true),
+    ('b0020000-0000-0000-0000-000000000042', 'b2000000-0000-0000-0000-000000000042', 'aaaaaaaa-0001-0000-0000-000000000002', true),
+    ('b0010000-0000-0000-0000-000000000043', 'b2000000-0000-0000-0000-000000000043', 'aaaaaaaa-0001-0000-0000-000000000015', true),
+    ('b0020000-0000-0000-0000-000000000043', 'b2000000-0000-0000-0000-000000000043', 'aaaaaaaa-0001-0000-0000-000000000012', true),
+    ('b0010000-0000-0000-0000-000000000044', 'b2000000-0000-0000-0000-000000000044', 'aaaaaaaa-0001-0000-0000-000000000013', true),
+    ('b0020000-0000-0000-0000-000000000044', 'b2000000-0000-0000-0000-000000000044', 'aaaaaaaa-0001-0000-0000-000000000001', true),
+    ('b0010000-0000-0000-0000-000000000045', 'b2000000-0000-0000-0000-000000000045', 'aaaaaaaa-0001-0000-0000-000000000015', true),
+    ('b0020000-0000-0000-0000-000000000045', 'b2000000-0000-0000-0000-000000000045', 'aaaaaaaa-0001-0000-0000-000000000014', true),
+    ('b0010000-0000-0000-0000-000000000046', 'b2000000-0000-0000-0000-000000000046', 'aaaaaaaa-0001-0000-0000-000000000012', true),
+    ('b0020000-0000-0000-0000-000000000046', 'b2000000-0000-0000-0000-000000000046', 'aaaaaaaa-0001-0000-0000-000000000001', true),
+    ('b0010000-0000-0000-0000-000000000047', 'b2000000-0000-0000-0000-000000000047', 'aaaaaaaa-0001-0000-0000-000000000012', true),
+    ('b0020000-0000-0000-0000-000000000047', 'b2000000-0000-0000-0000-000000000047', 'aaaaaaaa-0001-0000-0000-000000000011', true),
+    ('b0010000-0000-0000-0000-000000000048', 'b2000000-0000-0000-0000-000000000048', 'aaaaaaaa-0001-0000-0000-000000000012', true),
+    ('b0020000-0000-0000-0000-000000000048', 'b2000000-0000-0000-0000-000000000048', 'aaaaaaaa-0001-0000-0000-000000000006', true),
+    ('b0010000-0000-0000-0000-000000000049', 'b2000000-0000-0000-0000-000000000049', 'aaaaaaaa-0001-0000-0000-000000000012', true),
+    ('b0020000-0000-0000-0000-000000000049', 'b2000000-0000-0000-0000-000000000049', 'aaaaaaaa-0001-0000-0000-000000000003', true),
+    ('b0010000-0000-0000-0000-000000000050', 'b2000000-0000-0000-0000-000000000050', 'aaaaaaaa-0001-0000-0000-000000000012', true),
+    ('b0020000-0000-0000-0000-000000000050', 'b2000000-0000-0000-0000-000000000050', 'aaaaaaaa-0001-0000-0000-000000000001', true)
+ON CONFLICT ("TutorProfileId", "SubjectId") DO NOTHING;
+
+-- 8. AVAILABILITY SLOTS
+INSERT INTO "AvailabilitySlots" ("Id", "TutorProfileId", "DayOfWeek", "StartTime", "EndTime", "IsActive")
+SELECT ('b0a10000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid, ('b2000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid, 'Monday', '18:00:00'::time, '21:00:00'::time, true FROM generate_series(1, 50) AS i ON CONFLICT ("Id") DO NOTHING;
+INSERT INTO "AvailabilitySlots" ("Id", "TutorProfileId", "DayOfWeek", "StartTime", "EndTime", "IsActive")
+SELECT ('b0a20000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid, ('b2000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid, 'Wednesday', '18:00:00'::time, '21:00:00'::time, true FROM generate_series(1, 50) AS i ON CONFLICT ("Id") DO NOTHING;
+INSERT INTO "AvailabilitySlots" ("Id", "TutorProfileId", "DayOfWeek", "StartTime", "EndTime", "IsActive")
+SELECT ('b0a30000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid, ('b2000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid, 'Saturday', '08:30:00'::time, '11:30:00'::time, true FROM generate_series(1, 50) AS i ON CONFLICT ("Id") DO NOTHING;
+
+-- 9. SERVICES (150 Services: 3 per tutor, tailored to their actual subject expertise)
+INSERT INTO "Services" (
+    "Id", "TutorProfileId", "SubjectId", "Title", "Description", 
+    "LearningScope", "ExpectedOutcome", "TotalSessions", "SessionDurationMinutes", 
+    "Price", "TeachingMode", "Status", "CreatedAt"
+) VALUES
+    ('b7000000-0000-0000-0000-000000000001', 'b2000000-0000-0000-0000-000000000001', 'aaaaaaaa-0001-0000-0000-000000000001', 'Bứt Phá Điểm 9+ Môn Toán Thi Tốt Nghiệp THPT', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '66 days'),
+    ('b7000000-0000-0000-0000-000000000002', 'b2000000-0000-0000-0000-000000000001', 'aaaaaaaa-0001-0000-0000-000000000001', 'Chinh Phục Hình Học Không Gian & Oxyz Lớp 12', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '67 days'),
+    ('b7000000-0000-0000-0000-000000000003', 'b2000000-0000-0000-0000-000000000001', 'aaaaaaaa-0001-0000-0000-000000000002', 'Toán Tư Duy & Rèn Kỹ Năng Giải Bài Toán Thực Tế', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '68 days'),
+    ('b7000000-0000-0000-0000-000000000004', 'b2000000-0000-0000-0000-000000000002', 'aaaaaaaa-0001-0000-0000-000000000001', 'Bứt Phá Điểm 9+ Môn Toán Thi Tốt Nghiệp THPT', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Online', 'Published', NOW() - INTERVAL '69 days'),
+    ('b7000000-0000-0000-0000-000000000005', 'b2000000-0000-0000-0000-000000000002', 'aaaaaaaa-0001-0000-0000-000000000001', 'Chinh Phục Hình Học Không Gian & Oxyz Lớp 12', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Online', 'Published', NOW() - INTERVAL '70 days'),
+    ('b7000000-0000-0000-0000-000000000006', 'b2000000-0000-0000-0000-000000000002', 'aaaaaaaa-0001-0000-0000-000000000012', 'Luyện Kỹ Năng Tư Duy Định Lượng & Xử Lý Số Liệu ĐGNL', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Online', 'Published', NOW() - INTERVAL '71 days'),
+    ('b7000000-0000-0000-0000-000000000007', 'b2000000-0000-0000-0000-000000000003', 'aaaaaaaa-0001-0000-0000-000000000001', 'Bứt Phá Điểm 9+ Môn Toán Thi Tốt Nghiệp THPT', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '72 days'),
+    ('b7000000-0000-0000-0000-000000000008', 'b2000000-0000-0000-0000-000000000003', 'aaaaaaaa-0001-0000-0000-000000000001', 'Chinh Phục Hình Học Không Gian & Oxyz Lớp 12', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '73 days'),
+    ('b7000000-0000-0000-0000-000000000009', 'b2000000-0000-0000-0000-000000000003', 'aaaaaaaa-0001-0000-0000-000000000002', 'Toán Tư Duy & Rèn Kỹ Năng Giải Bài Toán Thực Tế', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '74 days'),
+    ('b7000000-0000-0000-0000-000000000010', 'b2000000-0000-0000-0000-000000000004', 'aaaaaaaa-0001-0000-0000-000000000002', 'Luyện Thi Vào Lớp 10 Chuyên Toán & Trường Công Lập', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Offline', 'Published', NOW() - INTERVAL '75 days'),
+    ('b7000000-0000-0000-0000-000000000011', 'b2000000-0000-0000-0000-000000000004', 'aaaaaaaa-0001-0000-0000-000000000002', 'Bứt Phá Điểm Số Toán THCS (Lớp 7-8-9)', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Offline', 'Published', NOW() - INTERVAL '76 days'),
+    ('b7000000-0000-0000-0000-000000000012', 'b2000000-0000-0000-0000-000000000004', 'aaaaaaaa-0001-0000-0000-000000000001', 'Bứt Phá Điểm 9+ Môn Toán Thi Tốt Nghiệp THPT', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Offline', 'Published', NOW() - INTERVAL '77 days'),
+    ('b7000000-0000-0000-0000-000000000013', 'b2000000-0000-0000-0000-000000000005', 'aaaaaaaa-0001-0000-0000-000000000001', 'Bứt Phá Điểm 9+ Môn Toán Thi Tốt Nghiệp THPT', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '78 days'),
+    ('b7000000-0000-0000-0000-000000000014', 'b2000000-0000-0000-0000-000000000005', 'aaaaaaaa-0001-0000-0000-000000000001', 'Chinh Phục Hình Học Không Gian & Oxyz Lớp 12', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '79 days'),
+    ('b7000000-0000-0000-0000-000000000015', 'b2000000-0000-0000-0000-000000000005', 'aaaaaaaa-0001-0000-0000-000000000012', 'Luyện Kỹ Năng Tư Duy Định Lượng & Xử Lý Số Liệu ĐGNL', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '80 days'),
+    ('b7000000-0000-0000-0000-000000000016', 'b2000000-0000-0000-0000-000000000006', 'aaaaaaaa-0001-0000-0000-000000000002', 'Luyện Thi Vào Lớp 10 Chuyên Toán & Trường Công Lập', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '81 days'),
+    ('b7000000-0000-0000-0000-000000000017', 'b2000000-0000-0000-0000-000000000006', 'aaaaaaaa-0001-0000-0000-000000000002', 'Bứt Phá Điểm Số Toán THCS (Lớp 7-8-9)', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '82 days'),
+    ('b7000000-0000-0000-0000-000000000018', 'b2000000-0000-0000-0000-000000000006', 'aaaaaaaa-0001-0000-0000-000000000001', 'Bứt Phá Điểm 9+ Môn Toán Thi Tốt Nghiệp THPT', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '83 days'),
+    ('b7000000-0000-0000-0000-000000000019', 'b2000000-0000-0000-0000-000000000007', 'aaaaaaaa-0001-0000-0000-000000000001', 'Bứt Phá Điểm 9+ Môn Toán Thi Tốt Nghiệp THPT', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Online', 'Published', NOW() - INTERVAL '84 days'),
+    ('b7000000-0000-0000-0000-000000000020', 'b2000000-0000-0000-0000-000000000007', 'aaaaaaaa-0001-0000-0000-000000000001', 'Chinh Phục Hình Học Không Gian & Oxyz Lớp 12', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Online', 'Published', NOW() - INTERVAL '85 days'),
+    ('b7000000-0000-0000-0000-000000000021', 'b2000000-0000-0000-0000-000000000007', 'aaaaaaaa-0001-0000-0000-000000000012', 'Luyện Kỹ Năng Tư Duy Định Lượng & Xử Lý Số Liệu ĐGNL', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Online', 'Published', NOW() - INTERVAL '86 days'),
+    ('b7000000-0000-0000-0000-000000000022', 'b2000000-0000-0000-0000-000000000008', 'aaaaaaaa-0001-0000-0000-000000000001', 'Bứt Phá Điểm 9+ Môn Toán Thi Tốt Nghiệp THPT', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '87 days'),
+    ('b7000000-0000-0000-0000-000000000023', 'b2000000-0000-0000-0000-000000000008', 'aaaaaaaa-0001-0000-0000-000000000001', 'Chinh Phục Hình Học Không Gian & Oxyz Lớp 12', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '88 days'),
+    ('b7000000-0000-0000-0000-000000000024', 'b2000000-0000-0000-0000-000000000008', 'aaaaaaaa-0001-0000-0000-000000000002', 'Toán Tư Duy & Rèn Kỹ Năng Giải Bài Toán Thực Tế', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '89 days'),
+    ('b7000000-0000-0000-0000-000000000025', 'b2000000-0000-0000-0000-000000000009', 'aaaaaaaa-0001-0000-0000-000000000004', 'IELTS Intensive Writing & Speaking (Target 6.5 - 7.5+)', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '90 days'),
+    ('b7000000-0000-0000-0000-000000000026', 'b2000000-0000-0000-0000-000000000009', 'aaaaaaaa-0001-0000-0000-000000000004', 'Chinh Phục IELTS Reading & Listening 7.5+', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '91 days'),
+    ('b7000000-0000-0000-0000-000000000027', 'b2000000-0000-0000-0000-000000000009', 'aaaaaaaa-0001-0000-0000-000000000003', 'Tiếng Anh Giao Tiếp Phỏng Vấn Tuyển Dụng & Viết CV', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '92 days'),
+    ('b7000000-0000-0000-0000-000000000028', 'b2000000-0000-0000-0000-000000000010', 'aaaaaaaa-0001-0000-0000-000000000004', 'IELTS Intensive Writing & Speaking (Target 6.5 - 7.5+)', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Online', 'Published', NOW() - INTERVAL '93 days'),
+    ('b7000000-0000-0000-0000-000000000029', 'b2000000-0000-0000-0000-000000000010', 'aaaaaaaa-0001-0000-0000-000000000004', 'Chinh Phục IELTS Reading & Listening 7.5+', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Online', 'Published', NOW() - INTERVAL '94 days'),
+    ('b7000000-0000-0000-0000-000000000030', 'b2000000-0000-0000-0000-000000000010', 'aaaaaaaa-0001-0000-0000-000000000003', 'Tiếng Anh Giao Tiếp Phỏng Vấn Tuyển Dụng & Viết CV', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Online', 'Published', NOW() - INTERVAL '65 days'),
+    ('b7000000-0000-0000-0000-000000000031', 'b2000000-0000-0000-0000-000000000011', 'aaaaaaaa-0001-0000-0000-000000000003', 'Tiếng Anh Giao Tiếp Doanh Nghiệp & Đàm Phán Thực Chiến', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '66 days'),
+    ('b7000000-0000-0000-0000-000000000032', 'b2000000-0000-0000-0000-000000000011', 'aaaaaaaa-0001-0000-0000-000000000003', 'Phát Âm Chuẩn Giọng Mỹ & Phản Xạ Giao Tiếp Hàng Ngày', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '67 days'),
+    ('b7000000-0000-0000-0000-000000000033', 'b2000000-0000-0000-0000-000000000011', 'aaaaaaaa-0001-0000-0000-000000000014', 'Storytelling & Kỹ Năng Thuyết Trình Gọi Vốn Khởi Nghiệp', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '68 days'),
+    ('b7000000-0000-0000-0000-000000000034', 'b2000000-0000-0000-0000-000000000012', 'aaaaaaaa-0001-0000-0000-000000000005', 'Khóa Luyện Thi JLPT N3 Cấp Tốc: Ngữ Pháp & Đọc Hiểu', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '69 days'),
+    ('b7000000-0000-0000-0000-000000000035', 'b2000000-0000-0000-0000-000000000012', 'aaaaaaaa-0001-0000-0000-000000000005', 'Tiếng Nhật Cho Người Mới Bắt Đầu (Lộ Trình Đạt N5)', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '70 days'),
+    ('b7000000-0000-0000-0000-000000000036', 'b2000000-0000-0000-0000-000000000012', 'aaaaaaaa-0001-0000-0000-000000000003', 'Tiếng Anh Giao Tiếp Phỏng Vấn Tuyển Dụng & Viết CV', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '71 days'),
+    ('b7000000-0000-0000-0000-000000000037', 'b2000000-0000-0000-0000-000000000013', 'aaaaaaaa-0001-0000-0000-000000000004', 'IELTS Intensive Writing & Speaking (Target 6.5 - 7.5+)', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Online', 'Published', NOW() - INTERVAL '72 days'),
+    ('b7000000-0000-0000-0000-000000000038', 'b2000000-0000-0000-0000-000000000013', 'aaaaaaaa-0001-0000-0000-000000000004', 'Chinh Phục IELTS Reading & Listening 7.5+', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Online', 'Published', NOW() - INTERVAL '73 days'),
+    ('b7000000-0000-0000-0000-000000000039', 'b2000000-0000-0000-0000-000000000013', 'aaaaaaaa-0001-0000-0000-000000000003', 'Tiếng Anh Giao Tiếp Phỏng Vấn Tuyển Dụng & Viết CV', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Online', 'Published', NOW() - INTERVAL '74 days'),
+    ('b7000000-0000-0000-0000-000000000040', 'b2000000-0000-0000-0000-000000000014', 'aaaaaaaa-0001-0000-0000-000000000005', 'Khóa Luyện Thi JLPT N3 Cấp Tốc: Ngữ Pháp & Đọc Hiểu', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '75 days'),
+    ('b7000000-0000-0000-0000-000000000041', 'b2000000-0000-0000-0000-000000000014', 'aaaaaaaa-0001-0000-0000-000000000005', 'Tiếng Nhật Cho Người Mới Bắt Đầu (Lộ Trình Đạt N5)', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '76 days'),
+    ('b7000000-0000-0000-0000-000000000042', 'b2000000-0000-0000-0000-000000000014', 'aaaaaaaa-0001-0000-0000-000000000004', 'IELTS Foundation Cho Người Mất Gốc Lên 5.5', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '77 days'),
+    ('b7000000-0000-0000-0000-000000000043', 'b2000000-0000-0000-0000-000000000015', 'aaaaaaaa-0001-0000-0000-000000000004', 'IELTS Intensive Writing & Speaking (Target 6.5 - 7.5+)', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '78 days'),
+    ('b7000000-0000-0000-0000-000000000044', 'b2000000-0000-0000-0000-000000000015', 'aaaaaaaa-0001-0000-0000-000000000004', 'Chinh Phục IELTS Reading & Listening 7.5+', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '79 days'),
+    ('b7000000-0000-0000-0000-000000000045', 'b2000000-0000-0000-0000-000000000015', 'aaaaaaaa-0001-0000-0000-000000000014', 'Storytelling & Kỹ Năng Thuyết Trình Gọi Vốn Khởi Nghiệp', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '80 days'),
+    ('b7000000-0000-0000-0000-000000000046', 'b2000000-0000-0000-0000-000000000016', 'aaaaaaaa-0001-0000-0000-000000000003', 'Tiếng Anh Giao Tiếp Doanh Nghiệp & Đàm Phán Thực Chiến', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Online', 'Published', NOW() - INTERVAL '81 days'),
+    ('b7000000-0000-0000-0000-000000000047', 'b2000000-0000-0000-0000-000000000016', 'aaaaaaaa-0001-0000-0000-000000000003', 'Phát Âm Chuẩn Giọng Mỹ & Phản Xạ Giao Tiếp Hàng Ngày', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Online', 'Published', NOW() - INTERVAL '82 days'),
+    ('b7000000-0000-0000-0000-000000000048', 'b2000000-0000-0000-0000-000000000016', 'aaaaaaaa-0001-0000-0000-000000000004', 'IELTS Foundation Cho Người Mất Gốc Lên 5.5', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Online', 'Published', NOW() - INTERVAL '83 days'),
+    ('b7000000-0000-0000-0000-000000000049', 'b2000000-0000-0000-0000-000000000017', 'aaaaaaaa-0001-0000-0000-000000000006', 'Bứt Phá Điểm 9+ Vật Lý 12 Thi THPT Quốc Gia', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '84 days'),
+    ('b7000000-0000-0000-0000-000000000050', 'b2000000-0000-0000-0000-000000000017', 'aaaaaaaa-0001-0000-0000-000000000006', 'Vật Lý Lớp 10 & 11 Chương Trình Mới Thực Chiến', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '85 days'),
+    ('b7000000-0000-0000-0000-000000000051', 'b2000000-0000-0000-0000-000000000017', 'aaaaaaaa-0001-0000-0000-000000000012', 'Luyện Kỹ Năng Tư Duy Định Lượng & Xử Lý Số Liệu ĐGNL', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '86 days'),
+    ('b7000000-0000-0000-0000-000000000052', 'b2000000-0000-0000-0000-000000000018', 'aaaaaaaa-0001-0000-0000-000000000007', 'Chinh Phục Điểm 9-10 Hóa Học 12: Este, Peptit & Hóa Vô Cơ', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '87 days'),
+    ('b7000000-0000-0000-0000-000000000053', 'b2000000-0000-0000-0000-000000000018', 'aaaaaaaa-0001-0000-0000-000000000007', 'Lấy Gốc Hóa Học THPT Trong 10 Buổi', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '88 days'),
+    ('b7000000-0000-0000-0000-000000000054', 'b2000000-0000-0000-0000-000000000018', 'aaaaaaaa-0001-0000-0000-000000000008', 'Chuyên Đề Sinh Học Ứng Dụng & Công Nghệ Gen', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '89 days'),
+    ('b7000000-0000-0000-0000-000000000055', 'b2000000-0000-0000-0000-000000000019', 'aaaaaaaa-0001-0000-0000-000000000006', 'Bứt Phá Điểm 9+ Vật Lý 12 Thi THPT Quốc Gia', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '90 days'),
+    ('b7000000-0000-0000-0000-000000000056', 'b2000000-0000-0000-0000-000000000019', 'aaaaaaaa-0001-0000-0000-000000000006', 'Vật Lý Lớp 10 & 11 Chương Trình Mới Thực Chiến', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '91 days'),
+    ('b7000000-0000-0000-0000-000000000057', 'b2000000-0000-0000-0000-000000000019', 'aaaaaaaa-0001-0000-0000-000000000001', 'Bứt Phá Điểm 9+ Môn Toán Thi Tốt Nghiệp THPT', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '92 days'),
+    ('b7000000-0000-0000-0000-000000000058', 'b2000000-0000-0000-0000-000000000020', 'aaaaaaaa-0001-0000-0000-000000000008', 'Luyện Thi Sinh Học Khối B: Di Truyền & Phả Hệ Điểm 9+', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Online', 'Published', NOW() - INTERVAL '93 days'),
+    ('b7000000-0000-0000-0000-000000000059', 'b2000000-0000-0000-0000-000000000020', 'aaaaaaaa-0001-0000-0000-000000000008', 'Hệ Thống Hóa Lý Thuyết Sinh Học 11 & 12', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Online', 'Published', NOW() - INTERVAL '94 days'),
+    ('b7000000-0000-0000-0000-000000000060', 'b2000000-0000-0000-0000-000000000020', 'aaaaaaaa-0001-0000-0000-000000000007', 'Luyện Đề Hóa Học Tổng Hợp & Đánh Giá Năng Lực', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Online', 'Published', NOW() - INTERVAL '65 days'),
+    ('b7000000-0000-0000-0000-000000000061', 'b2000000-0000-0000-0000-000000000021', 'aaaaaaaa-0001-0000-0000-000000000007', 'Chinh Phục Điểm 9-10 Hóa Học 12: Este, Peptit & Hóa Vô Cơ', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '66 days'),
+    ('b7000000-0000-0000-0000-000000000062', 'b2000000-0000-0000-0000-000000000021', 'aaaaaaaa-0001-0000-0000-000000000007', 'Lấy Gốc Hóa Học THPT Trong 10 Buổi', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '67 days'),
+    ('b7000000-0000-0000-0000-000000000063', 'b2000000-0000-0000-0000-000000000021', 'aaaaaaaa-0001-0000-0000-000000000012', 'Luyện Kỹ Năng Tư Duy Định Lượng & Xử Lý Số Liệu ĐGNL', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '68 days'),
+    ('b7000000-0000-0000-0000-000000000064', 'b2000000-0000-0000-0000-000000000022', 'aaaaaaaa-0001-0000-0000-000000000006', 'Bứt Phá Điểm 9+ Vật Lý 12 Thi THPT Quốc Gia', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '69 days'),
+    ('b7000000-0000-0000-0000-000000000065', 'b2000000-0000-0000-0000-000000000022', 'aaaaaaaa-0001-0000-0000-000000000006', 'Vật Lý Lớp 10 & 11 Chương Trình Mới Thực Chiến', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '70 days'),
+    ('b7000000-0000-0000-0000-000000000066', 'b2000000-0000-0000-0000-000000000022', 'aaaaaaaa-0001-0000-0000-000000000002', 'Toán Tư Duy & Rèn Kỹ Năng Giải Bài Toán Thực Tế', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '71 days'),
+    ('b7000000-0000-0000-0000-000000000067', 'b2000000-0000-0000-0000-000000000023', 'aaaaaaaa-0001-0000-0000-000000000008', 'Luyện Thi Sinh Học Khối B: Di Truyền & Phả Hệ Điểm 9+', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Online', 'Published', NOW() - INTERVAL '72 days'),
+    ('b7000000-0000-0000-0000-000000000068', 'b2000000-0000-0000-0000-000000000023', 'aaaaaaaa-0001-0000-0000-000000000008', 'Hệ Thống Hóa Lý Thuyết Sinh Học 11 & 12', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Online', 'Published', NOW() - INTERVAL '73 days'),
+    ('b7000000-0000-0000-0000-000000000069', 'b2000000-0000-0000-0000-000000000023', 'aaaaaaaa-0001-0000-0000-000000000007', 'Luyện Đề Hóa Học Tổng Hợp & Đánh Giá Năng Lực', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Online', 'Published', NOW() - INTERVAL '74 days'),
+    ('b7000000-0000-0000-0000-000000000070', 'b2000000-0000-0000-0000-000000000024', 'aaaaaaaa-0001-0000-0000-000000000007', 'Chinh Phục Điểm 9-10 Hóa Học 12: Este, Peptit & Hóa Vô Cơ', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '75 days'),
+    ('b7000000-0000-0000-0000-000000000071', 'b2000000-0000-0000-0000-000000000024', 'aaaaaaaa-0001-0000-0000-000000000007', 'Lấy Gốc Hóa Học THPT Trong 10 Buổi', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '76 days'),
+    ('b7000000-0000-0000-0000-000000000072', 'b2000000-0000-0000-0000-000000000024', 'aaaaaaaa-0001-0000-0000-000000000012', 'Luyện Kỹ Năng Tư Duy Định Lượng & Xử Lý Số Liệu ĐGNL', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '77 days'),
+    ('b7000000-0000-0000-0000-000000000073', 'b2000000-0000-0000-0000-000000000025', 'aaaaaaaa-0001-0000-0000-000000000009', 'Khóa Học Backend ASP.NET Core 8 & Clean Architecture Thực Chiến', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Online', 'Published', NOW() - INTERVAL '78 days'),
+    ('b7000000-0000-0000-0000-000000000074', 'b2000000-0000-0000-0000-000000000025', 'aaaaaaaa-0001-0000-0000-000000000009', 'Lập Trình Hướng Đối Tượng C# Căn Bản Đến Nâng Cao (OOP)', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Online', 'Published', NOW() - INTERVAL '79 days'),
+    ('b7000000-0000-0000-0000-000000000075', 'b2000000-0000-0000-0000-000000000025', 'aaaaaaaa-0001-0000-0000-000000000010', 'Luyện Thuật Toán Python & Ôn Thi Tin Học Trẻ / LeetCode', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Online', 'Published', NOW() - INTERVAL '80 days'),
+    ('b7000000-0000-0000-0000-000000000076', 'b2000000-0000-0000-0000-000000000026', 'aaaaaaaa-0001-0000-0000-000000000010', 'Lập Trình Python Cơ Bản Cho Người Mới Bắt Đầu (Zero to Hero)', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '81 days'),
+    ('b7000000-0000-0000-0000-000000000077', 'b2000000-0000-0000-0000-000000000026', 'aaaaaaaa-0001-0000-0000-000000000010', 'Python Phân Tích Dữ Liệu & Tự Động Hóa Công Việc (Automation)', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '82 days'),
+    ('b7000000-0000-0000-0000-000000000078', 'b2000000-0000-0000-0000-000000000026', 'aaaaaaaa-0001-0000-0000-000000000009', 'Hướng Dẫn Làm Đồ Án Tốt Nghiệp & Dự Án Thực Tế Với .NET', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '83 days'),
+    ('b7000000-0000-0000-0000-000000000079', 'b2000000-0000-0000-0000-000000000027', 'aaaaaaaa-0001-0000-0000-000000000009', 'Khóa Học Backend ASP.NET Core 8 & Clean Architecture Thực Chiến', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Online', 'Published', NOW() - INTERVAL '84 days'),
+    ('b7000000-0000-0000-0000-000000000080', 'b2000000-0000-0000-0000-000000000027', 'aaaaaaaa-0001-0000-0000-000000000009', 'Lập Trình Hướng Đối Tượng C# Căn Bản Đến Nâng Cao (OOP)', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Online', 'Published', NOW() - INTERVAL '85 days'),
+    ('b7000000-0000-0000-0000-000000000081', 'b2000000-0000-0000-0000-000000000027', 'aaaaaaaa-0001-0000-0000-000000000010', 'Luyện Thuật Toán Python & Ôn Thi Tin Học Trẻ / LeetCode', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Online', 'Published', NOW() - INTERVAL '86 days'),
+    ('b7000000-0000-0000-0000-000000000082', 'b2000000-0000-0000-0000-000000000028', 'aaaaaaaa-0001-0000-0000-000000000010', 'Lập Trình Python Cơ Bản Cho Người Mới Bắt Đầu (Zero to Hero)', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '87 days'),
+    ('b7000000-0000-0000-0000-000000000083', 'b2000000-0000-0000-0000-000000000028', 'aaaaaaaa-0001-0000-0000-000000000010', 'Python Phân Tích Dữ Liệu & Tự Động Hóa Công Việc (Automation)', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '88 days'),
+    ('b7000000-0000-0000-0000-000000000084', 'b2000000-0000-0000-0000-000000000028', 'aaaaaaaa-0001-0000-0000-000000000013', 'Huấn Luyện Thi Đấu Cờ Chớp & Rèn Bản Lĩnh Tâm Lý', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '89 days'),
+    ('b7000000-0000-0000-0000-000000000085', 'b2000000-0000-0000-0000-000000000029', 'aaaaaaaa-0001-0000-0000-000000000009', 'Khóa Học Backend ASP.NET Core 8 & Clean Architecture Thực Chiến', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '90 days'),
+    ('b7000000-0000-0000-0000-000000000086', 'b2000000-0000-0000-0000-000000000029', 'aaaaaaaa-0001-0000-0000-000000000009', 'Lập Trình Hướng Đối Tượng C# Căn Bản Đến Nâng Cao (OOP)', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '91 days'),
+    ('b7000000-0000-0000-0000-000000000087', 'b2000000-0000-0000-0000-000000000029', 'aaaaaaaa-0001-0000-0000-000000000010', 'Luyện Thuật Toán Python & Ôn Thi Tin Học Trẻ / LeetCode', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '92 days'),
+    ('b7000000-0000-0000-0000-000000000088', 'b2000000-0000-0000-0000-000000000030', 'aaaaaaaa-0001-0000-0000-000000000010', 'Lập Trình Python Cơ Bản Cho Người Mới Bắt Đầu (Zero to Hero)', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Online', 'Published', NOW() - INTERVAL '93 days'),
+    ('b7000000-0000-0000-0000-000000000089', 'b2000000-0000-0000-0000-000000000030', 'aaaaaaaa-0001-0000-0000-000000000010', 'Python Phân Tích Dữ Liệu & Tự Động Hóa Công Việc (Automation)', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Online', 'Published', NOW() - INTERVAL '94 days'),
+    ('b7000000-0000-0000-0000-000000000090', 'b2000000-0000-0000-0000-000000000030', 'aaaaaaaa-0001-0000-0000-000000000015', 'Đọc Hiểu Báo Cáo Tài Chính Dành Cho Nhà Đầu Tư & Quản Lý', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Online', 'Published', NOW() - INTERVAL '65 days'),
+    ('b7000000-0000-0000-0000-000000000091', 'b2000000-0000-0000-0000-000000000031', 'aaaaaaaa-0001-0000-0000-000000000009', 'Khóa Học Backend ASP.NET Core 8 & Clean Architecture Thực Chiến', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Online', 'Published', NOW() - INTERVAL '66 days'),
+    ('b7000000-0000-0000-0000-000000000092', 'b2000000-0000-0000-0000-000000000031', 'aaaaaaaa-0001-0000-0000-000000000009', 'Lập Trình Hướng Đối Tượng C# Căn Bản Đến Nâng Cao (OOP)', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Online', 'Published', NOW() - INTERVAL '67 days'),
+    ('b7000000-0000-0000-0000-000000000093', 'b2000000-0000-0000-0000-000000000031', 'aaaaaaaa-0001-0000-0000-000000000010', 'Luyện Thuật Toán Python & Ôn Thi Tin Học Trẻ / LeetCode', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Online', 'Published', NOW() - INTERVAL '68 days'),
+    ('b7000000-0000-0000-0000-000000000094', 'b2000000-0000-0000-0000-000000000032', 'aaaaaaaa-0001-0000-0000-000000000009', 'Khóa Học Backend ASP.NET Core 8 & Clean Architecture Thực Chiến', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '69 days'),
+    ('b7000000-0000-0000-0000-000000000095', 'b2000000-0000-0000-0000-000000000032', 'aaaaaaaa-0001-0000-0000-000000000009', 'Lập Trình Hướng Đối Tượng C# Căn Bản Đến Nâng Cao (OOP)', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '70 days'),
+    ('b7000000-0000-0000-0000-000000000096', 'b2000000-0000-0000-0000-000000000032', 'aaaaaaaa-0001-0000-0000-000000000010', 'Luyện Thuật Toán Python & Ôn Thi Tin Học Trẻ / LeetCode', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '71 days'),
+    ('b7000000-0000-0000-0000-000000000097', 'b2000000-0000-0000-0000-000000000033', 'aaaaaaaa-0001-0000-0000-000000000011', 'Khóa Luyện Thi Vào Lớp 10 Môn Ngữ Văn Điểm 8.5+', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '72 days'),
+    ('b7000000-0000-0000-0000-000000000098', 'b2000000-0000-0000-0000-000000000033', 'aaaaaaaa-0001-0000-0000-000000000011', 'Bứt Phá Điểm 9+ Ngữ Văn Thi THPT Quốc Gia', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '73 days'),
+    ('b7000000-0000-0000-0000-000000000099', 'b2000000-0000-0000-0000-000000000033', 'aaaaaaaa-0001-0000-0000-000000000014', 'Storytelling & Kỹ Năng Thuyết Trình Gọi Vốn Khởi Nghiệp', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '74 days'),
+    ('b7000000-0000-0000-0000-000000000100', 'b2000000-0000-0000-0000-000000000034', 'aaaaaaaa-0001-0000-0000-000000000014', 'Nghệ Thuật Thuyết Trình Tự Tin & Làm Chủ Sân Khấu', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '75 days'),
+    ('b7000000-0000-0000-0000-000000000101', 'b2000000-0000-0000-0000-000000000034', 'aaaaaaaa-0001-0000-0000-000000000014', 'Kỹ Năng Đàm Phán Thương Mại & Thuyết Phục Đỉnh Cao', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '76 days'),
+    ('b7000000-0000-0000-0000-000000000102', 'b2000000-0000-0000-0000-000000000034', 'aaaaaaaa-0001-0000-0000-000000000003', 'Tiếng Anh Giao Tiếp Phỏng Vấn Tuyển Dụng & Viết CV', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '77 days'),
+    ('b7000000-0000-0000-0000-000000000103', 'b2000000-0000-0000-0000-000000000035', 'aaaaaaaa-0001-0000-0000-000000000011', 'Khóa Luyện Thi Vào Lớp 10 Môn Ngữ Văn Điểm 8.5+', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '78 days'),
+    ('b7000000-0000-0000-0000-000000000104', 'b2000000-0000-0000-0000-000000000035', 'aaaaaaaa-0001-0000-0000-000000000011', 'Bứt Phá Điểm 9+ Ngữ Văn Thi THPT Quốc Gia', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '79 days'),
+    ('b7000000-0000-0000-0000-000000000105', 'b2000000-0000-0000-0000-000000000035', 'aaaaaaaa-0001-0000-0000-000000000014', 'Storytelling & Kỹ Năng Thuyết Trình Gọi Vốn Khởi Nghiệp', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '80 days'),
+    ('b7000000-0000-0000-0000-000000000106', 'b2000000-0000-0000-0000-000000000036', 'aaaaaaaa-0001-0000-0000-000000000014', 'Nghệ Thuật Thuyết Trình Tự Tin & Làm Chủ Sân Khấu', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Online', 'Published', NOW() - INTERVAL '81 days'),
+    ('b7000000-0000-0000-0000-000000000107', 'b2000000-0000-0000-0000-000000000036', 'aaaaaaaa-0001-0000-0000-000000000014', 'Kỹ Năng Đàm Phán Thương Mại & Thuyết Phục Đỉnh Cao', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Online', 'Published', NOW() - INTERVAL '82 days'),
+    ('b7000000-0000-0000-0000-000000000108', 'b2000000-0000-0000-0000-000000000036', 'aaaaaaaa-0001-0000-0000-000000000015', 'Đọc Hiểu Báo Cáo Tài Chính Dành Cho Nhà Đầu Tư & Quản Lý', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Online', 'Published', NOW() - INTERVAL '83 days'),
+    ('b7000000-0000-0000-0000-000000000109', 'b2000000-0000-0000-0000-000000000037', 'aaaaaaaa-0001-0000-0000-000000000011', 'Khóa Luyện Thi Vào Lớp 10 Môn Ngữ Văn Điểm 8.5+', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '84 days'),
+    ('b7000000-0000-0000-0000-000000000110', 'b2000000-0000-0000-0000-000000000037', 'aaaaaaaa-0001-0000-0000-000000000011', 'Bứt Phá Điểm 9+ Ngữ Văn Thi THPT Quốc Gia', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '85 days'),
+    ('b7000000-0000-0000-0000-000000000111', 'b2000000-0000-0000-0000-000000000037', 'aaaaaaaa-0001-0000-0000-000000000012', 'Luyện Kỹ Năng Tư Duy Định Lượng & Xử Lý Số Liệu ĐGNL', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '86 days'),
+    ('b7000000-0000-0000-0000-000000000112', 'b2000000-0000-0000-0000-000000000038', 'aaaaaaaa-0001-0000-0000-000000000014', 'Nghệ Thuật Thuyết Trình Tự Tin & Làm Chủ Sân Khấu', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '87 days'),
+    ('b7000000-0000-0000-0000-000000000113', 'b2000000-0000-0000-0000-000000000038', 'aaaaaaaa-0001-0000-0000-000000000014', 'Kỹ Năng Đàm Phán Thương Mại & Thuyết Phục Đỉnh Cao', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '88 days'),
+    ('b7000000-0000-0000-0000-000000000114', 'b2000000-0000-0000-0000-000000000038', 'aaaaaaaa-0001-0000-0000-000000000003', 'Tiếng Anh Giao Tiếp Phỏng Vấn Tuyển Dụng & Viết CV', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '89 days'),
+    ('b7000000-0000-0000-0000-000000000115', 'b2000000-0000-0000-0000-000000000039', 'aaaaaaaa-0001-0000-0000-000000000011', 'Khóa Luyện Thi Vào Lớp 10 Môn Ngữ Văn Điểm 8.5+', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '90 days'),
+    ('b7000000-0000-0000-0000-000000000116', 'b2000000-0000-0000-0000-000000000039', 'aaaaaaaa-0001-0000-0000-000000000011', 'Bứt Phá Điểm 9+ Ngữ Văn Thi THPT Quốc Gia', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '91 days'),
+    ('b7000000-0000-0000-0000-000000000117', 'b2000000-0000-0000-0000-000000000039', 'aaaaaaaa-0001-0000-0000-000000000014', 'Storytelling & Kỹ Năng Thuyết Trình Gọi Vốn Khởi Nghiệp', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '92 days'),
+    ('b7000000-0000-0000-0000-000000000118', 'b2000000-0000-0000-0000-000000000040', 'aaaaaaaa-0001-0000-0000-000000000014', 'Nghệ Thuật Thuyết Trình Tự Tin & Làm Chủ Sân Khấu', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Online', 'Published', NOW() - INTERVAL '93 days'),
+    ('b7000000-0000-0000-0000-000000000119', 'b2000000-0000-0000-0000-000000000040', 'aaaaaaaa-0001-0000-0000-000000000014', 'Kỹ Năng Đàm Phán Thương Mại & Thuyết Phục Đỉnh Cao', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Online', 'Published', NOW() - INTERVAL '94 days'),
+    ('b7000000-0000-0000-0000-000000000120', 'b2000000-0000-0000-0000-000000000040', 'aaaaaaaa-0001-0000-0000-000000000003', 'Tiếng Anh Giao Tiếp Phỏng Vấn Tuyển Dụng & Viết CV', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Online', 'Published', NOW() - INTERVAL '65 days'),
+    ('b7000000-0000-0000-0000-000000000121', 'b2000000-0000-0000-0000-000000000041', 'aaaaaaaa-0001-0000-0000-000000000015', 'Nguyên Lý Kế Toán & Kỹ Năng Định Khoản Thực Hành', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '66 days'),
+    ('b7000000-0000-0000-0000-000000000122', 'b2000000-0000-0000-0000-000000000041', 'aaaaaaaa-0001-0000-0000-000000000015', 'Kế Toán Thuế & Thực Hành Khai Báo Thuế Trên Phần Mềm', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '67 days'),
+    ('b7000000-0000-0000-0000-000000000123', 'b2000000-0000-0000-0000-000000000041', 'aaaaaaaa-0001-0000-0000-000000000010', 'Luyện Thuật Toán Python & Ôn Thi Tin Học Trẻ / LeetCode', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '68 days'),
+    ('b7000000-0000-0000-0000-000000000124', 'b2000000-0000-0000-0000-000000000042', 'aaaaaaaa-0001-0000-0000-000000000013', 'Khóa Học Cờ Vua Tư Duy Chiến Lược Cho Trẻ Em & Người Mới', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '69 days'),
+    ('b7000000-0000-0000-0000-000000000125', 'b2000000-0000-0000-0000-000000000042', 'aaaaaaaa-0001-0000-0000-000000000013', 'Cờ Vua Nâng Cao: Bẫy Khai Cuộc & Kỹ Thuật Tàn Cuộc Kinh Điển', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '70 days'),
+    ('b7000000-0000-0000-0000-000000000126', 'b2000000-0000-0000-0000-000000000042', 'aaaaaaaa-0001-0000-0000-000000000002', 'Toán Tư Duy & Rèn Kỹ Năng Giải Bài Toán Thực Tế', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '71 days'),
+    ('b7000000-0000-0000-0000-000000000127', 'b2000000-0000-0000-0000-000000000043', 'aaaaaaaa-0001-0000-0000-000000000015', 'Nguyên Lý Kế Toán & Kỹ Năng Định Khoản Thực Hành', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Online', 'Published', NOW() - INTERVAL '72 days'),
+    ('b7000000-0000-0000-0000-000000000128', 'b2000000-0000-0000-0000-000000000043', 'aaaaaaaa-0001-0000-0000-000000000015', 'Kế Toán Thuế & Thực Hành Khai Báo Thuế Trên Phần Mềm', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Online', 'Published', NOW() - INTERVAL '73 days'),
+    ('b7000000-0000-0000-0000-000000000129', 'b2000000-0000-0000-0000-000000000043', 'aaaaaaaa-0001-0000-0000-000000000012', 'Luyện Kỹ Năng Tư Duy Định Lượng & Xử Lý Số Liệu ĐGNL', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Online', 'Published', NOW() - INTERVAL '74 days'),
+    ('b7000000-0000-0000-0000-000000000130', 'b2000000-0000-0000-0000-000000000044', 'aaaaaaaa-0001-0000-0000-000000000013', 'Khóa Học Cờ Vua Tư Duy Chiến Lược Cho Trẻ Em & Người Mới', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '75 days'),
+    ('b7000000-0000-0000-0000-000000000131', 'b2000000-0000-0000-0000-000000000044', 'aaaaaaaa-0001-0000-0000-000000000013', 'Cờ Vua Nâng Cao: Bẫy Khai Cuộc & Kỹ Thuật Tàn Cuộc Kinh Điển', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '76 days'),
+    ('b7000000-0000-0000-0000-000000000132', 'b2000000-0000-0000-0000-000000000044', 'aaaaaaaa-0001-0000-0000-000000000001', 'Bứt Phá Điểm 9+ Môn Toán Thi Tốt Nghiệp THPT', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '77 days'),
+    ('b7000000-0000-0000-0000-000000000133', 'b2000000-0000-0000-0000-000000000045', 'aaaaaaaa-0001-0000-0000-000000000015', 'Nguyên Lý Kế Toán & Kỹ Năng Định Khoản Thực Hành', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '78 days'),
+    ('b7000000-0000-0000-0000-000000000134', 'b2000000-0000-0000-0000-000000000045', 'aaaaaaaa-0001-0000-0000-000000000015', 'Kế Toán Thuế & Thực Hành Khai Báo Thuế Trên Phần Mềm', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '79 days'),
+    ('b7000000-0000-0000-0000-000000000135', 'b2000000-0000-0000-0000-000000000045', 'aaaaaaaa-0001-0000-0000-000000000014', 'Storytelling & Kỹ Năng Thuyết Trình Gọi Vốn Khởi Nghiệp', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '80 days'),
+    ('b7000000-0000-0000-0000-000000000136', 'b2000000-0000-0000-0000-000000000046', 'aaaaaaaa-0001-0000-0000-000000000012', 'Luyện Thi Đánh Giá Năng Lực ĐHQG Hà Nội (HSA) Toàn Diện', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '81 days'),
+    ('b7000000-0000-0000-0000-000000000137', 'b2000000-0000-0000-0000-000000000046', 'aaaaaaaa-0001-0000-0000-000000000012', 'Chiến Thuật Luyện Thi ĐGNL ĐHQG TP.HCM (APT) Cấp Tốc', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '82 days'),
+    ('b7000000-0000-0000-0000-000000000138', 'b2000000-0000-0000-0000-000000000046', 'aaaaaaaa-0001-0000-0000-000000000001', 'Bứt Phá Điểm 9+ Môn Toán Thi Tốt Nghiệp THPT', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '83 days'),
+    ('b7000000-0000-0000-0000-000000000139', 'b2000000-0000-0000-0000-000000000047', 'aaaaaaaa-0001-0000-0000-000000000012', 'Luyện Thi Đánh Giá Năng Lực ĐHQG Hà Nội (HSA) Toàn Diện', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '84 days'),
+    ('b7000000-0000-0000-0000-000000000140', 'b2000000-0000-0000-0000-000000000047', 'aaaaaaaa-0001-0000-0000-000000000012', 'Chiến Thuật Luyện Thi ĐGNL ĐHQG TP.HCM (APT) Cấp Tốc', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '85 days'),
+    ('b7000000-0000-0000-0000-000000000141', 'b2000000-0000-0000-0000-000000000047', 'aaaaaaaa-0001-0000-0000-000000000011', 'Kỹ Năng Đọc Hiểu & Viết Luận Văn Học Sáng Tạo', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '86 days'),
+    ('b7000000-0000-0000-0000-000000000142', 'b2000000-0000-0000-0000-000000000048', 'aaaaaaaa-0001-0000-0000-000000000012', 'Luyện Thi Đánh Giá Năng Lực ĐHQG Hà Nội (HSA) Toàn Diện', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Online', 'Published', NOW() - INTERVAL '87 days'),
+    ('b7000000-0000-0000-0000-000000000143', 'b2000000-0000-0000-0000-000000000048', 'aaaaaaaa-0001-0000-0000-000000000012', 'Chiến Thuật Luyện Thi ĐGNL ĐHQG TP.HCM (APT) Cấp Tốc', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Online', 'Published', NOW() - INTERVAL '88 days'),
+    ('b7000000-0000-0000-0000-000000000144', 'b2000000-0000-0000-0000-000000000048', 'aaaaaaaa-0001-0000-0000-000000000006', 'Luyện Phần Vật Lý Đề Thi Đánh Giá Năng Lực ĐHQG', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Online', 'Published', NOW() - INTERVAL '89 days'),
+    ('b7000000-0000-0000-0000-000000000145', 'b2000000-0000-0000-0000-000000000049', 'aaaaaaaa-0001-0000-0000-000000000012', 'Luyện Thi Đánh Giá Năng Lực ĐHQG Hà Nội (HSA) Toàn Diện', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '90 days'),
+    ('b7000000-0000-0000-0000-000000000146', 'b2000000-0000-0000-0000-000000000049', 'aaaaaaaa-0001-0000-0000-000000000012', 'Chiến Thuật Luyện Thi ĐGNL ĐHQG TP.HCM (APT) Cấp Tốc', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '91 days'),
+    ('b7000000-0000-0000-0000-000000000147', 'b2000000-0000-0000-0000-000000000049', 'aaaaaaaa-0001-0000-0000-000000000003', 'Tiếng Anh Giao Tiếp Phỏng Vấn Tuyển Dụng & Viết CV', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '92 days'),
+    ('b7000000-0000-0000-0000-000000000148', 'b2000000-0000-0000-0000-000000000050', 'aaaaaaaa-0001-0000-0000-000000000012', 'Luyện Thi Đánh Giá Năng Lực ĐHQG Hà Nội (HSA) Toàn Diện', 'Chương trình đào tạo chuyên sâu cá nhân hóa 1 kèm 1 theo năng lực thực tế của học viên.', 'Toàn bộ kiến thức lý thuyết nền tảng và bộ bài tập thực hành vận dụng cao bám sát thực tế.', 'Nắm chắc kiến thức bản chất, tự tin làm bài thi đạt kết quả xuất sắc vượt mục tiêu.', 12, 90, 3600000.00, 'Both', 'Published', NOW() - INTERVAL '93 days'),
+    ('b7000000-0000-0000-0000-000000000149', 'b2000000-0000-0000-0000-000000000050', 'aaaaaaaa-0001-0000-0000-000000000012', 'Chiến Thuật Luyện Thi ĐGNL ĐHQG TP.HCM (APT) Cấp Tốc', 'Khóa học bồi dưỡng chuyên đề cốt lõi giúp học viên lấp đầy lỗ hổng kiến thức và rèn phản xạ nhanh.', 'Các chuyên đề phân loại cao và chiến thuật xử lý các tình huống phức tạp trong bài thi/công việc.', 'Thành thạo kỹ năng giải quyết vấn đề, nâng cao rõ rệt tốc độ và độ chính xác.', 10, 90, 3000000.00, 'Both', 'Published', NOW() - INTERVAL '94 days'),
+    ('b7000000-0000-0000-0000-000000000150', 'b2000000-0000-0000-0000-000000000050', 'aaaaaaaa-0001-0000-0000-000000000001', 'Bứt Phá Điểm 9+ Môn Toán Thi Tốt Nghiệp THPT', 'Khóa đào tạo chuyên sâu ứng dụng thực tế giúp học viên đạt mục tiêu mong muốn trong thời gian ngắn nhất.', 'Hệ thống bài tập thực hành theo dự án mẫu và đề thi chuẩn quốc tế/quốc gia.', 'Làm chủ 100% kỹ năng, sẵn sàng chinh phục các kỳ thi và phỏng vấn thực tế.', 8, 90, 2500000.00, 'Both', 'Published', NOW() - INTERVAL '65 days')
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 10. BOOKINGS (500 Bookings with varied realistic cancellation reasons)
+WITH s AS (
+    SELECT 
+        i,
+        ('b7000000-0000-0000-0000-' || lpad((((i - 1) % 150) + 1)::text, 12, '0'))::uuid AS svc_id,
+        ('b6000000-0000-0000-0000-' || lpad((((i - 1) % 200) + 1)::text, 12, '0'))::uuid AS stu_id
+    FROM generate_series(1, 500) AS i
+)
+INSERT INTO "Bookings" (
+    "Id", "StudentProfileId", "TutorProfileId", "SubjectId", "ServiceId", "CustomAgreementId",
+    "TotalPrice", "TotalSessions", "SessionDurationMinutes", "TeachingMode", "Status",
+    "HoldingExpiresAt", "ConfirmedAt", "CompletedAt", "CancelledAt", "CancelledBy", "CancellationReason",
+    "CreatedAt"
+)
+SELECT
+    ('b8000000-0000-0000-0000-' || lpad(s.i::text, 12, '0'))::uuid,
+    s.stu_id,
+    svc."TutorProfileId",
+    svc."SubjectId",
+    svc."Id",
+    NULL,
+    svc."Price",
+    svc."TotalSessions",
+    svc."SessionDurationMinutes",
+    svc."TeachingMode",
+    CASE 
+        WHEN s.i <= 400 THEN 'Paid'
+        WHEN s.i <= 450 THEN 'Holding'
+        WHEN s.i <= 480 THEN 'Cancelled'
+        ELSE 'Expired'
+    END,
+    CASE WHEN s.i > 400 AND s.i <= 450 THEN NOW() + '14 minutes'::interval ELSE NULL END,
+    CASE WHEN s.i <= 400 THEN NOW() - ((60 - (s.i % 55)) || ' days')::interval ELSE NULL END,
+    CASE WHEN s.i > 220 AND s.i <= 370 THEN NOW() - '2 days'::interval ELSE NULL END,
+    CASE WHEN s.i > 450 AND s.i <= 480 THEN NOW() - '10 days'::interval ELSE NULL END,
+    CASE WHEN s.i > 450 AND s.i <= 480 THEN 'Student' ELSE NULL END,
+    CASE 
+        WHEN s.i > 450 AND s.i <= 480 AND (s.i % 8) = 0 THEN 'Học viên vướng lịch học phụ đạo tăng cường tại trường vào các buổi tối trong tuần'
+        WHEN s.i > 450 AND s.i <= 480 AND (s.i % 8) = 1 THEN 'Gia đình có kế hoạch chuyển nơi cư trú và trường học sang địa bàn quận khác'
+        WHEN s.i > 450 AND s.i <= 480 AND (s.i % 8) = 2 THEN 'Học viên được cử tham gia đội tuyển thi học sinh giỏi nên thay đổi thời gian biểu'
+        WHEN s.i > 450 AND s.i <= 480 AND (s.i % 8) = 3 THEN 'Học viên đã đạt mục tiêu điểm số kỳ thi sớm hơn thời hạn dự kiến ban đầu'
+        WHEN s.i > 450 AND s.i <= 480 AND (s.i % 8) = 4 THEN 'Thay đổi định hướng khối thi đại học từ khối Tự nhiên sang khối Xã hội'
+        WHEN s.i > 450 AND s.i <= 480 AND (s.i % 8) = 5 THEN 'Trùng lịch học thêm ngoại khóa và lịch thi chứng chỉ tiếng Anh quốc tế'
+        WHEN s.i > 450 AND s.i <= 480 AND (s.i % 8) = 6 THEN 'Học viên cần tạm hoãn lịch học để điều trị sức khỏe theo chỉ định bác sĩ'
+        WHEN s.i > 450 AND s.i <= 480 AND (s.i % 8) = 7 THEN 'Gia đình có việc gia đình đột xuất cần về quê trong thời gian dài'
+        ELSE NULL 
+    END,
+    NOW() - ((60 - (s.i % 55)) || ' days')::interval
+FROM s
+JOIN "Services" svc ON svc."Id" = s.svc_id
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 11. ENROLLMENTS (400 Enrollments for the 400 Paid bookings)
+INSERT INTO "Enrollments" (
+    "Id", "BookingId", "StudentProfileId", "TutorProfileId", "ServiceId", "SubjectId",
+    "TotalPrice", "TotalSessions", "CompletedSessions", "SessionDurationMinutes", 
+    "TeachingMode", "PlatformFeeRate", "FeePolicyVersion", "Status", 
+    "CreatedAt", "CompletedAt", "CancelledAt", "CancelledBy", "CancellationReason"
+)
+SELECT
+    ('b9000000-0000-0000-0000-' || lpad(b.i::text, 12, '0'))::uuid,
+    b."Id",
+    b."StudentProfileId",
+    b."TutorProfileId",
+    b."ServiceId",
+    b."SubjectId",
+    b."TotalPrice",
+    b."TotalSessions",
+    CASE 
+        WHEN b.i <= 220 THEN (b.i % (b."TotalSessions" - 1)) + 1
+        WHEN b.i <= 370 THEN b."TotalSessions"
+        ELSE 1
+    END,
+    b."SessionDurationMinutes",
+    b."TeachingMode",
+    0.1000,
+    2,
+    CASE 
+        WHEN b.i <= 220 THEN 'Active'
+        WHEN b.i <= 370 THEN 'Completed'
+        ELSE 'Cancelled'
+    END,
+    b."CreatedAt",
+    CASE WHEN b.i > 220 AND b.i <= 370 THEN NOW() - '2 days'::interval ELSE NULL END,
+    CASE WHEN b.i > 370 THEN NOW() - '5 days'::interval ELSE NULL END,
+    CASE WHEN b.i > 370 THEN 'Student' ELSE NULL END,
+    CASE 
+        WHEN b.i > 370 AND (b.i % 8) = 0 THEN 'Học viên vướng lịch học phụ đạo tăng cường tại trường vào các buổi tối trong tuần'
+        WHEN b.i > 370 AND (b.i % 8) = 1 THEN 'Gia đình có kế hoạch chuyển nơi cư trú và trường học sang địa bàn quận khác'
+        WHEN b.i > 370 AND (b.i % 8) = 2 THEN 'Học viên được cử tham gia đội tuyển thi học sinh giỏi nên thay đổi thời gian biểu'
+        WHEN b.i > 370 AND (b.i % 8) = 3 THEN 'Học viên đã đạt mục tiêu điểm số kỳ thi sớm hơn thời hạn dự kiến ban đầu'
+        WHEN b.i > 370 AND (b.i % 8) = 4 THEN 'Thay đổi định hướng khối thi đại học từ khối Tự nhiên sang khối Xã hội'
+        WHEN b.i > 370 AND (b.i % 8) = 5 THEN 'Trùng lịch học thêm ngoại khóa và lịch thi chứng chỉ tiếng Anh quốc tế'
+        WHEN b.i > 370 AND (b.i % 8) = 6 THEN 'Học viên cần tạm hoãn lịch học để điều trị sức khỏe theo chỉ định bác sĩ'
+        WHEN b.i > 370 AND (b.i % 8) = 7 THEN 'Gia đình có việc gia đình đột xuất cần về quê trong thời gian dài'
+        ELSE NULL 
+    END
+FROM (
+    SELECT 
+        ROW_NUMBER() OVER (ORDER BY "Id") AS i,
+        "Id", "StudentProfileId", "TutorProfileId", "ServiceId", "SubjectId",
+        "TotalPrice", "TotalSessions", "SessionDurationMinutes", "TeachingMode", "CreatedAt"
+    FROM "Bookings"
+    WHERE "Status" = 'Paid' AND "Id"::text LIKE 'b8000000-%'
+) b
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 12. SESSIONS (sum(EarningAmount) == TotalPrice 100% Guaranteed per Enrollment)
+WITH enrolled_sessions AS (
+    SELECT 
+        e."Id" AS enrollment_id,
+        e."TotalSessions" AS total_sessions,
+        e."CompletedSessions" AS completed_sessions,
+        e."Status" AS enrollment_status,
+        e."TotalPrice" AS total_price,
+        e."CreatedAt" AS enrollment_created_at,
+        s_num,
+        CASE 
+            WHEN s_num < e."TotalSessions" THEN floor(e."TotalPrice" / e."TotalSessions")
+            ELSE e."TotalPrice" - (floor(e."TotalPrice" / e."TotalSessions") * (e."TotalSessions" - 1))
+        END AS earning_amount,
+        ('ba' || lpad(substr(replace(e."Id"::text, '-', ''), 27, 6), 6, '0') || '-' || lpad(s_num::text, 4, '0') || '-0000-0000-000000000000')::uuid AS session_id
+    FROM "Enrollments" e
+    CROSS JOIN LATERAL generate_series(1, e."TotalSessions") AS s_num
+    WHERE e."Id"::text LIKE 'b9000000-%'
+)
+INSERT INTO "Sessions" (
+    "Id", "EnrollmentId", "SessionNumber", "EarningAmount", 
+    "StartAt", "EndAt", "Status", "HasAttendanceConflict", "IsPayoutReleased",
+    "StudentAttendance", "StudentAttendanceSubmittedAt",
+    "TutorAttendance", "TutorAttendanceSubmittedAt",
+    "AttendanceVerificationOpenedAt", "AttendanceVerificationDueAt", "AttendanceVerifiedAt",
+    "CreatedAt", "CompletedAt", "CancelledAt"
+)
+SELECT
+    es.session_id,
+    es.enrollment_id,
+    es.s_num,
+    es.earning_amount,
+    CASE 
+        WHEN es.s_num <= es.completed_sessions THEN es.enrollment_created_at + ((es.s_num * 3) || ' days')::interval + '18 hours'::interval
+        WHEN es.s_num = es.completed_sessions + 1 THEN NOW() + '2 days'::interval
+        ELSE NULL
+    END AS start_at,
+    CASE 
+        WHEN es.s_num <= es.completed_sessions THEN es.enrollment_created_at + ((es.s_num * 3) || ' days')::interval + '19 hours 30 minutes'::interval
+        WHEN es.s_num = es.completed_sessions + 1 THEN NOW() + '2 days 1 hour 30 minutes'::interval
+        ELSE NULL
+    END AS end_at,
+    CASE 
+        WHEN es.s_num <= es.completed_sessions THEN 'Completed'
+        WHEN es.s_num = es.completed_sessions + 1 AND es.enrollment_status != 'Cancelled' THEN 'Scheduled'
+        ELSE 'Unscheduled'
+    END AS status,
+    CASE WHEN (es.s_num = 2 AND es.enrollment_id::text LIKE '%000000000010') THEN true ELSE false END,
+    CASE WHEN es.s_num <= es.completed_sessions THEN true ELSE false END,
+    CASE WHEN es.s_num <= es.completed_sessions THEN 0 ELSE NULL END,
+    CASE WHEN es.s_num <= es.completed_sessions THEN es.enrollment_created_at + ((es.s_num * 3) || ' days')::interval + '20 hours'::interval ELSE NULL END,
+    CASE 
+        WHEN es.s_num <= es.completed_sessions THEN 
+            CASE WHEN (es.s_num = 2 AND es.enrollment_id::text LIKE '%000000000010') THEN 1 ELSE 0 END
+        ELSE NULL 
+    END,
+    CASE WHEN es.s_num <= es.completed_sessions THEN es.enrollment_created_at + ((es.s_num * 3) || ' days')::interval + '20 hours 10 minutes'::interval ELSE NULL END,
+    CASE WHEN es.s_num <= es.completed_sessions THEN es.enrollment_created_at + ((es.s_num * 3) || ' days')::interval + '19 hours 30 minutes'::interval ELSE NULL END,
+    CASE WHEN es.s_num <= es.completed_sessions THEN es.enrollment_created_at + ((es.s_num * 3 + 1) || ' days')::interval + '19 hours 30 minutes'::interval ELSE NULL END,
+    CASE WHEN es.s_num <= es.completed_sessions THEN es.enrollment_created_at + ((es.s_num * 3) || ' days')::interval + '20 hours 15 minutes'::interval ELSE NULL END,
+    es.enrollment_created_at,
+    CASE WHEN es.s_num <= es.completed_sessions THEN es.enrollment_created_at + ((es.s_num * 3) || ' days')::interval + '20 hours 15 minutes'::interval ELSE NULL END,
+    NULL
+FROM enrolled_sessions es
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 13. TRANSACTIONS (BookingPayments & SessionPayoutCredits)
+INSERT INTO "Transactions" (
+    "Id", "BookingId", "SessionId", "DisputeId", "RelatedTransactionId", 
+    "Amount", "Type", "Status", "CommissionRate", "CommissionAmount", 
+    "PayoutAmount", "PaymentGatewayRef", "Description", "SettlementRequired", 
+    "CreatedAt", "ReleasedAt", "RefundedAt"
+)
+SELECT
+    ('bb000000-0000-0000-0000-' || substr(replace(b."Id"::text, '-', ''), 21, 12))::uuid,
+    b."Id",
+    NULL,
+    NULL,
+    NULL,
+    b."TotalPrice",
+    'BookingPayment',
+    'Held',
+    0.1000,
+    0.00,
+    0.00,
+    'VNPay-Vol-' || substr(replace(b."Id"::text, '-', ''), 21, 12),
+    'Thanh toán gói học qua cổng VNPay',
+    false,
+    b."CreatedAt",
+    NULL,
+    NULL
+FROM "Bookings" b
+WHERE b."Id"::text LIKE 'b8000000-%' AND b."Status" = 'Paid'
+ON CONFLICT ("Id") DO NOTHING;
+
+-- SessionPayoutCredit
+INSERT INTO "Transactions" (
+    "Id", "BookingId", "SessionId", "DisputeId", "RelatedTransactionId", 
+    "Amount", "Type", "Status", "CommissionRate", "CommissionAmount", 
+    "PayoutAmount", "PaymentGatewayRef", "Description", "SettlementRequired", 
+    "CreatedAt", "ReleasedAt", "RefundedAt"
+)
+SELECT
+    ('bc' || substr(replace(s."Id"::text, '-', ''), 3, 6) || '-' || lpad(s."SessionNumber"::text, 4, '0') || '-0000-0000-000000000000')::uuid,
+    e."BookingId",
+    s."Id",
+    NULL,
+    NULL,
+    s."EarningAmount",
+    'SessionPayoutCredit',
+    'Released',
+    e."PlatformFeeRate",
+    round(s."EarningAmount" * e."PlatformFeeRate", 2),
+    s."EarningAmount" - round(s."EarningAmount" * e."PlatformFeeRate", 2),
+    'EscrowRelease-Vol-' || replace(s."Id"::text, '-', ''),
+    'Giải ngân thu nhập buổi học #' || s."SessionNumber",
+    false,
+    s."CompletedAt",
+    s."CompletedAt",
+    NULL
+FROM "Sessions" s
+JOIN "Enrollments" e ON e."Id" = s."EnrollmentId"
+WHERE s."Id"::text LIKE 'ba%' AND s."Status" = 'Completed' AND s."IsPayoutReleased" = true
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 14. WALLET TRANSACTIONS
+INSERT INTO "WalletTransactions" (
+    "Id", "WalletId", "Type", "Amount", "BalanceAfter", "Description", "CreatedAt"
+)
+SELECT
+    ('c0' || substr(replace(t."Id"::text, '-', ''), 3, 14) || '-0000-000000000000')::uuid,
+    w."Id",
+    'SessionPayoutCredit',
+    t."PayoutAmount",
+    t."PayoutAmount",
+    'Cộng thu nhập buổi học #' || s."SessionNumber",
+    t."CreatedAt"
+FROM "Transactions" t
+JOIN "Sessions" s ON s."Id" = t."SessionId"
+JOIN "Enrollments" e ON e."Id" = s."EnrollmentId"
+JOIN "Wallets" w ON w."TutorProfileId" = e."TutorProfileId"
+WHERE t."Type" = 'SessionPayoutCredit' AND t."Id"::text LIKE 'bc%'
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 15. WITHDRAWALS
+WITH tutor_wallets AS (
+    SELECT 
+        ROW_NUMBER() OVER (ORDER BY w."Id") AS row_num,
+        w."Id" AS wallet_id,
+        tp."BankName",
+        tp."BankCode",
+        tp."AccountNumber",
+        tp."AccountHolderName"
+    FROM "Wallets" w
+    JOIN "TutorProfiles" tp ON tp."Id" = w."TutorProfileId"
+    WHERE w."Id"::text LIKE 'b3000000-%'
+)
+INSERT INTO "Withdrawals" (
+    "Id", "WalletId", "Amount", "Status", "BankName", "BankCode", 
+    "AccountNumber", "AccountHolderName", "Note", "RequestedAt", 
+    "ProcessingStartedAt", "ProcessingStartedByAdminId", "ProcessedAt", 
+    "ProcessedByAdminId", "FailureReason"
+)
+SELECT
+    ('c2000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
+    tw.wallet_id,
+    (600000 + ((i % 8) * 150000))::numeric,
+    CASE (i % 4)
+        WHEN 0 THEN 'Completed'
+        WHEN 1 THEN 'Processing'
+        WHEN 2 THEN 'Pending'
+        ELSE 'Failed'
+    END,
+    tw."BankName",
+    tw."BankCode",
+    tw."AccountNumber",
+    tw."AccountHolderName",
+    CASE (i % 4)
+        WHEN 0 THEN 'Rút thù lao giảng dạy các buổi học hoàn thành đợt ' || i
+        WHEN 1 THEN 'Rút thu nhập giảng dạy tuần vừa qua đợt ' || i
+        WHEN 2 THEN 'Yêu cầu rút số dư ví khả dụng đợt ' || i
+        ELSE 'Rút thu nhập trang trải chi phí giáo trình đợt ' || i
+    END,
+    NOW() - ((25 - (i % 20)) || ' days')::interval,
+    CASE WHEN (i % 4) IN (0, 1) THEN NOW() - ((24 - (i % 20)) || ' days')::interval ELSE NULL END,
+    CASE WHEN (i % 4) IN (0, 1) THEN '11111111-1111-1111-1111-111111111111'::uuid ELSE NULL END,
+    CASE WHEN (i % 4) = 0 THEN NOW() - ((23 - (i % 20)) || ' days')::interval ELSE NULL END,
+    CASE WHEN (i % 4) = 0 THEN '11111111-1111-1111-1111-111111111111'::uuid ELSE NULL END,
+    CASE 
+        WHEN (i % 4) = 3 AND (i % 2) = 0 THEN 'Số tài khoản ngân hàng thụ hưởng không hợp lệ'
+        WHEN (i % 4) = 3 THEN 'Tên chủ tài khoản không trùng khớp hồ sơ gia sư'
+        ELSE NULL
+    END
+FROM generate_series(1, 80) AS i
+JOIN tutor_wallets tw ON tw.row_num = ((i - 1) % 50) + 1
+ON CONFLICT ("Id") DO NOTHING;
+
+-- WalletTransactions for Completed Withdrawals
+INSERT INTO "WalletTransactions" (
+    "Id", "WalletId", "Type", "Amount", "BalanceAfter", "Description", "CreatedAt"
+)
+SELECT
+    ('c2000000-0000-0000-0001-' || substr(replace(w."Id"::text, '-', ''), 21, 12))::uuid,
+    w."WalletId",
+    'WithdrawalDebit',
+    w."Amount",
+    0.00,
+    'Rút tiền về tài khoản ngân hàng ' || w."AccountNumber",
+    w."RequestedAt"
+FROM "Withdrawals" w
+WHERE w."Id"::text LIKE 'c2000000-%' AND w."Status" = 'Completed'
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 16. DISPUTES (50 distinct realistic scenarios with admin resolutions)
+WITH candidate_sessions AS (
+    SELECT 
+        ROW_NUMBER() OVER (ORDER BY s."Id") AS row_num,
+        s."Id" AS session_id,
+        s."Status" AS session_status,
+        s."EarningAmount" AS earning_amount,
+        e."StudentProfileId",
+        e."TutorProfileId",
+        sp."UserId" AS student_user_id,
+        tp."UserId" AS tutor_user_id
+    FROM "Sessions" s
+    JOIN "Enrollments" e ON e."Id" = s."EnrollmentId"
+    JOIN "StudentProfiles" sp ON sp."Id" = e."StudentProfileId"
+    JOIN "TutorProfiles" tp ON tp."Id" = e."TutorProfileId"
+    WHERE s."Id"::text LIKE 'ba%' AND s."SessionNumber" = 1
+    LIMIT 50
+)
+INSERT INTO "Disputes" (
+    "Id", "SessionId", "InitiatorUserId", "RespondentUserId", "Reason", "Description",
+    "Status", "HeldAmount", "HoldType", "HoldStatus", "HeldAt", "AffectsFinancialResolution",
+    "AdminNotes", "ResolvedByAdminId", "ResolvedAt", "HoldReleasedAt", "CreatedAt", "OriginalTransactionId"
+)
+SELECT
+    ('be000000-0000-0000-0000-' || lpad(cs.row_num::text, 12, '0'))::uuid,
+    cs.session_id,
+    cs.student_user_id,
+    cs.tutor_user_id,
+    CASE (cs.row_num % 5)
+        WHEN 0 THEN 'TutorLate'
+        WHEN 1 THEN 'IncompleteSession'
+        WHEN 2 THEN 'QualityIssue'
+        WHEN 3 THEN 'TutorNoShow'
+        WHEN 4 THEN 'TutorLate'
+    END,
+    CASE (cs.row_num % 5)
+        WHEN 0 THEN 'Gia sư vào lớp muộn 25 phút trong buổi học mà không thông báo trước cho học viên.'
+        WHEN 1 THEN 'Buổi học bị gián đoạn do đường truyền mạng phía gia sư bị mất kết nối, thời lượng thực tế chỉ diễn ra 35 phút.'
+        WHEN 2 THEN 'Nội dung giảng dạy trong buổi học không bám sát giáo trình và mục tiêu kiến thức đã thống nhất trong gói dịch vụ.'
+        WHEN 3 THEN 'Học viên vào phòng học đúng giờ nhưng gia sư vắng mặt không lý do và không phản hồi tin nhắn trong suốt 30 phút.'
+        WHEN 4 THEN 'Gia sư kết thúc buổi học sớm 30 phút mà chưa hoàn thành đủ thời lượng buổi học theo cam kết gói dịch vụ.'
+    END,
+    CASE (cs.row_num % 4)
+        WHEN 0 THEN 'Open'
+        WHEN 1 THEN 'UnderReview'
+        WHEN 2 THEN 'Resolved'
+        ELSE 'Dismissed'
+    END,
+    CASE 
+        WHEN (cs.row_num % 4) IN (0, 1) THEN cs.earning_amount
+        ELSE 0.00
+    END,
+    CASE 
+        WHEN (cs.row_num % 4) IN (0, 1) THEN 'EscrowHold'
+        ELSE 'None'
+    END,
+    CASE 
+        WHEN (cs.row_num % 4) IN (0, 1) THEN 'Active'
+        WHEN (cs.row_num % 4) = 2 THEN 'Released'
+        ELSE 'None'
+    END,
+    CASE WHEN (cs.row_num % 4) IN (0, 1) THEN NOW() - ((20 - (cs.row_num % 15)) || ' days')::interval ELSE NULL END,
+    true,
+    CASE 
+        WHEN (cs.row_num % 4) >= 2 AND (cs.row_num % 5) = 0 THEN 'Ban quản trị đã kiểm tra lịch sử đăng nhập phòng học. Gia sư xác nhận có sự cố kỹ thuật và đã đồng ý dạy bù 45 phút cho học viên.'
+        WHEN (cs.row_num % 4) >= 2 AND (cs.row_num % 5) = 1 THEN 'Trọng tài viên kiểm tra log phòng học ghi nhận kết nối gián đoạn. Hệ thống đã xử lý hoàn lại lượt học cho học viên theo quy chế sàn.'
+        WHEN (cs.row_num % 4) >= 2 AND (cs.row_num % 5) = 2 THEN 'Đã liên hệ hai bên đối soát giáo án. Gia sư đã tiếp thu ý kiến, điều chỉnh lại giáo trình và cung cấp tài liệu bổ sung miễn phí.'
+        WHEN (cs.row_num % 4) >= 2 AND (cs.row_num % 5) = 3 THEN 'Hệ thống xác nhận gia sư vắng mặt không phép. Đã giải phóng tiền bảo chứng buổi học hoàn trả về ví học viên và ghi nhận 1 lần vi phạm.'
+        WHEN (cs.row_num % 4) >= 2 AND (cs.row_num % 5) = 4 THEN 'Ban quản trị đã đối chiếu thời lượng phòng học và yêu cầu gia sư sắp xếp buổi học bổ sung 30 phút cho học viên trong tuần.'
+        ELSE NULL 
+    END,
+    CASE WHEN (cs.row_num % 4) >= 2 THEN '11111111-1111-1111-1111-111111111111'::uuid ELSE NULL END,
+    CASE WHEN (cs.row_num % 4) >= 2 THEN NOW() - '1 day'::interval ELSE NULL END,
+    CASE WHEN (cs.row_num % 4) = 2 THEN NOW() - '1 day'::interval ELSE NULL END,
+    NOW() - ((20 - (cs.row_num % 15)) || ' days')::interval,
+    NULL
+FROM candidate_sessions cs
+ON CONFLICT ("Id") DO NOTHING;
+
+-- DisputeEvidences
+INSERT INTO "DisputeEvidences" (
+    "Id", "DisputeId", "UploadedByUserId", "FileName", "FileUrl", 
+    "ContentType", "FileSizeBytes", "CreatedAt"
+)
+SELECT
+    ('bf000000-0000-0000-0000-' || lpad(d.row_num::text, 12, '0'))::uuid,
+    d."Id",
+    d."InitiatorUserId",
+    'screenshot-evidence-' || d.row_num || '.png',
+    'https://tutorhub-media.r2.cloudflarestorage.com/evidence/vol-' || d.row_num || '.png',
+    'image/png',
+    428500 + (d.row_num * 1024),
+    d."CreatedAt" + '15 minutes'::interval
+FROM (
+    SELECT ROW_NUMBER() OVER (ORDER BY "Id") AS row_num, "Id", "InitiatorUserId", "CreatedAt"
+    FROM "Disputes"
+    WHERE "Id"::text LIKE 'be000000-%'
+) d
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 17. REVIEWS (150 Realistic Reviews with personalized tutor replies)
+WITH completed_enrollments AS (
+    SELECT 
+        ROW_NUMBER() OVER (ORDER BY "Id") AS row_num,
+        "Id" AS enrollment_id,
+        "CreatedAt" AS created_at
+    FROM "Enrollments"
+    WHERE "Id"::text LIKE 'b9000000-%' AND "Status" = 'Completed'
+    LIMIT 150
+)
+INSERT INTO "Reviews" (
+    "Id", "EnrollmentId", "Rating", "Comment", "TutorReply", "TutorRepliedAt", "CreatedAt", 
+    "IsRemoved", "RemovedAt", "RemovedByAdminId", "RemovalReason"
+)
+SELECT
+    ('c1000000-0000-0000-0000-' || lpad(ce.row_num::text, 12, '0'))::uuid,
+    ce.enrollment_id,
+    CASE (ce.row_num % 15)
+        WHEN 0 THEN 5
+        WHEN 1 THEN 5
+        WHEN 2 THEN 5
+        WHEN 3 THEN 4
+        WHEN 4 THEN 5
+        WHEN 5 THEN 5
+        WHEN 6 THEN 5
+        WHEN 7 THEN 4
+        WHEN 8 THEN 5
+        WHEN 9 THEN 5
+        WHEN 10 THEN 5
+        WHEN 11 THEN 4
+        WHEN 12 THEN 5
+        WHEN 13 THEN 5
+        WHEN 14 THEN 5
+    END,
+    CASE (ce.row_num % 15)
+        WHEN 0 THEN 'Thầy giảng dạy cực kỳ có tâm, kiên nhẫn sửa từng bước giải chi tiết. Điểm kiểm tra học kỳ vừa rồi con tôi tăng từ 6.0 lên 8.8!'
+        WHEN 1 THEN 'Cô dạy phát âm rất chuẩn, chỉnh từng âm đuôi và ngữ điệu câu. Sau khóa học em đã tự tin thuyết trình trước các sếp nước ngoài.'
+        WHEN 2 THEN 'Phương pháp tư duy bản chất rất hay, không dạy vẹt công thức. Thầy chia sẻ nhiều mẹo giải trắc nghiệm rất nhanh và chuẩn xác.'
+        WHEN 3 THEN 'Gia sư đúng giờ, giáo án chuẩn bị kỹ lưỡng. Đôi khi mạng hơi lag một chút nhưng thầy luôn bù giờ đầy đủ cho học viên.'
+        WHEN 4 THEN 'Khóa học rất chất lượng! Nhờ thầy hướng dẫn kỹ năng viết Task 2 mà em đạt Target 7.0 IELTS Writing ngay lần thi đầu.'
+        WHEN 5 THEN 'Con gái tôi trước đây rất sợ học môn này, sau 10 buổi học với cô cháu đã tự giác ngồi vào bàn học và tiến bộ rõ rệt.'
+        WHEN 6 THEN 'Thầy giải thích cặn kẽ từng dòng code, hướng dẫn Clean Architecture rất thực tế giống dự án doanh nghiệp đang làm.'
+        WHEN 7 THEN 'Bài giảng trực quan, dễ áp dụng vào thực tế. Mong thầy chia sẻ thêm tài liệu nâng cao để em tự rèn luyện thêm.'
+        WHEN 8 THEN 'Học với thầy không khí rất thoải mái, dễ tiếp thu. Thầy hỗ trợ giải đáp thắc mắc bài tập rất nhanh kể cả ngoài giờ học.'
+        WHEN 9 THEN 'Khóa học vượt ngoài mong đợi của mình. Giáo viên có chuyên môn sâu, phong thái sư phạm rất chuyên nghiệp và chuẩn mực.'
+        WHEN 10 THEN 'Sau khóa học con tự tin hơn hẳn khi nói chuyện và tranh biện bằng tiếng Anh. Gia đình rất an tâm khi gửi gắm con cho thầy.'
+        WHEN 11 THEN 'Thầy dạy nhiệt tình, bài tập vừa sức. Em đã nắm vững các dạng bài phân loại điểm 8+ trong đề thi.'
+        WHEN 12 THEN 'Cô giáo tận tâm, chữa bài viết rất chi tiết từng lỗi dùng từ và ngữ pháp. Em đã cải thiện kỹ năng hành văn đáng kể.'
+        WHEN 13 THEN 'Kiến thức bài bản, hệ thống rõ ràng bằng sơ đồ tư duy giúp nhớ lâu. Rất khuyến khích các bạn tham gia khóa học này!'
+        WHEN 14 THEN 'Thầy chỉ dẫn tận tình từ con số 0, giờ mình đã tự tin lập trình và tự tay dựng được các ứng dụng API hoàn chỉnh.'
+    END,
+    CASE (ce.row_num % 15)
+        WHEN 0 THEN 'Cảm ơn phụ huynh đã tin tưởng. Bé tiếp thu rất nhanh và làm bài tập về nhà rất đầy đủ ạ.'
+        WHEN 1 THEN 'Chúc mừng em nhé! Em hãy tiếp tục duy trì thói quen luyện nói Shadowing hàng ngày nhé.'
+        WHEN 2 THEN 'Cảm ơn em đã chăm chỉ theo sát lộ trình. Nhớ ôn lại bộ công thức trước kỳ thi nhé!'
+        WHEN 3 THEN 'Thầy đã nâng cấp đường truyền mạng rồi em nhé. Cảm ơn em đã góp ý chân thành.'
+        WHEN 4 THEN 'Thầy rất tự hào về kết quả của em. Chúc em du học thành công và thuận lợi!'
+        WHEN 5 THEN 'Bé rất ngoan và có tư duy sáng tạo ạ. Chúc bé luôn giữ vững tinh thần say mê học hỏi!'
+        WHEN 6 THEN 'Kiến thức thực tế rất quan trọng, chúc em sớm nhận được offer công việc mong ước nhé.'
+        WHEN 7 THEN 'Thầy đã cập nhật thêm kho bài tập nâng cao lên thư mục chung cho em rồi nhé.'
+        WHEN 8 THEN 'Rất vui được đồng hành cùng em. Chúc em đạt kết quả cao trong kỳ thi sắp tới!'
+        WHEN 9 THEN 'Cảm ơn bạn đã đồng hành và luôn có tinh thần học hỏi rất nghiêm túc.'
+        WHEN 10 THEN 'Dạ em cảm ơn gia đình. Bạn nhỏ có tố chất ngôn ngữ rất tốt và phản xạ rất nhạy bén ạ.'
+        WHEN 11 THEN 'Em nhớ luyện thêm phần tốc độ làm bài để tối ưu hóa thời gian làm bài thi nhé.'
+        WHEN 12 THEN 'Cố gắng giữ vững phong độ hành văn mạch lạc và giàu cảm xúc này nhé em.'
+        WHEN 13 THEN 'Cảm ơn em nhiều. Sơ đồ tư duy sẽ giúp em tổng hợp kiến thức ôn tập rất hiệu quả.'
+        WHEN 14 THEN 'Chúc mừng em đã vượt qua giai đoạn khó khăn ban đầu. Hãy tiếp tục phát huy nhé!'
+    END,
+    ce.created_at + '21 days'::interval,
+    ce.created_at + '20 days'::interval,
+    false, NULL, NULL, NULL
+FROM completed_enrollments ce
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 18. CONVERSATIONS & MESSAGES (100 Conversations, 200 Natural Dialogues)
+WITH conv_pairs AS (
+    SELECT 
+        i,
+        ('b6000000-0000-0000-0000-' || lpad((((i - 1) % 200) + 1)::text, 12, '0'))::uuid AS stu_id,
+        ('b2000000-0000-0000-0000-' || lpad((((i - 1) % 50) + 1)::text, 12, '0'))::uuid AS tut_id
+    FROM generate_series(1, 100) AS i
+)
+INSERT INTO "Conversations" (
+    "Id", "StudentProfileId", "TutorProfileId", "CreatedAt", 
+    "LastMessageId", "LastMessageAt", "LastMessagePreview"
+)
+SELECT
+    ('c4000000-0000-0000-0000-' || lpad(cp.i::text, 12, '0'))::uuid,
+    cp.stu_id,
+    cp.tut_id,
+    NOW() - ((40 - (cp.i % 30)) || ' days')::interval,
+    NULL,
+    NOW() - ((10 - (cp.i % 9)) || ' days')::interval,
+    CASE (cp.i % 8)
+        WHEN 0 THEN 'Chào em, thầy vừa tải tài liệu và bộ bài tập tự luyện lên mục tài liệu phòng học rồi nhé, em tải về xem trước trang 3-5 nha.'
+        WHEN 1 THEN 'Chào em, ở bước biến đổi thứ 2 em quên đổi dấu khi chia cho số âm rồi nhé. Tối nay vào lớp cô sẽ giải thích kỹ dạng bẫy này.'
+        WHEN 2 THEN 'Được em nhé! Thầy đã cập nhật lại lịch học sang 20:00 tối thứ 4 rồi, em nhớ ăn tối sớm và vào lớp đúng giờ nha.'
+        WHEN 3 THEN 'Cô đã nhận được bài của em rồi. Lập luận của em khá chặt chẽ, cô đã ghi chú vài gợi ý nâng cấp từ vựng trong file đính kèm nhé.'
+        WHEN 4 THEN 'Em kiểm tra lại xem đã đăng ký AddMediatR trong Program.cs chưa nhé. Chiều nay vào học thầy sẽ hướng dẫn debug trực tiếp.'
+        WHEN 5 THEN 'Chào em, có em nhé! Chủ nhật tuần này hệ thống sẽ mở phòng thi thử online lúc 8h sáng, em nhớ đăng ký trước thứ 6 nha.'
+        WHEN 6 THEN 'Thầy đã gửi thêm cho em file PDF gồm 30 câu trắc nghiệm chuyên đề Oxyz có giải chi tiết rồi nhé, em làm xong gửi thầy check.'
+        WHEN 7 THEN 'Chào em, link phòng học đã được đính kèm cố định trên trang Lịch học của em rồi nhé, 19h30 mình bắt đầu em nha.'
+    END
+FROM conv_pairs cp
+ON CONFLICT ("Id") DO NOTHING;
+
+-- Student message 1
+INSERT INTO "Messages" (
+    "Id", "ConversationId", "SenderUserId", "Content", "IsRead", "ReadAt", "CreatedAt"
+)
+SELECT
+    ('c5000000-0000-0000-0001-' || lpad(i::text, 12, '0'))::uuid,
+    ('c4000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
+    sp."UserId",
+    CASE (i % 8)
+        WHEN 0 THEN 'Em chào thầy ạ, thầy cho em xin tài liệu và bài tập ôn tập cho buổi học tới để em in ra chuẩn bị trước nhé.'
+        WHEN 1 THEN 'Dạ cô ơi, câu 12 trong đề thi thử hôm qua em tính ra đáp án C nhưng lời giải lại là B, cô xem giúp em cách giải với ạ.'
+        WHEN 2 THEN 'Thầy ơi, buổi học tối thứ 4 tuần này cho em xin phép chuyển sang 20h được không ạ? Em bị trùng lịch học ngoại khóa ở trường.'
+        WHEN 3 THEN 'Em đã hoàn thành bài viết Task 2 và gửi qua hệ thống rồi cô nhé. Cô xem giúp em cấu trúc các luận điểm đã logic chưa ạ.'
+        WHEN 4 THEN 'Dạ thầy ơi, phần code triển khai Mediator pattern của em đang bị lỗi DI container, thầy xem qua giúp em được không ạ?'
+        WHEN 5 THEN 'Chào cô ạ, em muốn hỏi thêm về lịch thi thử đánh giá năng lực tuần tới, trung tâm mình có tổ chức thi thử không cô?'
+        WHEN 6 THEN 'Thầy ơi, em muốn xin thêm bài tập về chuyên đề hình học không gian Oxyz để luyện thêm kỹ năng tính khoảng cách ạ.'
+        WHEN 7 THEN 'Dạ em chào cô, cho em xin link phòng học trực tuyến buổi tối nay với ạ.'
+    END,
+    true,
+    c."CreatedAt" + '10 minutes'::interval,
+    c."CreatedAt" + '5 minutes'::interval
+FROM generate_series(1, 100) AS i
+JOIN "Conversations" c ON c."Id" = ('c4000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid
+JOIN "StudentProfiles" sp ON sp."Id" = c."StudentProfileId"
+ON CONFLICT ("Id") DO NOTHING;
+
+-- Tutor reply message 2
+INSERT INTO "Messages" (
+    "Id", "ConversationId", "SenderUserId", "Content", "IsRead", "ReadAt", "CreatedAt"
+)
+SELECT
+    ('c5000000-0000-0000-0002-' || lpad(i::text, 12, '0'))::uuid,
+    ('c4000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
+    tp."UserId",
+    CASE (i % 8)
+        WHEN 0 THEN 'Chào em, thầy vừa tải tài liệu và bộ bài tập tự luyện lên mục tài liệu phòng học rồi nhé, em tải về xem trước trang 3-5 nha.'
+        WHEN 1 THEN 'Chào em, ở bước biến đổi thứ 2 em quên đổi dấu khi chia cho số âm rồi nhé. Tối nay vào lớp cô sẽ giải thích kỹ dạng bẫy này.'
+        WHEN 2 THEN 'Được em nhé! Thầy đã cập nhật lại lịch học sang 20:00 tối thứ 4 rồi, em nhớ ăn tối sớm và vào lớp đúng giờ nha.'
+        WHEN 3 THEN 'Cô đã nhận được bài của em rồi. Lập luận của em khá chặt chẽ, cô đã ghi chú vài gợi ý nâng cấp từ vựng trong file đính kèm nhé.'
+        WHEN 4 THEN 'Em kiểm tra lại xem đã đăng ký AddMediatR trong Program.cs chưa nhé. Chiều nay vào học thầy sẽ hướng dẫn debug trực tiếp.'
+        WHEN 5 THEN 'Chào em, có em nhé! Chủ nhật tuần này hệ thống sẽ mở phòng thi thử online lúc 8h sáng, em nhớ đăng ký trước thứ 6 nha.'
+        WHEN 6 THEN 'Thầy đã gửi thêm cho em file PDF gồm 30 câu trắc nghiệm chuyên đề Oxyz có giải chi tiết rồi nhé, em làm xong gửi thầy check.'
+        WHEN 7 THEN 'Chào em, link phòng học đã được đính kèm cố định trên trang Lịch học của em rồi nhé, 19h30 mình bắt đầu em nha.'
+    END,
+    true,
+    c."CreatedAt" + '1 hour'::interval,
+    c."CreatedAt" + '30 minutes'::interval
+FROM generate_series(1, 100) AS i
+JOIN "Conversations" c ON c."Id" = ('c4000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid
+JOIN "TutorProfiles" tp ON tp."Id" = c."TutorProfileId"
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 19. LEARNING RECORDS (150 Subject-Tailored, Unique Lesson Summaries)
+WITH comp_sessions AS (
+    SELECT 
+        ROW_NUMBER() OVER (ORDER BY s."Id") AS row_num,
+        s."Id" AS session_id,
+        s."SessionNumber",
+        e."TutorProfileId",
+        e."SubjectId",
+        s."CompletedAt"
+    FROM "Sessions" s
+    JOIN "Enrollments" e ON e."Id" = s."EnrollmentId"
+    WHERE s."Id"::text LIKE 'ba%' AND s."Status" = 'Completed'
+    LIMIT 150
+)
+INSERT INTO "LearningRecords" ("Id", "SessionId", "TutorProfileId", "Content", "CreatedAt")
+SELECT
+    ('c6000000-0000-0000-0000-' || lpad(cs.row_num::text, 12, '0'))::uuid,
+    cs.session_id,
+    cs."TutorProfileId",
+    CASE cs."SubjectId"
+        WHEN 'aaaaaaaa-0001-0000-0000-000000000001' THEN 
+            CASE ((cs."SessionNumber" - 1) % 6)
+                WHEN 0 THEN 'Buổi 1: Khảo sát sự biến thiên và vẽ đồ thị hàm số bậc 3, hàm phân thức. Học viên nắm chắc điều kiện có cực trị. Bài tập về nhà: Hoàn thành phiếu bài tập số 1 và nộp trước buổi tới.'
+                WHEN 1 THEN 'Buổi 2: Phương pháp giải bài toán tương giao đồ thị và tìm tham số m để hàm số đơn điệu trên khoảng. Bài tập về nhà: Hoàn thành phiếu bài tập số 2 và nộp trước buổi tới.'
+                WHEN 2 THEN 'Buổi 3: Hình học không gian Oxyz: Phương trình mặt phẳng và mặt cầu. Rèn kỹ năng tính góc và khoảng cách. Bài tập về nhà: Hoàn thành phiếu bài tập số 3 và nộp trước buổi tới.'
+                WHEN 3 THEN 'Buổi 4: Ứng dụng nguyên hàm và tích phân tính diện tích hình phẳng. Luyện phương pháp đổi biến số và từng phần. Bài tập về nhà: Hoàn thành phiếu bài tập số 4 và nộp trước buổi tới.'
+                WHEN 4 THEN 'Buổi 5: Số phức: Các phép toán căn bản, tìm tập hợp điểm biểu diễn số phức và bài toán cực trị môđun số phức. Bài tập về nhà: Hoàn thành phiếu bài tập số 5 và nộp trước buổi tới.'
+                WHEN 5 THEN 'Buổi 6: Hình học không gian cổ điển: Thể tích khối chóp, khối lăng trụ và khoảng cách giữa hai đường thẳng chéo nhau. Bài tập về nhà: Hoàn thành phiếu bài tập số 6 và nộp trước buổi tới.'
+            END
+        WHEN 'aaaaaaaa-0001-0000-0000-000000000002' THEN 
+            CASE ((cs."SessionNumber" - 1) % 6)
+                WHEN 0 THEN 'Buổi 1: Rút gọn biểu thức chứa căn bậc hai và các bài toán phụ liên quan đến giá trị nguyên của biểu thức. Bài tập về nhà: Hoàn thành phiếu bài tập số 1 và nộp trước buổi tới.'
+                WHEN 1 THEN 'Buổi 2: Giải hệ phương trình bậc nhất hai ẩn và ứng dụng giải bài toán bằng cách lập hệ phương trình thực tế. Bài tập về nhà: Hoàn thành phiếu bài tập số 2 và nộp trước buổi tới.'
+                WHEN 2 THEN 'Buổi 3: Hệ thức Vi-ét và ứng dụng tìm hai số biết tổng và tích, định lý đảo và bài toán tham số m. Bài tập về nhà: Hoàn thành phiếu bài tập số 3 và nộp trước buổi tới.'
+                WHEN 3 THEN 'Buổi 4: Hình học đường tròn: Chứng minh tứ giác nội tiếp và các tính chất tiếp tuyến, dây cung. Bài tập về nhà: Hoàn thành phiếu bài tập số 4 và nộp trước buổi tới.'
+                WHEN 4 THEN 'Buổi 5: Bất đẳng thức Cauchy (AM-GM) và kỹ thuật chọn điểm rơi tìm giá trị lớn nhất, nhỏ nhất. Bài tập về nhà: Hoàn thành phiếu bài tập số 5 và nộp trước buổi tới.'
+                WHEN 5 THEN 'Buổi 6: Phương trình quy về phương trình bậc hai: Phương trình trùng phương và phương trình đặt ẩn phụ. Bài tập về nhà: Hoàn thành phiếu bài tập số 6 và nộp trước buổi tới.'
+            END
+        WHEN 'aaaaaaaa-0001-0000-0000-000000000004' THEN 
+            CASE ((cs."SessionNumber" - 1) % 6)
+                WHEN 0 THEN 'Buổi 1: IELTS Writing Task 1: Phân tích biểu đồ đường (Line graph) và kỹ năng nhóm số liệu viết Overview ấn tượng. Bài tập về nhà: Hoàn thành phiếu bài tập số 1 và nộp trước buổi tới.'
+                WHEN 1 THEN 'Buổi 2: IELTS Speaking Part 2: Chiến lược kể chuyện theo cấu trúc thời gian, mở rộng từ vựng chủ đề Describe an Experience. Bài tập về nhà: Hoàn thành phiếu bài tập số 2 và nộp trước buổi tới.'
+                WHEN 2 THEN 'Buổi 3: IELTS Writing Task 2: Cấu trúc bài luận Agree/Disagree, phát triển luận điểm mạch lạc và dùng Cohesive Devices. Bài tập về nhà: Hoàn thành phiếu bài tập số 3 và nộp trước buổi tới.'
+                WHEN 3 THEN 'Buổi 4: IELTS Listening: Chiến thuật phân biệt bẫy Paraphrase trong Section 3 & 4 và kỹ năng bắt từ khóa dự đoán đáp án. Bài tập về nhà: Hoàn thành phiếu bài tập số 4 và nộp trước buổi tới.'
+                WHEN 4 THEN 'Buổi 5: IELTS Reading: Phương pháp Skimming & Scanning, xử lý dạng bài True/False/Not Given và Headings Matching. Bài tập về nhà: Hoàn thành phiếu bài tập số 5 và nộp trước buổi tới.'
+                WHEN 5 THEN 'Buổi 6: IELTS Speaking Part 3: Rèn phản xạ tư duy phản biện (Critical Thinking) cho câu hỏi thảo luận xã hội trừu tượng. Bài tập về nhà: Hoàn thành phiếu bài tập số 6 và nộp trước buổi tới.'
+            END
+        WHEN 'aaaaaaaa-0001-0000-0000-000000000003' THEN 
+            CASE ((cs."SessionNumber" - 1) % 6)
+                WHEN 0 THEN 'Buổi 1: Chuẩn hóa 44 âm trong bảng phiên âm quốc tế IPA, kỹ thuật nối âm (Linking sounds) và trọng âm từ tự nhiên. Bài tập về nhà: Hoàn thành phiếu bài tập số 1 và nộp trước buổi tới.'
+                WHEN 1 THEN 'Buổi 2: Kỹ năng giới thiệu bản thân chuyên nghiệp, Elevator Pitch và phá vỡ sự im lặng (Ice-breaking) trong giao tiếp. Bài tập về nhà: Hoàn thành phiếu bài tập số 2 và nộp trước buổi tới.'
+                WHEN 2 THEN 'Buổi 3: Kỹ năng viết Email thương mại chuẩn Business English: Yêu cầu thông tin, xác nhận lịch hẹn và thư cảm ơn đối tác. Bài tập về nhà: Hoàn thành phiếu bài tập số 3 và nộp trước buổi tới.'
+                WHEN 3 THEN 'Buổi 4: Kỹ năng thuyết trình dự án bằng tiếng Anh: Cấu trúc bài nói, từ nối chuyển ý và tương tác thu hút người nghe. Bài tập về nhà: Hoàn thành phiếu bài tập số 4 và nộp trước buổi tới.'
+                WHEN 4 THEN 'Buổi 5: Nghệ thuật đàm phán thương mại: Kỹ thuật mặc cả lịch thiệp, nhượng bộ có điều kiện và xử lý phản bác khách hàng. Bài tập về nhà: Hoàn thành phiếu bài tập số 5 và nộp trước buổi tới.'
+                WHEN 5 THEN 'Buổi 6: Luyện phản xạ tình huống phỏng vấn xin việc tiếng Anh: Trả lời câu hỏi hành vi theo mô hình STAR thành thục. Bài tập về nhà: Hoàn thành phiếu bài tập số 6 và nộp trước buổi tới.'
+            END
+        WHEN 'aaaaaaaa-0001-0000-0000-000000000005' THEN 
+            CASE ((cs."SessionNumber" - 1) % 6)
+                WHEN 0 THEN 'Buổi 1: Ngữ pháp Minna no Nihongo: Cấu trúc câu so sánh, mẫu câu biểu thị mong muốn (~tai / ~hoshigaru). Bài tập về nhà: Hoàn thành phiếu bài tập số 1 và nộp trước buổi tới.'
+                WHEN 1 THEN 'Buổi 2: Phương pháp ghi nhớ 50 chữ Hán Kanji căn bản qua bộ thủ và câu chuyện hình tượng trực quan. Bài tập về nhà: Hoàn thành phiếu bài tập số 2 và nộp trước buổi tới.'
+                WHEN 2 THEN 'Buổi 3: Kính ngữ thương mại Keigo: Phân biệt Tôn kính ngữ (Sonkeigo) và Khiêm nhường ngữ (Kenjougo) trong văn phòng. Bài tập về nhà: Hoàn thành phiếu bài tập số 3 và nộp trước buổi tới.'
+                WHEN 3 THEN 'Buổi 4: Kỹ năng nghe hiểu Choukai: Bắt từ khóa trong hội thoại công sở và cuộc gọi điện thoại hẹn đối tác Nhật. Bài tập về nhà: Hoàn thành phiếu bài tập số 4 và nộp trước buổi tới.'
+                WHEN 4 THEN 'Buổi 5: Luyện đọc hiểu Dokkai N3: Phân tích bài văn trung văn, mẹo tìm câu chủ đề và từ khóa loại trừ đáp án nhiễu. Bài tập về nhà: Hoàn thành phiếu bài tập số 5 và nộp trước buổi tới.'
+                WHEN 5 THEN 'Buổi 6: Hội thoại tình huống thực tế: Mua sắm, hỏi đường, trao đổi danh thiếp và chào hỏi đúng phong cách văn hóa Nhật Bản. Bài tập về nhà: Hoàn thành phiếu bài tập số 6 và nộp trước buổi tới.'
+            END
+        WHEN 'aaaaaaaa-0001-0000-0000-000000000006' THEN 
+            CASE ((cs."SessionNumber" - 1) % 6)
+                WHEN 0 THEN 'Buổi 1: Dao động điều hòa: Khảo sát phương trình dao động con lắc lò xo và bài toán bảo toàn cơ năng. Bài tập về nhà: Hoàn thành phiếu bài tập số 1 và nộp trước buổi tới.'
+                WHEN 1 THEN 'Buổi 2: Sóng cơ học: Phương trình truyền sóng, hiện tượng giao thoa sóng và xác định số điểm cực đại, cực tiểu. Bài tập về nhà: Hoàn thành phiếu bài tập số 2 và nộp trước buổi tới.'
+                WHEN 2 THEN 'Buổi 3: Dòng điện xoay chiều: Mạch RLC nối tiếp, phương pháp giản đồ véc-tơ Fre-nen và điều kiện xảy ra cộng hưởng điện. Bài tập về nhà: Hoàn thành phiếu bài tập số 3 và nộp trước buổi tới.'
+                WHEN 3 THEN 'Buổi 4: Dao động và sóng điện từ: Mạch dao động LC, nguyên tắc thu phát sóng vô tuyến và năng lượng điện từ trường. Bài tập về nhà: Hoàn thành phiếu bài tập số 4 và nộp trước buổi tới.'
+                WHEN 4 THEN 'Buổi 5: Sóng ánh sáng: Hiện tượng tán sắc ánh sáng, giao thoa khe Young và bài toán xác định vị trí vân sáng, vân tối. Bài tập về nhà: Hoàn thành phiếu bài tập số 5 và nộp trước buổi tới.'
+                WHEN 5 THEN 'Buổi 6: Lượng tử ánh sáng: Hiện tượng quang điện ngoài, thuyết lượng tử ánh sáng của Planck và quang phổ vạch hydro. Bài tập về nhà: Hoàn thành phiếu bài tập số 6 và nộp trước buổi tới.'
+            END
+        WHEN 'aaaaaaaa-0001-0000-0000-000000000007' THEN 
+            CASE ((cs."SessionNumber" - 1) % 6)
+                WHEN 0 THEN 'Buổi 1: Este và Lipit: Phản ứng xà phòng hóa, kỹ thuật đồng đẳng hóa và quy đổi este đa chức trong bài toán hữu cơ. Bài tập về nhà: Hoàn thành phiếu bài tập số 1 và nộp trước buổi tới.'
+                WHEN 1 THEN 'Buổi 2: Cacbohiđrat: Cấu tạo và tính chất hóa học đặc trưng của Glucozơ, Saccarozơ, Tinh bột và Xenlulozơ. Bài tập về nhà: Hoàn thành phiếu bài tập số 2 và nộp trước buổi tới.'
+                WHEN 2 THEN 'Buổi 3: Amin, Amino axit và Protein: Phản ứng thủy phân peptit, bảo toàn khối lượng và phương pháp bảo toàn nguyên tố. Bài tập về nhà: Hoàn thành phiếu bài tập số 3 và nộp trước buổi tới.'
+                WHEN 3 THEN 'Buổi 4: Đại cương về kim loại: Dãy điện hóa kim loại, pin điện hóa và bài toán kim loại tác dụng với dung dịch muối. Bài tập về nhà: Hoàn thành phiếu bài tập số 4 và nộp trước buổi tới.'
+                WHEN 4 THEN 'Buổi 5: Kim loại kiềm, kiềm thổ và Nhôm: Bài toán CO2 sục vào dung dịch kiềm và bài toán đồ thị kết tủa Al(OH)3. Bài tập về nhà: Hoàn thành phiếu bài tập số 5 và nộp trước buổi tới.'
+                WHEN 5 THEN 'Buổi 6: Hóa vô cơ tổng hợp: Bài toán nhiệt luyện, điện phân dung dịch và phương pháp bảo toàn electron giải nhanh. Bài tập về nhà: Hoàn thành phiếu bài tập số 6 và nộp trước buổi tới.'
+            END
+        WHEN 'aaaaaaaa-0001-0000-0000-000000000008' THEN 
+            CASE ((cs."SessionNumber" - 1) % 6)
+                WHEN 0 THEN 'Buổi 1: Cơ chế di truyền và biến dị: Quá trình nhân đôi ADN, phiên mã, dịch mã và bài toán điều hòa hoạt động gen. Bài tập về nhà: Hoàn thành phiếu bài tập số 1 và nộp trước buổi tới.'
+                WHEN 1 THEN 'Buổi 2: Đột biến gen và đột biến nhiễm sắc thể: Phân loại, cơ chế phát sinh và ý nghĩa trong chọn giống, tiến hóa. Bài tập về nhà: Hoàn thành phiếu bài tập số 2 và nộp trước buổi tới.'
+                WHEN 2 THEN 'Buổi 3: Quy luật di truyền Menđen: Lai một cặp tính trạng, lai hai cặp tính trạng và điều kiện nghiệm đúng của quy luật. Bài tập về nhà: Hoàn thành phiếu bài tập số 3 và nộp trước buổi tới.'
+                WHEN 3 THEN 'Buổi 4: Liên kết gen và hoán vị gen: Bản đồ di truyền, xác định tần số hoán vị gen và bài toán xác suất thụ tinh. Bài tập về nhà: Hoàn thành phiếu bài tập số 4 và nộp trước buổi tới.'
+                WHEN 4 THEN 'Buổi 5: Di truyền học người: Phương pháp nghiên cứu phả hệ, xác định bệnh di truyền liên kết nhiễm sắc thể giới tính. Bài tập về nhà: Hoàn thành phiếu bài tập số 5 và nộp trước buổi tới.'
+                WHEN 5 THEN 'Buổi 6: Sinh thái học và môi trường: Mối quan hệ giữa các loài trong quần xã, chuỗi và lưới thức ăn, tháp sinh thái. Bài tập về nhà: Hoàn thành phiếu bài tập số 6 và nộp trước buổi tới.'
+            END
+        WHEN 'aaaaaaaa-0001-0000-0000-000000000009' THEN 
+            CASE ((cs."SessionNumber" - 1) % 6)
+                WHEN 0 THEN 'Buổi 1: Thiết kế kiến trúc Clean Architecture & CQRS: Tách biệt Domain, Application, Infrastructure và Api layers. Bài tập về nhà: Hoàn thành phiếu bài tập số 1 và nộp trước buổi tới.'
+                WHEN 1 THEN 'Buổi 2: Triển khai MediatR Pattern: Viết Command, Query, Validator pipeline behavior và Unit Test cho Handler. Bài tập về nhà: Hoàn thành phiếu bài tập số 2 và nộp trước buổi tới.'
+                WHEN 2 THEN 'Buổi 3: Entity Framework Core chuyên sâu: Fluent API, Shadow properties, Value Objects và tối ưu hóa truy vấn LINQ. Bài tập về nhà: Hoàn thành phiếu bài tập số 3 và nộp trước buổi tới.'
+                WHEN 3 THEN 'Buổi 4: Bảo mật Web API: Xác thực JWT token, Refresh token rotation, Role-based và Policy-based Authorization. Bài tập về nhà: Hoàn thành phiếu bài tập số 4 và nộp trước buổi tới.'
+                WHEN 4 THEN 'Buổi 5: Xử lý lỗi tập trung: Cấu hình Global Exception Handling Middleware và định dạng chuẩn RFC-7807 ProblemDetails. Bài tập về nhà: Hoàn thành phiếu bài tập số 5 và nộp trước buổi tới.'
+                WHEN 5 THEN 'Buổi 6: Tích hợp Docker & CI/CD: Viết Dockerfile tối ưu multi-stage build và cấu hình Healthcheck cho dịch vụ Backend. Bài tập về nhà: Hoàn thành phiếu bài tập số 6 và nộp trước buổi tới.'
+            END
+        WHEN 'aaaaaaaa-0001-0000-0000-000000000010' THEN 
+            CASE ((cs."SessionNumber" - 1) % 6)
+                WHEN 0 THEN 'Buổi 1: Lập trình Python nền tảng: Cấu trúc dữ liệu List, Tuple, Dict, Set và kỹ thuật List Comprehension tối ưu. Bài tập về nhà: Hoàn thành phiếu bài tập số 1 và nộp trước buổi tới.'
+                WHEN 1 THEN 'Buổi 2: Xử lý dữ liệu bảng với Pandas: Đọc/ghi file CSV, Excel, làm sạch dữ liệu khuyết và lọc dữ liệu đa điều kiện. Bài tập về nhà: Hoàn thành phiếu bài tập số 2 và nộp trước buổi tới.'
+                WHEN 2 THEN 'Buổi 3: Trực quan hóa dữ liệu với Matplotlib và Seaborn: Vẽ biểu đồ Histogram, Scatter plot và Heatmap tương quan. Bài tập về nhà: Hoàn thành phiếu bài tập số 3 và nộp trước buổi tới.'
+                WHEN 3 THEN 'Buổi 4: Web Scraping tự động: Sử dụng BeautifulSoup và Requests để cào dữ liệu từ trang thương mại điện tử. Bài tập về nhà: Hoàn thành phiếu bài tập số 4 và nộp trước buổi tới.'
+                WHEN 4 THEN 'Buổi 5: Cấu trúc dữ liệu và giải thuật trong Python: Triển khai Stack, Queue, Binary Search Tree và thuật toán đệ quy. Bài tập về nhà: Hoàn thành phiếu bài tập số 5 và nộp trước buổi tới.'
+                WHEN 5 THEN 'Buổi 6: Tự động hóa công việc văn phòng: Lập trình gửi email tự động, quét thư mục và tổng hợp báo cáo Excel hàng loạt. Bài tập về nhà: Hoàn thành phiếu bài tập số 6 và nộp trước buổi tới.'
+            END
+        WHEN 'aaaaaaaa-0001-0000-0000-000000000011' THEN 
+            CASE ((cs."SessionNumber" - 1) % 6)
+                WHEN 0 THEN 'Buổi 1: Kỹ năng làm bài văn nghị luận xã hội: Cấu trúc đoạn văn 200 chữ, lựa chọn dẫn chứng thời sự giàu sức thuyết phục. Bài tập về nhà: Hoàn thành phiếu bài tập số 1 và nộp trước buổi tới.'
+                WHEN 1 THEN 'Buổi 2: Phân tích tác phẩm truyện hiện đại: Nghệ thuật xây dựng tình huống truyện và vẻ đẹp nhân vật trong Vợ nhặt. Bài tập về nhà: Hoàn thành phiếu bài tập số 2 và nộp trước buổi tới.'
+                WHEN 2 THEN 'Buổi 3: Phân tích tác phẩm ký: Tùy bút Người lái đò Sông Đà của Nguyễn Tuân - Vẻ đẹp hùng vĩ và thơ mộng của dòng sông. Bài tập về nhà: Hoàn thành phiếu bài tập số 3 và nộp trước buổi tới.'
+                WHEN 3 THEN 'Buổi 4: Cảm nhận thơ hiện đại: Đoạn trích Đất Nước của Nguyễn Khoa Điềm - Tư tưởng Đất Nước của Nhân Dân. Bài tập về nhà: Hoàn thành phiếu bài tập số 4 và nộp trước buổi tới.'
+                WHEN 4 THEN 'Buổi 5: Kỹ năng đọc hiểu văn bản: Nhận diện biện pháp tu từ, phong cách ngôn ngữ và phương thức biểu đạt chính. Bài tập về nhà: Hoàn thành phiếu bài tập số 5 và nộp trước buổi tới.'
+                WHEN 5 THEN 'Buổi 6: Nghệ thuật mở bài và kết bài sáng tạo: Kỹ thuật dẫn dắt gián tiếp bằng nhận định văn học gây ấn tượng với giám khảo. Bài tập về nhà: Hoàn thành phiếu bài tập số 6 và nộp trước buổi tới.'
+            END
+        WHEN 'aaaaaaaa-0001-0000-0000-000000000012' THEN 
+            CASE ((cs."SessionNumber" - 1) % 6)
+                WHEN 0 THEN 'Buổi 1: Tư duy định lượng: Phương pháp phân tích số liệu bảng biểu, đồ thị hình cột và biểu đồ phân tán trong đề thi HSA. Bài tập về nhà: Hoàn thành phiếu bài tập số 1 và nộp trước buổi tới.'
+                WHEN 1 THEN 'Buổi 2: Tư duy định tính: Kỹ năng đọc hiểu văn bản khoa học, nhận diện lỗi logic câu và dùng từ chính xác trong tiếng Việt. Bài tập về nhà: Hoàn thành phiếu bài tập số 2 và nộp trước buổi tới.'
+                WHEN 2 THEN 'Buổi 3: Khoa học tự nhiên liên môn: Tổng hợp kiến thức trọng tâm Lý - Hóa - Sinh và mẹo bấm máy tính Casio giải nhanh. Bài tập về nhà: Hoàn thành phiếu bài tập số 3 và nộp trước buổi tới.'
+                WHEN 3 THEN 'Buổi 4: Chiến thuật phân bổ thời gian bài thi APT: Quy tắc 3 vòng làm bài và kỹ thuật loại trừ phương án gây nhiễu. Bài tập về nhà: Hoàn thành phiếu bài tập số 4 và nộp trước buổi tới.'
+                WHEN 4 THEN 'Buổi 5: Tư duy logic suy luận: Xử lý bài toán sắp xếp vị trí, suy luận chân lý và mệnh đề quan hệ logic hình thức. Bài tập về nhà: Hoàn thành phiếu bài tập số 5 và nộp trước buổi tới.'
+                WHEN 5 THEN 'Buổi 6: Luyện giải đề thi thử tổng hợp bám sát cấu trúc đề chính thức, đối soát đáp án chi tiết và khắc phục điểm yếu. Bài tập về nhà: Hoàn thành phiếu bài tập số 6 và nộp trước buổi tới.'
+            END
+        WHEN 'aaaaaaaa-0001-0000-0000-000000000013' THEN 
+            CASE ((cs."SessionNumber" - 1) % 6)
+                WHEN 0 THEN 'Buổi 1: Nguyên tắc khai cuộc chuẩn mực: Kiểm soát trung tâm, phát triển quân nhanh và an toàn vị trí Vua (Nhập thành). Bài tập về nhà: Hoàn thành phiếu bài tập số 1 và nộp trước buổi tới.'
+                WHEN 1 THEN 'Buổi 2: Chiến thuật chĩa đôi (Fork) và đòn giằng quân (Pin): Nhận diện điểm yếu của đối thủ và phối hợp quân bắt điểm. Bài tập về nhà: Hoàn thành phiếu bài tập số 2 và nộp trước buổi tới.'
+                WHEN 2 THEN 'Buổi 3: Chiến thuật đòn xiên (Skewer) và đòn tấn công mở (Discovered attack): Cách giăng bẫy bắt Hậu và Xe đối phương. Bài tập về nhà: Hoàn thành phiếu bài tập số 3 và nộp trước buổi tới.'
+                WHEN 3 THEN 'Buổi 4: Kỹ thuật tàn cuộc cơ bản: Tàn cuộc Vua - Xe chiếu hết, nguyên tắc ô vuông trong tàn cuộc Tốt và thế cờ Pat. Bài tập về nhà: Hoàn thành phiếu bài tập số 4 và nộp trước buổi tới.'
+                WHEN 4 THEN 'Buổi 5: Chiến lược trung cuộc: Xác định cấu trúc Tốt, khai thác cột mở và chiếm lĩnh các ô cờ trọng yếu (Outpost). Bài tập về nhà: Hoàn thành phiếu bài tập số 5 và nộp trước buổi tới.'
+                WHEN 5 THEN 'Buổi 6: Phân tích ván đấu danh thủ thế giới: Rút ra bài học từ các ván cờ kinh điển của Garry Kasparov và Magnus Carlsen. Bài tập về nhà: Hoàn thành phiếu bài tập số 6 và nộp trước buổi tới.'
+            END
+        WHEN 'aaaaaaaa-0001-0000-0000-000000000014' THEN 
+            CASE ((cs."SessionNumber" - 1) % 6)
+                WHEN 0 THEN 'Buổi 1: Kỹ thuật làm chủ tâm lý trước đám đông: Kỹ thuật thở bụng 4-7-8, giải phóng cơ mặt và điều tiết cao độ giọng nói. Bài tập về nhà: Hoàn thành phiếu bài tập số 1 và nộp trước buổi tới.'
+                WHEN 1 THEN 'Buổi 2: Cấu trúc bài thuyết trình Hook - Story - Call to Action: Tạo ấn tượng mở đầu trong 30 giây đầu tiên cuốn hút. Bài tập về nhà: Hoàn thành phiếu bài tập số 2 và nộp trước buổi tới.'
+                WHEN 2 THEN 'Buổi 3: Ngôn ngữ cơ thể (Body language): Giao tiếp ánh mắt (Eye contact), tư thế đứng vững vàng và cử chỉ tay tự nhiên. Bài tập về nhà: Hoàn thành phiếu bài tập số 3 và nộp trước buổi tới.'
+                WHEN 3 THEN 'Buổi 4: Thiết kế Slide thuyết trình chuyên nghiệp: Nguyên tắc tối giản, phân cấp thị giác và phối màu tạo điểm nhấn. Bài tập về nhà: Hoàn thành phiếu bài tập số 4 và nộp trước buổi tới.'
+                WHEN 4 THEN 'Buổi 5: Nghệ thuật kể chuyện (Storytelling): Xây dựng nhân vật chính, xung đột kịch tính và bài học thông điệp đắt giá. Bài tập về nhà: Hoàn thành phiếu bài tập số 5 và nộp trước buổi tới.'
+                WHEN 5 THEN 'Buổi 6: Xử lý tình huống khó và câu hỏi hóc búa từ khán giả: Phương pháp lắng nghe chủ động và kỹ thuật đảo ngược câu hỏi. Bài tập về nhà: Hoàn thành phiếu bài tập số 6 và nộp trước buổi tới.'
+            END
+        WHEN 'aaaaaaaa-0001-0000-0000-000000000015' THEN 
+            CASE ((cs."SessionNumber" - 1) % 6)
+                WHEN 0 THEN 'Buổi 1: Nguyên lý kế toán căn bản: Bản chất của phương trình kế toán Tài sản = Nợ phải trả + Vốn chủ sở hữu. Bài tập về nhà: Hoàn thành phiếu bài tập số 1 và nộp trước buổi tới.'
+                WHEN 1 THEN 'Buổi 2: Kỹ năng định khoản kế toán: Nguyên tắc ghi Nợ - Có trên các tài khoản tài sản, nguồn vốn, doanh thu và chi phí. Bài tập về nhà: Hoàn thành phiếu bài tập số 2 và nộp trước buổi tới.'
+                WHEN 2 THEN 'Buổi 3: Hạch toán kế toán mua hàng và bán hàng: Ghi nhận công nợ phải thu, phải trả và tính giá vốn hàng bán (FIFO). Bài tập về nhà: Hoàn thành phiếu bài tập số 3 và nộp trước buổi tới.'
+                WHEN 3 THEN 'Buổi 4: Kế toán tiền lương và các khoản trích theo lương: Tính BHXH, BHYT, BHTN và thuế thu nhập cá nhân (TNCN). Bài tập về nhà: Hoàn thành phiếu bài tập số 4 và nộp trước buổi tới.'
+                WHEN 4 THEN 'Buổi 5: Lập Bảng cân đối tài khoản và Báo cáo kết quả hoạt động kinh doanh theo Thông tư 200/2014/TT-BTC. Bài tập về nhà: Hoàn thành phiếu bài tập số 5 và nộp trước buổi tới.'
+                WHEN 5 THEN 'Buổi 6: Thực hành kê khai thuế trên phần mềm MISA: Lập tờ khai thuế GTGT khấu trừ và đối chiếu chứng từ hóa đơn điện tử. Bài tập về nhà: Hoàn thành phiếu bài tập số 6 và nộp trước buổi tới.'
+            END
+        ELSE 'Buổi học: Ôn tập củng cố kiến thức trọng tâm, học viên tiếp thu tốt và tích cực tương tác. Bài tập về nhà: Hoàn thiện bài tập cuối chương.'
+    END,
+    cs."CompletedAt" + '30 minutes'::interval
+FROM comp_sessions cs
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 20. NOTIFICATIONS (300 Diverse Student & Tutor Notifications)
+INSERT INTO "Notifications" (
+    "Id", "UserId", "Title", "Message", "Type", "DeepLink",
+    "IsRead", "ReadAt", "IsCritical", "EventId", "DeduplicationKey", "CreatedAt"
+)
+SELECT
+    ('c3000000-0000-0000-0001-' || lpad(i::text, 12, '0'))::uuid,
+    ('b5000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
+    CASE (i % 5)
+        WHEN 0 THEN 'Lịch học mới đã được xác nhận'
+        WHEN 1 THEN 'Gia sư vừa cập nhật sổ học tập'
+        WHEN 2 THEN 'Nhắc nhở điểm danh buổi học'
+        WHEN 3 THEN 'Tài liệu buổi học mới'
+        ELSE 'Nhắc nhở buổi học sắp diễn ra'
+    END,
+    CASE (i % 5)
+        WHEN 0 THEN 'Buổi học tiếp theo của bạn đã được lên lịch thành công vào lúc 19:30.'
+        WHEN 1 THEN 'Gia sư đã ghi nhận nội dung buổi học và giao bài tập về nhà trên hệ thống.'
+        WHEN 2 THEN 'Vui lòng xác nhận điểm danh 2 chiều trong vòng 24 giờ sau khi kết thúc buổi học.'
+        WHEN 3 THEN 'Gia sư đã tải lên tài liệu học tập mới cho buổi học sắp tới.'
+        ELSE 'Buổi học trực tuyến của bạn sẽ bắt đầu trong vòng 30 phút nữa.'
+    END,
+    CASE (i % 5)
+        WHEN 0 THEN 'SessionScheduled'
+        WHEN 1 THEN 'LearningRecordCreated'
+        WHEN 2 THEN 'AttendanceReminder'
+        WHEN 3 THEN 'MaterialUploaded'
+        ELSE 'SessionStarting'
+    END,
+    '/student/dashboard',
+    (i % 2 = 0),
+    CASE WHEN (i % 2 = 0) THEN NOW() - '1 day'::interval ELSE NULL END,
+    false,
+    ('c3e10000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
+    'student-notif-' || i,
+    NOW() - ((15 - (i % 14)) || ' days')::interval
+FROM generate_series(1, 150) AS i
+ON CONFLICT ("Id") DO NOTHING;
+
+INSERT INTO "Notifications" (
+    "Id", "UserId", "Title", "Message", "Type", "DeepLink",
+    "IsRead", "ReadAt", "IsCritical", "EventId", "DeduplicationKey", "CreatedAt"
+)
+SELECT
+    ('c3000000-0000-0000-0002-' || lpad(i::text, 12, '0'))::uuid,
+    ('b1000000-0000-0000-0000-' || lpad((((i - 1) % 50) + 1)::text, 12, '0'))::uuid,
+    CASE (i % 4)
+        WHEN 0 THEN 'Thu nhập buổi học đã được giải ngân'
+        WHEN 1 THEN 'Yêu cầu đặt gói học mới'
+        WHEN 2 THEN 'Học viên vừa gửi đánh giá mới'
+        ELSE 'Yêu cầu rút tiền đang được xử lý'
+    END,
+    CASE (i % 4)
+        WHEN 0 THEN 'Hệ thống đã giải ngân thù lao buổi học vào số dư khả dụng của bạn sau khi đối soát.'
+        WHEN 1 THEN 'Bạn có một yêu cầu đăng ký khóa học mới đang chờ duyệt thời gian biểu.'
+        WHEN 2 THEN 'Học viên đã gửi đánh giá 5 sao kèm phản hồi tích cực về khóa học của bạn.'
+        ELSE 'Yêu cầu rút tiền về tài khoản ngân hàng của bạn đã được tiếp nhận và xử lý.'
+    END,
+    CASE (i % 4)
+        WHEN 0 THEN 'SessionPayoutReleased'
+        WHEN 1 THEN 'BookingCreated'
+        WHEN 2 THEN 'ReviewSubmitted'
+        ELSE 'WithdrawalProcessing'
+    END,
+    '/tutor/wallet',
+    (i % 3 = 0),
+    CASE WHEN (i % 3 = 0) THEN NOW() - '1 day'::interval ELSE NULL END,
+    false,
+    ('c3e20000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
+    'tutor-notif-' || i,
+    NOW() - ((12 - (i % 11)) || ' days')::interval
+FROM generate_series(1, 150) AS i
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 21. AUDIT LOGS (60 Distinct Administrative Events)
+INSERT INTO "AuditLogs" (
+    "Id", "UserId", "Action", "EntityName", "EntityId", "OldValuesJson", 
+    "NewValuesJson", "CorrelationId", "IpAddress", "UserAgent", "CreatedAt"
+)
+SELECT
+    ('c7000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
+    '11111111-1111-1111-1111-111111111111'::uuid,
+    CASE (i % 5)
+        WHEN 0 THEN 'ApproveTutorApplication'
+        WHEN 1 THEN 'ProcessWithdrawal'
+        WHEN 2 THEN 'ResolveDispute'
+        WHEN 3 THEN 'UpdatePlatformFee'
+        ELSE 'ApproveTutorProfile'
+    END,
+    CASE (i % 5)
+        WHEN 0 THEN 'TutorApplication'
+        WHEN 1 THEN 'Withdrawal'
+        WHEN 2 THEN 'Dispute'
+        WHEN 3 THEN 'PlatformSetting'
+        ELSE 'TutorProfile'
+    END,
+    'vol-entity-' || i,
+    CASE (i % 5)
+        WHEN 0 THEN '{"status":"Pending"}'
+        WHEN 1 THEN '{"status":"Processing","amount":' || (500000 + (i * 50000)) || '}'
+        WHEN 2 THEN '{"status":"Open","heldAmount":300000}'
+        WHEN 3 THEN '{"feeRate":0.12}'
+        ELSE '{"isVerified":false}'
+    END,
+    CASE (i % 5)
+        WHEN 0 THEN '{"status":"Approved","reviewedBy":"Admin"}'
+        WHEN 1 THEN '{"status":"Completed","transferredAt":"' || TO_CHAR(NOW(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') || '"}'
+        WHEN 2 THEN '{"status":"Resolved","resolution":"RefundStudent"}'
+        WHEN 3 THEN '{"feeRate":0.10}'
+        ELSE '{"isVerified":true}'
+    END,
+    'corr-vol-' || lpad(i::text, 8, '0'),
+    '127.0.0.1',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) TutorHubAdmin/1.0',
+    NOW() - ((30 - (i % 25)) || ' days')::interval
+FROM generate_series(1, 60) AS i
+ON CONFLICT ("Id") DO NOTHING;
+
+-- 22. RECONCILE WALLET BALANCES
+WITH wallet_payout_totals AS (
+    SELECT 
+        e."TutorProfileId",
+        COALESCE(SUM(CASE WHEN s."IsPayoutReleased" = false THEN s."EarningAmount" ELSE 0 END), 0) AS pending_gross,
+        COALESCE(SUM(CASE WHEN s."IsPayoutReleased" = true THEN (s."EarningAmount" - round(s."EarningAmount" * e."PlatformFeeRate", 2)) ELSE 0 END), 0) AS released_net
+    FROM "Enrollments" e
+    JOIN "Sessions" s ON s."EnrollmentId" = e."Id"
+    WHERE e."TutorProfileId"::text LIKE 'b2000000-%'
+    GROUP BY e."TutorProfileId"
+),
+wallet_withdrawals AS (
+    SELECT 
+        w."TutorProfileId",
+        COALESCE(SUM(CASE WHEN wd."Status" = 'Completed' THEN wd."Amount" ELSE 0 END), 0) AS completed_withdrawn
+    FROM "Withdrawals" wd
+    JOIN "Wallets" w ON w."Id" = wd."WalletId"
+    WHERE w."Id"::text LIKE 'b3000000-%'
+    GROUP BY w."TutorProfileId"
+),
+reconciled AS (
+    SELECT 
+        wpt."TutorProfileId",
+        wpt.pending_gross,
+        GREATEST(0.00, wpt.released_net - COALESCE(ww.completed_withdrawn, 0.00)) AS available_balance
+    FROM wallet_payout_totals wpt
+    LEFT JOIN wallet_withdrawals ww ON ww."TutorProfileId" = wpt."TutorProfileId"
+)
+UPDATE "Wallets" w
+SET 
+    "PendingBalance" = r.pending_gross,
+    "AvailableBalance" = r.available_balance,
+    "HeldBalance" = 0.00,
+    "UpdatedAt" = NOW()
+FROM reconciled r
+WHERE w."TutorProfileId" = r."TutorProfileId"
+  AND w."Id"::text LIKE 'b3000000-%';
 
 COMMIT;

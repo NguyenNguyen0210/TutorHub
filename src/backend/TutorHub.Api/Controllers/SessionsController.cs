@@ -5,6 +5,7 @@ using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Sessions.DTOs;
 using TutorHub.Application.Features.Sessions.GetMySessions;
+using TutorHub.Application.Features.Sessions.GetSessionById;
 using TutorHub.Application.Features.LearningRecords.CreateLearningRecord;
 using TutorHub.Application.Features.LearningRecords.DTOs;
 using TutorHub.Application.Features.LearningRecords.GetLearningRecord;
@@ -105,6 +106,27 @@ public class SessionsController : ControllerBase
 
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<List<SessionCalendarDto>>.SuccessResult(result, "Sessions calendar retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Get a single session by id (Admin, or Student/Tutor of the owning enrollment).
+    /// </summary>
+    [Authorize]
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<SessionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSessionById(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken)
+    {
+        var query = new GetSessionByIdQuery(
+            SessionId: id
+        );
+
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<SessionDto>.SuccessResult(result, "Session retrieved successfully."));
     }
 
     /// <summary>

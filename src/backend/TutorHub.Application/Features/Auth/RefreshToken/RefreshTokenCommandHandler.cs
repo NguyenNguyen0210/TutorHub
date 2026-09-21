@@ -14,27 +14,33 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly IJwtService _jwtService;
+    private readonly IRefreshTokenHasher _refreshTokenHasher;
     private readonly AuthTokenLifetimeOptions _lifetimes;
 
     public RefreshTokenCommandHandler(
         IAppDbContext context, IClock clock,
         IJwtService jwtService,
+        IRefreshTokenHasher refreshTokenHasher,
         IOptions<AuthTokenLifetimeOptions> lifetimeOptions)
     {
         _context = context;
         _clock = clock;
         _jwtService = jwtService;
+        _refreshTokenHasher = refreshTokenHasher;
         _lifetimes = lifetimeOptions.Value;
     }
 
     public async Task<RefreshTokenResponseDto> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
     {
+        // P0-D1: the raw token is never stored, so look the row up by its hash.
+        var presentedTokenHash = _refreshTokenHasher.Hash(request.RefreshToken);
+
         var existingToken = await _context.RefreshTokens
             .Include(r => r.User)
                 .ThenInclude(u => u.TutorProfile)
             .Include(r => r.User)
                 .ThenInclude(u => u.StudentProfile)
-            .FirstOrDefaultAsync(r => r.Token == request.RefreshToken, cancellationToken);
+            .FirstOrDefaultAsync(r => r.TokenHash == presentedTokenHash, cancellationToken);
 
         if (existingToken == null)
         {
@@ -93,7 +99,7 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
         {
             Id = Guid.NewGuid(),
             UserId = existingToken.UserId,
-            Token = newRawRefreshToken,
+            TokenHash = _refreshTokenHasher.Hash(newRawRefreshToken),
             ExpiresAt = _clock.UtcNow.AddDays(_lifetimes.RefreshTokenExpirationDays),
             CreatedAt = _clock.UtcNow
         };

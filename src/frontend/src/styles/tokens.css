@@ -1,0 +1,82 @@
+/**
+ * TutorHub Design Tokens — Brand Style Guide v2 (single source of truth)
+ *
+ * Every brand colour lives here as a space-separated RGB triplet so Tailwind can
+ * apply opacity modifiers (e.g. `bg-brand-indigo-500/20`). `tailwind.config.js` maps
+ * semantic names onto these variables; pages never hard-code hex values.
+ *
+ * Changing the brand palette therefore means editing this file only.
+ */
+
+:root {
+  /* ── Brand: Primary Blue ───────────────────────────────────────────── */
+  --brand-primary-50: 239 246 255;
+  --brand-primary-100: 219 234 254;
+  --brand-primary-200: 191 219 254;
+  --brand-primary-300: 147 197 253;
+  --brand-primary-400: 96 165 250;
+  --brand-primary-500: 59 130 246;
+  --brand-primary-600: 37 99 235;
+  --brand-primary-700: 29 78 216;
+  --brand-primary-800: 30 64 175;
+  --brand-primary-950: 23 37 84;
+
+  /* ── Brand: Secondary Orange (CTA / highlights) ────────────────────── */
+  --brand-secondary-50: 255 251 235;
+  --brand-secondary-100: 254 243 199;
+  --brand-secondary-200: 253 230 138;
+  --brand-secondary-400: 251 191 36;
+  --brand-secondary-500: 245 158 11;
+  --brand-secondary-600: 217 119 6;
+  --brand-secondary-700: 180 83 9;
+
+  /* ── Brand: Deep Navy (dark chrome, sidebar, footer) ───────────────── */
+  --brand-navy-700: 51 65 85;
+  --brand-navy-800: 30 41 59;
+  --brand-navy-900: 15 23 42;
+  --brand-navy-950: 11 15 23;
+
+  /* ── Neutral (slate scale) ─────────────────────────────────────────── */
+  --neutral-50: 248 250 252;
+  --neutral-100: 241 245 249;
+  --neutral-200: 226 232 240;
+  --neutral-300: 203 213 225;
+  --neutral-400: 148 163 184;
+  --neutral-500: 100 116 139;
+  --neutral-600: 71 85 105;
+  --neutral-700: 51 65 85;
+  --neutral-800: 30 41 59;
+  --neutral-900: 15 23 42;
+  --neutral-950: 2 6 23;
+
+  /* ── Surfaces & borders ────────────────────────────────────────────── */
+  --surface: 255 255 255;
+  --canvas: 248 250 252;
+  --border: 226 232 240;
+
+  /* ── Text ──────────────────────────────────────────────────────────── */
+  --text-primary: 15 23 42;
+  --text-secondary: 71 85 105;
+  --text-muted: 148 163 184;
+  --text-inverse: 255 255 255;
+
+  /* ── Semantic: financial status (business invariants) ──────────────── */
+  --semantic-success: 16 185 129;
+  --semantic-success-strong: 4 120 87;
+  --semantic-success-subtle: 236 253 245;
+  --semantic-holding: 217 119 6;
+  --semantic-holding-strong: 180 83 9;
+  --semantic-holding-subtle: 255 251 235;
+  --semantic-danger: 239 68 68;
+  --semantic-danger-strong: 185 28 28;
+  --semantic-danger-subtle: 254 242 242;
+  --semantic-info: 59 130 246;
+  --semantic-info-subtle: 239 246 255;
+
+  /* ── Glass surfaces (rgba kept as raw var, not Tailwind colour) ────── */
+  --glass-surface-bg: rgba(255, 255, 255, 0.85);
+  --glass-surface-border: rgba(255, 255, 255, 0.85);
+  --glass-panel-bg: rgba(255, 255, 255, 0.82);
+  --glass-dark-bg: rgba(15, 23, 42, 0.85);
+  --glass-dark-border: rgba(255, 255, 255, 0.08);
+}

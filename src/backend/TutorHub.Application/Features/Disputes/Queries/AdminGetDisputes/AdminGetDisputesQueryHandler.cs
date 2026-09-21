@@ -36,6 +36,7 @@ public class AdminGetDisputesQueryHandler : IRequestHandler<AdminGetDisputesQuer
 
         var items = await query
             .OrderByDescending(d => d.CreatedAt)
+            .ThenByDescending(d => d.Id)
             .Skip((page - 1) * size)
             .Take(size)
             .ToListAsync(cancellationToken);

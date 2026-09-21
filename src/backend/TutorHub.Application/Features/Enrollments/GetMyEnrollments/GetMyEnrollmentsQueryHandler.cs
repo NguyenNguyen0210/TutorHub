@@ -42,9 +42,10 @@ public class GetMyEnrollmentsQueryHandler : IRequestHandler<GetMyEnrollmentsQuer
         var totalCount = await query.CountAsync(cancellationToken);
 
         var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
-        var pageSize = request.PageSize < 1 ? 10 : request.PageSize;
+        var pageSize = request.PageSize < 1 ? 10 : (request.PageSize > 100 ? 100 : request.PageSize);
 
         var items = await query.OrderByDescending(e => e.CreatedAt)
+            .ThenByDescending(e => e.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .Select(e => new EnrollmentSummaryDto(

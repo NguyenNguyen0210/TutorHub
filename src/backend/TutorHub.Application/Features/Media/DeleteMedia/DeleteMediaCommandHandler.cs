@@ -49,7 +49,7 @@ public class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaCommand, boo
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        // 3. Delete Physical Object from S3 Storage
+        // 3. Delete physical object in object storage
         await _storageService.DeleteAsync(media.ObjectKey, cancellationToken);
 
         return true;

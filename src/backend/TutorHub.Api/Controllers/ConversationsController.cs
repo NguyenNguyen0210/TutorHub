@@ -157,20 +157,21 @@ public class ConversationsController : ControllerBase
             throw new BadRequestException($"File size exceeds maximum limit of {IFileStorage.MaxAttachmentSizeBytes / (1024 * 1024)} MB.");
         }
 
-        var contentType = file.ContentType.ToLowerInvariant();
-        if (!IFileStorage.AllowedMimeTypes.Contains(contentType))
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        await using var stream = file.OpenReadStream();
+        if (!TutorHub.Application.Common.Security.FileSignatureValidator.IsValidSignature(stream, ext, out var detectedMime) ||
+            !IFileStorage.AllowedMimeTypes.Contains(detectedMime))
         {
-            throw new BadRequestException("Unsupported file format. Allowed formats: JPEG, PNG, GIF, PDF.");
+            throw new BadRequestException("Unsupported file format or invalid binary signature. Allowed formats: JPEG, PNG, WEBP, GIF, PDF, TXT.");
         }
 
-        using var stream = file.OpenReadStream();
-        var storageKey = await _fileStorage.SaveAsync(stream, file.FileName, contentType, cancellationToken);
+        var storageKey = await _fileStorage.SaveAsync(stream, file.FileName, detectedMime, cancellationToken);
 
         var result = new AttachmentUploadResult
         {
             StorageKey = storageKey,
             FileName = Path.GetFileName(file.FileName),
-            ContentType = contentType,
+            ContentType = detectedMime,
             Size = file.Length
         };
 

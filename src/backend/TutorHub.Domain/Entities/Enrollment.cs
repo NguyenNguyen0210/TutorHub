@@ -34,7 +34,11 @@ public class Enrollment
     public TeachingMode TeachingMode { get; set; }
 
     // --- Platform Fee Snapshot (DEC-S8-020) ---
-    public decimal PlatformFeeRate { get; set; } = 0.10m;
+    // Must ALWAYS be assigned from the PlatformSetting snapshot at activation time
+    // (EnrollmentActivationService). 0 means "not configured" and is NOT a policy
+    // default: the activation path fails loudly when the setting is missing rather
+    // than falling back to a guessed rate.
+    public decimal PlatformFeeRate { get; set; }
     public int FeePolicyVersion { get; set; } = 1;
 
     // --- Progress (mutable, tracks completion) ---

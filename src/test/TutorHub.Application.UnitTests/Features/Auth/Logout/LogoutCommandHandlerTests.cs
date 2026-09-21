@@ -16,7 +16,7 @@ public class LogoutCommandHandlerTests
 
     public LogoutCommandHandlerTests()
     {
-        _handler = new LogoutCommandHandler(_contextMock.Object, StubClock.Instance);
+        _handler = new LogoutCommandHandler(_contextMock.Object, StubClock.Instance, new StubRefreshTokenHasher());
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public class LogoutCommandHandlerTests
         {
             Id = Guid.NewGuid(),
             UserId = Guid.NewGuid(),
-            Token = "active-logout-token",
+            TokenHash = "hash:active-logout-token",
             ExpiresAt = DateTime.UtcNow.AddDays(5),
             CreatedAt = DateTime.UtcNow.AddDays(-1),
             RevokedAt = null
@@ -56,7 +56,7 @@ public class LogoutCommandHandlerTests
         {
             Id = Guid.NewGuid(),
             UserId = Guid.NewGuid(),
-            Token = "already-revoked-token",
+            TokenHash = "hash:already-revoked-token",
             ExpiresAt = DateTime.UtcNow.AddDays(5),
             CreatedAt = DateTime.UtcNow.AddDays(-2),
             RevokedAt = DateTime.UtcNow.AddDays(-1)

@@ -138,4 +138,39 @@ public class RegisterCommandHandlerTests
         _passwordHasherMock.Verify(h => h.HashPassword(It.IsAny<string>()), Times.Never);
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_ShouldCreateWelcomeNotificationAndEmailDelivery_WhenUserRegisters()
+    {
+        // Arrange
+        var usersList = new List<User>();
+        var studentProfilesList = new List<StudentProfile>();
+        var notificationsList = new List<Notification>();
+        var emailDeliveriesList = new List<EmailDelivery>();
+
+        _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
+        _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(studentProfilesList).Object);
+        _contextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notificationsList).Object);
+        _contextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveriesList).Object);
+        _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        _passwordHasherMock
+            .Setup(h => h.HashPassword(It.IsAny<string>()))
+            .Returns("$2a$11$hash");
+
+        var command = new RegisterCommand("welcome@example.com", "Password123!", "Nguyen Van D", null, UserRole.Student);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        notificationsList.Should().ContainSingle(n => n.Type == "AccountVerification" && n.UserId == result.UserId);
+        emailDeliveriesList.Should().ContainSingle(e => e.ToEmail == "welcome@example.com" && e.UserId == result.UserId);
+
+        var email = emailDeliveriesList.Single();
+        email.Subject.Should().Contain("Xác thực tài khoản");
+        email.Body.Should().Contain("Nguyen Van D");
+        email.Status.Should().Be(EmailDeliveryStatus.Pending);
+    }
 }

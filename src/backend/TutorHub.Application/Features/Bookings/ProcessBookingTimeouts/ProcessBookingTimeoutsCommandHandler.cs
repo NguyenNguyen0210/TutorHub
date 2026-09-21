@@ -37,6 +37,17 @@ public class ProcessBookingTimeoutsCommandHandler : IRequestHandler<ProcessBooki
         if (expiredHoldingBookings.Count > 0)
         {
             _logger.LogInformation("Found {Count} expired holding bookings to release.", expiredHoldingBookings.Count);
+            var expiredIds = expiredHoldingBookings.Select(b => b.Id).ToList();
+            var paymentTxs = await _context.Transactions
+                .Where(t => expiredIds.Contains(t.BookingId) && t.Status == TransactionStatus.Held)
+                .ToListAsync(cancellationToken);
+
+            foreach (var tx in paymentTxs)
+            {
+                tx.Status = TransactionStatus.Failed;
+                tx.Description = "Holding window expired before payment completed.";
+            }
+
             foreach (var booking in expiredHoldingBookings)
             {
                 booking.Status = BookingStatus.Cancelled;

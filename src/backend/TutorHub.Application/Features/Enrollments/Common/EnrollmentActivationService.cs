@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Settings;
+using TutorHub.Application.Features.PlatformSettings.Commands.AdminUpsertPlatformSetting;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Services;
 
@@ -9,8 +11,8 @@ namespace TutorHub.Application.Features.Enrollments.Common;
 /// <summary>
 /// Shared activation of a paid Booking into an active Enrollment: snapshots the
 /// platform fee (DEC-S8-020), allocates N Sessions, credits the tutor wallet's
-/// Pending escrow with the GROSS amount, and enqueues the outbox events. Used by
-/// both the VNPay IPN and the transitional mock payment path so they cannot diverge.
+/// Pending escrow with the GROSS amount, and enqueues the outbox events. Kept in
+/// one place so every payment-confirmation path activates identically.
 /// </summary>
 public interface IEnrollmentActivationService
 {
@@ -34,16 +36,29 @@ public class EnrollmentActivationService : IEnrollmentActivationService
         }
 
         // Snapshot fee from PlatformSetting (DEC-S8-020, non-retroactive).
-        var feeRate = 0.10m;
-        var feeVersion = 1;
+        // NO FALLBACK: a missing or malformed setting must fail loudly instead of
+        // silently snapshotting a guessed rate. Parsing is invariant-culture so a
+        // machine whose culture uses '.' as a group separator cannot corrupt it.
         var feeSetting = await _context.PlatformSettings
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Key == "PlatformFeeRate", cancellationToken);
-        if (feeSetting != null && decimal.TryParse(feeSetting.Value, out var parsedRate) && parsedRate >= 0 && parsedRate < 1)
+            .FirstOrDefaultAsync(s => s.Key == PlatformSettingKeys.PlatformFeeRate, cancellationToken);
+
+        if (feeSetting == null)
         {
-            feeRate = parsedRate;
-            feeVersion = feeSetting.CurrentVersion;
+            throw new InvalidOperationException(
+                $"Platform setting '{PlatformSettingKeys.PlatformFeeRate}' is missing, so the enrollment " +
+                "platform fee cannot be snapshotted (DEC-S8-020). Configure it via " +
+                "PUT /api/v1/admin/platform-settings/fee-rate before accepting payments.");
         }
+
+        if (!PlatformFeeRateSetting.TryParse(feeSetting.Value, out var feeRate))
+        {
+            throw new InvalidOperationException(
+                $"Platform setting '{PlatformSettingKeys.PlatformFeeRate}' has invalid value " +
+                $"'{feeSetting.Value}'. Expected an invariant-culture decimal in [0,1).");
+        }
+
+        var feeVersion = feeSetting.CurrentVersion;
 
         var enrollment = new Enrollment
         {

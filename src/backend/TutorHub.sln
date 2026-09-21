@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -16,6 +16,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Application.UnitTests", "..\test\TutorHub.Application.UnitTests\TutorHub.Application.UnitTests.csproj", "{36D9DDAB-5133-44BE-A231-B601B4314BB8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Api.IntegrationTests", "..\test\TutorHub.Api.IntegrationTests\TutorHub.Api.IntegrationTests.csproj", "{1335D63A-31BA-4393-8598-F92792B70227}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Infrastructure.UnitTests", "..\test\TutorHub.Infrastructure.UnitTests\TutorHub.Infrastructure.UnitTests.csproj", "{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -111,6 +112,18 @@ Global
 		{1335D63A-31BA-4393-8598-F92792B70227}.Release|x64.Build.0 = Release|Any CPU
 		{1335D63A-31BA-4393-8598-F92792B70227}.Release|x86.ActiveCfg = Release|Any CPU
 		{1335D63A-31BA-4393-8598-F92792B70227}.Release|x86.Build.0 = Release|Any CPU
+		{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}.Debug|x64.Build.0 = Debug|Any CPU
+		{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}.Debug|x86.Build.0 = Debug|Any CPU
+		{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}.Release|x64.ActiveCfg = Release|Any CPU
+		{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}.Release|x64.Build.0 = Release|Any CPU
+		{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}.Release|x86.ActiveCfg = Release|Any CPU
+		{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

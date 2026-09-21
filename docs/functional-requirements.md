@@ -730,10 +730,14 @@ System SHALL support Session cancellation where permitted by policy.
 
 Cancellation SHALL produce appropriate business and financial consequences.
 
-### Business Rule (v1.1: F-19 single-session gate, no finance)
+### Business Rule (v1.2: Escrow Release & Refund Settlement)
 
-- A participant may cancel a single Session only from `Unscheduled`, or from `Scheduled` with a future start time; a reason is required.
-- Single-session cancellation moves NO money: escrow stays held and the existing enrollment pro-rata formula absorbs the amount on complete/cancel. Session-level finance awaits the cancel/refund matrix (FR-OPEN-002/003).
+- A participant (Student or Tutor) may cancel a single Session only from `Unscheduled`, or from `Scheduled` with a future start time (`StartAt > now`); a non-empty reason is required (minimum 5 characters).
+- Single-session cancellation unlocks and debits the Tutor's Escrow pending balance (`wallet.DebitPending(session.EarningAmount, now)`).
+- System creates a corresponding `TransactionType.StudentRefund` record linked to the booking and session with `SettlementRequired = true` and status `Pending`.
+- System dispatches `SessionCancelledEvent` and `RefundCreatedEvent` to the transactional outbox.
+- Cancellation action is recorded into the Central Audit Log (`SESSION_CANCELLED`).
+- Enrollment completion evaluation (`enrollment.EvaluateCompletion()`) is triggered; if all remaining sessions are terminal (`Completed` or `Cancelled`), the Enrollment transitions to `Completed`.
 
 # 15. Session Delivery
 
@@ -1412,7 +1416,21 @@ MVP SHALL provide in-app notifications.
 
 ## FR-NOTIF-003 — Email Notifications
 
-MVP SHALL provide email notifications.
+System SHALL provide asynchronous email notifications for all applicable business and security events via `NotificationDeliveryPolicy`.
+
+### Delivery Architecture & Policy
+- **Event Coverage:** Email notifications are enabled for 26 domain business events plus critical identity & security operations:
+  1. *Marketplace & Applications:* `TutorApplicationSubmitted`, `TutorApplicationApproved`, `TutorApplicationRejected`.
+  2. *Agreements & Payments:* `CustomOfferCreated`, `CustomOfferAccepted`, `PaymentSucceeded`, `EnrollmentActivated`, `EnrollmentCancelled`.
+  3. *Sessions & Bilateral Attendance:* `SessionScheduled`, `SessionRescheduled`, `SessionCancelled`, `AttendanceVerificationRequired`, `AttendanceConflictDetected`, `SessionCompleted`, `SessionReminder`, `AttendanceReminder`.
+  4. *Financial & Escrow:* `EarningCreated`, `RefundCreated`, `RefundCompleted`, `RefundFailed` (alerting student of administrative offline settlement), `WithdrawalRequested`, `WithdrawalCompleted`, `WithdrawalFailed`.
+  5. *Trust, Disputes & Reviews:* `ReviewCreated`, `DisputeCreated`, `DisputeResolved`, `ReportCreated`.
+  6. *Identity, Authentication & Security:* `AccountVerification` (registration welcome & account verification), `PasswordChanged` (security alert on credential modification).
+- **Asynchronous Outbox Queuing:** Generating a notification creates an `EmailDelivery` record with `Status = EmailDeliveryStatus.Pending` within the same database transaction.
+- **Hosted Worker Delivery (`EmailDeliveryJob`):** A background hosted service periodically claims batches of pending/expired email deliveries using lease-locking (`LockedUntil`, `LockedBy`), executes delivery through `IEmailSender`, handles exponential backoff retries (up to 5 attempts), and transitions status to `Sent` or `Failed`.
+- **Dual Transport Sender:**
+  - *Development / Personal-first mode:* Handled by `LogOnlyEmailSender`, logging full recipient, subject, idempotency key, and body to the console for inspection without external cloud credentials.
+  - *Production mode:* Handled by `SesEmailSender` integrating with Amazon Simple Email Service (SES).
 
 ---
 
@@ -1450,13 +1468,14 @@ Dispute Resolved
 
 ## FR-NOTIF-006 — Critical Notifications
 
-Notifications related to the following SHALL not be completely disabled:
+Notifications related to the following SHALL not be completely disabled and SHALL be marked `IsCritical = true`:
 
-- Payment.
-- Refund.
-- Withdrawal.
-- Dispute.
-- Security.
+- **Payments & Enrollments:** `PaymentSucceeded`, `EnrollmentActivated`, `EnrollmentCancelled`.
+- **Sessions:** `SessionCancelled`, `AttendanceConflictDetected`.
+- **Refunds:** `RefundCreated`, `RefundCompleted`, `RefundFailed`.
+- **Withdrawals:** `WithdrawalRequested`, `WithdrawalCompleted`, `WithdrawalFailed`.
+- **Disputes:** `DisputeCreated`, `DisputeResolved`.
+- **Identity & Security:** `AccountVerification`, `PasswordChanged`.
 
 ---
 
@@ -1644,9 +1663,21 @@ Every refund SHALL contain:
 
 # 35. Admin Withdrawal Operations
 
-## FR-ADMIN-011 — Handle Withdrawal Issue
+## FR-ADMIN-011 — Withdrawal Management & Governance
 
-Admin SHALL be able to handle operational withdrawal issues.
+Admin SHALL be able to manage, monitor, and transition Tutor withdrawal requests via a dedicated administrative dashboard (`/admin/withdrawals`).
+
+### API Endpoints & Capabilities
+1. `GET /api/v1/admin/withdrawals`: Paginated listing of withdrawal requests with status filtering (`Pending`, `Processing`, `Completed`, `Failed`).
+2. `GET /api/v1/admin/withdrawals/{id}`: Detailed view of a single withdrawal request including bank account details, tutor identity, and timestamps.
+3. `POST /api/v1/admin/withdrawals/{id}/process`: Transition status from `Pending` to `Processing` when the payout operation has been claimed.
+4. `POST /api/v1/admin/withdrawals/{id}/complete`: Mark withdrawal as `Completed` upon bank confirmation, emitting `WithdrawalCompletedEvent` and logging an audit record.
+5. `POST /api/v1/admin/withdrawals/{id}/fail`: Mark withdrawal as `Failed` with a mandatory failure reason.
+
+### Business Rules & Safeguards
+- **Balance Protection:** When a withdrawal is marked `Failed`, the system securely returns the held funds back to the Tutor's `AvailableBalance` (`wallet.RefundFailedWithdrawal(...)`).
+- **Audit Logging:** Every administrative transition (`Process`, `Complete`, `Fail`) records an immutable entry into the Central Audit Log.
+- **Notification & Email Dispatch:** Events `WithdrawalCompletedEvent` and `WithdrawalFailedEvent` automatically notify the Tutor in-app and via email.
 
 ---
 
@@ -2211,14 +2242,13 @@ Cần xác định:
 
 ---
 
-## FR-OPEN-010 — Notification Delivery Rules
+## FR-OPEN-010 — Notification Delivery Rules (Resolved in v1.2)
 
-MVP yêu cầu In-app + Email nhưng chưa xác định:
-
-- Which events use which channel.
-- Retry behavior.
-- Email failure handling.
-- User notification preferences beyond critical notifications.
+Resolved and enforced via `NotificationDeliveryPolicy` and `EmailDeliveryJob`:
+- Channel routing: Realtime push (SignalR `/hubs/notifications`) for all events except `MessageSent` (`/hubs/chat`); Email delivery for 26 domain events and authentication security operations.
+- Retry behavior: Exponential backoff with up to 5 attempts managed through `EmailDeliveryJob` lease locking (60s).
+- Failure handling: Unsuccessful deliveries after 5 attempts are marked `EmailDeliveryStatus.Failed` for observability.
+- Critical notifications: Explicit set of 14 event types marked `IsCritical = true` that cannot be suppressed.
 
 ---
 
@@ -2245,18 +2275,13 @@ PRD yêu cầu Block nhưng chưa định nghĩa:
 
 ---
 
-## FR-OPEN-013 — Account Registration Details
+## FR-OPEN-013 — Account Registration & Credential Lifecycle (Resolved in v1.2)
 
-PRD chưa định nghĩa đầy đủ:
-
-- Authentication methods.
-- Password policy.
-- Email verification.
-- Password reset.
-- Account deletion.
-- Role switching.
-
-Các nội dung này cần được xác định trong Authentication specification.
+Resolved and implemented in Authentication slice:
+- Authentication: JWT access token (15-min lifetime) + sliding refresh token rotation.
+- Password policy: Minimum 8 characters, hashed with BCrypt (`workFactor = 11`). Plaintext passwords are never stored or logged.
+- Account verification: Registration dispatches critical in-app notification and queues welcome & verification email (`AccountVerification`).
+- Password change: Verifies current password hash, revokes all unexpired active refresh tokens, updates password hash, creates critical security notification, and dispatches urgent security alert email (`PasswordChanged`).
 
 ---
 

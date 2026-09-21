@@ -109,6 +109,7 @@ public class BanUserCommandHandler : IRequestHandler<BanUserCommand, AdminUserSu
             Role: user.Role,
             Status: user.Status,
             CreatedAt: user.CreatedAt,
+            AbsentStrikes: user.AbsentStrikes,
             TutorApplicationStatus: latestAppStatus
         );
     }

@@ -12,5 +12,7 @@ public record TutorSummaryDto(
     string? Address,
     decimal RatingAvg,
     int TotalReviews,
-    List<string> Subjects
+    List<string> Subjects,
+    decimal? MinPrice,
+    bool IsVerified
 );

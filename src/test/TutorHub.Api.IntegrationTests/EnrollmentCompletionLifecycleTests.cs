@@ -91,4 +91,27 @@ public class EnrollmentCompletionLifecycleTests : IntegrationTestBase
         enrollment.Status.Should().Be(EnrollmentStatus.Active);
         enrollment.CompletedAt.Should().BeNull();
     }
+
+    [Fact]
+    public async Task CancellingSession_DebitsTutorPendingBalance_AndCreatesStudentRefundTransaction()
+    {
+        var (studentUserId, _, enrollmentId, sessions) = await SetupAsync();
+        var sessionToCancel = sessions[0];
+        var enrollment = await Db.Enrollments.Include(e => e.TutorProfile).FirstAsync(e => e.Id == enrollmentId);
+        var initialWallet = await Db.Wallets.AsNoTracking().FirstAsync(w => w.TutorProfileId == enrollment.TutorProfileId);
+        var initialPending = initialWallet.PendingBalance;
+
+        SetCurrentUser(studentUserId, UserRole.Student);
+        await SendAsync(new CancelSessionCommand(sessionToCancel.Id, "Illness emergency"));
+
+        var updatedWallet = await Db.Wallets.AsNoTracking().FirstAsync(w => w.TutorProfileId == enrollment.TutorProfileId);
+        updatedWallet.PendingBalance.Should().Be(initialPending - sessionToCancel.EarningAmount);
+
+        var refundTx = await Db.Transactions.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.SessionId == sessionToCancel.Id && t.Type == TransactionType.StudentRefund);
+        refundTx.Should().NotBeNull();
+        refundTx!.Amount.Should().Be(sessionToCancel.EarningAmount);
+        refundTx.SettlementRequired.Should().BeTrue();
+        refundTx.Status.Should().Be(TransactionStatus.Pending);
+    }
 }
