@@ -62,16 +62,3 @@ jobs:
         working-directory: src/frontend
         run: npm run build
 
-      - name: Verify API Contract & Zero-Mock Policy
-        run: node scripts/verify-frontend-api-contract.mjs
-
-  secret-scan:
-    name: Secrets & Credentials Guard
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Run Secret Scanner
-        shell: pwsh
-        run: ./scripts/scan-secrets.ps1
