@@ -109,6 +109,5 @@ docs/frontend-specification.md
 playwright-report/
 test-results/
 .git_commit_msg*.txt
-scripts/
 
 
