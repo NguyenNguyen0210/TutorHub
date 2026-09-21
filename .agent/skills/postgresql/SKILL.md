@@ -1,0 +1,2015 @@
+---
+
+name: postgresql
+description: Design, implement, review, optimize, and maintain PostgreSQL databases for software applications. Use when working with PostgreSQL schemas, tables, columns, constraints, indexes, relationships, transactions, isolation levels, locking, queries, PostgreSQL data types, JSONB, arrays, UUIDs, timestamps, functions, views, extensions, migrations, performance, and database integrity. Project-agnostic and should integrate with the project's ORM and application architecture without duplicating ORM-specific guidance.
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# PostgreSQL Database Engineering
+
+## 1. Purpose
+
+This skill defines how an AI coding agent should design, implement, review, optimize, and maintain PostgreSQL databases.
+
+The objective is to produce databases that are:
+
+* Correct.
+* Consistent.
+* Performant.
+* Maintainable.
+* Transactionally safe.
+* Explicit about constraints.
+* Appropriate for the application's access patterns.
+* Safe to evolve through migrations.
+
+This skill focuses on PostgreSQL itself.
+
+ORM-specific implementation belongs to the `dotnet-efcore` skill.
+
+Application architecture belongs to the `architecture` skill.
+
+Testing strategy belongs to the `testing` skill.
+
+---
+
+# 2. Repository First
+
+Before modifying the database:
+
+1. Inspect the existing schema.
+2. Inspect existing migrations.
+3. Inspect the PostgreSQL version.
+4. Inspect the ORM/provider configuration.
+5. Inspect naming conventions.
+6. Inspect existing indexes.
+7. Inspect constraints.
+8. Inspect extensions.
+9. Inspect database initialization scripts.
+10. Understand existing production assumptions.
+
+Look for:
+
+```text
+*.sql
+migrations/
+docker-compose.yml
+Dockerfile
+.env.example
+appsettings.json
+appsettings.*.json
+*.csproj
+```
+
+Also inspect:
+
+```text
+PostgreSQL version
+Npgsql version
+EF Core provider version
+Database connection configuration
+```
+
+Do not redesign an existing database without understanding its current schema and dependencies.
+
+---
+
+# 3. PostgreSQL Version
+
+Always identify the PostgreSQL version when version-specific behavior matters.
+
+Check:
+
+```sql
+SELECT version();
+```
+
+or:
+
+```sql
+SHOW server_version;
+```
+
+Do not assume the newest PostgreSQL features are available.
+
+When using version-specific features, verify compatibility with the project's PostgreSQL version.
+
+---
+
+# 4. Database Design Principles
+
+Design the database around:
+
+```text
+Data integrity
++
+Access patterns
++
+Correct relationships
++
+Appropriate constraints
++
+Measured performance
+```
+
+Do not design tables only from application classes.
+
+The database must protect important invariants independently of application code.
+
+---
+
+# 5. Tables
+
+Tables should represent meaningful persisted concepts.
+
+Before creating a table, identify:
+
+```text
+Purpose
+Primary key
+Required fields
+Optional fields
+Relationships
+Constraints
+Indexes
+Lifecycle
+Ownership
+```
+
+Avoid tables that exist only because they correspond to an arbitrary application class.
+
+---
+
+# 6. Naming Conventions
+
+Follow the project's existing naming convention.
+
+If no convention exists, choose one consistently.
+
+A common PostgreSQL convention is:
+
+```text
+snake_case
+```
+
+Example:
+
+```text
+students
+class_sessions
+attendance_records
+created_at
+updated_at
+student_id
+```
+
+Do not mix:
+
+```text
+StudentId
+student_id
+STUDENT_ID
+```
+
+within the same schema without a deliberate reason.
+
+Consistency is more important than personal preference.
+
+---
+
+# 7. Primary Keys
+
+Every transactional table should normally have a clear primary key.
+
+Common choices:
+
+```text
+UUID
+BIGINT
+INTEGER
+```
+
+Choose based on:
+
+* Data distribution.
+* Identifier exposure.
+* Insert patterns.
+* Storage requirements.
+* Application architecture.
+
+Do not use a large identifier type without reason.
+
+---
+
+# 8. UUID
+
+UUIDs are appropriate when identifiers need:
+
+* Global uniqueness.
+* Distributed generation.
+* Reduced dependence on sequential IDs.
+* Safer public identifiers.
+
+PostgreSQL supports:
+
+```sql
+uuid
+```
+
+When using UUIDs, choose a generation strategy appropriate for the PostgreSQL version and application architecture.
+
+Avoid generating identifiers inconsistently across application and database layers.
+
+---
+
+# 9. Identity / Sequence Columns
+
+For numeric identifiers, prefer PostgreSQL identity columns over manually managed sequences where appropriate.
+
+Example:
+
+```sql
+id bigint GENERATED BY DEFAULT AS IDENTITY
+```
+
+Avoid manually incrementing identifiers:
+
+```sql
+SELECT MAX(id) + 1
+```
+
+This is unsafe under concurrency.
+
+---
+
+# 10. NOT NULL
+
+Use `NOT NULL` for values that are required by the data model.
+
+Prefer:
+
+```sql
+name text NOT NULL
+```
+
+over allowing null values and assuming application code will always populate them.
+
+Nullability should represent actual data semantics.
+
+Do not make every column nullable merely for flexibility.
+
+---
+
+# 11. NULL Semantics
+
+Remember:
+
+```text
+NULL ≠ ''
+NULL ≠ 0
+NULL ≠ false
+```
+
+`NULL` represents absence/unknown rather than an ordinary value.
+
+Use explicit semantics.
+
+Example:
+
+```text
+middle_name NULL
+```
+
+may mean no middle name.
+
+But:
+
+```text
+status NULL
+```
+
+may indicate an incomplete state and could be a modeling problem if every record must have a status.
+
+---
+
+# 12. Data Types
+
+Use PostgreSQL-native types appropriately.
+
+Common types:
+
+```text
+boolean
+smallint
+integer
+bigint
+numeric
+real
+double precision
+text
+varchar
+date
+time
+timestamp
+timestamptz
+interval
+uuid
+jsonb
+bytea
+```
+
+Choose based on semantics, not habit.
+
+---
+
+# 13. Text
+
+Prefer `text` unless a specific length constraint is meaningful.
+
+For example:
+
+```sql
+name text NOT NULL
+```
+
+Do not automatically use:
+
+```sql
+varchar(255)
+```
+
+because it is a common convention from other database systems.
+
+If maximum length is a business rule, enforce it explicitly.
+
+---
+
+# 14. Numeric Types
+
+Choose numeric types based on the domain.
+
+Use:
+
+```text
+integer / bigint
+```
+
+for integral values.
+
+Use:
+
+```text
+numeric
+```
+
+for exact decimal values such as:
+
+```text
+Money
+Prices
+Fees
+Accounting amounts
+```
+
+Avoid floating-point types for financial values.
+
+---
+
+# 15. Money
+
+Do not use:
+
+```text
+real
+double precision
+```
+
+for monetary values when exact precision is required.
+
+Prefer:
+
+```sql
+numeric(precision, scale)
+```
+
+Example:
+
+```sql
+amount numeric(12,2) NOT NULL
+```
+
+The precision and scale must match the application's real requirements.
+
+---
+
+# 16. Boolean
+
+Use PostgreSQL:
+
+```sql
+boolean
+```
+
+Do not represent booleans as:
+
+```text
+0/1
+Y/N
+"true"/"false"
+```
+
+unless interoperability explicitly requires it.
+
+---
+
+# 17. Date and Time
+
+Choose temporal types carefully.
+
+Common choices:
+
+```text
+date
+time
+timestamp
+timestamptz
+```
+
+For moments in time representing an absolute instant, prefer:
+
+```sql
+timestamptz
+```
+
+when appropriate.
+
+Do not blindly use `timestamp` for all timestamps.
+
+---
+
+# 18. Time Zones
+
+Store absolute instants consistently.
+
+Prefer:
+
+```text
+UTC-oriented application semantics
++
+timestamptz
+```
+
+for event timestamps where appropriate.
+
+Be explicit about:
+
+```text
+CreatedAt
+UpdatedAt
+OccurredAt
+ExpiresAt
+```
+
+Do not mix local time and UTC semantics without documentation.
+
+---
+
+# 19. Enum Representation
+
+PostgreSQL supports native enums.
+
+However, decide deliberately between:
+
+```text
+PostgreSQL enum
+```
+
+and:
+
+```text
+text + CHECK constraint
+```
+
+or another representation.
+
+Consider:
+
+* Schema evolution.
+* Application compatibility.
+* Migration complexity.
+* Interoperability.
+* Query readability.
+
+Do not introduce PostgreSQL enums automatically for every application enum.
+
+---
+
+# 20. CHECK Constraints
+
+Use `CHECK` constraints for simple database-level invariants.
+
+Example:
+
+```sql
+CHECK (amount >= 0)
+```
+
+or:
+
+```sql
+CHECK (start_time < end_time)
+```
+
+Constraints should protect invariants that must always hold.
+
+Do not encode complicated application workflows entirely as CHECK constraints.
+
+---
+
+# 21. UNIQUE Constraints
+
+Use database-level uniqueness when a value must be unique.
+
+Example:
+
+```sql
+UNIQUE (email)
+```
+
+or:
+
+```sql
+UNIQUE (class_id, student_id)
+```
+
+Composite uniqueness is especially important for preventing duplicate relationships.
+
+Do not rely solely on application-level existence checks.
+
+---
+
+# 22. Foreign Keys
+
+Use foreign keys to enforce referential integrity.
+
+Example:
+
+```sql
+student_id uuid NOT NULL
+    REFERENCES students(id)
+```
+
+Foreign keys protect against:
+
+```text
+Orphan records
+Invalid references
+Accidental inconsistent state
+```
+
+Do not omit foreign keys merely because the application validates relationships.
+
+---
+
+# 23. Foreign Key Delete Behavior
+
+Choose delete behavior intentionally.
+
+Possible semantics:
+
+```text
+CASCADE
+RESTRICT
+NO ACTION
+SET NULL
+SET DEFAULT
+```
+
+Ask:
+
+```text
+What should happen to dependent data
+when the parent is deleted?
+```
+
+Do not use `CASCADE` by default.
+
+Cascading deletes can remove large amounts of data unexpectedly.
+
+---
+
+# 24. One-to-Many
+
+Typical structure:
+
+```text
+students
+    │
+    └──< enrollments
+```
+
+Database:
+
+```text
+students.id
+    ↑
+    │
+enrollments.student_id
+```
+
+The foreign key belongs on the many side.
+
+---
+
+# 25. Many-to-Many
+
+For many-to-many relationships, use a junction table.
+
+Example:
+
+```text
+students
+    │
+    ├── student_courses
+    │
+    └── courses
+```
+
+The junction table should normally have:
+
+```text
+student_id
+course_id
+```
+
+and a uniqueness constraint:
+
+```sql
+UNIQUE (student_id, course_id)
+```
+
+unless duplicate relationships are intentionally meaningful.
+
+---
+
+# 26. Composite Keys
+
+Composite keys can be appropriate when the combination itself identifies a relationship.
+
+Example:
+
+```text
+student_id
+course_id
+```
+
+However, do not use composite keys merely because they are possible.
+
+Consider whether a surrogate key plus a unique constraint provides a clearer model.
+
+Follow the application's architecture and ORM constraints.
+
+---
+
+# 27. Junction Tables With Attributes
+
+If a relationship contains its own data, model it explicitly.
+
+Example:
+
+```text
+enrollment
+├── student_id
+├── class_id
+├── enrolled_at
+├── status
+└── fee
+```
+
+This is no longer merely a simple many-to-many relationship.
+
+The relationship itself has domain meaning.
+
+---
+
+# 28. Normalization
+
+Prefer normalized relational design unless there is a measured reason to denormalize.
+
+Typical goals:
+
+```text
+Avoid unnecessary duplication
+Prevent update anomalies
+Maintain data integrity
+Represent relationships clearly
+```
+
+Do not duplicate data simply to avoid joins.
+
+---
+
+# 29. Denormalization
+
+Denormalization may be appropriate when:
+
+* Performance requires it.
+* Read patterns justify it.
+* Aggregated data is expensive to calculate.
+* Data is intentionally cached/materialized.
+
+When denormalizing, define:
+
+```text
+Source of truth
+Synchronization mechanism
+Consistency requirements
+Update strategy
+```
+
+Never duplicate data without knowing how it stays correct.
+
+---
+
+# 30. Indexes
+
+Indexes should be based on actual query patterns.
+
+Common candidates:
+
+```text
+WHERE columns
+JOIN columns
+ORDER BY columns
+UNIQUE constraints
+Foreign keys frequently queried
+Composite access patterns
+```
+
+Do not create an index on every column.
+
+Indexes increase:
+
+```text
+Storage
+Write cost
+Maintenance cost
+```
+
+---
+
+# 31. Composite Indexes
+
+Column order matters.
+
+For:
+
+```sql
+CREATE INDEX idx_enrollments_class_status
+ON enrollments (class_id, status);
+```
+
+the index is most useful for query patterns beginning with:
+
+```text
+class_id
+```
+
+Do not create composite indexes without understanding query predicates and ordering.
+
+---
+
+# 32. Partial Indexes
+
+Use partial indexes when only a subset of rows matters.
+
+Example:
+
+```sql
+CREATE INDEX idx_active_enrollments
+ON enrollments (student_id)
+WHERE status = 'active';
+```
+
+This can reduce index size and improve relevant queries.
+
+Use only when the query pattern justifies it.
+
+---
+
+# 33. Unique Partial Indexes
+
+Partial unique indexes can enforce conditional uniqueness.
+
+Example concept:
+
+```text
+Only one active enrollment per student/class.
+```
+
+This can sometimes be enforced with:
+
+```sql
+CREATE UNIQUE INDEX ...
+WHERE status = 'active';
+```
+
+This is often safer than relying exclusively on application checks.
+
+---
+
+# 34. Foreign-Key Indexes
+
+PostgreSQL does not automatically create indexes on foreign-key columns merely because a foreign key exists.
+
+Consider indexing foreign keys when query patterns and joins benefit from them.
+
+Do not blindly create every possible foreign-key index.
+
+---
+
+# 35. Query Design
+
+Prefer queries that:
+
+* Filter early.
+* Return only required columns.
+* Use appropriate indexes.
+* Avoid unnecessary joins.
+* Limit result sets.
+* Use deterministic ordering.
+
+Avoid:
+
+```sql
+SELECT *
+```
+
+when only a small subset of columns is required.
+
+---
+
+# 36. EXPLAIN
+
+When investigating query performance, use:
+
+```sql
+EXPLAIN
+```
+
+and when actual execution behavior is needed:
+
+```sql
+EXPLAIN ANALYZE
+```
+
+Inspect:
+
+```text
+Sequential Scan
+Index Scan
+Bitmap Scan
+Join strategy
+Estimated rows
+Actual rows
+Sort operations
+Execution time
+```
+
+Do not optimize queries based only on intuition.
+
+---
+
+# 37. EXPLAIN ANALYZE Safety
+
+Remember:
+
+```sql
+EXPLAIN ANALYZE
+```
+
+actually executes the query.
+
+Do not run mutating statements against production casually.
+
+For destructive operations, understand the consequences before using execution-analysis commands.
+
+---
+
+# 38. Query Performance Workflow
+
+When a query is slow:
+
+```text
+Measure
+ ↓
+EXPLAIN
+ ↓
+Identify bottleneck
+ ↓
+Check indexes
+ ↓
+Check query shape
+ ↓
+Check row estimates
+ ↓
+Change
+ ↓
+Measure again
+```
+
+Do not automatically add an index as the first response.
+
+---
+
+# 39. Pagination
+
+For moderate datasets, offset pagination may be sufficient:
+
+```sql
+ORDER BY created_at DESC
+LIMIT 20 OFFSET 40;
+```
+
+Always provide deterministic ordering.
+
+For very large datasets, consider keyset pagination.
+
+Example concept:
+
+```text
+WHERE created_at < last_seen_created_at
+ORDER BY created_at DESC
+LIMIT 20
+```
+
+The exact strategy depends on the access pattern and index design.
+
+---
+
+# 40. Transactions
+
+Use transactions when multiple operations must be atomic.
+
+Example:
+
+```text
+Create order
++
+Create order items
++
+Update inventory
+```
+
+must either all succeed or all fail if the business requires atomicity.
+
+Do not use transactions merely because multiple statements exist.
+
+---
+
+# 41. ACID
+
+Understand the transaction guarantees:
+
+```text
+Atomicity
+Consistency
+Isolation
+Durability
+```
+
+Database design should preserve important invariants under concurrent operations.
+
+---
+
+# 42. Isolation Levels
+
+PostgreSQL supports transaction isolation levels including:
+
+```text
+Read Committed
+Repeatable Read
+Serializable
+```
+
+Use the lowest isolation level that correctly satisfies the business requirement.
+
+Higher isolation can reduce concurrency and increase contention.
+
+Do not use `Serializable` automatically.
+
+---
+
+# 43. Row-Level Locking
+
+When concurrent updates require explicit coordination, PostgreSQL supports row-level locking such as:
+
+```sql
+SELECT ...
+FOR UPDATE;
+```
+
+Use locks intentionally.
+
+Understand:
+
+```text
+Which rows are locked?
+How long are they locked?
+What can block?
+Can deadlocks occur?
+```
+
+Do not add locks without understanding the transaction boundary.
+
+---
+
+# 44. Deadlocks
+
+Deadlocks can occur when transactions acquire locks in incompatible orders.
+
+Reduce risk by:
+
+```text
+Consistent lock ordering
+Short transactions
+Avoid unnecessary locks
+Avoid user interaction inside transactions
+```
+
+If deadlocks are possible, application-level retry behavior may be appropriate for safe transactional operations.
+
+Do not blindly retry every database exception.
+
+---
+
+# 45. Long Transactions
+
+Keep transactions as short as practical.
+
+Avoid:
+
+```text
+Begin transaction
+    ↓
+External API call
+    ↓
+User interaction
+    ↓
+Long computation
+    ↓
+Commit
+```
+
+Long transactions can hold locks and increase contention.
+
+---
+
+# 46. JSONB
+
+PostgreSQL `jsonb` is useful for semi-structured data.
+
+Appropriate examples may include:
+
+```text
+Metadata
+Flexible configuration
+External API payload fragments
+Variable attributes
+```
+
+Do not use JSONB simply because it is convenient.
+
+If the data has:
+
+```text
+Stable structure
+Relationships
+Frequent filtering
+Constraints
+```
+
+a relational model may be more appropriate.
+
+---
+
+# 47. JSONB Indexing
+
+When querying JSONB frequently, consider appropriate indexes such as GIN.
+
+Example concept:
+
+```sql
+CREATE INDEX ...
+ON table
+USING gin (metadata);
+```
+
+Do not add JSONB indexes without understanding the query operators and workload.
+
+---
+
+# 48. Arrays
+
+PostgreSQL arrays can represent genuinely list-like attributes.
+
+Example:
+
+```text
+tags text[]
+```
+
+Use arrays when:
+
+* The list is conceptually part of the same record.
+* Individual elements do not need independent relationships.
+* Query patterns are appropriate.
+
+Use a normalized child table when elements have their own identity or relationships.
+
+---
+
+# 49. Full-Text Search
+
+PostgreSQL provides full-text search capabilities.
+
+When implementing search, distinguish:
+
+```text
+Exact match
+Prefix search
+Pattern matching
+Full-text search
+Fuzzy search
+```
+
+Do not use:
+
+```sql
+LIKE '%term%'
+```
+
+as a universal search strategy.
+
+Choose indexes and search mechanisms based on requirements.
+
+---
+
+# 50. Extensions
+
+Use PostgreSQL extensions only when justified.
+
+Examples:
+
+```text
+pgcrypto
+uuid-ossp
+citext
+PostGIS
+pg_trgm
+```
+
+Before adding an extension:
+
+```text
+Check availability
+Check deployment environment
+Check version compatibility
+Check operational impact
+```
+
+Do not add extensions without considering production deployment.
+
+---
+
+# 51. Case-Insensitive Data
+
+Do not automatically convert all strings to lowercase in the database.
+
+Possible approaches include:
+
+```text
+Application normalization
+citext
+lower() indexes
+Explicit comparison logic
+```
+
+Choose based on the actual requirement.
+
+For example, email uniqueness may require case-insensitive semantics, but the exact business rule should be defined first.
+
+---
+
+# 52. Constraints vs Application Validation
+
+Use both when appropriate.
+
+Application validation provides:
+
+```text
+Fast feedback
+Friendly errors
+API-level validation
+```
+
+Database constraints provide:
+
+```text
+Final integrity guarantee
+Concurrency safety
+Protection across all clients
+```
+
+Important invariants should not exist only in application code.
+
+---
+
+# 53. Soft Delete
+
+If using soft delete, define its semantics clearly.
+
+Typical:
+
+```text
+deleted_at timestamptz NULL
+```
+
+or:
+
+```text
+is_deleted boolean
+```
+
+Prefer a timestamp when deletion time is meaningful.
+
+Soft deletion introduces additional complexity:
+
+```text
+Queries
+Indexes
+Unique constraints
+Foreign keys
+Restoration
+Data retention
+```
+
+Do not introduce soft delete globally without a requirement.
+
+---
+
+# 54. Audit Fields
+
+Common fields:
+
+```text
+created_at
+updated_at
+deleted_at
+```
+
+Add them when they provide meaningful operational or business value.
+
+Do not add audit fields blindly to every table.
+
+If auditing who changed data matters, consider:
+
+```text
+created_by
+updated_by
+```
+
+according to the application's identity model.
+
+---
+
+# 55. Database Comments
+
+Use PostgreSQL comments when they provide valuable schema documentation.
+
+Example:
+
+```sql
+COMMENT ON TABLE enrollments IS 'Represents a student enrollment in a class';
+```
+
+Avoid comments that simply repeat the column name.
+
+---
+
+# 56. Views
+
+Views can be useful for:
+
+* Stable read models.
+* Reusable complex queries.
+* Reporting.
+* Database-level abstractions.
+
+Do not create views merely to hide simple queries.
+
+Consider how views interact with:
+
+```text
+ORM mapping
+Migrations
+Permissions
+Performance
+```
+
+---
+
+# 57. Materialized Views
+
+Use materialized views when:
+
+* Computation is expensive.
+* Data can tolerate controlled staleness.
+* Read performance is important.
+
+Define a refresh strategy.
+
+A materialized view without a refresh strategy is incomplete design.
+
+---
+
+# 58. Stored Procedures and Functions
+
+PostgreSQL functions can be appropriate for:
+
+* Database-specific operations.
+* Complex data transformations.
+* Reusable database logic.
+* Performance-sensitive database operations.
+
+Do not move all business logic into PostgreSQL simply because PostgreSQL supports functions.
+
+Business logic ownership should remain consistent with the application's architecture.
+
+---
+
+# 59. Triggers
+
+Triggers can enforce or automate database behavior.
+
+Use them carefully.
+
+Appropriate use cases may include:
+
+```text
+Audit records
+Derived database metadata
+Strict database-level invariants
+```
+
+Avoid triggers for complex application workflows when they make behavior difficult to discover and test.
+
+Hidden side effects are a maintainability risk.
+
+---
+
+# 60. Migrations
+
+Every schema change should be represented through the project's migration strategy.
+
+Before changing schema:
+
+```text
+Understand current schema
+ ↓
+Design change
+ ↓
+Consider existing data
+ ↓
+Create migration
+ ↓
+Review generated SQL
+ ↓
+Test upgrade path
+```
+
+Do not manually change production schema while leaving migrations inconsistent.
+
+---
+
+# 61. Destructive Migrations
+
+Treat these as high-risk:
+
+```text
+DROP TABLE
+DROP COLUMN
+Data type narrowing
+NOT NULL without backfill
+Constraint introduction
+Large table rewrites
+```
+
+For large or production databases, prefer staged migrations.
+
+Example:
+
+```text
+1. Add new nullable column
+2. Deploy compatible application
+3. Backfill data
+4. Deploy application using new column
+5. Add constraint
+6. Remove old column later
+```
+
+Do not assume migrations are instantaneous.
+
+---
+
+# 62. Adding NOT NULL
+
+Do not blindly change:
+
+```sql
+column nullable
+```
+
+to:
+
+```sql
+column NOT NULL
+```
+
+if existing rows contain nulls.
+
+A safe migration may require:
+
+```text
+Add column
+ ↓
+Backfill
+ ↓
+Verify
+ ↓
+Add NOT NULL
+```
+
+---
+
+# 63. Large Data Changes
+
+Large updates/deletes can cause:
+
+```text
+Long transactions
+Lock contention
+WAL growth
+Replication lag
+```
+
+For large datasets, consider controlled batching.
+
+Do not assume a single massive update is operationally safe.
+
+---
+
+# 64. Backup and Recovery Awareness
+
+Database changes should consider recovery.
+
+Important concepts:
+
+```text
+Backup
+Restore
+Point-in-time recovery
+WAL
+Replication
+Retention
+```
+
+Do not claim a migration is safe merely because it succeeds in development.
+
+Operational recovery is part of database safety.
+
+---
+
+# 65. Security
+
+Follow least privilege.
+
+Applications should not necessarily connect using a superuser.
+
+Separate responsibilities where appropriate:
+
+```text
+Application role
+Migration role
+Administrative role
+Read-only role
+```
+
+Do not expose database credentials in source code.
+
+Do not commit:
+
+```text
+passwords
+connection strings containing secrets
+private keys
+```
+
+---
+
+# 66. SQL Injection
+
+Never concatenate untrusted input into SQL.
+
+Bad:
+
+```sql
+SELECT *
+FROM users
+WHERE name = '...user input...';
+```
+
+Use:
+
+```text
+Parameterized queries
+Prepared statements
+ORM parameterization
+```
+
+The ORM should generate parameters correctly; do not bypass that safety without a reason.
+
+---
+
+# 67. Connection Management
+
+Applications should use connection pooling appropriately.
+
+Do not manually open and retain database connections longer than necessary.
+
+Understand:
+
+```text
+Connection pool
+Connection lifetime
+Timeout
+Maximum pool size
+```
+
+before tuning connection settings.
+
+---
+
+# 68. PostgreSQL Configuration
+
+Do not change server settings blindly.
+
+Potential settings include:
+
+```text
+max_connections
+shared_buffers
+work_mem
+maintenance_work_mem
+effective_cache_size
+statement_timeout
+```
+
+Configuration should be based on:
+
+```text
+Workload
+Hardware
+Concurrency
+Query patterns
+Observed metrics
+```
+
+Do not copy tuning values from unrelated systems.
+
+---
+
+# 69. Statement Timeout
+
+Consider using statement timeouts to prevent runaway queries.
+
+Timeouts should be chosen based on expected workload.
+
+Do not use an extremely short timeout that causes legitimate operations to fail.
+
+Do not use an extremely long timeout that allows pathological queries to consume resources indefinitely.
+
+---
+
+# 70. Connection Pooling
+
+Connection pools reduce the overhead of establishing database connections.
+
+However, increasing pool size indefinitely is not a performance solution.
+
+Too many concurrent connections can overwhelm PostgreSQL.
+
+Tune:
+
+```text
+Application concurrency
+Pool size
+PostgreSQL max_connections
+Workload
+```
+
+together.
+
+---
+
+# 71. Monitoring
+
+Important PostgreSQL metrics include:
+
+```text
+Query latency
+Connections
+Locks
+Deadlocks
+Cache hit ratio
+CPU
+Memory
+Disk I/O
+WAL
+Replication lag
+Table/index bloat
+```
+
+Use actual metrics when optimizing production systems.
+
+---
+
+# 72. Vacuum and Analyze
+
+Understand PostgreSQL maintenance:
+
+```text
+VACUUM
+ANALYZE
+Autovacuum
+```
+
+Autovacuum is critical to normal PostgreSQL operation.
+
+Do not disable autovacuum casually.
+
+When diagnosing performance or table growth, consider whether maintenance statistics are current.
+
+---
+
+# 73. Table and Index Bloat
+
+High update/delete workloads can lead to bloat.
+
+When investigating storage/performance issues, consider:
+
+```text
+Autovacuum behavior
+Dead tuples
+Index growth
+Table growth
+Long-running transactions
+```
+
+Do not rebuild indexes or vacuum aggressively without understanding the cause.
+
+---
+
+# 74. Partitioning
+
+Partitioning can be useful for very large tables.
+
+Potential partition keys:
+
+```text
+Time
+Tenant
+Range
+List
+```
+
+Consider partitioning only when:
+
+* Table size justifies it.
+* Query patterns benefit.
+* Maintenance benefits.
+* Partition pruning is meaningful.
+
+Do not partition small tables by default.
+
+---
+
+# 75. Multi-Tenancy
+
+If the application supports multiple tenants, explicitly define the database strategy:
+
+```text
+Database per tenant
+Schema per tenant
+Shared schema with tenant_id
+```
+
+For shared-schema designs:
+
+```text
+tenant_id
+```
+
+must be consistently incorporated into:
+
+```text
+Queries
+Constraints
+Indexes
+Security boundaries
+```
+
+Do not treat tenant isolation as merely an application filtering concern.
+
+---
+
+# 76. Data Integrity Priority
+
+When choosing between convenience and integrity:
+
+```text
+Prefer database integrity.
+```
+
+For important invariants, use:
+
+```text
+NOT NULL
+CHECK
+UNIQUE
+PRIMARY KEY
+FOREIGN KEY
+EXCLUSION constraints
+```
+
+where appropriate.
+
+Application validation complements these constraints; it does not replace them.
+
+---
+
+# 77. PostgreSQL-Specific Features
+
+Use PostgreSQL-specific features when they provide clear value.
+
+Examples:
+
+```text
+JSONB
+GIN/GiST
+Partial indexes
+Expression indexes
+Generated columns
+Range types
+Full-text search
+Extensions
+CTEs
+Window functions
+Materialized views
+```
+
+Do not use PostgreSQL-specific features merely to demonstrate database sophistication.
+
+Prefer portability only when portability is actually a requirement.
+
+---
+
+# 78. Agent Workflow
+
+When implementing a PostgreSQL change:
+
+```text
+1. Inspect current schema
+        ↓
+2. Understand data model
+        ↓
+3. Identify invariants
+        ↓
+4. Identify query patterns
+        ↓
+5. Choose appropriate types
+        ↓
+6. Add constraints
+        ↓
+7. Design indexes
+        ↓
+8. Consider concurrency
+        ↓
+9. Create migration
+        ↓
+10. Review migration
+        ↓
+11. Test against PostgreSQL
+        ↓
+12. Inspect performance when relevant
+```
+
+---
+
+# 79. Query Optimization Workflow
+
+When a query is slow:
+
+```text
+1. Reproduce the problem
+2. Measure execution time
+3. Run EXPLAIN
+4. Use EXPLAIN ANALYZE when safe
+5. Inspect query plan
+6. Check indexes
+7. Check row estimates
+8. Check filtering/selectivity
+9. Check joins
+10. Change one meaningful thing
+11. Measure again
+```
+
+Do not optimize without evidence.
+
+---
+
+# 80. Schema Review Checklist
+
+Before completing a schema change:
+
+```text
+[ ] Table has a clear purpose
+[ ] Primary key is appropriate
+[ ] Required columns are NOT NULL
+[ ] Data types match domain semantics
+[ ] Foreign keys are defined
+[ ] Delete behavior is intentional
+[ ] Important invariants have constraints
+[ ] Unique constraints are defined where necessary
+[ ] Indexes support important queries
+[ ] Composite indexes have appropriate column order
+[ ] No unnecessary indexes
+[ ] Timestamp semantics are clear
+[ ] Monetary values use exact numeric types
+[ ] JSONB is used intentionally
+[ ] Migration is reversible or operationally safe where possible
+[ ] Existing data is considered
+[ ] Large data changes are handled safely
+[ ] Production impact has been considered
+```
+
+---
+
+# 81. Performance Review Checklist
+
+```text
+[ ] Query returns only required data
+[ ] Query is bounded
+[ ] Appropriate indexes exist
+[ ] No obvious sequential scan on large filtered data
+[ ] Join strategy is reasonable
+[ ] Composite index order is appropriate
+[ ] No redundant indexes
+[ ] Pagination is deterministic
+[ ] Large updates are controlled
+[ ] Transactions are not unnecessarily long
+[ ] Connection usage is appropriate
+[ ] Query plan has been inspected for important queries
+```
+
+---
+
+# 82. Migration Review Checklist
+
+```text
+[ ] Migration matches intended schema change
+[ ] No accidental table/column deletion
+[ ] No unexpected data loss
+[ ] Existing rows remain valid
+[ ] New NOT NULL columns have a safe strategy
+[ ] Indexes are appropriate
+[ ] Constraints are safe to introduce
+[ ] Large data operations are considered
+[ ] SQL generated by the migration was reviewed
+[ ] Upgrade path was tested
+[ ] Rollback/recovery implications were considered
+```
+
+---
+
+# 83. Agent Decision Rules
+
+When deciding how to implement a database requirement:
+
+### Question 1
+
+Is this a database integrity rule?
+
+```text
+Yes → Prefer a PostgreSQL constraint.
+```
+
+### Question 2
+
+Is this primarily a business workflow?
+
+```text
+Yes → Keep the business rule in the application/domain architecture.
+```
+
+### Question 3
+
+Is this a persistence mapping concern?
+
+```text
+Yes → Consult dotnet-efcore.
+```
+
+### Question 4
+
+Is this a PostgreSQL-specific optimization?
+
+```text
+Yes → Implement using PostgreSQL capabilities when justified.
+```
+
+### Question 5
+
+Is the performance problem measured?
+
+```text
+No → Measure first.
+Yes → Optimize based on evidence.
+```
+
+---
+
+# 84. Non-Negotiable Rules
+
+```text
+1. Database integrity must not depend exclusively on application validation.
+2. Do not use floating-point types for exact monetary values.
+3. Do not concatenate untrusted values into SQL.
+4. Do not blindly add indexes.
+5. Do not blindly use CASCADE deletes.
+6. Do not use EF Core InMemory as a universal substitute for PostgreSQL.
+7. Use the actual PostgreSQL provider when PostgreSQL-specific behavior matters.
+8. Do not optimize without measuring.
+9. Do not perform destructive migrations without understanding their impact.
+10. Do not introduce PostgreSQL-specific features without a clear reason.
+11. Do not store secrets in schema scripts or source control.
+12. Do not use long-running transactions unnecessarily.
+13. Do not assume foreign keys automatically provide useful indexes.
+14. Do not make every column nullable without semantic justification.
+15. Do not use JSONB as a replacement for relational modeling by default.
+16. Do not partition tables without a scale or maintenance justification.
+17. Do not disable autovacuum casually.
+18. Do not use production credentials in development or tests.
+19. Review generated migration SQL before applying important schema changes.
+20. Prefer explicit, enforceable data invariants.
+```
+
+---
+
+# 85. Final Principle
+
+A good PostgreSQL database should make invalid states difficult or impossible to persist.
+
+Prefer:
+
+```text
+Correct data types
++
+Constraints
++
+Relationships
++
+Appropriate indexes
++
+Safe transactions
++
+Measured performance
++
+Safe migrations
+```
+
+over:
+
+```text
+Application assumptions
++
+Implicit behavior
++
+Unbounded queries
++
+Unnecessary indexes
++
+Unsafe migrations
+```
+
+The database is not merely storage.
+
+It is part of the application's consistency and correctness boundary.
