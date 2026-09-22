@@ -194,19 +194,19 @@ export default {
       },
 
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        display: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        body: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ["'Be Vietnam Pro'", 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ["'Be Vietnam Pro'", 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        body: ["'Be Vietnam Pro'", 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
         /* Migration alias — 57 usages of `font-monospace-num` */
         'monospace-num': ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
-        'display-hero': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        'headline-1': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        'headline-2': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        'headline-3': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        'body-lg': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        'body-reg': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        caption: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'display-hero': ["'Be Vietnam Pro'", 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'headline-1': ["'Be Vietnam Pro'", 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'headline-2': ["'Be Vietnam Pro'", 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'headline-3': ["'Be Vietnam Pro'", 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'body-lg': ["'Be Vietnam Pro'", 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'body-reg': ["'Be Vietnam Pro'", 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        caption: ["'Be Vietnam Pro'", 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
 
       fontSize: {

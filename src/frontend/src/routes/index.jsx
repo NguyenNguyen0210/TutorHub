@@ -102,12 +102,12 @@ export default function AppRoutes() {
         } />
       </Route>
 
-      {/* 2. Auth Routes (guest only) */}
+      {/* 2. Auth Routes */}
+      <Route path="/auth/login" element={<GuestGuard><Login /></GuestGuard>} />
+      <Route path="/login" element={<Navigate to="/auth/login" replace />} />
+      <Route path="/auth/register" element={<GuestGuard><Register /></GuestGuard>} />
+      <Route path="/register" element={<Navigate to="/auth/register" replace />} />
       <Route element={<AuthLayout />}>
-        <Route path="/auth/login" element={<GuestGuard><Login /></GuestGuard>} />
-        <Route path="/login" element={<Navigate to="/auth/login" replace />} />
-        <Route path="/auth/register" element={<GuestGuard><Register /></GuestGuard>} />
-        <Route path="/register" element={<Navigate to="/auth/register" replace />} />
         <Route path="/tutor/application" element={<RequireAuth><TutorApplication /></RequireAuth>} />
         <Route path="/tutor/onboarding" element={<Navigate to="/tutor/application" replace />} />
       </Route>
