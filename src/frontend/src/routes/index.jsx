@@ -34,7 +34,6 @@ import PublicLayout from '../layouts/PublicLayout';
 import StudentLayout from '../layouts/StudentLayout';
 import TutorLayout from '../layouts/TutorLayout';
 import AdminLayout from '../layouts/AdminLayout';
-import AuthLayout from '../layouts/AuthLayout';
 
 // Auth & Onboarding Screens
 import Login from '../pages/auth/Login';
@@ -101,6 +100,10 @@ export default function AppRoutes() {
         <Route path="/app/notifications" element={
           <RequireAuth><Notifications /></RequireAuth>
         } />
+        <Route path="/tutor/application" element={
+          <RequireAuth><TutorApplication /></RequireAuth>
+        } />
+        <Route path="/tutor/onboarding" element={<Navigate to="/tutor/application" replace />} />
       </Route>
 
       {/* 2. Auth Routes */}
@@ -108,10 +111,6 @@ export default function AppRoutes() {
       <Route path="/login" element={<Navigate to="/auth/login" replace />} />
       <Route path="/auth/register" element={<GuestGuard><Register /></GuestGuard>} />
       <Route path="/register" element={<Navigate to="/auth/register" replace />} />
-      <Route element={<AuthLayout />}>
-        <Route path="/tutor/application" element={<RequireAuth><TutorApplication /></RequireAuth>} />
-        <Route path="/tutor/onboarding" element={<Navigate to="/tutor/application" replace />} />
-      </Route>
 
       {/* 3. Student Routes (auth + Student role) */}
       <Route path="/student" element={
