@@ -6,6 +6,7 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Disputes.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
+using TutorHub.Domain.Services;
 
 namespace TutorHub.Application.Features.Disputes.Commands.FastTrackResolveDispute;
 
@@ -126,8 +127,7 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
             {
                 // Tutor taught, student ghosted: release full net payout.
                 decision = DisputeResolutionDecision.TutorWinsReleaseEarning;
-                var platformFee = Math.Round(gross * feeRate, 2, MidpointRounding.AwayFromZero);
-                var tutorNetPayout = gross - platformFee;
+                var (platformFee, tutorNetPayout) = PlatformFeeCalculator.SplitGross(gross, feeRate);
 
                 tutorWallet.CreditAvailable(tutorNetPayout, now);
 

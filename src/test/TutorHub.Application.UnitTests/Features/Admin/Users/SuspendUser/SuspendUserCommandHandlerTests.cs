@@ -39,7 +39,7 @@ public class SuspendUserCommandHandlerTests
         {
             Id = Guid.NewGuid(),
             UserId = targetUser.Id,
-            Token = "active-refresh-token",
+            TokenHash = "hash:active-refresh-token",
             ExpiresAt = DateTime.UtcNow.AddDays(7),
             CreatedAt = DateTime.UtcNow.AddDays(-1),
             RevokedAt = null

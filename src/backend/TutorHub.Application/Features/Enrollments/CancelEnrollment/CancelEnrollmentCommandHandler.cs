@@ -79,6 +79,10 @@ public class CancelEnrollmentCommandHandler : IRequestHandler<CancelEnrollmentCo
                     // Guarded domain debit preserves the pending-escrow invariant.
                     wallet.DebitPending(refundAmount, now);
                 }
+                else
+                {
+                    throw new InvalidOperationException("Financial invariant violated: Tutor wallet not found for escrow debit during enrollment cancellation.");
+                }
 
                 // DEC-S8-032 / INV-REFUND-004: refunds start Pending and only settle
                 // via the external provider callback; the obligation is explicit.

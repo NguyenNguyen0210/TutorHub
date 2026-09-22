@@ -7,5 +7,6 @@ public record UserDto(
     string? Phone,
     string Role,
     string? AvatarUrl,
-    Guid? IdProfile
+    Guid? IdProfile,
+    int AbsentStrikes = 0
 );

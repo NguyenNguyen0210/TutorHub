@@ -1,8 +1,10 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
+using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Sessions.CancelSession;
@@ -11,12 +13,18 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
 {
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
+    private readonly IAuditLogService _auditLogService;
     private readonly ICurrentUserService _currentUserService;
 
-    public CancelSessionCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
+    public CancelSessionCommandHandler(
+        IAppDbContext context,
+        IClock clock,
+        IAuditLogService auditLogService,
+        ICurrentUserService currentUserService)
     {
         _context = context;
         _clock = clock;
+        _auditLogService = auditLogService;
         _currentUserService = currentUserService;
     }
 
@@ -61,6 +69,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
         // 3. Domain gate: Unscheduled, or Scheduled with future StartAt. Completed /
         // Cancelled / started sessions are rejected inside CancelSingle (→ 409 via handler mapping).
         var now = _clock.UtcNow;
+        var oldStatus = session.Status;
         try
         {
             session.CancelSingle(request.Reason, now);
@@ -78,7 +87,69 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
         // now be terminal, allowing the Enrollment to complete (FR-ENR-005).
         enrollment.EvaluateCompletion();
 
-        await _context.SaveChangesAsync(cancellationToken);
+        // 5. Financial Escrow Adjustment & Refund Record (INV-LEDGER-006, INV-REFUND-004)
+        // Lock the tutor wallet row so concurrent payouts/cancellations cannot race pending-escrow.
+        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            if (session.EarningAmount > 0)
+            {
+                var wallet = await _context.Wallets
+                    .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {enrollment.TutorProfileId} FOR UPDATE")
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (wallet != null)
+                {
+                    wallet.DebitPending(session.EarningAmount, now);
+                }
+                else
+                {
+                    throw new InvalidOperationException("Financial invariant violated: Tutor wallet not found for escrow debit during single session cancellation.");
+                }
+
+                var refundTx = Transaction.CreateRefund(
+                    bookingId: enrollment.BookingId,
+                    sessionId: session.Id,
+                    disputeId: null,
+                    originalPayout: null,
+                    amount: session.EarningAmount,
+                    paymentGatewayRef: $"EscrowRefund-Session-{session.Id:N}",
+                    description: $"Single session cancellation refund: {request.Reason.Trim()}",
+                    now: now);
+                refundTx.SettlementRequired = true;
+                _context.Transactions.Add(refundTx);
+
+                _context.AddOutboxMessage(new RefundCreatedEvent(
+                    enrollment.Id,
+                    enrollment.StudentProfile.UserId,
+                    new MoneyDto(session.EarningAmount),
+                    refundTx.Id));
+            }
+
+            _context.AddOutboxMessage(new SessionCancelledEvent(
+                session.Id,
+                enrollment.Id,
+                enrollment.StudentProfile.UserId,
+                enrollment.TutorProfile.UserId,
+                request.Reason));
+
+            await _auditLogService.LogAsync(
+                action: "SESSION_CANCELLED",
+                entityName: "Session",
+                entityId: session.Id.ToString(),
+                userId: userId,
+                oldValues: new { status = oldStatus.ToString() },
+                newValues: new { status = "Cancelled", reason = request.Reason, refundAmount = session.EarningAmount },
+                cancellationToken: cancellationToken);
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
 
         // F-23 (Đợt 4): centralized mapping.
         return SessionMapper.ToDto(session);

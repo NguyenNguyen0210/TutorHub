@@ -36,5 +36,11 @@ public class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage
 
         builder.Property(o => o.LockedBy)
             .HasMaxLength(128);
+
+        // Optimistic concurrency token (xmin in PostgreSQL)
+        builder.Property<uint>("xmin")
+            .HasColumnType("xid")
+            .ValueGeneratedOnAddOrUpdate()
+            .IsConcurrencyToken();
     }
 }

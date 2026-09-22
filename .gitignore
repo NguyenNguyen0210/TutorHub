@@ -1,4 +1,4 @@
-# =====================
+    # =====================
 # .NET / dotnet
 # =====================
 bin/
@@ -101,3 +101,13 @@ Desktop.ini
 # Local AI tooling artifacts (private)
 # =====================
 .commandcode/
+.kombai/
+docs/project-guide.md
+design.md
+docs/frontend-specification.md
+.playwright-mcp/
+playwright-report/
+test-results/
+.git_commit_msg*.txt
+
+

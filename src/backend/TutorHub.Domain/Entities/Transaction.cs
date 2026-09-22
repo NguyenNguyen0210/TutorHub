@@ -143,7 +143,7 @@ public class Transaction
             DisputeId = disputeId,
             RelatedTransactionId = originalPayout.Id,
             Type = TransactionType.PlatformFeeReversal,
-            Amount = 0,
+            Amount = feeReversalAmount,
             CommissionRate = feeRate,
             CommissionAmount = feeReversalAmount,
             PayoutAmount = 0,

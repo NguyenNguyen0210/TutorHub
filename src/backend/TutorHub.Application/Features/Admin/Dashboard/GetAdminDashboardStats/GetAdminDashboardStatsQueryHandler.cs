@@ -88,7 +88,7 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
             ExpiredBookings: expiredBookings
         );
 
-        // 4. Financial & GMV Metrics (Held = In Escrow, Released = Completed & Paid to Tutor, Refunded = Returned to Student)
+        // 4. Financial & GMV Metrics
         var transactionGroup = await _context.Transactions
             .AsNoTracking()
             .GroupBy(t => t.Status)
@@ -101,8 +101,14 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
             })
             .ToListAsync(cancellationToken);
 
-        var heldTx = transactionGroup.FirstOrDefault(g => g.Status == TransactionStatus.Held);
         var releasedTx = transactionGroup.FirstOrDefault(g => g.Status == TransactionStatus.Released);
+
+        // GMV is computed from real paid bookings to prevent double-counting
+        // with per-session payout releases (P1-1).
+        decimal totalGmv = await _context.Bookings
+            .AsNoTracking()
+            .Where(b => b.Status == BookingStatus.Paid)
+            .SumAsync(b => (decimal?)b.TotalPrice, cancellationToken) ?? 0;
 
         // Refunds are materialized as StudentRefund transactions and start Pending
         // until the external provider settles them (DEC-S8-032); count by type so
@@ -112,12 +118,15 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
             .Where(t => t.Type == TransactionType.StudentRefund)
             .SumAsync(t => (decimal?)t.Amount, cancellationToken) ?? 0;
 
-        decimal heldAmount = heldTx?.TotalAmount ?? 0;
-        decimal releasedAmount = releasedTx?.TotalAmount ?? 0;
+        decimal netGmv = Math.Max(0m, totalGmv - refundedAmount);
 
-        decimal totalGmv = heldAmount + releasedAmount + refundedAmount;
-        decimal netGmv = heldAmount + releasedAmount;
-        decimal totalPlatformRevenue = releasedTx?.TotalPlatformFee ?? 0;
+        // Platform fee reversals from settled disputes reduce recognized platform revenue (P1-2).
+        decimal feeReversals = await _context.Transactions
+            .AsNoTracking()
+            .Where(t => t.Type == TransactionType.PlatformFeeReversal)
+            .SumAsync(t => (decimal?)t.CommissionAmount, cancellationToken) ?? 0;
+
+        decimal totalPlatformRevenue = Math.Max(0m, (releasedTx?.TotalPlatformFee ?? 0) - feeReversals);
         decimal totalTutorPayouts = releasedTx?.TotalPayoutAmount ?? 0;
         decimal totalRefundedAmount = refundedAmount;
 

@@ -25,7 +25,10 @@ public static class SessionMapper
             CancelledAt: session.CancelledAt,
             StudentAttendance: session.StudentAttendance,
             TutorAttendance: session.TutorAttendance,
-            HasAttendanceConflict: session.HasAttendanceConflict
+            HasAttendanceConflict: session.HasAttendanceConflict,
+            AttendanceVerificationDueAt: session.AttendanceVerificationDueAt,
+            TutorName: session.Enrollment?.TutorProfile?.User?.FullName,
+            SubjectName: session.Enrollment?.Subject?.Name
         );
     }
 

@@ -1,7 +1,14 @@
+using TutorHub.Domain.Enums;
+
 namespace TutorHub.Application.Common.Storage;
 
 public interface IObjectStorageService
 {
+    /// <summary>
+    /// Business-visible origin of objects written through this implementation.
+    /// Implementations report their configured provider; callers must not assume one.
+    /// </summary>
+    StorageProvider Provider { get; }
     Task<StoredFileResult> UploadAsync(
         Stream stream,
         string objectKey,

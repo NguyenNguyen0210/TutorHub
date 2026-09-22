@@ -1077,8 +1077,11 @@ Các event chính gồm:
 
 MVP:
 
-* In-app notification.
-* Email.
+* In-app notification (SignalR `/hubs/notifications` push và Notification Center).
+* Email (Asynchronous delivery qua `NotificationDeliveryPolicy` và background service `EmailDeliveryJob`).
+  * Hỗ trợ 26 sự kiện domain cốt lõi (Session, Attendance, Escrow, Refund, Withdrawal, Dispute) và các sự kiện bảo mật danh tính (`AccountVerification`, `PasswordChanged`).
+  * Môi trường cá nhân / Development: `LogOnlyEmailSender` ghi log chi tiết vào console.
+  * Môi trường Production: `SesEmailSender` tích hợp Amazon SES.
 
 Không yêu cầu SMS.
 
@@ -1118,15 +1121,14 @@ Dispute Resolved
 
 ## 15.6. Critical Notifications
 
-Các notification quan trọng về:
+Các notification quan trọng (`IsCritical = true`) không thể bị tắt hoàn toàn:
 
-* Payment.
-* Refund.
-* Withdrawal.
-* Dispute.
-* Security.
-
-không thể bị tắt hoàn toàn.
+* Payment & Enrollment (`PaymentSucceeded`, `EnrollmentActivated`, `EnrollmentCancelled`).
+* Session (`SessionCancelled`, `AttendanceConflictDetected`).
+* Refund (`RefundCreated`, `RefundCompleted`, `RefundFailed`).
+* Withdrawal (`WithdrawalRequested`, `WithdrawalCompleted`, `WithdrawalFailed`).
+* Dispute (`DisputeCreated`, `DisputeResolved`).
+* Security & Identity (`AccountVerification`, `PasswordChanged`).
 
 ---
 
@@ -1244,9 +1246,14 @@ Mọi refund phải có:
 
 ## 16.7. Withdrawal Management
 
-Admin có thể xử lý operational issues liên quan đến withdrawal.
+Admin quản trị và điều phối các yêu cầu rút tiền của Gia sư qua giao diện `/admin/withdrawals`:
+* Xem danh sách lệnh rút tiền phân trang, lọc theo trạng thái (`Pending`, `Processing`, `Completed`, `Failed`).
+* Xem chi tiết thông tin tài khoản ngân hàng thụ hưởng và hồ sơ gia sư.
+* Chuyển trạng thái sang `Processing` khi tiếp nhận chi trả.
+* Xác nhận hoàn tất `Completed` khi ngân hàng đã chuyển tiền thành công, phát sinh sự kiện `WithdrawalCompletedEvent` và ghi Audit Log.
+* Đánh dấu `Failed` kèm lý do lỗi bắt buộc: Hệ thống hoàn trả số tiền tạm giữ về lại `AvailableBalance` của gia sư (`wallet.RefundFailedWithdrawal`), phát sinh sự kiện `WithdrawalFailedEvent`, gửi email thông báo và ghi Audit Log.
 
-Admin không được tùy ý sửa Tutor Balance.
+Admin không được tùy ý sửa Tutor Balance ngoài các flow đã định nghĩa.
 
 Financial adjustment phải được tạo thành explicit record.
 

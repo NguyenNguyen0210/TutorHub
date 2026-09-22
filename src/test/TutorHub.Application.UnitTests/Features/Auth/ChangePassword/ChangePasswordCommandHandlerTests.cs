@@ -42,7 +42,7 @@ public class ChangePasswordCommandHandlerTests
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
-            Token = "active-session-token",
+            TokenHash = "hash:active-session-token",
             ExpiresAt = DateTime.UtcNow.AddDays(5),
             CreatedAt = DateTime.UtcNow.AddDays(-2),
             RevokedAt = null
@@ -130,5 +130,46 @@ public class ChangePasswordCommandHandlerTests
         user.PasswordHash.Should().Be(initialHash);
         _passwordHasherMock.Verify(h => h.HashPassword(It.IsAny<string>()), Times.Never);
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldCreateSecurityNotificationAndEmailDelivery_WhenPasswordChanged()
+    {
+        // Arrange
+        var user = new UserBuilder().WithEmail("security@example.com").Build();
+        var usersList = new List<User> { user };
+        var tokensList = new List<Domain.Entities.RefreshToken>();
+        var notificationsList = new List<Notification>();
+        var emailDeliveriesList = new List<EmailDelivery>();
+
+        _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
+        _contextMock.Setup(c => c.RefreshTokens).Returns(MockDbSetHelper.CreateMockDbSet(tokensList).Object);
+        _contextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notificationsList).Object);
+        _contextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveriesList).Object);
+        _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        _passwordHasherMock
+            .Setup(h => h.VerifyPassword("OldPassword123!", user.PasswordHash))
+            .Returns(true);
+
+        _passwordHasherMock
+            .Setup(h => h.HashPassword("NewPassword456!"))
+            .Returns("$2a$11$newhash");
+
+        _currentUser.Set(user.Id, UserRole.Student);
+
+        var command = new ChangePasswordCommand("OldPassword123!", "NewPassword456!");
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.Should().BeTrue();
+        notificationsList.Should().ContainSingle(n => n.Type == "PasswordChanged" && n.UserId == user.Id && n.IsCritical);
+        emailDeliveriesList.Should().ContainSingle(e => e.ToEmail == "security@example.com" && e.UserId == user.Id);
+
+        var email = emailDeliveriesList.Single();
+        email.Subject.Should().Contain("Mật khẩu tài khoản TutorHub vừa được thay đổi");
+        email.Status.Should().Be(EmailDeliveryStatus.Pending);
     }
 }

@@ -12,7 +12,7 @@ public class WalletConfiguration : IEntityTypeConfiguration<Wallet>
 
         builder.ToTable(t =>
         {
-            t.HasCheckConstraint("CK_Wallet_NonNegativeBalances", "\"PendingBalance\" >= 0 AND \"AvailableBalance\" >= 0");
+            t.HasCheckConstraint("CK_Wallet_NonNegativeBalances", "\"PendingBalance\" >= 0 AND \"AvailableBalance\" >= 0 AND \"HeldBalance\" >= 0 AND \"HeldBalance\" <= \"AvailableBalance\"");
         });
 
         builder.HasIndex(w => w.TutorProfileId)

@@ -4,6 +4,7 @@ using Amazon.S3.Model;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TutorHub.Application.Common.Storage;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Infrastructure.Services.Storage;
 
@@ -22,6 +23,8 @@ public sealed class CloudflareR2ObjectStorageService : IObjectStorageService
         _options = options.Value;
         _logger = logger;
     }
+
+    public StorageProvider Provider => StorageProvider.CloudflareR2;
 
     public async Task<StoredFileResult> UploadAsync(
         Stream stream,

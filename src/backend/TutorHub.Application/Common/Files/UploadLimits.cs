@@ -16,8 +16,10 @@ public static class UploadLimits
     {
         "image/jpeg",
         "image/png",
+        "image/webp",
         "image/gif",
-        "application/pdf"
+        "application/pdf",
+        "text/plain"
     };
 
     // Dispute evidence: 10 MB (CLAUDE.md trap #4 whitelist).

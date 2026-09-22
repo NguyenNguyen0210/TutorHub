@@ -48,7 +48,7 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
             throw new BadRequestException($"File binary signature does not match declared extension '{ext}' or contains invalid file header.");
         }
 
-        // 2. Determine Privacy & Partitioned S3 ObjectKey
+        // 2. Determine Privacy & Partitioned Object Storage Key
         var isPrivate = request.MediaType != MediaType.Avatar;
 
 
@@ -63,7 +63,7 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
             _ => $"general/{userId}/{now:yyyy}/{now:MM}/{storedFileName}"
         };
 
-        // 3. Upload to Cloudflare R2 Object Storage
+        // 3. Upload to the configured object-storage implementation
         var storedResult = await _storageService.UploadAsync(
             stream: request.Stream,
             objectKey: objectKey,
@@ -79,7 +79,7 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
             OriginalFileName = request.OriginalFileName,
             ContentType = detectedMime,
             FileSize = storedResult.Size,
-            StorageProvider = StorageProvider.CloudflareR2,
+            StorageProvider = _storageService.Provider,
             MediaType = request.MediaType,
             IsPrivate = isPrivate,
             Status = MediaStatus.Active,
@@ -94,22 +94,22 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to persist Media record in DB for ObjectKey={ObjectKey}. Rolling back R2 object.", objectKey);
+            _logger.LogError(ex, "Failed to persist Media record in DB for ObjectKey={ObjectKey}. Rolling back orphaned storage object.", objectKey);
 
-            // Rollback orphan object on R2
+            // Rollback orphan object in object storage
             try
             {
                 await _storageService.DeleteAsync(objectKey, CancellationToken.None);
             }
             catch (Exception rollbackEx)
             {
-                _logger.LogError(rollbackEx, "Failed to rollback R2 object ObjectKey={ObjectKey}", objectKey);
+                _logger.LogError(rollbackEx, "Failed to rollback orphaned storage object ObjectKey={ObjectKey}", objectKey);
             }
 
             throw;
         }
 
-        // 5. Generate Presigned Access URL (15 minutes)
+        // 5. Generate short-lived download URL
         var accessUrl = await _storageService.GenerateDownloadUrlAsync(media.ObjectKey, TimeSpan.FromMinutes(15), cancellationToken);
 
         return new MediaDto(

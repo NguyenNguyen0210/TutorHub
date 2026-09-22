@@ -9,7 +9,7 @@ public class Media
     public string OriginalFileName { get; set; } = default!;
     public string ContentType { get; set; } = default!;
     public long FileSize { get; set; }
-    public StorageProvider StorageProvider { get; set; } = StorageProvider.CloudflareR2;
+    public StorageProvider StorageProvider { get; set; }
     public MediaType MediaType { get; set; }
     public bool IsPrivate { get; set; }
     public MediaStatus Status { get; set; } = MediaStatus.Active;

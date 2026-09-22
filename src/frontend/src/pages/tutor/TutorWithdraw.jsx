@@ -1,0 +1,243 @@
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import walletService from '@/services/wallet.service';
+import { formatCurrency, formatDateTime } from '@/utils/formatters';
+import Money from '@/components/ui/Money';
+import { useToast } from '@/components/ui/Toast';
+import ErrorState from '@/components/common/ErrorState';
+import { DetailSkeleton } from '@/components/common/Skeleton';
+import Card, { CardHeader } from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import Callout from '@/components/ui/Callout';
+import Icon from '@/components/ui/Icon';
+import Input, { Field } from '@/components/ui/Input';
+import { PageHeader } from '@/components/ui/StatCard';
+import { getWithdrawalStatusMeta } from '@/config/enums';
+
+export default function TutorWithdraw() {
+  const toast = useToast();
+  const navigate = useNavigate();
+  const [wallet, setWallet] = useState(null);
+  const [payoutAccount, setPayoutAccount] = useState(null);
+  const [withdrawals, setWithdrawals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [amount, setAmount] = useState('50000');
+  const [note, setNote] = useState('Rút thù lao giảng dạy');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadData() {
+      try {
+        setLoading(true);
+        const [walletData, account, history] = await Promise.all([
+          walletService.getMyWallet(),
+          walletService.getPayoutAccount(),
+          walletService.getWithdrawals({ pageSize: 5 }),
+        ]);
+        if (isMounted) {
+          setWallet(walletData);
+          setPayoutAccount(account);
+          setWithdrawals(history?.items || []);
+          if (walletData?.withdrawableBalance) {
+            setAmount(String(Math.min(walletData.withdrawableBalance, 500000)));
+          }
+          setError(null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // DEC-WD-001
+  const withdrawableLimit = Math.max(0, (wallet?.availableBalance || 0) - (wallet?.heldBalance || 0));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const num = parseInt(amount, 10);
+    if (!num || num < 50000) {
+      toast.error('Số tiền rút tối thiểu là 50.000 ₫');
+      return;
+    }
+    if (num > withdrawableLimit) {
+      toast.error('Số tiền rút vượt quá hạn mức được phép');
+      return;
+    }
+    if (!payoutAccount?.accountNumber) {
+      toast.error('Chưa có thông tin tài khoản ngân hàng thụ hưởng.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await walletService.createWithdrawal({
+        amount: num,
+        bankName: payoutAccount.bankName || 'Ngân Hàng',
+        bankCode: payoutAccount.bankCode || 'BANK',
+        accountNumber: payoutAccount.accountNumber,
+        accountHolderName: payoutAccount.accountHolderName,
+        note: note.trim() || 'Rút thù lao giảng dạy',
+      });
+      toast.success(`Đã tạo lệnh rút ${formatCurrency(num)} thành công! Lệnh đang chờ xử lý.`);
+      navigate('/tutor/wallet');
+    } catch (err) {
+      toast.error(err?.message || 'Không thể tạo lệnh rút tiền.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto py-8">
+        <DetailSkeleton />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto py-8">
+        <ErrorState error={error} backPath="/tutor/wallet" backLabel="Quay lại ví" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      <Link
+        to="/tutor/wallet"
+        className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
+      >
+        <Icon name="arrow_back" size="sm" />
+        Quay lại ví bảo chứng
+      </Link>
+
+      <PageHeader
+        title="Yêu cầu rút tiền về tài khoản ngân hàng"
+        subtitle="Chỉ được rút từ Số dư khả dụng (Available) sau khi trừ đi các khoản tiền đang bị phong tỏa tranh chấp (Held)"
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card padding="lg" className="lg:col-span-2 space-y-5">
+          <Callout variant="success" title="Hạn mức được phép rút hiện tại">
+            <span className="text-headline-2 font-semibold">
+              <Money value={withdrawableLimit} />
+            </span>
+          </Callout>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Field
+              label="Số tiền muốn rút (₫)"
+              htmlFor="withdraw-amount"
+              required
+              hint={`Tối thiểu: 50.000 ₫ • Tối đa: ${formatCurrency(withdrawableLimit)}`}
+            >
+              <Input
+                id="withdraw-amount"
+                type="number"
+                required
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                min="50000"
+                max={withdrawableLimit}
+                className="tabular-nums font-bold text-body-lg"
+              />
+            </Field>
+
+            <div className="space-y-2">
+              <span className="block text-caption font-semibold text-fg-secondary uppercase tracking-wide">
+                Tài khoản ngân hàng thụ hưởng đã xác thực
+              </span>
+              <div className="p-4 rounded-brand-md bg-neutral-50 border border-border flex items-center justify-between text-caption">
+                <div>
+                  <span className="font-semibold text-fg block">
+                    {payoutAccount?.bankName || 'Ngân hàng thụ hưởng'}
+                  </span>
+                  <span className="text-fg-secondary font-mono">
+                    STK: {payoutAccount?.accountNumber || '—'} •{' '}
+                    {payoutAccount?.accountHolderName || ''}
+                  </span>
+                </div>
+                <Badge variant="success" size="sm">
+                  Đã xác thực KYC
+                </Badge>
+              </div>
+            </div>
+
+            <Field label="Ghi chú giao dịch" htmlFor="withdraw-note">
+              <Input
+                id="withdraw-note"
+                type="text"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </Field>
+
+            <Button
+              type="submit"
+              variant="success"
+              size="lg"
+              fullWidth
+              loading={submitting}
+              disabled={withdrawableLimit < 50000}
+              icon={!submitting && <Icon name="send" size="sm" />}
+            >
+              {`Xác nhận rút ${formatCurrency(parseInt(amount, 10) || 0)} về ngân hàng`}
+            </Button>
+          </form>
+        </Card>
+
+        <Card padding="md" className="space-y-4">
+          <CardHeader title="Lệnh rút gần đây" icon={<Icon name="history" size="sm" />} />
+
+          {withdrawals.length === 0 ? (
+            <p className="text-caption text-fg-muted text-center py-4">
+              Chưa có giao dịch rút tiền nào.
+            </p>
+          ) : (
+            <ul className="space-y-3 text-caption">
+              {withdrawals.map((w) => {
+                const meta = getWithdrawalStatusMeta(w.status);
+                return (
+                  <li
+                    key={w.id}
+                    className="p-3.5 rounded-brand-md bg-neutral-50 border border-border space-y-1"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-mono font-bold text-fg">
+                        {w.id.slice(0, 8).toUpperCase()}
+                      </span>
+                      <Badge variant={meta.color} size="sm">
+                        {meta.label}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between text-fg-muted">
+                      <span>{formatDateTime(w.requestedAt, 'DD/MM/YYYY')}</span>
+                      <span className="font-bold text-fg tabular-nums">
+                        {formatCurrency(w.amount)}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+}

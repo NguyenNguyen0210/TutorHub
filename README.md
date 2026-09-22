@@ -1,172 +1,159 @@
-# TutorHub Backend — Nền Tảng Kết Nối Gia Sư & Học Viên Trực Tuyến
+# TutorHub — Nền Tảng Kết Nối Gia Sư & Học Viên Trực Tuyến
 
 [![.NET 8.0](https://img.shields.io/badge/.NET-8.0-512BD4?style=flat&logo=dotnet)](https://dotnet.microsoft.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16.0-4169E1?style=flat&logo=postgresql)](https://www.postgresql.org/)
 [![EF Core](https://img.shields.io/badge/EF%20Core-8.0-512BD4?style=flat)](https://learn.microsoft.com/ef/core/)
+[![React](https://img.shields.io/badge/React-18.3-61DAFB?style=flat&logo=react)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?style=flat&logo=vite)](https://vitejs.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker)](https://www.docker.com/)
-[![Swagger](https://img.shields.io/badge/OpenAPI-Swagger-85EA2D?style=flat&logo=swagger)](http://localhost:5129/swagger)
-[![Tests](https://img.shields.io/badge/Tests-406%20Passed%20(100%25)-success?style=flat&logo=xunit)](http://localhost:5129)
+[![Tests](https://img.shields.io/badge/Tests-573%20Passed-success?style=flat&logo=xunit)](http://localhost:5129)
+[![API Contract](https://img.shields.io/badge/API%20Contract-Verified-success?style=flat)](docs/openapi.json)
 
-**TutorHub** là hệ thống backend RESTful API chuyên nghiệp cho nền tảng marketplace kết nối Gia Sư (Tutor) và Học Viên (Student). Hệ thống được thiết kế theo kiến trúc **Clean Architecture kết hợp Vertical Slice Architecture và CQRS (MediatR)**, vận hành trên mô hình **Service / Package-based Learning**, tích hợp cơ chế giữ chỗ checkout 15 phút, kích hoạt hợp đồng học tập (**Enrollment**), phân rã buổi học (**Sessions**), đối soát điểm danh 2 chiều (**Attendance Verification Window**), giải ngân theo từng buổi vào ví bảo chứng (**Escrow Wallet**), thanh toán thực tế **VNPay 2.1.0**, trao đổi thời gian thực **SignalR**, **Transactional Outbox** (26 sự kiện + MessageSent), công cụ phân xử tranh chấp 2 giai đoạn (**Dispute Engine**), và sổ cái kiểm toán bất biến (**Central Audit Log**).
+**TutorHub** là nền tảng trực tuyến kết nối Gia Sư (Tutor) và Học Viên (Student) theo mô hình **Service / Package-based Learning**. Hệ thống gồm tầng **Backend ASP.NET Core Web API (.NET 8)** kiến trúc Clean Architecture + CQRS (MediatR), và tầng **Frontend React 18 + Vite + Ant Design + TailwindCSS**.
 
 ---
 
-## 🏛️ Kiến Trúc Hệ Thống (Architecture Overview)
+## 🏛️ Kiến Trúc Hệ Thống (Architecture)
 
 ```text
-                    ┌─────────────────────────┐
-                    │       TutorHub.Api      │ ➔ Controllers, Middlewares, SignalR Hubs, Swagger
-                    └────────────┬────────────┘
-                                 │
-             ┌───────────────────┴───────────────────┐
-             ↓                                       ↓
-┌─────────────────────────┐             ┌─────────────────────────┐
-│   TutorHub.Application  │             │ TutorHub.Infrastructure │
-│  - Vertical Slices/CQRS │             │  - EF Core & Npgsql     │
-│  - MediatR Handlers     │ ◄───────────┤  - JWT Token Services   │
-│  - Fluent Validations   │  implements │  - VNPay SHA512 Service │
-│  - DTOs & Abstractions  │             │  - Cloudflare R2 AWS S3 │
-│  - Outbox & Events      │             │  - Background Jobs (6)  │
-└────────────┬────────────┘             └────────────┬────────────┘
-             │                                       │
-             └───────────────────┬───────────────────┘
-                                 ↓
-                    ┌─────────────────────────┐
-                    │      TutorHub.Domain    │ ➔ Entities, Enums, Allocators, Policies
-                    └─────────────────────────┘
+┌───────────────────────────────────────────────────────────┐
+│                    TutorHub Frontend                      │ ➔ React 18, Vite, Ant Design, TailwindCSS, Zustand
+└─────────────────────────────┬─────────────────────────────┘
+                              │ HTTP REST / SignalR
+                              ▼
+┌───────────────────────────────────────────────────────────┐
+│                      TutorHub.Api                         │ ➔ REST Controllers, Middlewares, SignalR Hubs
+└──────────────┬─────────────────────────────┬──────────────┘
+               │                             │
+               ▼                             ▼
+┌─────────────────────────────┐┌────────────────────────────┐
+│    TutorHub.Application     ││  TutorHub.Infrastructure   │
+│  - Vertical Slices / CQRS   ││  - PostgreSQL (EF Core 8)  │
+│  - MediatR Handlers         ││  - JWT & Refresh Rotation  │
+│  - FluentValidation Rules   ││  - VNPay SHA512 & S3/R2    │
+│  - Outbox Pattern (Events)  ││  - Background Jobs (6)     │
+└──────────────┬──────────────┘└─────────────┬──────────────┘
+               │                             │
+               └──────────────┬──────────────┘
+                              ▼
+┌───────────────────────────────────────────────────────────┐
+│                    TutorHub.Domain                        │ ➔ Entities, Invariants, Allocators, Policies
+└─────────────────────────────┬─────────────────────────────┘
+                              ▼
+┌───────────────────────────────────────────────────────────┐
+│                    PostgreSQL 16                          │ ➔ Append-Only Triggers, Financial Ledgers
+└───────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🚀 Tính Năng & Vòng Đời Nghiệp Vụ Cốt Lõi
+## 🚀 Tính Năng Nghiệp Vụ Cốt Lõi
 
-1. **Xác thực & Danh tính (Auth & Identity):** JWT Bearer Token (15 phút), Refresh Token Rotation (7 ngày), BCrypt password hashing, kiểm soát trạng thái tài khoản (`Active`, `Suspended`, `Banned`), và phân quyền Role-based (`Student`, `Tutor`, `Admin`).
-2. **Gói dịch vụ học tập (Service Offerings):** Gia sư đăng tải các gói dịch vụ học tập với các điều khoản thương mại rõ ràng (`TotalPrice`, `TotalSessions`, `SessionDurationMinutes`, `TeachingMode`, `TrialLessonUrl`).
-3. **Đặt mua & Giữ chỗ checkout (Booking Checkout & Holding):** Cơ chế tạm giữ thanh toán 15 phút (`Holding`), background worker tự động hủy đơn quá hạn, ngăn chặn double-payment và giữ chỗ an toàn.
-4. **Hợp đồng học tập & Phân rã buổi học (Enrollment & Session Allocation):** Khi thanh toán thành công (VNPay IPN hoặc Mock Pay):
-   - Kích hoạt hợp đồng `Enrollment` và snapshot cố định tỷ lệ phí sàn `PlatformFeeRate` (`DEC-S8-020`).
-   - Tự động sinh $N$ `Session` con với số tiền earning được chia đều và lưu bất biến qua `EnrollmentSessionAllocator`.
-   - Tiền thanh toán được đưa vào `PendingBalance` (Escrow) của ví gia sư.
-5. **Xếp lịch & Đối soát điểm danh 2 chiều (Attendance Verification Window):**
-   - Xếp lịch buổi học (`ScheduleSession`) bám sát lịch rảnh định kỳ của gia sư (`AvailabilitySlots`) và múi giờ chuẩn UTC/Việt Nam.
-   - Sau khi buổi học kết thúc, mở cửa sổ xác nhận điểm danh 24h (`AttendanceWindow`).
-   - Cả Student và Tutor cùng gửi xác nhận (`StudentAttended`, `TutorAttended`).
-   - Job ngầm `AttendanceVerificationJob` tự động giải ngân khi cả 2 xác nhận tham gia, hoặc gắn cờ xung đột (`AttendanceConflict`) khi có bất đồng.
-6. **Ví tiền & Giải ngân từng buổi (Escrow Wallet & Payout Release):**
-   - Tiền chỉ được giải ngân theo từng buổi học đã hoàn thành (`SessionPayoutCredit`), chuyển từ `PendingBalance` sang `AvailableBalance` sau khi trừ phí hoa hồng sàn.
-   - Quản lý hạn mức rút tiền khả dụng `WithdrawableBalance = AvailableBalance - HeldBalance`.
-   - Quy trình rút tiền với đầy đủ thông tin ngân hàng và phê duyệt đa cấp của Admin.
-7. **Hệ thống xử lý tranh chấp 2 giai đoạn (Dispute Engine - Sprint 8):**
-   - Cơ chế bảo vệ tiền tranh chấp: **Pre-release Escrow hold** (đối với buổi chưa giải ngân) và **Post-release Balance hold** (đối với buổi đã giải ngân).
-   - Bất biến giữ tiền: Nếu số dư khả dụng không đủ thu hồi tối đa, hệ thống giữ 0 đồng (`HeldAmount = 0`) và chuyển cờ `RequiresAdminFinancialIntervention` (`DEC-S8-028`).
-   - Thuật toán cân đối phí sàn bất biến:
-     $$\text{StudentRefund} \equiv \text{TutorNetRecovery} + \text{PlatformFeeReversal}$$
-   - Máy trạng thái hoàn tiền ngoại vi (`Pending` $\rightarrow$ `Succeeded` | `Failed`).
-8. **Nhắn tin & Thông báo thời gian thực (Messaging, Outbox & SignalR):**
-   - Hội thoại 1-1 chính danh kèm file đính kèm (giới hạn 10MB, kiểm tra whitelist định dạng an toàn).
-    - Transactional Outbox xử lý tin cậy 26 loại sự kiện doanh nghiệp + MessageSent với cơ chế lease claim và dead-letter.
-   - Trung tâm thông báo đa kênh (In-App và Email Background Job với retry exponential backoff).
-   - SignalR realtime hub cho tin nhắn chat và thông báo đẩy tức thời.
-9. **Quản trị toàn diện & Sổ cái kiểm toán (Governance & Central Audit Log):**
-   - Quản lý và snapshot lịch sử thay đổi phí sàn toàn hệ thống (`PlatformSetting`, `PlatformSettingVersion`).
-   - Phân tích doanh thu sàn thực nhận (đối soát trừ đi các khoản hoàn phí do khiếu nại).
-   - Sổ cái tài chính và nhật ký kiểm toán bất biến: `AppDbContext` chặn đứng mọi hành vi chỉnh sửa hoặc xóa giao dịch đã quyết toán (`INV-LEDGER-007`) và bản ghi kiểm toán (`INV-LEDGER-006`).
-   - Truy vết xuyên suốt request với `X-Correlation-ID`.
+* **Quản lý gói dịch vụ (Package-based Learning):** Gia sư đăng tải gói học với số buổi, thời lượng, học phí và mục tiêu rõ ràng.
+* **Đặt mua & Giữ chỗ checkout (Booking 15-min Hold):** Cơ chế tạm giữ chỗ thanh toán 15 phút, tự động hủy khi quá hạn nhằm tránh xung đột lịch.
+* **Hợp đồng & Phân rã buổi học (Enrollment & Session Allocator):** Tự động phân bổ lịch học và chia đều doanh thu từng buổi học với công thức tài chính bảo chứng bất biến.
+* **Điểm danh 2 chiều (Attendance Window):** Mở cửa sổ 24 giờ sau mỗi buổi học để cả gia sư và học viên cùng xác nhận trước khi giải ngân.
+* **Ví bảo chứng & Giải ngân từng buổi (Escrow Wallet):** Thù lao giải ngân theo từng buổi học hoàn thành sau khi trừ phí hoa hồng sàn. Hạn mức rút tiền bảo vệ số dư tranh chấp:
+  $$\text{WithdrawableBalance} \equiv \text{AvailableBalance} - \text{HeldBalance}$$
+* **Cơ chế xử lý tranh chấp 2 giai đoạn (Dispute Engine):** Pre-release Escrow hold và Post-release Balance hold với thuật toán cân đối tài chính minh bạch:
+  $$\text{StudentRefund} \equiv \text{TutorNetRecovery} + \text{PlatformFeeReversal}$$
+* **Hội thoại & Thông báo thời gian thực:** Nhắn tin trực tiếp 1-1 qua SignalR (`/hubs/chat`), thông báo tức thời (`/hubs/notifications`) và Transactional Outbox.
+* **Sổ cái tài chính & Kiểm toán bất biến (Central Audit Log):** Mọi giao dịch đã quyết toán và nhật ký kiểm toán là Append-Only, nghiêm cấm chỉnh sửa hoặc xóa trực tiếp trong cơ sở dữ liệu.
 
 ---
 
-## 📁 Cấu Trúc Thư Mục Dự Án (Project Structure)
+## 📁 Cấu Trúc Thư Mục
 
 ```text
 TutorHub/
 ├── src/
-│   ├── backend/                        # Toàn bộ mã nguồn & cấu hình Backend .NET 8
-│   │   ├── TutorHub.Domain/            # Entities, Enums, Allocators, Policies
-│   │   ├── TutorHub.Application/       # Vertical Slices (Features), MediatR CQRS, DTOs, Events, Validators
-│   │   ├── TutorHub.Infrastructure/    # EF Core DbContext, PostgreSQL, JWT, VNPay, Cloudflare R2, Jobs, SignalR
-│   │   ├── TutorHub.Api/               # REST API Controllers, Middlewares, SignalR Hubs
-│   │   ├── TutorHub.sln                # Visual Studio Solution chứa toàn bộ projects & tests
-│   │   ├── Directory.Build.props       # Cấu hình biên dịch tập trung (TreatWarningsAsErrors=true)
-│   │   ├── Dockerfile                  # Docker container build script cho backend
-│   │   └── seedData.sql                # Dữ liệu mẫu khởi tạo hệ thống
+│   ├── backend/                        # Mã nguồn Backend .NET 8 Web API
+│   │   ├── TutorHub.Domain/            # Entities, Enums, Allocators, Domain Invariants
+│   │   ├── TutorHub.Application/       # Features (CQRS Slices), MediatR Handlers, DTOs
+│   │   ├── TutorHub.Infrastructure/    # EF Core, PostgreSQL, VNPay, AWS S3, SignalR, Jobs
+│   │   ├── TutorHub.Api/               # Thin Controllers, Middlewares, SignalR Hubs
+│   │   ├── TutorHub.sln                # Solution biên dịch chính
+│   │   └── seedData.sql                # Dữ liệu khởi tạo mẫu
 │   │
-│   ├── frontend/                       # Mã nguồn ứng dụng Client Frontend
-│   │   └── README.md
+│   ├── frontend/                       # Ứng dụng Client Frontend (React 18 + Vite)
+│   │   ├── src/                        # Components, Pages, Services, Zustand Stores
+│   │   ├── package.json                # Dependencies & scripts
+│   │   └── vite.config.js              # Cấu hình Vite & Proxy
 │   │
-│   └── test/                           # Kiểm thử tự động (159 + 240 + 7 = 406 executed cases)
-│       ├── TutorHub.Domain.UnitTests/          # 159 cases (Domain invariants, allocators, entities)
-│       ├── TutorHub.Application.UnitTests/     # 240 cases (CQRS handlers, background jobs, audit integrity)
-│       └── TutorHub.Api.IntegrationTests/      # 7 cases (Postgres: withdrawal, pay→enrollment, dispute settlement)
+│   └── test/                           # Kiểm thử tự động (573 test cases)
+│       ├── TutorHub.Domain.UnitTests/          # 196 cases (Invariants & Allocators)
+│       ├── TutorHub.Application.UnitTests/     # 283 cases (CQRS Handlers & Validators)
+│       ├── TutorHub.Infrastructure.UnitTests/  # 21 cases (VNPay, Security, Integrations)
+│       └── TutorHub.Api.IntegrationTests/      # 73 cases (Postgres, Payments, Ledgers)
 │
-├── docs/                               # Bộ tài liệu kỹ thuật chuẩn
-│   ├── prd.md                          # Product Requirements Document v1.1 (changelog đầu file)
-│   ├── functional-requirements.md      # Functional Requirements v1.0 (53 Chương)
-│   └── user-stories.md                 # User Stories v1.0
+├── docs/                               # Tài liệu thiết kế & đặc tả API
+│   ├── openapi.json                    # OpenAPI v3 spec
+│   ├── prd.md                          # Product Requirements Document
+│   └── functional-requirements.md      # Đặc tả yêu cầu chức năng
 │
-├── docker-compose.yml                  # Cấu hình khởi chạy Docker PostgreSQL & Backend Container
-├── .env.example                        # Template biến môi trường
-├── README.md                           # Tài liệu tổng quan dự án
-└── CLAUDE.md                           # Quy chuẩn phát triển và bất biến hệ thống
+├── docker-compose.yml                  # Khởi chạy cụm PostgreSQL, API, Seed Container
+├── .env.example                        # Cấu hình mẫu biến môi trường
+└── README.md                           # Tài liệu tổng quan dự án
 ```
 
 ---
 
-## 🛠️ Hướng Dẫn Cài Đặt & Khởi Chạy (Quick Start)
+## 🛠️ Hướng Dẫn Cài Đặt & Khởi Chạy
 
-### 1. Yêu Cầu Môi Trường (Prerequisites)
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- [PostgreSQL 16+](https://www.postgresql.org/) hoặc [Docker Desktop](https://www.docker.com/)
+### 1. Yêu cầu hệ thống
+* [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+* [Node.js 18+](https://nodejs.org/) & npm
+* [Docker Desktop](https://www.docker.com/) hoặc [PostgreSQL 16+](https://www.postgresql.org/)
 
-### 2. Khởi Chạy Bằng Docker Compose (Khuyến nghị)
+---
+
+### 2. Khởi chạy bằng Docker Compose (Khuyến nghị)
+
 ```bash
+# Khởi chạy cụm containers (Postgres, Backend API, Auto-seed)
 docker-compose up -d --build
 ```
-- API Endpoint: `http://localhost:8080`
-- Swagger UI: `http://localhost:8080/swagger`
+
+* **Backend API:** `http://localhost:8080`
+* **Swagger UI (Dev mode):** `http://localhost:8080/swagger`
+* **PostgreSQL:** `localhost:5433` (User: `tutorhub`, Password: `123456`, Database: `tutorhub`)
 
 ---
 
-### 3. Khởi Chạy Trực Tiếp Bằng .NET CLI (Local Development)
+### 3. Khởi chạy từng dịch vụ (Local Development)
 
-#### Bước 1: Build toàn bộ Backend Solution
+#### Backend (.NET 8):
 ```bash
+# 1. Build Solution
 dotnet build src/backend/TutorHub.sln
-```
 
-#### Bước 2: Chạy bộ kiểm thử (Test Suite — 406 Passed: 159 Domain + 240 Application + 7 Integration)
-```bash
+# 2. Chạy toàn bộ automated tests
 dotnet test src/backend/TutorHub.sln
-```
 
-#### Bước 3: Chạy API Server
-```bash
+# 3. Chạy API Server
 dotnet run --project src/backend/TutorHub.Api
 ```
-Truy cập Swagger UI tại: `http://localhost:5129/swagger` (hoặc `https://localhost:7200/swagger`) theo `launchSettings.json` (Docker: `http://localhost:8080/swagger`).
+* Local API: `http://localhost:5129` | Swagger UI: `http://localhost:5129/swagger`
+
+#### Frontend (React 18 + Vite):
+```bash
+cd src/frontend
+npm install
+npm run dev
+```
+* Local Web App: `http://localhost:5173`
 
 ---
 
-## 💳 Quy Trình Thanh Toán & Mua Gói Học
+## 🔑 Tài Khoản Thử Nghiệm (Seed Accounts)
 
-1. **Khám phá dịch vụ:** Học viên tra cứu danh sách gói học `GET /api/v1/tutors/{tutorId}/services`.
-2. **Tạo Booking Checkout:** Gọi `POST /api/v1/bookings` truyền `serviceId` ➔ Nhận thông tin đơn đặt chỗ (15 phút).
-3. **Thanh toán qua VNPay Sandbox:**
-   - Gọi `POST /api/v1/payments/vnpay/create-url` với `bookingId` để nhận `paymentUrl`.
-   - Dùng thẻ test VNPay Sandbox: Ngân hàng `NCB`, số thẻ `9704198526191432198`, tên `NGUYEN VAN A`, ngày `07/15`, OTP `123456`.
-   - Webhook IPN ngầm kích hoạt: Chuyển `Booking = Paid`, sinh `Enrollment`, tự động cấp phát các `Session` con, và ghi nhận tiền cọc vào `PendingBalance` của ví gia sư.
-4. **Học tập & Hoàn thành:**
-   - Xếp lịch buổi học qua `POST /api/v1/sessions/{id}/schedule`.
-   - Điểm danh 2 chiều qua `POST /api/v1/sessions/{id}/attendance`.
-   - Hệ thống tự động giải ngân earning từng buổi vào `AvailableBalance` sau khi đối soát thành công.
+Mật khẩu dùng chung cho tất cả tài khoản seed: `Test@123`
 
----
-
-## 📜 Quy Ước Đóng Góp & Git Workflow
-
-- Dự án tuân thủ nghiêm ngặt quy chuẩn **Conventional Commits**:
-  - `feat(...)`: Phát triển tính năng mới
-  - `fix(...)`: Sửa lỗi
-  - `refactor(...)`: Tái cấu trúc mã nguồn
-  - `docs(...)`: Cập nhật tài liệu
-- Chế độ biên dịch nghiêm ngặt: Mọi thay đổi phải đảm bảo **0 Warning(s), 0 Error(s)** dưới cờ `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`.
-- Bộ kiểm thử tự động luôn phải đạt **100% tỉ lệ vượt qua** trước khi tạo pull request.
+| Vai trò (Role) | Email đăng nhập | Mô tả vai trò |
+| :--- | :--- | :--- |
+| **Admin** | `admin@tutorhub.com` | Quản trị viên hệ thống, duyệt hồ sơ, đối soát tranh chấp & tài chính |
+| **Tutor** | `thutrang.math@tutorhub.vn` | Gia sư Toán THPT & THCS |
+| **Tutor** | `khoa.dang.ielts@tutorhub.vn` | Gia sư chuyên sâu IELTS |
+| **Tutor** | `long.vu.dev@tutorhub.vn` | Gia sư Lập trình C# .NET & Clean Architecture |
+| **Student** | `student.lan@tutorhub.com` | Học viên mẫu (đã có hợp đồng học tập) |
+| **Student** | `nguyen.hoang.nam.1@gmail.com` | Học viên mẫu |

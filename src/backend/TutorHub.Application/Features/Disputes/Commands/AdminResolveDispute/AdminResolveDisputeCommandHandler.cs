@@ -7,6 +7,7 @@ using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Disputes.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
+using TutorHub.Domain.Services;
 
 namespace TutorHub.Application.Features.Disputes.Commands.AdminResolveDispute;
 
@@ -162,8 +163,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                 tutorWallet.DebitPending(gross, now);
             }
 
-            decimal platformFee = Math.Round(tutorGrossRelease * feeRate, 2, MidpointRounding.AwayFromZero);
-            decimal tutorNetPayout = tutorGrossRelease - platformFee;
+            var (platformFee, tutorNetPayout) = PlatformFeeCalculator.SplitGross(tutorGrossRelease, feeRate);
 
             // Update tutor wallet if tutor receives earning
             if (tutorNetPayout > 0)
@@ -286,23 +286,27 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                     throw new BadRequestException($"Refund amount must be between 0 and {originalGross}.");
                 }
 
-                // Canonical Fee & Net Calculation (Mandatory Patch B, DEC-S8-025)
-                var tutorFinalGross = originalGross - studentRefund;
-                var platformFinalFee = Math.Round(tutorFinalGross * appliedRate, 2, MidpointRounding.AwayFromZero);
-                var tutorFinalNet = tutorFinalGross - platformFinalFee;
+                // Canonical Fee & Net Calculation (Mandatory Patch B, DEC-S8-025).
+                // Extracted to the Domain so the conservation identity
+                // StudentRefund ≡ TutorNetRecovery + PlatformFeeReversal is unit-testable.
+                var settlement = DisputeSettlementCalculator.CalculatePostRelease(
+                    studentRefund: studentRefund,
+                    originalGross: originalGross,
+                    originalPlatformFee: originalPlatformFee,
+                    originalTutorNet: originalTutorNet,
+                    appliedRate: appliedRate);
 
-                var tutorNetRecovery = originalTutorNet - tutorFinalNet;
-                var platformFeeReversal = originalPlatformFee - platformFinalFee;
+                var tutorNetRecovery = settlement.TutorNetRecovery;
+                var platformFeeReversal = settlement.PlatformFeeReversal;
 
-                // Insufficient reserve guard (DEC-S8-026).
-                // Note: HeldBalance already includes this dispute's reserved hold, so the
-                // check is against AvailableBalance (which contains the hold), not
-                // WithdrawableBalance (hold creation in CreateDispute already enforces
-                // Withdrawable >= maxRecovery per DEC-S8-028).
-                if (tutorWallet.AvailableBalance < tutorNetRecovery)
+                // Insufficient reserve guard (DEC-S8-026 / DEC-S8-028 / P1-5).
+                // Must account for holds of OTHER active disputes so this recovery never
+                // cannibalizes funds reserved for other disputes (preserves HeldBalance <= AvailableBalance).
+                var availableExcludingOtherHolds = tutorWallet.AvailableBalance - Math.Max(0m, tutorWallet.HeldBalance - dispute.HeldAmount);
+                if (availableExcludingOtherHolds < tutorNetRecovery)
                 {
                     dispute.MarkRequiresAdminFinancialIntervention(
-                        $"Tutor available balance ({tutorWallet.AvailableBalance:N0} VND) is insufficient for required recovery ({tutorNetRecovery:N0} VND).");
+                        $"Tutor available balance excluding other active holds ({availableExcludingOtherHolds:N0} VND) is insufficient for required recovery ({tutorNetRecovery:N0} VND).");
                     await _auditLogService.LogAsync(
                         action: "DisputeRequiresFinancialIntervention",
                         entityName: "Dispute",

@@ -36,6 +36,7 @@ public class GetAdminWithdrawalsQueryHandler : IRequestHandler<GetAdminWithdrawa
 
         var items = await query
             .OrderByDescending(w => w.RequestedAt)
+            .ThenByDescending(w => w.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .Select(w => new WithdrawalDto(

@@ -816,16 +816,13 @@ Session contains or references:
 
 ### Acceptance Criteria
 
-- Session cancellation is allowed only under applicable rules.
-- Business consequences are determined.
-- Financial consequences are determined where applicable.
-- Affected users are notified.
-- Session cancellation is recorded.
-
-### v1.1: F-19 single-session gate (no finance)
-
-- Participant-only cancel of `Unscheduled` or future-`Scheduled` sessions with a mandatory reason.
-- Escrow untouched; the enrollment pro-rata formula absorbs the amount on complete/cancel.
+- Participant (Student or Tutor) can cancel single `Unscheduled` or future-`Scheduled` sessions with a mandatory reason (minimum 5 characters).
+- System unlocks and debits the session's escrow amount from the Tutor's `PendingBalance`.
+- System creates a `StudentRefund` transaction with `SettlementRequired = true` and `Pending` status.
+- System emits `SessionCancelledEvent` and `RefundCreatedEvent` to outbox.
+- Audit record `SESSION_CANCELLED` is recorded in Central Audit Log.
+- Affected users receive in-app notification and email.
+- Enrollment completion evaluation checks if all sessions are now terminal.
 
 ---
 
@@ -1774,6 +1771,18 @@ Admin can take applicable actions:
 
 **Related FR:** FR-NOTIF-003
 
+### Acceptance Criteria
+
+- User receives welcome & account verification email upon registration (`AccountVerification`).
+- User receives urgent security alert email when account password is changed (`PasswordChanged`).
+- User receives email notifications for all critical platform events:
+  - Session lifecycle: scheduled, rescheduled, cancelled, attendance verification required, conflict detected, completed.
+  - Financial & escrow: earnings released, refunds initiated/completed/failed, withdrawal requested/completed/failed.
+  - Applications & agreements: tutor application status updates, custom offer events.
+  - Disputes & trust: dispute opened, resolved, new reviews.
+- Emails are queued asynchronously via transactional outbox (`EmailDelivery`) and retried with exponential backoff.
+- In Development / Personal-first mode, emails are logged to the console for review without live SES.
+
 ---
 
 ## US-NOTIF-004 — Manage Notification Center
@@ -2087,13 +2096,25 @@ Every refund contains:
 
 ---
 
-## US-ADMIN-009 — Handle Withdrawal Issue
+## US-ADMIN-009 — Handle Withdrawal Management & Operations
 
 **Actor:** Admin
 
-> As an Admin, I want to handle operational withdrawal issues, so that failed or exceptional withdrawals can be resolved.
+> As an Admin, I want a dedicated management interface to review, process, complete, or fail Tutor withdrawal requests, so that payouts are executed safely and auditable.
 
 **Related FR:** FR-ADMIN-011
+
+### Acceptance Criteria
+
+- Admin can access `/admin/withdrawals` to view paginated withdrawal requests with stats (Pending, Processing, Completed, Failed).
+- Admin can filter withdrawals by status and inspect bank account details (bank name, account number, account holder name) and tutor profile.
+- Admin can transition a `Pending` withdrawal to `Processing`.
+- Admin can mark a `Processing` withdrawal as `Completed`, dispatching `WithdrawalCompletedEvent` and generating an audit log.
+- Admin can mark a `Processing` withdrawal as `Failed` with a required failure reason:
+  - Held funds are returned to Tutor's `AvailableBalance` (`wallet.RefundFailedWithdrawal`).
+  - `WithdrawalFailedEvent` is emitted.
+  - Audit record is created.
+  - Tutor is notified via in-app notification and email.
 
 ---
 
