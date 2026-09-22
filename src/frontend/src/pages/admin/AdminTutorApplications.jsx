@@ -138,7 +138,7 @@ const MOCK_APPLICANTS = [
     methodology: 'Tập trung phản ứng cốt lõi, bảng hệ thống chuỗi hóa học dễ nhớ.',
     achievements: 'Kèm cặp hơn 15 học sinh tăng từ 4.5 lên 7.5 điểm Hóa học.',
     submittedAt: '2024-06-09T09:10:00Z',
-    status: 'Draft', // Bổ sung thông tin
+    status: 'Pending', // Chờ xét duyệt
     documents: [
       {
         id: 'doc-7',
@@ -259,13 +259,13 @@ export default function AdminTutorApplications() {
   const [processing, setProcessing] = useState(false);
 
   // Selection & UI states
-  const [selectedAppId, setSelectedAppId] = useState('app-001');
-  const [selectedCheckboxIds, setSelectedCheckboxIds] = useState(['app-001']);
+  const [selectedAppId, setSelectedAppId] = useState(null);
+  const [selectedCheckboxIds, setSelectedCheckboxIds] = useState([]);
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [activeDrawerTab, setActiveDrawerTab] = useState('degrees'); // 'info' | 'degrees' | 'experience' | 'notes'
 
   // Filter states
-  const [statusTab, setStatusTab] = useState('all'); // 'all' | 'pending' | 'approved' | 'rejected' | 'draft'
+  const [statusTab, setStatusTab] = useState('all'); // 'all' | 'pending' | 'approved' | 'rejected'
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [educationFilter, setEducationFilter] = useState('all');
@@ -274,11 +274,7 @@ export default function AdminTutorApplications() {
   const pageSize = 7;
 
   // Interactive Verification Checklist (local state per applicant)
-  const [verificationMap, setVerificationMap] = useState({
-    'app-001': { personal: true, degrees: true, experience: false, criminal: false },
-    'app-002': { personal: true, degrees: true, experience: true, criminal: false },
-    'app-003': { personal: true, degrees: true, experience: true, criminal: true },
-  });
+  const [verificationMap, setVerificationMap] = useState({});
 
   // Modals state
   const [previewDoc, setPreviewDoc] = useState(null);
@@ -314,59 +310,94 @@ export default function AdminTutorApplications() {
 
   // Combine DB applications with mock presentation list (DB items first)
   const allApplications = useMemo(() => {
-    const formattedDb = dbApplicants.map((a, idx) => ({
-      id: a.id,
-      userFullName: a.userFullName || `Gia sư ${idx + 1}`,
-      userEmail: a.userEmail || `tutor${idx}@tutorhub.vn`,
-      userPhone: a.userPhone || '0901 234 567',
-      userAvatarUrl: a.userAvatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${a.userEmail || idx}`,
-      subject: a.education?.includes('-') ? a.education.split('-')[1]?.split('(')[0]?.trim() || 'Toán học' : 'Toán học',
-      subjectSub: a.teachingMode === 'Both' ? 'Online & Trực tiếp' : a.teachingMode || 'Online',
-      education: a.education || 'ĐH Sư phạm Hà Nội',
-      degreeLevel: 'Cử nhân',
-      experienceYears: a.experienceYears || 2,
-      teachingMode: a.teachingMode || 'Online',
-      address: a.address || 'Hà Nội',
-      bio: a.bio || 'Chưa cập nhật phần giới thiệu.',
-      methodology: 'Cá nhân hóa theo năng lực từng học sinh, rèn luyện bài tập thực hành theo chuyên đề.',
-      achievements: 'Học sinh đạt kết quả tốt trong các kỳ thi kiểm tra định kỳ.',
-      submittedAt: a.submittedAt || new Date().toISOString(),
-      status: a.status || 'Pending',
-      rejectionReason: a.rejectionReason,
-      documents: [
-        {
-          id: `db-doc-${a.id}-1`,
-          title: 'Văn bằng chứng chỉ tốt nghiệp',
-          institution: a.education || 'Đại học Sư phạm',
-          format: 'PDF • 2.1 MB',
-          verified: a.status === 'Approved',
-          previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
-        },
-      ],
-    }));
+    const formattedDb = dbApplicants.map((a, idx) => {
+      let cleanBio = a.bio || 'Chưa cập nhật phần giới thiệu.';
+      let methodology = 'Cá nhân hóa theo năng lực từng học sinh, rèn luyện bài tập thực hành theo chuyên đề.';
+      let achievements = 'Học sinh đạt kết quả tốt trong các kỳ thi kiểm tra định kỳ.';
 
-    // Filter out mock duplicates if ID matches
-    const nonDuplicatedMock = MOCK_APPLICANTS.filter(
-      (m) => !formattedDb.some((d) => d.id === m.id || d.userEmail === m.userEmail)
-    ).map((m) => {
+      if (a.bio && a.bio.includes('[Phương pháp giảng dạy]:')) {
+        const parts = a.bio.split('[Phương pháp giảng dạy]:');
+        cleanBio = parts[0]?.trim() || '';
+        const rest = parts[1] || '';
+        if (rest.includes('[Thành tích tiêu biểu]:')) {
+          const mParts = rest.split('[Thành tích tiêu biểu]:');
+          methodology = mParts[0]?.trim() || methodology;
+          achievements = mParts[1]?.trim() || achievements;
+        } else {
+          methodology = rest.trim();
+        }
+      }
+
+      let parsedSubject = 'Toán học';
+      if (a.education) {
+        if (a.education.includes('-')) {
+          const sub = a.education.split('-')[1]?.split('(')[0]?.trim();
+          if (sub) parsedSubject = sub;
+        } else if (a.education.includes(':')) {
+          const sub = a.education.split(':')[1]?.split(',')[0]?.trim();
+          if (sub) parsedSubject = sub;
+        }
+      }
+
+      return {
+        id: a.id,
+        userFullName: a.userFullName || `Gia sư ${idx + 1}`,
+        userEmail: a.userEmail || `tutor${idx}@tutorhub.vn`,
+        userPhone: a.userPhone || '0901 234 567',
+        userAvatarUrl: a.userAvatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${a.userEmail || idx}`,
+        subject: parsedSubject,
+        subjectSub: a.teachingMode === 'Both' ? 'Online & Trực tiếp' : a.teachingMode || 'Online',
+        education: a.education || 'ĐH Sư phạm Hà Nội',
+        degreeLevel: 'Cử nhân',
+        experienceYears: a.experienceYears || 2,
+        teachingMode: a.teachingMode || 'Online',
+        address: a.address || 'Hà Nội',
+        bio: cleanBio,
+        methodology,
+        achievements,
+        submittedAt: a.submittedAt || new Date().toISOString(),
+        status: a.status || 'Pending',
+        rejectionReason: a.rejectionReason,
+        documents: [
+          {
+            id: `db-doc-${a.id}-1`,
+            title: 'Văn bằng chứng chỉ chuyên môn',
+            institution: a.education ? a.education.split('(')[1]?.split(')')[0] || a.education : 'Đại học Sư phạm',
+            format: 'PDF / Hình ảnh',
+            verified: a.status === 'Approved',
+            previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
+          },
+        ],
+      };
+    });
+
+    if (formattedDb.length > 0) {
+      return formattedDb;
+    }
+
+    return MOCK_APPLICANTS.map((m) => {
       const override = mockStatusOverrides[m.id];
       if (!override) return m;
       const status = typeof override === 'string' ? override : override.status;
       const rejectionReason = override.reason || m.rejectionReason;
       return { ...m, status, rejectionReason };
     });
-
-    return [...formattedDb, ...nonDuplicatedMock];
   }, [dbApplicants, mockStatusOverrides]);
 
-  // Status Counts
+  // Keep first application selected when list loads
+  useEffect(() => {
+    if (!selectedAppId && allApplications.length > 0) {
+      setSelectedAppId(allApplications[0].id);
+    }
+  }, [allApplications, selectedAppId]);
+
+  // Status Counts (Only 3 real statuses: Pending, Approved, Rejected)
   const counts = useMemo(() => {
     return {
       all: allApplications.length,
       pending: allApplications.filter((a) => a.status === 'Pending').length,
       approved: allApplications.filter((a) => a.status === 'Approved').length,
       rejected: allApplications.filter((a) => a.status === 'Rejected').length,
-      draft: allApplications.filter((a) => a.status === 'Draft').length,
     };
   }, [allApplications]);
 
@@ -377,7 +408,6 @@ export default function AdminTutorApplications() {
       if (statusTab === 'pending' && app.status !== 'Pending') return false;
       if (statusTab === 'approved' && app.status !== 'Approved') return false;
       if (statusTab === 'rejected' && app.status !== 'Rejected') return false;
-      if (statusTab === 'draft' && app.status !== 'Draft') return false;
 
       // 2. Search Query
       if (searchQuery.trim()) {
@@ -449,10 +479,10 @@ export default function AdminTutorApplications() {
     if (!activeApplicant) return;
     setVerificationMap((prev) => {
       const current = prev[activeApplicant.id] || {
-        personal: false,
-        degrees: false,
-        experience: false,
-        criminal: false,
+        personal: true,
+        degrees: true,
+        experience: true,
+        methodology: true,
       };
       return {
         ...prev,
@@ -467,8 +497,8 @@ export default function AdminTutorApplications() {
   const currentChecks = verificationMap[activeApplicant?.id] || {
     personal: true,
     degrees: true,
-    experience: false,
-    criminal: false,
+    experience: true,
+    methodology: true,
   };
 
   // Approve action
@@ -489,7 +519,6 @@ export default function AdminTutorApplications() {
       } else {
         setMockStatusOverrides((prev) => ({ ...prev, [activeApplicant.id]: 'Approved' }));
       }
-      setActiveApplicant((prev) => (prev ? { ...prev, status: 'Approved' } : null));
       toast.success(`Đã phê duyệt thành công hồ sơ của ${activeApplicant.userFullName}!`);
       setReloadToken((t) => t + 1);
     } catch (err) {
@@ -526,7 +555,6 @@ export default function AdminTutorApplications() {
           [activeApplicant.id]: { status: 'Rejected', reason },
         }));
       }
-      setActiveApplicant((prev) => (prev ? { ...prev, status: 'Rejected', rejectionReason: reason } : null));
       toast.info(`Đã từ chối hồ sơ của ${activeApplicant.userFullName}.`);
       setShowRejectModal(false);
       setReloadToken((t) => t + 1);
@@ -573,13 +601,6 @@ export default function AdminTutorApplications() {
             Chờ xét duyệt
           </span>
         );
-      case 'Draft':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-            Bổ sung thông tin
-          </span>
-        );
       case 'Rejected':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
@@ -624,8 +645,8 @@ export default function AdminTutorApplications() {
         </button>
       </div>
 
-      {/* 2. 5 STAT METRIC CARDS */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
+      {/* 2. 4 STAT METRIC CARDS */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         {/* Card 1: Tổng hồ sơ */}
         <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-3">
           <div className="flex items-center justify-between">
@@ -636,11 +657,8 @@ export default function AdminTutorApplications() {
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-[26px] font-extrabold text-slate-900 leading-none">{counts.all}</span>
-            <span className="inline-flex items-center text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-              ↑ 12%
-            </span>
           </div>
-          <span className="text-[11px] text-slate-400 block">Trong 30 ngày qua</span>
+          <span className="text-[11px] text-slate-400 block">Tất cả đơn đăng ký gia sư</span>
         </div>
 
         {/* Card 2: Chờ xét duyệt */}
@@ -653,9 +671,11 @@ export default function AdminTutorApplications() {
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-[26px] font-extrabold text-slate-900 leading-none">{counts.pending}</span>
-            <span className="inline-flex items-center text-[10.5px] font-bold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full">
-              Cần xử lý
-            </span>
+            {counts.pending > 0 && (
+              <span className="inline-flex items-center text-[10.5px] font-bold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full">
+                Cần xử lý
+              </span>
+            )}
           </div>
           <span className="text-[11px] text-slate-400 block">Hạn thẩm định 1-3 ngày</span>
         </div>
@@ -670,9 +690,6 @@ export default function AdminTutorApplications() {
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-[26px] font-extrabold text-slate-900 leading-none">{counts.approved}</span>
-            <span className="inline-flex items-center text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-              ↑ 8%
-            </span>
           </div>
           <span className="text-[11px] text-slate-400 block">Đã cấp Verified Badge</span>
         </div>
@@ -688,24 +705,7 @@ export default function AdminTutorApplications() {
           <div className="flex items-baseline gap-2">
             <span className="text-[26px] font-extrabold text-slate-900 leading-none">{counts.rejected}</span>
           </div>
-          <span className="text-[11px] text-slate-400 block">Có lý do gửi kèm</span>
-        </div>
-
-        {/* Card 5: Bổ sung thông tin */}
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-3 col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] font-semibold text-slate-500">Bổ sung thông tin</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Icon name="person" size="sm" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-[26px] font-extrabold text-slate-900 leading-none">{counts.draft}</span>
-            <span className="inline-flex items-center text-[10.5px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-full">
-              Chờ ứng viên
-            </span>
-          </div>
-          <span className="text-[11px] text-slate-400 block">Đang đợi nộp lại</span>
+          <span className="text-[11px] text-slate-400 block">Có lý do gửi kèm cho ứng viên</span>
         </div>
       </div>
 
@@ -717,7 +717,6 @@ export default function AdminTutorApplications() {
             { key: 'pending', label: `Chờ xét duyệt (${counts.pending})` },
             { key: 'approved', label: `Đã phê duyệt (${counts.approved})` },
             { key: 'rejected', label: `Đã từ chối (${counts.rejected})` },
-            { key: 'draft', label: `Bổ sung thông tin (${counts.draft})` },
           ].map((tab) => {
             const isActive = statusTab === tab.key;
             return (
@@ -744,6 +743,7 @@ export default function AdminTutorApplications() {
           })}
         </nav>
       </div>
+
 
       {/* 4. SEARCH & FILTER TOOLBAR */}
       <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-wrap items-center justify-between gap-3">
@@ -1178,10 +1178,10 @@ export default function AdminTutorApplications() {
                   <h4 className="font-bold text-[13.5px] text-slate-900">Kết quả xác minh</h4>
                   <div className="space-y-2">
                     {[
-                      { key: 'personal', label: 'Thông tin cá nhân hợp lệ' },
-                      { key: 'degrees', label: 'Bằng cấp phù hợp' },
-                      { key: 'experience', label: 'Kinh nghiệm giảng dạy (đang kiểm tra)' },
-                      { key: 'criminal', label: 'Lý lịch tư pháp (chưa cung cấp)' },
+                      { key: 'personal', label: 'Thông tin cá nhân & liên hệ hợp lệ' },
+                      { key: 'degrees', label: 'Văn bằng & chứng chỉ chuyên môn phù hợp' },
+                      { key: 'experience', label: 'Kinh nghiệm giảng dạy đạt chuẩn' },
+                      { key: 'methodology', label: 'Phương pháp & lộ trình giảng dạy rõ ràng' },
                     ].map((c) => {
                       const checked = currentChecks[c.key];
                       return (
@@ -1424,7 +1424,7 @@ export default function AdminTutorApplications() {
               </div>
               <div className="flex items-start gap-2.5">
                 <span className="w-5 h-5 rounded-full bg-blue-100 text-[#2563EB] font-bold text-[11px] flex items-center justify-center shrink-0">4</span>
-                <p><strong>Thời hạn SLA cam kết:</strong> Phê duyệt hoặc phản hồi yêu cầu bổ sung thông tin trong vòng tối đa 1–3 ngày làm việc kể từ thời điểm nhận hồ sơ.</p>
+                <p><strong>Thời hạn SLA cam kết:</strong> Phê duyệt hoặc từ chối có lý do trong vòng tối đa 1–3 ngày làm việc kể từ thời điểm nhận hồ sơ.</p>
               </div>
             </div>
 
