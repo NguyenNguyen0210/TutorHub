@@ -15,7 +15,7 @@ import { cn } from '@/lib/cn';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/services/api';
-import Logo from '@/components/ui/Logo';
+import AuthHeader from '@/components/layout/AuthHeader';
 
 function GoogleSvg() {
   return (
@@ -143,52 +143,8 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F0F6FB] text-slate-900 selection:bg-blue-100 selection:text-blue-800">
-      {/* Top Header Bar */}
-      <header className="w-full max-w-[1360px] h-[72px] mx-auto px-6 sm:px-10 flex items-center justify-between">
-        {/* Left: Brand Logo */}
-        <Link to="/" className="inline-flex items-center group" aria-label="Về trang chủ TutorHub">
-          <Logo variant="horizontal" size={38} />
-        </Link>
-
-        {/* Center: Navigation Links */}
-        <nav className="hidden md:flex items-center gap-7" aria-label="Điều hướng chính">
-          <Link
-            to="/tutors"
-            className="px-4 py-1.5 rounded-full text-[13.5px] font-semibold bg-white/90 shadow-sm border border-blue-100 text-[#2563EB] transition-colors"
-          >
-            Khám phá gia sư
-          </Link>
-          <Link
-            to="/auth/login"
-            className="text-[13.5px] font-medium text-[#475569] hover:text-[#0F172A] transition-colors"
-          >
-            Lịch học
-          </Link>
-          <Link
-            to="/auth/login"
-            className="text-[13.5px] font-medium text-[#475569] hover:text-[#0F172A] transition-colors"
-          >
-            Tin nhắn
-          </Link>
-          <Link
-            to="/auth/login"
-            className="text-[13.5px] font-medium text-[#475569] hover:text-[#0F172A] transition-colors"
-          >
-            Khoá học của tôi
-          </Link>
-        </nav>
-
-        {/* Right Action: Chưa có tài khoản? Đăng ký ngay */}
-        <div className="text-[13.5px] text-[#475569] font-medium">
-          Chưa có tài khoản?{' '}
-          <Link
-            to="/auth/register"
-            className="text-[#2563EB] font-semibold hover:underline transition-colors ml-1"
-          >
-            Đăng ký ngay
-          </Link>
-        </div>
-      </header>
+      {/* Minimal Focused Auth Header */}
+      <AuthHeader mode="login" />
 
       {/* Main Content Area */}
       <main className="flex-1 w-full max-w-[1360px] mx-auto px-6 sm:px-10 pt-4 sm:pt-6 pb-10 flex items-center">
