@@ -6,247 +6,6 @@ import { useConfirm } from '@/components/ui/Dialog';
 import { formatDateTime } from '@/utils/formatters';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
-import Button from '@/components/ui/Button';
-
-// Default mock applicants matching the screenshot for comprehensive presentation
-const MOCK_APPLICANTS = [
-  {
-    id: 'app-001',
-    userFullName: 'Nguyễn Minh Đức',
-    userEmail: 'minhduc@gmail.com',
-    userPhone: '0901 234 567',
-    userAvatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    subject: 'Toán học',
-    subjectSub: 'THPT, Luyện thi ĐH',
-    education: 'ĐH Bách Khoa Hà Nội',
-    degreeLevel: 'Kỹ sư CNTT',
-    experienceYears: 4,
-    teachingMode: 'Both',
-    address: 'Quận Cầu Giấy, Hà Nội',
-    bio: 'Cựu học sinh chuyên Toán, tốt nghiệp ĐH Bách Khoa. Với hơn 4 năm kinh nghiệm luyện thi THPT Quốc Gia, tôi tập trung rèn luyện tư duy logic và kỹ năng giải toán trắc nghiệm nhanh.',
-    methodology: 'Hệ thống hóa kiến thức theo sơ đồ tư duy, kết hợp giải đề thực chiến từ ngân hàng 500+ đề thi các trường chuyên.',
-    achievements: 'Giúp 25+ học sinh đạt điểm 8.5+ môn Toán trong kỳ thi tốt nghiệp THPT 2023 và 2024.',
-    submittedAt: '2024-06-12T14:30:00Z',
-    status: 'Pending', // Chờ xét duyệt
-    documents: [
-      {
-        id: 'doc-1',
-        title: 'Bằng tốt nghiệp đại học',
-        institution: 'ĐH Bách Khoa Hà Nội',
-        format: 'PDF • 2.1 MB',
-        verified: true,
-        previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
-      },
-      {
-        id: 'doc-2',
-        title: 'Bảng điểm',
-        institution: 'ĐH Bách Khoa Hà Nội',
-        format: 'PDF • 1.8 MB',
-        verified: true,
-        previewUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80',
-      },
-      {
-        id: 'doc-3',
-        title: 'Chứng chỉ nghiệp vụ sư phạm',
-        institution: 'ĐH Sư phạm Hà Nội',
-        format: 'PDF • 1.2 MB',
-        verified: false,
-        previewUrl: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&auto=format&fit=crop&q=80',
-      },
-    ],
-  },
-  {
-    id: 'app-002',
-    userFullName: 'Trần Thị Mai Anh',
-    userEmail: 'maianh.edu@gmail.com',
-    userPhone: '0902 345 678',
-    userAvatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-    subject: 'Tiếng Anh',
-    subjectSub: 'Giao tiếp, IELTS',
-    education: 'ĐH Ngoại thương',
-    degreeLevel: 'Cử nhân Kinh tế đối ngoại',
-    experienceYears: 3,
-    teachingMode: 'Online',
-    address: 'Quận Đống Đa, Hà Nội',
-    bio: 'IELTS 8.0 Overall (Reading 8.5, Listening 8.5). Chuyên đào tạo kỹ năng Speaking & Writing theo lộ trình cá nhân hóa.',
-    methodology: 'Ứng dụng phương pháp phản xạ chủ động và sửa lỗi trực tiếp trong từng buổi học.',
-    achievements: 'Hơn 40 học viên đạt mục tiêu IELTS 6.5 - 7.5 sau khóa học 3 tháng.',
-    submittedAt: '2024-06-11T10:15:00Z',
-    status: 'Pending', // Chờ xét duyệt
-    documents: [
-      {
-        id: 'doc-4',
-        title: 'Bằng Cử nhân Kinh tế đối ngoại',
-        institution: 'ĐH Ngoại Thương',
-        format: 'PDF • 1.9 MB',
-        verified: true,
-        previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
-      },
-      {
-        id: 'doc-5',
-        title: 'Chứng chỉ IELTS 8.0',
-        institution: 'British Council Vietnam',
-        format: 'PDF • 2.4 MB',
-        verified: true,
-        previewUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80',
-      },
-    ],
-  },
-  {
-    id: 'app-003',
-    userFullName: 'Lê Quang Huy',
-    userEmail: 'quanghuy1999@gmail.com',
-    userPhone: '0903 456 789',
-    userAvatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    subject: 'Vật lý',
-    subjectSub: 'THPT, Ôn thi ĐH',
-    education: 'ĐH Khoa học Tự nhiên',
-    degreeLevel: 'Thạc sĩ Vật lý ứng dụng',
-    experienceYears: 5,
-    teachingMode: 'Both',
-    address: 'Quận 10, TP. Hồ Chí Minh',
-    bio: 'Thạc sĩ Vật lý ứng dụng, có 5 năm giảng dạy bộ môn Vật lý lớp 10, 11, 12 và bồi dưỡng đội tuyển HSG.',
-    methodology: 'Kết hợp mô phỏng thí nghiệm 3D với sơ đồ bài tập công thức rút gọn.',
-    achievements: 'Học sinh đạt giải Ba môn Vật lý cấp thành phố năm 2023.',
-    submittedAt: '2024-06-10T16:20:00Z',
-    status: 'Approved', // Đã phê duyệt
-    documents: [
-      {
-        id: 'doc-6',
-        title: 'Bằng Thạc sĩ Vật lý',
-        institution: 'ĐH Khoa học Tự nhiên',
-        format: 'PDF • 3.1 MB',
-        verified: true,
-        previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
-      },
-    ],
-  },
-  {
-    id: 'app-004',
-    userFullName: 'Phạm Thu Hà',
-    userEmail: 'thuha.pham@gmail.com',
-    userPhone: '0904 567 890',
-    userAvatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-    subject: 'Hóa học',
-    subjectSub: 'THPT, Luyện thi ĐH',
-    education: 'ĐH Sư phạm Hà Nội',
-    degreeLevel: 'Cử nhân Sư phạm Hóa',
-    experienceYears: 2,
-    teachingMode: 'Offline',
-    address: 'Quận Thanh Xuân, Hà Nội',
-    bio: 'Giáo viên trẻ nhiệt huyết, chuyên lấy lại gốc môn Hóa cho học sinh lớp 11 và 12.',
-    methodology: 'Tập trung phản ứng cốt lõi, bảng hệ thống chuỗi hóa học dễ nhớ.',
-    achievements: 'Kèm cặp hơn 15 học sinh tăng từ 4.5 lên 7.5 điểm Hóa học.',
-    submittedAt: '2024-06-09T09:10:00Z',
-    status: 'Pending', // Chờ xét duyệt
-    documents: [
-      {
-        id: 'doc-7',
-        title: 'Bằng Cử nhân Sư phạm Hóa',
-        institution: 'ĐH Sư phạm Hà Nội',
-        format: 'PDF • 2.0 MB',
-        verified: false,
-        previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
-      },
-    ],
-  },
-  {
-    id: 'app-005',
-    userFullName: 'Hoàng Văn Long',
-    userEmail: 'longhoang@gmail.com',
-    userPhone: '0905 678 901',
-    userAvatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    subject: 'Lập trình',
-    subjectSub: 'Python, Web',
-    education: 'ĐH FPT',
-    degreeLevel: 'Kỹ sư Kỹ thuật phần mềm',
-    experienceYears: 1,
-    teachingMode: 'Online',
-    address: 'Quận Nam Từ Liêm, Hà Nội',
-    bio: 'Lập trình viên Fullstack, kèm lập trình căn bản cho học sinh THCS, THPT và sinh viên năm nhất.',
-    methodology: 'Học qua dự án thực tế (Project-based learning), xây dựng ứng dụng web ngay sau khóa học.',
-    achievements: 'Hướng dẫn 10+ học sinh hoàn thành dự án portfolio cá nhân.',
-    submittedAt: '2024-06-08T11:45:00Z',
-    status: 'Rejected', // Đã từ chối
-    rejectionReason: 'Hồ sơ thiếu chứng minh kinh nghiệm thực tế và bằng cấp chưa được công chứng hợp lệ.',
-    documents: [
-      {
-        id: 'doc-8',
-        title: 'Bằng tốt nghiệp Kỹ sư phần mềm',
-        institution: 'ĐH FPT',
-        format: 'PDF • 1.5 MB',
-        verified: false,
-        previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
-      },
-    ],
-  },
-  {
-    id: 'app-006',
-    userFullName: 'Đỗ Thị Thanh Tâm',
-    userEmail: 'thanhtam@gmail.com',
-    userPhone: '0906 789 012',
-    userAvatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
-    subject: 'Ngữ văn',
-    subjectSub: 'THCS, THPT',
-    education: 'ĐH KHXH&NV',
-    degreeLevel: 'Thạc sĩ Văn học Việt Nam',
-    experienceYears: 6,
-    teachingMode: 'Both',
-    address: 'Quận Ba Đình, Hà Nội',
-    bio: 'Thạc sĩ Văn học, chuyên bồi dưỡng học sinh thi vào lớp 10 chuyên Văn và kỳ thi THPT Quốc Gia.',
-    methodology: 'Phát triển năng lực cảm thụ văn học, rèn luyện kỹ năng lập dàn ý và diễn đạt mạch lạc, giàu cảm xúc.',
-    achievements: 'Nhiều học sinh đạt giải HSG cấp Tỉnh và điểm 9+ môn Văn thi Đại học.',
-    submittedAt: '2024-06-07T13:30:00Z',
-    status: 'Pending', // Chờ xét duyệt
-    documents: [
-      {
-        id: 'doc-9',
-        title: 'Bằng Thạc sĩ Văn học',
-        institution: 'ĐH KHXH&NV',
-        format: 'PDF • 2.6 MB',
-        verified: true,
-        previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
-      },
-      {
-        id: 'doc-10',
-        title: 'Chứng chỉ Nghiệp vụ Sư phạm Giỏi',
-        institution: 'ĐH Sư phạm Hà Nội',
-        format: 'PDF • 1.4 MB',
-        verified: true,
-        previewUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80',
-      },
-    ],
-  },
-  {
-    id: 'app-007',
-    userFullName: 'Trịnh Quốc Bảo',
-    userEmail: 'quocbao@gmail.com',
-    userPhone: '0907 890 123',
-    userAvatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
-    subject: 'Kinh tế',
-    subjectSub: 'Đại học, CFA',
-    education: 'ĐH Kinh tế Quốc dân',
-    degreeLevel: 'Cử nhân Tài chính - Ngân hàng',
-    experienceYears: 4,
-    teachingMode: 'Online',
-    address: 'Quận Hai Bà Trưng, Hà Nội',
-    bio: 'CFA Charterholder, có kinh nghiệm giảng dạy môn Tài chính doanh nghiệp, Kinh tế vĩ mô và luyện thi CFA Level 1.',
-    methodology: 'Giảng dạy lý thuyết kết hợp phân tích báo cáo tài chính thực tế của các doanh nghiệp niêm yết.',
-    achievements: 'Hơn 30 học viên thi đỗ chứng chỉ CFA Level 1 trong lần thi đầu tiên.',
-    submittedAt: '2024-06-06T08:50:00Z',
-    status: 'Approved', // Đã phê duyệt
-    documents: [
-      {
-        id: 'doc-11',
-        title: 'Bằng Cử nhân Tài chính',
-        institution: 'ĐH Kinh tế Quốc dân',
-        format: 'PDF • 2.2 MB',
-        verified: true,
-        previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
-      },
-    ],
-  },
-];
 
 export default function AdminTutorApplications() {
   const toast = useToast();
@@ -283,7 +42,6 @@ export default function AdminTutorApplications() {
   const [rejectReasonInput, setRejectReasonInput] = useState('');
   const [adminNoteInput, setAdminNoteInput] = useState('');
   const [adminNotesMap, setAdminNotesMap] = useState({});
-  const [mockStatusOverrides, setMockStatusOverrides] = useState({});
 
   // Load from backend
   useEffect(() => {
@@ -308,81 +66,42 @@ export default function AdminTutorApplications() {
     };
   }, [reloadToken]);
 
-  // Combine DB applications with mock presentation list (DB items first)
+  // Format DB applications loaded from API
   const allApplications = useMemo(() => {
-    const formattedDb = dbApplicants.map((a, idx) => {
-      let cleanBio = a.bio || 'Chưa cập nhật phần giới thiệu.';
-      let methodology = 'Cá nhân hóa theo năng lực từng học sinh, rèn luyện bài tập thực hành theo chuyên đề.';
-      let achievements = 'Học sinh đạt kết quả tốt trong các kỳ thi kiểm tra định kỳ.';
-
-      if (a.bio && a.bio.includes('[Phương pháp giảng dạy]:')) {
-        const parts = a.bio.split('[Phương pháp giảng dạy]:');
-        cleanBio = parts[0]?.trim() || '';
-        const rest = parts[1] || '';
-        if (rest.includes('[Thành tích tiêu biểu]:')) {
-          const mParts = rest.split('[Thành tích tiêu biểu]:');
-          methodology = mParts[0]?.trim() || methodology;
-          achievements = mParts[1]?.trim() || achievements;
-        } else {
-          methodology = rest.trim();
-        }
-      }
-
-      let parsedSubject = 'Toán học';
-      if (a.education) {
-        if (a.education.includes('-')) {
-          const sub = a.education.split('-')[1]?.split('(')[0]?.trim();
-          if (sub) parsedSubject = sub;
-        } else if (a.education.includes(':')) {
-          const sub = a.education.split(':')[1]?.split(',')[0]?.trim();
-          if (sub) parsedSubject = sub;
-        }
-      }
-
-      return {
-        id: a.id,
-        userFullName: a.userFullName || `Gia sư ${idx + 1}`,
-        userEmail: a.userEmail || `tutor${idx}@tutorhub.vn`,
-        userPhone: a.userPhone || '0901 234 567',
-        userAvatarUrl: a.userAvatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${a.userEmail || idx}`,
-        subject: parsedSubject,
-        subjectSub: a.teachingMode === 'Both' ? 'Online & Trực tiếp' : a.teachingMode || 'Online',
-        education: a.education || 'ĐH Sư phạm Hà Nội',
-        degreeLevel: 'Cử nhân',
-        experienceYears: a.experienceYears || 2,
-        teachingMode: a.teachingMode || 'Online',
-        address: a.address || 'Hà Nội',
-        bio: cleanBio,
-        methodology,
-        achievements,
-        submittedAt: a.submittedAt || new Date().toISOString(),
-        status: a.status || 'Pending',
-        rejectionReason: a.rejectionReason,
-        documents: [
-          {
-            id: `db-doc-${a.id}-1`,
-            title: 'Văn bằng chứng chỉ chuyên môn',
-            institution: a.education ? a.education.split('(')[1]?.split(')')[0] || a.education : 'Đại học Sư phạm',
-            format: 'PDF / Hình ảnh',
-            verified: a.status === 'Approved',
-            previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
-          },
-        ],
-      };
-    });
-
-    if (formattedDb.length > 0) {
-      return formattedDb;
-    }
-
-    return MOCK_APPLICANTS.map((m) => {
-      const override = mockStatusOverrides[m.id];
-      if (!override) return m;
-      const status = typeof override === 'string' ? override : override.status;
-      const rejectionReason = override.reason || m.rejectionReason;
-      return { ...m, status, rejectionReason };
-    });
-  }, [dbApplicants, mockStatusOverrides]);
+    return dbApplicants.map((a, idx) => ({
+      ...a,
+      userFullName: a.userFullName || `Gia sư ${idx + 1}`,
+      userEmail: a.userEmail || `tutor${idx}@tutorhub.vn`,
+      userPhone: a.userPhone || '—',
+      userAvatarUrl: a.userAvatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${a.userEmail || idx}`,
+      subject: a.subject || 'Toán học',
+      subjectSub: a.subjectSub || (a.teachingMode === 'Both' ? 'Online & Trực tiếp' : a.teachingMode || 'Online'),
+      education: a.education || a.university || 'Đại học Sư phạm',
+      university: a.university || a.education || '',
+      major: a.major || '',
+      degreeLevel: a.degreeLevel || 'Cử nhân',
+      certifications: a.certifications || '',
+      experienceYears: a.experienceYears ?? 1,
+      teachingMode: a.teachingMode || 'Online',
+      address: a.address || 'Hà Nội',
+      bio: a.bio || 'Chưa cập nhật phần giới thiệu.',
+      methodology: a.methodology || 'Cá nhân hóa theo năng lực từng học sinh, rèn luyện bài tập thực hành theo chuyên đề.',
+      achievements: a.achievements || 'Học sinh đạt kết quả tốt trong các kỳ thi kiểm tra định kỳ.',
+      submittedAt: a.submittedAt || new Date().toISOString(),
+      status: a.status || 'Pending',
+      rejectionReason: a.rejectionReason,
+      documents: Array.isArray(a.documents) && a.documents.length > 0 ? a.documents : [
+        {
+          id: `doc-${a.id}-1`,
+          title: 'Văn bằng chứng chỉ chuyên môn',
+          institution: a.university || a.education || 'Đại học Sư phạm',
+          format: 'PDF • 2.1 MB',
+          verified: a.status === 'Approved',
+          previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
+        },
+      ],
+    }));
+  }, [dbApplicants]);
 
   // Keep first application selected when list loads
   useEffect(() => {
@@ -514,11 +233,7 @@ export default function AdminTutorApplications() {
 
     try {
       setProcessing(true);
-      if (!activeApplicant.id.startsWith('app-')) {
-        await adminService.approveTutorApplication(activeApplicant.id);
-      } else {
-        setMockStatusOverrides((prev) => ({ ...prev, [activeApplicant.id]: 'Approved' }));
-      }
+      await adminService.approveTutorApplication(activeApplicant.id);
       toast.success(`Đã phê duyệt thành công hồ sơ của ${activeApplicant.userFullName}!`);
       setReloadToken((t) => t + 1);
     } catch (err) {
@@ -547,14 +262,7 @@ export default function AdminTutorApplications() {
     try {
       setProcessing(true);
       const reason = rejectReasonInput.trim();
-      if (!activeApplicant.id.startsWith('app-')) {
-        await adminService.rejectTutorApplication(activeApplicant.id, reason);
-      } else {
-        setMockStatusOverrides((prev) => ({
-          ...prev,
-          [activeApplicant.id]: { status: 'Rejected', reason },
-        }));
-      }
+      await adminService.rejectTutorApplication(activeApplicant.id, reason);
       toast.info(`Đã từ chối hồ sơ của ${activeApplicant.userFullName}.`);
       setShowRejectModal(false);
       setReloadToken((t) => t + 1);
@@ -865,7 +573,16 @@ export default function AdminTutorApplications() {
                 </thead>
 
                 <tbody className="divide-y divide-slate-100">
-                  {paginatedList.length === 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan={7} className="py-14 text-center text-slate-400">
+                        <div className="flex flex-col items-center justify-center gap-2.5">
+                          <span className="w-6 h-6 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
+                          <span className="text-xs font-medium text-slate-500">Đang tải danh sách hồ sơ gia sư từ hệ thống...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : paginatedList.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-12 text-center text-slate-400">
                         <Icon name="search" size="lg" className="mx-auto mb-2 text-slate-300" />
@@ -1221,6 +938,41 @@ export default function AdminTutorApplications() {
                     {activeApplicant.bio}
                   </p>
                 </div>
+
+                {/* Trình độ học vấn & Trường đại học */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <span className="text-[11.5px] text-slate-400 block">Trường đào tạo</span>
+                    <span className="font-bold text-slate-800 block mt-0.5 truncate" title={activeApplicant.university || activeApplicant.education}>
+                      {activeApplicant.university || activeApplicant.education}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <span className="text-[11.5px] text-slate-400 block">Học vị</span>
+                    <span className="font-bold text-slate-800 block mt-0.5">
+                      {activeApplicant.degreeLevel || 'Cử nhân'}
+                    </span>
+                  </div>
+                </div>
+
+                {activeApplicant.major && (
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <span className="text-[11.5px] text-slate-400 block">Chuyên ngành</span>
+                    <span className="font-bold text-slate-800 block mt-0.5">
+                      {activeApplicant.major}
+                    </span>
+                  </div>
+                )}
+
+                {activeApplicant.certifications && (
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <span className="text-[11.5px] text-slate-400 block">Chứng chỉ</span>
+                    <span className="font-bold text-[#2563EB] block mt-0.5">
+                      {activeApplicant.certifications}
+                    </span>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                     <span className="text-[11.5px] text-slate-400 block">Hình thức dạy</span>

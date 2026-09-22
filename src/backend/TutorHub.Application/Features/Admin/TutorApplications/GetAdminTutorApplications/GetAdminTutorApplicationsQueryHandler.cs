@@ -35,7 +35,10 @@ public class GetAdminTutorApplicationsQueryHandler
             var search = request.Search.Trim().ToLower();
             query = query.Where(a =>
                 a.User.FullName.ToLower().Contains(search) ||
-                a.User.Email.ToLower().Contains(search));
+                a.User.Email.ToLower().Contains(search) ||
+                (a.User.Phone != null && a.User.Phone.Contains(search)) ||
+                (a.Subject != null && a.Subject.ToLower().Contains(search)) ||
+                (a.University != null && a.University.ToLower().Contains(search)));
         }
 
         query = query.OrderByDescending(a => a.SubmittedAt).ThenByDescending(a => a.Id);
@@ -53,6 +56,7 @@ public class GetAdminTutorApplicationsQueryHandler
                 a.UserId,
                 a.User.FullName,
                 a.User.Email,
+                a.User.Phone,
                 a.User.AvatarUrl,
                 a.Status.ToString(),
                 a.SubmittedAt,
@@ -60,9 +64,18 @@ public class GetAdminTutorApplicationsQueryHandler
                 a.RejectionReason,
                 a.Bio,
                 a.Education,
+                a.University,
+                a.Major,
+                a.DegreeLevel,
+                a.Certifications,
+                a.Subject,
+                a.SubjectSub,
                 a.ExperienceYears,
                 a.TeachingMode.ToString(),
-                a.Address
+                a.Address,
+                a.Methodology,
+                a.Achievements,
+                a.DocumentsJson
             ))
             .ToListAsync(cancellationToken);
 

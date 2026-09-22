@@ -27,11 +27,20 @@ public class TutorApplication
     // Application content — snapshot at submission time
     public string Bio { get; set; } = default!;
     public string Education { get; set; } = default!;
+    public string? University { get; set; }
+    public string? Major { get; set; }
+    public string? DegreeLevel { get; set; }
+    public string? Certifications { get; set; }
+    public string? Subject { get; set; }
+    public string? SubjectSub { get; set; }
     public int ExperienceYears { get; set; }
     public TeachingMode TeachingMode { get; set; }
     public string? Address { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
+    public string? Methodology { get; set; }
+    public string? Achievements { get; set; }
+    public string? DocumentsJson { get; set; }
 
     // Lifecycle
     public TutorApplicationStatus Status { get; private set; }
