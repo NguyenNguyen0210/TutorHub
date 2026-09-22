@@ -4,11 +4,13 @@ using TutorHub.Domain.Entities;
 
 namespace TutorHub.Infrastructure.Persistence.Configurations;
 
-public class WalletTransactionConfiguration : IEntityTypeConfiguration<WalletTransaction>
+public class TutorWalletTransactionConfiguration : IEntityTypeConfiguration<TutorWalletTransaction>
 {
-    public void Configure(EntityTypeBuilder<WalletTransaction> builder)
+    public void Configure(EntityTypeBuilder<TutorWalletTransaction> builder)
     {
         builder.HasKey(wt => wt.Id);
+
+        builder.ToTable("WalletTransactions");
 
         builder.Property(wt => wt.Type)
             .HasConversion<string>()

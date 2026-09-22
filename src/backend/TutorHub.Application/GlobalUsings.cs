@@ -4,3 +4,7 @@ global using TutorHub.Application.Common.Models;
 global using TutorHub.Application.Common.Payments;
 global using TutorHub.Application.Common.Security;
 global using TutorHub.Application.Common.Storage;
+global using Wallet = TutorHub.Domain.Entities.TutorWallet;
+global using Withdrawal = TutorHub.Domain.Entities.TutorWithdrawal;
+global using WalletTransaction = TutorHub.Domain.Entities.TutorWalletTransaction;
+global using WalletTransactionType = TutorHub.Domain.Enums.TutorWalletTransactionType;

@@ -4,13 +4,13 @@ using TutorHub.Domain.Entities;
 
 namespace TutorHub.Infrastructure.Persistence.Configurations;
 
-public class WithdrawalConfiguration : IEntityTypeConfiguration<Withdrawal>
+public class TutorWithdrawalConfiguration : IEntityTypeConfiguration<TutorWithdrawal>
 {
-    public void Configure(EntityTypeBuilder<Withdrawal> builder)
+    public void Configure(EntityTypeBuilder<TutorWithdrawal> builder)
     {
         builder.HasKey(w => w.Id);
 
-        builder.ToTable(t =>
+        builder.ToTable("Withdrawals", t =>
         {
             t.HasCheckConstraint("CK_Withdrawal_PositiveAmount", "\"Amount\" > 0");
         });

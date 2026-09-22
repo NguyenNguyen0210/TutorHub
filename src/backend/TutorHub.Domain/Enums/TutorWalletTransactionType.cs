@@ -1,6 +1,6 @@
 namespace TutorHub.Domain.Enums;
 
-public enum WalletTransactionType
+public enum TutorWalletTransactionType
 {
     SessionPayoutCredit,
     WithdrawalDebit,
@@ -9,4 +9,3 @@ public enum WalletTransactionType
     DisputeHoldReleaseCredit,
     DisputeRecoveryDebit
 }
-

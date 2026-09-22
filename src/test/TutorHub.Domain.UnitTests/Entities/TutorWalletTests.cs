@@ -1,12 +1,12 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using TutorHub.Domain.Entities;
 using Xunit;
 
 namespace TutorHub.Domain.UnitTests.Entities;
 
-public class WalletTests
+public class TutorWalletTests
 {
-    private static Wallet CreateWallet(decimal pending = 0m, decimal available = 0m, decimal held = 0m) => new()
+    private static TutorWallet CreateWallet(decimal pending = 0m, decimal available = 0m, decimal held = 0m) => new()
     {
         Id = Guid.NewGuid(),
         TutorProfileId = Guid.NewGuid(),

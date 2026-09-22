@@ -2,12 +2,12 @@ using TutorHub.Domain.Enums;
 
 namespace TutorHub.Domain.Entities;
 
-public class Withdrawal
+public class TutorWithdrawal
 {
     public Guid Id { get; set; }
 
     public Guid WalletId { get; set; }
-    public Wallet Wallet { get; set; } = default!;
+    public TutorWallet Wallet { get; set; } = default!;
 
     public decimal Amount { get; set; }
 

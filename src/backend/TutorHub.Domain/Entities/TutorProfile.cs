@@ -74,5 +74,6 @@ public class TutorProfile
     public ICollection<AvailabilitySlot> AvailabilitySlots { get; set; }
         = new List<AvailabilitySlot>();
 
-    public Wallet? Wallet { get; set; }
+    public TutorWallet? Wallet { get; set; }
+    public TutorWallet? TutorWallet { get => Wallet; set => Wallet = value; }
 }

@@ -1,6 +1,6 @@
 namespace TutorHub.Domain.Entities;
 
-public class Wallet
+public class TutorWallet
 {
     public Guid Id { get; set; }
 
@@ -93,9 +93,9 @@ public class Wallet
     }
 
     // Relationships
-    public ICollection<Withdrawal> Withdrawals { get; set; }
-        = new List<Withdrawal>();
+    public ICollection<TutorWithdrawal> Withdrawals { get; set; }
+        = new List<TutorWithdrawal>();
 
-    public ICollection<WalletTransaction> WalletTransactions { get; set; }
-        = new List<WalletTransaction>();
+    public ICollection<TutorWalletTransaction> WalletTransactions { get; set; }
+        = new List<TutorWalletTransaction>();
 }
