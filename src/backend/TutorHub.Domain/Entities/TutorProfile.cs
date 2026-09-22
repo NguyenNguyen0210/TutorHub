@@ -75,6 +75,4 @@ public class TutorProfile
         = new List<AvailabilitySlot>();
 
     public TutorWallet? Wallet { get; set; }
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public TutorWallet? TutorWallet { get => Wallet; set => Wallet = value; }
 }

@@ -55,7 +55,5 @@ public class TutorProfileConfiguration : IEntityTypeConfiguration<TutorProfile>
             .WithOne(u => u.TutorProfile)
             .HasForeignKey<TutorProfile>(t => t.UserId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        builder.Ignore(t => t.TutorWallet);
     }
 }
