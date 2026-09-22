@@ -223,7 +223,12 @@ export default function WorkspaceShell({ userRole: role, children }) {
           </div>
         </header>
 
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 lg:pb-10">
+        <main
+          className={cn(
+            'flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 lg:pb-10',
+            role === 'Admin' ? 'max-w-[1600px]' : 'max-w-7xl'
+          )}
+        >
           {children}
         </main>
       </div>
