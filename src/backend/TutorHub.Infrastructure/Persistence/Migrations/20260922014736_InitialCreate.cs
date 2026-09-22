@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -59,7 +59,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     LockedBy = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
                     NextAttemptAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     RetryCount = table.Column<int>(type: "integer", nullable: false),
-                    LastError = table.Column<string>(type: "text", nullable: true)
+                    LastError = table.Column<string>(type: "text", nullable: true),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -95,11 +96,18 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     AvatarUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     Role = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false, defaultValue: "Active"),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    AbsentStrikes = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    StrikeWindowStart = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastAbsentAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    AccessFailedCount = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    LockoutEndAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.Id);
+                    table.CheckConstraint("CK_User_NonNegativeFailedLogins", "\"AccessFailedCount\" >= 0");
+                    table.CheckConstraint("CK_User_NonNegativeStrikes", "\"AbsentStrikes\" >= 0");
                 });
 
             migrationBuilder.CreateTable(
@@ -235,7 +243,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Token = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    TokenHash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     RevokedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
@@ -354,7 +362,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     ProviderMessageId = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
                     LockedUntil = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     LockedBy = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -363,6 +372,29 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         name: "FK_EmailDeliveries_Notifications_NotificationId",
                         column: x => x.NotificationId,
                         principalTable: "Notifications",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StudentWallets",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    StudentProfileId = table.Column<Guid>(type: "uuid", nullable: false),
+                    AvailableBalance = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false),
+                    ReservedBalance = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StudentWallets", x => x.Id);
+                    table.CheckConstraint("CK_StudentWallet_NonNegativeBalances", "\"AvailableBalance\" >= 0 AND \"ReservedBalance\" >= 0");
+                    table.ForeignKey(
+                        name: "FK_StudentWallets_StudentProfiles_StudentProfileId",
+                        column: x => x.StudentProfileId,
+                        principalTable: "StudentProfiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -496,13 +528,119 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Wallets", x => x.Id);
-                    table.CheckConstraint("CK_Wallet_NonNegativeBalances", "\"PendingBalance\" >= 0 AND \"AvailableBalance\" >= 0");
+                    table.CheckConstraint("CK_Wallet_NonNegativeBalances", "\"PendingBalance\" >= 0 AND \"AvailableBalance\" >= 0 AND \"HeldBalance\" >= 0 AND \"HeldBalance\" <= \"AvailableBalance\"");
                     table.ForeignKey(
                         name: "FK_Wallets_TutorProfiles_TutorProfileId",
                         column: x => x.TutorProfileId,
                         principalTable: "TutorProfiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StudentWalletTransactions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    StudentWalletId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Direction = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false),
+                    BalanceBefore = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false),
+                    BalanceAfter = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false),
+                    ReferenceType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    ReferenceId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Reason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StudentWalletTransactions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_StudentWalletTransactions_StudentWallets_StudentWalletId",
+                        column: x => x.StudentWalletId,
+                        principalTable: "StudentWallets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StudentWithdrawals",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    StudentWalletId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false),
+                    Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    BankName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    BankCode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    AccountNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    AccountHolderName = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    Note = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    RequestedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ProcessingStartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ProcessingStartedByAdminId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ProcessedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ProcessedByAdminId = table.Column<Guid>(type: "uuid", nullable: true),
+                    FailureReason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StudentWithdrawals", x => x.Id);
+                    table.CheckConstraint("CK_StudentWithdrawal_PositiveAmount", "\"Amount\" > 0");
+                    table.ForeignKey(
+                        name: "FK_StudentWithdrawals_StudentWallets_StudentWalletId",
+                        column: x => x.StudentWalletId,
+                        principalTable: "StudentWallets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_StudentWithdrawals_Users_ProcessedByAdminId",
+                        column: x => x.ProcessedByAdminId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StudentWithdrawals_Users_ProcessingStartedByAdminId",
+                        column: x => x.ProcessingStartedByAdminId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TopUpRequests",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    StudentWalletId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false),
+                    TransferReference = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Status = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    RequestedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ProcessedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ProcessedByAdminId = table.Column<Guid>(type: "uuid", nullable: true),
+                    RejectionReason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    AdminNote = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TopUpRequests", x => x.Id);
+                    table.CheckConstraint("CK_TopUpRequest_PositiveAmount", "\"Amount\" > 0");
+                    table.ForeignKey(
+                        name: "FK_TopUpRequests_StudentWallets_StudentWalletId",
+                        column: x => x.StudentWalletId,
+                        principalTable: "StudentWallets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TopUpRequests_Users_ProcessedByAdminId",
+                        column: x => x.ProcessedByAdminId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -965,18 +1103,85 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "LearningRecords",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    SessionId = table.Column<Guid>(type: "uuid", nullable: false),
+                    TutorProfileId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Content = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_LearningRecords", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_LearningRecords_Sessions_SessionId",
+                        column: x => x.SessionId,
+                        principalTable: "Sessions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_LearningRecords_TutorProfiles_TutorProfileId",
+                        column: x => x.TutorProfileId,
+                        principalTable: "TutorProfiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SessionRescheduleRequests",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    SessionId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProposerUserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    RecipientUserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProposedStartAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ProposedEndAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Reason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    RejectionReason = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    RespondedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SessionRescheduleRequests", x => x.Id);
+                    table.CheckConstraint("CK_SessionRescheduleRequest_Schedule", "\"ProposedStartAt\" < \"ProposedEndAt\"");
+                    table.ForeignKey(
+                        name: "FK_SessionRescheduleRequests_Sessions_SessionId",
+                        column: x => x.SessionId,
+                        principalTable: "Sessions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_SessionRescheduleRequests_Users_ProposerUserId",
+                        column: x => x.ProposerUserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SessionRescheduleRequests_Users_RecipientUserId",
+                        column: x => x.RecipientUserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Transactions",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     BookingId = table.Column<Guid>(type: "uuid", nullable: false),
                     SessionId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Amount = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false),
                     Type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    CommissionRate = table.Column<decimal>(type: "numeric(5,2)", precision: 5, scale: 2, nullable: false),
-                    CommissionAmount = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
-                    PayoutAmount = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
+                    CommissionRate = table.Column<decimal>(type: "numeric(5,4)", precision: 5, scale: 4, nullable: false),
+                    CommissionAmount = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false),
+                    PayoutAmount = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false),
                     PaymentGatewayRef = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     DisputeId = table.Column<Guid>(type: "uuid", nullable: true),
                     RelatedTransactionId = table.Column<Guid>(type: "uuid", nullable: true),
@@ -1159,6 +1364,13 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 column: "UploadedByUserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Disputes_ActiveSessionId",
+                table: "Disputes",
+                column: "SessionId",
+                unique: true,
+                filter: "\"Status\" IN ('Open', 'UnderReview', 'RequiresAdminFinancialIntervention', 'RequiresAdminRefundSettlement')");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Disputes_InitiatorUserId",
                 table: "Disputes",
                 column: "InitiatorUserId");
@@ -1174,11 +1386,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 name: "IX_Disputes_RespondentUserId",
                 table: "Disputes",
                 column: "RespondentUserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Disputes_SessionId",
-                table: "Disputes",
-                column: "SessionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Disputes_Status",
@@ -1232,6 +1439,17 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 table: "InboxMessages",
                 columns: new[] { "ConsumerName", "EventId" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LearningRecords_SessionId",
+                table: "LearningRecords",
+                column: "SessionId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LearningRecords_TutorProfileId",
+                table: "LearningRecords",
+                column: "TutorProfileId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Media_ObjectKey",
@@ -1294,9 +1512,9 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_RefreshTokens_Token",
+                name: "IX_RefreshTokens_TokenHash",
                 table: "RefreshTokens",
-                column: "Token",
+                column: "TokenHash",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -1366,6 +1584,28 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 columns: new[] { "TutorProfileId", "Status" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_SessionRescheduleRequests_ProposerUserId",
+                table: "SessionRescheduleRequests",
+                column: "ProposerUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SessionRescheduleRequests_RecipientUserId",
+                table: "SessionRescheduleRequests",
+                column: "RecipientUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SessionRescheduleRequests_SessionId",
+                table: "SessionRescheduleRequests",
+                column: "SessionId",
+                unique: true,
+                filter: "\"Status\" = 'Pending'");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SessionRescheduleRequests_SessionId_CreatedAt",
+                table: "SessionRescheduleRequests",
+                columns: new[] { "SessionId", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Sessions_EnrollmentId_SessionNumber",
                 table: "Sessions",
                 columns: new[] { "EnrollmentId", "SessionNumber" },
@@ -1383,6 +1623,42 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_StudentWallets_StudentProfileId",
+                table: "StudentWallets",
+                column: "StudentProfileId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentWalletTransactions_ReferenceType_ReferenceId",
+                table: "StudentWalletTransactions",
+                columns: new[] { "ReferenceType", "ReferenceId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentWalletTransactions_StudentWalletId_CreatedAt",
+                table: "StudentWalletTransactions",
+                columns: new[] { "StudentWalletId", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentWithdrawals_ProcessedByAdminId",
+                table: "StudentWithdrawals",
+                column: "ProcessedByAdminId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentWithdrawals_ProcessingStartedByAdminId",
+                table: "StudentWithdrawals",
+                column: "ProcessingStartedByAdminId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentWithdrawals_Status",
+                table: "StudentWithdrawals",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StudentWithdrawals_StudentWalletId_Status",
+                table: "StudentWithdrawals",
+                columns: new[] { "StudentWalletId", "Status" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Subjects_CategoryId",
                 table: "Subjects",
                 column: "CategoryId");
@@ -1394,15 +1670,42 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_TopUpRequests_ProcessedByAdminId",
+                table: "TopUpRequests",
+                column: "ProcessedByAdminId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TopUpRequests_Status",
+                table: "TopUpRequests",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TopUpRequests_StudentWalletId_Status",
+                table: "TopUpRequests",
+                columns: new[] { "StudentWalletId", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TopUpRequests_TransferReference",
+                table: "TopUpRequests",
+                column: "TransferReference",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Transactions_BookingId",
                 table: "Transactions",
-                column: "BookingId",
-                unique: true);
+                column: "BookingId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Transactions_DisputeId",
                 table: "Transactions",
                 column: "DisputeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Transactions_PaymentGatewayRef",
+                table: "Transactions",
+                column: "PaymentGatewayRef",
+                unique: true,
+                filter: "\"PaymentGatewayRef\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Transactions_RelatedTransactionId",
@@ -1489,11 +1792,68 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 name: "IX_Withdrawals_WalletId_Status",
                 table: "Withdrawals",
                 columns: new[] { "WalletId", "Status" });
+
+            // P0-C2 (INV-LEDGER-006, INV-LEDGER-007): defence in depth for the financial
+            // ledger. AppDbContext.EnforceLedgerImmutability() already blocks these writes
+            // in the change tracker, but nothing at the database level stopped raw SQL or
+            // an ON DELETE CASCADE (Booking -> Transactions) from rewriting history.
+            migrationBuilder.Sql(
+                """
+                CREATE OR REPLACE FUNCTION tutorhub_guard_settled_transaction()
+                RETURNS trigger
+                LANGUAGE plpgsql
+                AS $$
+                BEGIN
+                    IF TG_OP = 'DELETE' THEN
+                        RAISE EXCEPTION 'Transaction records cannot be deleted (INV-LEDGER-007). Id=%', OLD."Id";
+                    END IF;
+
+                    IF OLD."Type" IN ('SessionPayoutCredit', 'PlatformFeeReversal')
+                       OR OLD."Status" IN ('Released', 'Succeeded') THEN
+                        RAISE EXCEPTION 'Settled historical financial records are immutable (INV-LEDGER-007). Id=%', OLD."Id";
+                    END IF;
+
+                    RETURN NEW;
+                END;
+                $$;
+
+                DROP TRIGGER IF EXISTS trg_transactions_append_only ON "Transactions";
+
+                CREATE TRIGGER trg_transactions_append_only
+                BEFORE UPDATE OR DELETE ON "Transactions"
+                FOR EACH ROW
+                EXECUTE FUNCTION tutorhub_guard_settled_transaction();
+
+                CREATE OR REPLACE FUNCTION tutorhub_guard_audit_log()
+                RETURNS trigger
+                LANGUAGE plpgsql
+                AS $$
+                BEGIN
+                    RAISE EXCEPTION 'AuditLog records are append-only and cannot be modified or deleted (INV-LEDGER-006). Id=%', OLD."Id";
+                END;
+                $$;
+
+                DROP TRIGGER IF EXISTS trg_audit_logs_append_only ON "AuditLogs";
+
+                CREATE TRIGGER trg_audit_logs_append_only
+                BEFORE UPDATE OR DELETE ON "AuditLogs"
+                FOR EACH ROW
+                EXECUTE FUNCTION tutorhub_guard_audit_log();
+                """);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql(
+                """
+                DROP TRIGGER IF EXISTS trg_transactions_append_only ON "Transactions";
+                DROP FUNCTION IF EXISTS tutorhub_guard_settled_transaction();
+
+                DROP TRIGGER IF EXISTS trg_audit_logs_append_only ON "AuditLogs";
+                DROP FUNCTION IF EXISTS tutorhub_guard_audit_log();
+                """);
+
             migrationBuilder.DropTable(
                 name: "AuditLogs");
 
@@ -1508,6 +1868,9 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "InboxMessages");
+
+            migrationBuilder.DropTable(
+                name: "LearningRecords");
 
             migrationBuilder.DropTable(
                 name: "Media");
@@ -1531,6 +1894,18 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 name: "Reviews");
 
             migrationBuilder.DropTable(
+                name: "SessionRescheduleRequests");
+
+            migrationBuilder.DropTable(
+                name: "StudentWalletTransactions");
+
+            migrationBuilder.DropTable(
+                name: "StudentWithdrawals");
+
+            migrationBuilder.DropTable(
+                name: "TopUpRequests");
+
+            migrationBuilder.DropTable(
                 name: "Transactions");
 
             migrationBuilder.DropTable(
@@ -1550,6 +1925,9 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "PlatformSettings");
+
+            migrationBuilder.DropTable(
+                name: "StudentWallets");
 
             migrationBuilder.DropTable(
                 name: "Withdrawals");
