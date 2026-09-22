@@ -60,6 +60,12 @@ export default function WorkspaceShell({ userRole: role, children }) {
     ...(role === 'Tutor'
       ? [
           {
+            key: 'application',
+            icon: <Icon name="verified_user" size="sm" />,
+            label: <span className="font-semibold text-body-reg">Hồ sơ xét duyệt</span>,
+            onClick: () => navigate('/tutor/application'),
+          },
+          {
             key: 'wallet',
             icon: <Icon name="account_balance_wallet" size="sm" />,
             label: <span className="font-semibold text-body-reg">Ví Escrow & Rút tiền</span>,

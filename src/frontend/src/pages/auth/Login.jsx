@@ -15,6 +15,7 @@ import { cn } from '@/lib/cn';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/services/api';
+import tutorService from '@/services/tutor.service';
 import AuthHeader from '@/components/layout/AuthHeader';
 
 function GoogleSvg() {
@@ -127,9 +128,22 @@ export default function Login() {
         return;
       }
 
-      if (user.role === 'Admin') navigate('/admin/dashboard', { replace: true });
-      else if (user.role === 'Tutor') navigate('/tutor/dashboard', { replace: true });
-      else navigate('/student/dashboard', { replace: true });
+      if (user.role === 'Admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else if (user.role === 'Tutor') {
+        try {
+          const app = await tutorService.getMyTutorApplication();
+          if (!app) {
+            navigate('/tutor/application', { replace: true });
+            return;
+          }
+        } catch {
+          // fallback to dashboard if API fails
+        }
+        navigate('/tutor/dashboard', { replace: true });
+      } else {
+        navigate('/student/dashboard', { replace: true });
+      }
     } catch (err) {
       setErrorMsg(err.message || 'Email hoặc mật khẩu không chính xác.');
     } finally {

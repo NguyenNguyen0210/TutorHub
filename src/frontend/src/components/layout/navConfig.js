@@ -19,6 +19,7 @@ export const NAV = {
 
   Tutor: [
     { path: '/tutor/dashboard', label: 'Bảng điều hành', icon: 'space_dashboard', match: (p) => p === '/tutor/dashboard' },
+    { path: '/tutor/application', label: 'Hồ sơ xét duyệt', icon: 'verified_user', match: (p) => p.startsWith('/tutor/application') },
     { path: '/tutor/services', label: 'Gói dịch vụ', icon: 'inventory_2', match: (p) => p.startsWith('/tutor/services') },
     { path: '/tutor/availability', label: 'Thời khóa biểu', icon: 'calendar_month', match: (p) => p.startsWith('/tutor/availability') },
     { path: '/tutor/wallet', label: 'Ví Escrow', icon: 'account_balance_wallet', match: (p) => p.startsWith('/tutor/wallet') },

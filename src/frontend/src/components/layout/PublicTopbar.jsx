@@ -46,6 +46,16 @@ export default function PublicTopbar() {
                 : '/admin/settings'
             ),
         },
+        ...(role === 'Tutor'
+          ? [
+              {
+                key: 'application',
+                icon: <Icon name="verified_user" size="sm" />,
+                label: <span className="font-semibold text-body-reg">Hồ sơ xét duyệt</span>,
+                onClick: () => navigate('/tutor/application'),
+              },
+            ]
+          : []),
         { type: 'divider' },
         {
           key: 'logout',
@@ -137,6 +147,21 @@ export default function PublicTopbar() {
         <div className="flex items-center gap-2.5 shrink-0">
           {isAuthenticated ? (
             <>
+              {role === 'Tutor' && (
+                <Link
+                  to="/tutor/application"
+                  className={cn(
+                    'hidden sm:inline-flex items-center gap-1.5 text-[13px] font-semibold px-3 py-1.5 rounded-lg border transition-all',
+                    location.pathname.startsWith('/tutor/application')
+                      ? 'bg-blue-50 text-[#2563EB] border-blue-200'
+                      : 'text-slate-700 hover:text-[#2563EB] border-slate-200 hover:bg-slate-50'
+                  )}
+                >
+                  <Icon name="verified_user" size="xs" />
+                  Hồ sơ xét duyệt
+                </Link>
+              )}
+
               <Button
                 as={Link}
                 to="/app/notifications"
