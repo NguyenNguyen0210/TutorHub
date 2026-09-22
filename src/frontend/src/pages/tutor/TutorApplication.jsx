@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import tutorService from '@/services/tutor.service';
@@ -45,6 +45,12 @@ export default function TutorApplication() {
   const [loadingApp, setLoadingApp] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // File upload drag states & refs
+  const [isDraggingDegree, setIsDraggingDegree] = useState(false);
+  const [isDraggingAvatar, setIsDraggingAvatar] = useState(false);
+  const degreeInputRef = useRef(null);
+  const avatarInputRef = useRef(null);
+
   // Form State
   const [formData, setFormData] = useState({
     // Step 1: Personal info
@@ -63,6 +69,7 @@ export default function TutorApplication() {
     major: 'Sư phạm Toán',
     degreeLevel: 'Cử nhân',
     certifications: 'Chứng chỉ Nghiệp vụ Sư phạm Giỏi, Chứng nhận bồi dưỡng HSG',
+    degreeFiles: [], // Array of { id, name, size, type, previewUrl }
 
     // Step 3: Experience
     experienceYears: 3,
@@ -121,12 +128,17 @@ export default function TutorApplication() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleAvatarChange = (e) => {
-    const file = e.target.files?.[0];
+  // Avatar file handling
+  const processAvatarFile = (file) => {
     if (!file) return;
 
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vui lòng chỉ chọn tệp hình ảnh (JPG, PNG).');
+      return;
+    }
+
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Ảnh tải lên không được vượt quá 5MB.');
+      toast.error('Ảnh đại diện tải lên không được vượt quá 5MB.');
       return;
     }
 
@@ -137,8 +149,82 @@ export default function TutorApplication() {
         avatarPreview: event.target.result,
         avatarUrl: event.target.result,
       }));
+      toast.success('Đã tải ảnh đại diện thành công!');
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    processAvatarFile(file);
+  };
+
+  const handleAvatarDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingAvatar(false);
+    const file = e.dataTransfer.files?.[0];
+    processAvatarFile(file);
+  };
+
+  // Degree / Certificate file handling
+  const processDegreeFiles = (files) => {
+    if (!files || files.length === 0) return;
+
+    const newFiles = [];
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+
+    Array.from(files).forEach((file) => {
+      if (!allowedTypes.includes(file.type) && !file.name.endsWith('.pdf')) {
+        toast.error(`Tệp "${file.name}" không hợp lệ. Chỉ chấp nhận PDF, JPG, PNG.`);
+        return;
+      }
+
+      if (file.size > maxFileSize) {
+        toast.error(`Tệp "${file.name}" vượt quá kích thước tối đa 10MB.`);
+        return;
+      }
+
+      const fileObj = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: file.name,
+        size: (file.size / (1024 * 1024)).toFixed(2), // MB
+        type: file.type,
+        file,
+        previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+      };
+
+      newFiles.push(fileObj);
+    });
+
+    if (newFiles.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        degreeFiles: [...prev.degreeFiles, ...newFiles],
+      }));
+      toast.success(`Đã tải lên ${newFiles.length} tệp minh chứng bằng cấp.`);
+    }
+  };
+
+  const handleDegreeInputChange = (e) => {
+    processDegreeFiles(e.target.files);
+    // reset input so selecting the same file triggers change
+    if (e.target) e.target.value = '';
+  };
+
+  const handleDegreeDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingDegree(false);
+    processDegreeFiles(e.dataTransfer.files);
+  };
+
+  const removeDegreeFile = (id) => {
+    setFormData((prev) => ({
+      ...prev,
+      degreeFiles: prev.degreeFiles.filter((f) => f.id !== id),
+    }));
   };
 
   const toggleSubject = (subj) => {
@@ -249,9 +335,14 @@ export default function TutorApplication() {
     try {
       setSubmitting(true);
 
+      const filesNote =
+        formData.degreeFiles.length > 0
+          ? ` [Đính kèm ${formData.degreeFiles.length} tệp minh chứng: ${formData.degreeFiles.map((f) => f.name).join(', ')}]`
+          : '';
+
       const educationString = `${formData.degreeLevel} - ${formData.major.trim()} (${formData.university.trim()})${
         formData.certifications ? ` | Chứng chỉ: ${formData.certifications.trim()}` : ''
-      }`;
+      }${filesNote}`;
 
       const fullBio = `${formData.bio.trim()}\n\n[Phương pháp giảng dạy]: ${formData.methodology.trim()}${
         formData.achievements ? `\n[Thành tích tiêu biểu]: ${formData.achievements.trim()}` : ''
@@ -265,11 +356,7 @@ export default function TutorApplication() {
         address: formData.address.trim() || null,
       };
 
-      if (existingApp && existingApp.status === 'Rejected') {
-        await tutorService.submitTutorApplication(payload);
-      } else {
-        await tutorService.submitTutorApplication(payload);
-      }
+      await tutorService.submitTutorApplication(payload);
 
       toast.success('Nộp hồ sơ gia sư thành công! Ban quản trị sẽ xét duyệt trong 1–3 ngày làm việc.');
       // Refresh status
@@ -680,8 +767,22 @@ export default function TutorApplication() {
                         )}
                       </div>
 
-                      {/* Dropzone upload box */}
-                      <label className="flex-1 border-2 border-dashed border-blue-200 bg-blue-50/20 hover:bg-blue-50/40 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-colors text-center group">
+                      {/* Dropzone upload box with drag & drop */}
+                      <div
+                        onClick={() => avatarInputRef.current?.click()}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setIsDraggingAvatar(true);
+                        }}
+                        onDragLeave={() => setIsDraggingAvatar(false)}
+                        onDrop={handleAvatarDrop}
+                        className={cn(
+                          'flex-1 border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all text-center group',
+                          isDraggingAvatar
+                            ? 'border-[#2563EB] bg-blue-100/50 ring-2 ring-blue-200 scale-[1.01]'
+                            : 'border-blue-200 bg-blue-50/20 hover:bg-blue-50/40'
+                        )}
+                      >
                         <Icon
                           name="file_upload"
                           size="md"
@@ -690,12 +791,13 @@ export default function TutorApplication() {
                         <span className="text-[13px] font-semibold text-[#2563EB]">Tải ảnh lên</span>
                         <span className="text-[11.5px] text-slate-400 mt-0.5">JPG, PNG (tối đa 5MB)</span>
                         <input
+                          ref={avatarInputRef}
                           type="file"
                           accept="image/png,image/jpeg"
                           onChange={handleAvatarChange}
                           className="hidden"
                         />
-                      </label>
+                      </div>
                     </div>
                   </div>
 
@@ -769,7 +871,7 @@ export default function TutorApplication() {
                       id="tutor-degree"
                       value={formData.degreeLevel}
                       onChange={(e) => updateField('degreeLevel', e.target.value)}
-                      className="w-full h-11 px-3 rounded-xl border border-slate-200 text-[14px] text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition-all"
+                      className="w-full h-11 px-3 rounded-xl border border-slate-200 text-[14px] text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition-all cursor-pointer"
                     >
                       <option value="Cử nhân">Cử nhân (Đã tốt nghiệp Đại học)</option>
                       <option value="Thạc sĩ">Thạc sĩ</option>
@@ -793,16 +895,107 @@ export default function TutorApplication() {
                     />
                   </div>
 
-                  {/* Upload Degree Image Proof */}
-                  <div className="space-y-1.5">
+                  {/* Upload Degree Image Proof with Click + Drag-and-Drop */}
+                  <div className="space-y-2">
                     <label className="block text-[13px] font-semibold text-slate-700">
                       Tải lên ảnh bằng cấp / thẻ sinh viên minh chứng
                     </label>
-                    <div className="border-2 border-dashed border-slate-200 hover:border-blue-300 rounded-xl p-6 text-center bg-slate-50/50 transition-colors">
-                      <Icon name="cloud_upload" size="lg" className="text-slate-400 mx-auto mb-2" />
-                      <span className="text-[13px] font-semibold text-[#2563EB] block">Chọn tệp văn bằng hoặc kéo thả vào đây</span>
-                      <span className="text-[11.5px] text-slate-400 mt-0.5 block">Hỗ trợ PDF, JPG, PNG tối đa 10MB</span>
+
+                    <div
+                      onClick={() => degreeInputRef.current?.click()}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDraggingDegree(true);
+                      }}
+                      onDragEnter={(e) => {
+                        e.preventDefault();
+                        setIsDraggingDegree(true);
+                      }}
+                      onDragLeave={() => setIsDraggingDegree(false)}
+                      onDrop={handleDegreeDrop}
+                      className={cn(
+                        'border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all group',
+                        isDraggingDegree
+                          ? 'border-[#2563EB] bg-blue-50/80 ring-4 ring-blue-100 scale-[1.01]'
+                          : 'border-slate-300 hover:border-blue-400 bg-slate-50/60 hover:bg-blue-50/30'
+                      )}
+                    >
+                      <Icon
+                        name="cloud_upload"
+                        size="xl"
+                        className={cn(
+                          'mx-auto mb-2 transition-transform group-hover:scale-110',
+                          isDraggingDegree ? 'text-[#2563EB]' : 'text-slate-400'
+                        )}
+                      />
+                      <span className="text-[13.5px] font-bold text-[#2563EB] block">
+                        Chọn tệp văn bằng hoặc kéo thả vào đây
+                      </span>
+                      <span className="text-[12px] text-slate-400 mt-1 block">
+                        Hỗ trợ PDF, JPG, PNG tối đa 10MB mỗi tệp
+                      </span>
+
+                      {/* Hidden multi-file input */}
+                      <input
+                        ref={degreeInputRef}
+                        type="file"
+                        multiple
+                        accept="image/png,image/jpeg,image/webp,application/pdf"
+                        onChange={handleDegreeInputChange}
+                        className="hidden"
+                      />
                     </div>
+
+                    {/* Uploaded Files Preview List */}
+                    {formData.degreeFiles && formData.degreeFiles.length > 0 && (
+                      <div className="space-y-2 pt-2">
+                        <span className="text-[12px] font-semibold text-slate-600 block">
+                          Tệp đã đính kèm ({formData.degreeFiles.length}):
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {formData.degreeFiles.map((item) => (
+                            <div
+                              key={item.id}
+                              className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 bg-white shadow-2xs group hover:border-slate-300 transition-colors"
+                            >
+                              {/* Preview thumbnail or PDF icon */}
+                              {item.previewUrl ? (
+                                <img
+                                  src={item.previewUrl}
+                                  alt={item.name}
+                                  className="w-10 h-10 rounded-lg object-cover border border-slate-100 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 font-bold text-xs border border-rose-100">
+                                  PDF
+                                </div>
+                              )}
+
+                              {/* File info */}
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[12.5px] font-semibold text-slate-800 truncate block">
+                                  {item.name}
+                                </span>
+                                <span className="text-[11px] text-slate-400 block">{item.size} MB</span>
+                              </div>
+
+                              {/* Remove button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeDegreeFile(item.id);
+                                }}
+                                className="w-7 h-7 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                                title="Xóa tệp"
+                              >
+                                <Icon name="close" size="sm" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1084,6 +1277,14 @@ export default function TutorApplication() {
                         {formData.degreeLevel} - {formData.major} ({formData.university})
                       </span>
                     </div>
+                    {formData.degreeFiles.length > 0 && (
+                      <div className="flex justify-between pt-2">
+                        <span className="text-slate-500">Tệp minh chứng:</span>
+                        <span className="font-semibold text-emerald-600 text-right">
+                          {formData.degreeFiles.length} tệp đã đính kèm
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between pt-2">
                       <span className="text-slate-500">Kinh nghiệm:</span>
                       <span className="font-semibold text-slate-800">{formData.experienceYears} năm</span>
