@@ -218,6 +218,7 @@ TypeScript/đổi framework; dark mode; Vitest/Playwright; thiết kế lại vi
 | J | Messages (SignalR giữ nguyên), Notifications (Tabs + PATCH read) | ✅ |
 | K | AdminDashboard, AdminTutorApplications, AdminDisputes, AdminDisputeDetail (DEC-S8-025 + DEC-S8-028 giữ nguyên), AdminUsers, AdminAuditLogs | ✅ |
 | L | Quality gate: xem dưới | ✅ |
+| M | `StudentWallet` (`/student/wallet`), `AdminStudentWallets` (`/admin/student-wallets`), Checkout 100% wallet balance option; tuân thủ tokens, Lucide, UI primitives | ✅ |
 
 **Quyết định kiến trúc:**
 - Token-first: mọi màu qua `tokens.css`; alias cũ (`brand-indigo-*`, `financial-*`, `indigo-*`) trỏ về var để app không vỡ giữa chừng; còn sót `indigo-*` đã dọn, chỉ giữ alias trong config cho an toàn build.

@@ -1048,6 +1048,111 @@ Tutor SHALL be able to view withdrawal history.
 
 ---
 
+# 20.1. Student Wallet
+
+## FR-SWALLET-001 — Student Wallet Balance Model
+
+**Actor:** Student
+
+System SHALL maintain a dedicated internal wallet (`StudentWallet`) for each Student profile.
+
+The system SHALL track:
+- `AvailableBalance`: Eligible for 100% course booking payment and withdrawal.
+- `ReservedBalance`: Funds locked during pending withdrawal requests.
+- Balance Invariants: `AvailableBalance >= 0` and `ReservedBalance >= 0` enforced by database check constraint `CK_StudentWallet_NonNegativeBalances`.
+
+---
+
+## FR-SWALLET-002 — Bank Transfer Top-Up & VietQR
+
+**Actor:** Student, Admin
+
+Student SHALL be able to create a top-up request (`TopUpRequest`) specifying an amount (> 0).
+
+The system SHALL generate a unique canonical transfer reference formatted as:
+`TUTORHUB NAP <UserId8> <ShortCode4>`
+
+The system SHALL generate a dynamic VietQR image/payload containing TutorHub platform bank details, requested amount, and the transfer reference.
+
+Admin SHALL be able to view, confirm (`AdminConfirmTopUp`), or reject (`AdminRejectTopUp` with mandatory reason) top-up requests.
+
+Upon confirmation, the system SHALL credit `AvailableBalance` and record an immutable `StudentWalletTransaction` (`Type: TopUpCredit`).
+
+---
+
+## FR-SWALLET-003 — 100% Wallet Course Booking Payment
+
+**Actor:** Student
+
+Student SHALL pay 100% of course booking fees from their Student Wallet `AvailableBalance`.
+
+If `AvailableBalance < TotalAmount`, the system SHALL prevent payment execution and direct student to top up.
+
+Payment execution SHALL be executed atomically within a database transaction with pessimistic row lock (`SELECT ... FOR UPDATE`):
+- Debit `AvailableBalance`.
+- Record append-only `StudentWalletTransaction` (`Type: BookingPaymentDebit`).
+- Create platform holding `Transaction` (`Status: Succeeded`).
+- Transition `Booking` to `Pending` and `Enrollment` to `Active`.
+
+---
+
+## FR-SWALLET-004 — Direct Refund to Student Wallet
+
+**Actor:** System
+
+All refunds arising from enrollment cancellation, session cancellation, or dispute resolution SHALL route directly and immediately into the student's `AvailableBalance`.
+
+The system SHALL record an append-only `StudentWalletTransaction` (`Type: RefundCredit`).
+
+Refunded funds SHALL immediately be available for enrolling in other courses or requesting bank withdrawal.
+
+---
+
+## FR-SWALLET-005 — Append-Only Ledger Immutability
+
+**Actor:** System
+
+Every financial balance change on a Student Wallet SHALL create an append-only `StudentWalletTransaction`.
+
+Updating or deleting existing `StudentWalletTransaction` rows SHALL be strictly forbidden and blocked by EF Core guards (`AppDbContext.EnforceLedgerImmutability()`).
+
+---
+
+# 20.2. Student Withdrawal
+
+## FR-SWITHDRAW-001 — Request Student Withdrawal
+
+**Actor:** Student
+
+Student SHALL be able to request a withdrawal from `AvailableBalance` to their designated bank account.
+- Minimum withdrawal threshold: 50.000 VNĐ.
+- The requested amount SHALL move from `AvailableBalance` to `ReservedBalance`.
+- A `StudentWithdrawal` record SHALL be created with status `Requested`.
+
+---
+
+## FR-SWITHDRAW-002 — Student Withdrawal Lifecycle
+
+**Actor:** Admin, Student
+
+The system SHALL enforce the student withdrawal lifecycle:
+
+```text
+Requested (Available → Reserved)
+→ Processing (Admin begins transfer: ProcessingStartedByAdminId)
+→ Completed (Admin confirms bank transfer: Reserved deducted, ProcessedAt recorded)
+```
+
+or:
+
+```text
+Processing → Failed (Transfer unsuccessful: Reserved restored to Available, FailureReason recorded)
+```
+
+Admin SHALL NOT transition a withdrawal directly from `Requested` to `Completed` without acquiring `Processing` status first.
+
+---
+
 # 21. Cancellation
 
 ## FR-CANCEL-001 — Student Cancellation Request

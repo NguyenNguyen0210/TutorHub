@@ -248,9 +248,14 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
     - Tổng thanh toán: `2.000.000 ₫`.
   - **Cam kết quyền lợi tài chính (Escrow Guarantee Callout):**
     - *"Số tiền 2.000.000 ₫ sẽ được giữ an toàn trong Ví Bảo Chứng (Escrow) của sàn TutorHub. Gia sư chỉ được giải ngân từng buổi học (200.000 ₫/buổi) sau khi cả hai bên cùng xác nhận điểm danh hoàn thành."*
-  - **Nút hành động:**
-    - Nút **"Thanh toán ngay qua VNPay"**: Gọi API lấy URL thanh toán Sandbox và redirect học viên.
-    - Nút **"Hủy giữ chỗ"**: Hủy đơn đặt mua trước hạn nếu học viên không muốn tiếp tục.
+  - **Phương thức thanh toán:**
+    - **1. Thanh toán 100% bằng Ví Học Viên (Ưu tiên):**
+      - Tự động lấy số dư ví học viên qua `GET /api/v1/students/me/wallet`.
+      - Nếu `AvailableBalance >= TotalAmount`: Nút **"Xác nhận Thanh toán bằng Ví Học Viên"** (`POST /api/v1/payments/:bookingId/wallet`), thực hiện trừ tiền và kích hoạt Enrollment ngay lập tức.
+      - Nếu `AvailableBalance < TotalAmount`: Hiển thị cảnh báo thiếu tiền (ví dụ: *"Số dư ví còn thiếu 500.000 ₫"*) kèm nút CTA **"Nạp thêm tiền vào ví ngay"** dẫn sang `/student/wallet`.
+    - **2. Thanh toán qua Cổng VNPay:**
+      - Nút **"Thanh toán ngay qua VNPay"**: Gọi API `POST /api/v1/payments/vnpay/create-url` lấy URL Sandbox và redirect học viên.
+    - **3. Hủy giữ chỗ:** Nút **"Hủy giữ chỗ"** (`POST /api/v1/bookings/:id/cancel`) để hủy đơn đặt mua trước hạn nếu học viên không muốn tiếp tục.
 
 #### Màn hình 2.2: Màn hình Tiếp nhận Kết quả VNPay (`/payment/return` — Read-Only)
 - **API sử dụng:** `GET /api/v1/payments/vnpay/return`
@@ -368,6 +373,33 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
     - `500.000 ₫` | `VCB - 0011001234567` | Trạng thái: `Completed` (Đã chuyển khoản).
     - `1.000.000 ₫` | `VCB - 0011009999999` | Trạng thái: `Failed` | Lý do: *"Tên chủ tài khoản ngân hàng không khớp với hồ sơ gia sư"*.
 
+#### Màn hình 5.3: Ví Học Viên & Quản Lý Nguồn Vốn Học Tập (`/student/wallet`)
+- **API sử dụng:**
+  - `GET /api/v1/students/me/wallet`: Lấy tổng quan số dư khả dụng (`AvailableBalance`) và tạm giữ rút (`ReservedBalance`).
+  - `GET /api/v1/students/me/wallet/transactions`: Lấy sổ cái biến động số dư (hỗ trợ phân trang, lọc loại giao dịch).
+  - `GET /api/v1/students/me/wallet/topups`: Lấy lịch sử yêu cầu nạp tiền (`TopUpRequest`).
+  - `GET /api/v1/students/me/wallet/withdrawals`: Lấy lịch sử yêu cầu rút tiền (`StudentWithdrawal`).
+  - `GET /api/v1/students/me/wallet/topup-info`: Lấy thông tin STK ngân hàng và template chuyển khoản của sàn TutorHub.
+  - `POST /api/v1/students/me/wallet/topup`: Khởi tạo yêu cầu nạp tiền, sinh mã chuyển khoản và VietQR.
+  - `POST /api/v1/students/me/wallet/withdrawals`: Tạo yêu cầu rút tiền về tài khoản ngân hàng (tối thiểu 50.000 VNĐ).
+- **Thành phần giao diện:**
+  - **2 Thẻ tài chính trực quan:**
+    - **Số Dư Khả Dụng (Available Balance):** Số tiền dùng để thanh toán 100% khóa học hoặc rút về ngân hàng. Kèm 2 nút hành động: **"Nạp tiền vào ví"** (màu xanh dương đậm) và **"Rút tiền"** (màu xám viền).
+    - **Số Dư Đang Phong Tỏa (Reserved Balance):** Số tiền đang trong quá trình chuyển khoản rút về tài khoản ngân hàng.
+  - **Modal Nạp Tiền (VietQR Top-up Modal):**
+    - Nhập số tiền nạp (> 0 VNĐ) hoặc chọn các mức gợi ý nhanh (100k, 200k, 500k, 1M, 2M, 5M).
+    - Hiển thị mã QR VietQR động (`https://img.vietqr.io/image/...-compact2.png`) tích hợp sẵn số tiền và mã chuyển khoản chuẩn hóa `TUTORHUB NAP <UserId8> <ShortCode4>`.
+    - Box thông tin chuyển khoản kèm nút sao chép 1-Click (Ngân hàng, Số tài khoản, Chủ tài khoản, Số tiền, Nội dung chuyển khoản chuẩn).
+    - Hướng dẫn 3 bước nạp tiền: Chuyển khoản qua App Ngân hàng $\rightarrow$ Giữ nguyên mã nội dung $\rightarrow$ Admin duyệt trong 5-15 phút.
+  - **Modal Rút Tiền (Student Withdrawal Modal):**
+    - Nhập số tiền rút (tự động kiểm tra $\ge$ 50.000 VNĐ và $\le$ Số dư khả dụng).
+    - Chọn ngân hàng thụ hưởng, nhập số tài khoản ngân hàng và tên chủ tài khoản (in hoa không dấu).
+    - Hiển thị lưu ý: Tiền sẽ chuyển sang trạng thái phong tỏa `Reserved` cho tới khi Admin xử lý chuyển khoản hoàn tất.
+  - **Bộ 3 Tab Sổ Cái & Lịch Sử Giao Dịch:**
+    - **Tab 1 — Tất cả biến động:** Hiển thị sổ cái append-only bất biến (`TopUpCredit`, `BookingPaymentDebit`, `RefundCredit`, `WithdrawalDebit`, `ManualAdjustment`). Badge tiền tệ màu xanh (+) khi cộng tiền, màu đỏ (-) khi trừ tiền.
+    - **Tab 2 — Lịch sử nạp tiền:** Bảng danh sách các yêu cầu nạp tiền, mã tham chiếu, số tiền, ngày tạo, trạng thái (`Chờ duyệt`, `Thành công`, `Từ chối`).
+    - **Tab 3 — Lịch sử rút tiền:** Bảng danh sách các yêu cầu rút tiền, tài khoản ngân hàng nhận, số tiền, trạng thái (`Chờ xử lý`, `Đang chuyển khoản`, `Đã chuyển khoản`, `Thất bại` kèm lý do).
+
 ---
 
 ### Giai đoạn 6: Động cơ Tranh chấp & Trọng tài Phân xử (Dispute Engine)
@@ -405,6 +437,22 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
     - Thao tác:
       - `Pending`: Nút "Tiếp nhận" (chuyển sang `Processing`).
       - `Processing`: Nút "Xác nhận chi trả" (`complete`) và nút "Báo lỗi" (`fail` yêu cầu nhập lý do lỗi để hệ thống tự động hoàn tiền về ví gia sư).
+
+#### Màn hình 6.4: Quản trị Ví Học Viên Toàn Sàn (`/admin/student-wallets`)
+- **API sử dụng:**
+  - `GET /api/v1/admin/student-wallets/topups`: Danh sách yêu cầu nạp tiền kèm bộ lọc trạng thái (`Pending`, `Approved`, `Rejected`).
+  - `POST /api/v1/admin/student-wallets/topups/:id/confirm`: Duyệt nạp tiền, ghi có trực tiếp ví học viên (`TopUpCredit`).
+  - `POST /api/v1/admin/student-wallets/topups/:id/reject`: Từ chối nạp tiền kèm lý do bắt buộc (`RejectionReason`).
+  - `GET /api/v1/admin/student-wallets/withdrawals`: Danh sách yêu cầu rút tiền của học viên kèm bộ lọc trạng thái.
+  - `POST /api/v1/admin/student-wallets/withdrawals/:id/process`: Tiếp nhận xử lý lệnh rút (chuyển sang `Processing`).
+  - `POST /api/v1/admin/student-wallets/withdrawals/:id/complete`: Hoàn tất chuyển khoản rút tiền (`Completed`).
+  - `POST /api/v1/admin/student-wallets/withdrawals/:id/fail`: Báo lỗi chuyển khoản thất bại, tự động hoàn trả `Reserved` về `Available` (`Failed`).
+  - `POST /api/v1/admin/student-wallets/adjust`: Điều chỉnh số dư thủ công (`ManualAdjustment`) kèm lý do bắt buộc.
+- **Thành phần giao diện:**
+  - **3 Tab Quản trị Tập trung:**
+    - **Tab 1 — Duyệt Nạp Tiền (Top-ups):** Thống kê tổng số yêu cầu chờ duyệt. Bảng danh sách: Mã GD, Học viên, Số tiền nạp, Mã tham chiếu đối soát (`TUTORHUB NAP ...`), Ngày tạo, Trạng thái. Nút thao tác nhanh: "Duyệt" (xác nhận chuyển khoản hợp lệ) và "Từ chối" (mở modal nhập lý do từ chối).
+    - **Tab 2 — Xử lý Rút Tiền (Withdrawals):** Lọc theo `Requested`, `Processing`, `Completed`, `Failed`. Thao tác 2 bước an toàn: Tiếp nhận xử lý $\rightarrow$ Xác nhận chi trả hoặc Báo lỗi hoàn tiền.
+    - **Tab 3 — Điều chỉnh Số dư (Manual Adjustments):** Form nhập ID ví học viên, số tiền, hướng điều chỉnh (`Cộng tiền` / `Trừ tiền`), và lý do điều chỉnh bắt buộc. Ghi vết toàn bộ hành động vào Central Audit Log.
 
 ---
 
@@ -501,6 +549,7 @@ export interface PagedResult<T> {
 | **M4: Enrollment, Sessions & Attendance** | Trung tâm hợp đồng học tập, danh sách $N$ buổi học con, giao diện xếp lịch, đổi lịch, và thẻ đối soát điểm danh 2 chiều 24h. | Quản lý tiến độ học tập, điểm danh xác nhận 2 bên kích hoạt giải ngân từng buổi. |
 | **M5: Ví Escrow, Custom Agreement & Dispute** | Bảng 4 thẻ tài chính ví gia sư, sao kê ví, tạo lệnh rút tiền, đàm phán hợp đồng riêng, và form nộp khiếu nại tranh chấp. | Vòng đời tài chính hoàn chỉnh cho gia sư và bảo vệ quyền lợi học viên. |
 | **M6: SignalR Realtime & Admin Suite** | Kết nối ChatHub và NotificationHub realtime, hoàn thiện toàn bộ 7 màn hình Admin (Dashboard, Duyệt gia sư, Quản lý tài khoản, Bàn phân xử phí sàn, Sổ cái kiểm toán bất biến). | Hệ thống Frontend hoàn thiện 100% kết nối trơn tru với Backend .NET 8. |
+| **M7: Ví Học Viên (Student Wallet)** | Hệ thống ví học viên (`/student/wallet`): nạp tiền VietQR, thanh toán khóa học 100% từ ví, hoàn tiền tức thì, rút tiền về ngân hàng; và giao diện Admin duyệt nạp/xử lý rút (`/admin/student-wallets`). | Hoàn tất hệ thống quản lý nguồn vốn học tập, sổ cái bất biến học viên và tích hợp thanh toán 1-Click tại Checkout. |
 
 ---
 *Tài liệu này là bản đặc tả kỹ thuật chuẩn xác tuyệt đối, tích hợp trọn vẹn dữ liệu và quy tắc nghiệp vụ của hệ thống TutorHub.*
