@@ -45,6 +45,22 @@ public class GetPaymentResultQueryHandler : IRequestHandler<GetPaymentResultQuer
                     || t.PaymentGatewayRef == $"{parsed.MerchantReference}|{parsed.ProviderTransactionId}",
                 cancellationToken);
 
+        if (transaction == null && (parsed.MerchantReference?.StartsWith("TOPUP", StringComparison.OrdinalIgnoreCase) ?? false))
+        {
+            var topUpMsg = parsed.IsSuccessful
+                ? "Nạp tiền vào ví học viên thành công! Số dư khả dụng của bạn đã được cập nhật."
+                : "Giao dịch nạp tiền qua cổng VNPay không thành công hoặc bị hủy.";
+
+            return new PaymentResultDto(
+                Success: parsed.IsSuccessful,
+                Message: topUpMsg,
+                BookingId: Guid.Empty,
+                MerchantReference: parsed.MerchantReference ?? string.Empty,
+                TransactionNo: parsed.ProviderTransactionId,
+                Amount: parsed.Amount
+            );
+        }
+
         var bookingId = transaction?.BookingId ?? Guid.Empty;
 
         var message = parsed.IsSuccessful

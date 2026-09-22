@@ -81,9 +81,9 @@ TutorHub/
 │   │   ├── package.json                # Dependencies & scripts
 │   │   └── vite.config.js              # Cấu hình Vite & Proxy
 │   │
-│   └── test/                           # Kiểm thử tự động (636 test cases)
+│   └── test/                           # Kiểm thử tự động (640 test cases)
 │       ├── TutorHub.Domain.UnitTests/          # 226 cases (Invariants & Allocators)
-│       ├── TutorHub.Application.UnitTests/     # 315 cases (CQRS Handlers & Validators)
+│       ├── TutorHub.Application.UnitTests/     # 319 cases (CQRS Handlers & Validators)
 │       ├── TutorHub.Infrastructure.UnitTests/  # 21 cases (VNPay, Security, Integrations)
 │       └── TutorHub.Api.IntegrationTests/      # 74 cases (Postgres, Payments, Ledgers)
 │

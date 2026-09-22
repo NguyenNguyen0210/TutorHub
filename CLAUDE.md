@@ -30,7 +30,7 @@ dotnet build src/backend/TutorHub.sln
 # Run API Server locally (http://localhost:5129 | Swagger: http://localhost:5129/swagger)
 dotnet run --project src/backend/TutorHub.Api
 
-# Run Entire Test Suite (636 Executed Tests - 100% Deterministic Pass)
+# Run Entire Test Suite (640 Executed Tests - 100% Deterministic Pass)
 dotnet test src/backend/TutorHub.sln
 
 # Run Specific Test Projects
@@ -111,7 +111,7 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
   - `src/store/authStore.js`: Zustand store quản lý trạng thái đăng nhập, user profile, vai trò và token.
   - `src/routes/RouteGuards.jsx`: Protected routes phân quyền theo vai trò (`Student`, `Tutor`, `Admin`).
   - `src/components/`, `src/pages/`, `src/layouts/`: Giao diện chia theo vai trò (Admin, Student, Tutor, Discovery, Checkout, Shared).
-* `src/test/`: **Kiểm Thử Tự Động** (636 test cases - 100% Deterministic Pass): `Domain.UnitTests` (226), `Application.UnitTests` (315), `Infrastructure.UnitTests` (21), `Api.IntegrationTests` (74, Postgres).
+* `src/test/`: **Kiểm Thử Tự Động** (640 test cases - 100% Deterministic Pass): `Domain.UnitTests` (226), `Application.UnitTests` (319), `Infrastructure.UnitTests` (21), `Api.IntegrationTests` (74, Postgres).
 * `docs/`: **Baseline Nghiệp Vụ Chuẩn**: `prd.md`, `functional-requirements.md`, `user-stories.md`, `openapi.json`.
 * `scripts/` *(untracked local tooling)*: CI contract verification, dev bootstrap, secret scanning.
 

@@ -56,8 +56,9 @@ export default function StudentWallet() {
 
   // Top-up Modal & Process state
   const [showTopUpModal, setShowTopUpModal] = useState(false);
-  const [topUpAmount, setTopUpAmount] = useState(500000);
+  const [topUpAmount, setTopUpAmount] = useState(200000);
   const [customTopUpInput, setCustomTopUpInput] = useState('');
+  const [topUpMethod, setTopUpMethod] = useState('vnpay'); // 'vnpay' | 'vietqr'
   const [activeTopUpRequest, setActiveTopUpRequest] = useState(null);
   const [topUpSubmitting, setTopUpSubmitting] = useState(false);
   const [copiedKey, setCopiedKey] = useState(null);
@@ -144,7 +145,7 @@ export default function StudentWallet() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  // Submit Top-Up Request
+  // Submit Top-Up Request (Supports both VNPay Instant & VietQR Manual)
   const handleRequestTopUp = async () => {
     const finalAmount = customTopUpInput ? Number(customTopUpInput) : Number(topUpAmount);
     if (!finalAmount || finalAmount < 10000) {
@@ -154,10 +155,20 @@ export default function StudentWallet() {
 
     try {
       setTopUpSubmitting(true);
-      const res = await studentWalletService.requestTopUp({ amount: finalAmount });
-      setActiveTopUpRequest(res);
-      toast.success('Đã tạo yêu cầu nạp tiền! Vui lòng chuyển khoản theo hướng dẫn.');
-      fetchTopUps();
+      if (topUpMethod === 'vnpay') {
+        const res = await studentWalletService.createVnPayTopUp({ amount: finalAmount });
+        if (res?.paymentUrl) {
+          toast.info('Đang chuyển hướng đến Cổng thanh toán VNPay Sandbox...');
+          window.location.href = res.paymentUrl;
+        } else {
+          toast.error('Không nhận được liên kết thanh toán từ VNPay.');
+        }
+      } else {
+        const res = await studentWalletService.requestTopUp({ amount: finalAmount });
+        setActiveTopUpRequest(res);
+        toast.success('Đã tạo yêu cầu nạp tiền! Vui lòng quét mã VietQR để chuyển khoản.');
+        fetchTopUps();
+      }
     } catch (err) {
       toast.error(err?.message || 'Không thể tạo yêu cầu nạp tiền.');
     } finally {
@@ -572,8 +583,82 @@ export default function StudentWallet() {
 
             <div className="p-5 space-y-5 max-h-[80vh] overflow-y-auto">
               {!activeTopUpRequest ? (
-                // Step 1: Choose amount
+                // Step 1: Choose method & amount
                 <div className="space-y-4">
+                  {/* Payment Method Selector */}
+                  <div>
+                    <label className="text-caption font-semibold text-fg-secondary block mb-2">
+                      Phương thức nạp tiền
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setTopUpMethod('vnpay')}
+                        className={cn(
+                          'p-3 rounded-brand-md border text-left transition-all cursor-pointer flex items-start gap-2.5',
+                          topUpMethod === 'vnpay'
+                            ? 'bg-brand-primary-50/70 border-brand-primary-600 ring-2 ring-brand-primary-600/20'
+                            : 'bg-surface border-border hover:border-neutral-400'
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5',
+                            topUpMethod === 'vnpay'
+                              ? 'bg-brand-primary-600 text-white'
+                              : 'bg-neutral-100 text-fg-muted'
+                          )}
+                        >
+                          <Icon name="credit_card" size="xs" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-caption font-bold text-fg">VNPay Sandbox</span>
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-success-subtle text-success-strong">
+                              Tự động 24/7
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-fg-muted mt-0.5">
+                            Thanh toán thẻ ATM/QR test, tiền vào ví tức thì.
+                          </p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setTopUpMethod('vietqr')}
+                        className={cn(
+                          'p-3 rounded-brand-md border text-left transition-all cursor-pointer flex items-start gap-2.5',
+                          topUpMethod === 'vietqr'
+                            ? 'bg-brand-primary-50/70 border-brand-primary-600 ring-2 ring-brand-primary-600/20'
+                            : 'bg-surface border-border hover:border-neutral-400'
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5',
+                            topUpMethod === 'vietqr'
+                              ? 'bg-brand-primary-600 text-white'
+                              : 'bg-neutral-100 text-fg-muted'
+                          )}
+                        >
+                          <Icon name="qr_code_scanner" size="xs" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-caption font-bold text-fg">Chuyển khoản VietQR</span>
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-neutral-200 text-fg-muted">
+                              Admin duyệt
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-fg-muted mt-0.5">
+                            Quét QR App ngân hàng, không phí trung gian.
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="text-caption font-semibold text-fg-secondary block mb-2">
                       Chọn nhanh mệnh giá nạp
@@ -617,12 +702,22 @@ export default function StudentWallet() {
                   <div className="p-3.5 rounded-brand-md bg-neutral-50 border border-border text-caption space-y-1.5">
                     <div className="flex items-center gap-1.5 text-fg font-semibold">
                       <Icon name="info" size="xs" className="text-brand-primary-600" />
-                      <span>Lưu ý quan trọng khi nạp tiền:</span>
+                      <span>{topUpMethod === 'vnpay' ? 'Cổng thanh toán tự động VNPay:' : 'Chuyển khoản trực tiếp VietQR:'}</span>
                     </div>
                     <ul className="list-disc list-inside text-fg-muted text-[11px] space-y-1">
-                      <li>Hệ thống sẽ tạo mã chuyển khoản định danh riêng cho bạn.</li>
-                      <li>Sau khi bạn chuyển khoản đúng cú pháp, Admin sẽ đối soát và tiền vào ví trong vòng 1-3 phút.</li>
-                      <li>Số tiền nạp tối thiểu là 10.000 ₫.</li>
+                      {topUpMethod === 'vnpay' ? (
+                        <>
+                          <li>Hệ thống chuyển hướng bạn sang cổng VNPay Sandbox để nhập thông tin thẻ test.</li>
+                          <li>Sau khi xác nhận mã OTP, số dư ví sẽ được tự động cộng ngay lập tức.</li>
+                          <li>Số tiền nạp tối thiểu là 10.000 ₫.</li>
+                        </>
+                      ) : (
+                        <>
+                          <li>Hệ thống tạo mã VietQR động với cú pháp định danh duy nhất.</li>
+                          <li>Sau khi bạn chuyển khoản đúng cú pháp, Admin đối soát và duyệt trong 1-3 phút.</li>
+                          <li>Số tiền nạp tối thiểu là 10.000 ₫.</li>
+                        </>
+                      )}
                     </ul>
                   </div>
 
@@ -635,7 +730,9 @@ export default function StudentWallet() {
                       loading={topUpSubmitting}
                       onClick={handleRequestTopUp}
                     >
-                      Tiếp tục nạp {formatCurrency(customTopUpInput ? Number(customTopUpInput) : topUpAmount)}
+                      {topUpMethod === 'vnpay'
+                        ? `Thanh toán qua VNPay (${formatCurrency(customTopUpInput ? Number(customTopUpInput) : topUpAmount)})`
+                        : `Tạo mã VietQR (${formatCurrency(customTopUpInput ? Number(customTopUpInput) : topUpAmount)})`}
                     </Button>
                   </div>
                 </div>

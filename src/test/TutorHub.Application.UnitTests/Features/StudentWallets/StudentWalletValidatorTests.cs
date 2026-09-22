@@ -35,6 +35,28 @@ public class StudentWalletValidatorTests
 
     [Theory]
     [InlineData(0)]
+    [InlineData(-1000)]
+    [InlineData(9999)]
+    public void CreateVnPayTopUpValidator_Fails_WhenAmountIsLessThan10000(decimal amount)
+    {
+        var validator = new TutorHub.Application.Features.StudentWallets.Commands.CreateVnPayTopUp.CreateVnPayTopUpCommandValidator();
+        var result = validator.Validate(new TutorHub.Application.Features.StudentWallets.Commands.CreateVnPayTopUp.CreateVnPayTopUpCommand(amount));
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "Amount");
+    }
+
+    [Fact]
+    public void CreateVnPayTopUpValidator_Passes_WhenAmountIs10000OrMore()
+    {
+        var validator = new TutorHub.Application.Features.StudentWallets.Commands.CreateVnPayTopUp.CreateVnPayTopUpCommandValidator();
+        var result = validator.Validate(new TutorHub.Application.Features.StudentWallets.Commands.CreateVnPayTopUp.CreateVnPayTopUpCommand(10_000m));
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(0)]
     [InlineData(49_999)]
     [InlineData(-50_000)]
     public void StudentRequestWithdrawalValidator_Fails_WhenAmountIsLessThan50000(decimal amount)

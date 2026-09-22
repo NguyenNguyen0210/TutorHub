@@ -52,6 +52,11 @@ export const studentWalletService = {
     return res;
   },
 
+  async createVnPayTopUp({ amount }) {
+    const res = await api.post('/students/me/wallet/top-up/vnpay', { amount: Number(amount) });
+    return res;
+  },
+
   async getMyTopUpRequests({ pageNumber = 1, pageSize = 20 } = {}) {
     const res = await api.get('/students/me/wallet/top-up', {
       params: { pageNumber, pageSize },

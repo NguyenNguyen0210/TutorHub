@@ -52,4 +52,29 @@ public class TopUpRequest
         ProcessedAt = now;
         RejectionReason = reason.Trim();
     }
+
+    public void ConfirmViaGateway(string transactionNo, DateTime now)
+    {
+        if (Status != TopUpRequestStatus.Pending)
+        {
+            return;
+        }
+
+        Status = TopUpRequestStatus.Confirmed;
+        ProcessedAt = now;
+        AdminNote = $"Auto-approved via VNPay (Txn: {transactionNo})";
+    }
+
+    public void RejectViaGateway(string reason, DateTime now)
+    {
+        if (Status != TopUpRequestStatus.Pending)
+        {
+            return;
+        }
+
+        Status = TopUpRequestStatus.Rejected;
+        ProcessedAt = now;
+        RejectionReason = reason;
+        AdminNote = "Auto-rejected via VNPay";
+    }
 }

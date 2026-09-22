@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TutorHub.Application.Common.Models;
+using TutorHub.Application.Features.StudentWallets.Commands.CreateVnPayTopUp;
 using TutorHub.Application.Features.StudentWallets.Commands.RequestTopUp;
 using TutorHub.Application.Features.StudentWallets.Commands.RequestWithdrawal;
 using TutorHub.Application.Features.StudentWallets.DTOs;
@@ -73,6 +74,24 @@ public class StudentWalletController : ControllerBase
             StatusCodes.Status201Created,
             ApiResponse<TopUpRequestDto>.SuccessResult(result, "Top-up request created. Please transfer funds with the provided reference.")
         );
+    }
+
+    /// <summary>
+    /// Initiate an automated wallet top-up via VNPay Sandbox (generates hosted payment URL).
+    /// </summary>
+    [HttpPost("top-up/vnpay")]
+    [ProducesResponseType(typeof(ApiResponse<VnPayTopUpRedirectDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CreateVnPayTopUp(
+        [FromBody] StudentTopUpApiRequest request,
+        CancellationToken cancellationToken)
+    {
+        var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+        var command = new CreateVnPayTopUpCommand(request.Amount, clientIp);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<VnPayTopUpRedirectDto>.SuccessResult(result, "VNPay payment URL generated successfully."));
     }
 
     /// <summary>

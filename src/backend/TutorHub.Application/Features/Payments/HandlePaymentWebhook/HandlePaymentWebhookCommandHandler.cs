@@ -55,6 +55,11 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
         _logger.LogInformation("Payment webhook received: TxnRef={TxnRef}, Amount={Amount}, Success={Success}",
             txnRef, amount, parsed.IsSuccessful);
 
+        if (txnRef.StartsWith("TOPUP", StringComparison.OrdinalIgnoreCase))
+        {
+            return await HandleTopUpWebhookAsync(parsed, cancellationToken);
+        }
+
         // Atomic DB Transaction with row-level serialization of duplicate webhooks.
         var executionStrategy = _context.Database.CreateExecutionStrategy();
 
@@ -245,5 +250,123 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
             || msg.Contains("Enrollments_BookingId", StringComparison.OrdinalIgnoreCase);
 
         return isUnique && isEnrollmentIndex;
+    }
+
+    private async Task<PaymentWebhookAck> HandleTopUpWebhookAsync(PaymentCallbackResult parsed, CancellationToken cancellationToken)
+    {
+        var txnRef = parsed.MerchantReference!;
+        var transactionNo = parsed.ProviderTransactionId ?? "N/A";
+        var amount = parsed.Amount;
+        var now = _clock.UtcNow;
+
+        var executionStrategy = _context.Database.CreateExecutionStrategy();
+
+        return await executionStrategy.ExecuteAsync(async () =>
+        {
+            await using var dbTx = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+
+            var topUp = await _context.TopUpRequests
+                .Include(t => t.StudentWallet)
+                    .ThenInclude(w => w.StudentProfile)
+                .FirstOrDefaultAsync(t => t.TransferReference == txnRef, cancellationToken);
+
+            if (topUp == null)
+            {
+                _logger.LogWarning("Payment webhook: TopUpRequest not found for TxnRef={TxnRef}", txnRef);
+                return _paymentGateway.BuildAcknowledgement(PaymentWebhookOutcome.NotFound);
+            }
+
+            if (topUp.Amount != amount)
+            {
+                _logger.LogWarning("Payment webhook: TopUp amount mismatch. Expected={Expected}, Received={Received}", topUp.Amount, amount);
+                return _paymentGateway.BuildAcknowledgement(PaymentWebhookOutcome.InvalidAmount);
+            }
+
+            // Already processed (Idempotency)
+            if (topUp.Status == TopUpRequestStatus.Confirmed)
+            {
+                _logger.LogInformation("Payment webhook: TopUp {TopUpId} already confirmed. Returning Success.", topUp.Id);
+                return _paymentGateway.BuildAcknowledgement(PaymentWebhookOutcome.Success);
+            }
+
+            if (parsed.IsSuccessful)
+            {
+                // Lock wallet row
+                var wallet = await _context.StudentWallets
+                    .FromSqlInterpolated($"SELECT * FROM \"StudentWallets\" WHERE \"Id\" = {topUp.StudentWalletId} FOR UPDATE")
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (wallet == null)
+                {
+                    _logger.LogError("Payment webhook: StudentWallet {WalletId} not found for TopUp {TopUpId}", topUp.StudentWalletId, topUp.Id);
+                    return _paymentGateway.BuildAcknowledgement(PaymentWebhookOutcome.NotFound);
+                }
+
+                var balanceBefore = wallet.AvailableBalance;
+                wallet.Credit(topUp.Amount, now);
+                var balanceAfter = wallet.AvailableBalance;
+
+                var ledgerEntry = new StudentWalletTransaction
+                {
+                    Id = Guid.NewGuid(),
+                    StudentWalletId = wallet.Id,
+                    Type = StudentWalletTransactionType.TopUpCredit,
+                    Direction = FinancialDirection.Credit,
+                    Amount = topUp.Amount,
+                    BalanceBefore = balanceBefore,
+                    BalanceAfter = balanceAfter,
+                    ReferenceType = "TopUpRequest",
+                    ReferenceId = topUp.Id,
+                    Description = $"Nạp tiền trực tuyến VNPay: {txnRef}",
+                    Reason = $"VNPay TransactionNo: {transactionNo}",
+                    CreatedAt = now
+                };
+
+                _context.StudentWalletTransactions.Add(ledgerEntry);
+                topUp.ConfirmViaGateway(transactionNo, now);
+
+                _context.AddOutboxMessage(new StudentTopUpConfirmedEvent(
+                    topUp.Id,
+                    topUp.StudentWallet.StudentProfileId,
+                    topUp.StudentWallet.StudentProfile.UserId,
+                    new MoneyDto(topUp.Amount, "VND"),
+                    Guid.Empty,
+                    Guid.NewGuid(),
+                    1,
+                    now
+                ));
+
+                await _auditLogService.LogAsync(
+                    action: "VNPayConfirmed",
+                    entityName: "TopUpRequest",
+                    entityId: topUp.Id.ToString(),
+                    userId: topUp.StudentWallet.StudentProfile.UserId,
+                    oldValues: null,
+                    newValues: new { Amount = topUp.Amount, GatewayRef = txnRef, TransactionNo = transactionNo },
+                    cancellationToken: cancellationToken);
+
+                _logger.LogInformation("Payment webhook: TopUp {TopUpId} confirmed successfully with {Amount} VND.", topUp.Id, topUp.Amount);
+            }
+            else
+            {
+                topUp.RejectViaGateway($"Giao dịch VNPay thất bại. Mã GD: {transactionNo}", now);
+
+                await _auditLogService.LogAsync(
+                    action: "VNPayFailed",
+                    entityName: "TopUpRequest",
+                    entityId: topUp.Id.ToString(),
+                    userId: topUp.StudentWallet.StudentProfile.UserId,
+                    oldValues: null,
+                    newValues: new { Amount = topUp.Amount, GatewayRef = txnRef, TransactionNo = transactionNo },
+                    cancellationToken: cancellationToken);
+
+                _logger.LogWarning("Payment webhook: TopUp {TopUpId} marked rejected due to gateway failure.", topUp.Id);
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await dbTx.CommitAsync(cancellationToken);
+
+            return _paymentGateway.BuildAcknowledgement(PaymentWebhookOutcome.Success);
+        });
     }
 }
