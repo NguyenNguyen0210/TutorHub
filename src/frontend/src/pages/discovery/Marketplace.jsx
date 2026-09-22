@@ -170,6 +170,12 @@ export default function Marketplace() {
     setSearchParams({});
   };
 
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    setPageNumber(newPage);
+    window.scrollTo({ top: 380, behavior: 'smooth' });
+  };
+
   const handleMessageClick = (tutor) => {
     navigate(`/app/messages?tutorId=${tutor.id}`);
   };
@@ -306,7 +312,8 @@ export default function Marketplace() {
                 <Pagination
                   page={pageNumber}
                   totalPages={totalPages}
-                  onPageChange={setPageNumber}
+                  onChange={handlePageChange}
+                  onPageChange={handlePageChange}
                 />
               </div>
             )}
