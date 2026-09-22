@@ -70,7 +70,10 @@ export default function PaymentReturn() {
     };
   }, [hasParams, searchParams]);
 
-  const isTopUp = Boolean(result?.merchantReference?.startsWith('TOPUP'));
+  const isTopUp = Boolean(
+    result?.merchantReference?.startsWith('TOPUP') ||
+    searchParams.get('vnp_TxnRef')?.startsWith('TOPUP')
+  );
 
   useEffect(() => {
     if (result?.success) {
@@ -235,13 +238,13 @@ export default function PaymentReturn() {
             <>
               <Button
                 as={Link}
-                to="/tutors"
+                to={isTopUp ? '/student/wallet' : '/tutors'}
                 variant="primary"
                 size="lg"
                 className="flex-1"
-                icon={<Icon name="arrow_back" size="sm" />}
+                icon={<Icon name={isTopUp ? 'account_balance_wallet' : 'arrow_back'} size="sm" />}
               >
-                Khám phá gia sư khác
+                {isTopUp ? 'Quay lại Ví Học Viên' : 'Khám phá gia sư khác'}
               </Button>
               {result?.bookingId && result?.bookingId !== '00000000-0000-0000-0000-000000000000' && (
                 <Button

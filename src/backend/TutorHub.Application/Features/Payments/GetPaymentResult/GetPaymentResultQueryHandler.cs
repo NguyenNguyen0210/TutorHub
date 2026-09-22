@@ -23,15 +23,22 @@ public class GetPaymentResultQueryHandler : IRequestHandler<GetPaymentResultQuer
 
         if (!parsed.IsVerified)
         {
+            request.Parameters.TryGetValue("vnp_TxnRef", out var rawRef);
+            decimal rawAmt = 0;
+            if (request.Parameters.TryGetValue("vnp_Amount", out var amtStr) && decimal.TryParse(amtStr, out var amt))
+            {
+                rawAmt = amt / 100m;
+            }
+
             return new PaymentResultDto(
                 Success: false,
                 Message: parsed.Error == PaymentCallbackError.InvalidSignature
                     ? "Invalid security checksum signature."
                     : "Invalid payment callback parameters.",
                 BookingId: Guid.Empty,
-                MerchantReference: string.Empty,
+                MerchantReference: rawRef ?? string.Empty,
                 TransactionNo: null,
-                Amount: 0
+                Amount: rawAmt
             );
         }
 

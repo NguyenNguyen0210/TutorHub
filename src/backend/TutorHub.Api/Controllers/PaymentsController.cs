@@ -78,6 +78,15 @@ public class PaymentsController : ControllerBase
     public async Task<IActionResult> ProcessVnPayReturn(CancellationToken cancellationToken)
     {
         var parameters = ExtractQueryParameters();
+
+        // For TOPUP transactions on development/localhost where VNPay IPN cannot reach local machine,
+        // execute the webhook handler to credit the wallet idempotently upon verified return callback.
+        if (parameters.TryGetValue("vnp_TxnRef", out var txnRef) &&
+            txnRef.StartsWith("TOPUP", StringComparison.OrdinalIgnoreCase))
+        {
+            await _sender.Send(new HandlePaymentWebhookCommand(parameters), cancellationToken);
+        }
+
         var query = new GetPaymentResultQuery(parameters);
         var result = await _sender.Send(query, cancellationToken);
 
