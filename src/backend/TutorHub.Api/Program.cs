@@ -145,6 +145,9 @@ builder.Services.AddSwaggerGen(c =>
     // Prevent duplicate schema ID conflicts across vertical slice DTOs
     c.CustomSchemaIds(type => type.ToString().Replace("+", "."));
 
+    // Resolve conflicting actions with identical path/method (e.g. multipart vs json endpoints)
+    c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+
     // Configure HTTP Bearer JWT Authentication
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
