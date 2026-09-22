@@ -181,7 +181,7 @@ export default function Marketplace() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-20">
+    <div className="w-full flex-1 bg-[#F8FAFC] pb-12">
       {/* 1. Hero Section: #EFF6FF -> #ECFEFF with unified woman visual */}
       <HeroSection
         searchKeyword={searchKeyword}
