@@ -44,6 +44,12 @@ export default function WorkspaceShell({ userRole: role, children }) {
     ...(role === 'Student'
       ? [
           {
+            key: 'wallet',
+            icon: <Icon name="account_balance_wallet" size="sm" />,
+            label: <span className="font-semibold text-body-reg">Ví học viên & Nạp/Rút</span>,
+            onClick: () => navigate('/student/wallet'),
+          },
+          {
             key: 'dispute',
             icon: <Icon name="gavel" size="sm" />,
             label: <span className="font-semibold text-body-reg">Khiếu nại buổi học</span>,

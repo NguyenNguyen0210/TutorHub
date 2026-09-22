@@ -106,7 +106,7 @@ public class PostReleaseDisputeTests : IntegrationTestBase
         var refund = await Db.Transactions.AsNoTracking().FirstAsync(t =>
             t.SessionId == session.Id && t.Type == TransactionType.StudentRefund);
         refund.Amount.Should().Be(300_000m);
-        refund.Status.Should().Be(TransactionStatus.Pending);
+        refund.Status.Should().Be(TransactionStatus.Succeeded);
         refund.RelatedTransactionId.Should().Be(payoutTx.Id, "adjustments point at the original payout, never at another adjustment");
 
         var reversal = await Db.Transactions.AsNoTracking().FirstAsync(t =>

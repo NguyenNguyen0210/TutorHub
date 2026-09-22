@@ -15,13 +15,20 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
     private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IStudentWalletService _studentWalletService;
 
-    public TutorCannotContinueCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService, ICurrentUserService currentUserService)
+    public TutorCannotContinueCommandHandler(
+        IAppDbContext context,
+        IClock clock,
+        IAuditLogService auditLogService,
+        ICurrentUserService currentUserService,
+        IStudentWalletService studentWalletService)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
         _currentUserService = currentUserService;
+        _studentWalletService = studentWalletService;
     }
 
     public async Task<EnrollmentDto> Handle(TutorCannotContinueCommand request, CancellationToken cancellationToken)
@@ -41,24 +48,19 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
             throw new NotFoundException("Enrollment", request.EnrollmentId);
         }
 
-        // 1. Authorization: Only the Tutor of the Enrollment can declare Tutor Cannot Continue
+        // 1. Authorization: Only the assigned tutor can invoke this command (FR-CONTINUE-001)
         if (enrollment.TutorProfile.UserId != userId)
         {
-            throw new ForbiddenException("You do not have permission to declare inability to continue for this enrollment.");
+            throw new ForbiddenException("Only the assigned tutor can report inability to continue.");
         }
 
-        // 2. State machine guard
-        if (enrollment.Status == EnrollmentStatus.Completed)
+        // 2. Status Validation: Only Active enrollments can be discontinued (FR-CONTINUE-001)
+        if (enrollment.Status != EnrollmentStatus.Active)
         {
-            throw new ConflictException("Cannot cancel an enrollment that is already completed.");
+            throw new ConflictException($"Cannot discontinue an enrollment in '{enrollment.Status}' status. Only Active enrollments can be discontinued.");
         }
 
-        if (enrollment.Status == EnrollmentStatus.Cancelled)
-        {
-            throw new ConflictException("Enrollment is already cancelled.");
-        }
-
-        // 3. Domain Cancel with CancelledBy.Tutor
+        // 3. Domain Logic: Cancel sessions and compute refund (INV-REFUND-001)
         var now = _clock.UtcNow;
         var refundAmount = enrollment.Cancel(request.Reason, CancelledBy.Tutor);
 
@@ -83,26 +85,49 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
                     throw new InvalidOperationException("Financial invariant violated: Tutor wallet not found for escrow debit during tutor cancellation.");
                 }
 
-                // DEC-S8-032 / INV-REFUND-004: refunds start Pending and only settle
-                // via the external provider callback; the obligation is explicit.
+                // Credit refund directly into Student Wallet (Holding -> Student Wallet)
+                await _studentWalletService.CreditRefundAsync(
+                    enrollment.StudentProfileId,
+                    refundAmount,
+                    "TutorCannotContinueCancellation",
+                    enrollment.Id,
+                    $"Gia sư báo không thể tiếp tục: {request.Reason.Trim()}",
+                    now,
+                    cancellationToken);
+
+                // Transaction ledger row for platform financial audit trail
                 var refundTx = Transaction.CreateRefund(
                     bookingId: enrollment.BookingId,
                     sessionId: null,
                     disputeId: null,
                     originalPayout: null,
                     amount: refundAmount,
-                    paymentGatewayRef: $"EscrowRefund-{enrollment.Id:N}",
+                    paymentGatewayRef: $"WalletRefund-{enrollment.Id:N}",
                     description: $"Tutor-cannot-continue enrollment refund: {request.Reason.Trim()}",
                     now: now);
-                refundTx.SettlementRequired = true;
+                refundTx.Status = TransactionStatus.Succeeded;
+                refundTx.RefundedAt = now;
+                refundTx.SettlementRequired = false;
                 _context.Transactions.Add(refundTx);
 
-                // Enqueue RefundCreated Outbox Message (DEC-S7-001, DEC-S7-002)
+                // Enqueue RefundCreated and RefundCompleted Outbox Messages
                 _context.AddOutboxMessage(new RefundCreatedEvent(
                     enrollment.Id,
                     enrollment.StudentProfile.UserId,
                     new MoneyDto(refundAmount),
-                    refundTx.Id));
+                    refundTx.Id,
+                    Guid.NewGuid(),
+                    1,
+                    now));
+
+                _context.AddOutboxMessage(new RefundCompletedEvent(
+                    enrollment.Id,
+                    enrollment.StudentProfile.UserId,
+                    new MoneyDto(refundAmount),
+                    refundTx.Id,
+                    Guid.NewGuid(),
+                    1,
+                    now));
             }
 
             // 5. Audit + notify affected parties (FR-CONTINUE-003, PRD §8.2)

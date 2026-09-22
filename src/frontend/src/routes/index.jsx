@@ -49,8 +49,8 @@ import TutorProfile from '../pages/discovery/TutorProfile';
 import BookingCheckout from '../pages/checkout/BookingCheckout';
 import PaymentReturn from '../pages/checkout/PaymentReturn';
 
-// Student Space Screens
 import StudentDashboard from '../pages/student/StudentDashboard';
+import StudentWallet from '../pages/student/StudentWallet';
 import EnrollmentDetail from '../pages/student/EnrollmentDetail';
 import SessionDetail from '../pages/student/SessionDetail';
 import DisputeNew from '../pages/student/DisputeNew';
@@ -71,6 +71,7 @@ import NotFound from '../pages/shared/NotFound';
 // Admin Space Screens
 import AdminDashboard from '../pages/admin/AdminDashboard';
 import AdminWithdrawals from '../pages/admin/AdminWithdrawals';
+import AdminStudentWallets from '../pages/admin/AdminStudentWallets';
 import AdminTutorApplications from '../pages/admin/AdminTutorApplications';
 import AdminDisputes from '../pages/admin/AdminDisputes';
 import AdminDisputeDetail from '../pages/admin/AdminDisputeDetail';
@@ -121,6 +122,7 @@ export default function AppRoutes() {
         </RequireAuth>
       }>
         <Route path="dashboard" element={<StudentDashboard />} />
+        <Route path="wallet" element={<StudentWallet />} />
         <Route path="enrollments/:id" element={<EnrollmentDetail />} />
         <Route path="sessions/:id" element={<SessionDetail />} />
         <Route path="disputes/new" element={<DisputeNew />} />
@@ -155,6 +157,7 @@ export default function AppRoutes() {
         </RequireAuth>
       }>
         <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="student-wallets" element={<AdminStudentWallets />} />
         <Route path="withdrawals" element={<AdminWithdrawals />} />
         <Route path="disputes" element={<AdminDisputes />} />
         <Route path="tutor-applications" element={<AdminTutorApplications />} />
@@ -166,6 +169,9 @@ export default function AppRoutes() {
       </Route>
 
       {/* Deep Link Redirections (from notifications & external URLs) */}
+      <Route path="/student/wallet" element={<RequireAuth><Navigate to="/student/wallet" replace /></RequireAuth>} />
+      <Route path="/admin/student-topups" element={<RequireAuth><Navigate to="/admin/student-wallets" replace /></RequireAuth>} />
+      <Route path="/admin/student-withdrawals" element={<RequireAuth><Navigate to="/admin/student-wallets" replace /></RequireAuth>} />
       <Route path="/enrollments/:id" element={<RequireAuth><EnrollmentRedirect /></RequireAuth>} />
       <Route path="/sessions/:id" element={<RequireAuth><SessionRedirect /></RequireAuth>} />
       <Route path="/bookings/:id" element={<RequireAuth><BookingRedirect /></RequireAuth>} />

@@ -15,11 +15,12 @@ namespace TutorHub.Api.IntegrationTests;
 /// (no Testcontainers by owner decision). Uses a dedicated database so the
 /// dev seed data stays untouched. Background jobs are removed: tests assert
 /// synchronously committed state, and jobs would otherwise race them.
-/// </summary>
 public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
 {
-    public const string IntegrationConnectionString =
-        "Host=localhost;Port=5432;Database=tutorhub_integration;Username=tutorhub;Password=123456";
+    private static readonly string Port = Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5433";
+
+    public static readonly string IntegrationConnectionString =
+        $"Host=localhost;Port={Port};Database=tutorhub_integration;Username=tutorhub;Password=123456";
 
     private static readonly object Sync = new();
     private static bool _initialized;
@@ -78,7 +79,7 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
             }
 
             var maintenanceCs =
-                "Host=localhost;Port=5432;Database=postgres;Username=tutorhub;Password=123456";
+                $"Host=localhost;Port={Port};Database=postgres;Username=tutorhub;Password=123456";
             using (var conn = new NpgsqlConnection(maintenanceCs))
             {
                 conn.Open();

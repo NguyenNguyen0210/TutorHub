@@ -40,6 +40,10 @@ public interface IAppDbContext
     DbSet<CustomAgreement> CustomAgreements { get; }
     DbSet<SessionRescheduleRequest> SessionRescheduleRequests { get; }
     DbSet<LearningRecord> LearningRecords { get; }
+    DbSet<StudentWallet> StudentWallets { get; }
+    DbSet<StudentWalletTransaction> StudentWalletTransactions { get; }
+    DbSet<TopUpRequest> TopUpRequests { get; }
+    DbSet<StudentWithdrawal> StudentWithdrawals { get; }
 
     DatabaseFacade Database { get; }
 

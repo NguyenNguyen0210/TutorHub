@@ -35,7 +35,14 @@ public class BusinessEventNotificationHandler :
     INotificationHandler<ReviewCreatedEvent>,
     INotificationHandler<DisputeCreatedEvent>,
     INotificationHandler<DisputeResolvedEvent>,
-    INotificationHandler<ReportCreatedEvent>
+    INotificationHandler<ReportCreatedEvent>,
+    INotificationHandler<StudentTopUpRequestedEvent>,
+    INotificationHandler<StudentTopUpConfirmedEvent>,
+    INotificationHandler<StudentTopUpRejectedEvent>,
+    INotificationHandler<StudentWithdrawalRequestedEvent>,
+    INotificationHandler<StudentWithdrawalCompletedEvent>,
+    INotificationHandler<StudentWithdrawalFailedEvent>,
+    INotificationHandler<StudentWalletPaymentSucceededEvent>
 {
     private readonly IAppDbContext _dbContext;
     private readonly INotificationService? _notificationService;
@@ -496,6 +503,115 @@ public class BusinessEventNotificationHandler :
                 Title: "Trust & Safety Notification",
                 Message: "A notice regarding your activity has been submitted for administrative review.",
                 DeepLink: NotificationRouteRegistry.AdminReport(notification.ReportId)
+            )
+        };
+
+        await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
+    }
+
+    public async Task Handle(StudentTopUpRequestedEvent notification, CancellationToken cancellationToken)
+    {
+        var adminUserIds = await _dbContext.Users
+            .Where(u => u.Role == UserRole.Admin)
+            .Select(u => u.Id)
+            .ToListAsync(cancellationToken);
+
+        var recipients = adminUserIds.Select(adminId => (
+            UserId: adminId,
+            Title: "New Top-Up Request",
+            Message: $"A student submitted a top-up request for {notification.Amount.Amount:N0} VND (Ref: {notification.TransferReference}).",
+            DeepLink: NotificationRouteRegistry.AdminStudentTopUps()
+        ));
+
+        await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
+    }
+
+    public async Task Handle(StudentTopUpConfirmedEvent notification, CancellationToken cancellationToken)
+    {
+        var recipients = new[]
+        {
+            (
+                UserId: notification.StudentUserId,
+                Title: "Top-Up Confirmed",
+                Message: $"Your wallet has been credited with {notification.Amount.Amount:N0} VND.",
+                DeepLink: NotificationRouteRegistry.StudentWallet()
+            )
+        };
+
+        await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
+    }
+
+    public async Task Handle(StudentTopUpRejectedEvent notification, CancellationToken cancellationToken)
+    {
+        var recipients = new[]
+        {
+            (
+                UserId: notification.StudentUserId,
+                Title: "Top-Up Request Rejected",
+                Message: $"Your top-up request was rejected. Reason: {notification.Reason}",
+                DeepLink: NotificationRouteRegistry.StudentWallet()
+            )
+        };
+
+        await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
+    }
+
+    public async Task Handle(StudentWithdrawalRequestedEvent notification, CancellationToken cancellationToken)
+    {
+        var adminUserIds = await _dbContext.Users
+            .Where(u => u.Role == UserRole.Admin)
+            .Select(u => u.Id)
+            .ToListAsync(cancellationToken);
+
+        var recipients = adminUserIds.Select(adminId => (
+            UserId: adminId,
+            Title: "New Student Withdrawal Request",
+            Message: $"A student requested withdrawal of {notification.Amount.Amount:N0} VND.",
+            DeepLink: NotificationRouteRegistry.AdminStudentWithdrawals()
+        ));
+
+        await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
+    }
+
+    public async Task Handle(StudentWithdrawalCompletedEvent notification, CancellationToken cancellationToken)
+    {
+        var recipients = new[]
+        {
+            (
+                UserId: notification.StudentUserId,
+                Title: "Withdrawal Completed",
+                Message: $"Your withdrawal request for {notification.Amount.Amount:N0} VND has been successfully processed.",
+                DeepLink: NotificationRouteRegistry.StudentWallet()
+            )
+        };
+
+        await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
+    }
+
+    public async Task Handle(StudentWithdrawalFailedEvent notification, CancellationToken cancellationToken)
+    {
+        var recipients = new[]
+        {
+            (
+                UserId: notification.StudentUserId,
+                Title: "Withdrawal Failed",
+                Message: $"Your withdrawal for {notification.Amount.Amount:N0} VND could not be processed. Funds have been returned to your available balance. Reason: {notification.Reason}",
+                DeepLink: NotificationRouteRegistry.StudentWallet()
+            )
+        };
+
+        await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
+    }
+
+    public async Task Handle(StudentWalletPaymentSucceededEvent notification, CancellationToken cancellationToken)
+    {
+        var recipients = new[]
+        {
+            (
+                UserId: notification.StudentUserId,
+                Title: "Course Payment Succeeded",
+                Message: $"You successfully paid {notification.Amount.Amount:N0} VND from your Student Wallet for course booking.",
+                DeepLink: NotificationRouteRegistry.StudentWallet()
             )
         };
 

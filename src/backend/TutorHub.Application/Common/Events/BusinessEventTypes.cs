@@ -40,4 +40,13 @@ public static class BusinessEventTypes
 
     // Communication Domain Event (Separate from 24 Core Business Events - INV-EVENT-009)
     public const string MessageSent = "MessageSent";
+
+    // 6. Student Wallet & Top-up Events
+    public const string StudentTopUpRequested = "StudentTopUpRequested";
+    public const string StudentTopUpConfirmed = "StudentTopUpConfirmed";
+    public const string StudentTopUpRejected = "StudentTopUpRejected";
+    public const string StudentWalletPaymentSucceeded = "StudentWalletPaymentSucceeded";
+    public const string StudentWithdrawalRequested = "StudentWithdrawalRequested";
+    public const string StudentWithdrawalCompleted = "StudentWithdrawalCompleted";
+    public const string StudentWithdrawalFailed = "StudentWithdrawalFailed";
 }

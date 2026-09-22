@@ -8,6 +8,7 @@ using TutorHub.Application.Features.Payments.DTOs;
 using TutorHub.Application.Features.Payments.GetPaymentResult;
 using TutorHub.Application.Features.Payments.HandlePaymentWebhook;
 using TutorHub.Application.Features.Payments.InitiatePayment;
+using TutorHub.Application.Features.Payments.PayFromWallet;
 
 namespace TutorHub.Api.Controllers;
 
@@ -46,6 +47,25 @@ public class PaymentsController : ControllerBase
 
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<PaymentRedirectDto>.SuccessResult(result, "VNPay payment URL generated successfully."));
+    }
+
+    /// <summary>
+    /// Pay for an active booking holding directly using Student Wallet balance (Student only).
+    /// </summary>
+    [Authorize(Roles = "Student")]
+    [HttpPost("{bookingId:guid}/wallet")]
+    [ProducesResponseType(typeof(ApiResponse<PayBookingFromWalletResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> PayFromWallet(
+        [FromRoute] Guid bookingId,
+        CancellationToken cancellationToken)
+    {
+        var command = new PayBookingFromWalletCommand(bookingId);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<PayBookingFromWalletResultDto>.SuccessResult(result, "Payment successful. Enrollment activated."));
     }
 
     /// <summary>

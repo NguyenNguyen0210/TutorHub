@@ -562,6 +562,12 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NotificationId")
@@ -952,6 +958,12 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
@@ -1436,6 +1448,178 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.ToTable("StudentProfiles");
                 });
 
+            modelBuilder.Entity("TutorHub.Domain.Entities.StudentWallet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AvailableBalance")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("ReservedBalance")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<Guid>("StudentProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentProfileId")
+                        .IsUnique();
+
+                    b.ToTable("StudentWallets", t =>
+                        {
+                            t.HasCheckConstraint("CK_StudentWallet_NonNegativeBalances", "\"AvailableBalance\" >= 0 AND \"ReservedBalance\" >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.StudentWalletTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal>("BalanceAfter")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal>("BalanceBefore")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("ReferenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReferenceType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("StudentWalletId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReferenceType", "ReferenceId");
+
+                    b.HasIndex("StudentWalletId", "CreatedAt");
+
+                    b.ToTable("StudentWalletTransactions");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.StudentWithdrawal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccountHolderName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("AccountNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<string>("BankCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("BankName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ProcessedByAdminId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ProcessingStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ProcessingStartedByAdminId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("StudentWalletId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcessedByAdminId");
+
+                    b.HasIndex("ProcessingStartedByAdminId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("StudentWalletId", "Status");
+
+                    b.ToTable("StudentWithdrawals", t =>
+                        {
+                            t.HasCheckConstraint("CK_StudentWithdrawal_PositiveAmount", "\"Amount\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("TutorHub.Domain.Entities.Subject", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1461,6 +1645,63 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Subjects");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.TopUpRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdminNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ProcessedByAdminId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("StudentWalletId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TransferReference")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcessedByAdminId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("TransferReference")
+                        .IsUnique();
+
+                    b.HasIndex("StudentWalletId", "Status");
+
+                    b.ToTable("TopUpRequests", t =>
+                        {
+                            t.HasCheckConstraint("CK_TopUpRequest_PositiveAmount", "\"Amount\" > 0");
+                        });
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Transaction", b =>
@@ -1811,7 +2052,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.ToTable("Wallets", t =>
                         {
-                            t.HasCheckConstraint("CK_Wallet_NonNegativeBalances", "\"PendingBalance\" >= 0 AND \"AvailableBalance\" >= 0");
+                            t.HasCheckConstraint("CK_Wallet_NonNegativeBalances", "\"PendingBalance\" >= 0 AND \"AvailableBalance\" >= 0 AND \"HeldBalance\" >= 0 AND \"HeldBalance\" <= \"AvailableBalance\"");
                         });
                 });
 
@@ -2356,6 +2597,53 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("TutorHub.Domain.Entities.StudentWallet", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.StudentProfile", "StudentProfile")
+                        .WithOne("Wallet")
+                        .HasForeignKey("TutorHub.Domain.Entities.StudentWallet", "StudentProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("StudentProfile");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.StudentWalletTransaction", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.StudentWallet", "StudentWallet")
+                        .WithMany("Transactions")
+                        .HasForeignKey("StudentWalletId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("StudentWallet");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.StudentWithdrawal", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.User", "ProcessedByAdmin")
+                        .WithMany()
+                        .HasForeignKey("ProcessedByAdminId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TutorHub.Domain.Entities.User", "ProcessingStartedByAdmin")
+                        .WithMany()
+                        .HasForeignKey("ProcessingStartedByAdminId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TutorHub.Domain.Entities.StudentWallet", "StudentWallet")
+                        .WithMany("Withdrawals")
+                        .HasForeignKey("StudentWalletId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProcessedByAdmin");
+
+                    b.Navigation("ProcessingStartedByAdmin");
+
+                    b.Navigation("StudentWallet");
+                });
+
             modelBuilder.Entity("TutorHub.Domain.Entities.Subject", b =>
                 {
                     b.HasOne("TutorHub.Domain.Entities.Category", "Category")
@@ -2365,6 +2653,24 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.TopUpRequest", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.User", "ProcessedByAdmin")
+                        .WithMany()
+                        .HasForeignKey("ProcessedByAdminId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TutorHub.Domain.Entities.StudentWallet", "StudentWallet")
+                        .WithMany("TopUpRequests")
+                        .HasForeignKey("StudentWalletId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProcessedByAdmin");
+
+                    b.Navigation("StudentWallet");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Transaction", b =>
@@ -2538,6 +2844,17 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TutorHub.Domain.Entities.StudentProfile", b =>
                 {
                     b.Navigation("Bookings");
+
+                    b.Navigation("Wallet");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.StudentWallet", b =>
+                {
+                    b.Navigation("TopUpRequests");
+
+                    b.Navigation("Transactions");
+
+                    b.Navigation("Withdrawals");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Subject", b =>

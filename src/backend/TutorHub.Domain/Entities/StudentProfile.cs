@@ -9,7 +9,8 @@ public class StudentProfile
     public User User { get; set; } = default!;
 
     // Domain relationships
+    public StudentWallet? Wallet { get; set; }
+
     public ICollection<Booking> Bookings { get; set; }
         = new List<Booking>();
-
 }

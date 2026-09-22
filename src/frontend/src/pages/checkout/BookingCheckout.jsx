@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import paymentService from '@/services/payment.service';
+import studentWalletService from '@/services/studentWallet.service';
 import bookingService from '@/services/booking.service';
 import CountdownTimer from '@/components/feedback/CountdownTimer';
 import { formatCurrency } from '@/utils/formatters';
@@ -26,12 +27,29 @@ export default function BookingCheckout() {
   const [bookingError, setBookingError] = useState(null);
 
   const [selectedMethod, setSelectedMethod] = useState('vnpay');
+  const [wallet, setWallet] = useState(null);
+  const [loadingWallet, setLoadingWallet] = useState(false);
   const [loading, setLoading] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
 
   const isDev = import.meta.env.DEV || import.meta.env.VITE_DEV_PAYMENT_SIMULATOR === 'true';
+
+  useEffect(() => {
+    async function loadWallet() {
+      try {
+        setLoadingWallet(true);
+        const w = await studentWalletService.getMyWallet();
+        setWallet(w);
+      } catch {
+        // Not a student or wallet fetch failed
+      } finally {
+        setLoadingWallet(false);
+      }
+    }
+    loadWallet();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,6 +131,30 @@ export default function BookingCheckout() {
   const totalPrice = Number(booking.totalPrice || 0);
   const totalSessions = Number(booking.totalSessions || 1);
   const pricePerSession = totalSessions > 0 ? Math.round(totalPrice / totalSessions) : totalPrice;
+
+  const hasEnoughWalletBalance = (wallet?.availableBalance || 0) >= totalPrice;
+
+  const handlePayWallet = async () => {
+    if (isExpired) {
+      toast.error('Đơn giữ chỗ đã hết hạn. Vui lòng tạo lại đơn hàng mới.');
+      return;
+    }
+    if (!hasEnoughWalletBalance) {
+      toast.error('Số dư Ví Học Viên không đủ để thanh toán toàn bộ khóa học.');
+      return;
+    }
+    try {
+      setLoading(true);
+      setPaymentError(null);
+      await studentWalletService.payBookingFromWallet(booking.id);
+      toast.success('Thanh toán thành công từ Ví Học Viên! Hợp đồng đã được kích hoạt.');
+      navigate('/student/dashboard');
+    } catch (err) {
+      setPaymentError(err?.message || 'Không thể thanh toán từ Ví Học Viên.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePayVNPay = async () => {
     if (isExpired) {
@@ -295,6 +337,53 @@ export default function BookingCheckout() {
             {paymentError && <Callout variant="danger">{paymentError}</Callout>}
 
             <div className="space-y-3" role="radiogroup" aria-label="Phương thức thanh toán">
+              {/* Option 1: Student Wallet (100% wallet payment) */}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={selectedMethod === 'wallet'}
+                onClick={() => setSelectedMethod('wallet')}
+                className={cn(
+                  'w-full p-3.5 rounded-brand-md border-2 transition-all flex items-center justify-between text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 cursor-pointer',
+                  selectedMethod === 'wallet'
+                    ? 'border-emerald-600 bg-emerald-50/40 shadow-brand-sm'
+                    : 'border-border hover:border-neutral-300'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-brand-md bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-brand-sm">
+                    <Icon name="account_balance_wallet" size="sm" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-caption sm:text-body-reg text-fg">
+                        Ví Học Viên
+                      </span>
+                      <span className={cn(
+                        "text-[11px] font-bold font-mono px-1.5 py-0.5 rounded",
+                        hasEnoughWalletBalance
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-amber-100 text-amber-800"
+                      )}>
+                        Số dư: {formatCurrency(wallet?.availableBalance || 0)}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-fg-muted block mt-0.5">
+                      {hasEnoughWalletBalance
+                        ? 'Thanh toán 1-Click tức thì, tiền chuyển thẳng vào Escrow'
+                        : `Còn thiếu ${formatCurrency(totalPrice - (wallet?.availableBalance || 0))} — Nạp thêm để thanh toán`}
+                    </span>
+                  </div>
+                </div>
+                <div className={cn(
+                  "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0",
+                  selectedMethod === 'wallet' ? "border-emerald-600" : "border-neutral-300"
+                )}>
+                  {selectedMethod === 'wallet' && <div className="w-2.5 h-2.5 rounded-full bg-emerald-600" />}
+                </div>
+              </button>
+
+              {/* Option 2: VNPay */}
               <button
                 type="button"
                 role="radio"
@@ -320,25 +409,63 @@ export default function BookingCheckout() {
                     </span>
                   </div>
                 </div>
-                <div className="w-5 h-5 rounded-full border-2 border-brand-primary-600 flex items-center justify-center shrink-0">
-                  <div className="w-2.5 h-2.5 rounded-full bg-brand-primary-600" />
+                <div className={cn(
+                  "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0",
+                  selectedMethod === 'vnpay' ? "border-brand-primary-600" : "border-neutral-300"
+                )}>
+                  {selectedMethod === 'vnpay' && <div className="w-2.5 h-2.5 rounded-full bg-brand-primary-600" />}
                 </div>
               </button>
             </div>
 
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              loading={loading}
-              disabled={isExpired || simulating}
-              onClick={handlePayVNPay}
-              icon={!loading && <Icon name="lock" size="sm" />}
-            >
-              {isExpired
-                ? 'Đơn giữ chỗ đã hết hạn'
-                : `Thanh toán ${formatCurrency(totalPrice)}`}
-            </Button>
+            {selectedMethod === 'wallet' ? (
+              hasEnoughWalletBalance ? (
+                <Button
+                  variant="success"
+                  size="lg"
+                  fullWidth
+                  loading={loading}
+                  disabled={isExpired}
+                  onClick={handlePayWallet}
+                  icon={!loading && <Icon name="flash_on" size="sm" />}
+                >
+                  {isExpired
+                    ? 'Đơn giữ chỗ đã hết hạn'
+                    : `Thanh toán bằng Ví: ${formatCurrency(totalPrice)}`}
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <Button
+                    as={Link}
+                    to="/student/wallet"
+                    target="_blank"
+                    variant="primary"
+                    size="lg"
+                    fullWidth
+                    icon={<Icon name="add_circle" size="sm" />}
+                  >
+                    Nạp thêm tiền vào Ví Học Viên
+                  </Button>
+                  <p className="text-[11px] text-amber-800 text-center">
+                    Sau khi nạp xong, vui lòng <button type="button" onClick={loadWallet} className="underline font-bold text-brand-primary-700">bấm vào đây để làm mới số dư</button>.
+                  </p>
+                </div>
+              )
+            ) : (
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                loading={loading}
+                disabled={isExpired || simulating}
+                onClick={handlePayVNPay}
+                icon={!loading && <Icon name="lock" size="sm" />}
+              >
+                {isExpired
+                  ? 'Đơn giữ chỗ đã hết hạn'
+                  : `Thanh toán ${formatCurrency(totalPrice)}`}
+              </Button>
+            )}
 
             <div className="space-y-1.5 text-center text-[11px] text-fg-muted pt-1">
               <p className="flex items-center justify-center gap-1">
