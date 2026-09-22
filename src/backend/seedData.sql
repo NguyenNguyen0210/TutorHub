@@ -28,6 +28,10 @@ TRUNCATE TABLE
     "Messages",
     "Conversations",
     "Reviews",
+    "StudentWalletTransactions",
+    "StudentWithdrawals",
+    "TopUpRequests",
+    "StudentWallets",
     "WalletTransactions",
     "Withdrawals",
     "Transactions",
@@ -2287,5 +2291,20 @@ SET
 FROM reconciled r
 WHERE w."TutorProfileId" = r."TutorProfileId"
   AND w."Id"::text LIKE 'b3000000-%';
+
+-- -----------------------------------------------------------------------------
+-- 23. SEED STUDENT WALLETS
+-- -----------------------------------------------------------------------------
+INSERT INTO "StudentWallets" ("Id", "StudentProfileId", "AvailableBalance", "ReservedBalance", "CreatedAt", "UpdatedAt")
+SELECT 
+    gen_random_uuid(),
+    sp."Id",
+    2500000.00,
+    0.00,
+    NOW(),
+    NOW()
+FROM "StudentProfiles" sp
+ON CONFLICT ("StudentProfileId") DO UPDATE 
+SET "AvailableBalance" = 2500000.00, "ReservedBalance" = 0.00, "UpdatedAt" = NOW();
 
 COMMIT;
