@@ -18,7 +18,7 @@
 | 7 | Cancellation | Single-session cancel gate (no finance) vs enrollment pro-rata cancel distinguished |
 | 8 | Fees | `PlatformFeeRate`/`FeePolicyVersion` snapshot per Enrollment, non-retroactive (FR-OPEN-008 versioning decided) |
 | 9 | Events | 26 core events + `MessageSent` (`RefundFailed`, `PlatformSettingChanged` added) |
-| 10 | Student Wallet | Ví Học Viên (`StudentWallet`): nạp tiền qua ngân hàng/VietQR với cú pháp chuẩn hóa (`TUTORHUB NAP <UserId8> <ShortCode4>`), thanh toán khóa học 100% từ ví, hoàn tiền tự động ghi có ngay vào ví, rút tiền tối thiểu 50.000 VNĐ, quản trị Admin duyệt nạp/xử lý rút, bảo vệ sổ cái bất biến `StudentWalletTransaction` |
+| 10 | Student Wallet | Ví Học Viên (`StudentWallet`): nạp tiền tự động 24/7 qua Cổng thanh toán VNPay, thanh toán khóa học 100% từ ví, hoàn tiền tự động ghi có ngay vào ví, rút tiền tối thiểu 50.000 VNĐ, quản trị Admin đối soát/xử lý rút, bảo vệ sổ cái bất biến `StudentWalletTransaction` |
 
 ---
 
@@ -882,10 +882,10 @@ Mỗi Student Profile sở hữu một Ví Học Viên (`StudentWallet`) độc 
 
 ### Nạp tiền vào Ví (Top-up Flow)
 1. Student khởi tạo yêu cầu nạp tiền với số tiền cụ thể.
-2. Hệ thống sinh mã chuyển khoản chuẩn hóa duy nhất: `TUTORHUB NAP <UserId8> <ShortCode4>`.
-3. Student quét mã VietQR tự động điền sẵn STK TutorHub, số tiền và nội dung chuyển khoản.
-4. Admin đối soát chuyển khoản ngân hàng và thực hiện duyệt (`Approved`) hoặc từ chối (`Rejected`) yêu cầu nạp tiền.
-5. Khi duyệt, tiền được ghi có trực tiếp vào ví học viên kèm theo một bản ghi giao dịch bất biến `StudentWalletTransaction` loại `TopUpCredit`.
+2. Hệ thống sinh mã tham chiếu giao dịch duy nhất `TOPUP...` và tạo liên kết chuyển hướng sang Cổng thanh toán VNPay Sandbox.
+3. Student thanh toán an toàn qua cổng VNPay (thẻ ATM nội địa test hoặc ứng dụng ngân hàng).
+4. Cổng VNPay gửi webhook / Callback đối soát kèm chữ ký bảo mật SHA-512.
+5. Tiền được tự động ghi có trực tiếp vào ví học viên kèm theo bản ghi sổ cái bất biến `StudentWalletTransaction` loại `TopUpCredit`.
 
 ### Thanh toán Khóa học (100% Wallet Payment)
 * Student bắt buộc thanh toán 100% học phí bằng số dư ví học viên. Nếu số dư không đủ, Student được điều hướng nạp thêm tiền trước khi xác nhận thanh toán.

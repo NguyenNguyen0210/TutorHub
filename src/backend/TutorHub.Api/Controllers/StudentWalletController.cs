@@ -3,14 +3,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.StudentWallets.Commands.CreateVnPayTopUp;
-using TutorHub.Application.Features.StudentWallets.Commands.RequestTopUp;
 using TutorHub.Application.Features.StudentWallets.Commands.RequestWithdrawal;
 using TutorHub.Application.Features.StudentWallets.DTOs;
 using TutorHub.Application.Features.StudentWallets.Queries.GetMyStudentTransactions;
 using TutorHub.Application.Features.StudentWallets.Queries.GetMyStudentWallet;
 using TutorHub.Application.Features.StudentWallets.Queries.GetMyStudentWithdrawals;
 using TutorHub.Application.Features.StudentWallets.Queries.GetMyTopUpRequests;
-using TutorHub.Application.Features.StudentWallets.Queries.GetTopUpPaymentInfo;
 
 namespace TutorHub.Api.Controllers;
 
@@ -57,28 +55,9 @@ public class StudentWalletController : ControllerBase
     }
 
     /// <summary>
-    /// Request a wallet top-up (generates canonical transfer reference).
-    /// </summary>
-    [HttpPost("top-up")]
-    [ProducesResponseType(typeof(ApiResponse<TopUpRequestDto>), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> RequestTopUp(
-        [FromBody] StudentTopUpApiRequest request,
-        CancellationToken cancellationToken)
-    {
-        var command = new RequestTopUpCommand(request.Amount);
-        var result = await _sender.Send(command, cancellationToken);
-        return StatusCode(
-            StatusCodes.Status201Created,
-            ApiResponse<TopUpRequestDto>.SuccessResult(result, "Top-up request created. Please transfer funds with the provided reference.")
-        );
-    }
-
-    /// <summary>
     /// Initiate an automated wallet top-up via VNPay Sandbox (generates hosted payment URL).
     /// </summary>
+    [HttpPost("top-up")]
     [HttpPost("top-up/vnpay")]
     [ProducesResponseType(typeof(ApiResponse<VnPayTopUpRedirectDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -109,18 +88,6 @@ public class StudentWalletController : ControllerBase
         var query = new GetMyTopUpRequestsQuery(pageNumber, pageSize);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<TopUpRequestDto>>.SuccessResult(result, "Top-up requests retrieved successfully."));
-    }
-
-    /// <summary>
-    /// Get platform bank account info for top-up transfers.
-    /// </summary>
-    [HttpGet("top-up/info")]
-    [ProducesResponseType(typeof(ApiResponse<TopUpPaymentInfoDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetTopUpPaymentInfo(CancellationToken cancellationToken)
-    {
-        var query = new GetTopUpPaymentInfoQuery();
-        var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<TopUpPaymentInfoDto>.SuccessResult(result, "Platform payment information retrieved successfully."));
     }
 
     /// <summary>

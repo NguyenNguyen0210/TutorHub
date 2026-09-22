@@ -47,11 +47,6 @@ export const studentWalletService = {
     return normalizePaged(res);
   },
 
-  async requestTopUp({ amount }) {
-    const res = await api.post('/students/me/wallet/top-up', { amount: Number(amount) });
-    return res;
-  },
-
   async createVnPayTopUp({ amount }) {
     const res = await api.post('/students/me/wallet/top-up/vnpay', { amount: Number(amount) });
     return res;
@@ -62,11 +57,6 @@ export const studentWalletService = {
       params: { pageNumber, pageSize },
     });
     return normalizePaged(res);
-  },
-
-  async getTopUpPaymentInfo() {
-    const res = await api.get('/students/me/wallet/top-up/info');
-    return res;
   },
 
   async requestWithdrawal(payload) {

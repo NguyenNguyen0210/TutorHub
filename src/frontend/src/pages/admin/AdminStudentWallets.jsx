@@ -243,14 +243,14 @@ export default function AdminStudentWallets() {
     <div className="space-y-6">
       <PageHeader
         title="Quản trị Ví Học Viên (Student Wallets)"
-        subtitle="Đối soát duyệt lệnh nạp tiền, xử lý rút tiền về ngân hàng và kiểm soát sổ cái học viên."
+        subtitle="Đối soát lịch sử nạp tiền qua Cổng VNPay, xử lý rút tiền về ngân hàng và kiểm soát sổ cái học viên."
       />
 
       {/* Tabs */}
       <div className="space-y-4">
         <Tabs
           tabs={[
-            { id: 'topups', label: 'Duyệt nạp tiền (Top-Up)' },
+            { id: 'topups', label: 'Đối soát nạp tiền VNPay' },
             { id: 'withdrawals', label: 'Xử lý rút tiền (Withdrawals)' },
             { id: 'adjust', label: 'Điều chỉnh số dư đặc biệt' },
           ]}
@@ -264,7 +264,7 @@ export default function AdminStudentWallets() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-border">
               <div className="flex items-center gap-2">
                 <CardHeader
-                  title="Danh sách yêu cầu nạp tiền"
+                  title="Danh sách giao dịch nạp tiền VNPay"
                   icon={<Icon name="add_card" size="sm" className="text-brand-primary-600" />}
                 />
                 <span className="text-caption text-fg-muted font-mono">

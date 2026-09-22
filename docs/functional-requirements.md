@@ -1063,20 +1063,15 @@ The system SHALL track:
 
 ---
 
-## FR-SWALLET-002 — Bank Transfer Top-Up & VietQR
-
-**Actor:** Student, Admin
-
-Student SHALL be able to create a top-up request (`TopUpRequest`) specifying an amount (> 0).
-
-The system SHALL generate a unique canonical transfer reference formatted as:
-`TUTORHUB NAP <UserId8> <ShortCode4>`
-
-The system SHALL generate a dynamic VietQR image/payload containing TutorHub platform bank details, requested amount, and the transfer reference.
-
-Admin SHALL be able to view, confirm (`AdminConfirmTopUp`), or reject (`AdminRejectTopUp` with mandatory reason) top-up requests.
-
-Upon confirmation, the system SHALL credit `AvailableBalance` and record an immutable `StudentWalletTransaction` (`Type: TopUpCredit`).
+## FR-SWALLET-002 — Automated VNPay Payment Gateway Top-Up
+ 
+**Actor:** Student, System
+ 
+Student SHALL be able to initiate a top-up request (`TopUpRequest`) specifying an amount (>= 10,000 VND).
+ 
+The system SHALL generate a unique merchant transaction reference formatted with prefix `TOPUP...` and a secured payment URL targeting the VNPay Sandbox 2.1.0 payment gateway.
+ 
+Upon user authorization and payment gateway callback/webhook verification (HMAC-SHA512), the system SHALL credit `AvailableBalance` and record an immutable `StudentWalletTransaction` (`Type: TopUpCredit`).
 
 ---
 

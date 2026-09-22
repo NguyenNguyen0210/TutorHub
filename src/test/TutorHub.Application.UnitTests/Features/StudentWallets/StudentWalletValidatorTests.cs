@@ -2,7 +2,7 @@ using FluentAssertions;
 using TutorHub.Application.Features.StudentWallets.Commands.AdminAdjustWallet;
 using TutorHub.Application.Features.StudentWallets.Commands.AdminFailWithdrawal;
 using TutorHub.Application.Features.StudentWallets.Commands.AdminRejectTopUp;
-using TutorHub.Application.Features.StudentWallets.Commands.RequestTopUp;
+using TutorHub.Application.Features.StudentWallets.Commands.CreateVnPayTopUp;
 using TutorHub.Application.Features.StudentWallets.Commands.RequestWithdrawal;
 using TutorHub.Domain.Enums;
 using Xunit;
@@ -11,27 +11,6 @@ namespace TutorHub.Application.UnitTests.Features.StudentWallets;
 
 public class StudentWalletValidatorTests
 {
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1000)]
-    [InlineData(5000)]
-    public void RequestTopUpValidator_Fails_WhenAmountIsLessThan10000(decimal amount)
-    {
-        var validator = new RequestTopUpCommandValidator();
-        var result = validator.Validate(new RequestTopUpCommand(amount));
-
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == "Amount");
-    }
-
-    [Fact]
-    public void RequestTopUpValidator_Passes_WhenAmountIs10000OrMore()
-    {
-        var validator = new RequestTopUpCommandValidator();
-        var result = validator.Validate(new RequestTopUpCommand(10_000m));
-
-        result.IsValid.Should().BeTrue();
-    }
 
     [Theory]
     [InlineData(0)]

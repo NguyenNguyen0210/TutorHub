@@ -1269,19 +1269,19 @@ Processing
 
 ---
 
-## US-SWALLET-002 — Top-up Student Wallet via Bank Transfer & VietQR
-
+## US-SWALLET-002 — Top-up Student Wallet via VNPay Payment Gateway
+ 
 **Actor:** Student
-
-> As a Student, I want to create a top-up request and scan a pre-filled VietQR code, so that I can quickly transfer money into my wallet.
-
+ 
+> As a Student, I want to initiate a wallet top-up and pay securely through VNPay, so that funds are automatically credited to my wallet balance immediately.
+ 
 **Related FR:** FR-SWALLET-002
-
+ 
 ### Acceptance Criteria
-- Student inputs top-up amount (> 0).
-- System creates a `TopUpRequest` (status: `Pending`) and generates reference `TUTORHUB NAP <UserId8> <ShortCode4>`.
-- Displays dynamic VietQR code with bank name, account number, account holder, amount, and exact transfer reference.
-- Allows copying account number and transfer reference with one click.
+- Student selects or inputs top-up amount (>= 10,000 VND).
+- System creates a `TopUpRequest` with unique merchant reference `TOPUP...` and generates a secured VNPay payment gateway redirect URL.
+- Student authorizes payment via VNPay Sandbox (NCB test card / bank app).
+- Upon successful payment return & webhook signature verification, system automatically credits wallet available balance and displays confirmation.
 
 ---
 

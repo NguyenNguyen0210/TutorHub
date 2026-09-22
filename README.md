@@ -55,7 +55,7 @@
 * **Điểm danh 2 chiều (Attendance Window):** Mở cửa sổ 24 giờ sau mỗi buổi học để cả gia sư và học viên cùng xác nhận trước khi giải ngân.
 * **Ví bảo chứng & Giải ngân từng buổi (Escrow Wallet):** Thù lao giải ngân theo từng buổi học hoàn thành sau khi trừ phí hoa hồng sàn. Hạn mức rút tiền bảo vệ số dư tranh chấp:
   $$\text{WithdrawableBalance} \equiv \text{AvailableBalance} - \text{HeldBalance}$$
-* **Ví học viên & Thanh toán nội bộ (Student Wallet):** Học viên sở hữu ví tài khoản riêng để nạp tiền qua ngân hàng/VietQR, thanh toán khóa học 100% từ ví, nhận tiền hoàn trả tức thì và rút tiền về tài khoản ngân hàng.
+* **Ví học viên & Thanh toán nội bộ (Student Wallet):** Học viên sở hữu ví tài khoản riêng để nạp tiền tự động 24/7 qua Cổng VNPay, thanh toán khóa học 100% từ ví, nhận tiền hoàn trả tức thì và rút tiền về tài khoản ngân hàng.
 * **Cơ chế xử lý tranh chấp 2 giai đoạn (Dispute Engine):** Pre-release Escrow hold và Post-release Balance hold với thuật toán cân đối tài chính minh bạch:
   $$\text{StudentRefund} \equiv \text{TutorNetRecovery} + \text{PlatformFeeReversal}$$
 * **Hội thoại & Thông báo thời gian thực:** Nhắn tin trực tiếp 1-1 qua SignalR (`/hubs/chat`), thông báo tức thời (`/hubs/notifications`) và Transactional Outbox.
