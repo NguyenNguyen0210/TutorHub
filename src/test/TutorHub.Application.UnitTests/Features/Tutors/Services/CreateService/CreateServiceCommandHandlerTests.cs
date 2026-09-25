@@ -69,13 +69,16 @@ public class CreateServiceCommandHandlerTests
             SubjectId: subject.Id,
             Title: "Comprehensive Algebra 101",
             Description: "10 structured lessons covering high school algebra.",
+            ShortDescription: "Algebra in 10 lessons",
+            Tags: new[] { "algebra", "exam-prep" },
             LearningScope: "Equations, Inequalities, Functions",
             ExpectedOutcome: "Master algebra exams",
             TotalSessions: 10,
             SessionDurationMinutes: 60,
             Price: 3500000m,
             TeachingMode: TeachingMode.Online,
-            TrialLessonUrl: "https://example.com/trial"
+            TrialLessonUrl: "https://example.com/trial",
+            CoverImageUrl: "https://example.com/cover.png"
         );
 
         // Act
@@ -84,6 +87,9 @@ public class CreateServiceCommandHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Title.Should().Be("Comprehensive Algebra 101");
+        result.ShortDescription.Should().Be("Algebra in 10 lessons");
+        result.Tags.Should().BeEquivalentTo("algebra", "exam-prep");
+        result.CoverImageUrl.Should().Be("https://example.com/cover.png");
         result.SubjectName.Should().Be("Algebra");
         result.SubjectCategoryName.Should().Be("Mathematics");
         result.TotalSessions.Should().Be(10);
@@ -111,13 +117,16 @@ public class CreateServiceCommandHandlerTests
             SubjectId: Guid.NewGuid(),
             Title: "Title",
             Description: "Desc",
+            ShortDescription: null,
+            Tags: null,
             LearningScope: null,
             ExpectedOutcome: null,
             TotalSessions: 5,
             SessionDurationMinutes: 60,
             Price: 1000000m,
             TeachingMode: TeachingMode.Online,
-            TrialLessonUrl: null
+            TrialLessonUrl: null,
+            CoverImageUrl: null
         );
 
         // Act
@@ -143,13 +152,16 @@ public class CreateServiceCommandHandlerTests
             SubjectId: Guid.NewGuid(),
             Title: "Title",
             Description: "Desc",
+            ShortDescription: null,
+            Tags: null,
             LearningScope: null,
             ExpectedOutcome: null,
             TotalSessions: 5,
             SessionDurationMinutes: 60,
             Price: 1000000m,
             TeachingMode: TeachingMode.Online,
-            TrialLessonUrl: null
+            TrialLessonUrl: null,
+            CoverImageUrl: null
         );
 
         // Act
@@ -179,13 +191,16 @@ public class CreateServiceCommandHandlerTests
             SubjectId: Guid.NewGuid(),
             Title: "Title",
             Description: "Desc",
+            ShortDescription: null,
+            Tags: null,
             LearningScope: null,
             ExpectedOutcome: null,
             TotalSessions: 5,
             SessionDurationMinutes: 60,
             Price: 1000000m,
             TeachingMode: TeachingMode.Online,
-            TrialLessonUrl: null
+            TrialLessonUrl: null,
+            CoverImageUrl: null
         );
 
         // Act

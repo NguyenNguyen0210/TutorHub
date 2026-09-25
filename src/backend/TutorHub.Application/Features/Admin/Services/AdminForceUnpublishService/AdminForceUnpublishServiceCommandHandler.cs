@@ -50,24 +50,10 @@ public class AdminForceUnpublishServiceCommandHandler : IRequestHandler<AdminFor
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new ServiceDto(
-            Id: service.Id,
-            TutorProfileId: service.TutorProfileId,
-            SubjectId: service.SubjectId,
-            SubjectName: service.Subject.Name,
-            SubjectCategoryName: service.Subject.Category.Name,
-            Title: service.Title,
-            Description: service.Description,
-            LearningScope: service.LearningScope,
-            ExpectedOutcome: service.ExpectedOutcome,
-            TotalSessions: service.TotalSessions,
-            SessionDurationMinutes: service.SessionDurationMinutes,
-            Price: service.Price,
-            TeachingMode: service.TeachingMode.ToString(),
-            TrialLessonUrl: service.TrialLessonUrl,
-            Status: service.Status.ToString(),
-            CreatedAt: service.CreatedAt,
-            UpdatedAt: service.UpdatedAt
+        return ServiceDtoMapper.FromService(
+            service,
+            service.Subject.Name,
+            service.Subject.Category.Name
         );
     }
 }

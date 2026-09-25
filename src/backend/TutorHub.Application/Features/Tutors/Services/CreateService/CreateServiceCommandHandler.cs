@@ -62,6 +62,8 @@ public class CreateServiceCommandHandler : IRequestHandler<CreateServiceCommand,
             SubjectId = request.SubjectId,
             Title = request.Title,
             Description = request.Description,
+            ShortDescription = request.ShortDescription,
+            TagsJson = ServiceDtoMapper.SerializeTags(request.Tags),
             LearningScope = request.LearningScope,
             ExpectedOutcome = request.ExpectedOutcome,
             TotalSessions = request.TotalSessions,
@@ -69,6 +71,7 @@ public class CreateServiceCommandHandler : IRequestHandler<CreateServiceCommand,
             Price = request.Price,
             TeachingMode = request.TeachingMode,
             TrialLessonUrl = request.TrialLessonUrl,
+            CoverImageUrl = request.CoverImageUrl,
             Status = ServiceStatus.Draft,
             CreatedAt = _clock.UtcNow
         };
@@ -76,24 +79,10 @@ public class CreateServiceCommandHandler : IRequestHandler<CreateServiceCommand,
         _context.Services.Add(service);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new ServiceDto(
-            Id: service.Id,
-            TutorProfileId: service.TutorProfileId,
-            SubjectId: service.SubjectId,
-            SubjectName: tutorSubject.Subject.Name,
-            SubjectCategoryName: tutorSubject.Subject.Category.Name,
-            Title: service.Title,
-            Description: service.Description,
-            LearningScope: service.LearningScope,
-            ExpectedOutcome: service.ExpectedOutcome,
-            TotalSessions: service.TotalSessions,
-            SessionDurationMinutes: service.SessionDurationMinutes,
-            Price: service.Price,
-            TeachingMode: service.TeachingMode.ToString(),
-            TrialLessonUrl: service.TrialLessonUrl,
-            Status: service.Status.ToString(),
-            CreatedAt: service.CreatedAt,
-            UpdatedAt: service.UpdatedAt
+        return ServiceDtoMapper.FromService(
+            service,
+            tutorSubject.Subject.Name,
+            tutorSubject.Subject.Category.Name
         );
     }
 }
