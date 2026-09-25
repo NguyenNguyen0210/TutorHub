@@ -59,8 +59,9 @@ public class VnPayPaymentGateway : IPaymentGateway
             return Invalid(PaymentCallbackError.InvalidRequest);
         }
 
-        parameters.TryGetValue("vnp_CurrCode", out var currCode);
-        if (!string.Equals(currCode, "VND", StringComparison.OrdinalIgnoreCase))
+        if (parameters.TryGetValue("vnp_CurrCode", out var currCode) &&
+            !string.IsNullOrWhiteSpace(currCode) &&
+            !string.Equals(currCode, "VND", StringComparison.OrdinalIgnoreCase))
         {
             return Invalid(PaymentCallbackError.InvalidRequest);
         }
@@ -81,7 +82,7 @@ public class VnPayPaymentGateway : IPaymentGateway
             Error: null,
             MerchantReference: txnRef,
             Amount: rawAmount / 100m,
-            IsSuccessful: responseCode == "00" && transactionStatus == "00",
+            IsSuccessful: responseCode == "00" && (string.IsNullOrWhiteSpace(transactionStatus) || transactionStatus == "00"),
             ProviderTransactionId: transactionNo);
     }
 

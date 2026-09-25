@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Admin.Reports.DTOs;
@@ -48,6 +49,24 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
             throw new ConflictException("Report has already been resolved.");
         }
 
+        // 1b. Conflict of interest guard (FR-TRUST-003)
+        if (report.ReporterUserId == userId)
+        {
+            throw new ConflictException("Administrators cannot resolve reports they filed themselves.");
+        }
+        if (report.ReportedUserId == userId)
+        {
+            if (request.Decision == ReportDecision.SuspendUser)
+            {
+                throw new ConflictException("Admin cannot suspend their own account.");
+            }
+            if (request.Decision == ReportDecision.BanUser)
+            {
+                throw new ConflictException("Admin cannot ban their own account.");
+            }
+            throw new ConflictException("Administrators cannot resolve reports filed against their own account.");
+        }
+
         var now = _clock.UtcNow;
         var admin = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
@@ -60,6 +79,29 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
 
             if (reportedUser != null)
             {
+                // Safety guards: self-lockout & last active admin protection
+                if (request.Decision == ReportDecision.SuspendUser || request.Decision == ReportDecision.BanUser)
+                {
+                    if (reportedUser.Id == userId)
+                    {
+                        throw new ConflictException(request.Decision == ReportDecision.SuspendUser
+                            ? "Admin cannot suspend their own account."
+                            : "Admin cannot ban their own account.");
+                    }
+
+                    if (reportedUser.Role == UserRole.Admin && reportedUser.Status == AccountStatus.Active)
+                    {
+                        var activeAdminCount = await _context.Users
+                            .CountAsync(u => u.Role == UserRole.Admin && u.Status == AccountStatus.Active, cancellationToken);
+                        if (activeAdminCount <= 1)
+                        {
+                            throw new ConflictException(request.Decision == ReportDecision.SuspendUser
+                                ? "Cannot suspend the last active administrator on the platform."
+                                : "Cannot ban the last active administrator on the platform.");
+                        }
+                    }
+                }
+
                 try
                 {
                     if (request.Decision == ReportDecision.SuspendUser)
@@ -104,18 +146,62 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
             Guid.TryParse(report.TargetId, out var reviewId))
         {
             var review = await _context.Reviews
+                .Include(r => r.Enrollment)
                 .FirstOrDefaultAsync(r => r.Id == reviewId, cancellationToken);
 
             if (review != null && !review.IsRemoved)
             {
                 review.RemoveByAdmin(request.Resolution.Trim(), userId);
+
+                // Recalculate TutorProfile RatingAvg & TotalReviews (mirrors AdminModerateReviewCommandHandler)
+                if (review.Enrollment != null)
+                {
+                    var tutorProfileId = review.Enrollment.TutorProfileId;
+                    var remainingRatings = await _context.Reviews
+                        .AsNoTracking()
+                        .Include(r => r.Enrollment)
+                        .Where(r => r.Enrollment != null && r.Enrollment.TutorProfileId == tutorProfileId && r.Id != review.Id && !r.IsRemoved)
+                        .Select(r => r.Rating)
+                        .ToListAsync(cancellationToken);
+
+                    var tutorProfile = await _context.TutorProfiles
+                        .FirstOrDefaultAsync(tp => tp.Id == tutorProfileId, cancellationToken);
+
+                    if (tutorProfile != null)
+                    {
+                        tutorProfile.ApplyReview(remainingRatings);
+                    }
+                }
+            }
+        }
+
+        // 3b. Content Removal for Service Violations (FR-TRUST-004)
+        if (request.Decision == ReportDecision.RemoveContent &&
+            (report.ReportType == TrustReportType.ServiceViolation || report.ReportType == TrustReportType.General) &&
+            Guid.TryParse(report.TargetId, out var serviceId))
+        {
+            var service = await _context.Services
+                .FirstOrDefaultAsync(s => s.Id == serviceId, cancellationToken);
+
+            if (service != null && service.Status == ServiceStatus.Published)
+            {
+                service.Unpublish();
+
+                await _auditLogService.LogAsync(
+                    action: "SERVICE_FORCE_UNPUBLISHED",
+                    entityName: "Service",
+                    entityId: service.Id.ToString(),
+                    userId: userId,
+                    oldValues: new { status = "Published", source = "TrustReport", reportId = report.Id },
+                    newValues: new { status = service.Status.ToString(), resolution = request.Resolution },
+                    cancellationToken: cancellationToken);
             }
         }
 
         // 4. Mark Report Resolved (F-23: domain transition).
         try
         {
-            report.Resolve(request.Decision, request.Resolution, userId);
+            report.Resolve(request.Decision, request.Resolution, userId, now);
         }
         catch (ArgumentException ex)
         {
@@ -127,6 +213,17 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
         }
 
         report.ResolvedByAdmin = admin;
+
+        // 4b. Warning notification to reported user (FR-TRUST-005)
+        if (request.Decision == ReportDecision.WarningIssued && report.ReportedUserId.HasValue)
+        {
+            _context.AddOutboxMessage(new ReportResolvedEvent(
+                report.Id,
+                report.ReportedUserId.Value,
+                report.ReporterUserId,
+                request.Decision.ToString(),
+                request.Resolution));
+        }
 
         // 5. Central Append-Only Audit Logging (INV-LEDGER-006)
         await _auditLogService.LogAsync(

@@ -141,10 +141,13 @@ public class EmailDeliveryJob : BackgroundService
         EmailDelivery delivery,
         CancellationToken cancellationToken)
     {
+        using var emailCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        emailCts.CancelAfter(TimeSpan.FromSeconds(30));
+
         try
         {
             var idempotencyKey = $"email:{delivery.Id}";
-            await emailSender.SendEmailAsync(delivery.ToEmail, delivery.Subject, delivery.Body, idempotencyKey, cancellationToken);
+            await emailSender.SendEmailAsync(delivery.ToEmail, delivery.Subject, delivery.Body, idempotencyKey, emailCts.Token);
 
             var now = _clock.UtcNow;
             if (delivery.LockedBy == _workerId && delivery.Status == EmailDeliveryStatus.Processing)

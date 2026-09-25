@@ -267,4 +267,77 @@ public class AppDbContextAppendOnlyTests
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*AuditLog records are append-only*");
     }
+
+    [Fact]
+    public async Task SaveChangesAsync_WhenModifyingStudentWalletTransaction_ThrowsInvalidOperationException()
+    {
+        // Arrange (INV-STUDENT-WALLET-003)
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new AppDbContext(options);
+
+        var tx = new StudentWalletTransaction
+        {
+            Id = Guid.NewGuid(),
+            StudentWalletId = Guid.NewGuid(),
+            Type = StudentWalletTransactionType.TopUpCredit,
+            Direction = FinancialDirection.Credit,
+            Amount = 100_000m,
+            BalanceBefore = 0m,
+            BalanceAfter = 100_000m,
+            ReferenceType = "TopUpRequest",
+            ReferenceId = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        context.StudentWalletTransactions.Add(tx);
+        await context.SaveChangesAsync();
+
+        // Act: Attempt to modify immutable student ledger entry
+        tx.Amount = 200_000m;
+
+        // Assert
+        var act = () => context.SaveChangesAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*StudentWalletTransaction records are append-only and cannot be modified or deleted*");
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_WhenDeletingStudentWalletTransaction_ThrowsInvalidOperationException()
+    {
+        // Arrange (INV-STUDENT-WALLET-003)
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        using var context = new AppDbContext(options);
+
+        var tx = new StudentWalletTransaction
+        {
+            Id = Guid.NewGuid(),
+            StudentWalletId = Guid.NewGuid(),
+            Type = StudentWalletTransactionType.TopUpCredit,
+            Direction = FinancialDirection.Credit,
+            Amount = 100_000m,
+            BalanceBefore = 0m,
+            BalanceAfter = 100_000m,
+            ReferenceType = "TopUpRequest",
+            ReferenceId = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        context.StudentWalletTransactions.Add(tx);
+        await context.SaveChangesAsync();
+
+        // Act: Attempt to delete ledger record
+        context.StudentWalletTransactions.Remove(tx);
+
+        // Assert
+        var act = () => context.SaveChangesAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*StudentWalletTransaction records are append-only and cannot be modified or deleted*");
+    }
 }
+

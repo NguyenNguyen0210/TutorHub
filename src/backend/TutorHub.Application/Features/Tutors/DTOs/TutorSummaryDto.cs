@@ -14,5 +14,10 @@ public record TutorSummaryDto(
     int TotalReviews,
     List<string> Subjects,
     decimal? MinPrice,
-    bool IsVerified
+    bool IsVerified,
+    string? University = null,
+    string? Major = null,
+    string? DegreeLevel = null,
+    string? Certifications = null,
+    string? Achievements = null
 );

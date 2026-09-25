@@ -40,6 +40,24 @@ public class TutorApplicationConfiguration : IEntityTypeConfiguration<TutorAppli
             .IsRequired()
             .HasMaxLength(1000);
 
+        builder.Property(a => a.University)
+            .HasMaxLength(255);
+
+        builder.Property(a => a.Major)
+            .HasMaxLength(255);
+
+        builder.Property(a => a.DegreeLevel)
+            .HasMaxLength(100);
+
+        builder.Property(a => a.Certifications)
+            .HasMaxLength(500);
+
+        builder.Property(a => a.Subject)
+            .HasMaxLength(100);
+
+        builder.Property(a => a.SubjectSub)
+            .HasMaxLength(150);
+
         builder.Property(a => a.ExperienceYears)
             .IsRequired();
 
@@ -50,6 +68,15 @@ public class TutorApplicationConfiguration : IEntityTypeConfiguration<TutorAppli
 
         builder.Property(a => a.Address)
             .HasMaxLength(500);
+
+        builder.Property(a => a.Methodology)
+            .HasMaxLength(2000);
+
+        builder.Property(a => a.Achievements)
+            .HasMaxLength(2000);
+
+        builder.Property(a => a.DocumentsJson)
+            .HasColumnType("text");
 
         builder.Property(a => a.RejectionReason)
             .HasMaxLength(500);

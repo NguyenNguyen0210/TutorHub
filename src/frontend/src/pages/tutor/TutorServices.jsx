@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
 import Money from '@/components/ui/Money';
 import { getTeachingModeMeta, TEACHING_MODE } from '@/config/enums';
@@ -441,9 +442,16 @@ export default function TutorServices() {
                     <span className="text-[11px] font-bold text-brand-primary-700 uppercase tracking-wide">
                       {pkg.subjectName || 'Môn học chung'}
                     </span>
-                    <h3 className="text-headline-3 text-fg line-clamp-2 mt-0.5" title={pkg.title}>
-                      {pkg.title}
-                    </h3>
+                    <Link
+                      to={`/services/${pkg.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-brand-primary-600 transition-colors block"
+                    >
+                      <h3 className="text-headline-3 text-fg line-clamp-2 mt-0.5 hover:text-brand-primary-600" title={pkg.title}>
+                        {pkg.title}
+                      </h3>
+                    </Link>
                   </div>
 
                   {/* Description preview */}
@@ -493,14 +501,28 @@ export default function TutorServices() {
 
                 {/* Actions Footer */}
                 <div className="pt-3 border-t border-border flex items-center justify-between gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleOpenEdit(pkg)}
-                    icon={<Icon name="edit" size="xs" />}
-                  >
-                    Chỉnh sửa
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenEdit(pkg)}
+                      icon={<Icon name="edit" size="xs" />}
+                    >
+                      Chỉnh sửa
+                    </Button>
+                    <Button
+                      as={Link}
+                      to={`/services/${pkg.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      variant="ghost"
+                      size="sm"
+                      icon={<Icon name="visibility" size="xs" />}
+                      title="Xem trang chi tiết công khai"
+                    >
+                      Xem trang
+                    </Button>
+                  </div>
 
                   {pkg.status === 'Published' ? (
                     <Button

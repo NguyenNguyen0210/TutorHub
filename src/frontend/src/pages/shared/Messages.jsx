@@ -396,7 +396,7 @@ export default function Messages() {
               title="Chưa chọn cuộc trò chuyện"
               description="Chọn một cuộc trò chuyện từ danh sách bên trái hoặc nhắn tin từ hồ sơ gia sư."
               actionLabel="Khám phá gia sư"
-              actionPath="/tutors"
+              actionPath="/"
             />
           </div>
         )}

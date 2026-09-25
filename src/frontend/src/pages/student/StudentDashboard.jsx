@@ -104,7 +104,7 @@ export default function StudentDashboard() {
         title={`Chào mừng trở lại, ${user?.fullName || user?.name || 'học viên'}!`}
         subtitle="Không gian học tập bảo chứng Escrow hai chiều • An tâm chất lượng"
         actions={
-          <Button as={Link} to="/tutors" variant="primary" icon={<Icon name="search" size="sm" />}>
+          <Button as={Link} to="/" variant="primary" icon={<Icon name="search" size="sm" />}>
             Tìm thêm gia sư
           </Button>
         }
@@ -183,7 +183,7 @@ export default function StudentDashboard() {
             title="Bạn chưa có hợp đồng học tập nào"
             description="Tìm kiếm gia sư phù hợp và đặt mua gói học để bắt đầu hành trình học tập có bảo chứng."
             actionLabel="Khám phá gia sư ngay"
-            actionPath="/tutors"
+            actionPath="/"
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

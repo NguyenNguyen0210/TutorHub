@@ -26,7 +26,7 @@ export default function AuthLayout() {
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-amber-500/15 rounded-full blur-2xl pointer-events-none" />
 
             <div className="relative z-10 space-y-6">
-              <Link to="/tutors" className="inline-flex" aria-label="TutorHub — trang chủ">
+              <Link to="/" className="inline-flex" aria-label="TutorHub — trang chủ">
                 <Logo
                   variant="horizontal"
                   size={42}
@@ -112,7 +112,7 @@ export default function AuthLayout() {
           <div className="col-span-12 lg:col-span-7 flex flex-col items-center justify-center">
             {/* Mobile-only logo */}
             <div className="lg:hidden mb-6 flex justify-center">
-              <Link to="/tutors" aria-label="TutorHub — trang chủ">
+              <Link to="/" aria-label="TutorHub — trang chủ">
                 <Logo variant="horizontal" size={36} showSubtitle subtitle="Better Learning. Brighter Future." />
               </Link>
             </div>

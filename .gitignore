@@ -111,3 +111,10 @@ test-results/
 .git_commit_msg*.txt
 
 
+
+# =====================
+# Python / Cache
+# =====================
+__pycache__/
+*.py[cod]
+*.class

@@ -48,6 +48,11 @@ public class ApproveTutorApplicationCommandHandler
                 "A TutorProfile already exists for this user. " +
                 "This may indicate the application was already approved.");
 
+        if (application.User.Role != UserRole.Tutor)
+        {
+            application.User.Role = UserRole.Tutor;
+        }
+
         var tutorProfileId = Guid.NewGuid();
 
         var profile = new TutorProfile
@@ -69,6 +74,7 @@ public class ApproveTutorApplicationCommandHandler
             TutorProfileId = tutorProfileId,
             PendingBalance = 0,
             AvailableBalance = 0,
+            HeldBalance = 0,
             UpdatedAt = _clock.UtcNow
         };
 

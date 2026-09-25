@@ -111,7 +111,7 @@ public class EnrollmentCompletionLifecycleTests : IntegrationTestBase
             .FirstOrDefaultAsync(t => t.SessionId == sessionToCancel.Id && t.Type == TransactionType.StudentRefund);
         refundTx.Should().NotBeNull();
         refundTx!.Amount.Should().Be(sessionToCancel.EarningAmount);
-        refundTx.SettlementRequired.Should().BeTrue();
-        refundTx.Status.Should().Be(TransactionStatus.Pending);
+        refundTx.SettlementRequired.Should().BeFalse();
+        refundTx.Status.Should().Be(TransactionStatus.Succeeded);
     }
 }

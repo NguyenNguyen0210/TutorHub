@@ -55,9 +55,9 @@ public class EnrollmentRefundLifecycleTests : IntegrationTestBase
                 .First(e => e.Id == enrollmentId).BookingId)
                 && t.Type == TransactionType.StudentRefund);
 
-        refund.Status.Should().Be(TransactionStatus.Pending);
-        refund.SettlementRequired.Should().BeTrue();
-        refund.RefundedAt.Should().BeNull();
+        refund.Status.Should().Be(TransactionStatus.Succeeded);
+        refund.SettlementRequired.Should().BeFalse();
+        refund.RefundedAt.Should().NotBeNull();
         refund.Amount.Should().Be(900_000m);
     }
 
@@ -73,8 +73,8 @@ public class EnrollmentRefundLifecycleTests : IntegrationTestBase
         var refund = await Db.Transactions.AsNoTracking()
             .FirstAsync(t => t.BookingId == bookingId && t.Type == TransactionType.StudentRefund);
 
-        refund.Status.Should().Be(TransactionStatus.Pending);
-        refund.SettlementRequired.Should().BeTrue();
-        refund.RefundedAt.Should().BeNull();
+        refund.Status.Should().Be(TransactionStatus.Succeeded);
+        refund.SettlementRequired.Should().BeFalse();
+        refund.RefundedAt.Should().NotBeNull();
     }
 }

@@ -20,4 +20,7 @@ public static class NotificationRouteRegistry
     public static string AdminDispute(Guid disputeId) => $"/admin/disputes/{disputeId}";
     public static string AdminReport(Guid reportId) => $"/admin/reports/{reportId}";
     public static string Conversation(Guid conversationId) => $"/conversations/{conversationId}";
+    public static string StudentWallet() => "/student/wallet";
+    public static string AdminStudentTopUps() => "/admin/student-topups";
+    public static string AdminStudentWithdrawals() => "/admin/student-withdrawals";
 }

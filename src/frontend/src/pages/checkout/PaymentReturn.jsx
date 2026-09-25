@@ -70,13 +70,18 @@ export default function PaymentReturn() {
     };
   }, [hasParams, searchParams]);
 
+  const isTopUp = Boolean(
+    result?.merchantReference?.startsWith('TOPUP') ||
+    searchParams.get('vnp_TxnRef')?.startsWith('TOPUP')
+  );
+
   useEffect(() => {
     if (result?.success) {
       const timer = setInterval(() => {
         setCountdown((c) => {
           if (c <= 1) {
             clearInterval(timer);
-            navigate('/student/dashboard');
+            navigate(isTopUp ? '/student/wallet' : '/student/dashboard');
             return 0;
           }
           return c - 1;
@@ -84,7 +89,7 @@ export default function PaymentReturn() {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [result?.success, navigate]);
+  }, [result?.success, isTopUp, navigate]);
 
   if (verifying) {
     return (
@@ -122,12 +127,16 @@ export default function PaymentReturn() {
 
         <div className="space-y-1">
           <h1 className="text-headline-1 text-fg">
-            {isSuccess ? 'Thanh toán ký quỹ thành công!' : 'Thanh toán không thành công'}
+            {isSuccess
+              ? (isTopUp ? 'Nạp tiền vào ví thành công!' : 'Thanh toán ký quỹ thành công!')
+              : 'Thanh toán không thành công'}
           </h1>
           <p className="text-caption text-fg-muted">
             {result?.message ||
               (isSuccess
-                ? 'Hợp đồng học tập đã được kích hoạt & học phí đã được bảo toàn trong ví Escrow.'
+                ? (isTopUp
+                    ? 'Số dư khả dụng trong Ví Học Viên của bạn đã được cộng tiền thành công.'
+                    : 'Hợp đồng học tập đã được kích hoạt & học phí đã được bảo toàn trong ví Escrow.')
                 : 'Giao dịch bị từ chối hoặc đã hủy. Tiền chưa được khấu trừ khỏi tài khoản của bạn.')}
           </p>
         </div>
@@ -145,7 +154,7 @@ export default function PaymentReturn() {
           )}
           {result?.merchantReference && (
             <div className="flex justify-between pb-2 border-b border-border">
-              <dt className="text-fg-muted">Mã đơn đặt chỗ:</dt>
+              <dt className="text-fg-muted">{isTopUp ? 'Mã yêu cầu nạp:' : 'Mã đơn đặt chỗ:'}</dt>
               <dd className="font-mono font-bold text-brand-primary-700">
                 {result.merchantReference}
               </dd>
@@ -169,21 +178,29 @@ export default function PaymentReturn() {
           <>
             <Callout
               variant="success"
-              title="Hệ thống Escrow đã tiếp nhận học phí"
+              title={isTopUp ? 'Tiền đã được cộng vào Ví Học Viên' : 'Hệ thống Escrow đã tiếp nhận học phí'}
               icon={<Icon name="verified_user" size="md" filled />}
             >
-              <ul className="list-disc list-inside space-y-1 pl-1">
-                <li>Hợp đồng học tập đã chính thức có hiệu lực.</li>
-                <li>Tự động phân rã các buổi học con tương ứng.</li>
-                <li>
-                  Học phí chỉ giải ngân từng buổi sau khi học viên và gia sư đối soát điểm danh 2
-                  chiều.
-                </li>
-              </ul>
+              {isTopUp ? (
+                <ul className="list-disc list-inside space-y-1 pl-1">
+                  <li>Số dư khả dụng đã được cập nhật theo thời gian thực.</li>
+                  <li>Bạn có thể sử dụng ngay để đăng ký bất kỳ khóa học nào.</li>
+                  <li>Lịch sử nạp tiền và sổ cái biến động đã được lưu trữ bất biến.</li>
+                </ul>
+              ) : (
+                <ul className="list-disc list-inside space-y-1 pl-1">
+                  <li>Hợp đồng học tập đã chính thức có hiệu lực.</li>
+                  <li>Tự động phân rã các buổi học con tương ứng.</li>
+                  <li>
+                    Học phí chỉ giải ngân từng buổi sau khi học viên và gia sư đối soát điểm danh 2
+                    chiều.
+                  </li>
+                </ul>
+              )}
             </Callout>
 
             <p className="text-caption text-fg-muted">
-              Đang tự động chuyển hướng đến Bàn học sau{' '}
+              Đang tự động chuyển hướng đến {isTopUp ? 'Ví học viên' : 'Bàn học'} sau{' '}
               <span className="font-bold text-brand-primary-700 font-mono">{countdown}</span>{' '}
               giây...
             </p>
@@ -200,13 +217,13 @@ export default function PaymentReturn() {
             <>
               <Button
                 as={Link}
-                to="/student/dashboard"
+                to={isTopUp ? '/student/wallet' : '/student/dashboard'}
                 variant="primary"
                 size="lg"
                 className="flex-1"
-                icon={<Icon name="space_dashboard" size="sm" />}
+                icon={<Icon name={isTopUp ? 'account_balance_wallet' : 'space_dashboard'} size="sm" />}
               >
-                Vào bàn học của tôi
+                {isTopUp ? 'Xem ví học viên của tôi' : 'Vào bàn học của tôi'}
               </Button>
               <Button
                 variant="outline"
@@ -221,13 +238,13 @@ export default function PaymentReturn() {
             <>
               <Button
                 as={Link}
-                to="/tutors"
+                to={isTopUp ? '/student/wallet' : '/tutors'}
                 variant="primary"
                 size="lg"
                 className="flex-1"
-                icon={<Icon name="arrow_back" size="sm" />}
+                icon={<Icon name={isTopUp ? 'account_balance_wallet' : 'arrow_back'} size="sm" />}
               >
-                Khám phá gia sư khác
+                {isTopUp ? 'Quay lại Ví Học Viên' : 'Khám phá gia sư khác'}
               </Button>
               {result?.bookingId && result?.bookingId !== '00000000-0000-0000-0000-000000000000' && (
                 <Button

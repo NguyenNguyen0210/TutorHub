@@ -49,6 +49,7 @@ public class TutorsController : ControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<TutorSummaryDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTutors(
+        [FromQuery] Guid? categoryId,
         [FromQuery] Guid? subjectId,
         [FromQuery] decimal? minPrice,
         [FromQuery] decimal? maxPrice,
@@ -56,11 +57,18 @@ public class TutorsController : ControllerBase
         [FromQuery] decimal? minRating,
         [FromQuery] string? search,
         [FromQuery] string? sortBy,
+        [FromQuery] string? degreeLevel,
+        [FromQuery] string? university,
+        [FromQuery] string? certification,
+        [FromQuery] string? city,
+        [FromQuery] int? minExperience,
+        [FromQuery] int? maxExperience,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
         var query = new GetTutorsQuery(
+            CategoryId: categoryId,
             SubjectId: subjectId,
             MinPrice: minPrice,
             MaxPrice: maxPrice,
@@ -68,6 +76,12 @@ public class TutorsController : ControllerBase
             MinRating: minRating,
             Search: search,
             SortBy: sortBy,
+            DegreeLevel: degreeLevel,
+            University: university,
+            Certification: certification,
+            City: city,
+            MinExperience: minExperience,
+            MaxExperience: maxExperience,
             PageNumber: pageNumber,
             PageSize: pageSize
         );

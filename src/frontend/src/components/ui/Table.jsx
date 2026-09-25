@@ -90,7 +90,8 @@ export default function Table({
   );
 }
 
-export function Pagination({ page, totalPages, onChange, className }) {
+export function Pagination({ page, totalPages, onChange, onPageChange, className }) {
+  const handleChange = onPageChange || onChange;
   if (!totalPages || totalPages <= 1) return null;
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
     (p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1
@@ -105,7 +106,7 @@ export function Pagination({ page, totalPages, onChange, className }) {
         type="button"
         aria-label="Trang trước"
         disabled={page <= 1}
-        onClick={() => onChange(page - 1)}
+        onClick={() => handleChange?.(page - 1)}
         className="w-9 h-9 rounded-brand-md border border-border flex items-center justify-center text-fg-secondary hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         <Icon name="chevron_left" size="sm" />
@@ -121,7 +122,7 @@ export function Pagination({ page, totalPages, onChange, className }) {
               type="button"
               aria-label={`Trang ${p}`}
               aria-current={p === page ? 'page' : undefined}
-              onClick={() => onChange(p)}
+              onClick={() => handleChange?.(p)}
               className={cn(
                 'w-9 h-9 rounded-brand-md text-body-reg font-semibold transition-colors',
                 p === page
@@ -139,7 +140,7 @@ export function Pagination({ page, totalPages, onChange, className }) {
         type="button"
         aria-label="Trang sau"
         disabled={page >= totalPages}
-        onClick={() => onChange(page + 1)}
+        onClick={() => handleChange?.(page + 1)}
         className="w-9 h-9 rounded-brand-md border border-border flex items-center justify-center text-fg-secondary hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         <Icon name="chevron_right" size="sm" />

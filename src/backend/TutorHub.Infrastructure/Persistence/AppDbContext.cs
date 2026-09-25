@@ -25,13 +25,16 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
     public DbSet<Session> Sessions => Set<Session>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
-    public DbSet<Wallet> Wallets => Set<Wallet>();
-    public DbSet<Withdrawal> Withdrawals => Set<Withdrawal>();
+    public DbSet<TutorWallet> TutorWallets => Set<TutorWallet>();
+    public DbSet<TutorWithdrawal> TutorWithdrawals => Set<TutorWithdrawal>();
+    public DbSet<TutorWallet> Wallets => TutorWallets;
+    public DbSet<TutorWithdrawal> Withdrawals => TutorWithdrawals;
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Media> Media => Set<Media>();
-    public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
+    public DbSet<TutorWalletTransaction> TutorWalletTransactions => Set<TutorWalletTransaction>();
+    public DbSet<TutorWalletTransaction> WalletTransactions => TutorWalletTransactions;
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -46,6 +49,10 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<CustomAgreement> CustomAgreements => Set<CustomAgreement>();
     public DbSet<SessionRescheduleRequest> SessionRescheduleRequests => Set<SessionRescheduleRequest>();
     public DbSet<LearningRecord> LearningRecords => Set<LearningRecord>();
+    public DbSet<StudentWallet> StudentWallets => Set<StudentWallet>();
+    public DbSet<StudentWalletTransaction> StudentWalletTransactions => Set<StudentWalletTransaction>();
+    public DbSet<TopUpRequest> TopUpRequests => Set<TopUpRequest>();
+    public DbSet<StudentWithdrawal> StudentWithdrawals => Set<StudentWithdrawal>();
 
     public override int SaveChanges()
     {
@@ -150,6 +157,16 @@ public class AppDbContext : DbContext, IAppDbContext
         if (modifiedAuditLogs.Count > 0)
         {
             throw new InvalidOperationException("AuditLog records are append-only and cannot be modified or deleted.");
+        }
+
+        // Enforce append-only on StudentWalletTransaction (INV-STUDENT-WALLET-003)
+        var modifiedStudentWalletTxs = ChangeTracker.Entries<StudentWalletTransaction>()
+            .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
+            .ToList();
+        if (modifiedStudentWalletTxs.Count > 0)
+        {
+            var ids = string.Join(",", modifiedStudentWalletTxs.Select(e => e.Entity.Id));
+            throw new InvalidOperationException($"StudentWalletTransaction records are append-only and cannot be modified or deleted. Ids: {ids}.");
         }
     }
 

@@ -6,7 +6,7 @@
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?style=flat&logo=react)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?style=flat&logo=vite)](https://vitejs.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker)](https://www.docker.com/)
-[![Tests](https://img.shields.io/badge/Tests-573%20Passed-success?style=flat&logo=xunit)](http://localhost:5129)
+[![Tests](https://img.shields.io/badge/Tests-636%20Passed-success?style=flat&logo=xunit)](http://localhost:5129)
 [![API Contract](https://img.shields.io/badge/API%20Contract-Verified-success?style=flat)](docs/openapi.json)
 
 **TutorHub** là nền tảng trực tuyến kết nối Gia Sư (Tutor) và Học Viên (Student) theo mô hình **Service / Package-based Learning**. Hệ thống gồm tầng **Backend ASP.NET Core Web API (.NET 8)** kiến trúc Clean Architecture + CQRS (MediatR), và tầng **Frontend React 18 + Vite + Ant Design + TailwindCSS**.
@@ -55,6 +55,7 @@
 * **Điểm danh 2 chiều (Attendance Window):** Mở cửa sổ 24 giờ sau mỗi buổi học để cả gia sư và học viên cùng xác nhận trước khi giải ngân.
 * **Ví bảo chứng & Giải ngân từng buổi (Escrow Wallet):** Thù lao giải ngân theo từng buổi học hoàn thành sau khi trừ phí hoa hồng sàn. Hạn mức rút tiền bảo vệ số dư tranh chấp:
   $$\text{WithdrawableBalance} \equiv \text{AvailableBalance} - \text{HeldBalance}$$
+* **Ví học viên & Thanh toán nội bộ (Student Wallet):** Học viên sở hữu ví tài khoản riêng để nạp tiền tự động 24/7 qua Cổng VNPay, thanh toán khóa học 100% từ ví, nhận tiền hoàn trả tức thì và rút tiền về tài khoản ngân hàng.
 * **Cơ chế xử lý tranh chấp 2 giai đoạn (Dispute Engine):** Pre-release Escrow hold và Post-release Balance hold với thuật toán cân đối tài chính minh bạch:
   $$\text{StudentRefund} \equiv \text{TutorNetRecovery} + \text{PlatformFeeReversal}$$
 * **Hội thoại & Thông báo thời gian thực:** Nhắn tin trực tiếp 1-1 qua SignalR (`/hubs/chat`), thông báo tức thời (`/hubs/notifications`) và Transactional Outbox.
@@ -80,16 +81,19 @@ TutorHub/
 │   │   ├── package.json                # Dependencies & scripts
 │   │   └── vite.config.js              # Cấu hình Vite & Proxy
 │   │
-│   └── test/                           # Kiểm thử tự động (573 test cases)
-│       ├── TutorHub.Domain.UnitTests/          # 196 cases (Invariants & Allocators)
-│       ├── TutorHub.Application.UnitTests/     # 283 cases (CQRS Handlers & Validators)
+│   └── test/                           # Kiểm thử tự động (640 test cases)
+│       ├── TutorHub.Domain.UnitTests/          # 226 cases (Invariants & Allocators)
+│       ├── TutorHub.Application.UnitTests/     # 319 cases (CQRS Handlers & Validators)
 │       ├── TutorHub.Infrastructure.UnitTests/  # 21 cases (VNPay, Security, Integrations)
-│       └── TutorHub.Api.IntegrationTests/      # 73 cases (Postgres, Payments, Ledgers)
+│       └── TutorHub.Api.IntegrationTests/      # 74 cases (Postgres, Payments, Ledgers)
 │
 ├── docs/                               # Tài liệu thiết kế & đặc tả API
 │   ├── openapi.json                    # OpenAPI v3 spec
-│   ├── prd.md                          # Product Requirements Document
-│   └── functional-requirements.md      # Đặc tả yêu cầu chức năng
+│   ├── prd.md                          # Product Requirements Document v1.2
+│   ├── functional-requirements.md      # Đặc tả yêu cầu chức năng (FRD)
+│   ├── user-stories.md                 # Bộ User Stories & Acceptance Criteria
+│   ├── frontend-roadmap.md             # Lộ trình & danh mục 24 màn hình
+│   └── frontend-specification.md       # Đặc tả UI/UX & hợp đồng API Frontend
 │
 ├── docker-compose.yml                  # Khởi chạy cụm PostgreSQL, API, Seed Container
 ├── .env.example                        # Cấu hình mẫu biến môi trường

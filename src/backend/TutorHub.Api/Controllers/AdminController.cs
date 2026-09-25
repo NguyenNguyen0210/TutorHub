@@ -34,6 +34,7 @@ using TutorHub.Application.Features.Admin.Users.GetAdminUsers;
 using TutorHub.Application.Features.Admin.Users.SuspendUser;
 using TutorHub.Application.Features.Admin.Users.ReactivateUser;
 using TutorHub.Application.Features.Admin.Users.BanUser;
+using TutorHub.Application.Features.Admin.Users.UnbanUser;
 using TutorHub.Application.Features.Admin.Withdrawals.CompleteWithdrawal;
 using TutorHub.Application.Features.Admin.Withdrawals.DTOs;
 using TutorHub.Application.Features.Admin.Withdrawals.FailWithdrawal;
@@ -555,6 +556,26 @@ public class AdminController : ControllerBase
         var command = new BanUserCommand(id, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<AdminUserSummaryDto>.SuccessResult(result, "User account banned successfully."));
+    }
+
+    /// <summary>
+    /// Unban a banned user account with audit logging (Admin only).
+    /// </summary>
+    [HttpPost("users/{id:guid}/unban")]
+    [ProducesResponseType(typeof(ApiResponse<AdminUserSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UnbanUser(
+        [FromRoute] Guid id,
+        [FromBody] UnbanUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new UnbanUserCommand(id, request.Reason);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<AdminUserSummaryDto>.SuccessResult(result, "User account unbanned successfully."));
     }
 
     /// <summary>

@@ -106,7 +106,7 @@ public class DisputeFlowTests : IntegrationTestBase
         var refund = await Db.Transactions.AsNoTracking().FirstAsync(t =>
             t.SessionId == session.Id && t.Type == TransactionType.StudentRefund);
         refund.Amount.Should().Be(100_000m);
-        refund.Status.Should().Be(TransactionStatus.Pending);
+        refund.Status.Should().Be(TransactionStatus.Succeeded);
 
         var reversal = await Db.Transactions.AsNoTracking().FirstAsync(t =>
             t.SessionId == session.Id && t.Type == TransactionType.PlatformFeeReversal);

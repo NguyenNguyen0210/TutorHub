@@ -17,13 +17,20 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
     private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IStudentWalletService _studentWalletService;
 
-    public AdminResolveDisputeCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService, ICurrentUserService currentUserService)
+    public AdminResolveDisputeCommandHandler(
+        IAppDbContext context,
+        IClock clock,
+        IAuditLogService auditLogService,
+        ICurrentUserService currentUserService,
+        IStudentWalletService studentWalletService)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
         _currentUserService = currentUserService;
+        _studentWalletService = studentWalletService;
     }
 
     public async Task<DisputeDto> Handle(AdminResolveDisputeCommand request, CancellationToken cancellationToken)
@@ -197,9 +204,18 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                 _context.Transactions.Add(payoutTx);
             }
 
-            // Record Student Refund if student receives refund (Status = Pending per DEC-S8-032)
+            // Record Student Refund if student receives refund (Credited directly to Student Wallet)
             if (studentRefund > 0)
             {
+                await _studentWalletService.CreditRefundAsync(
+                    enrollment.StudentProfileId,
+                    studentRefund,
+                    "DisputeResolution",
+                    dispute.Id,
+                    $"Hoàn tiền giải quyết tranh chấp Buổi #{session.SessionNumber}",
+                    now,
+                    cancellationToken);
+
                 var refundTx = Transaction.CreateRefund(
                     bookingId: enrollment.BookingId,
                     sessionId: session.Id,
@@ -209,13 +225,28 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                     paymentGatewayRef: $"DisputeEscrowRefund-{dispute.Id:N}",
                     description: $"Pre-release escrow refund for Session #{session.SessionNumber}",
                     now: now);
+                refundTx.Status = TransactionStatus.Succeeded;
+                refundTx.RefundedAt = now;
+                refundTx.SettlementRequired = false;
                 _context.Transactions.Add(refundTx);
 
                 _context.AddOutboxMessage(new RefundCreatedEvent(
                     enrollment.Id,
                     enrollment.StudentProfile.UserId,
                     new MoneyDto(studentRefund),
-                    refundTx.Id));
+                    refundTx.Id,
+                    Guid.NewGuid(),
+                    1,
+                    now));
+
+                _context.AddOutboxMessage(new RefundCompletedEvent(
+                    enrollment.Id,
+                    enrollment.StudentProfile.UserId,
+                    new MoneyDto(studentRefund),
+                    refundTx.Id,
+                    Guid.NewGuid(),
+                    1,
+                    now));
             }
 
             session.ResolveAttendanceByAdmin(userId, request.AdminNotes, "DisputeAdminResolution", now, releasePayout: tutorGrossRelease > 0);
@@ -357,6 +388,16 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                     });
                 }
 
+                // Credit student wallet directly (INV-STUDENT-WALLET-003)
+                await _studentWalletService.CreditRefundAsync(
+                    enrollment.StudentProfileId,
+                    studentRefund,
+                    "DisputePostReleaseRefund",
+                    dispute.Id,
+                    $"Hoàn tiền tranh chấp sau release Buổi #{session.SessionNumber}",
+                    now,
+                    cancellationToken);
+
                 // Create explicit adjustments (Historical originalTx remains 100% immutable - DEC-S8-030).
                 // F-23: factories re-validate the no-chaining rule (throws ArgumentException).
                 var refundTx = Transaction.CreateRefund(
@@ -368,6 +409,9 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                     paymentGatewayRef: $"DisputePostReleaseRefund-{dispute.Id:N}",
                     description: $"Post-release dispute refund for Session #{session.SessionNumber}",
                     now: now);
+                refundTx.Status = TransactionStatus.Succeeded;
+                refundTx.RefundedAt = now;
+                refundTx.SettlementRequired = false;
                 _context.Transactions.Add(refundTx);
 
                 var feeReversalTx = Transaction.CreateFeeReversal(
@@ -385,7 +429,19 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                     enrollment.Id,
                     enrollment.StudentProfile.UserId,
                     new MoneyDto(studentRefund),
-                    refundTx.Id));
+                    refundTx.Id,
+                    Guid.NewGuid(),
+                    1,
+                    now));
+
+                _context.AddOutboxMessage(new RefundCompletedEvent(
+                    enrollment.Id,
+                    enrollment.StudentProfile.UserId,
+                    new MoneyDto(studentRefund),
+                    refundTx.Id,
+                    Guid.NewGuid(),
+                    1,
+                    now));
 
                 dispute.ResolveByAdmin(userId, request.Decision, request.AdminNotes, now, originalTransactionId: originalTx.Id, affectsFinancial: true);
                 dispute.ReleaseFinancialHold(userId, now);

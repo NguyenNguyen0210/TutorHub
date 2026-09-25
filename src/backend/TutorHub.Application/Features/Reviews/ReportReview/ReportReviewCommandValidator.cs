@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 
 namespace TutorHub.Application.Features.Reviews.ReportReview;
 
@@ -14,7 +14,7 @@ public class ReportReviewCommandValidator : AbstractValidator<ReportReviewComman
             .MaximumLength(1000).WithMessage("Description must not exceed 1000 characters.");
 
         RuleFor(x => x.EvidenceUrl)
-            .MaximumLength(2000).WithMessage("Evidence URL must not exceed 2000 characters.")
+            .MaximumLength(500).WithMessage("Evidence URL must not exceed 500 characters.")
             .When(x => !string.IsNullOrEmpty(x.EvidenceUrl));
     }
 }

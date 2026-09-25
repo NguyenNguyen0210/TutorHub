@@ -1252,6 +1252,131 @@ Processing
 
 ---
 
+# EPIC 16B — Student Wallet & Withdrawal
+
+## US-SWALLET-001 — View Student Wallet Overview
+
+**Actor:** Student
+
+> As a Student, I want to see my available balance, reserved balance, and wallet transaction history, so that I can manage my learning funds and monitor payments.
+
+**Related FR:** FR-SWALLET-001, FR-SWALLET-005
+
+### Acceptance Criteria
+- Displays `AvailableBalance` and `ReservedBalance` clearly.
+- Shows comprehensive append-only ledger history: Top-ups, Payments, Refunds, Withdrawals, Adjustments.
+- Each transaction shows Timestamp, Type, Amount (+/-), Balance Before/After, and Reference.
+
+---
+
+## US-SWALLET-002 — Top-up Student Wallet via VNPay Payment Gateway
+ 
+**Actor:** Student
+ 
+> As a Student, I want to initiate a wallet top-up and pay securely through VNPay, so that funds are automatically credited to my wallet balance immediately.
+ 
+**Related FR:** FR-SWALLET-002
+ 
+### Acceptance Criteria
+- Student selects or inputs top-up amount (>= 10,000 VND).
+- System creates a `TopUpRequest` with unique merchant reference `TOPUP...` and generates a secured VNPay payment gateway redirect URL.
+- Student authorizes payment via VNPay Sandbox (NCB test card / bank app).
+- Upon successful payment return & webhook signature verification, system automatically credits wallet available balance and displays confirmation.
+
+---
+
+## US-SWALLET-003 — Pay Course Booking with Student Wallet
+
+**Actor:** Student
+
+> As a Student, I want to pay 100% of my course booking fee directly from my wallet balance, so that I don't have to checkout through an external gateway every time.
+
+**Related FR:** FR-SWALLET-003
+
+### Acceptance Criteria
+- Checkout screen evaluates Student Wallet `AvailableBalance` against `Booking.TotalAmount`.
+- If balance is sufficient, enables 1-Click Wallet Payment.
+- If balance is insufficient, displays shortage amount and a direct link to top up.
+- On confirmation, debits `AvailableBalance` atomically, moves funds to platform holding, and activates the `Enrollment`.
+
+---
+
+## US-SWALLET-004 — Request Student Withdrawal
+
+**Actor:** Student
+
+> As a Student, I want to request a withdrawal from my available balance to my bank account, so that I can retrieve unused learning funds.
+
+**Related FR:** FR-SWITHDRAW-001, FR-SWITHDRAW-002
+
+### Acceptance Criteria
+- Validates minimum withdrawal amount of 50.000 VNĐ.
+- Validates amount does not exceed `AvailableBalance`.
+- Moves amount from `AvailableBalance` to `ReservedBalance` immediately.
+- Creates `StudentWithdrawal` in `Requested` status.
+
+---
+
+## US-SWALLET-005 — Receive Direct Refunds to Student Wallet
+
+**Actor:** Student
+
+> As a Student, I want any refunds from cancellations or dispute resolutions to be credited directly to my wallet, so that I receive my money immediately without gateway delays.
+
+**Related FR:** FR-SWALLET-004
+
+### Acceptance Criteria
+- When an enrollment is cancelled (by student or tutor) or a dispute grants a refund, money is immediately credited to `AvailableBalance`.
+- Records an append-only `StudentWalletTransaction` of type `RefundCredit`.
+- Student can immediately use the balance to book another course or withdraw to their bank account.
+
+---
+
+## US-ADMIN-SWALLET-001 — Admin Review Student Top-Ups
+
+**Actor:** Admin
+
+> As an Admin, I want to review, confirm, or reject pending student top-up requests, so that only verified bank transfers credit student wallets.
+
+**Related FR:** FR-SWALLET-002
+
+### Acceptance Criteria
+- Admin filters top-up requests by status (`Pending`, `Approved`, `Rejected`).
+- Admin confirms top-up: transitions request to `Approved`, credits student's `AvailableBalance`, and generates `TopUpCredit` transaction.
+- Admin rejects top-up: requires non-empty `RejectionReason`, marks request `Rejected` without altering balances.
+
+---
+
+## US-ADMIN-SWALLET-002 — Admin Process Student Withdrawals
+
+**Actor:** Admin
+
+> As an Admin, I want to manage student withdrawals through a safe two-step process, so that bank transfers are executed accurately without race conditions.
+
+**Related FR:** FR-SWITHDRAW-002
+
+### Acceptance Criteria
+- Admin takes ownership of a `Requested` withdrawal: transitions status to `Processing` and locks admin ID.
+- Admin completes transfer: confirms bank transaction reference, marks `Completed`, deducts `ReservedBalance`.
+- Admin fails transfer: provides `FailureReason`, marks `Failed`, restores funds from `ReservedBalance` back to `AvailableBalance`.
+
+---
+
+## US-ADMIN-SWALLET-003 — Admin Manual Wallet Ledger Adjustment
+
+**Actor:** Admin
+
+> As an Admin, I want to manually adjust a student's wallet balance when resolving financial discrepancies, with mandatory reason and immutable audit logging.
+
+**Related FR:** FR-SWALLET-005
+
+### Acceptance Criteria
+- Requires student wallet ID, amount (> 0), direction (`Credit` or `Debit`), and mandatory non-empty reason.
+- Prevents debiting more than `AvailableBalance` (non-negative balance invariant).
+- Records an immutable `StudentWalletTransaction` of type `ManualAdjustment` and logs to `AuditLogs`.
+
+---
+
 # EPIC 17 — Cancellation
 
 ## US-CANCEL-001 — Request Cancellation

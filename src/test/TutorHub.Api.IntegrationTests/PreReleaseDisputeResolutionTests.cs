@@ -88,7 +88,7 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
             t.SessionId == session.Id && t.Type == TransactionType.StudentRefund);
         refundTx.Should().NotBeNull();
         refundTx!.Amount.Should().Be(300_000m);
-        refundTx.Status.Should().Be(TransactionStatus.Pending);
+        refundTx.Status.Should().Be(TransactionStatus.Succeeded);
     }
 
     [Fact]
@@ -171,7 +171,7 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
             t.SessionId == session.Id && t.Type == TransactionType.StudentRefund);
         refundTx.Should().NotBeNull();
         refundTx!.Amount.Should().Be(100_000m);
-        refundTx.Status.Should().Be(TransactionStatus.Pending);
+        refundTx.Status.Should().Be(TransactionStatus.Succeeded);
 
         var payoutTx = await Db.Transactions.AsNoTracking().FirstOrDefaultAsync(t =>
             t.SessionId == session.Id && t.Type == TransactionType.SessionPayoutCredit);

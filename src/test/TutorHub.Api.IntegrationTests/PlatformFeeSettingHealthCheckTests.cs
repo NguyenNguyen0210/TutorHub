@@ -22,10 +22,11 @@ namespace TutorHub.Api.IntegrationTests;
 public class PlatformFeeSettingHealthCheckTests
 {
     private const string ProbeDatabase = "tutorhub_healthcheck_probe";
-    private const string MaintenanceConnectionString =
-        "Host=localhost;Port=5432;Database=postgres;Username=tutorhub;Password=123456";
+    private static readonly string Port = Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5433";
+    private static readonly string MaintenanceConnectionString =
+        $"Host=localhost;Port={Port};Database=postgres;Username=tutorhub;Password=123456";
     private static readonly string ProbeConnectionString =
-        $"Host=localhost;Port=5432;Database={ProbeDatabase};Username=tutorhub;Password=123456";
+        $"Host=localhost;Port={Port};Database={ProbeDatabase};Username=tutorhub;Password=123456";
     private static readonly object Sync = new();
     private static bool _initialized;
 
