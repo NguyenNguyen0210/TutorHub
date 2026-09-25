@@ -120,10 +120,17 @@ export default function BecomeTutor() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
             <div className="lg:col-span-6 space-y-5">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-caption font-semibold bg-brand-primary-50 text-brand-primary-600 border border-brand-primary-100">
-                <Icon name="school" size="xs" />
-                Gia nhập cộng đồng gia sư TutorHub
-              </span>
+              <nav className="flex items-center gap-1.5 text-caption font-medium text-fg-secondary" aria-label="Breadcrumb">
+                <Link to="/" className="hover:text-brand-primary-600 transition-colors">
+                  Trang chủ
+                </Link>
+                <span className="text-neutral-300" aria-hidden="true">
+                  ›
+                </span>
+                <span className="text-brand-primary-600 font-semibold" aria-current="page">
+                  Trở thành gia sư
+                </span>
+              </nav>
 
               <h1 className="text-display-hero text-fg tracking-tight">
                 Biến kiến thức của bạn
