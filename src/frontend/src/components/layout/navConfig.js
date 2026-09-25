@@ -18,13 +18,20 @@ export const NAV = {
   ],
 
   Tutor: [
-    { path: '/tutor/dashboard', label: 'Bảng điều hành', icon: 'space_dashboard', match: (p) => p === '/tutor/dashboard' },
-    { path: '/tutor/application', label: 'Hồ sơ xét duyệt', icon: 'verified_user', match: (p) => p.startsWith('/tutor/application') },
-    { path: '/tutor/services', label: 'Gói dịch vụ', icon: 'inventory_2', match: (p) => p.startsWith('/tutor/services') },
-    { path: '/tutor/availability', label: 'Thời khóa biểu', icon: 'calendar_month', match: (p) => p.startsWith('/tutor/availability') },
-    { path: '/tutor/wallet', label: 'Ví Escrow', icon: 'account_balance_wallet', match: (p) => p.startsWith('/tutor/wallet') },
+    // Thứ tự + nhãn bám mockup sidebar gia sư. Mỗi mục đều trỏ route thật;
+    // mục chưa có trang (Học viên, Đánh giá) được lược bỏ kèm TODO, không link chết.
+    { path: '/tutor/dashboard', label: 'Tổng quan', icon: 'space_dashboard', match: (p) => p === '/tutor/dashboard' },
+    { path: '/tutor/availability', label: 'Lịch dạy', icon: 'calendar_month', match: (p) => p.startsWith('/tutor/availability') },
     { path: '/app/messages', label: 'Tin nhắn', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
-    { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },
+    // TODO(mockup): mục "Học viên" — chưa có trang danh sách học viên cho gia sư, bổ sung khi có route.
+    { path: '/tutor/services', label: 'Dịch vụ của tôi', icon: 'inventory_2', match: (p) => p.startsWith('/tutor/services') },
+    // "Lịch rảnh" dùng chung trang quản lý lịch (/tutor/availability) với "Lịch dạy" cho tới khi tách trang.
+    { path: '/tutor/availability', label: 'Lịch rảnh', icon: 'edit_calendar', match: (p) => p.startsWith('/tutor/availability') },
+    { path: '/tutor/settings', label: 'Hồ sơ cá nhân', icon: 'person', match: (p) => p.startsWith('/tutor/settings') },
+    { path: '/tutor/wallet', label: 'Ví & Thanh toán', icon: 'account_balance_wallet', match: (p) => p.startsWith('/tutor/wallet') },
+    // TODO(mockup): mục "Đánh giá" — chưa có trang đánh giá dành cho gia sư, bổ sung khi có route.
+    // "Cài đặt" dùng chung trang ProfileSettings (/tutor/settings) với "Hồ sơ cá nhân" cho tới khi tách trang.
+    { path: '/tutor/settings', label: 'Cài đặt', icon: 'settings', match: (p) => p.startsWith('/tutor/settings') },
   ],
 
   Admin: [

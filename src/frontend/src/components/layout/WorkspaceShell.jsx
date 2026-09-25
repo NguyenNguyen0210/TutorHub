@@ -6,6 +6,7 @@ import Logo from '@/components/ui/Logo';
 import Avatar, { Menu } from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
 import { useAuthStore } from '@/store/authStore';
+import { chatService } from '@/services/chat.service';
 import { getNavForRole, getDashboardPath } from './navConfig';
 import MobileFloatingDock from './MobileFloatingDock';
 
@@ -18,10 +19,33 @@ export default function WorkspaceShell({ userRole: role, children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Tổng tin nhắn chưa đọc thật từ /conversations (0 / lỗi → ẩn badge, không số giả).
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     setDrawerOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadUnread() {
+      if (!isAuthenticated) {
+        setUnreadMessages(0);
+        return;
+      }
+      try {
+        const page = await chatService.getConversations({ pageSize: 50 });
+        const total = (page?.items || []).reduce((sum, c) => sum + (Number(c.unreadCount) || 0), 0);
+        if (!cancelled) setUnreadMessages(total);
+      } catch {
+        if (!cancelled) setUnreadMessages(0);
+      }
+    }
+    loadUnread();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, location.pathname]);
 
   const handleLogout = async () => {
     await logout();
@@ -103,9 +127,10 @@ export default function WorkspaceShell({ userRole: role, children }) {
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1" aria-label={`${role} navigation`}>
         {navItems.map((item) => {
           const isActive = item.match(location.pathname);
+          const showMsgBadge = item.path === '/app/messages' && unreadMessages > 0;
           return (
             <Link
-              key={item.path}
+              key={`${item.path}__${item.label}`}
               to={item.path}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
@@ -116,13 +141,39 @@ export default function WorkspaceShell({ userRole: role, children }) {
               )}
             >
               <Icon name={item.icon} size="md" />
-              {item.label}
+              <span className="flex-1 min-w-0 truncate">{item.label}</span>
+              {showMsgBadge && (
+                <span
+                  aria-label={`${unreadMessages} tin nhắn chưa đọc`}
+                  className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-white text-brand-primary-700 text-[11px] font-bold flex items-center justify-center"
+                >
+                  {unreadMessages > 99 ? '99+' : unreadMessages}
+                </span>
+              )}
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-3 border-t border-white/10">
+      <div className="p-3 border-t border-white/10 space-y-3">
+        <div className="rounded-brand-md bg-white/5 border border-white/10 p-3.5">
+          <div className="flex items-center gap-2">
+            <span className="w-8 h-8 rounded-full bg-brand-primary-600/20 flex items-center justify-center shrink-0">
+              <Icon name="contact_support" size="sm" className="text-brand-primary-300" />
+            </span>
+            <p className="text-body-reg font-bold text-white">Cần hỗ trợ?</p>
+          </div>
+          <p className="mt-2 text-caption text-slate-400 leading-relaxed">
+            Xem hướng dẫn sử dụng và câu hỏi thường gặp.
+          </p>
+          <Link
+            to="/how-it-works"
+            className="mt-2.5 flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-brand-md bg-white text-brand-navy-900 text-body-reg font-bold hover:bg-brand-primary-50 transition-colors"
+          >
+            Trung tâm trợ giúp
+            <Icon name="arrow_forward" size="sm" />
+          </Link>
+        </div>
         <Link
           to={role === 'Tutor' ? '/tutor/settings' : role === 'Student' ? '/student/settings' : '/admin/settings'}
           className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-brand-md bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group"
