@@ -42,6 +42,7 @@ import TutorApplication from '../pages/tutor/TutorApplication';
 
 // Discovery Screens
 import Marketplace from '../pages/discovery/Marketplace';
+import BecomeTutor from '../pages/discovery/BecomeTutor';
 import TutorProfile from '../pages/discovery/TutorProfile';
 import ServicesMarketplace from '../pages/discovery/ServicesMarketplace';
 import ServiceDetail from '../pages/discovery/ServiceDetail';
@@ -96,6 +97,7 @@ export default function AppRoutes() {
         <Route path="/service" element={<Navigate to="/services" replace />} />
         <Route path="/service/:id" element={<ServiceDetail />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/become-tutor" element={<BecomeTutor />} />
 
         {/* Protected: requires login */}
         <Route path="/student/bookings/:id/checkout" element={
