@@ -43,6 +43,12 @@ export const sessionService = {
     return res;
   },
 
+  /** POST /sessions/schedule-batch body { items: [{ sessionId, startAt, endAt }] } → SessionDto[] */
+  async scheduleSessionsBatch(items) {
+    const res = await api.post('/sessions/schedule-batch', { items });
+    return Array.isArray(res) ? res : [];
+  },
+
   /** GET /sessions/{id}/learning-record → LearningRecordDto */
   async getLearningRecord(id) {
     const res = await api.get(`/sessions/${id}/learning-record`);
@@ -52,36 +58,6 @@ export const sessionService = {
   /** POST /sessions/{id}/learning-record body { content } → LearningRecordDto */
   async createLearningRecord(id, content) {
     const res = await api.post(`/sessions/${id}/learning-record`, { content });
-    return res;
-  },
-
-  /** GET /sessions/{id}/reschedule-requests → SessionRescheduleRequestDto[] */
-  async getRescheduleRequests(id) {
-    const res = await api.get(`/sessions/${id}/reschedule-requests`);
-    return Array.isArray(res) ? res : [];
-  },
-
-  /** POST /sessions/{id}/reschedule-requests body { proposedStartAt, proposedEndAt, reason } → SessionRescheduleRequestDto */
-  async proposeReschedule(id, proposedStartAt, proposedEndAt, reason = '') {
-    const res = await api.post(`/sessions/${id}/reschedule-requests`, {
-      proposedStartAt,
-      proposedEndAt,
-      reason,
-    });
-    return res;
-  },
-
-  /** POST /sessions/{id}/reschedule-requests/{requestId}/accept → SessionDto */
-  async acceptReschedule(id, requestId) {
-    const res = await api.post(`/sessions/${id}/reschedule-requests/${requestId}/accept`);
-    return res;
-  },
-
-  /** POST /sessions/{id}/reschedule-requests/{requestId}/reject body { reason } → SessionRescheduleRequestDto */
-  async rejectReschedule(id, requestId, reason = '') {
-    const res = await api.post(`/sessions/${id}/reschedule-requests/${requestId}/reject`, {
-      reason,
-    });
     return res;
   },
 
