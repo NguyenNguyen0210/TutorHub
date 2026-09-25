@@ -12,7 +12,10 @@ import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/Dialog';
 import ServiceRow from '@/components/tutor/services/ServiceRow';
 import ServiceFilterBar from '@/components/tutor/services/ServiceFilterBar';
-import ServiceDrawer from '@/components/tutor/services/ServiceDrawer';
+import ServiceDrawer, { parseTags } from '@/components/tutor/services/ServiceDrawer';
+
+const SHORT_DESCRIPTION_MAX = 200;
+const TAGS_MAX = 10;
 
 const STATUS_TABS = [
   { id: 'All', label: 'Tất cả' },
@@ -24,6 +27,7 @@ const STATUS_TABS = [
 const INITIAL_FORM_STATE = {
   subjectId: '',
   title: '',
+  shortDescription: '',
   description: '',
   learningScope: '',
   expectedOutcome: '',
@@ -32,6 +36,8 @@ const INITIAL_FORM_STATE = {
   price: 2000000,
   teachingMode: TEACHING_MODE.ONLINE,
   trialLessonUrl: '',
+  tags: '',
+  coverImageUrl: '',
 };
 
 export default function TutorServices() {
@@ -106,6 +112,7 @@ export default function TutorServices() {
     setFormData({
       subjectId: pkg.subjectId || '',
       title: pkg.title || '',
+      shortDescription: pkg.shortDescription || '',
       description: pkg.description || '',
       learningScope: pkg.learningScope || '',
       expectedOutcome: pkg.expectedOutcome || '',
@@ -114,6 +121,8 @@ export default function TutorServices() {
       price: pkg.price || 0,
       teachingMode: pkg.teachingMode || TEACHING_MODE.ONLINE,
       trialLessonUrl: pkg.trialLessonUrl || '',
+      tags: Array.isArray(pkg.tags) ? pkg.tags.join(', ') : pkg.tags || '',
+      coverImageUrl: pkg.coverImageUrl || '',
     });
     setShowDrawer(true);
   };
@@ -136,6 +145,20 @@ export default function TutorServices() {
       return;
     }
 
+    const shortDescription = (formData.shortDescription || '').trim();
+    if (shortDescription.length > SHORT_DESCRIPTION_MAX) {
+      toast.error(`Mô tả ngắn tối đa ${SHORT_DESCRIPTION_MAX} ký tự.`);
+      return;
+    }
+
+    const tags = parseTags(formData.tags);
+    if (tags.length > TAGS_MAX) {
+      toast.error(`Tối đa ${TAGS_MAX} thẻ liên quan cho mỗi gói học.`);
+      return;
+    }
+
+    const coverImageUrl = (formData.coverImageUrl || '').trim();
+
     if (Number(formData.totalSessions) < 1) {
       toast.error('Số buổi học phải từ 1 buổi trở lên.');
       return;
@@ -157,6 +180,11 @@ export default function TutorServices() {
           learningScope: formData.learningScope.trim() || null,
           expectedOutcome: formData.expectedOutcome.trim() || null,
           trialLessonUrl: formData.trialLessonUrl.trim() || null,
+          // New optional keys are omitted when unused so the current backend
+          // (which doesn't know them yet) simply ignores nothing breaking.
+          ...(shortDescription ? { shortDescription } : {}),
+          ...(tags.length ? { tags } : {}),
+          ...(coverImageUrl ? { coverImageUrl } : {}),
         };
 
         // If not published, allow changing commercial terms
@@ -187,6 +215,9 @@ export default function TutorServices() {
           price: Number(formData.price),
           teachingMode: formData.teachingMode,
           trialLessonUrl: formData.trialLessonUrl.trim() || null,
+          ...(shortDescription ? { shortDescription } : {}),
+          ...(tags.length ? { tags } : {}),
+          ...(coverImageUrl ? { coverImageUrl } : {}),
         };
 
         await tutorService.createService(payload);
