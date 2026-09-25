@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import PropTypes from 'prop-types';
-import Input, { Textarea, Select, Field } from '@/components/ui/Input';
+import Input, { Textarea, Select, Field, Checkbox } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import { Drawer } from '@/components/ui/Avatar';
@@ -13,6 +13,51 @@ export const TEACHING_MODE_OPTIONS = [
 ];
 
 const DESCRIPTION_MAX = 2000;
+const SHORT_DESCRIPTION_MAX = 200;
+const TAGS_MAX = 10;
+
+/**
+ * Parse a comma-separated tags string into a trimmed, deduped array
+ * (case-insensitive dedupe, first occurrence wins).
+ */
+export function parseTags(raw) {
+  if (!raw) return [];
+  const seen = new Set();
+  const out = [];
+  String(raw)
+    .split(',')
+    .forEach((part) => {
+      const tag = part.trim();
+      if (!tag) return;
+      const key = tag.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(tag);
+    });
+  return out;
+}
+
+/**
+ * Map the 3 teaching-place checkboxes to the backend TeachingMode enum:
+ * only-Online → Online, only-offline-ish → Offline, mixed → Both.
+ */
+export function teachingModeFromPlaces({ online, atHome, otherPlace }) {
+  if (online && !atHome && !otherPlace) return TEACHING_MODE.ONLINE;
+  if (!online && (atHome || otherPlace)) return TEACHING_MODE.OFFLINE;
+  return TEACHING_MODE.BOTH;
+}
+
+/** Reverse mapping, used to initialise the checkboxes from a stored enum value. */
+export function placesFromTeachingMode(mode) {
+  switch (mode) {
+    case TEACHING_MODE.OFFLINE:
+      return { online: false, atHome: true, otherPlace: false };
+    case TEACHING_MODE.BOTH:
+      return { online: true, atHome: true, otherPlace: false };
+    default:
+      return { online: true, atHome: false, otherPlace: false };
+  }
+}
 
 function SectionTitle({ step, children }) {
   return (
@@ -70,6 +115,55 @@ export default function ServiceDrawer({
   const sessions = Number(formData.totalSessions) || 0;
   const price = Number(formData.price) || 0;
   const pricePerSession = sessions > 0 ? Math.round(price / sessions) : 0;
+  const description = formData.description || '';
+  const shortDescription = formData.shortDescription || '';
+  const coverImageUrl = (formData.coverImageUrl || '').trim();
+
+  const selectedSubject = subjects.find((s) => s.id === formData.subjectId);
+  const categoryName =
+    selectedSubject?.categoryName || editingService?.categoryName || '';
+
+  const places = placesFromTeachingMode(formData.teachingMode);
+  const handlePlaceToggle = (key) => {
+    const next = { ...places, [key]: !places[key] };
+    // Keep at least one place checked so the enum mapping stays valid.
+    if (!next.online && !next.atHome && !next.otherPlace) return;
+    onFieldChange('teachingMode', teachingModeFromPlaces(next));
+  };
+
+  // Minimal markdown toolbar: wrap selection (or a placeholder word) at cursor.
+  const descRef = useRef(null);
+  const insertMarkdown = (kind) => {
+    const el = descRef.current;
+    const start = el?.selectionStart ?? description.length;
+    const end = el?.selectionEnd ?? description.length;
+    const selected = description.slice(start, end);
+    let next;
+    let caretOffset;
+    if (kind === 'bold') {
+      const word = selected || 'văn bản';
+      next = `${description.slice(0, start)}**${word}**${description.slice(end)}`;
+      caretOffset = [start + 2, start + 2 + word.length];
+    } else if (kind === 'italic') {
+      const word = selected || 'văn bản';
+      next = `${description.slice(0, start)}*${word}*${description.slice(end)}`;
+      caretOffset = [start + 1, start + 1 + word.length];
+    } else {
+      const block = selected || 'Mục mới';
+      const listed = block
+        .split('\n')
+        .map((line) => `- ${line}`)
+        .join('\n');
+      next = `${description.slice(0, start)}${listed}${description.slice(end)}`;
+      caretOffset = [start, start + listed.length];
+    }
+    onFieldChange('description', next);
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(caretOffset[0], caretOffset[1]);
+    });
+  };
 
   return (
     <Drawer
@@ -99,25 +193,99 @@ export default function ServiceDrawer({
             />
           </Field>
 
+          <Field label="Mô tả ngắn" htmlFor="service-short">
+            <Input
+              id="service-short"
+              maxLength={SHORT_DESCRIPTION_MAX}
+              placeholder="Tóm tắt gói học trong một câu ngắn…"
+              value={formData.shortDescription}
+              onChange={(e) => onFieldChange('shortDescription', e.target.value)}
+            />
+            <p className="text-right text-caption text-fg-secondary mt-1">
+              {shortDescription.length}/{SHORT_DESCRIPTION_MAX}
+            </p>
+          </Field>
+
           <Field
             label="Mô tả chi tiết"
             htmlFor="service-desc"
             required
             hint="Giới thiệu lộ trình, phương pháp giảng dạy và đối tượng phù hợp (tối thiểu 20 ký tự)."
           >
+            <div
+              className="flex items-center gap-1 mb-1.5"
+              role="toolbar"
+              aria-label="Định dạng mô tả"
+            >
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                aria-label="In đậm"
+                title="In đậm"
+                onClick={() => insertMarkdown('bold')}
+              >
+                <strong>B</strong>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                aria-label="In nghiêng"
+                title="In nghiêng"
+                onClick={() => insertMarkdown('italic')}
+              >
+                <em>I</em>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                aria-label="Danh sách gạch đầu dòng"
+                title="Danh sách gạch đầu dòng"
+                onClick={() => insertMarkdown('list')}
+              >
+                <Icon name="list" size="sm" />
+              </Button>
+            </div>
             <Textarea
               id="service-desc"
+              ref={descRef}
               rows={5}
               maxLength={DESCRIPTION_MAX}
               aria-describedby="service-desc-count"
               placeholder="Mô tả chi tiết về nội dung, phương pháp giảng dạy, đối tượng phù hợp..."
-              value={formData.description}
+              value={description}
               onChange={(e) => onFieldChange('description', e.target.value)}
               required
             />
             <p id="service-desc-count" className="text-right text-caption text-fg-secondary mt-1">
-              {formData.description.length}/{DESCRIPTION_MAX}
+              {description.length}/{DESCRIPTION_MAX}
             </p>
+          </Field>
+
+          <Field
+            label="Ảnh bìa (URL)"
+            htmlFor="service-cover"
+            hint="Không bắt buộc — ảnh minh họa giúp gói học nổi bật hơn."
+          >
+            <div className="flex items-start gap-3">
+              {coverImageUrl && (
+                <img
+                  src={coverImageUrl}
+                  alt="Xem trước ảnh bìa"
+                  className="w-14 h-14 rounded-brand-md object-cover border border-border shrink-0"
+                />
+              )}
+              <Input
+                id="service-cover"
+                type="url"
+                inputMode="url"
+                placeholder="https://..."
+                value={formData.coverImageUrl}
+                onChange={(e) => onFieldChange('coverImageUrl', e.target.value)}
+              />
+            </div>
           </Field>
 
           <div className="grid grid-cols-1 gap-4">
@@ -181,6 +349,31 @@ export default function ServiceDrawer({
               <strong className="text-fg">{editingService.subjectName}</strong>
             </div>
           )}
+
+          <Field label="Danh mục" htmlFor="service-category">
+            <Input
+              id="service-category"
+              value={categoryName}
+              placeholder="—"
+              readOnly
+              aria-readonly="true"
+              className="bg-neutral-50"
+              tabIndex={-1}
+            />
+          </Field>
+
+          <Field
+            label="Các thẻ liên quan"
+            htmlFor="service-tags"
+            hint={`Không bắt buộc — các thẻ cách nhau bằng dấu phẩy (tối đa ${TAGS_MAX}).`}
+          >
+            <Input
+              id="service-tags"
+              placeholder="Thêm thẻ (ví dụ: IELTS, Giao tiếp, THPT...)"
+              value={formData.tags}
+              onChange={(e) => onFieldChange('tags', e.target.value)}
+            />
+          </Field>
         </section>
 
         {/* ── 3. Chi tiết gói học ─────────────────────────── */}
@@ -225,19 +418,34 @@ export default function ServiceDrawer({
             </Field>
           </div>
 
-          <Field label="Hình thức học" htmlFor="service-mode" required>
-            <Select
-              id="service-mode"
-              value={formData.teachingMode}
-              disabled={isPublished}
-              onChange={(e) => onFieldChange('teachingMode', e.target.value)}
-            >
-              {TEACHING_MODE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </Select>
+          <Field
+            label="Hình thức học"
+            required
+            hint="Chọn ít nhất một hình thức."
+          >
+            <div className="space-y-2.5" role="group" aria-label="Hình thức học">
+              <Checkbox
+                id="service-mode-online"
+                label="Online"
+                checked={places.online}
+                disabled={isPublished}
+                onChange={() => handlePlaceToggle('online')}
+              />
+              <Checkbox
+                id="service-mode-athome"
+                label="Tại nhà học viên"
+                checked={places.atHome}
+                disabled={isPublished}
+                onChange={() => handlePlaceToggle('atHome')}
+              />
+              <Checkbox
+                id="service-mode-other"
+                label="Tại địa điểm khác"
+                checked={places.otherPlace}
+                disabled={isPublished}
+                onChange={() => handlePlaceToggle('otherPlace')}
+              />
+            </div>
           </Field>
 
           <Field label="Giá gói học" htmlFor="service-price" required>
@@ -286,6 +494,7 @@ ServiceDrawer.propTypes = {
   editingService: PropTypes.shape({
     status: PropTypes.string,
     subjectName: PropTypes.string,
+    categoryName: PropTypes.string,
   }),
   subjects: PropTypes.arrayOf(
     PropTypes.shape({
@@ -297,6 +506,7 @@ ServiceDrawer.propTypes = {
   formData: PropTypes.shape({
     subjectId: PropTypes.string,
     title: PropTypes.string,
+    shortDescription: PropTypes.string,
     description: PropTypes.string,
     learningScope: PropTypes.string,
     expectedOutcome: PropTypes.string,
@@ -305,6 +515,8 @@ ServiceDrawer.propTypes = {
     price: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     teachingMode: PropTypes.string,
     trialLessonUrl: PropTypes.string,
+    tags: PropTypes.string,
+    coverImageUrl: PropTypes.string,
   }).isRequired,
   onFieldChange: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,
