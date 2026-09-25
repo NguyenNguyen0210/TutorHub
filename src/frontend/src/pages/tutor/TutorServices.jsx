@@ -16,6 +16,16 @@ import ServiceDrawer, { parseTags } from '@/components/tutor/services/ServiceDra
 
 const SHORT_DESCRIPTION_MAX = 200;
 const TAGS_MAX = 10;
+const AUDIENCE_MAX = 8;
+const FAQ_MAX = 10;
+
+/** Split a textarea value into trimmed non-empty lines. */
+export function splitLines(raw) {
+  return String(raw || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
 
 const STATUS_TABS = [
   { id: 'All', label: 'Tất cả' },
@@ -39,6 +49,11 @@ const INITIAL_FORM_STATE = {
   trialLessonUrl: '',
   tags: '',
   coverImageUrl: '',
+  // Section 4 — editor-local shapes (converted to backend payload on submit).
+  sessions: [],
+  targetAudienceText: '',
+  prerequisitesText: '',
+  faqs: [],
 };
 
 export default function TutorServices() {
@@ -124,6 +139,24 @@ export default function TutorServices() {
       trialLessonUrl: pkg.trialLessonUrl || '',
       tags: Array.isArray(pkg.tags) ? pkg.tags.join(', ') : pkg.tags || '',
       coverImageUrl: pkg.coverImageUrl || '',
+      // Hydrate backend shapes (arrays) into the editors' local shapes.
+      sessions: Array.isArray(pkg.curriculum)
+        ? pkg.curriculum.map((c) => ({
+          title: c.title || '',
+          description: c.description || '',
+          keyTopicsText: Array.isArray(c.keyTopics) ? c.keyTopics.join(', ') : '',
+          durationMinutes: c.durationMinutes ?? '',
+        }))
+        : [],
+      targetAudienceText: Array.isArray(pkg.targetAudience)
+        ? pkg.targetAudience.join('\n')
+        : '',
+      prerequisitesText: Array.isArray(pkg.prerequisites)
+        ? pkg.prerequisites.join('\n')
+        : '',
+      faqs: Array.isArray(pkg.faqs)
+        ? pkg.faqs.map((f) => ({ question: f.question || '', answer: f.answer || '' }))
+        : [],
     });
     setShowDrawer(true);
   };
@@ -170,6 +203,70 @@ export default function TutorServices() {
       return;
     }
 
+    // ── Section 4 validation (toast style, same as above) ──
+    const totalSessionsNum = Number(formData.totalSessions) || 0;
+    const sessions = Array.isArray(formData.sessions) ? formData.sessions : [];
+    if (sessions.length > totalSessionsNum) {
+      toast.error(
+        `Số buổi chi tiết (${sessions.length}) vượt quá tổng số buổi của gói (${totalSessionsNum}).`
+      );
+      return;
+    }
+    for (let i = 0; i < sessions.length; i += 1) {
+      if (!(sessions[i]?.title || '').trim()) {
+        toast.error(`Buổi ${i + 1} chưa có tiêu đề. Vui lòng nhập tiêu đề cho từng buổi.`);
+        return;
+      }
+    }
+
+    const targetAudience = splitLines(formData.targetAudienceText);
+    if (targetAudience.length > AUDIENCE_MAX) {
+      toast.error(`Đối tượng phù hợp tối đa ${AUDIENCE_MAX} mục (mỗi mục một dòng).`);
+      return;
+    }
+
+    const prerequisites = splitLines(formData.prerequisitesText);
+    if (prerequisites.length > AUDIENCE_MAX) {
+      toast.error(`Điều kiện tiên quyết tối đa ${AUDIENCE_MAX} mục (mỗi mục một dòng).`);
+      return;
+    }
+
+    const faqRows = Array.isArray(formData.faqs) ? formData.faqs : [];
+    if (faqRows.length > FAQ_MAX) {
+      toast.error(`Câu hỏi thường gặp tối đa ${FAQ_MAX} mục.`);
+      return;
+    }
+    const faqs = [];
+    for (let i = 0; i < faqRows.length; i += 1) {
+      const question = (faqRows[i]?.question || '').trim();
+      const answer = (faqRows[i]?.answer || '').trim();
+      if (!question && !answer) continue;
+      if (!question || !answer) {
+        toast.error(`Mục hỏi đáp số ${i + 1} cần cả câu hỏi và câu trả lời.`);
+        return;
+      }
+      faqs.push({ question, answer });
+    }
+
+    // Convert editors' local shapes back to the backend payload shape.
+    // sessionIndex is auto-assigned by position (1-based).
+    const curriculum = sessions.map((s, i) => {
+      const item = { sessionIndex: i + 1, title: (s.title || '').trim() };
+      const desc = (s.description || '').trim();
+      if (desc) item.description = desc;
+      const topics = parseTags(s.keyTopicsText);
+      if (topics.length) item.keyTopics = topics;
+      const dur = Number(s.durationMinutes);
+      if (dur > 0) item.durationMinutes = dur;
+      return item;
+    });
+    const extraPayload = {
+      ...(curriculum.length ? { curriculum } : {}),
+      ...(targetAudience.length ? { targetAudience } : {}),
+      ...(prerequisites.length ? { prerequisites } : {}),
+      ...(faqs.length ? { faqs } : {}),
+    };
+
     try {
       setSubmitting(true);
 
@@ -186,6 +283,7 @@ export default function TutorServices() {
           ...(shortDescription ? { shortDescription } : {}),
           ...(tags.length ? { tags } : {}),
           ...(coverImageUrl ? { coverImageUrl } : {}),
+          ...extraPayload,
         };
 
         // If not published, allow changing commercial terms
@@ -219,6 +317,7 @@ export default function TutorServices() {
           ...(shortDescription ? { shortDescription } : {}),
           ...(tags.length ? { tags } : {}),
           ...(coverImageUrl ? { coverImageUrl } : {}),
+          ...extraPayload,
         };
 
         await tutorService.createService(payload);
