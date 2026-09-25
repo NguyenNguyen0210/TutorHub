@@ -5,6 +5,10 @@ import { useAuthStore } from '../store/authStore';
 // Deep link redirect helpers for notifications and external URLs
 function EnrollmentRedirect() {
   const { id } = useParams();
+  const { role } = useAuthStore();
+  if (role === 'Tutor') {
+    return <Navigate to={`/tutor/enrollments/${id}`} replace />;
+  }
   return <Navigate to={`/student/enrollments/${id}`} replace />;
 }
 
@@ -151,6 +155,7 @@ export default function AppRoutes() {
         <Route path="schedule" element={<TutorSchedule />} />
         <Route path="availability" element={<Navigate to="/tutor/schedule" replace />} />
         <Route path="services" element={<TutorServices />} />
+        <Route path="enrollments/:id" element={<EnrollmentDetail />} />
         <Route path="wallet" element={<TutorWallet />} />
         <Route path="wallet/withdraw" element={<TutorWithdraw />} />
         <Route path="sessions/:id" element={<SessionDetail />} />

@@ -29,7 +29,7 @@ function getMinNoticeDateTimeLocal() {
 export default function TutorSchedule() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const toast = useToast();
 
   const activeTab = searchParams.get('tab') || (searchParams.get('filter') === 'unscheduled' ? 'unscheduled' : 'upcoming');
 
@@ -119,11 +119,7 @@ export default function TutorSchedule() {
   const handleScheduleSingle = async (session, durationMinutes) => {
     const localVal = formValues[session.id];
     if (!localVal) {
-      toast({
-        title: 'Chưa chọn thời gian',
-        description: 'Vui lòng chọn ngày và giờ bắt đầu buổi học.',
-        variant: 'danger',
-      });
+      toast.error('Vui lòng chọn ngày và giờ bắt đầu buổi học.');
       return;
     }
 
@@ -134,11 +130,7 @@ export default function TutorSchedule() {
 
       await sessionService.scheduleSession(session.id, startAtDate.toISOString(), endAtDate.toISOString());
 
-      toast({
-        title: 'Xếp lịch thành công',
-        description: `Buổi ${session.sessionNumber} đã được xếp lịch.`,
-        variant: 'success',
-      });
+      toast.success(`Buổi ${session.sessionNumber} đã được xếp lịch thành công.`);
 
       // Clear the local input value and reload data
       setFormValues((prev) => {
@@ -149,11 +141,7 @@ export default function TutorSchedule() {
 
       await loadData();
     } catch (err) {
-      toast({
-        title: 'Xếp lịch thất bại',
-        description: err.response?.data?.message || err.message || 'Không thể xếp lịch buổi học.',
-        variant: 'danger',
-      });
+      toast.error(err.response?.data?.message || err.message || 'Không thể xếp lịch buổi học.');
     } finally {
       setSubmittingSessionId(null);
     }
@@ -178,11 +166,7 @@ export default function TutorSchedule() {
     }
 
     if (items.length === 0) {
-      toast({
-        title: 'Chưa điền lịch',
-        description: 'Vui lòng chọn thời gian cho ít nhất một buổi học để xếp lịch.',
-        variant: 'danger',
-      });
+      toast.error('Vui lòng chọn thời gian cho ít nhất một buổi học để xếp lịch.');
       return;
     }
 
@@ -190,11 +174,7 @@ export default function TutorSchedule() {
       setSubmittingEnrollmentId(enrollment.id);
       await sessionService.scheduleSessionsBatch(items);
 
-      toast({
-        title: 'Xếp lịch thành công',
-        description: `Đã xếp lịch cho ${items.length} buổi học.`,
-        variant: 'success',
-      });
+      toast.success(`Đã xếp lịch cho ${items.length} buổi học.`);
 
       // Clear scheduled session inputs
       setFormValues((prev) => {
@@ -207,11 +187,7 @@ export default function TutorSchedule() {
 
       await loadData();
     } catch (err) {
-      toast({
-        title: 'Xếp lịch hàng loạt thất bại',
-        description: err.response?.data?.message || err.message || 'Không thể xếp lịch.',
-        variant: 'danger',
-      });
+      toast.error(err.response?.data?.message || err.message || 'Không thể xếp lịch.');
     } finally {
       setSubmittingEnrollmentId(null);
     }

@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import dayjs from 'dayjs';
 import { cn } from '@/lib/cn';
+import { useAuthStore } from '@/store/authStore';
 import enrollmentService from '@/services/enrollment.service';
+import sessionService from '@/services/session.service';
 import { formatDateTime } from '@/utils/formatters';
 import Money from '@/components/ui/Money';
 import { SESSION_STATUS, getSessionStatusMeta } from '@/config/enums';
@@ -18,9 +21,23 @@ import { useToast } from '@/components/ui/Toast';
 export default function EnrollmentDetail() {
   const toast = useToast();
   const { id } = useParams();
+  const { role } = useAuthStore();
+  const isTutor = role === 'Tutor';
+  const backPath = isTutor ? '/tutor/schedule' : '/student/dashboard';
+  const backLabel = isTutor ? 'Quay lại lịch dạy' : 'Quay lại bàn học';
+
   const [enrollment, setEnrollment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Scheduling states (for Tutor)
+  const [schedulingSessionId, setSchedulingSessionId] = useState(null);
+  const [scheduleDatetime, setScheduleDatetime] = useState('');
+  const [submittingSchedule, setSubmittingSchedule] = useState(false);
+
+  const minNoticeString = useMemo(() => {
+    return dayjs().add(24, 'hour').add(5, 'minute').format('YYYY-MM-DDTHH:mm');
+  }, []);
 
   // Review states
   const [review, setReview] = useState(null);
@@ -64,6 +81,42 @@ export default function EnrollmentDetail() {
       loadEnrollment();
     }
   }, [id, loadEnrollment]);
+
+  const handleScheduleInline = async (e, session) => {
+    e.preventDefault();
+    if (!scheduleDatetime) {
+      toast.error('Vui lòng chọn thời gian bắt đầu buổi học.');
+      return;
+    }
+
+    const startAtDate = dayjs(scheduleDatetime);
+    const minNotice = dayjs().add(24, 'hour');
+    if (startAtDate.isBefore(minNotice)) {
+      toast.error('Lịch mới phải cách thời điểm hiện tại ít nhất 24 giờ.');
+      return;
+    }
+
+    const durationMinutes = enrollment?.sessionDurationMinutes || 60;
+    const endAtDate = startAtDate.add(durationMinutes, 'minute');
+
+    try {
+      setSubmittingSchedule(true);
+      await sessionService.scheduleSession(
+        session.id,
+        startAtDate.toDate().toISOString(),
+        endAtDate.toDate().toISOString()
+      );
+
+      toast.success(`Đã xếp lịch buổi học #${session.sessionNumber} thành công.`);
+      setSchedulingSessionId(null);
+      setScheduleDatetime('');
+      await loadEnrollment();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Không thể xếp lịch buổi học.');
+    } finally {
+      setSubmittingSchedule(false);
+    }
+  };
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
@@ -118,17 +171,17 @@ export default function EnrollmentDetail() {
     return (
       <div className="max-w-4xl mx-auto space-y-4 py-8">
         <Link
-          to="/student/dashboard"
+          to={backPath}
           className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
         >
           <Icon name="arrow_back" size="sm" />
-          Quay lại bàn học
+          {backLabel}
         </Link>
         <ErrorState
           error={error}
           title="Không tìm thấy hợp đồng học tập"
-          backPath="/student/dashboard"
-          backLabel="Về bàn học"
+          backPath={backPath}
+          backLabel={backLabel}
         />
       </div>
     );
@@ -142,11 +195,11 @@ export default function EnrollmentDetail() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <Link
-        to="/student/dashboard"
+        to={backPath}
         className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
       >
         <Icon name="arrow_back" size="sm" />
-        Quay lại bàn học
+        {backLabel}
       </Link>
 
       <Card padding="lg" className="space-y-5">
@@ -284,6 +337,10 @@ export default function EnrollmentDetail() {
                 )}
               </div>
             </div>
+          ) : isTutor ? (
+            <p className="text-caption text-fg-muted italic m-0">
+              Chưa có đánh giá nào từ học viên cho khóa học này.
+            </p>
           ) : (
             /* Review Submission Form */
             <form onSubmit={handleSubmitReview} className="space-y-4">
@@ -372,84 +429,168 @@ export default function EnrollmentDetail() {
         />
 
         <ol className="space-y-3">
-          {sessions.map((sess) => (
-            <li
-              key={sess.id}
-              className={cn(
-                'p-4 rounded-brand-md border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3',
-                sess.hasAttendanceConflict
-                  ? 'border-danger/40 bg-danger-subtle'
-                  : sess.status === SESSION_STATUS.COMPLETED
-                    ? 'border-success/40 bg-success-subtle'
-                    : sess.status === SESSION_STATUS.SCHEDULED
-                      ? 'border-info/40 bg-info-subtle'
-                      : 'border-border bg-neutral-50'
-              )}
-            >
-              <div className="flex items-center gap-4">
-                <span
-                  className={cn(
-                    'w-10 h-10 rounded-brand-md flex items-center justify-center font-mono font-bold text-body-reg shrink-0',
-                    sess.status === SESSION_STATUS.COMPLETED
-                      ? 'bg-success text-white'
+          {sessions.map((sess) => {
+            const isUnscheduled = sess.status === SESSION_STATUS.UNSCHEDULED || sess.status === 'Unscheduled';
+            const isSchedulingThis = schedulingSessionId === sess.id;
+            const canTutorSchedule = isTutor && isUnscheduled && enrollment.status === 'Active';
+
+            return (
+              <li
+                key={sess.id}
+                className={cn(
+                  'p-4 rounded-brand-md border transition-colors flex flex-col justify-between gap-3',
+                  sess.hasAttendanceConflict
+                    ? 'border-danger/40 bg-danger-subtle'
+                    : sess.status === SESSION_STATUS.COMPLETED
+                      ? 'border-success/40 bg-success-subtle'
                       : sess.status === SESSION_STATUS.SCHEDULED
-                        ? 'bg-info text-white'
-                        : 'bg-neutral-200 text-fg-secondary'
-                  )}
-                  aria-hidden="true"
-                >
-                  {sess.sessionNumber}
-                </span>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-body-reg text-fg">
-                      Buổi học #{sess.sessionNumber}
-                    </span>
-                    {getStatusBadge(sess)}
-                  </div>
-                  <p className="text-caption text-fg-muted mt-0.5">
-                    Thời gian:{' '}
-                    {sess.startAt
-                      ? formatDateTime(sess.startAt, 'DD/MM/YYYY HH:mm')
-                      : 'Chưa xếp lịch'}
-                    {sess.endAt ? ` - ${formatDateTime(sess.endAt, 'HH:mm')}` : ''}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between sm:justify-end gap-4 text-caption">
-                <div className="text-right">
-                  <span className="text-[10px] text-fg-muted block">Ký quỹ buổi:</span>
-                  <span className="font-bold text-fg">
-                    <Money value={sess.earningAmount || 0} />
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    as={Link}
-                    to={`/student/sessions/${sess.id}`}
-                    variant="outline"
-                    size="sm"
-                    iconRight={<Icon name="chevron_right" size="sm" />}
-                  >
-                    Chi tiết
-                  </Button>
-
-                  {sess.hasAttendanceConflict && (
-                    <Button
-                      as={Link}
-                      to={`/student/disputes/new?sessionId=${sess.id}`}
-                      variant="danger"
-                      size="sm"
+                        ? 'border-info/40 bg-info-subtle'
+                        : 'border-border bg-neutral-50'
+                )}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+                  <div className="flex items-center gap-4">
+                    <span
+                      className={cn(
+                        'w-10 h-10 rounded-brand-md flex items-center justify-center font-mono font-bold text-body-reg shrink-0',
+                        sess.status === SESSION_STATUS.COMPLETED
+                          ? 'bg-success text-white'
+                          : sess.status === SESSION_STATUS.SCHEDULED
+                            ? 'bg-info text-white'
+                            : 'bg-neutral-200 text-fg-secondary'
+                      )}
+                      aria-hidden="true"
                     >
-                      Khiếu nại
-                    </Button>
-                  )}
+                      {sess.sessionNumber}
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-body-reg text-fg">
+                          Buổi học #{sess.sessionNumber}
+                        </span>
+                        {getStatusBadge(sess)}
+                      </div>
+                      <p className="text-caption text-fg-muted mt-0.5">
+                        Thời gian:{' '}
+                        {sess.startAt
+                          ? formatDateTime(sess.startAt, 'DD/MM/YYYY HH:mm')
+                          : 'Chờ gia sư xếp lịch'}
+                        {sess.endAt ? ` - ${formatDateTime(sess.endAt, 'HH:mm')}` : ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between sm:justify-end gap-4 text-caption">
+                    <div className="text-right">
+                      <span className="text-[10px] text-fg-muted block">Ký quỹ buổi:</span>
+                      <span className="font-bold text-fg">
+                        <Money value={sess.earningAmount || 0} />
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {canTutorSchedule && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => {
+                            if (isSchedulingThis) {
+                              setSchedulingSessionId(null);
+                              setScheduleDatetime('');
+                            } else {
+                              setSchedulingSessionId(sess.id);
+                              setScheduleDatetime('');
+                            }
+                          }}
+                          icon={<Icon name="calendar_month" size="xs" />}
+                        >
+                          {isSchedulingThis ? 'Đóng' : 'Xếp lịch'}
+                        </Button>
+                      )}
+
+                      <Button
+                        as={Link}
+                        to={isTutor ? `/tutor/sessions/${sess.id}` : `/student/sessions/${sess.id}`}
+                        variant="outline"
+                        size="sm"
+                        iconRight={<Icon name="chevron_right" size="sm" />}
+                      >
+                        Chi tiết
+                      </Button>
+
+                      {sess.hasAttendanceConflict && (
+                        <Button
+                          as={Link}
+                          to={`/student/disputes/new?sessionId=${sess.id}`}
+                          variant="danger"
+                          size="sm"
+                        >
+                          Khiếu nại
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </li>
-          ))}
+
+                {/* Inline Schedule Form for Tutor */}
+                {isSchedulingThis && (
+                  <form
+                    onSubmit={(e) => handleScheduleInline(e, sess)}
+                    className="w-full mt-2 pt-3 border-t border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-3.5 rounded-brand-md shadow-brand-sm"
+                  >
+                    <div className="flex-1 w-full sm:w-auto">
+                      <label
+                        htmlFor={`schedule-time-${sess.id}`}
+                        className="block text-caption font-bold text-fg cursor-pointer"
+                      >
+                        <span className="flex items-center gap-1.5 mb-1.5">
+                          <Icon name="event_upcoming" size="xs" className="text-brand-primary-600" />
+                          Xếp lịch cho buổi #{sess.sessionNumber}
+                        </span>
+                        <input
+                          id={`schedule-time-${sess.id}`}
+                          aria-label={`Thời gian bắt đầu buổi học #${sess.sessionNumber}`}
+                          type="datetime-local"
+                          min={minNoticeString}
+                          value={scheduleDatetime}
+                          onChange={(e) => setScheduleDatetime(e.target.value)}
+                          required
+                          className="w-full sm:w-64 h-9 px-3 rounded-brand-md border border-border bg-white text-caption text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600"
+                        />
+                      </label>
+                      <span className="block text-[11px] text-amber-700 mt-1 font-medium">
+                        Lịch học phải cách thời điểm hiện tại ít nhất 24 giờ. Thời lượng: {enrollment.sessionDurationMinutes || 60} phút.
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSchedulingSessionId(null);
+                          setScheduleDatetime('');
+                        }}
+                        disabled={submittingSchedule}
+                      >
+                        Hủy
+                      </Button>
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        size="sm"
+                        loading={submittingSchedule}
+                        icon={<Icon name="check" size="xs" />}
+                      >
+                        Lưu lịch
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </li>
+            );
+          })}
         </ol>
       </Card>
     </div>
