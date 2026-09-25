@@ -1,9 +1,11 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
+using TutorHub.Application.Features.Sessions.Scheduling;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 
@@ -16,19 +18,22 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
     private readonly IAuditLogService _auditLogService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IStudentWalletService _studentWalletService;
+    private readonly IConfiguration _configuration;
 
     public CancelSessionCommandHandler(
         IAppDbContext context,
         IClock clock,
         IAuditLogService auditLogService,
         ICurrentUserService currentUserService,
-        IStudentWalletService studentWalletService)
+        IStudentWalletService studentWalletService,
+        IConfiguration configuration)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
         _currentUserService = currentUserService;
         _studentWalletService = studentWalletService;
+        _configuration = configuration;
     }
 
     public async Task<SessionDto> Handle(CancelSessionCommand request, CancellationToken cancellationToken)
@@ -84,6 +89,18 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
         catch (InvalidOperationException ex)
         {
             throw new ConflictException(ex.Message);
+        }
+
+        // 3b. Minimum-notice rule for a Scheduled session (Unscheduled sessions
+        // need no notice). Reuse the scheduling policy so the math lives in one
+        // place. Runs after CancelSingle so an already-started session still maps
+        // to Conflict above, preserving existing behavior. Nothing is persisted
+        // yet, so throwing here leaves the session untouched.
+        if (oldStatus == SessionStatus.Scheduled)
+        {
+            var policy = new SessionSchedulePolicy(_configuration, _clock);
+            var startAt = session.StartAt ?? now;
+            policy.RequireSchedulable(startAt, session.EndAt ?? startAt);
         }
 
         // 4. Re-evaluate the contract lifecycle: the last unresolved Session may
