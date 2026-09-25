@@ -22,6 +22,8 @@ using TutorHub.Application.Features.Tutors.Services.GetMyServiceById;
 using TutorHub.Application.Features.Tutors.Services.GetMyServices;
 using TutorHub.Application.Features.Tutors.Services.GetTutorServices;
 using TutorHub.Application.Features.Tutors.Services.PublishService;
+using TutorHub.Application.Features.Tutors.Services.PauseService;
+using TutorHub.Application.Features.Tutors.Services.ResumeService;
 using TutorHub.Application.Features.Tutors.Services.UnpublishService;
 using TutorHub.Application.Features.Tutors.Services.UpdateService;
 using TutorHub.Application.Features.Tutors.ResubmitTutorApplication;
@@ -384,13 +386,16 @@ public class TutorsController : ControllerBase
             SubjectId: request.SubjectId,
             Title: request.Title,
             Description: request.Description,
+            ShortDescription: request.ShortDescription,
+            Tags: request.Tags,
             LearningScope: request.LearningScope,
             ExpectedOutcome: request.ExpectedOutcome,
             TotalSessions: request.TotalSessions,
             SessionDurationMinutes: request.SessionDurationMinutes,
             Price: request.Price,
             TeachingMode: parsedMode,
-            TrialLessonUrl: request.TrialLessonUrl
+            TrialLessonUrl: request.TrialLessonUrl,
+            CoverImageUrl: request.CoverImageUrl
         );
 
         var result = await _sender.Send(command, cancellationToken);
@@ -462,13 +467,16 @@ public class TutorsController : ControllerBase
             ServiceId: serviceId,
             Title: request.Title,
             Description: request.Description,
+            ShortDescription: request.ShortDescription,
+            Tags: request.Tags,
             LearningScope: request.LearningScope,
             ExpectedOutcome: request.ExpectedOutcome,
             TotalSessions: request.TotalSessions,
             SessionDurationMinutes: request.SessionDurationMinutes,
             Price: request.Price,
             TeachingMode: teachingMode,
-            TrialLessonUrl: request.TrialLessonUrl
+            TrialLessonUrl: request.TrialLessonUrl,
+            CoverImageUrl: request.CoverImageUrl
         );
 
         var result = await _sender.Send(command, cancellationToken);
@@ -510,6 +518,43 @@ public class TutorsController : ControllerBase
         var command = new UnpublishServiceCommand(serviceId);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service unpublished successfully."));
+    }
+
+    /// <summary>
+    /// Pause a published service to temporarily hide it from the public marketplace (Tutor only).
+    /// A paused service can be resumed or unpublished.
+    /// </summary>
+    [Authorize(Roles = "Tutor")]
+    [HttpPost("me/services/{serviceId:guid}/pause")]
+    [ProducesResponseType(typeof(ApiResponse<ServiceDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> PauseService(
+        [FromRoute] Guid serviceId,
+        CancellationToken cancellationToken)
+    {
+        var command = new PauseServiceCommand(serviceId);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service paused successfully."));
+    }
+
+    /// <summary>
+    /// Resume a paused service to make it publicly discoverable on the marketplace again (Tutor only).
+    /// </summary>
+    [Authorize(Roles = "Tutor")]
+    [HttpPost("me/services/{serviceId:guid}/resume")]
+    [ProducesResponseType(typeof(ApiResponse<ServiceDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ResumeService(
+        [FromRoute] Guid serviceId,
+        CancellationToken cancellationToken)
+    {
+        var command = new ResumeServiceCommand(serviceId);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service resumed successfully to the marketplace."));
     }
 
     /// <summary>

@@ -4,20 +4,20 @@ using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Tutors.Services.DTOs;
 
-namespace TutorHub.Application.Features.Tutors.Services.UnpublishService;
+namespace TutorHub.Application.Features.Tutors.Services.ResumeService;
 
-public class UnpublishServiceCommandHandler : IRequestHandler<UnpublishServiceCommand, ServiceDto>
+public class ResumeServiceCommandHandler : IRequestHandler<ResumeServiceCommand, ServiceDto>
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
 
-    public UnpublishServiceCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
+    public ResumeServiceCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
         _currentUserService = currentUserService;
     }
 
-    public async Task<ServiceDto> Handle(UnpublishServiceCommand request, CancellationToken cancellationToken)
+    public async Task<ServiceDto> Handle(ResumeServiceCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
 
@@ -34,11 +34,11 @@ public class UnpublishServiceCommandHandler : IRequestHandler<UnpublishServiceCo
 
         if (service.TutorProfile.UserId != userId)
         {
-            throw new ForbiddenException("You do not have permission to unpublish this service.");
+            throw new ForbiddenException("You do not have permission to resume this service.");
         }
 
-        // Domain transition — throws if Draft or already Unpublished
-        service.Unpublish();
+        // Domain transition — throws unless Paused
+        service.Resume();
 
         await _context.SaveChangesAsync(cancellationToken);
 

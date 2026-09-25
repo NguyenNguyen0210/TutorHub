@@ -8,6 +8,8 @@ public record ServiceDto(
     string SubjectCategoryName,
     string Title,
     string Description,
+    string? ShortDescription,
+    List<string> Tags,
     string? LearningScope,
     string? ExpectedOutcome,
     int TotalSessions,
@@ -15,7 +17,11 @@ public record ServiceDto(
     decimal Price,
     string TeachingMode,
     string? TrialLessonUrl,
+    string? CoverImageUrl,
     string Status,
+    int StudentCount,
+    double? AverageRating,
+    int ReviewCount,
     DateTime CreatedAt,
     DateTime? UpdatedAt
 );

@@ -133,4 +133,78 @@ public class ServiceTests
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("Service is already unpublished.");
     }
+
+    [Fact]
+    public void Pause_FromPublished_ShouldTransitionToPaused()
+    {
+        // Arrange
+        var service = new Service
+        {
+            Status = ServiceStatus.Published
+        };
+
+        // Act
+        service.Pause();
+
+        // Assert
+        service.Status.Should().Be(ServiceStatus.Paused);
+        service.UpdatedAt.Should().NotBeNull();
+        service.UpdatedAt.Value.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(2));
+    }
+
+    [Theory]
+    [InlineData(ServiceStatus.Draft)]
+    [InlineData(ServiceStatus.Unpublished)]
+    [InlineData(ServiceStatus.Paused)]
+    public void Pause_FromNonPublished_ShouldThrowInvalidOperationException(ServiceStatus status)
+    {
+        // Arrange
+        var service = new Service
+        {
+            Status = status
+        };
+
+        // Act
+        var act = () => service.Pause();
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Resume_FromPaused_ShouldTransitionToPublished()
+    {
+        // Arrange
+        var service = new Service
+        {
+            Status = ServiceStatus.Paused
+        };
+
+        // Act
+        service.Resume();
+
+        // Assert
+        service.Status.Should().Be(ServiceStatus.Published);
+        service.UpdatedAt.Should().NotBeNull();
+        service.UpdatedAt.Value.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(2));
+    }
+
+    [Theory]
+    [InlineData(ServiceStatus.Draft)]
+    [InlineData(ServiceStatus.Published)]
+    [InlineData(ServiceStatus.Unpublished)]
+    public void Resume_FromNonPaused_ShouldThrowInvalidOperationException(ServiceStatus status)
+    {
+        // Arrange
+        var service = new Service
+        {
+            Status = status
+        };
+
+        // Act
+        var act = () => service.Resume();
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>();
+    }
 }

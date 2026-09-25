@@ -17,6 +17,18 @@ public class CreateServiceCommandValidator : AbstractValidator<CreateServiceComm
             .NotEmpty().WithMessage("Description is required.")
             .MaximumLength(5000).WithMessage("Description cannot exceed 5000 characters.");
 
+        RuleFor(x => x.ShortDescription)
+            .MaximumLength(200).WithMessage("Short description cannot exceed 200 characters.")
+            .When(x => !string.IsNullOrEmpty(x.ShortDescription));
+
+        RuleFor(x => x.Tags)
+            .Must(tags => tags!.Length <= 10).WithMessage("Tags cannot exceed 10 items.")
+            .When(x => x.Tags != null);
+
+        RuleForEach(x => x.Tags)
+            .MaximumLength(30).WithMessage("Each tag cannot exceed 30 characters.")
+            .When(x => x.Tags != null);
+
         RuleFor(x => x.LearningScope)
             .MaximumLength(2000).WithMessage("Learning scope cannot exceed 2000 characters.")
             .When(x => !string.IsNullOrEmpty(x.LearningScope));
@@ -40,5 +52,9 @@ public class CreateServiceCommandValidator : AbstractValidator<CreateServiceComm
         RuleFor(x => x.TrialLessonUrl)
             .MaximumLength(1000).WithMessage("Trial lesson URL cannot exceed 1000 characters.")
             .When(x => !string.IsNullOrEmpty(x.TrialLessonUrl));
+
+        RuleFor(x => x.CoverImageUrl)
+            .MaximumLength(1000).WithMessage("Cover image URL cannot exceed 1000 characters.")
+            .When(x => !string.IsNullOrEmpty(x.CoverImageUrl));
     }
 }

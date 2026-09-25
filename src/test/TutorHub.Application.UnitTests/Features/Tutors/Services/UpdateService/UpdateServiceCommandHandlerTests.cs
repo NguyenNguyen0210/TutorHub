@@ -55,13 +55,16 @@ public class UpdateServiceCommandHandlerTests
             ServiceId: service.Id,
             Title: "New Title",
             Description: "New Description",
+            ShortDescription: "New short",
+            Tags: new[] { "tag1", "tag2" },
             LearningScope: "Scope",
             ExpectedOutcome: "Outcome",
             TotalSessions: 10,
             SessionDurationMinutes: 60,
             Price: 3000000m,
             TeachingMode: TeachingMode.Both,
-            TrialLessonUrl: "https://example.com/trial"
+            TrialLessonUrl: "https://example.com/trial",
+            CoverImageUrl: "https://example.com/cover.png"
         );
 
         // Act
@@ -70,6 +73,9 @@ public class UpdateServiceCommandHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Title.Should().Be("New Title");
+        result.ShortDescription.Should().Be("New short");
+        result.Tags.Should().BeEquivalentTo("tag1", "tag2");
+        result.CoverImageUrl.Should().Be("https://example.com/cover.png");
         result.TotalSessions.Should().Be(10);
         result.SessionDurationMinutes.Should().Be(60);
         result.Price.Should().Be(3000000m);
@@ -111,13 +117,16 @@ public class UpdateServiceCommandHandlerTests
             ServiceId: service.Id,
             Title: "Updated Published Title",
             Description: "Updated Published Description",
+            ShortDescription: null,
+            Tags: null,
             LearningScope: "Updated Scope",
             ExpectedOutcome: "Updated Outcome",
             TotalSessions: null,
             SessionDurationMinutes: null,
             Price: null,
             TeachingMode: null,
-            TrialLessonUrl: null
+            TrialLessonUrl: null,
+            CoverImageUrl: null
         );
 
         // Act
@@ -160,13 +169,16 @@ public class UpdateServiceCommandHandlerTests
             ServiceId: service.Id,
             Title: null,
             Description: null,
+            ShortDescription: null,
+            Tags: null,
             LearningScope: null,
             ExpectedOutcome: null,
             TotalSessions: null,
             SessionDurationMinutes: null,
             Price: 4000000m, // Changed price
             TeachingMode: null,
-            TrialLessonUrl: null
+            TrialLessonUrl: null,
+            CoverImageUrl: null
         );
 
         // Act
@@ -175,6 +187,54 @@ public class UpdateServiceCommandHandlerTests
         // Assert
         var ex = await act.Should().ThrowAsync<ConflictException>();
         ex.Which.Errors.Should().ContainMatch("*Cannot modify commercial terms*");
+    }
+
+    [Fact]
+    public async Task Handle_PublishedService_ChangingShowcaseFields_ShouldThrowConflictException()
+    {
+        // Arrange
+        var user = new UserBuilder().WithRole(UserRole.Tutor).Build();
+        var tutorProfile = new TutorProfile { Id = Guid.NewGuid(), UserId = user.Id, User = user };
+
+        var service = new Service
+        {
+            Id = Guid.NewGuid(),
+            TutorProfileId = tutorProfile.Id,
+            TutorProfile = tutorProfile,
+            Title = "Title",
+            Description = "Desc",
+            TotalSessions = 10,
+            SessionDurationMinutes = 60,
+            Price = 3000000m,
+            TeachingMode = TeachingMode.Online,
+            Status = ServiceStatus.Published
+        };
+
+        _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
+
+        _currentUser.Set(user.Id, UserRole.Tutor);
+        var command = new UpdateServiceCommand(
+            ServiceId: service.Id,
+            Title: null,
+            Description: null,
+            ShortDescription: "New short",
+            Tags: new[] { "new-tag" },
+            LearningScope: null,
+            ExpectedOutcome: null,
+            TotalSessions: null,
+            SessionDurationMinutes: null,
+            Price: null,
+            TeachingMode: null,
+            TrialLessonUrl: null,
+            CoverImageUrl: "https://example.com/new-cover.png"
+        );
+
+        // Act
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        var ex = await act.Should().ThrowAsync<ConflictException>();
+        ex.Which.Errors.Should().ContainMatch("*showcase fields*");
     }
 
     [Fact]
@@ -202,13 +262,16 @@ public class UpdateServiceCommandHandlerTests
             ServiceId: service.Id,
             Title: "New Title",
             Description: null,
+            ShortDescription: null,
+            Tags: null,
             LearningScope: null,
             ExpectedOutcome: null,
             TotalSessions: null,
             SessionDurationMinutes: null,
             Price: null,
             TeachingMode: null,
-            TrialLessonUrl: null
+            TrialLessonUrl: null,
+            CoverImageUrl: null
         );
 
         // Act

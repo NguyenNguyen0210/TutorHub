@@ -21,6 +21,12 @@ public class ServiceConfiguration : IEntityTypeConfiguration<Service>
             .IsRequired()
             .HasMaxLength(5000);
 
+        builder.Property(s => s.ShortDescription)
+            .HasMaxLength(200);
+
+        builder.Property(s => s.TagsJson)
+            .HasColumnType("jsonb");
+
         builder.Property(s => s.LearningScope)
             .HasMaxLength(2000);
 
