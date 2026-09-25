@@ -28,7 +28,7 @@ export function RequireRole({ allowedRoles, children }) {
         <p className="text-caption text-fg-secondary mb-4">
           Tài khoản hiện tại của bạn (<strong>{role}</strong>) không có quyền truy cập khu vực này.
         </p>
-        <Link to="/tutors" className="text-brand-primary-700 font-bold text-xs hover:underline">
+        <Link to="/" className="text-brand-primary-700 font-bold text-xs hover:underline">
           Về Trang Khám Phá
         </Link>
       </div>

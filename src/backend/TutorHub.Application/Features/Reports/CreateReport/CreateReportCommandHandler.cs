@@ -52,11 +52,11 @@ public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, R
 
         // 3. Application-level check for duplicate report
         var alreadyReported = await _context.Reports
-            .AnyAsync(r => r.BookingId == request.BookingId && r.ReporterUserId == userId, cancellationToken);
+            .AnyAsync(r => r.BookingId == request.BookingId && r.ReporterUserId == userId && r.Status == ReportStatus.Open, cancellationToken);
 
         if (alreadyReported)
         {
-            throw new ConflictException("You have already submitted a report for this booking.");
+            throw new ConflictException("You already have an open report for this booking.");
         }
 
         var reporterUser = isStudent ? booking.StudentProfile.User : booking.TutorProfile.User;

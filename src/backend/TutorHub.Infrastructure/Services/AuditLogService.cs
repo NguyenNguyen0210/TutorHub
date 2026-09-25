@@ -9,6 +9,7 @@ public class AuditLogService : IAuditLogService
 {
     private readonly IAppDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IClock _clock;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -16,10 +17,11 @@ public class AuditLogService : IAuditLogService
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    public AuditLogService(IAppDbContext context, IHttpContextAccessor httpContextAccessor)
+    public AuditLogService(IAppDbContext context, IHttpContextAccessor httpContextAccessor, IClock clock)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
+        _clock = clock;
     }
 
     public Task LogAsync(
@@ -71,7 +73,7 @@ public class AuditLogService : IAuditLogService
             CorrelationId = effectiveCorrelationId,
             IpAddress = effectiveIp?.Length > 45 ? effectiveIp[..45] : effectiveIp,
             UserAgent = effectiveUserAgent?.Length > 500 ? effectiveUserAgent[..500] : effectiveUserAgent,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _clock.UtcNow
         };
 
         _context.AuditLogs.Add(log);

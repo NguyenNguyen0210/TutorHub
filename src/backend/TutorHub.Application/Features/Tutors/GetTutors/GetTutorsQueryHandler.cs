@@ -30,6 +30,14 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
                         t.User.TutorApplications.Any(a => a.Status == TutorApplicationStatus.Approved) &&
                         t.Services.Any(s => s.Status == ServiceStatus.Published));
 
+        // Filter by Category
+        if (request.CategoryId.HasValue)
+        {
+            query = query.Where(t =>
+                t.Services.Any(s => s.Status == ServiceStatus.Published && s.Subject.CategoryId == request.CategoryId.Value) ||
+                t.TutorSubjects.Any(ts => ts.IsActive && ts.Subject.CategoryId == request.CategoryId.Value));
+        }
+
         // Filter by Subject (either registered or offered via published service)
         if (request.SubjectId.HasValue)
         {
@@ -60,6 +68,57 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
             query = query.Where(t => t.RatingAvg >= request.MinRating.Value);
         }
 
+        // Filter by Experience Range
+        if (request.MinExperience.HasValue)
+        {
+            query = query.Where(t => t.ExperienceYears >= request.MinExperience.Value);
+        }
+
+        if (request.MaxExperience.HasValue)
+        {
+            query = query.Where(t => t.ExperienceYears <= request.MaxExperience.Value);
+        }
+
+        // Filter by Degree Level from Approved Application
+        if (!string.IsNullOrWhiteSpace(request.DegreeLevel))
+        {
+            var degree = request.DegreeLevel.Trim().ToLower();
+            query = query.Where(t => t.User.TutorApplications.Any(a =>
+                a.Status == TutorApplicationStatus.Approved &&
+                ((a.DegreeLevel != null && a.DegreeLevel.ToLower().Contains(degree)) ||
+                 t.Education.ToLower().Contains(degree))));
+        }
+
+        // Filter by University from Approved Application
+        if (!string.IsNullOrWhiteSpace(request.University))
+        {
+            var uni = request.University.Trim().ToLower();
+            query = query.Where(t => t.User.TutorApplications.Any(a =>
+                a.Status == TutorApplicationStatus.Approved &&
+                ((a.University != null && a.University.ToLower().Contains(uni)) ||
+                 t.Education.ToLower().Contains(uni))));
+        }
+
+        // Filter by Certification from Approved Application
+        if (!string.IsNullOrWhiteSpace(request.Certification))
+        {
+            var cert = request.Certification.Trim().ToLower();
+            query = query.Where(t => t.User.TutorApplications.Any(a =>
+                a.Status == TutorApplicationStatus.Approved &&
+                ((a.Certifications != null && a.Certifications.ToLower().Contains(cert)) ||
+                 t.Bio.ToLower().Contains(cert) ||
+                 t.Education.ToLower().Contains(cert))));
+        }
+
+        // Filter by City / Address
+        if (!string.IsNullOrWhiteSpace(request.City))
+        {
+            var city = request.City.Trim().ToLower();
+            query = query.Where(t =>
+                (t.Address != null && t.Address.ToLower().Contains(city)) ||
+                t.User.TutorApplications.Any(a => a.Status == TutorApplicationStatus.Approved && a.Address != null && a.Address.ToLower().Contains(city)));
+        }
+
         // Search by keyword (tutor full name, service title, subject name, or category name)
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -80,6 +139,8 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
             "price_asc" => query.OrderBy(t => t.Services.Where(s => s.Status == ServiceStatus.Published).Min(s => s.Price)).ThenBy(t => t.Id),
             "price_desc" => query.OrderByDescending(t => t.Services.Where(s => s.Status == ServiceStatus.Published).Max(s => s.Price)).ThenBy(t => t.Id),
             "reviews" => query.OrderByDescending(t => t.TotalReviews).ThenByDescending(t => t.RatingAvg).ThenBy(t => t.Id),
+            "exp_desc" or "experience_desc" => query.OrderByDescending(t => t.ExperienceYears).ThenByDescending(t => t.RatingAvg).ThenBy(t => t.Id),
+            "rating_desc" => query.OrderByDescending(t => t.RatingAvg).ThenByDescending(t => t.TotalReviews).ThenBy(t => t.Id),
             _ => query.OrderByDescending(t => t.RatingAvg).ThenByDescending(t => t.TotalReviews).ThenBy(t => t.Id)
         };
 
@@ -105,7 +166,27 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
                 t.TotalReviews,
                 t.TutorSubjects.Where(ts => ts.IsActive).Select(ts => ts.Subject.Name).ToList(),
                 t.Services.Where(s => s.Status == ServiceStatus.Published).Select(s => (decimal?)s.Price).Min(),
-                t.User.TutorApplications.Any(a => a.Status == TutorApplicationStatus.Approved)
+                t.User.TutorApplications.Any(a => a.Status == TutorApplicationStatus.Approved),
+                t.User.TutorApplications
+                    .Where(a => a.Status == TutorApplicationStatus.Approved)
+                    .Select(a => a.University)
+                    .FirstOrDefault(),
+                t.User.TutorApplications
+                    .Where(a => a.Status == TutorApplicationStatus.Approved)
+                    .Select(a => a.Major)
+                    .FirstOrDefault(),
+                t.User.TutorApplications
+                    .Where(a => a.Status == TutorApplicationStatus.Approved)
+                    .Select(a => a.DegreeLevel)
+                    .FirstOrDefault(),
+                t.User.TutorApplications
+                    .Where(a => a.Status == TutorApplicationStatus.Approved)
+                    .Select(a => a.Certifications)
+                    .FirstOrDefault(),
+                t.User.TutorApplications
+                    .Where(a => a.Status == TutorApplicationStatus.Approved)
+                    .Select(a => a.Achievements)
+                    .FirstOrDefault()
             ))
             .ToListAsync(cancellationToken);
 

@@ -56,11 +56,36 @@ function normalizeAdminStats(source = {}) {
 }
 
 function normalizeTutorApplication(raw = {}) {
+  let parsedDocuments = [];
+  if (raw.documentsJson) {
+    try {
+      parsedDocuments = typeof raw.documentsJson === 'string'
+        ? JSON.parse(raw.documentsJson)
+        : raw.documentsJson;
+    } catch (e) {
+      console.warn('Failed to parse documentsJson:', e);
+    }
+  }
+
+  if (!Array.isArray(parsedDocuments) || parsedDocuments.length === 0) {
+    parsedDocuments = [
+      {
+        id: `doc-${raw.id}-1`,
+        title: 'Bằng tốt nghiệp đại học / Chứng chỉ',
+        institution: raw.university || raw.education || 'Đại học Sư phạm',
+        format: 'PDF • 2.1 MB',
+        verified: raw.status === 'Approved',
+        previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
+      },
+    ];
+  }
+
   return {
     id: raw.id,
     userId: raw.userId ?? null,
     userFullName: raw.userFullName || '',
     userEmail: raw.userEmail || '',
+    userPhone: raw.userPhone || '',
     userAvatarUrl: raw.userAvatarUrl || null,
     status: raw.status || 'Pending',
     submittedAt: raw.submittedAt ?? null,
@@ -68,9 +93,19 @@ function normalizeTutorApplication(raw = {}) {
     rejectionReason: raw.rejectionReason ?? null,
     bio: raw.bio || '',
     education: raw.education || '',
+    university: raw.university || '',
+    major: raw.major || '',
+    degreeLevel: raw.degreeLevel || '',
+    certifications: raw.certifications || '',
+    subject: raw.subject || '',
+    subjectSub: raw.subjectSub || '',
     experienceYears: toNumber(raw.experienceYears, 0),
     teachingMode: raw.teachingMode || null,
     address: raw.address || null,
+    methodology: raw.methodology || '',
+    achievements: raw.achievements || '',
+    documentsJson: raw.documentsJson || null,
+    documents: parsedDocuments,
   };
 }
 

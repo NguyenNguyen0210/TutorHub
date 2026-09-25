@@ -24,7 +24,6 @@ public class SignalRNotificationService : INotificationService
         try
         {
             await _hubContext.Clients.Group($"user_{userId}").ReceiveNotification(notification);
-            await _hubContext.Clients.User(userId.ToString()).ReceiveNotification(notification);
         }
         catch (Exception ex)
         {
@@ -37,7 +36,6 @@ public class SignalRNotificationService : INotificationService
         try
         {
             await _hubContext.Clients.Group($"user_{userId}").ReceiveUnreadCount(unreadCount);
-            await _hubContext.Clients.User(userId.ToString()).ReceiveUnreadCount(unreadCount);
         }
         catch (Exception ex)
         {

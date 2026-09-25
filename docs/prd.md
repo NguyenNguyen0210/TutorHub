@@ -1,11 +1,11 @@
 # TutorHub — Product Requirements Document (PRD)
 
-**Version:** 1.1
-**Status:** Final / Business Baseline Frozen (v1.0 baseline + v1.1 implementation deltas below)
+**Version:** 1.2
+**Status:** Final / Business Baseline Frozen (v1.0 baseline + v1.1 & v1.2 implementation deltas below)
 **Product:** TutorHub
 **Document Type:** Product Requirements Document
 
-## Changelog v1.0 → v1.1 (owner-approved implementation deltas)
+## Changelog v1.0 → v1.2 (owner-approved implementation deltas)
 
 | # | Area | Delta |
 |---|---|---|
@@ -18,6 +18,7 @@
 | 7 | Cancellation | Single-session cancel gate (no finance) vs enrollment pro-rata cancel distinguished |
 | 8 | Fees | `PlatformFeeRate`/`FeePolicyVersion` snapshot per Enrollment, non-retroactive (FR-OPEN-008 versioning decided) |
 | 9 | Events | 26 core events + `MessageSent` (`RefundFailed`, `PlatformSettingChanged` added) |
+| 10 | Student Wallet | Ví Học Viên (`StudentWallet`): nạp tiền tự động 24/7 qua Cổng thanh toán VNPay, thanh toán khóa học 100% từ ví, hoàn tiền tự động ghi có ngay vào ví, rút tiền tối thiểu 50.000 VNĐ, quản trị Admin đối soát/xử lý rút, bảo vệ sổ cái bất biến `StudentWalletTransaction` |
 
 ---
 
@@ -868,6 +869,61 @@ Processing
 ```
 
 Nếu failed, amount được xử lý theo financial policy.
+
+---
+
+## 12.7. Student Wallet (Ví Học Viên)
+
+Mỗi Student Profile sở hữu một Ví Học Viên (`StudentWallet`) độc lập để chủ động quản lý nguồn vốn học tập:
+
+* **Available Balance:** Số dư khả dụng dùng để thanh toán 100% các khóa học hoặc tạo yêu cầu rút tiền về tài khoản ngân hàng.
+* **Reserved Balance:** Số tiền đang được phong tỏa trong quá trình rút tiền (`StudentWithdrawal` ở trạng thái `Requested` hoặc `Processing`).
+* **Bất biến số dư:** `AvailableBalance >= 0` và `ReservedBalance >= 0` được bảo vệ bằng Database Check Constraint `CK_StudentWallet_NonNegativeBalances`.
+
+### Nạp tiền vào Ví (Top-up Flow)
+1. Student khởi tạo yêu cầu nạp tiền với số tiền cụ thể.
+2. Hệ thống sinh mã tham chiếu giao dịch duy nhất `TOPUP...` và tạo liên kết chuyển hướng sang Cổng thanh toán VNPay Sandbox.
+3. Student thanh toán an toàn qua cổng VNPay (thẻ ATM nội địa test hoặc ứng dụng ngân hàng).
+4. Cổng VNPay gửi webhook / Callback đối soát kèm chữ ký bảo mật SHA-512.
+5. Tiền được tự động ghi có trực tiếp vào ví học viên kèm theo bản ghi sổ cái bất biến `StudentWalletTransaction` loại `TopUpCredit`.
+
+### Thanh toán Khóa học (100% Wallet Payment)
+* Student bắt buộc thanh toán 100% học phí bằng số dư ví học viên. Nếu số dư không đủ, Student được điều hướng nạp thêm tiền trước khi xác nhận thanh toán.
+* Giao dịch thanh toán được thực hiện trong một Database Transaction duy nhất:
+  - Khóa dòng bi quan (`SELECT ... FOR UPDATE`) trên `StudentWallet`.
+  - Kiểm tra `AvailableBalance >= TotalAmount`.
+  - Trừ tiền `AvailableBalance` và tạo `StudentWalletTransaction` loại `BookingPaymentDebit`.
+  - Ghi nhận `Transaction` của hệ thống ở trạng thái `Succeeded` để đưa tiền vào Platform Holding (Escrow).
+  - Chuyển `Booking` sang `Pending` và kích hoạt `Enrollment` sang `Active`.
+
+### Rút tiền Học viên (Student Withdrawal Flow)
+* **Số dư tối thiểu:** 50.000 VNĐ.
+* **Quy trình:**
+  ```text
+  Requested (Tạm giữ Available → Reserved)
+  → Processing (Admin nhận xử lý chuyển khoản)
+  → Completed (Admin xác nhận chuyển khoản thành công, khấu trừ Reserved)
+  ```
+  hoặc:
+  ```text
+  Processing → Failed (Hủy rút tiền, hoàn trả Reserved → Available kèm lý do)
+  ```
+
+---
+
+## 12.8. Student Refund & Re-booking Flow
+
+Toàn bộ các luồng hoàn tiền trên nền tảng (do Student hủy khóa học, Tutor hủy khóa học, hủy buổi học đơn lẻ, hoặc giải quyết tranh chấp Dispute) đều được định tuyến **trực tiếp và tức thì vào Ví Học Viên**:
+
+```text
+Cancellation / Dispute Resolution
+→ Platform Escrow / Holding Release
+→ Credit trực tiếp vào StudentWallet.AvailableBalance
+→ Ghi vết StudentWalletTransaction (Type: RefundCredit, Append-only)
+```
+
+* **Lợi ích:** Học viên nhận lại tiền ngay lập tức mà không cần chờ đợi cổng thanh toán hoàn tiền ngoại vi kéo dài 7-14 ngày.
+* **Tái sử dụng:** Học viên có thể dùng số dư hoàn tiền để đăng ký ngay khóa học khác hoặc tạo yêu cầu rút tiền về ngân hàng bất kỳ lúc nào.
 
 ---
 

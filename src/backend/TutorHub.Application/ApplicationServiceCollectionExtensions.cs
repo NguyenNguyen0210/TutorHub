@@ -26,6 +26,7 @@ public static class ApplicationServiceCollectionExtensions
         // dependency in the Application layer.
 
         services.AddScoped<IEnrollmentActivationService, EnrollmentActivationService>();
+        services.AddScoped<TutorHub.Application.Common.Interfaces.IStudentWalletService, TutorHub.Application.Features.StudentWallets.Services.StudentWalletService>();
 
         return services;
     }

@@ -23,15 +23,22 @@ public class GetPaymentResultQueryHandler : IRequestHandler<GetPaymentResultQuer
 
         if (!parsed.IsVerified)
         {
+            request.Parameters.TryGetValue("vnp_TxnRef", out var rawRef);
+            decimal rawAmt = 0;
+            if (request.Parameters.TryGetValue("vnp_Amount", out var amtStr) && decimal.TryParse(amtStr, out var amt))
+            {
+                rawAmt = amt / 100m;
+            }
+
             return new PaymentResultDto(
                 Success: false,
                 Message: parsed.Error == PaymentCallbackError.InvalidSignature
                     ? "Invalid security checksum signature."
                     : "Invalid payment callback parameters.",
                 BookingId: Guid.Empty,
-                MerchantReference: string.Empty,
+                MerchantReference: rawRef ?? string.Empty,
                 TransactionNo: null,
-                Amount: 0
+                Amount: rawAmt
             );
         }
 
@@ -44,6 +51,22 @@ public class GetPaymentResultQueryHandler : IRequestHandler<GetPaymentResultQuer
                 t => t.PaymentGatewayRef == parsed.MerchantReference
                     || t.PaymentGatewayRef == $"{parsed.MerchantReference}|{parsed.ProviderTransactionId}",
                 cancellationToken);
+
+        if (transaction == null && (parsed.MerchantReference?.StartsWith("TOPUP", StringComparison.OrdinalIgnoreCase) ?? false))
+        {
+            var topUpMsg = parsed.IsSuccessful
+                ? "Nạp tiền vào ví học viên thành công! Số dư khả dụng của bạn đã được cập nhật."
+                : "Giao dịch nạp tiền qua cổng VNPay không thành công hoặc bị hủy.";
+
+            return new PaymentResultDto(
+                Success: parsed.IsSuccessful,
+                Message: topUpMsg,
+                BookingId: Guid.Empty,
+                MerchantReference: parsed.MerchantReference ?? string.Empty,
+                TransactionNo: parsed.ProviderTransactionId,
+                Amount: parsed.Amount
+            );
+        }
 
         var bookingId = transaction?.BookingId ?? Guid.Empty;
 

@@ -68,13 +68,24 @@ public class User
 
     /// <summary>
     /// Transition: Active|Suspended → Banned.
-    /// Note: Banned→? is currently unspecified by PRD. No Unban() method exists until PRD resolves this.
     /// </summary>
     public void Ban()
     {
         if (Status == AccountStatus.Banned)
             throw new InvalidOperationException("Account is already banned.");
         Status = AccountStatus.Banned;
+    }
+
+    /// <summary>
+    /// Transition: Banned → Active.
+    /// Admin pardon/reinstatement after report resolution or successful appeal.
+    /// </summary>
+    public void Unban()
+    {
+        if (Status != AccountStatus.Banned)
+            throw new InvalidOperationException(
+                $"Cannot unban account with status '{Status}'. Only Banned accounts can be unbanned.");
+        Status = AccountStatus.Active;
     }
 
     /// <summary>

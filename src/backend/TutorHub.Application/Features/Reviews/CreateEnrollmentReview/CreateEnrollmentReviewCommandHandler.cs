@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Features.PlatformSettings.Commands.AdminUpsertPlatformSetting;
 using TutorHub.Application.Features.Reviews.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
@@ -51,10 +52,22 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
 
         var now = _clock.UtcNow;
 
-        // 3. Review Window Guard (FR-OPEN-006 / DEC-REV-008: Default 30 days post-completion)
-        if (enrollment.CompletedAt.HasValue && now > enrollment.CompletedAt.Value.AddDays(DefaultReviewWindowDays))
+        // 3. Review Window Guard (FR-CONFIG-006 / DEC-REV-008): Read platform setting with 30d fallback
+        var reviewWindowDays = DefaultReviewWindowDays;
+        if (_context.PlatformSettings != null)
         {
-            throw new ConflictException($"The {DefaultReviewWindowDays}-day review window for this completed enrollment has expired.");
+            var setting = await _context.PlatformSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Key == PlatformSettingKeys.ReviewWindowDays, cancellationToken);
+            if (setting != null && int.TryParse(setting.Value, out var configuredDays) && configuredDays > 0)
+            {
+                reviewWindowDays = configuredDays;
+            }
+        }
+
+        if (enrollment.CompletedAt.HasValue && now > enrollment.CompletedAt.Value.AddDays(reviewWindowDays))
+        {
+            throw new ConflictException($"The {reviewWindowDays}-day review window for this completed enrollment has expired.");
         }
 
         // 4. Cardinality / Uniqueness Guard (DEC-REV-001): Max 1 review per enrollment
@@ -108,7 +121,19 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
             enrollment.StudentProfile.UserId,
             review.Rating));
 
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            var innerMsg = ex.InnerException?.Message ?? string.Empty;
+            if (innerMsg.Contains("IX_Reviews_EnrollmentId") || innerMsg.Contains("23505"))
+            {
+                throw new ConflictException("A review has already been submitted for this enrollment.");
+            }
+            throw;
+        }
 
         var studentUser = enrollment.StudentProfile.User;
         // F-23 (Đợt 4): centralized mapping.

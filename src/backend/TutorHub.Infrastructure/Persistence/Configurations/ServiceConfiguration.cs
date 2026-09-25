@@ -45,6 +45,21 @@ public class ServiceConfiguration : IEntityTypeConfiguration<Service>
         builder.Property(s => s.TrialLessonUrl)
             .HasMaxLength(1000);
 
+        builder.Property(s => s.CoverImageUrl)
+            .HasMaxLength(1000);
+
+        builder.Property(s => s.CurriculumJson)
+            .HasColumnType("jsonb");
+
+        builder.Property(s => s.TargetAudienceJson)
+            .HasColumnType("jsonb");
+
+        builder.Property(s => s.PrerequisitesJson)
+            .HasColumnType("jsonb");
+
+        builder.Property(s => s.FaqsJson)
+            .HasColumnType("jsonb");
+
         builder.Property(s => s.Status)
             .HasConversion<string>()
             .HasMaxLength(20)

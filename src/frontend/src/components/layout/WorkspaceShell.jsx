@@ -44,6 +44,12 @@ export default function WorkspaceShell({ userRole: role, children }) {
     ...(role === 'Student'
       ? [
           {
+            key: 'wallet',
+            icon: <Icon name="account_balance_wallet" size="sm" />,
+            label: <span className="font-semibold text-body-reg">Ví học viên & Nạp/Rút</span>,
+            onClick: () => navigate('/student/wallet'),
+          },
+          {
             key: 'dispute',
             icon: <Icon name="gavel" size="sm" />,
             label: <span className="font-semibold text-body-reg">Khiếu nại buổi học</span>,
@@ -53,6 +59,12 @@ export default function WorkspaceShell({ userRole: role, children }) {
       : []),
     ...(role === 'Tutor'
       ? [
+          {
+            key: 'application',
+            icon: <Icon name="verified_user" size="sm" />,
+            label: <span className="font-semibold text-body-reg">Hồ sơ xét duyệt</span>,
+            onClick: () => navigate('/tutor/application'),
+          },
           {
             key: 'wallet',
             icon: <Icon name="account_balance_wallet" size="sm" />,
@@ -211,7 +223,12 @@ export default function WorkspaceShell({ userRole: role, children }) {
           </div>
         </header>
 
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 lg:pb-10">
+        <main
+          className={cn(
+            'flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 lg:pb-10',
+            role === 'Admin' ? 'max-w-[1600px]' : 'max-w-7xl'
+          )}
+        >
           {children}
         </main>
       </div>

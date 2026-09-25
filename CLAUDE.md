@@ -30,7 +30,7 @@ dotnet build src/backend/TutorHub.sln
 # Run API Server locally (http://localhost:5129 | Swagger: http://localhost:5129/swagger)
 dotnet run --project src/backend/TutorHub.Api
 
-# Run Entire Test Suite (588 Executed Tests - 100% Deterministic Pass)
+# Run Entire Test Suite (640 Executed Tests - 100% Deterministic Pass)
 dotnet test src/backend/TutorHub.sln
 
 # Run Specific Test Projects
@@ -91,8 +91,8 @@ Enrollment (Hợp đồng học tập trung tâm - Snapshot PlatformFeeRate & Fe
        ↓ (EnrollmentSessionAllocator tự động sinh N Sessions)
 Sessions (Unscheduled → Scheduled trong AvailabilitySlots của Tutor)
        ↓ (Học xong: Mở Attendance Window 24h)
-Attendance Verification (Student & Tutor cùng xác nhận 2 chiều)
-       ↓ (AttendanceVerificationJob tự động duyệt hoặc gắn cờ Conflict)
+Attendance Verification (Student & Tutor xác nhận 2 chiều — Row lock FOR UPDATE chống race condition)
+       ↓ (AttendanceVerificationJob: Phase 0 tự động recovery payout mồ côi; Phase 1 gắn cờ Conflict sau 24h)
 Wallet Payout Release (Giải ngân SessionPayoutCredit cho từng buổi hoàn thành)
        ↓ (Nếu có khiếu nại)
 Dispute Engine (Pre-release Escrow hold hoặc Post-release Balance hold)
@@ -101,17 +101,17 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
 ```
 
 ### 2. Codebase Structure
-* `src/backend/TutorHub.Domain/`: **Domain Cốt Lõi Độc Lập**. Entities (`User`, `TutorProfile`, `StudentProfile`, `Service`, `Booking`, `Enrollment`, `Session`, `Wallet`, `Transaction`, `Dispute`, `PlatformSetting`, `AuditLog`), Enums, Allocators (`EnrollmentSessionAllocator`), và Domain Invariants. Tuyệt đối không phụ thuộc vào hạ tầng hay UI.
-* `src/backend/TutorHub.Application/`: **Nghiệp Vụ Ứng Dụng (Vertical Slice / CQRS)**. Chia theo feature (`Features/{Module}/{FeatureName}/`). Chứa `Command/Query`, `Validator`, `Handler`, `DTOs`, Business Events, và Abstractions (`IAppDbContext`, `IAuditLogService`, `IPaymentGateway`, `IObjectStorageService`, `IJwtService`).
+* `src/backend/TutorHub.Domain/`: **Domain Cốt Lõi Độc Lập**. Entities (`User`, `TutorProfile`, `StudentProfile`, `Service`, `Booking`, `Enrollment`, `Session`, `Wallet`, `StudentWallet`, `StudentWalletTransaction`, `StudentWithdrawal`, `TopUpRequest`, `Transaction`, `Dispute`, `PlatformSetting`, `AuditLog`), Enums, Allocators (`EnrollmentSessionAllocator`), và Domain Invariants. Tuyệt đối không phụ thuộc vào hạ tầng hay UI.
+* `src/backend/TutorHub.Application/`: **Nghiệp Vụ Ứng Dụng (Vertical Slice / CQRS)**. Chia theo feature (`Features/{Module}/{FeatureName}/`). Chứa `Command/Query`, `Validator`, `Handler`, `DTOs`, Business Events, và Abstractions (`IAppDbContext`, `IAuditLogService`, `IStudentWalletService`, `IPaymentGateway`, `IObjectStorageService`, `IJwtService`).
 * `src/backend/TutorHub.Infrastructure/`: **Hạ Tầng Kỹ Thuật**. `AppDbContext` (interceptor bảo vệ sổ cái bất biến), 6 Background Jobs (`BookingTimeoutBackgroundService`, `OutboxDispatcherJob`, `EmailDeliveryJob`, `SessionReminderJob`, `AttendanceReminderJob`, `AttendanceVerificationJob`), VNPay SHA512, Cloudflare R2, và SignalR hubs (`/hubs/chat`, `/hubs/notifications`).
 * `src/backend/TutorHub.Api/`: **Giao Tiếp Ngoại Vi (Thin Controllers)**. Controller chỉ dispatch MediatR, Middlewares (`CorrelationIdMiddleware`, `GlobalExceptionHandler`).
 * `src/frontend/`: **Giao Diện Người Dùng (React 18 + Vite + Tailwind)**:
   - `src/styles/tokens.css`: **Nguồn sự thật duy nhất** về Design Tokens (Brand Style Guide v2).
-  - `src/services/api.js`: Axios instance với token refresh rotation, correlation headers, và API client modules (`booking`, `enrollment`, `session`, `wallet`, `dispute`, `admin`, etc.).
+  - `src/services/api.js`: Axios instance với token refresh rotation, correlation headers, và API client modules (`booking`, `enrollment`, `session`, `wallet`, `studentWallet`, `dispute`, `admin`, etc.).
   - `src/store/authStore.js`: Zustand store quản lý trạng thái đăng nhập, user profile, vai trò và token.
   - `src/routes/RouteGuards.jsx`: Protected routes phân quyền theo vai trò (`Student`, `Tutor`, `Admin`).
   - `src/components/`, `src/pages/`, `src/layouts/`: Giao diện chia theo vai trò (Admin, Student, Tutor, Discovery, Checkout, Shared).
-* `src/test/`: **Kiểm Thử Tự Động** (588 test cases - 100% Deterministic Pass): `Domain.UnitTests` (204), `Application.UnitTests` (290), `Infrastructure.UnitTests` (21), `Api.IntegrationTests` (73, Postgres).
+* `src/test/`: **Kiểm Thử Tự Động** (649 test cases - 100% Deterministic Pass): `Domain.UnitTests` (229), `Application.UnitTests` (345), `Api.IntegrationTests` (75, Postgres).
 * `docs/`: **Baseline Nghiệp Vụ Chuẩn**: `prd.md`, `functional-requirements.md`, `user-stories.md`, `openapi.json`.
 * `scripts/` *(untracked local tooling)*: CI contract verification, dev bootstrap, secret scanning.
 
@@ -158,6 +158,12 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
 * ⛔ **9. Snapshot Phí Sàn Bất Biến (`DEC-S8-020`):** `Enrollment` snapshot cố định `PlatformFeeRate` và `FeePolicyVersion` tại thời điểm tạo. Việc Admin thay đổi phí sàn toàn hệ thống (`PlatformSetting`) chỉ áp dụng cho các hợp đồng tạo mới sau đó, không hồi tố hợp đồng cũ.
 * ⛔ **10. Khóa Tài Nguyên Có Thứ Tự Tránh Deadlock (`DEC-S8-027`):** Mọi nghiệp vụ có tranh chấp và ví phải khóa tài nguyên theo thứ tự: $\text{Dispute} \prec \text{Wallet (FOR UPDATE)} \prec \text{Transaction}$.
 * ⛔ **11. VNPay Return URL là Read-Only:** Tuyệt đối không cập nhật trạng thái đơn hàng hay cộng tiền ví trong Return URL. Mọi mutation tài chính bắt buộc phải nằm trong **IPN Webhook** và bọc trong **Database Transaction**.
+* ⛔ **12. Ví Học Viên (Student Wallet) & Sổ Cái Bất Biến (`INV-STUDENT-WALLET-001` - `005`):**
+  - Thanh toán khóa học bắt buộc 100% qua ví học viên (`StudentWallet.AvailableBalance`).
+  - Giao dịch thanh toán khóa học (`PayBookingFromWallet`) bắt buộc thực hiện trong Database Transaction với khóa dòng (`FOR UPDATE`).
+  - Sổ cái `StudentWalletTransaction` là append-only bất biến (`INV-STUDENT-WALLET-003`).
+  - Toàn bộ hoàn tiền (hủy khóa, hủy buổi, phán quyết tranh chấp) định tuyến trực tiếp vào ví học viên (`StudentWallet.AvailableBalance`).
+  - Rút tiền học viên tối thiểu 50.000 VNĐ, quản lý qua `ReservedBalance` (bảo vệ bởi `CK_StudentWallet_NonNegativeBalances`).
 
 ---
 

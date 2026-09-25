@@ -488,6 +488,25 @@ public record ReportCreatedEvent(
     public Guid AggregateId => ReportId;
 }
 
+public record ReportResolvedEvent(
+    Guid ReportId,
+    Guid ReportedUserId,
+    Guid ReporterUserId,
+    string Decision,
+    string Resolution,
+    Guid EventId = default,
+    int EventVersion = 1,
+    DateTime OccurredAt = default
+) : IBusinessEvent
+{
+    public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
+    public string EventType => BusinessEventTypes.ReportResolved;
+    public int EventVersion { get; init; } = EventVersion;
+    public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
+    public string AggregateType => "Report";
+    public Guid AggregateId => ReportId;
+}
+
 // ==========================================
 // Communication Domain Event
 // ==========================================
@@ -530,3 +549,139 @@ public record PlatformSettingChangedEvent(
     public string AggregateType => "PlatformSetting";
     public Guid AggregateId => Guid.Empty;
 }
+
+// ==========================================
+// 6. Student Wallet & Top-up Events
+// ==========================================
+public record StudentTopUpRequestedEvent(
+    Guid TopUpRequestId,
+    Guid StudentProfileId,
+    Guid StudentUserId,
+    MoneyDto Amount,
+    string TransferReference,
+    Guid EventId = default,
+    int EventVersion = 1,
+    DateTime OccurredAt = default
+) : IBusinessEvent
+{
+    public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
+    public string EventType => BusinessEventTypes.StudentTopUpRequested;
+    public int EventVersion { get; init; } = EventVersion;
+    public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
+    public string AggregateType => "TopUpRequest";
+    public Guid AggregateId => TopUpRequestId;
+}
+
+public record StudentTopUpConfirmedEvent(
+    Guid TopUpRequestId,
+    Guid StudentProfileId,
+    Guid StudentUserId,
+    MoneyDto Amount,
+    Guid AdminId,
+    Guid EventId = default,
+    int EventVersion = 1,
+    DateTime OccurredAt = default
+) : IBusinessEvent
+{
+    public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
+    public string EventType => BusinessEventTypes.StudentTopUpConfirmed;
+    public int EventVersion { get; init; } = EventVersion;
+    public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
+    public string AggregateType => "TopUpRequest";
+    public Guid AggregateId => TopUpRequestId;
+}
+
+public record StudentTopUpRejectedEvent(
+    Guid TopUpRequestId,
+    Guid StudentProfileId,
+    Guid StudentUserId,
+    string Reason,
+    Guid AdminId,
+    Guid EventId = default,
+    int EventVersion = 1,
+    DateTime OccurredAt = default
+) : IBusinessEvent
+{
+    public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
+    public string EventType => BusinessEventTypes.StudentTopUpRejected;
+    public int EventVersion { get; init; } = EventVersion;
+    public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
+    public string AggregateType => "TopUpRequest";
+    public Guid AggregateId => TopUpRequestId;
+}
+
+public record StudentWalletPaymentSucceededEvent(
+    Guid BookingId,
+    Guid StudentProfileId,
+    Guid StudentUserId,
+    MoneyDto Amount,
+    Guid EventId = default,
+    int EventVersion = 1,
+    DateTime OccurredAt = default
+) : IBusinessEvent
+{
+    public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
+    public string EventType => BusinessEventTypes.StudentWalletPaymentSucceeded;
+    public int EventVersion { get; init; } = EventVersion;
+    public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
+    public string AggregateType => "Booking";
+    public Guid AggregateId => BookingId;
+}
+
+public record StudentWithdrawalRequestedEvent(
+    Guid WithdrawalId,
+    Guid StudentProfileId,
+    Guid StudentUserId,
+    MoneyDto Amount,
+    Guid EventId = default,
+    int EventVersion = 1,
+    DateTime OccurredAt = default
+) : IBusinessEvent
+{
+    public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
+    public string EventType => BusinessEventTypes.StudentWithdrawalRequested;
+    public int EventVersion { get; init; } = EventVersion;
+    public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
+    public string AggregateType => "StudentWithdrawal";
+    public Guid AggregateId => WithdrawalId;
+}
+
+public record StudentWithdrawalCompletedEvent(
+    Guid WithdrawalId,
+    Guid StudentProfileId,
+    Guid StudentUserId,
+    MoneyDto Amount,
+    Guid AdminId,
+    Guid EventId = default,
+    int EventVersion = 1,
+    DateTime OccurredAt = default
+) : IBusinessEvent
+{
+    public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
+    public string EventType => BusinessEventTypes.StudentWithdrawalCompleted;
+    public int EventVersion { get; init; } = EventVersion;
+    public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
+    public string AggregateType => "StudentWithdrawal";
+    public Guid AggregateId => WithdrawalId;
+}
+
+public record StudentWithdrawalFailedEvent(
+    Guid WithdrawalId,
+    Guid StudentProfileId,
+    Guid StudentUserId,
+    MoneyDto Amount,
+    string Reason,
+    Guid AdminId,
+    Guid EventId = default,
+    int EventVersion = 1,
+    DateTime OccurredAt = default
+) : IBusinessEvent
+{
+    public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
+    public string EventType => BusinessEventTypes.StudentWithdrawalFailed;
+    public int EventVersion { get; init; } = EventVersion;
+    public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
+    public string AggregateType => "StudentWithdrawal";
+    public Guid AggregateId => WithdrawalId;
+}
+

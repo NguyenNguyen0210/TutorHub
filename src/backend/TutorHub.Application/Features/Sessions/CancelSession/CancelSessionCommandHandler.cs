@@ -15,17 +15,20 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
     private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IStudentWalletService _studentWalletService;
 
     public CancelSessionCommandHandler(
         IAppDbContext context,
         IClock clock,
         IAuditLogService auditLogService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IStudentWalletService studentWalletService)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
         _currentUserService = currentUserService;
+        _studentWalletService = studentWalletService;
     }
 
     public async Task<SessionDto> Handle(CancelSessionCommand request, CancellationToken cancellationToken)
@@ -107,23 +110,47 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
                     throw new InvalidOperationException("Financial invariant violated: Tutor wallet not found for escrow debit during single session cancellation.");
                 }
 
+                // Credit refund directly into Student Wallet (Holding -> Student Wallet)
+                await _studentWalletService.CreditRefundAsync(
+                    enrollment.StudentProfileId,
+                    session.EarningAmount,
+                    "SessionCancellation",
+                    session.Id,
+                    $"Hoàn tiền hủy buổi học: {request.Reason.Trim()}",
+                    now,
+                    cancellationToken);
+
                 var refundTx = Transaction.CreateRefund(
                     bookingId: enrollment.BookingId,
                     sessionId: session.Id,
                     disputeId: null,
                     originalPayout: null,
                     amount: session.EarningAmount,
-                    paymentGatewayRef: $"EscrowRefund-Session-{session.Id:N}",
+                    paymentGatewayRef: $"WalletRefund-Session-{session.Id:N}",
                     description: $"Single session cancellation refund: {request.Reason.Trim()}",
                     now: now);
-                refundTx.SettlementRequired = true;
+                refundTx.Status = TransactionStatus.Succeeded;
+                refundTx.RefundedAt = now;
+                refundTx.SettlementRequired = false;
                 _context.Transactions.Add(refundTx);
 
                 _context.AddOutboxMessage(new RefundCreatedEvent(
                     enrollment.Id,
                     enrollment.StudentProfile.UserId,
                     new MoneyDto(session.EarningAmount),
-                    refundTx.Id));
+                    refundTx.Id,
+                    Guid.NewGuid(),
+                    1,
+                    now));
+
+                _context.AddOutboxMessage(new RefundCompletedEvent(
+                    enrollment.Id,
+                    enrollment.StudentProfile.UserId,
+                    new MoneyDto(session.EarningAmount),
+                    refundTx.Id,
+                    Guid.NewGuid(),
+                    1,
+                    now));
             }
 
             _context.AddOutboxMessage(new SessionCancelledEvent(

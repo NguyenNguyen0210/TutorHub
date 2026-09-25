@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import sessionService from '@/services/session.service';
 import walletService from '@/services/wallet.service';
+import tutorService from '@/services/tutor.service';
 import { useAuthStore } from '@/store/authStore';
 import { formatDateTime } from '@/utils/formatters';
 import Money from '@/components/ui/Money';
@@ -21,19 +22,22 @@ export default function TutorDashboard() {
   const [error, setError] = useState(null);
   const [wallet, setWallet] = useState(null);
   const [sessions, setSessions] = useState([]);
+  const [application, setApplication] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
     async function loadTutorData() {
       try {
         setLoading(true);
-        const [walletData, sessionList] = await Promise.all([
+        const [walletData, sessionList, appData] = await Promise.all([
           walletService.getMyWallet(),
           sessionService.getMySessions(),
+          tutorService.getMyTutorApplication().catch(() => null),
         ]);
         if (isMounted) {
           setWallet(walletData);
           setSessions(Array.isArray(sessionList) ? sessionList : []);
+          setApplication(appData);
           setError(null);
         }
       } catch (err) {
@@ -88,14 +92,36 @@ export default function TutorDashboard() {
         title={
           <span className="flex items-center gap-2 flex-wrap">
             {user?.fullName || user?.name || 'Gia sư'}
-            <Badge variant="success" icon={<Icon name="verified" size="sm" filled />}>
-              Verified Tutor
-            </Badge>
+            {!application ? (
+              <Badge variant="warning" icon={<Icon name="info" size="xs" />}>
+                Chưa nộp hồ sơ
+              </Badge>
+            ) : application.status === 'Pending' ? (
+              <Badge variant="warning" icon={<Icon name="hourglass_top" size="xs" />}>
+                Đang chờ xét duyệt
+              </Badge>
+            ) : application.status === 'Rejected' ? (
+              <Badge variant="danger" icon={<Icon name="error" size="xs" />}>
+                Hồ sơ bị từ chối
+              </Badge>
+            ) : (
+              <Badge variant="success" icon={<Icon name="verified" size="sm" filled />}>
+                Verified Tutor
+              </Badge>
+            )}
           </span>
         }
         subtitle="Quản trị giảng dạy, theo dõi lịch dạy và doanh thu đối soát theo từng buổi học"
         actions={
           <>
+            <Button
+              as={Link}
+              to="/tutor/application"
+              variant="outline"
+              icon={<Icon name="verified_user" size="sm" />}
+            >
+              Hồ sơ gia sư
+            </Button>
             <Button
               as={Link}
               to="/tutor/availability"
@@ -115,6 +141,72 @@ export default function TutorDashboard() {
           </>
         }
       />
+
+      {/* Onboarding Guidance Banners */}
+      {!application && (
+        <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-blue-500/5 border-2 border-blue-300 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-[#2563EB] text-white flex items-center justify-center shrink-0 shadow-md">
+              <Icon name="verified_user" size="lg" />
+            </div>
+            <div className="space-y-1">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#2563EB] bg-blue-100/80 px-2.5 py-0.5 rounded-full">
+                Bước quan trọng tiếp theo
+              </span>
+              <h2 className="text-lg font-bold text-slate-900">
+                Hoàn tất hồ sơ đăng ký giảng dạy TutorHub
+              </h2>
+              <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
+                Tài khoản của bạn chưa nộp hồ sơ giảng dạy. Vui lòng hoàn thành 6 bước kê khai thông tin, văn bằng và môn học để được cấp huy hiệu <strong>Verified Tutor</strong> và mở lớp nhận học viên.
+              </p>
+            </div>
+          </div>
+          <Button
+            as={Link}
+            to="/tutor/application"
+            variant="primary"
+            size="lg"
+            className="shrink-0 whitespace-nowrap shadow-sm"
+            icon={<Icon name="arrow_forward" size="sm" />}
+          >
+            Nộp hồ sơ ngay
+          </Button>
+        </div>
+      )}
+
+      {application && application.status === 'Pending' && (
+        <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+              <Icon name="hourglass_top" size="md" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">Hồ sơ gia sư của bạn đang chờ kiểm duyệt</h3>
+              <p className="text-xs text-slate-600 mt-0.5">Đội ngũ TutorHub đang thẩm định văn bằng và sẽ phản hồi trong 1–3 ngày làm việc.</p>
+            </div>
+          </div>
+          <Button as={Link} to="/tutor/application" variant="outline" size="sm" className="shrink-0">
+            Xem tiến độ hồ sơ
+          </Button>
+        </div>
+      )}
+
+      {application && application.status === 'Rejected' && (
+        <div className="p-4 rounded-2xl bg-rose-50/90 border border-rose-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+              <Icon name="error" size="md" />
+            </div>
+            <div>
+              <h3 className="font-bold text-rose-900 text-sm">Hồ sơ bị từ chối xét duyệt: {application.rejectionReason || 'Cần bổ sung thông tin'}</h3>
+              <p className="text-xs text-rose-700 mt-0.5">Bạn có thể cập nhật lại văn bằng, kinh nghiệm và nộp lại hồ sơ để được phê duyệt.</p>
+            </div>
+          </div>
+          <Button as={Link} to="/tutor/application" variant="primary" size="sm" className="bg-rose-600 hover:bg-rose-700 shrink-0">
+            Cập nhật & Nộp lại
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard

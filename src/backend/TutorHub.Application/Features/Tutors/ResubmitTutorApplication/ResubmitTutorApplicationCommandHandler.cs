@@ -64,11 +64,20 @@ public class ResubmitTutorApplicationCommandHandler
             UserId = userId,
             Bio = request.Bio.Trim(),
             Education = request.Education.Trim(),
+            University = request.University?.Trim() ?? request.Education.Trim(),
+            Major = request.Major?.Trim(),
+            DegreeLevel = request.DegreeLevel?.Trim(),
+            Certifications = request.Certifications?.Trim(),
+            Subject = request.Subject?.Trim(),
+            SubjectSub = request.SubjectSub?.Trim(),
             ExperienceYears = request.ExperienceYears,
             TeachingMode = request.TeachingMode,
             Address = request.Address?.Trim(),
             Latitude = request.Latitude,
             Longitude = request.Longitude,
+            Methodology = request.Methodology?.Trim(),
+            Achievements = request.Achievements?.Trim(),
+            DocumentsJson = request.DocumentsJson,
             SubmittedAt = _clock.UtcNow
         };
 

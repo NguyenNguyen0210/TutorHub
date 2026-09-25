@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -10,11 +10,16 @@ public class AdminModerateReviewCommandHandler : IRequestHandler<AdminModerateRe
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IAuditLogService _auditLogService;
 
-    public AdminModerateReviewCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
+    public AdminModerateReviewCommandHandler(
+        IAppDbContext context,
+        ICurrentUserService currentUserService,
+        IAuditLogService auditLogService)
     {
         _context = context;
         _currentUserService = currentUserService;
+        _auditLogService = auditLogService;
     }
 
     public async Task<ReviewDto> Handle(AdminModerateReviewCommand request, CancellationToken cancellationToken)
@@ -56,6 +61,16 @@ public class AdminModerateReviewCommandHandler : IRequestHandler<AdminModerateRe
             // F-23: denormalized stats owned by the domain.
             tutorProfile.ApplyReview(remainingRatings);
         }
+
+        // Audit trail for moderation action (INV-LEDGER-006)
+        await _auditLogService.LogAsync(
+            action: "REVIEW_MODERATED",
+            entityName: "Review",
+            entityId: review.Id.ToString(),
+            userId: userId,
+            oldValues: new { rating = review.Rating, comment = review.Comment },
+            newValues: new { isRemoved = true, reason = request.Reason, moderatedBy = userId },
+            cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
 

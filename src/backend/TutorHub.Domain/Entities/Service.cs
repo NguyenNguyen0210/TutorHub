@@ -25,8 +25,15 @@ public class Service
     public decimal Price { get; set; }
     public TeachingMode TeachingMode { get; set; }
 
-    // Trial Lesson (optional external URL reference)
+    // Trial Lesson & Media preview
     public string? TrialLessonUrl { get; set; }
+    public string? CoverImageUrl { get; set; }
+
+    // Extended Course Details (JSONB-backed)
+    public string? CurriculumJson { get; set; }
+    public string? TargetAudienceJson { get; set; }
+    public string? PrerequisitesJson { get; set; }
+    public string? FaqsJson { get; set; }
 
     // Lifecycle
     public ServiceStatus Status { get; set; } = ServiceStatus.Draft;

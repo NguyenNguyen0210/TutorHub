@@ -6,7 +6,7 @@ public record WalletTransactionDto(
     Guid Id,
     Guid WalletId,
     Guid? WithdrawalId,
-    WalletTransactionType Type,
+    TutorWalletTransactionType Type,
     decimal Amount,
     decimal BalanceAfter,
     string? Description,

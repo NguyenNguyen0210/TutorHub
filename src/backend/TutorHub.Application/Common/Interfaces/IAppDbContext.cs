@@ -19,13 +19,18 @@ public interface IAppDbContext
     DbSet<Enrollment> Enrollments { get; }
     DbSet<Session> Sessions { get; }
     DbSet<Transaction> Transactions { get; }
-    DbSet<Wallet> Wallets { get; }
-    DbSet<Withdrawal> Withdrawals { get; }
+    DbSet<TutorWallet> TutorWallets { get; }
+    DbSet<TutorWithdrawal> TutorWithdrawals { get; }
     DbSet<Review> Reviews { get; }
     DbSet<Report> Reports { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<Media> Media { get; }
-    DbSet<WalletTransaction> WalletTransactions { get; }
+    DbSet<TutorWalletTransaction> TutorWalletTransactions { get; }
+
+    // Backward-compatibility aliases
+    DbSet<TutorWallet> Wallets => TutorWallets;
+    DbSet<TutorWithdrawal> Withdrawals => TutorWithdrawals;
+    DbSet<TutorWalletTransaction> WalletTransactions => TutorWalletTransactions;
     DbSet<Conversation> Conversations { get; }
     DbSet<Message> Messages { get; }
     DbSet<OutboxMessage> OutboxMessages { get; }
@@ -40,6 +45,10 @@ public interface IAppDbContext
     DbSet<CustomAgreement> CustomAgreements { get; }
     DbSet<SessionRescheduleRequest> SessionRescheduleRequests { get; }
     DbSet<LearningRecord> LearningRecords { get; }
+    DbSet<StudentWallet> StudentWallets { get; }
+    DbSet<StudentWalletTransaction> StudentWalletTransactions { get; }
+    DbSet<TopUpRequest> TopUpRequests { get; }
+    DbSet<StudentWithdrawal> StudentWithdrawals { get; }
 
     DatabaseFacade Database { get; }
 

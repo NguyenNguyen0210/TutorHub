@@ -11,5 +11,14 @@ public record ResubmitTutorApplicationCommand(
     TeachingMode TeachingMode,
     string? Address = null,
     double? Latitude = null,
-    double? Longitude = null
+    double? Longitude = null,
+    string? University = null,
+    string? Major = null,
+    string? DegreeLevel = null,
+    string? Certifications = null,
+    string? Subject = null,
+    string? SubjectSub = null,
+    string? Methodology = null,
+    string? Achievements = null,
+    string? DocumentsJson = null
 ) : IRequest<TutorApplicationDto>;

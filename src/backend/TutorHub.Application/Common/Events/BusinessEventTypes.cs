@@ -31,13 +31,23 @@ public static class BusinessEventTypes
     public const string WithdrawalCompleted = "WithdrawalCompleted";
     public const string WithdrawalFailed = "WithdrawalFailed";
 
-    // 5. Trust, Safety & Disputes (4 events)
+    // 5. Trust, Safety & Disputes (5 events)
     public const string ReviewCreated = "ReviewCreated";
     public const string DisputeCreated = "DisputeCreated";
     public const string DisputeResolved = "DisputeResolved";
     public const string ReportCreated = "ReportCreated";
+    public const string ReportResolved = "ReportResolved";
     public const string PlatformSettingChanged = "PlatformSettingChanged";
 
     // Communication Domain Event (Separate from 24 Core Business Events - INV-EVENT-009)
     public const string MessageSent = "MessageSent";
+
+    // 6. Student Wallet & Top-up Events
+    public const string StudentTopUpRequested = "StudentTopUpRequested";
+    public const string StudentTopUpConfirmed = "StudentTopUpConfirmed";
+    public const string StudentTopUpRejected = "StudentTopUpRejected";
+    public const string StudentWalletPaymentSucceeded = "StudentWalletPaymentSucceeded";
+    public const string StudentWithdrawalRequested = "StudentWithdrawalRequested";
+    public const string StudentWithdrawalCompleted = "StudentWithdrawalCompleted";
+    public const string StudentWithdrawalFailed = "StudentWithdrawalFailed";
 }

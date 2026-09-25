@@ -31,12 +31,12 @@ public class GetAdminReportsQueryHandler : IRequestHandler<GetAdminReportsQuery,
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
-        var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
-        var pageSize = request.PageSize < 1 ? 10 : (request.PageSize > 50 ? 50 : request.PageSize);
+        var pageNumber = request.PageNumber;
+        var pageSize = request.PageSize;
 
         var items = await query
             .OrderByDescending(r => r.CreatedAt)
-            .ThenByDescending(r => r.Id)
+            .ThenBy(r => r.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .Select(r => new ReportSummaryDto(
