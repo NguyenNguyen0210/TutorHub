@@ -43,6 +43,7 @@ public class SessionSchedulePolicyTests
     [Theory]
     [InlineData(null)] // key missing
     [InlineData("-5")] // negative
+    [InlineData("abc")] // non-numeric
     public void RequireSchedulable_FallsBackToDefault24h_WhenConfigMissingOrNegative(string? rawValue)
     {
         var policy = new SessionSchedulePolicy(ConfigWithRawValue(rawValue), FixedClock(Utc(2026, 9, 26, 10, 0)));

@@ -12,7 +12,7 @@ public sealed class SessionSchedulePolicy
 
     public SessionSchedulePolicy(IConfiguration configuration, IClock clock)
     {
-        _noticeHours = configuration.GetValue<int?>("Scheduling:MinimumNoticeHours") is int h && h >= 0 ? h : 24;
+        _noticeHours = int.TryParse(configuration["Scheduling:MinimumNoticeHours"], out var h) && h >= 0 ? h : 24;
         _clock = clock;
     }
 
