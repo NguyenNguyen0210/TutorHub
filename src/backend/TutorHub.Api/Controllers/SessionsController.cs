@@ -10,12 +10,9 @@ using TutorHub.Application.Features.LearningRecords.CreateLearningRecord;
 using TutorHub.Application.Features.LearningRecords.DTOs;
 using TutorHub.Application.Features.LearningRecords.GetLearningRecord;
 using TutorHub.Application.Features.Sessions.CancelSession;
-using TutorHub.Application.Features.Sessions.Reschedule.AcceptReschedule;
-using TutorHub.Application.Features.Sessions.Reschedule.DTOs;
-using TutorHub.Application.Features.Sessions.Reschedule.GetRescheduleRequests;
-using TutorHub.Application.Features.Sessions.Reschedule.ProposeReschedule;
-using TutorHub.Application.Features.Sessions.Reschedule.RejectReschedule;
 using TutorHub.Application.Features.Sessions.ScheduleSession;
+using TutorHub.Application.Features.Sessions.ScheduleSessionsBatch;
+using TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.DTOs;
 using TutorHub.Application.Features.Sessions.SubmitAttendance;
 using TutorHub.Domain.Enums;
 
@@ -56,6 +53,26 @@ public class SessionsController : ControllerBase
 
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<SessionDto>.SuccessResult(result, "Session scheduled successfully."));
+    }
+
+    /// <summary>Tutor bulk-schedules unscheduled sessions atomically.</summary>
+    [Authorize(Roles = "Tutor")]
+    [HttpPost("schedule-batch")]
+    [ProducesResponseType(typeof(ApiResponse<List<SessionDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ScheduleBatch(
+        [FromBody] ScheduleSessionsBatchRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Items is null)
+        {
+            return BadRequest(ApiResponse<List<SessionDto>>.FailureResult(
+                "Validation failed.",
+                "Items is required."));
+        }
+
+        var command = new ScheduleSessionsBatchCommand(request.Items
+            .Select(i => new SessionScheduleItem(i.SessionId, i.StartAt, i.EndAt)).ToList());
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<List<SessionDto>>.SuccessResult(result, "Sessions scheduled successfully."));
     }
 
     /// <summary>
@@ -130,88 +147,6 @@ public class SessionsController : ControllerBase
     }
 
     /// <summary>
-    /// Propose a reschedule for an agreed scheduled session (Tutor only - FR-SESSION-004).
-    /// Does not mutate the session schedule until accepted by the Student.
-    /// </summary>
-    [Authorize]
-    [HttpPost("{id:guid}/reschedule-requests")]
-    [ProducesResponseType(typeof(ApiResponse<SessionRescheduleRequestDto>), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> ProposeReschedule(
-        [FromRoute] Guid id,
-        [FromBody] ProposeRescheduleRequest request,
-        CancellationToken cancellationToken)
-    {
-        var command = new ProposeSessionRescheduleCommand(
-            SessionId: id,
-            ProposedStartAt: request.ProposedStartAt,
-            ProposedEndAt: request.ProposedEndAt,
-            Reason: request.Reason
-        );
-
-        var result = await _sender.Send(command, cancellationToken);
-        return StatusCode(StatusCodes.Status201Created, ApiResponse<SessionRescheduleRequestDto>.SuccessResult(result, "Reschedule proposal created successfully."));
-    }
-
-    /// <summary>
-    /// Accept a pending reschedule proposal (Student only - FR-SESSION-005).
-    /// Atomically updates session schedule, emits outbox event, and records permanent audit log.
-    /// </summary>
-    [Authorize]
-    [HttpPost("{id:guid}/reschedule-requests/{requestId:guid}/accept")]
-    [ProducesResponseType(typeof(ApiResponse<SessionDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> AcceptReschedule(
-        [FromRoute] Guid id,
-        [FromRoute] Guid requestId,
-        CancellationToken cancellationToken)
-    {
-        var command = new AcceptSessionRescheduleCommand(
-            SessionId: id,
-            RequestId: requestId
-        );
-
-        var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<SessionDto>.SuccessResult(result, "Session rescheduled successfully."));
-    }
-
-    /// <summary>
-    /// Reject a pending reschedule proposal (Student only - FR-SESSION-005).
-    /// Marks the proposal as rejected while leaving the session schedule untouched.
-    /// </summary>
-    [Authorize]
-    [HttpPost("{id:guid}/reschedule-requests/{requestId:guid}/reject")]
-    [ProducesResponseType(typeof(ApiResponse<SessionRescheduleRequestDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> RejectReschedule(
-        [FromRoute] Guid id,
-        [FromRoute] Guid requestId,
-        [FromBody] RejectRescheduleRequest? request,
-        CancellationToken cancellationToken)
-    {
-        var command = new RejectSessionRescheduleCommand(
-            SessionId: id,
-            RequestId: requestId,
-            RejectionReason: request?.Reason
-        );
-
-        var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<SessionRescheduleRequestDto>.SuccessResult(result, "Reschedule proposal rejected."));
-    }
-
-    /// <summary>
     /// Cancel a single session (Student or Tutor participant, F-19 gate, no finance).
     /// Only Unscheduled or future Scheduled sessions. Escrow stays held; the existing
     /// enrollment pro-rata formula absorbs the amount on complete/cancel.
@@ -282,27 +217,6 @@ public class SessionsController : ControllerBase
 
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<LearningRecordDto?>.SuccessResult(result, "Learning record retrieved successfully."));
-    }
-
-    /// <summary>
-    /// Get reschedule proposal history for a session (Student or Tutor participant).
-    /// </summary>
-    [Authorize]
-    [HttpGet("{id:guid}/reschedule-requests")]
-    [ProducesResponseType(typeof(ApiResponse<List<SessionRescheduleRequestDto>>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetRescheduleRequests(
-        [FromRoute] Guid id,
-        CancellationToken cancellationToken)
-    {
-        var query = new GetSessionRescheduleRequestsQuery(
-            SessionId: id
-        );
-
-        var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<List<SessionRescheduleRequestDto>>.SuccessResult(result, "Reschedule requests retrieved successfully."));
     }
 
     public record CreateLearningRecordRequest(
