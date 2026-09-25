@@ -11,6 +11,8 @@ const VARIANT_CLASS = {
   ghost: 'bg-transparent text-fg-secondary hover:bg-neutral-100 hover:text-fg active:bg-neutral-200',
   danger:
     'bg-danger text-white hover:bg-danger-strong active:bg-danger-strong shadow-sm disabled:hover:bg-danger',
+  'danger-ghost':
+    'bg-transparent text-danger-strong hover:bg-danger-subtle active:bg-danger-subtle disabled:hover:bg-transparent',
   success:
     'bg-success text-white hover:bg-success-strong active:bg-success-strong shadow-sm disabled:hover:bg-success',
 };

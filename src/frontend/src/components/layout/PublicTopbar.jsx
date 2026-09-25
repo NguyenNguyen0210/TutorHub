@@ -222,7 +222,7 @@ export default function PublicTopbar() {
           ) : (
             <div className="flex items-center gap-2.5">
               <Link
-                to="/tutor/application"
+                to="/become-tutor"
                 className="hidden lg:inline-flex text-[14px] font-medium text-neutral-600 hover:text-[#2563EB] px-2.5 py-1.5 transition-colors"
               >
                 Trở thành gia sư
@@ -290,7 +290,7 @@ export default function PublicTopbar() {
                 Cách hoạt động
               </Link>
               <Link
-                to="/tutor/application"
+                to="/become-tutor"
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100 border-t border-border pt-3"
               >

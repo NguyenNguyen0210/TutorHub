@@ -4,7 +4,7 @@ import Icon from '@/components/ui/Icon';
 
 export default function HowItWorksHero() {
   return (
-    <section className="relative py-8 sm:py-10 lg:py-12 bg-gradient-to-r from-[#EFF6FF] via-[#F0FDF4]/30 to-[#ECFEFF] border-b border-sky-100/70 overflow-hidden">
+    <section className="relative py-8 sm:py-10 lg:py-12 bg-gradient-to-r from-[#EFF6FF] to-[#ECFEFF] border-b border-sky-100/70 overflow-hidden">
       <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center">
           {/* Left Column: Breadcrumb, Heading, Subtitle, Trust Badges */}
@@ -74,11 +74,11 @@ export default function HowItWorksHero() {
                 aria-hidden="true"
               />
 
-              {/* Student Cutout: Borderless, clean */}
+              {/* Framed hero photo: students learning together */}
               <img
-                src="/images/transparent-student-clean.png"
-                alt="Học viên TutorHub học tập hiệu quả cùng gia sư"
-                className="w-full h-auto max-h-[360px] object-contain select-none pointer-events-none drop-shadow-sm"
+                src="/images/hero-how-it-works.jpg"
+                alt="Học viên cùng nhau học tập với laptop"
+                className="w-full h-auto aspect-[4/3] object-cover rounded-brand-xl border border-white/70 shadow-brand-lg select-none"
                 loading="eager"
               />
 
