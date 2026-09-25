@@ -15,7 +15,7 @@ import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
 import { formatDateTime } from '@/utils/formatters';
 import Money from '@/components/ui/Money';
-import { getTeachingModeMeta, getDayOfWeekLabel } from '@/config/enums';
+import { getTeachingModeMeta } from '@/config/enums';
 
 /**
  * Hồ sơ gia sư công khai — Chuẩn SaaS Minimal v2.
@@ -38,7 +38,6 @@ export default function TutorProfile() {
 
   const [tutor, setTutor] = useState(null);
   const [reviews, setReviews] = useState([]);
-  const [availabilityDays, setAvailabilityDays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [secondaryWarning, setSecondaryWarning] = useState(null);
@@ -53,10 +52,9 @@ export default function TutorProfile() {
         setError(null);
         setSecondaryWarning(null);
 
-        const [tutorRes, reviewsRes, availabilityRes] = await Promise.allSettled([
+        const [tutorRes, reviewsRes] = await Promise.allSettled([
           tutorService.getTutorById(id),
           tutorService.getTutorReviews(id),
-          tutorService.getTutorAvailability(id),
         ]);
 
         if (cancelled) return;
@@ -73,12 +71,6 @@ export default function TutorProfile() {
           setReviews(reviewsRes.value?.items || []);
         } else {
           setSecondaryWarning('Không tải được danh sách đánh giá. Các thông tin khác vẫn hiển thị đầy đủ.');
-        }
-
-        if (availabilityRes.status === 'fulfilled') {
-          setAvailabilityDays(availabilityRes.value?.days || []);
-        } else {
-          setSecondaryWarning('Không tải được khung giờ rảnh. Các thông tin khác vẫn hiển thị đầy đủ.');
         }
       } catch (err) {
         if (!cancelled) setError(err);
@@ -158,9 +150,6 @@ export default function TutorProfile() {
   const subjects = Array.isArray(tutor.subjects) ? tutor.subjects : [];
   const ratingValue = Number(tutor.ratingAvg);
   const hasRating = Number.isFinite(ratingValue) && ratingValue > 0;
-  const availableDays = availabilityDays.filter(
-    (day) => (day.availableSlots ?? []).length > 0,
-  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -586,67 +575,51 @@ export default function TutorProfile() {
           </Card>
         </div>
 
-        {/* Right 1 Column: Sticky Weekly Schedule Card */}
+        {/* Right 1 Column: Sticky Scheduling Process Card */}
         <div>
           <div className="lg:sticky lg:top-24 space-y-6">
             <Card padding="lg" className="space-y-4 border border-border/90 shadow-brand-sm">
               <div className="flex items-center justify-between pb-2 border-b border-border">
                 <CardHeader
-                  title="Khung giờ rảnh định kỳ"
+                  title="Quy trình xếp lịch học"
                   icon={<Icon name="calendar_month" size="sm" className="text-brand-primary-600" />}
                 />
                 <span className="text-[10px] font-mono text-fg-muted bg-neutral-100 px-2 py-0.5 rounded">
-                  UTC+7
+                  Linh hoạt
                 </span>
               </div>
 
-              <p className="text-caption text-fg-muted leading-relaxed">
-                Múi giờ Asia/Ho_Chi_Minh. Các buổi học sẽ được đối soát và xếp lịch tự động dựa theo các slot này.
-              </p>
-
-              {availableDays.length === 0 ? (
-                <div className="p-4 rounded-brand-md bg-neutral-50 border border-dashed border-border text-center space-y-2 text-caption text-fg-muted">
-                  <Icon name="event_available" size="md" className="mx-auto text-neutral-400" />
-                  <p>Gia sư chưa cập nhật lịch cố định tuần này.</p>
-                  <p className="text-[11px] text-fg-secondary">
-                    Bạn có thể nhắn tin trực tiếp để đề xuất khung giờ học linh hoạt theo mong muốn.
-                  </p>
+              <div className="space-y-3 text-caption text-fg-secondary">
+                <div className="flex items-start gap-3 p-3 rounded-brand-md bg-neutral-50/80 border border-border">
+                  <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                    1
+                  </span>
+                  <div>
+                    <strong className="text-fg block">Đăng ký giữ chỗ</strong>
+                    <span className="text-xs text-fg-muted">Chọn gói học phù hợp và thanh toán an toàn qua két ký quỹ TutorHub.</span>
+                  </div>
                 </div>
-              ) : (
-                <ul className="space-y-3 pt-1">
-                  {availableDays.map((day) => (
-                    <li
-                      key={`${day.date ?? day.dayOfWeekName}`}
-                      className="p-3 rounded-brand-md bg-neutral-50/80 border border-border space-y-2 text-caption"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-fg">
-                          {getDayOfWeekLabel(day.dayOfWeekName) || day.dayOfWeekName}
-                          {day.date ? (
-                            <span className="text-fg-muted font-normal text-[11px]"> • {day.date}</span>
-                          ) : null}
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-medium">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          Sẵn sàng
-                        </span>
-                      </div>
 
-                      <div className="flex flex-wrap gap-1.5">
-                        {(day.availableSlots ?? []).map((slot, index) => (
-                          <span
-                            key={`${slot.startTime}-${index}`}
-                            className="px-2.5 py-1 rounded-brand-sm bg-white border border-brand-primary-200 font-bold text-brand-primary-700 font-mono text-[11px] shadow-brand-sm inline-flex items-center gap-1"
-                          >
-                            <Icon name="hourglass_top" size="xs" className="text-brand-primary-500" />
-                            {String(slot.startTime ?? '').slice(0, 5)} - {String(slot.endTime ?? '').slice(0, 5)}
-                          </span>
-                        ))}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                <div className="flex items-start gap-3 p-3 rounded-brand-md bg-neutral-50/80 border border-border">
+                  <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                    2
+                  </span>
+                  <div>
+                    <strong className="text-fg block">Xếp lịch học thuận tiện</strong>
+                    <span className="text-xs text-fg-muted">Gia sư chủ động sắp xếp thời khóa biểu chi tiết cho từng buổi học của bạn.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 rounded-brand-md bg-neutral-50/80 border border-border">
+                  <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                    3
+                  </span>
+                  <div>
+                    <strong className="text-fg block">Bảo vệ quyền lợi 100%</strong>
+                    <span className="text-xs text-fg-muted">Mỗi buổi học luôn được báo trước tối thiểu 24h và chỉ tất toán khi hoàn thành buổi dạy.</span>
+                  </div>
+                </div>
+              </div>
 
               <div className="pt-3 border-t border-border">
                 <Button
@@ -655,9 +628,9 @@ export default function TutorProfile() {
                   variant="outline"
                   fullWidth
                   size="md"
-                  icon={<Icon name="edit_calendar" size="sm" />}
+                  icon={<Icon name="chat" size="sm" />}
                 >
-                  Đề xuất khung giờ riêng
+                  Nhắn tin trao đổi với gia sư
                 </Button>
               </div>
             </Card>

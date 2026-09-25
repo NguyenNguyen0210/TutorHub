@@ -124,11 +124,11 @@ export default function TutorDashboard() {
             </Button>
             <Button
               as={Link}
-              to="/tutor/availability"
+              to="/tutor/schedule"
               variant="outline"
               icon={<Icon name="calendar_month" size="sm" />}
             >
-              Thời khóa biểu
+              Lịch dạy
             </Button>
             <Button
               as={Link}
@@ -283,7 +283,7 @@ export default function TutorDashboard() {
             <EmptyState
               icon="event_available"
               title="Không có buổi dạy nào trong thời gian tới"
-              description="Vào mục Thời khóa biểu để cập nhật khung giờ rảnh nhận thêm học viên."
+              description="Vào mục Lịch dạy để sắp xếp thời khóa biểu cho các lớp học."
             />
           )}
         </Card>
@@ -292,7 +292,7 @@ export default function TutorDashboard() {
           <h3 className="text-headline-3 text-fg">Thao tác nhanh</h3>
           <nav className="space-y-2" aria-label="Thao tác nhanh gia sư">
             {[
-              { to: '/tutor/availability', icon: 'calendar_month', label: 'Cài đặt lịch rảnh tuần' },
+              { to: '/tutor/schedule', icon: 'calendar_month', label: 'Quản lý lịch dạy' },
               { to: '/tutor/services', icon: 'inventory_2', label: 'Quản lý gói dịch vụ' },
               { to: '/tutor/wallet', icon: 'account_balance_wallet', label: 'Sao kê & Ví bảo chứng' },
             ].map((item) => (

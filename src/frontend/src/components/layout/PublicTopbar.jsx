@@ -69,7 +69,7 @@ export default function PublicTopbar() {
 
   const schedulePath = isAuthenticated
     ? role === 'Tutor'
-      ? '/tutor/availability'
+      ? '/tutor/schedule'
       : '/student/dashboard'
     : '/auth/login';
 

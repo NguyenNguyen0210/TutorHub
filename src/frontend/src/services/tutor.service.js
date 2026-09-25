@@ -1,21 +1,18 @@
 /**
- * Tutor Service — Khám phá gia sư, danh mục, gói học và lịch rảnh.
+ * Tutor Service — Khám phá gia sư, danh mục, gói học và quản lý dịch vụ.
  *
  * Contract:
  * - GET /categories                 → CategoryDto[]
  * - GET /subjects                   → SubjectDto[]
  * - GET /tutors                     → PagedResult<TutorSummaryDto>
  * - GET /tutors/{id}                → TutorProfileDto
- * - GET /tutors/{id}/availability   → TutorAvailabilityDto { days: DailyAvailabilityDto[] }
  * - GET /tutors/{id}/services       → ServiceSummaryDto[]
  * - GET /tutors/{id}/reviews        → PagedResult<TutorPublicReviewDto>
  * - GET /tutors/me/services         → ServiceDto[]
- * - GET /tutors/me/availability-slots → AvailabilitySlotDto[]
  * - POST /tutors/me/application     → TutorApplicationDto
  * - GET /tutors/me/application      → TutorApplicationDto
  */
 import { api } from './api';
-import { getDayOfWeekLabel } from '@/config/enums';
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -36,13 +33,6 @@ function normalizeSubjectNames(subjects) {
       return subject?.subjectName ?? subject?.name ?? null;
     })
     .filter(Boolean);
-}
-
-function normalizeTimeRange(range) {
-  return {
-    startTime: range?.startTime ?? null,
-    endTime: range?.endTime ?? null,
-  };
 }
 
 export function normalizeTutorSummary(raw = {}) {
@@ -96,23 +86,6 @@ export function normalizeTutorProfile(raw = {}) {
       : [],
     services: Array.isArray(raw.services) ? raw.services.map(normalizeServiceSummary) : [],
     reviews: Array.isArray(raw.reviews) ? raw.reviews.map(normalizeTutorReview) : [],
-    availabilitySlots: Array.isArray(raw.availabilitySlots) ? raw.availabilitySlots : [],
-  };
-}
-
-export function normalizeAvailabilityDay(raw = {}) {
-  const dayOfWeek = raw.dayOfWeek || '';
-  return {
-    date: raw.date ?? null,
-    dayOfWeek,
-    dayOfWeekName: raw.dayOfWeekName || getDayOfWeekLabel(dayOfWeek),
-    hasAvailableSlots: Boolean(raw.hasAvailableSlots),
-    availableSlots: Array.isArray(raw.availableSlots)
-      ? raw.availableSlots.map(normalizeTimeRange)
-      : [],
-    bookedSlots: Array.isArray(raw.bookedSlots)
-      ? raw.bookedSlots.map(normalizeTimeRange)
-      : [],
   };
 }
 
@@ -272,18 +245,6 @@ export const tutorService = {
     return normalizeTutorProfile(res);
   },
 
-  /**
-   * GET /tutors/{id}/availability → TutorAvailabilityDto { days: DailyAvailabilityDto[] }
-   */
-  async getTutorAvailability(id, fromDate = null, toDate = null) {
-    const params = {};
-    if (fromDate) params.fromDate = fromDate;
-    if (toDate) params.toDate = toDate;
-    const res = await api.get(`/tutors/${id}/availability`, { params });
-    if (Array.isArray(res?.days)) return res.days.map(normalizeAvailabilityDay);
-    return [];
-  },
-
   /** GET /tutors/{id}/services → ServiceSummaryDto[] */
   async getTutorServices(id) {
     const res = await api.get(`/tutors/${id}/services`);
@@ -322,13 +283,6 @@ export const tutorService = {
   async unpublishService(serviceId) {
     const res = await api.post(`/tutors/me/services/${serviceId}/unpublish`);
     return res;
-  },
-
-  /** GET /tutors/me/availability-slots → AvailabilitySlotDto[] (Tutor workspace) */
-  async getMyAvailabilitySlots() {
-    const res = await api.get('/tutors/me/availability-slots');
-    if (Array.isArray(res)) return res;
-    return [];
   },
 
   /** POST /tutors/me/application → TutorApplicationDto */

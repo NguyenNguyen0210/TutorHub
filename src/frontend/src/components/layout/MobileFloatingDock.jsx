@@ -31,7 +31,7 @@ const SHORT_LABEL = {
   '/app/messages': 'Hộp thư',
   '/app/notifications': 'Thông báo',
   '/tutor/dashboard': 'Tổng quan',
-  '/tutor/availability': 'Lịch dạy',
+  '/tutor/schedule': 'Lịch dạy',
   '/tutor/services': 'Dịch vụ',
   '/tutor/wallet': 'Ví Escrow',
   '/tutor/settings': 'Cài đặt',
