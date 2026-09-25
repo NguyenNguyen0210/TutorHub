@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
-import heroStudentImg from '@/assets/images/hero-services-student.jpg';
 
 export default function ServiceHeroSection({
   searchKeyword,
@@ -21,7 +20,7 @@ export default function ServiceHeroSection({
   onTagClick,
 }) {
   return (
-    <section className="relative py-6 sm:py-8 lg:py-9 bg-gradient-to-r from-[#EFF6FF] via-[#F0FDF4]/30 to-[#ECFEFF] border-b border-sky-100/70">
+    <section className="relative py-6 sm:py-8 lg:py-9 bg-gradient-to-r from-[#EFF6FF] to-[#ECFEFF] border-b border-sky-100/70">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">
           {/* Left Column: Breadcrumb, Headline, Search, Popular Tags */}

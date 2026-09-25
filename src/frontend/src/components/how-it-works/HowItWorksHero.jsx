@@ -4,7 +4,7 @@ import Icon from '@/components/ui/Icon';
 
 export default function HowItWorksHero() {
   return (
-    <section className="relative py-8 sm:py-10 lg:py-12 bg-gradient-to-r from-[#EFF6FF] via-[#F0FDF4]/30 to-[#ECFEFF] border-b border-sky-100/70 overflow-hidden">
+    <section className="relative py-8 sm:py-10 lg:py-12 bg-gradient-to-r from-[#EFF6FF] to-[#ECFEFF] border-b border-sky-100/70 overflow-hidden">
       <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center">
           {/* Left Column: Breadcrumb, Heading, Subtitle, Trust Badges */}
