@@ -19,11 +19,13 @@ public sealed class SessionSchedulePolicy
         _clock = clock;
     }
 
-    public void RequireSchedulable(DateTime startAt, DateTime endAt)
+    public void RequireSchedulable(DateTime startAt, DateTime endAt) => RequireSchedulable(startAt, endAt, "scheduled");
+
+    public void RequireSchedulable(DateTime startAt, DateTime endAt, string operation)
     {
         if (endAt <= startAt) throw new BadRequestException("End time must be after start time.");
         if (startAt < _clock.UtcNow.AddHours(_noticeHours))
-            throw new BadRequestException($"Sessions must be scheduled at least {_noticeHours} hours in advance.");
+            throw new BadRequestException($"Sessions must be {operation} at least {_noticeHours} hours in advance.");
     }
 
     public void RequireNoOverlap(Guid tutorProfileId, DateTime startAt, DateTime endAt,

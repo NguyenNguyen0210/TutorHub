@@ -99,6 +99,7 @@ public class CancelSessionCommandHandlerTests : IDisposable
 
         var ex = await act.Should().ThrowAsync<BadRequestException>();
         ex.Which.Errors.Should().Contain(e => e.Contains("24"));
+        ex.Which.Errors.Should().Contain(e => e.Contains("cancelled"));
     }
 
     [Fact]
@@ -124,6 +125,9 @@ public class CancelSessionCommandHandlerTests : IDisposable
         var result = await CreateHandler().Handle(command, CancellationToken.None);
 
         result.Status.Should().Be(SessionStatus.Cancelled);
+        _context.ChangeTracker.Clear();
+        var reloaded = await _context.Sessions.FindAsync(session.Id);
+        reloaded!.Status.Should().Be(SessionStatus.Cancelled);
     }
 
     [Fact]

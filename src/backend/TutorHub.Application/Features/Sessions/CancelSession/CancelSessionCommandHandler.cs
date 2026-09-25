@@ -39,6 +39,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
     public async Task<SessionDto> Handle(CancelSessionCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
+        var policy = new SessionSchedulePolicy(_configuration, _clock);
 
         var session = await _context.Sessions
             .Include(s => s.Enrollment)
@@ -96,11 +97,10 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
         // place. Runs after CancelSingle so an already-started session still maps
         // to Conflict above, preserving existing behavior. Nothing is persisted
         // yet, so throwing here leaves the session untouched.
-        if (oldStatus == SessionStatus.Scheduled)
+        if (oldStatus == SessionStatus.Scheduled &&
+            session.StartAt is { } startAt && session.EndAt is { } endAt)
         {
-            var policy = new SessionSchedulePolicy(_configuration, _clock);
-            var startAt = session.StartAt ?? now;
-            policy.RequireSchedulable(startAt, session.EndAt ?? startAt);
+            policy.RequireSchedulable(startAt, endAt, "cancelled");
         }
 
         // 4. Re-evaluate the contract lifecycle: the last unresolved Session may
