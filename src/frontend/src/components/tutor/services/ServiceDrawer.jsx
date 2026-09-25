@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import Input, { Textarea, Select, Field, Checkbox } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
@@ -15,6 +15,11 @@ export const TEACHING_MODE_OPTIONS = [
 const DESCRIPTION_MAX = 2000;
 const SHORT_DESCRIPTION_MAX = 200;
 const TAGS_MAX = 10;
+const AUDIENCE_MAX = 8;
+const FAQ_MAX = 10;
+
+const EMPTY_SESSION = { title: '', description: '', keyTopicsText: '', durationMinutes: '' };
+const EMPTY_FAQ = { question: '', answer: '' };
 
 /**
  * Parse a comma-separated tags string into a trimmed, deduped array
@@ -99,7 +104,7 @@ SuffixInput.propTypes = {
 
 /**
  * ServiceDrawer — form tạo/sửa gói dịch vụ trong panel trượt phải,
- * chia 3 nhóm đánh số theo thiết kế: thông tin · môn học · chi tiết gói.
+ * chia 4 nhóm đánh số theo thiết kế: thông tin · môn học · chi tiết gói · nội dung từng buổi.
  */
 export default function ServiceDrawer({
   open,
@@ -129,6 +134,63 @@ export default function ServiceDrawer({
     // Keep at least one place checked so the enum mapping stays valid.
     if (!next.online && !next.atHome && !next.otherPlace) return;
     onFieldChange('teachingMode', teachingModeFromPlaces(next));
+  };
+
+  // ── Section 4: curriculum editors (local shapes live in formData) ──
+  const [section4Open, setSection4Open] = useState(true);
+  const [openSessions, setOpenSessions] = useState({});
+  const sessionsList = Array.isArray(formData.sessions) ? formData.sessions : [];
+  const faqList = Array.isArray(formData.faqs) ? formData.faqs : [];
+  const maxSessions = Number(formData.totalSessions) || 0;
+  const packageDuration = Number(formData.sessionDurationMinutes) || 60;
+
+  const updateSession = (index, key, value) => {
+    onFieldChange(
+      'sessions',
+      sessionsList.map((s, i) => (i === index ? { ...s, [key]: value } : s))
+    );
+  };
+  const handleAddSession = () => {
+    if (sessionsList.length >= maxSessions) return;
+    const next = [...sessionsList, { ...EMPTY_SESSION }];
+    onFieldChange('sessions', next);
+    setOpenSessions((prev) => ({ ...prev, [next.length - 1]: true }));
+  };
+  const handleRemoveSession = (index) => {
+    // sessionIndex is positional, so it recomputes automatically on submit.
+    onFieldChange(
+      'sessions',
+      sessionsList.filter((_, i) => i !== index)
+    );
+    setOpenSessions((prev) => {
+      const next = {};
+      Object.keys(prev).forEach((k) => {
+        const n = Number(k);
+        if (Number.isNaN(n) || n === index || !prev[k]) return;
+        next[n > index ? n - 1 : n] = true;
+      });
+      return next;
+    });
+  };
+  const toggleSession = (index) => {
+    setOpenSessions((prev) => ({ ...prev, [index]: !prev[index] }));
+  };
+
+  const updateFaq = (index, key, value) => {
+    onFieldChange(
+      'faqs',
+      faqList.map((f, i) => (i === index ? { ...f, [key]: value } : f))
+    );
+  };
+  const handleAddFaq = () => {
+    if (faqList.length >= FAQ_MAX) return;
+    onFieldChange('faqs', [...faqList, { ...EMPTY_FAQ }]);
+  };
+  const handleRemoveFaq = (index) => {
+    onFieldChange(
+      'faqs',
+      faqList.filter((_, i) => i !== index)
+    );
   };
 
   // Minimal markdown toolbar: wrap selection (or a placeholder word) at cursor.
@@ -468,6 +530,210 @@ export default function ServiceDrawer({
           </Field>
         </section>
 
+        {/* ── 4. Nội dung từng buổi ─────────────────────── */}
+        <section className="space-y-4" aria-label="Nội dung từng buổi">
+          <div className="flex items-center justify-between gap-2">
+            <SectionTitle step={4}>Nội dung từng buổi</SectionTitle>
+            <button
+              type="button"
+              onClick={() => setSection4Open((v) => !v)}
+              aria-expanded={section4Open}
+              aria-label={section4Open ? 'Thu gọn nội dung từng buổi' : 'Mở rộng nội dung từng buổi'}
+              className="w-7 h-7 rounded-full bg-neutral-50 border border-border flex items-center justify-center text-fg-secondary hover:text-fg shrink-0"
+            >
+              <Icon name={section4Open ? 'expand_less' : 'expand_more'} size="sm" />
+            </button>
+          </div>
+
+          {section4Open && (
+            <>
+              <div className="space-y-2.5">
+                {sessionsList.map((s, i) => {
+                  const isOpen = Boolean(openSessions[i]);
+                  const label = (s.title || '').trim() || 'Chưa đặt tên';
+                  return (
+                    <div key={i} className="border border-border rounded-brand-md overflow-hidden">
+                      <div className="flex items-center gap-1 pl-2.5 pr-1.5 py-1.5">
+                        <button
+                          type="button"
+                          onClick={() => toggleSession(i)}
+                          aria-expanded={isOpen}
+                          aria-label={`${isOpen ? 'Thu gọn' : 'Mở rộng'} buổi ${i + 1}`}
+                          className="flex-1 min-w-0 flex items-center gap-1.5 text-left py-1"
+                        >
+                          <span className="text-caption font-bold text-fg truncate">
+                            Buổi {i + 1} — {label}
+                          </span>
+                          <Icon name={isOpen ? 'expand_less' : 'expand_more'} size="xs" className="shrink-0 text-fg-secondary" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSession(i)}
+                          aria-label={`Xóa buổi ${i + 1}`}
+                          title={`Xóa buổi ${i + 1}`}
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-fg-secondary hover:text-danger-strong hover:bg-danger-subtle shrink-0"
+                        >
+                          <Icon name="delete" size="xs" />
+                        </button>
+                      </div>
+                      {isOpen && (
+                        <div className="px-2.5 pb-3 pt-2 space-y-3 border-t border-border">
+                          <Field label={`Tiêu đề buổi ${i + 1}`} htmlFor={`service-session-${i}-title`} required>
+                            <Input
+                              id={`service-session-${i}-title`}
+                              maxLength={120}
+                              placeholder="Ví dụ: Ôn tập thì hiện tại đơn"
+                              value={s.title}
+                              onChange={(e) => updateSession(i, 'title', e.target.value)}
+                            />
+                          </Field>
+                          <Field label="Thời lượng" htmlFor={`service-session-${i}-duration`}>
+                            <SuffixInput
+                              id={`service-session-${i}-duration`}
+                              type="number"
+                              min="15"
+                              max="240"
+                              step="5"
+                              suffix="phút"
+                              placeholder={String(packageDuration)}
+                              value={s.durationMinutes}
+                              onChange={(e) => updateSession(i, 'durationMinutes', e.target.value)}
+                            />
+                          </Field>
+                          <Field label="Mô tả buổi học" htmlFor={`service-session-${i}-desc`}>
+                            <Textarea
+                              id={`service-session-${i}-desc`}
+                              rows={3}
+                              placeholder="Nội dung chính của buổi học…"
+                              value={s.description}
+                              onChange={(e) => updateSession(i, 'description', e.target.value)}
+                            />
+                          </Field>
+                          <Field
+                            label="Trọng tâm kiến thức"
+                            htmlFor={`service-session-${i}-topics`}
+                            hint="Không bắt buộc — các ý cách nhau bằng dấu phẩy."
+                          >
+                            <Input
+                              id={`service-session-${i}-topics`}
+                              placeholder="Ví dụ: Từ vựng, Luyện nghe, Bài tập"
+                              value={s.keyTopicsText}
+                              onChange={(e) => updateSession(i, 'keyTopicsText', e.target.value)}
+                            />
+                          </Field>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {sessionsList.length === 0 && (
+                  <p className="text-caption text-fg-secondary bg-neutral-50 border border-dashed border-border rounded-brand-md p-3">
+                    Chưa có buổi học chi tiết. Nhấn &ldquo;Thêm buổi&rdquo; để mô tả nội dung từng buổi cho học viên.
+                  </p>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddSession}
+                  disabled={maxSessions > 0 && sessionsList.length >= maxSessions}
+                  icon={<Icon name="add" size="xs" />}
+                  className="w-full"
+                >
+                  Thêm buổi
+                  {maxSessions > 0 && ` (${sessionsList.length}/${maxSessions})`}
+                </Button>
+              </div>
+
+              <Field
+                label="Đối tượng phù hợp"
+                htmlFor="service-audience"
+                hint={`Không bắt buộc — mỗi dòng một đối tượng (tối đa ${AUDIENCE_MAX}).`}
+              >
+                <Textarea
+                  id="service-audience"
+                  rows={3}
+                  placeholder={'Ví dụ:\nHọc sinh mất gốc cần lấy lại căn bản\nNgười đi làm cần giao tiếp công việc'}
+                  value={formData.targetAudienceText || ''}
+                  onChange={(e) => onFieldChange('targetAudienceText', e.target.value)}
+                />
+              </Field>
+
+              <Field
+                label="Điều kiện tiên quyết"
+                htmlFor="service-prereq"
+                hint={`Không bắt buộc — mỗi dòng một điều kiện (tối đa ${AUDIENCE_MAX}).`}
+              >
+                <Textarea
+                  id="service-prereq"
+                  rows={3}
+                  placeholder={'Ví dụ:\nĐã nắm bảng chữ cái và phát âm cơ bản\nCó laptop và tai nghe để học online'}
+                  value={formData.prerequisitesText || ''}
+                  onChange={(e) => onFieldChange('prerequisitesText', e.target.value)}
+                />
+              </Field>
+
+              <div className="space-y-2.5">
+                <p className="text-caption font-bold text-fg" id="service-faq-label">
+                  Câu hỏi thường gặp
+                </p>
+                {faqList.map((f, i) => (
+                  <div key={i} className="border border-border rounded-brand-md p-2.5 space-y-2.5" role="group" aria-label={`Câu hỏi thường gặp ${i + 1}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-caption font-bold text-fg-secondary">Mục {i + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFaq(i)}
+                        aria-label={`Xóa mục hỏi đáp ${i + 1}`}
+                        title={`Xóa mục hỏi đáp ${i + 1}`}
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-fg-secondary hover:text-danger-strong hover:bg-danger-subtle shrink-0"
+                      >
+                        <Icon name="delete" size="xs" />
+                      </button>
+                    </div>
+                    <Field label="Câu hỏi" htmlFor={`service-faq-${i}-q`} required>
+                      <Input
+                        id={`service-faq-${i}-q`}
+                        maxLength={200}
+                        placeholder="Ví dụ: Học online hay offline?"
+                        value={f.question}
+                        onChange={(e) => updateFaq(i, 'question', e.target.value)}
+                      />
+                    </Field>
+                    <Field label="Câu trả lời" htmlFor={`service-faq-${i}-a`} required>
+                      <Textarea
+                        id={`service-faq-${i}-a`}
+                        rows={2}
+                        placeholder="Câu trả lời dành cho học viên…"
+                        value={f.answer}
+                        onChange={(e) => updateFaq(i, 'answer', e.target.value)}
+                      />
+                    </Field>
+                  </div>
+                ))}
+                {faqList.length === 0 && (
+                  <p className="text-caption text-fg-secondary bg-neutral-50 border border-dashed border-border rounded-brand-md p-3">
+                    Chưa có câu hỏi nào. Thêm các câu hỏi học viên hay thắc mắc để tăng tỉ lệ đăng ký.
+                  </p>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddFaq}
+                  disabled={faqList.length >= FAQ_MAX}
+                  icon={<Icon name="add" size="xs" />}
+                  className="w-full"
+                  aria-labelledby="service-faq-label"
+                >
+                  Thêm câu hỏi
+                  {` (${faqList.length}/${FAQ_MAX})`}
+                </Button>
+              </div>
+            </>
+          )}
+        </section>
+
         {/* Sticky footer */}
         <div className="sticky bottom-[-1.25rem] -mx-5 -mb-5 border-t border-border bg-surface px-5 py-4 flex items-center justify-end gap-2.5">
           <Button variant="ghost" size="md" onClick={onClose} icon={<Icon name="close" size="xs" />}>
@@ -517,6 +783,22 @@ ServiceDrawer.propTypes = {
     trialLessonUrl: PropTypes.string,
     tags: PropTypes.string,
     coverImageUrl: PropTypes.string,
+    sessions: PropTypes.arrayOf(
+      PropTypes.shape({
+        title: PropTypes.string,
+        description: PropTypes.string,
+        keyTopicsText: PropTypes.string,
+        durationMinutes: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      })
+    ),
+    targetAudienceText: PropTypes.string,
+    prerequisitesText: PropTypes.string,
+    faqs: PropTypes.arrayOf(
+      PropTypes.shape({
+        question: PropTypes.string,
+        answer: PropTypes.string,
+      })
+    ),
   }).isRequired,
   onFieldChange: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,
