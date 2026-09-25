@@ -29,8 +29,14 @@ jobs:
       - name: Build Solution (TreatWarningsAsErrors=true)
         run: dotnet build src/backend/TutorHub.sln --no-restore --configuration Release /p:TreatWarningsAsErrors=true
 
-      - name: Run All Unit Tests
-        run: dotnet test src/backend/TutorHub.sln --no-build --configuration Release --verbosity normal
+      - name: Run Domain Unit Tests
+        run: dotnet test src/test/TutorHub.Domain.UnitTests/TutorHub.Domain.UnitTests.csproj --no-build --configuration Release
+
+      - name: Run Application Unit Tests
+        run: dotnet test src/test/TutorHub.Application.UnitTests/TutorHub.Application.UnitTests.csproj --no-build --configuration Release
+
+      - name: Run Infrastructure Unit Tests
+        run: dotnet test src/test/TutorHub.Infrastructure.UnitTests/TutorHub.Infrastructure.UnitTests.csproj --no-build --configuration Release
 
   frontend-build-lint:
     name: Frontend Lint & Build
