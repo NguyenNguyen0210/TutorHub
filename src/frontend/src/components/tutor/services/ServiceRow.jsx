@@ -123,10 +123,13 @@ export default function ServiceRow({ pkg, isActing, onEdit, onPublish, onUnpubli
           <ServiceStatusBadge status={pkg.status} />
         </div>
 
-        {(pkg.subjectName || pkg.gradeName) && (
+        {(pkg.subjectName || pkg.gradeName || (Array.isArray(pkg.tags) && pkg.tags.length > 0)) && (
           <div className="flex items-center gap-1.5 flex-wrap">
             {pkg.subjectName && <Tag>{pkg.subjectName}</Tag>}
             {pkg.gradeName && <Tag>{pkg.gradeName}</Tag>}
+            {Array.isArray(pkg.tags) && pkg.tags.map((tag) => (
+              <Tag key={tag}>{tag}</Tag>
+            ))}
           </div>
         )}
 
@@ -146,6 +149,25 @@ export default function ServiceRow({ pkg, isActing, onEdit, onPublish, onUnpubli
           <li className="inline-flex items-center gap-1.5">
             <Icon name="location_on" size="xs" className={META_ICON_CLASS} />
             {modeMeta.label}
+          </li>
+          {pkg.studentCount != null && (
+            <li className="inline-flex items-center gap-1.5">
+              <Icon name="group" size="xs" className={META_ICON_CLASS} />
+              {pkg.studentCount} học viên
+            </li>
+          )}
+          <li className="inline-flex items-center gap-1.5">
+            {pkg.averageRating != null ? (
+              <>
+                <Icon name="star" size="xs" filled className="w-4 h-4 text-amber-500 shrink-0" />
+                {Number(pkg.averageRating).toFixed(1)} ({pkg.reviewCount ?? 0})
+              </>
+            ) : (
+              <>
+                <Icon name="star" size="xs" className={META_ICON_CLASS} />
+                —
+              </>
+            )}
           </li>
           {pkg.trialLessonUrl && (
             <li className="inline-flex items-center gap-1.5 text-brand-primary-700 font-medium">
@@ -226,6 +248,10 @@ ServiceRow.propTypes = {
     subjectName: PropTypes.string,
     gradeName: PropTypes.string,
     coverImageUrl: PropTypes.string,
+    tags: PropTypes.arrayOf(PropTypes.string),
+    studentCount: PropTypes.number,
+    averageRating: PropTypes.number,
+    reviewCount: PropTypes.number,
     status: PropTypes.string,
     totalSessions: PropTypes.number,
     sessionDurationMinutes: PropTypes.number,
