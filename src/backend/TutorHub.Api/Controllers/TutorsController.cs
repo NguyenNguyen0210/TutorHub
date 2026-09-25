@@ -395,7 +395,11 @@ public class TutorsController : ControllerBase
             Price: request.Price,
             TeachingMode: parsedMode,
             TrialLessonUrl: request.TrialLessonUrl,
-            CoverImageUrl: request.CoverImageUrl
+            CoverImageUrl: request.CoverImageUrl,
+            Curriculum: request.Curriculum,
+            TargetAudience: request.TargetAudience,
+            Prerequisites: request.Prerequisites,
+            Faqs: request.Faqs
         );
 
         var result = await _sender.Send(command, cancellationToken);
@@ -476,7 +480,11 @@ public class TutorsController : ControllerBase
             Price: request.Price,
             TeachingMode: teachingMode,
             TrialLessonUrl: request.TrialLessonUrl,
-            CoverImageUrl: request.CoverImageUrl
+            CoverImageUrl: request.CoverImageUrl,
+            Curriculum: request.Curriculum,
+            TargetAudience: request.TargetAudience,
+            Prerequisites: request.Prerequisites,
+            Faqs: request.Faqs
         );
 
         var result = await _sender.Send(command, cancellationToken);

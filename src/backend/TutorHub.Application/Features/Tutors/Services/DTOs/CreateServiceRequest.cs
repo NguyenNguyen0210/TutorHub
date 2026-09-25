@@ -13,5 +13,9 @@ public record CreateServiceRequest(
     decimal Price,
     string TeachingMode,
     string? TrialLessonUrl,
-    string? CoverImageUrl
+    string? CoverImageUrl,
+    List<CurriculumItemInput>? Curriculum = null,
+    List<string>? TargetAudience = null,
+    List<string>? Prerequisites = null,
+    List<FaqInput>? Faqs = null
 );

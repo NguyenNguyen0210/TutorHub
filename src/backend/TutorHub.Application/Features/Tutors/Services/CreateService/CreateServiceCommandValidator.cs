@@ -1,4 +1,5 @@
 using FluentValidation;
+using TutorHub.Application.Features.Tutors.Services.Common;
 
 namespace TutorHub.Application.Features.Tutors.Services.CreateService;
 
@@ -56,5 +57,50 @@ public class CreateServiceCommandValidator : AbstractValidator<CreateServiceComm
         RuleFor(x => x.CoverImageUrl)
             .MaximumLength(1000).WithMessage("Cover image URL cannot exceed 1000 characters.")
             .When(x => !string.IsNullOrEmpty(x.CoverImageUrl));
+
+        RuleFor(x => x.Curriculum)
+            .Must((command, curriculum) => curriculum!.Count <= command.TotalSessions)
+            .WithMessage("Curriculum cannot have more items than total sessions.")
+            .When(x => x.Curriculum != null);
+
+        RuleFor(x => x.Curriculum)
+            .Must((command, curriculum) => curriculum!.All(i => i.SessionIndex <= command.TotalSessions))
+            .WithMessage("Curriculum session index cannot exceed total sessions.")
+            .When(x => x.Curriculum != null);
+
+        RuleFor(x => x.Curriculum)
+            .Must(curriculum => curriculum!.Select(i => i.SessionIndex).Distinct().Count() == curriculum!.Count)
+            .WithMessage("Curriculum session indexes must be unique.")
+            .When(x => x.Curriculum != null);
+
+        RuleForEach(x => x.Curriculum)
+            .SetValidator(new CurriculumItemInputValidator())
+            .When(x => x.Curriculum != null);
+
+        RuleFor(x => x.TargetAudience)
+            .Must(audience => audience!.Count <= 8).WithMessage("Target audience cannot exceed 8 items.")
+            .When(x => x.TargetAudience != null);
+
+        RuleForEach(x => x.TargetAudience)
+            .NotEmpty().WithMessage("Target audience entry cannot be empty.")
+            .MaximumLength(200).WithMessage("Each target audience entry cannot exceed 200 characters.")
+            .When(x => x.TargetAudience != null);
+
+        RuleFor(x => x.Prerequisites)
+            .Must(prerequisites => prerequisites!.Count <= 8).WithMessage("Prerequisites cannot exceed 8 items.")
+            .When(x => x.Prerequisites != null);
+
+        RuleForEach(x => x.Prerequisites)
+            .NotEmpty().WithMessage("Prerequisite entry cannot be empty.")
+            .MaximumLength(200).WithMessage("Each prerequisite entry cannot exceed 200 characters.")
+            .When(x => x.Prerequisites != null);
+
+        RuleFor(x => x.Faqs)
+            .Must(faqs => faqs!.Count <= 10).WithMessage("FAQs cannot exceed 10 items.")
+            .When(x => x.Faqs != null);
+
+        RuleForEach(x => x.Faqs)
+            .SetValidator(new FaqInputValidator())
+            .When(x => x.Faqs != null);
     }
 }
