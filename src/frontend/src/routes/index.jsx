@@ -43,6 +43,9 @@ import TutorApplication from '../pages/tutor/TutorApplication';
 // Discovery Screens
 import Marketplace from '../pages/discovery/Marketplace';
 import TutorProfile from '../pages/discovery/TutorProfile';
+import ServicesMarketplace from '../pages/discovery/ServicesMarketplace';
+import ServiceDetail from '../pages/discovery/ServiceDetail';
+import HowItWorks from '../pages/discovery/HowItWorks';
 
 // Checkout Screens
 import BookingCheckout from '../pages/checkout/BookingCheckout';
@@ -85,9 +88,14 @@ export default function AppRoutes() {
     <Routes>
       {/* 1. Public Routes (no auth required) */}
       <Route element={<PublicLayout />}>
-        <Route path="/" element={<Navigate to="/tutors" replace />} />
-        <Route path="/tutors" element={<Marketplace />} />
+        <Route path="/" element={<Marketplace />} />
+        <Route path="/tutors" element={<Navigate to="/" replace />} />
         <Route path="/tutors/:id" element={<TutorProfile />} />
+        <Route path="/services" element={<ServicesMarketplace />} />
+        <Route path="/services/:id" element={<ServiceDetail />} />
+        <Route path="/service" element={<Navigate to="/services" replace />} />
+        <Route path="/service/:id" element={<ServiceDetail />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
 
         {/* Protected: requires login */}
         <Route path="/student/bookings/:id/checkout" element={

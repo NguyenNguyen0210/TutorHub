@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
 import { CardSkeleton } from '@/components/common/Skeleton';
@@ -6,6 +6,9 @@ import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
 import { Select } from '@/components/ui/Input';
 import { Pagination } from '@/components/ui/Table';
+import Icon from '@/components/ui/Icon';
+import { cn } from '@/lib/cn';
+import { formatVND } from '@/utils/formatters';
 import HeroSection from '@/components/discovery/HeroSection';
 import CategoryFilterBar from '@/components/discovery/CategoryFilterBar';
 import FilterSidebar from '@/components/discovery/FilterSidebar';
@@ -38,6 +41,10 @@ export default function Marketplace() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [priceRange, setPriceRange] = useState(5000000);
   const [teachingMode, setTeachingMode] = useState('All');
+  const [city, setCity] = useState('All');
+  const [degreeLevel, setDegreeLevel] = useState('All');
+  const [university, setUniversity] = useState('All');
+  const [certification, setCertification] = useState('All');
   const [minRating, setMinRating] = useState(null);
   const [experienceRange, setExperienceRange] = useState('All');
   const [sortBy, setSortBy] = useState('priority');
@@ -87,10 +94,25 @@ export default function Marketplace() {
         setLoading(true);
         setError(null);
 
-        const apiSortBy =
-          sortBy === 'priority'
-            ? null
-            : sortBy;
+        const apiSortBy = sortBy === 'priority' ? null : sortBy;
+
+        const minExp =
+          experienceRange === '1-3'
+            ? 1
+            : experienceRange === '3-5'
+            ? 3
+            : experienceRange === '>5'
+            ? 5
+            : null;
+
+        const maxExp =
+          experienceRange === '<1'
+            ? 1
+            : experienceRange === '1-3'
+            ? 3
+            : experienceRange === '3-5'
+            ? 5
+            : null;
 
         const response = await tutorService.getTutors({
           categoryId: selectedCategory || null,
@@ -98,7 +120,13 @@ export default function Marketplace() {
           minPrice: null,
           maxPrice: priceRange < 5000000 ? priceRange : null,
           teachingMode: teachingMode !== 'All' ? teachingMode : null,
+          city: city !== 'All' ? city : null,
+          degreeLevel: degreeLevel !== 'All' ? degreeLevel : null,
+          university: university !== 'All' ? university : null,
+          certification: certification !== 'All' ? certification : null,
           minRating: minRating || null,
+          minExperience: minExp,
+          maxExperience: maxExp,
           sortBy: apiSortBy,
           pageNumber,
           pageSize,
@@ -107,18 +135,6 @@ export default function Marketplace() {
         if (cancelled) return;
 
         let items = Array.isArray(response?.items) ? response.items : [];
-
-        // Client-side filter for experienceRange if backend doesn't have minExperience param
-        if (experienceRange !== 'All') {
-          items = items.filter((t) => {
-            const exp = Number(t.experienceYears ?? t.yearsOfExperience ?? 0);
-            if (experienceRange === '<1') return exp < 1;
-            if (experienceRange === '1-3') return exp >= 1 && exp <= 3;
-            if (experienceRange === '3-5') return exp >= 3 && exp <= 5;
-            if (experienceRange === '>5') return exp > 5;
-            return true;
-          });
-        }
 
         setTutors(items);
         setTotalCount(response?.totalCount ?? items.length);
@@ -142,6 +158,10 @@ export default function Marketplace() {
     selectedCategory,
     priceRange,
     teachingMode,
+    city,
+    degreeLevel,
+    university,
+    certification,
     minRating,
     experienceRange,
     sortBy,
@@ -163,12 +183,66 @@ export default function Marketplace() {
     setSelectedCategory('');
     setPriceRange(5000000);
     setTeachingMode('All');
+    setCity('All');
+    setDegreeLevel('All');
+    setUniversity('All');
+    setCertification('All');
     setMinRating(null);
     setExperienceRange('All');
     setSortBy('priority');
     setPageNumber(1);
     setSearchParams({});
   };
+
+  const activeFilters = useMemo(() => {
+    const list = [];
+    if (degreeLevel !== 'All') {
+      list.push({ key: 'degree', label: `Học vị: ${degreeLevel}`, clear: () => setDegreeLevel('All') });
+    }
+    if (university !== 'All') {
+      list.push({ key: 'uni', label: `Trường: ${university}`, clear: () => setUniversity('All') });
+    }
+    if (certification !== 'All') {
+      list.push({ key: 'cert', label: `Chứng chỉ: ${certification}`, clear: () => setCertification('All') });
+    }
+    if (teachingMode !== 'All') {
+      const modeLabel = teachingMode === 'InPerson' ? 'Tại nhà' : (teachingMode === 'Both' ? 'Cả hai' : teachingMode);
+      list.push({ key: 'mode', label: `Hình thức: ${modeLabel}`, clear: () => setTeachingMode('All') });
+    }
+    if (city !== 'All') {
+      list.push({ key: 'city', label: `Khu vực: ${city}`, clear: () => setCity('All') });
+    }
+    if (priceRange < 5000000) {
+      list.push({ key: 'price', label: `Học phí ≤ ${formatVND(priceRange)}`, clear: () => setPriceRange(5000000) });
+    }
+    if (minRating !== null) {
+      list.push({ key: 'rating', label: `Đánh giá: ≥ ${minRating}★`, clear: () => setMinRating(null) });
+    }
+    if (experienceRange !== 'All') {
+      const expLabel = experienceRange === '<1' ? '< 1 năm' : `${experienceRange} năm`;
+      list.push({ key: 'exp', label: `Kinh nghiệm: ${expLabel}`, clear: () => setExperienceRange('All') });
+    }
+    if (selectedCategory) {
+      const catObj = categories.find((c) => c.id === selectedCategory);
+      list.push({
+        key: 'category',
+        label: `Danh mục: ${catObj?.name || 'Đã chọn'}`,
+        clear: () => setSelectedCategory(''),
+      });
+    }
+    if (searchKeyword.trim()) {
+      list.push({
+        key: 'search',
+        label: `"${searchKeyword.trim()}"`,
+        clear: () => {
+          setSearchKeyword('');
+          setDebouncedKeyword('');
+          setSearchParams({});
+        },
+      });
+    }
+    return list;
+  }, [degreeLevel, university, certification, teachingMode, city, priceRange, minRating, experienceRange, selectedCategory, categories, searchKeyword, setSearchParams]);
 
   const handlePageChange = (newPage) => {
     if (newPage < 1 || newPage > totalPages) return;
@@ -182,7 +256,7 @@ export default function Marketplace() {
 
   return (
     <div className="w-full flex-1 bg-[#F8FAFC] pb-12">
-      {/* 1. Hero Section: #EFF6FF -> #ECFEFF with unified woman visual */}
+      {/* 1. Hero Section */}
       <HeroSection
         searchKeyword={searchKeyword}
         setSearchKeyword={setSearchKeyword}
@@ -198,7 +272,7 @@ export default function Marketplace() {
         topTutors={tutors.slice(0, 3)}
       />
 
-      {/* 2. Real Category Navigation Bar: #FFFFFF */}
+      {/* 2. Category Navigation Bar */}
       <CategoryFilterBar
         categories={categories}
         selectedCategoryId={selectedCategory}
@@ -208,10 +282,10 @@ export default function Marketplace() {
         }}
       />
 
-      {/* 3. Main Discovery Workspace: #F8FAFC */}
+      {/* 3. Main Discovery Workspace */}
       <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-7 items-start">
-          {/* Left Column: Filter Sidebar (sticky top 88px, width 260px) */}
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-7 items-start">
+          {/* Left Column: Filter Sidebar */}
           <div className="w-full lg:sticky lg:top-[88px] z-20">
             <FilterSidebar
               priceRange={priceRange}
@@ -223,6 +297,26 @@ export default function Marketplace() {
               teachingMode={teachingMode}
               onTeachingModeChange={(mode) => {
                 setTeachingMode(mode);
+                setPageNumber(1);
+              }}
+              city={city}
+              onCityChange={(c) => {
+                setCity(c);
+                setPageNumber(1);
+              }}
+              degreeLevel={degreeLevel}
+              onDegreeLevelChange={(deg) => {
+                setDegreeLevel(deg);
+                setPageNumber(1);
+              }}
+              university={university}
+              onUniversityChange={(uni) => {
+                setUniversity(uni);
+                setPageNumber(1);
+              }}
+              certification={certification}
+              onCertificationChange={(cert) => {
+                setCertification(cert);
                 setPageNumber(1);
               }}
               minRating={minRating}
@@ -239,17 +333,51 @@ export default function Marketplace() {
             />
           </div>
 
-          {/* Right Column: Real Tutor Listings & Controls */}
-          <div className="flex-1 min-w-0 space-y-6">
+          {/* Right Column: Listings & Filters */}
+          <div className="flex-1 min-w-0 space-y-4">
+            {/* Active Filters Bar */}
+            {activeFilters.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 p-3 bg-blue-50/70 border border-blue-100/90 rounded-[14px] shadow-xs">
+                <div className="flex items-center gap-1.5 text-[12.5px] font-bold text-neutral-700">
+                  <Icon name="filter_alt" size="xs" className="text-[#2563EB] w-3.5 h-3.5" />
+                  <span>Đang lọc:</span>
+                </div>
+                {activeFilters.map((af) => (
+                  <span
+                    key={af.key}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-[#2563EB] text-[12px] font-semibold border border-blue-200/90 shadow-xs hover:border-blue-300 transition-colors"
+                  >
+                    <span>{af.label}</span>
+                    <button
+                      type="button"
+                      onClick={af.clear}
+                      className="hover:text-rose-500 transition-colors font-bold text-[14px] leading-none cursor-pointer -mr-0.5 ml-0.5"
+                      title="Gỡ bộ lọc này"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="text-[12px] font-semibold text-neutral-500 hover:text-rose-600 transition-colors ml-auto cursor-pointer flex items-center gap-1"
+                >
+                  <Icon name="close" size="xs" className="w-3.5 h-3.5" />
+                  <span>Xóa tất cả</span>
+                </button>
+              </div>
+            )}
+
             {/* Top Toolbar: Count + Sort Dropdown */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-neutral-200/80">
-              <h2 className="text-[20px] sm:text-[24px] font-bold text-neutral-900 tracking-tight">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-neutral-200/80 pt-1">
+              <h2 className="text-[18px] sm:text-[22px] font-bold text-neutral-900 tracking-tight">
                 {loading ? 'Đang tìm kiếm gia sư...' : `${totalCount} gia sư phù hợp`}
               </h2>
 
               <div className="flex items-center gap-2 self-end sm:self-auto">
                 <label htmlFor="sort-tutors" className="text-[13px] font-semibold text-neutral-500 shrink-0">
-                  Sắp xếp theo:
+                  Sắp xếp:
                 </label>
                 <div className="w-52">
                   <Select
@@ -271,7 +399,7 @@ export default function Marketplace() {
               </div>
             </div>
 
-            {/* Content States: Loading, Error, Empty, or Real Cards Grid */}
+            {/* Content States */}
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
                 {Array.from({ length: 6 }).map((_, idx) => (

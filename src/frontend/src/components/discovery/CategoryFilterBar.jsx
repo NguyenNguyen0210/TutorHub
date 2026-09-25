@@ -109,7 +109,7 @@ export default function CategoryFilterBar({
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => {
-                  onSelectCategory(cat.id);
+                  onSelectCategory(isActive ? '' : cat.id);
                   setDropdownOpen(false);
                 }}
                 className={cn(

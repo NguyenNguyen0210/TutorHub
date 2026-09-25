@@ -243,7 +243,7 @@ export default function Register() {
 
               {/* Floating Badge 2: Bottom Left - Dynamic PostgreSQL Query (55+ Gia sư chất lượng & Avatars) */}
               <Link
-                to="/tutors"
+                to="/"
                 className="absolute bottom-4 sm:bottom-6 left-2 sm:left-3 bg-white/95 backdrop-blur-md p-2 sm:p-2.5 sm:px-3.5 rounded-xl sm:rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.09)] border border-white/80 flex items-center gap-2 sm:gap-3 z-20 group hover:shadow-lg transition-all animate-float cursor-pointer"
                 style={{ animationDuration: '4.5s', animationDelay: '0.8s' }}
                 title="Khám phá danh sách gia sư chất lượng"

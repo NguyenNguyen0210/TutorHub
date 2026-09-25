@@ -10,12 +10,12 @@ export default function AuthHeader({ mode = 'login' }) {
     <header className="w-full max-w-[1360px] h-16 mx-auto px-6 sm:px-10 flex items-center justify-between">
       {/* Left: Brand Logo + Subtle Marketplace Exit Link */}
       <div className="flex items-center">
-        <Link to="/tutors" className="inline-flex items-center group" aria-label="TutorHub — trang chủ">
+        <Link to="/" className="inline-flex items-center group" aria-label="TutorHub — trang chủ">
           <Logo variant="horizontal" size={34} showSubtitle={false} />
         </Link>
 
         <Link
-          to="/tutors"
+          to="/"
           className="hidden sm:inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-500 hover:text-[#2563EB] transition-colors ml-6 pl-6 border-l border-slate-200"
         >
           <Icon name="arrow_back" size="xs" />

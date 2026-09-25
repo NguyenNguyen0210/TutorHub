@@ -104,6 +104,32 @@ export default function TutorCard({ tutor, onMessageClick }) {
           </button>
         </div>
 
+        {/* 1b. Application Badges (Degree, University, Certifications, Achievements) */}
+        {(tutor.university || tutor.degreeLevel || tutor.certifications || tutor.achievements) && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+            {(tutor.degreeLevel || tutor.university) && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100" title={`${tutor.degreeLevel || ''} - ${tutor.university || ''}`}>
+                <Icon name="school" size="xs" className="w-3 h-3 text-indigo-600" />
+                <span className="truncate max-w-[200px]">
+                  {tutor.degreeLevel ? `${tutor.degreeLevel} · ` : ''}{tutor.university || ''}
+                </span>
+              </span>
+            )}
+            {tutor.certifications && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                <Icon name="verified" size="xs" className="w-3 h-3 text-emerald-600" />
+                <span>{tutor.certifications.split(',')[0].trim()}</span>
+              </span>
+            )}
+            {tutor.achievements && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-100">
+                <Icon name="emoji_events" size="xs" className="w-3 h-3 text-amber-600" />
+                <span className="truncate max-w-[150px]">{tutor.achievements.split(',')[0].trim()}</span>
+              </span>
+            )}
+          </div>
+        )}
+
         {/* 2. Rating & Experience: ★ 5.0 · 155 đánh giá · 6 năm kinh nghiệm */}
         <div className="flex items-center gap-1.5 mt-3 text-[13px] text-neutral-600 whitespace-nowrap overflow-hidden">
           <span className="flex items-center gap-1 text-amber-500 font-bold shrink-0">

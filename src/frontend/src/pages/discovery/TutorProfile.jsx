@@ -132,7 +132,7 @@ export default function TutorProfile() {
           error={error}
           title="Không tải được hồ sơ gia sư"
           onRetry={() => setReloadToken((token) => token + 1)}
-          backPath="/tutors"
+          backPath="/"
           backLabel="Quay lại danh sách gia sư"
         />
       </div>
@@ -147,7 +147,7 @@ export default function TutorProfile() {
           title="Không tìm thấy hồ sơ gia sư"
           description="Hồ sơ gia sư này không tồn tại hoặc đã ngừng nhận lịch học."
           actionLabel="Quay lại danh sách gia sư"
-          actionPath="/tutors"
+          actionPath="/"
         />
       </div>
     );
@@ -167,7 +167,7 @@ export default function TutorProfile() {
       {/* Navigation breadcrumb */}
       <nav aria-label="Breadcrumb">
         <Link
-          to="/tutors"
+          to="/"
           className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-muted hover:text-brand-primary-700 transition-colors"
         >
           <Icon name="arrow_back" size="sm" />
@@ -408,9 +408,11 @@ export default function TutorProfile() {
                               {serviceModeMeta.label}
                             </Badge>
                           </div>
-                          <h3 className="text-headline-3 text-fg font-bold leading-snug">
-                            {service.title}
-                          </h3>
+                          <Link to={`/services/${service.id}`} className="hover:text-brand-primary-600 transition-colors">
+                            <h3 className="text-headline-3 text-fg font-bold leading-snug">
+                              {service.title}
+                            </h3>
+                          </Link>
                         </div>
 
                         {/* Price Hero Callout */}
@@ -454,20 +456,28 @@ export default function TutorProfile() {
 
                       {/* Card Footer with CTA */}
                       <div className="p-5 pt-0 space-y-2.5">
-                        <Button
-                          variant="primary"
-                          fullWidth
-                          size="md"
-                          loading={bookingLoading === service.id}
-                          onClick={() => handleBooking(service)}
-                          icon={
-                            bookingLoading !== service.id && (
-                              <Icon name="lock_clock" size="sm" />
-                            )
-                          }
-                        >
-                          Đăng ký gói học (Giữ chỗ 15 phút)
-                        </Button>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <Link
+                            to={`/services/${service.id}`}
+                            className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-brand-md border border-border text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 hover:border-brand-primary-300 hover:bg-neutral-50 transition-colors text-center"
+                          >
+                            <span>Chi tiết lộ trình</span>
+                            <Icon name="arrow_forward" size="xs" />
+                          </Link>
+                          <Button
+                            variant="primary"
+                            size="md"
+                            loading={bookingLoading === service.id}
+                            onClick={() => handleBooking(service)}
+                            icon={
+                              bookingLoading !== service.id && (
+                                <Icon name="lock_clock" size="sm" />
+                              )
+                            }
+                          >
+                            Giữ chỗ ngay
+                          </Button>
+                        </div>
                         <p className="text-[10px] text-center text-fg-muted">
                           Thanh toán an toàn qua VNPay • Tạm giữ bảo chứng Escrow
                         </p>

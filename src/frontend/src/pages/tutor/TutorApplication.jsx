@@ -417,7 +417,7 @@ export default function TutorApplication() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <Button as={Link} to="/tutors" variant="outline" size="md">
+            <Button as={Link} to="/" variant="outline" size="md">
               Khám phá gia sư khác
             </Button>
             <Button

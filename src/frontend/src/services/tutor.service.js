@@ -61,6 +61,11 @@ export function normalizeTutorSummary(raw = {}) {
     subjects: normalizeSubjectNames(raw.subjects),
     minPrice: toNullableNumber(raw.minPrice),
     isVerified: Boolean(raw.isVerified),
+    university: raw.university || null,
+    major: raw.major || null,
+    degreeLevel: raw.degreeLevel || null,
+    certifications: raw.certifications || null,
+    achievements: raw.achievements || null,
   };
 }
 
@@ -123,6 +128,33 @@ export function normalizeTutorReview(raw = {}) {
   };
 }
 
+export function normalizePublicServiceItem(raw = {}) {
+  return {
+    id: raw.id,
+    title: raw.title || '',
+    description: raw.description || '',
+    learningScope: raw.learningScope || null,
+    expectedOutcome: raw.expectedOutcome || null,
+    subjectId: raw.subjectId || null,
+    subjectName: raw.subjectName || '',
+    categoryId: raw.categoryId || null,
+    categoryName: raw.categoryName || '',
+    totalSessions: toNumber(raw.totalSessions, 1),
+    sessionDurationMinutes: toNumber(raw.sessionDurationMinutes, 60),
+    price: toNumber(raw.price, 0),
+    teachingMode: raw.teachingMode || 'Online',
+    hasTrialLesson: Boolean(raw.hasTrialLesson),
+    tutorProfileId: raw.tutorProfileId || null,
+    tutorUserId: raw.tutorUserId || null,
+    tutorName: raw.tutorName || '',
+    tutorAvatarUrl: raw.tutorAvatarUrl || null,
+    tutorRating: toNumber(raw.tutorRating, 5),
+    tutorTotalReviews: toNumber(raw.tutorTotalReviews, 0),
+    totalStudents: toNumber(raw.totalStudents, 0),
+    createdAt: raw.createdAt || null,
+  };
+}
+
 function normalizePaged(raw, normalizeItem) {
   const source = Array.isArray(raw?.items) ? raw.items : [];
   const items = source.map(normalizeItem);
@@ -163,6 +195,12 @@ export const tutorService = {
       maxPrice = null,
       teachingMode = null,
       minRating = null,
+      degreeLevel = null,
+      university = null,
+      certification = null,
+      city = null,
+      minExperience = null,
+      maxExperience = null,
       search = '',
       sortBy = null,
       pageNumber = 1,
@@ -176,11 +214,56 @@ export const tutorService = {
     if (maxPrice != null) params.maxPrice = maxPrice;
     if (teachingMode && teachingMode !== 'All') params.teachingMode = teachingMode;
     if (minRating != null) params.minRating = minRating;
+    if (degreeLevel && degreeLevel !== 'All') params.degreeLevel = degreeLevel;
+    if (university && university !== 'All') params.university = university;
+    if (certification && certification !== 'All') params.certification = certification;
+    if (city && city !== 'All') params.city = city;
+    if (minExperience != null) params.minExperience = minExperience;
+    if (maxExperience != null) params.maxExperience = maxExperience;
     if (search && search.trim()) params.search = search.trim();
     if (sortBy) params.sortBy = sortBy;
 
     const res = await api.get('/tutors', { params });
     return normalizePaged(res, normalizeTutorSummary);
+  },
+
+  /**
+   * GET /services → PagedResult<PublicServiceListItemDto>
+   */
+  async getPublicServices(filters = {}) {
+    const {
+      categoryId = null,
+      subjectId = null,
+      teachingMode = null,
+      minPrice = null,
+      maxPrice = null,
+      minRating = null,
+      search = '',
+      sortBy = null,
+      pageNumber = 1,
+      pageSize = 12,
+    } = filters;
+
+    const params = { pageNumber, pageSize };
+    if (categoryId) params.categoryId = categoryId;
+    if (subjectId) params.subjectId = subjectId;
+    if (teachingMode && teachingMode !== 'All') params.teachingMode = teachingMode;
+    if (minPrice != null) params.minPrice = minPrice;
+    if (maxPrice != null) params.maxPrice = maxPrice;
+    if (minRating != null) params.minRating = minRating;
+    if (search && search.trim()) params.search = search.trim();
+    if (sortBy) params.sortBy = sortBy;
+
+    const res = await api.get('/services', { params });
+    return normalizePaged(res, normalizePublicServiceItem);
+  },
+
+  /**
+   * GET /services/{id} → ServiceDetailDto
+   */
+  async getServiceById(id) {
+    const res = await api.get(`/services/${id}`);
+    return res;
   },
 
   /** GET /tutors/{id} → TutorProfileDto */

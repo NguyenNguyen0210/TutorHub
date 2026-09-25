@@ -121,7 +121,7 @@ export default function BookingCheckout() {
           error={bookingError || new Error('Không tìm thấy đơn đặt chỗ.')}
           title="Không thể tải đơn thanh toán"
           onRetry={() => window.location.reload()}
-          backPath="/tutors"
+          backPath="/"
           backLabel="Quay lại danh sách gia sư"
         />
       </div>
@@ -233,7 +233,7 @@ export default function BookingCheckout() {
       <CountdownTimer
         expiresAt={booking.holdingExpiresAt}
         onExpire={() => setIsExpired(true)}
-        onReorderPath="/tutors"
+        onReorderPath="/"
       />
 
       {/* Main 2-Column Grid */}
@@ -264,9 +264,20 @@ export default function BookingCheckout() {
                   </h2>
                   <Badge variant="success" size="sm">Giữ chỗ 15p</Badge>
                 </div>
-                <p className="text-caption text-brand-primary-700 font-semibold m-0 truncate">
-                  {booking.subjectName || 'Khóa học'}
-                </p>
+                {booking.serviceId ? (
+                  <Link
+                    to={`/services/${booking.serviceId}`}
+                    target="_blank"
+                    className="text-caption text-brand-primary-700 hover:text-brand-primary-800 hover:underline font-semibold m-0 truncate inline-flex items-center gap-1"
+                  >
+                    <span>{booking.subjectName || 'Khóa học'}</span>
+                    <Icon name="open_in_new" size="xs" />
+                  </Link>
+                ) : (
+                  <p className="text-caption text-brand-primary-700 font-semibold m-0 truncate">
+                    {booking.subjectName || 'Khóa học'}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -512,7 +523,7 @@ export default function BookingCheckout() {
 
           <div className="text-center">
             <Link
-              to="/tutors"
+              to="/"
               className="text-caption text-fg-muted hover:text-brand-primary-700 font-semibold inline-flex items-center gap-1 transition-colors"
             >
               <Icon name="arrow_back" size="xs" />

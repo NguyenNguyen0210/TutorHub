@@ -84,7 +84,7 @@ export default function PublicTopbar() {
       <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-[68px] gap-4">
         {/* Brand Logo */}
         <Link
-          to={isAuthenticated ? getDashboardPath(role) : '/tutors'}
+          to={isAuthenticated ? getDashboardPath(role) : '/'}
           aria-label="TutorHub — trang chủ"
           className="shrink-0 flex items-center"
         >
@@ -94,11 +94,11 @@ export default function PublicTopbar() {
         {/* Center Nav Items: 14px / 500 font */}
         <nav className="hidden md:flex items-center gap-1.5" aria-label="Điều hướng chính">
           <Link
-            to="/tutors"
-            aria-current={location.pathname.startsWith('/tutors') ? 'page' : undefined}
+            to="/"
+            aria-current={location.pathname === '/' || location.pathname === '/tutors' ? 'page' : undefined}
             className={cn(
               'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
-              location.pathname.startsWith('/tutors') || location.pathname === '/'
+              location.pathname === '/' || location.pathname.startsWith('/tutors')
                 ? 'bg-blue-50 text-[#2563EB] font-semibold'
                 : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
             )}
@@ -107,40 +107,70 @@ export default function PublicTopbar() {
           </Link>
 
           <Link
-            to={schedulePath}
+            to="/services"
+            aria-current={location.pathname.startsWith('/services') ? 'page' : undefined}
             className={cn(
               'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
-              location.pathname.includes('/availability') || location.pathname.includes('/sessions')
+              location.pathname.startsWith('/services')
                 ? 'bg-blue-50 text-[#2563EB] font-semibold'
                 : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
             )}
           >
-            Lịch học
+            Dịch vụ học tập
           </Link>
 
-          <Link
-            to={isAuthenticated ? '/app/messages' : '/auth/login'}
-            className={cn(
-              'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
-              location.pathname.startsWith('/app/messages')
-                ? 'bg-blue-50 text-[#2563EB] font-semibold'
-                : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
-            )}
-          >
-            Tin nhắn
-          </Link>
+          {!isAuthenticated ? (
+            <Link
+              to="/how-it-works"
+              aria-current={location.pathname === '/how-it-works' ? 'page' : undefined}
+              className={cn(
+                'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
+                location.pathname === '/how-it-works'
+                  ? 'bg-blue-50 text-[#2563EB] font-semibold'
+                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+              )}
+            >
+              Cách hoạt động
+            </Link>
+          ) : (
+            <>
+              <Link
+                to={schedulePath}
+                className={cn(
+                  'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
+                  location.pathname.includes('/availability') || location.pathname.includes('/sessions')
+                    ? 'bg-blue-50 text-[#2563EB] font-semibold'
+                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+                )}
+              >
+                Lịch học
+              </Link>
 
-          <Link
-            to={myCoursesPath}
-            className={cn(
-              'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
-              location.pathname.includes('/dashboard') || location.pathname.includes('/services')
-                ? 'bg-blue-50 text-[#2563EB] font-semibold'
-                : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
-            )}
-          >
-            Khoá học của tôi
-          </Link>
+              <Link
+                to="/app/messages"
+                className={cn(
+                  'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
+                  location.pathname.startsWith('/app/messages')
+                    ? 'bg-blue-50 text-[#2563EB] font-semibold'
+                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+                )}
+              >
+                Tin nhắn
+              </Link>
+
+              <Link
+                to={myCoursesPath}
+                className={cn(
+                  'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
+                  location.pathname.includes('/dashboard') || location.pathname.includes('/services')
+                    ? 'bg-blue-50 text-[#2563EB] font-semibold'
+                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+                )}
+              >
+                Gói học của tôi
+              </Link>
+            </>
+          )}
         </nav>
 
         {/* Right actions: Notifications & User profile / Auth buttons */}
@@ -229,7 +259,7 @@ export default function PublicTopbar() {
       {mobileOpen && (
         <div className="md:hidden border-t border-border bg-surface px-4 pt-2 pb-4 space-y-1 animate-fadeIn shadow-brand-sm">
           <Link
-            to="/tutors"
+            to="/"
             onClick={() => setMobileOpen(false)}
             className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
           >
@@ -237,38 +267,64 @@ export default function PublicTopbar() {
             Khám phá gia sư
           </Link>
           <Link
-            to={schedulePath}
+            to="/services"
             onClick={() => setMobileOpen(false)}
             className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
           >
-            <Icon name="calendar_month" size="md" className="text-brand-primary-600" />
-            Lịch học
+            <Icon name="local_library" size="md" className="text-brand-primary-600" />
+            Dịch vụ học tập
           </Link>
-          <Link
-            to={isAuthenticated ? '/app/messages' : '/auth/login'}
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
-          >
-            <Icon name="chat" size="md" className="text-brand-primary-600" />
-            Tin nhắn
-          </Link>
-          <Link
-            to={myCoursesPath}
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
-          >
-            <Icon name="auto_stories" size="md" className="text-brand-primary-600" />
-            Khoá học của tôi
-          </Link>
-          {!isAuthenticated && (
-            <Link
-              to="/tutor/application"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100 border-t border-border pt-3"
-            >
-              <Icon name="school" size="md" className="text-brand-primary-600" />
-              Trở thành gia sư
-            </Link>
+          {!isAuthenticated ? (
+            <>
+              <Link
+                to="/how-it-works"
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold transition-colors',
+                  location.pathname === '/how-it-works'
+                    ? 'bg-blue-50 text-[#2563EB]'
+                    : 'text-neutral-700 hover:bg-neutral-100'
+                )}
+              >
+                <Icon name="help_outline" size="md" className="text-brand-primary-600" />
+                Cách hoạt động
+              </Link>
+              <Link
+                to="/tutor/application"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100 border-t border-border pt-3"
+              >
+                <Icon name="school" size="md" className="text-brand-primary-600" />
+                Trở thành gia sư
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                to={schedulePath}
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
+              >
+                <Icon name="calendar_month" size="md" className="text-brand-primary-600" />
+                Lịch học
+              </Link>
+              <Link
+                to="/app/messages"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
+              >
+                <Icon name="chat" size="md" className="text-brand-primary-600" />
+                Tin nhắn
+              </Link>
+              <Link
+                to={myCoursesPath}
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
+              >
+                <Icon name="auto_stories" size="md" className="text-brand-primary-600" />
+                Gói học của tôi
+              </Link>
+            </>
           )}
         </div>
       )}

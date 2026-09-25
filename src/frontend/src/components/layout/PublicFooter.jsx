@@ -11,7 +11,7 @@ export default function PublicFooter() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr] gap-10 lg:gap-12">
           {/* Column 1: Brand & Trust Block */}
           <div className="space-y-4">
-            <Link to="/tutors" className="inline-flex" aria-label="TutorHub — trang chủ">
+            <Link to="/" className="inline-flex" aria-label="TutorHub — trang chủ">
               <Logo variant="horizontal" size={34} tone="light" showSubtitle={false} />
             </Link>
 
@@ -40,12 +40,12 @@ export default function PublicFooter() {
             </span>
             <ul className="space-y-2 text-[13px]">
               <li>
-                <Link to="/tutors" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
+                <Link to="/" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
                   Tìm gia sư
                 </Link>
               </li>
               <li>
-                <Link to="/tutors" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
+                <Link to="/services" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
                   Dịch vụ học tập
                 </Link>
               </li>
@@ -64,22 +64,22 @@ export default function PublicFooter() {
             </span>
             <ul className="space-y-2 text-[13px]">
               <li>
-                <Link to="/tutors" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
+                <Link to="/how-it-works" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
                   Cách hoạt động
                 </Link>
               </li>
               <li>
-                <Link to="/tutors" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
+                <Link to="/" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
                   Thanh toán & bảo chứng
                 </Link>
               </li>
               <li>
-                <Link to="/tutors" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
+                <Link to="/" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
                   Hoàn tiền
                 </Link>
               </li>
               <li>
-                <Link to="/tutors" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
+                <Link to="/" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
                   Tranh chấp
                 </Link>
               </li>
@@ -93,17 +93,17 @@ export default function PublicFooter() {
             </span>
             <ul className="space-y-2 text-[13px]">
               <li>
-                <Link to="/tutors" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
+                <Link to="/" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
                   Về chúng tôi
                 </Link>
               </li>
               <li>
-                <Link to="/tutors" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
+                <Link to="/" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
                   Điều khoản sử dụng
                 </Link>
               </li>
               <li>
-                <Link to="/tutors" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
+                <Link to="/" className="text-[#94A3B8] hover:text-[#FFFFFF] transition-colors leading-[2]">
                   Chính sách bảo mật
                 </Link>
               </li>
@@ -120,11 +120,11 @@ export default function PublicFooter() {
         <div className="mt-10 pt-6 border-t border-[#1E293B] flex flex-col sm:flex-row items-center justify-between gap-3 text-[12.5px] text-[#94A3B8]">
           <span>© 2026 TutorHub Platform. All rights reserved.</span>
           <div className="flex items-center gap-4">
-            <Link to="/tutors" className="hover:text-white transition-colors">
+            <Link to="/" className="hover:text-white transition-colors">
               Điều khoản
             </Link>
             <span>·</span>
-            <Link to="/tutors" className="hover:text-white transition-colors">
+            <Link to="/" className="hover:text-white transition-colors">
               Chính sách bảo mật
             </Link>
             <span>·</span>
