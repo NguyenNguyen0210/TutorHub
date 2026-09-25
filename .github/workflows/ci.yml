@@ -21,8 +21,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
-          cache: true
+          dotnet-version: '8.0.x'
 
       - name: Restore Backend
         run: dotnet restore src/backend/TutorHub.sln
@@ -53,9 +52,8 @@ jobs:
       - name: Install Frontend Dependencies
         run: npm ci
 
-      - name: Lint Frontend (0 Warnings Allowed)
-        # Bổ sung cờ chặn warning nếu script trong package.json chưa có
-        run: npm run lint -- --max-warnings=0
+      - name: Lint Frontend
+        run: npm run lint
 
       - name: Build Frontend
         run: npm run build

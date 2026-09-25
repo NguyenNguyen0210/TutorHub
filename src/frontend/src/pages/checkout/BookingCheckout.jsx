@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import paymentService from '@/services/payment.service';
@@ -36,20 +36,21 @@ export default function BookingCheckout() {
 
   const isDev = import.meta.env.DEV || import.meta.env.VITE_DEV_PAYMENT_SIMULATOR === 'true';
 
-  useEffect(() => {
-    async function loadWallet() {
-      try {
-        setLoadingWallet(true);
-        const w = await studentWalletService.getMyWallet();
-        setWallet(w);
-      } catch {
-        // Not a student or wallet fetch failed
-      } finally {
-        setLoadingWallet(false);
-      }
+  const loadWallet = useCallback(async () => {
+    try {
+      setLoadingWallet(true);
+      const w = await studentWalletService.getMyWallet();
+      setWallet(w);
+    } catch {
+      // Not a student or wallet fetch failed
+    } finally {
+      setLoadingWallet(false);
     }
-    loadWallet();
   }, []);
+
+  useEffect(() => {
+    loadWallet();
+  }, [loadWallet]);
 
   useEffect(() => {
     let cancelled = false;
@@ -458,7 +459,7 @@ export default function BookingCheckout() {
                     Nạp thêm tiền vào Ví Học Viên
                   </Button>
                   <p className="text-[11px] text-amber-800 text-center">
-                    Sau khi nạp xong, vui lòng <button type="button" onClick={loadWallet} className="underline font-bold text-brand-primary-700">bấm vào đây để làm mới số dư</button>.
+                    Sau khi nạp xong, vui lòng <button type="button" onClick={loadWallet} disabled={loadingWallet} className="underline font-bold text-brand-primary-700">{loadingWallet ? 'đang làm mới...' : 'bấm vào đây để làm mới số dư'}</button>.
                   </p>
                 </div>
               )

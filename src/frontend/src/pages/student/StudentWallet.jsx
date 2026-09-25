@@ -43,7 +43,7 @@ export default function StudentWallet() {
   // Ledger Statement state
   const [statement, setStatement] = useState([]);
   const [statementLoading, setStatementLoading] = useState(false);
-  const [statementPage, setStatementPage] = useState(1);
+  const [_statementPage, setStatementPage] = useState(1);
   const [statementTotal, setStatementTotal] = useState(0);
 
   // Top-Up history state
@@ -53,6 +53,16 @@ export default function StudentWallet() {
   // Withdrawals history state
   const [withdrawals, setWithdrawals] = useState([]);
   const [withdrawalsLoading, setWithdrawalsLoading] = useState(false);
+
+  // Copy state
+  const [copiedKey, setCopiedKey] = useState(null);
+
+  const handleCopy = (text, key) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+    toast.success('Đã sao chép vào bộ nhớ tạm');
+  };
 
   // Top-up Modal & Process state
   const [showTopUpModal, setShowTopUpModal] = useState(false);
@@ -243,7 +253,6 @@ export default function StudentWallet() {
               size="md"
               icon={<Icon name="add_circle" size="sm" />}
               onClick={() => {
-                setActiveTopUpRequest(null);
                 setShowTopUpModal(true);
               }}
             >
@@ -566,9 +575,9 @@ export default function StudentWallet() {
             <div className="p-5 space-y-5 max-h-[80vh] overflow-y-auto">
               <div className="space-y-4">
                 <div>
-                  <label className="text-caption font-semibold text-fg-secondary block mb-2">
+                  <span className="text-caption font-semibold text-fg-secondary block mb-2">
                     Chọn nhanh mệnh giá nạp
-                  </label>
+                  </span>
                   <div className="grid grid-cols-3 gap-2">
                     {PRESET_AMOUNTS.map((amt) => {
                       const isSelected = !customTopUpInput && topUpAmount === amt;
