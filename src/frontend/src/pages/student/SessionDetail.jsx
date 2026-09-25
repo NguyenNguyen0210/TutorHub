@@ -26,7 +26,6 @@ export default function SessionDetail() {
 
   const [session, setSession] = useState(null);
   const [learningRecord, setLearningRecord] = useState(null);
-  const [rescheduleRequests, setRescheduleRequests] = useState([]);
   const [recordInput, setRecordInput] = useState('');
   const [submittingRecord, setSubmittingRecord] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -37,7 +36,6 @@ export default function SessionDetail() {
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleStartTime, setRescheduleStartTime] = useState('');
   const [rescheduleEndTime, setRescheduleEndTime] = useState('');
-  const [rescheduleReason, setRescheduleReason] = useState('');
   const [submittingReschedule, setSubmittingReschedule] = useState(false);
 
   // Action loading state
@@ -47,15 +45,14 @@ export default function SessionDetail() {
   const backPath = isTutor ? '/tutor/dashboard' : '/student/dashboard';
   const backLabel = isTutor ? 'Quay lại bàn điều hành' : 'Quay lại bàn học';
 
-  // Load all session details, records, and reschedule requests
+  // Load all session details and records
   const loadSessionData = useCallback(async () => {
     if (!id) return;
     try {
       setLoading(true);
-      const [sessionData, recordData, reschedulesData] = await Promise.allSettled([
+      const [sessionData, recordData] = await Promise.allSettled([
         sessionService.getSessionById(id),
         sessionService.getLearningRecord(id),
-        sessionService.getRescheduleRequests(id),
       ]);
 
       if (sessionData.status === 'fulfilled') {
@@ -69,12 +66,6 @@ export default function SessionDetail() {
         setLearningRecord(recordData.value);
       } else {
         setLearningRecord(null);
-      }
-
-      if (reschedulesData.status === 'fulfilled' && Array.isArray(reschedulesData.value)) {
-        setRescheduleRequests(reschedulesData.value);
-      } else {
-        setRescheduleRequests([]);
       }
     } catch (err) {
       setError(err);
@@ -114,11 +105,8 @@ export default function SessionDetail() {
     }
   };
 
-  // Find active Pending Reschedule Request
-  const pendingReschedule = rescheduleRequests.find((r) => r.status === 'Pending');
-
-  // Handle Propose Reschedule (Tutor)
-  const handleProposeReschedule = async (e) => {
+  // Handle Direct Reschedule (Tutor)
+  const handleDirectReschedule = async (e) => {
     e.preventDefault();
     if (!rescheduleDate || !rescheduleStartTime || !rescheduleEndTime) {
       toast.error('Vui lòng chọn đầy đủ ngày, giờ bắt đầu và giờ kết thúc.');
@@ -133,113 +121,28 @@ export default function SessionDetail() {
       return;
     }
 
-    if (startDateTime.isBefore(dayjs())) {
-      toast.error('Thời gian đề xuất phải ở tương lai.');
+    const minNotice = dayjs().add(24, 'hour');
+    if (startDateTime.isBefore(minNotice)) {
+      toast.error('Lịch mới phải được xếp trước giờ bắt đầu ít nhất 24 giờ.');
       return;
     }
 
     try {
       setSubmittingReschedule(true);
-      const proposedStartAt = startDateTime.toISOString();
-      const proposedEndAt = endDateTime.toISOString();
+      const proposedStartAt = startDateTime.toDate().toISOString();
+      const proposedEndAt = endDateTime.toDate().toISOString();
 
-      await sessionService.proposeReschedule(id, proposedStartAt, proposedEndAt, rescheduleReason.trim());
-      toast.success('Đã gửi đề xuất dời lịch thành công đến học viên.');
+      await sessionService.scheduleSession(id, proposedStartAt, proposedEndAt);
+      toast.success('Đã cập nhật lịch học mới thành công.');
       setShowRescheduleModal(false);
       setRescheduleDate('');
       setRescheduleStartTime('');
       setRescheduleEndTime('');
-      setRescheduleReason('');
       await loadSessionData();
     } catch (err) {
-      toast.error(err?.message || 'Không thể gửi yêu cầu dời lịch.');
+      toast.error(err?.response?.data?.message || err?.message || 'Không thể cập nhật lịch học.');
     } finally {
       setSubmittingReschedule(false);
-    }
-  };
-
-  // Handle Accept Reschedule (Student)
-  const handleAcceptReschedule = async (requestId) => {
-    const ok = await confirm({
-      title: 'Xác nhận đồng ý dời lịch học',
-      content: (
-        <div className="space-y-2 text-caption text-fg-secondary">
-          <p>
-            Bạn có chắc chắn muốn chấp thuận thời gian học mới do Gia sư đề xuất?
-          </p>
-          <div className="bg-neutral-50 p-3 rounded-brand-md border border-border space-y-1">
-            <div className="flex justify-between">
-              <span>Lịch mới:</span>
-              <strong className="text-fg">
-                {formatDateTime(pendingReschedule.proposedStartAt)} -{' '}
-                {formatDateTime(pendingReschedule.proposedEndAt, 'HH:mm')}
-              </strong>
-            </div>
-            {pendingReschedule.reason && (
-              <div className="flex justify-between">
-                <span>Ghi chú:</span>
-                <span className="text-fg-secondary italic">{pendingReschedule.reason}</span>
-              </div>
-            )}
-          </div>
-          <p className="text-[11px] text-fg-muted">
-            Lịch buổi học sẽ được cập nhật chính thức trên hệ thống ngay sau khi xác nhận.
-          </p>
-        </div>
-      ),
-      confirmText: 'Đồng ý dời lịch',
-      cancelText: 'Hủy',
-      danger: false,
-    });
-
-    if (!ok) return;
-
-    try {
-      setActionLoading(true);
-      const updatedSession = await sessionService.acceptReschedule(id, requestId);
-      setSession(updatedSession);
-      toast.success('Đã chấp thuận dời lịch học thành công.');
-      await loadSessionData();
-    } catch (err) {
-      toast.error(err?.message || 'Không thể chấp thuận dời lịch học.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Handle Reject Reschedule (Student)
-  const handleRejectReschedule = async (requestId) => {
-    let rejectionReason = '';
-    const ok = await confirm({
-      title: 'Từ chối đề xuất dời lịch học',
-      content: (
-        <p className="text-caption text-fg-secondary">
-          Vui lòng nhập lý do từ chối để gia sư có thể sắp xếp khung giờ khác phù hợp hơn:
-        </p>
-      ),
-      confirmText: 'Từ chối đề xuất',
-      cancelText: 'Hủy',
-      danger: true,
-      requireReason: true,
-      reasonLabel: 'Lý do từ chối',
-      reasonPlaceholder: 'Ví dụ: Khung giờ này tôi bận học tại trường...',
-      minReasonLength: 5,
-      onConfirmReason: (val) => {
-        rejectionReason = val;
-      },
-    });
-
-    if (!ok) return;
-
-    try {
-      setActionLoading(true);
-      await sessionService.rejectReschedule(id, requestId, rejectionReason);
-      toast.success('Đã từ chối đề xuất dời lịch.');
-      await loadSessionData();
-    } catch (err) {
-      toast.error(err?.message || 'Không thể từ chối đề xuất dời lịch.');
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -321,7 +224,7 @@ export default function SessionDetail() {
   const isScheduled = session.status === 'Scheduled';
   const isFutureScheduled = isScheduled && session.startAt && dayjs(session.startAt).isAfter(dayjs());
   const canCancel = (isScheduled || session.status === 'Unscheduled') && !isCancelled && !isCompleted;
-  const canTutorPropose = isTutor && isFutureScheduled && !pendingReschedule;
+  const canTutorReschedule = isTutor && isFutureScheduled;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -400,14 +303,14 @@ export default function SessionDetail() {
         {/* Action Controls for Reschedule and Cancellation */}
         {!isCancelled && !isCompleted && (
           <div className="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-border">
-            {canTutorPropose && (
+            {canTutorReschedule && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowRescheduleModal(true)}
                 icon={<Icon name="edit_calendar" size="xs" />}
               >
-                Đề xuất dời lịch
+                Đổi lịch học
               </Button>
             )}
 
@@ -425,64 +328,6 @@ export default function SessionDetail() {
           </div>
         )}
       </Card>
-
-      {/* Pending Reschedule Proposal Banner */}
-      {pendingReschedule && !isCancelled && (
-        <Card className="border-brand-primary-200 bg-brand-primary-50/40">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <span className="p-2 rounded-brand-md bg-brand-primary-100 text-brand-primary-700 mt-0.5">
-                <Icon name="event_repeat" size="md" />
-              </span>
-              <div>
-                <h3 className="text-body font-bold text-fg m-0">
-                  {!isTutor
-                    ? 'Gia sư đề xuất dời lịch buổi học này'
-                    : 'Đã gửi đề xuất dời lịch học (Đang chờ học viên)'}
-                </h3>
-                <div className="text-caption text-fg-secondary mt-1 space-y-0.5">
-                  <p className="m-0">
-                    Thời gian mới đề xuất:{' '}
-                    <strong className="text-brand-primary-800">
-                      {formatDateTime(pendingReschedule.proposedStartAt)} -{' '}
-                      {formatDateTime(pendingReschedule.proposedEndAt, 'HH:mm')}
-                    </strong>
-                  </p>
-                  {pendingReschedule.reason && (
-                    <p className="m-0 text-xs italic text-fg-muted">
-                      Lý do: {pendingReschedule.reason}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Student Action Buttons: Accept / Reject */}
-            {!isTutor && (
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  loading={actionLoading}
-                  onClick={() => handleRejectReschedule(pendingReschedule.id)}
-                  icon={<Icon name="close" size="xs" />}
-                >
-                  Từ chối
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  loading={actionLoading}
-                  onClick={() => handleAcceptReschedule(pendingReschedule.id)}
-                  icon={<Icon name="check" size="xs" />}
-                >
-                  Đồng ý dời lịch
-                </Button>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
 
       {/* Attendance 2-way Verification Card */}
       {!isCancelled && (
@@ -540,7 +385,7 @@ export default function SessionDetail() {
         )}
       </Card>
 
-      {/* Modal: Propose Reschedule (Tutor Only) */}
+      {/* Modal: Direct Reschedule (Tutor Only) */}
       {showRescheduleModal && (
         <div
           role="dialog"
@@ -560,7 +405,7 @@ export default function SessionDetail() {
               <div className="flex items-center gap-2">
                 <Icon name="calendar_month" size="md" className="text-brand-primary-600" />
                 <h3 id="reschedule-modal-title" className="text-headline-3 text-fg font-bold m-0">
-                  Đề xuất dời lịch học
+                  Đổi lịch học
                 </h3>
               </div>
               <button
@@ -573,13 +418,17 @@ export default function SessionDetail() {
               </button>
             </div>
 
-            <form onSubmit={handleProposeReschedule} className="p-5 space-y-4 text-caption">
-              <Field label="Ngày học mới đề xuất" htmlFor="reschedule-date" required>
+            <form onSubmit={handleDirectReschedule} className="p-5 space-y-4 text-caption">
+              <div className="p-3 bg-amber-50 rounded-brand-md border border-amber-200 text-xs text-amber-800">
+                <strong>Quy định đổi lịch:</strong> Lịch học mới phải cách thời điểm hiện tại ít nhất 24 giờ. Lịch học sẽ được cập nhật trực tiếp trên hệ thống ngay sau khi lưu.
+              </div>
+
+              <Field label="Ngày học mới" htmlFor="reschedule-date" required>
                 <Input
                   id="reschedule-date"
                   type="date"
                   value={rescheduleDate}
-                  min={dayjs().format('YYYY-MM-DD')}
+                  min={dayjs().add(1, 'day').format('YYYY-MM-DD')}
                   onChange={(e) => setRescheduleDate(e.target.value)}
                   required
                 />
@@ -606,20 +455,6 @@ export default function SessionDetail() {
                 </Field>
               </div>
 
-              <Field label="Lý do dời lịch (gửi tới học viên)" htmlFor="reschedule-reason">
-                <Textarea
-                  id="reschedule-reason"
-                  rows={2}
-                  value={rescheduleReason}
-                  onChange={(e) => setRescheduleReason(e.target.value)}
-                  placeholder="Ví dụ: Bận đột xuất kỳ thi tại trường, xin phép dời lịch học..."
-                />
-              </Field>
-
-              <div className="p-3 bg-neutral-50 rounded-brand-md border border-border text-xs text-fg-muted">
-                <strong>Lưu ý hợp đồng:</strong> Lịch học chỉ thay đổi sau khi học viên bấm đồng ý trên hệ thống (INV-RESCHED-002).
-              </div>
-
               <div className="pt-2 flex items-center justify-end gap-2">
                 <Button
                   type="button"
@@ -634,9 +469,9 @@ export default function SessionDetail() {
                   variant="primary"
                   size="md"
                   loading={submittingReschedule}
-                  icon={<Icon name="send" size="xs" />}
+                  icon={<Icon name="check" size="xs" />}
                 >
-                  Gửi đề xuất
+                  Lưu lịch mới
                 </Button>
               </div>
             </form>
