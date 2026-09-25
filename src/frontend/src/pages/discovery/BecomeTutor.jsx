@@ -153,7 +153,7 @@ export default function BecomeTutor() {
                       <Icon name={b.icon} size="sm" />
                     </div>
                     <div>
-                      <h3 className="text-body-reg font-bold text-fg leading-tight">{b.title}</h3>
+                      <p className="text-body-reg font-bold text-fg leading-tight">{b.title}</p>
                       <p className="text-caption text-fg-secondary font-medium mt-0.5">{b.desc}</p>
                     </div>
                   </div>
@@ -166,7 +166,7 @@ export default function BecomeTutor() {
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] bg-brand-primary-100/60 rounded-full blur-3xl -z-0 pointer-events-none"
                 aria-hidden="true"
               />
-              <p aria-hidden="true" className="hidden md:block absolute top-0 left-2 -rotate-6 text-body-reg font-semibold italic text-brand-primary-500/80 leading-tight">
+              <p aria-hidden="true" className="hidden md:block absolute top-0 left-2 -rotate-6 text-body-reg font-semibold italic text-brand-primary-700 leading-tight">
                 Teach
                 <br />
                 Share
@@ -216,7 +216,7 @@ export default function BecomeTutor() {
                 </div>
               </div>
 
-              <p aria-hidden="true" className="hidden md:block absolute bottom-2 right-0 rotate-6 text-body-reg font-semibold italic text-brand-primary-500/80 leading-tight text-right">
+              <p aria-hidden="true" className="hidden md:block absolute bottom-2 right-0 rotate-6 text-body-reg font-semibold italic text-brand-primary-700 leading-tight text-right">
                 Better
                 <br />
                 Learning
@@ -303,7 +303,7 @@ export default function BecomeTutor() {
                 <p className="text-body-reg text-fg leading-relaxed">{t.quote}</p>
                 <p className="text-body-reg font-bold text-fg mt-3">{t.name}</p>
                 <p className="text-caption text-fg-secondary">{t.role}</p>
-                <div className="flex items-center gap-0.5 mt-1.5 text-brand-secondary-500" aria-label="Đánh giá 5 trên 5 sao">
+                <div className="flex items-center gap-0.5 mt-1.5 text-brand-secondary-500" role="img" aria-label="Đánh giá 5 trên 5 sao">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Icon key={i} name="star" size="xs" />
                   ))}
