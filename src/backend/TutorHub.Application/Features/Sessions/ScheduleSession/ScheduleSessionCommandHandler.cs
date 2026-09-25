@@ -1,10 +1,12 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Sessions.Common;
+using TutorHub.Application.Features.Sessions.Scheduling;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Sessions.ScheduleSession;
@@ -13,11 +15,19 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IConfiguration _configuration;
+    private readonly IClock _clock;
 
-    public ScheduleSessionCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
+    public ScheduleSessionCommandHandler(
+        IAppDbContext context,
+        ICurrentUserService currentUserService,
+        IConfiguration configuration,
+        IClock clock)
     {
         _context = context;
         _currentUserService = currentUserService;
+        _configuration = configuration;
+        _clock = clock;
     }
 
     public async Task<SessionDto> Handle(ScheduleSessionCommand request, CancellationToken cancellationToken)
@@ -26,7 +36,7 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
 
         var session = await _context.Sessions
             .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
-            .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(t => t.AvailabilitySlots)
+            .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
             .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(t => t.User)
             .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
 
@@ -35,56 +45,76 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
             throw new NotFoundException("Session", request.SessionId);
         }
 
-        // 1. Authorization First: Only Student or Tutor participant can schedule
-        if (session.Enrollment.StudentProfile.UserId != userId &&
-            session.Enrollment.TutorProfile.UserId != userId)
+        // 1. Tutor-only: student scheduling is gone.
+        if (session.Enrollment.TutorProfile.UserId != userId)
         {
-            throw new ForbiddenException("You do not have permission to schedule this session.");
+            throw new ForbiddenException("Only the tutor can schedule this session.");
         }
 
-        // 2. Validate Enrollment state
+        // 2. Validate Enrollment state.
         if (session.Enrollment.Status != EnrollmentStatus.Active)
         {
             throw new BadRequestException("Cannot schedule sessions for an inactive or cancelled enrollment.");
         }
 
-        // 3. Invariant: Initial Scheduling Only (Unscheduled -> Scheduled). No unilateral reschedule.
-        if (session.Status != SessionStatus.Unscheduled)
-        {
-            throw new ConflictException($"Cannot schedule session in '{session.Status}' status. Agreed schedules cannot be unilaterally modified.");
-        }
-
-        // 4. Validate UTC DateTimeKind contract
+        // 3. Validate UTC DateTimeKind contract + exact duration match (unchanged).
         SessionSchedulingValidationPolicy.ValidateUtc(request.StartAt, request.EndAt);
-
-        // 5. Invariant: Exact Duration Match (No rounding)
         SessionSchedulingValidationPolicy.ValidateDuration(request.StartAt, request.EndAt, session.Enrollment.SessionDurationMinutes);
 
-        // 6. Timezone conversion to Canonical Timezone (Asia/Ho_Chi_Minh) & Availability check
-        SessionSchedulingValidationPolicy.ValidateTutorAvailability(request.StartAt, request.EndAt, session.Enrollment.TutorProfile.AvailabilitySlots);
+        // 4. Minimum-notice rule.
+        var policy = new SessionSchedulePolicy(_configuration, _clock);
+        policy.RequireSchedulable(request.StartAt, request.EndAt);
 
-        // 7. Tutor-Scoped Concurrency & Overlap Protection (INV-AVAIL-008, INV-RESCHED-010)
         var tutorProfileId = session.Enrollment.TutorProfileId;
 
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-        await _context.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT 1 FROM \"TutorProfiles\" WHERE \"Id\" = {tutorProfileId} FOR UPDATE;",
-            cancellationToken);
-
         try
         {
-            await SessionSchedulingValidationPolicy.CheckTutorSessionOverlapAsync(
+            // 5. Overlap with the tutor's other Scheduled sessions in range.
+            var overlapping = await _context.Sessions
+                .Where(s => s.Id != session.Id &&
+                            s.Enrollment.TutorProfileId == tutorProfileId &&
+                            s.Status == SessionStatus.Scheduled &&
+                            s.StartAt < request.EndAt && request.StartAt < s.EndAt)
+                .Select(s => new
+                {
+                    TutorProfileId = s.Enrollment.TutorProfileId,
+                    StartAt = s.StartAt,
+                    EndAt = s.EndAt
+                })
+                .ToListAsync(cancellationToken);
+
+            policy.RequireNoOverlap(
                 tutorProfileId,
-                session.Id,
                 request.StartAt,
                 request.EndAt,
-                _context,
-                cancellationToken);
+                overlapping
+                    .Where(s => s.StartAt.HasValue)
+                    .Select(s => (s.TutorProfileId, s.StartAt!.Value, s.EndAt, nameof(SessionStatus.Scheduled))));
 
-            // 8. Domain state transition
-            session.Schedule(request.StartAt, request.EndAt);
+            // 6. Domain state transition (direct tutor schedule / reschedule, no ticket).
+            var now = _clock.UtcNow;
+            try
+            {
+                if (session.Status == SessionStatus.Unscheduled)
+                {
+                    session.Schedule(request.StartAt, request.EndAt);
+                }
+                else if (session.Status == SessionStatus.Scheduled)
+                {
+                    session.Reschedule(request.StartAt, request.EndAt, now);
+                }
+                else
+                {
+                    throw new ConflictException($"Cannot schedule session in '{session.Status}' status.");
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new ConflictException(ex.Message);
+            }
 
-            // Enqueue Outbox Message in same DB transaction (DEC-S7-001, DEC-S7-002)
+            // 7. Enqueue Outbox Message in same DB transaction (DEC-S7-001, DEC-S7-002).
             _context.AddOutboxMessage(new SessionScheduledEvent(
                 session.Id,
                 session.EnrollmentId,
