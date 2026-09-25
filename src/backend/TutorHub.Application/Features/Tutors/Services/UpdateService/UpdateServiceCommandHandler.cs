@@ -100,6 +100,28 @@ public class UpdateServiceCommandHandler : IRequestHandler<UpdateServiceCommand,
         if (request.CoverImageUrl != null)
             service.CoverImageUrl = request.CoverImageUrl;
 
+        // Marketing content (same Published treatment as Description): editable
+        // in every status, including Published. Null means "no change".
+        if (request.Curriculum != null)
+        {
+            if (request.Curriculum.Count > service.TotalSessions)
+            {
+                throw new BadRequestException(
+                    $"Curriculum cannot have more items ({request.Curriculum.Count}) than total sessions ({service.TotalSessions}).");
+            }
+
+            service.CurriculumJson = ServiceDtoMapper.SerializeCurriculum(request.Curriculum, service.SessionDurationMinutes);
+        }
+
+        if (request.TargetAudience != null)
+            service.TargetAudienceJson = ServiceDtoMapper.SerializeStringList(request.TargetAudience);
+
+        if (request.Prerequisites != null)
+            service.PrerequisitesJson = ServiceDtoMapper.SerializeStringList(request.Prerequisites);
+
+        if (request.Faqs != null)
+            service.FaqsJson = ServiceDtoMapper.SerializeFaqs(request.Faqs);
+
         service.UpdatedAt = _clock.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);

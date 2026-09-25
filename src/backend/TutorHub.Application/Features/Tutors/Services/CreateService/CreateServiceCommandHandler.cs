@@ -72,6 +72,10 @@ public class CreateServiceCommandHandler : IRequestHandler<CreateServiceCommand,
             TeachingMode = request.TeachingMode,
             TrialLessonUrl = request.TrialLessonUrl,
             CoverImageUrl = request.CoverImageUrl,
+            CurriculumJson = ServiceDtoMapper.SerializeCurriculum(request.Curriculum, request.SessionDurationMinutes),
+            TargetAudienceJson = ServiceDtoMapper.SerializeStringList(request.TargetAudience),
+            PrerequisitesJson = ServiceDtoMapper.SerializeStringList(request.Prerequisites),
+            FaqsJson = ServiceDtoMapper.SerializeFaqs(request.Faqs),
             Status = ServiceStatus.Draft,
             CreatedAt = _clock.UtcNow
         };
