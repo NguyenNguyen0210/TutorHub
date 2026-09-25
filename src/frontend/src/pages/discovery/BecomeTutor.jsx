@@ -352,23 +352,32 @@ export default function BecomeTutor() {
       {/* ── 4. Final CTA ────────────────────────────────────── */}
       <section className="pb-10 sm:pb-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="rounded-brand-xl bg-brand-navy-900 text-white p-6 sm:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="max-w-xl">
+          <div className="relative overflow-hidden rounded-brand-xl bg-gradient-to-r from-brand-primary-600 to-brand-primary-800 text-white p-6 sm:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 shadow-brand-lg">
+            <div className="absolute -top-24 -right-16 w-72 h-72 rounded-full bg-white/10 pointer-events-none" aria-hidden="true" />
+            <div className="absolute -bottom-28 right-48 w-80 h-80 rounded-full bg-white/10 pointer-events-none" aria-hidden="true" />
+            <div className="relative z-10 max-w-xl">
               <h2 className="text-headline-1">
                 Sẵn sàng chia sẻ tri thức?
               </h2>
-              <p className="text-body-reg text-white/70 mt-2">
+              <p className="text-body-reg text-white/85 mt-2">
                 Đăng ký miễn phí, xét duyệt trong 1–3 ngày làm việc. Thu nhập minh bạch qua ví
                 bảo chứng TutorHub.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
-              <Button as={Link} to="/tutor/application" variant="primary" size="lg" iconRight={<Icon name="arrow_forward" size="sm" />}>
-                Đăng ký ngay
-              </Button>
-              <Button as={Link} to="/how-it-works" variant="outline" size="lg" className="!bg-transparent !text-white !border-white/25 hover:!bg-white/10">
+            <div className="relative z-10 flex flex-wrap items-center gap-3 shrink-0">
+              <Link
+                to="/tutor/application"
+                className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-brand-md bg-white text-brand-primary-700 hover:bg-brand-primary-50 font-semibold text-body-lg shadow-sm transition-colors"
+              >
+                <span>Đăng ký ngay</span>
+                <Icon name="arrow_forward" size="sm" />
+              </Link>
+              <Link
+                to="/how-it-works"
+                className="inline-flex items-center justify-center h-12 px-6 rounded-brand-md border border-white/40 text-white hover:bg-white/10 font-semibold text-body-lg transition-colors"
+              >
                 Cách hoạt động
-              </Button>
+              </Link>
             </div>
           </div>
         </div>
