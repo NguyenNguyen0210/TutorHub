@@ -185,11 +185,11 @@ export default function BecomeTutor() {
 
               <div className="relative w-full max-w-[480px] select-none">
                 <img
-                  src="/images/transparent-student-clean.png"
-                  alt="Gia sư TutorHub đang giảng dạy trực tuyến"
-                  className="w-full h-auto max-h-[420px] object-contain pointer-events-none drop-shadow-sm"
+                  src="/images/hero-become-tutor.jpg"
+                  alt="Gia sư TutorHub đang giảng dạy"
+                  className="w-full h-auto aspect-[4/3] object-cover rounded-brand-xl border border-white/70 shadow-brand-lg"
                   loading="eager"
-                  srcSet="/images/transparent-student-clean.png 1x"
+                  srcSet="/images/hero-become-tutor.jpg 1x"
                 />
 
                 <div className="absolute top-2 -right-1 sm:right-0 bg-surface/95 backdrop-blur-md px-3 py-2.5 rounded-brand-lg shadow-brand-md border border-border flex items-center gap-2.5 animate-float">
@@ -339,10 +339,10 @@ export default function BecomeTutor() {
               </div>
             </div>
             <img
-              src="/images/transparent-student-clean.png"
+              src="/images/hero-become-tutor.jpg"
               alt=""
               aria-hidden="true"
-              className="hidden sm:block w-40 lg:w-48 object-contain self-center rounded-brand-lg pointer-events-none select-none"
+              className="hidden sm:block w-40 lg:w-48 aspect-[3/4] object-cover self-center rounded-brand-lg pointer-events-none select-none"
               loading="lazy"
             />
           </div>

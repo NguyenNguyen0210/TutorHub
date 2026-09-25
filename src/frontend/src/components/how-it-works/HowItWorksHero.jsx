@@ -74,11 +74,11 @@ export default function HowItWorksHero() {
                 aria-hidden="true"
               />
 
-              {/* Student Cutout: Borderless, clean */}
+              {/* Framed hero photo: students learning together */}
               <img
-                src="/images/transparent-student-clean.png"
-                alt="Học viên TutorHub học tập hiệu quả cùng gia sư"
-                className="w-full h-auto max-h-[360px] object-contain select-none pointer-events-none drop-shadow-sm"
+                src="/images/hero-how-it-works.jpg"
+                alt="Học viên cùng nhau học tập với laptop"
+                className="w-full h-auto aspect-[4/3] object-cover rounded-brand-xl border border-white/70 shadow-brand-lg select-none"
                 loading="eager"
               />
 
