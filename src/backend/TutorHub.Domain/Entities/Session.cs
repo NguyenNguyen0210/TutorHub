@@ -52,7 +52,6 @@ public class Session
     public string? ResolutionSource { get; private set; }
     public Guid? ResolvedByAdminId { get; private set; }
     public DateTime? AttendanceVerifiedAt { get; private set; }
-    public ICollection<SessionRescheduleRequest> RescheduleRequests { get; set; } = new List<SessionRescheduleRequest>();
 
     // =======================================================
     // Domain Methods

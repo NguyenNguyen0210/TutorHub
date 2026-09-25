@@ -3,12 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
-using TutorHub.Application.Features.Availability.CreateAvailabilitySlot;
-using TutorHub.Application.Features.Availability.DeleteAvailabilitySlot;
-using TutorHub.Application.Features.Availability.DTOs;
-using TutorHub.Application.Features.Availability.GetMyAvailabilitySlots;
-using TutorHub.Application.Features.Availability.GetTutorAvailability;
-using TutorHub.Application.Features.Availability.SetWeeklySchedule;
 using TutorHub.Application.Features.Reviews.DTOs;
 using TutorHub.Application.Features.Reviews.GetTutorReviews;
 using TutorHub.Application.Features.Tutors.DTOs;
@@ -103,25 +97,6 @@ public class TutorsController : ControllerBase
         var query = new GetTutorByIdQuery(id);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<TutorProfileDto>.SuccessResult(result, "Tutor profile details retrieved successfully."));
-    }
-
-    /// <summary>
-    /// Get dynamic availability schedule of a tutor by ID across a specific date range (Public).
-    /// Calculates open time ranges by subtracting active bookings.
-    /// </summary>
-    [HttpGet("{id:guid}/availability")]
-    [ProducesResponseType(typeof(ApiResponse<TutorAvailabilityDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetTutorAvailability(
-        [FromRoute] Guid id,
-        [FromQuery] DateOnly? fromDate,
-        [FromQuery] DateOnly? toDate,
-        CancellationToken cancellationToken)
-    {
-        var query = new GetTutorAvailabilityQuery(id, fromDate, toDate);
-        var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<TutorAvailabilityDto>.SuccessResult(result, "Tutor availability schedule retrieved successfully."));
     }
 
     /// <summary>
@@ -292,76 +267,6 @@ public class TutorsController : ControllerBase
         var command = new UpdateMySubjectsCommand(request.Subjects);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<List<TutorSubjectDto>>.SuccessResult(result, "Tutor subjects updated successfully."));
-    }
-
-    /// <summary>
-    /// Get weekly availability slots of the authenticated tutor (Tutor only).
-    /// </summary>
-    [Authorize(Roles = "Tutor")]
-    [HttpGet("me/availability-slots")]
-    [ProducesResponseType(typeof(ApiResponse<List<AvailabilitySlotDto>>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetMyAvailabilitySlots(CancellationToken cancellationToken)
-    {
-        var query = new GetMyAvailabilitySlotsQuery();
-        var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<List<AvailabilitySlotDto>>.SuccessResult(result, "Availability slots retrieved successfully."));
-    }
-
-    /// <summary>
-    /// Create a new weekly availability slot for the authenticated tutor (Tutor only).
-    /// </summary>
-    [Authorize(Roles = "Tutor")]
-    [HttpPost("me/availability-slots")]
-    [ProducesResponseType(typeof(ApiResponse<AvailabilitySlotDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> CreateAvailabilitySlot(
-        [FromBody] CreateAvailabilitySlotRequest request,
-        CancellationToken cancellationToken)
-    {
-        var command = new CreateAvailabilitySlotCommand(request.DayOfWeek, request.StartTime, request.EndTime);
-        var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<AvailabilitySlotDto>.SuccessResult(result, "Availability slot created successfully."));
-    }
-
-    /// <summary>
-    /// Delete a weekly availability slot by ID for the authenticated tutor (Tutor only).
-    /// </summary>
-    [Authorize(Roles = "Tutor")]
-    [HttpDelete("me/availability-slots/{id:guid}")]
-    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteAvailabilitySlot(
-        [FromRoute] Guid id,
-        CancellationToken cancellationToken)
-    {
-        var command = new DeleteAvailabilitySlotCommand(id);
-        var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<bool>.SuccessResult(result, "Availability slot deleted successfully."));
-    }
-
-    /// <summary>
-    /// Atomically synchronize the tutor's entire weekly recurring availability schedule (Tutor only - INV-AVAIL-006).
-    /// Fails fast with 409 Conflict if any future scheduled session would be left uncovered.
-    /// </summary>
-    [Authorize(Roles = "Tutor")]
-    [HttpPut("me/availability-schedule")]
-    [ProducesResponseType(typeof(ApiResponse<List<AvailabilitySlotDto>>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> SetWeeklySchedule(
-        [FromBody] SetWeeklyScheduleRequest request,
-        CancellationToken cancellationToken)
-    {
-        var command = new SetWeeklyScheduleCommand(request.Schedule);
-        var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<List<AvailabilitySlotDto>>.SuccessResult(result, "Weekly availability schedule synchronized successfully."));
     }
 
     /// <summary>

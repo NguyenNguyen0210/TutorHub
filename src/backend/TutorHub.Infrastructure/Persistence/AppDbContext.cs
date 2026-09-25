@@ -20,7 +20,6 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Subject> Subjects => Set<Subject>();
     public DbSet<TutorSubject> TutorSubjects => Set<TutorSubject>();
     public DbSet<Service> Services => Set<Service>();
-    public DbSet<AvailabilitySlot> AvailabilitySlots => Set<AvailabilitySlot>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
     public DbSet<Session> Sessions => Set<Session>();
@@ -47,7 +46,6 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<PlatformSettingVersion> PlatformSettingVersions => Set<PlatformSettingVersion>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<CustomAgreement> CustomAgreements => Set<CustomAgreement>();
-    public DbSet<SessionRescheduleRequest> SessionRescheduleRequests => Set<SessionRescheduleRequest>();
     public DbSet<LearningRecord> LearningRecords => Set<LearningRecord>();
     public DbSet<StudentWallet> StudentWallets => Set<StudentWallet>();
     public DbSet<StudentWalletTransaction> StudentWalletTransactions => Set<StudentWalletTransaction>();

@@ -71,8 +71,5 @@ public class TutorProfile
     public ICollection<Service> Services { get; set; }
         = new List<Service>();
 
-    public ICollection<AvailabilitySlot> AvailabilitySlots { get; set; }
-        = new List<AvailabilitySlot>();
-
     public TutorWallet? Wallet { get; set; }
 }

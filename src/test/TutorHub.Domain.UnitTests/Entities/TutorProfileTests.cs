@@ -16,6 +16,5 @@ public class TutorProfileTests
         profile.RatingAvg.Should().Be(0);
         profile.TotalReviews.Should().Be(0);
         profile.TutorSubjects.Should().NotBeNull().And.BeEmpty();
-        profile.AvailabilitySlots.Should().NotBeNull().And.BeEmpty();
     }
 }
