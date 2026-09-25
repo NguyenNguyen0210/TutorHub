@@ -7,12 +7,15 @@ namespace TutorHub.Application.Features.Sessions.Scheduling;
 
 public sealed class SessionSchedulePolicy
 {
+    private const int DefaultMinimumNoticeHours = 24;
+    private const string MinimumNoticeHoursKey = "Scheduling:MinimumNoticeHours";
+
     private readonly int _noticeHours;
     private readonly IClock _clock;
 
     public SessionSchedulePolicy(IConfiguration configuration, IClock clock)
     {
-        _noticeHours = int.TryParse(configuration["Scheduling:MinimumNoticeHours"], out var h) && h >= 0 ? h : 24;
+        _noticeHours = int.TryParse(configuration[MinimumNoticeHoursKey], out var h) && h >= 0 ? h : DefaultMinimumNoticeHours;
         _clock = clock;
     }
 
@@ -28,7 +31,7 @@ public sealed class SessionSchedulePolicy
     {
         var clash = existing.Any(s => s.TutorProfileId == tutorProfileId
             && s.Status == nameof(SessionStatus.Scheduled)
-            && startAt < (s.EndAt ?? DateTime.MaxValue) && (s.EndAt ?? startAt.AddMinutes(1)) > startAt
+            && startAt < (s.EndAt ?? DateTime.MaxValue)
             && s.StartAt < endAt);
         if (clash) throw new ConflictException("The new time overlaps another scheduled session.");
     }
