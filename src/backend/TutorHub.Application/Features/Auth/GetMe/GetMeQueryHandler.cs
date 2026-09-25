@@ -35,7 +35,8 @@ public class GetMeQueryHandler : IRequestHandler<GetMeQuery, RegisterResponseDto
             user.Email,
             user.FullName,
             user.Phone,
-            user.Role.ToString()
+            user.Role.ToString(),
+            user.Status.ToString()
         );
     }
 }

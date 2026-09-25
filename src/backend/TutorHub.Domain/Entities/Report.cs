@@ -42,7 +42,8 @@ public class Report
         Guid? bookingId = null,
         Guid? reportedUserId = null,
         string? targetId = null,
-        string? evidenceUrl = null)
+        string? evidenceUrl = null,
+        DateTime? now = null)
     {
         if (reporterUserId == Guid.Empty)
             throw new ArgumentException("Reporter user is required.", nameof(reporterUserId));
@@ -64,11 +65,11 @@ public class Report
             TargetId = targetId,
             EvidenceUrl = evidenceUrl,
             Status = ReportStatus.Open,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = now ?? DateTime.UtcNow
         };
     }
 
-    public void Resolve(ReportDecision decision, string resolution, Guid adminId)
+    public void Resolve(ReportDecision decision, string resolution, Guid adminId, DateTime? now = null)
     {
         if (Status != ReportStatus.Open)
             throw new InvalidOperationException("Only open reports can be resolved.");
@@ -79,6 +80,6 @@ public class Report
         AdminDecision = decision;
         Resolution = resolution.Trim();
         ResolvedByAdminId = adminId;
-        ResolvedAt = DateTime.UtcNow;
+        ResolvedAt = now ?? DateTime.UtcNow;
     }
 }

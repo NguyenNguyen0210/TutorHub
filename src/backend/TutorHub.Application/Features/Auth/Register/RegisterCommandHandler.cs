@@ -115,7 +115,8 @@ Trân trọng,
             user.Email,
             user.FullName,
             user.Phone,
-            user.Role.ToString()
+            user.Role.ToString(),
+            user.Status.ToString()
         );
     }
 }

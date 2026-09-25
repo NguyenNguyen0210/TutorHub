@@ -488,6 +488,25 @@ public record ReportCreatedEvent(
     public Guid AggregateId => ReportId;
 }
 
+public record ReportResolvedEvent(
+    Guid ReportId,
+    Guid ReportedUserId,
+    Guid ReporterUserId,
+    string Decision,
+    string Resolution,
+    Guid EventId = default,
+    int EventVersion = 1,
+    DateTime OccurredAt = default
+) : IBusinessEvent
+{
+    public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
+    public string EventType => BusinessEventTypes.ReportResolved;
+    public int EventVersion { get; init; } = EventVersion;
+    public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
+    public string AggregateType => "Report";
+    public Guid AggregateId => ReportId;
+}
+
 // ==========================================
 // Communication Domain Event
 // ==========================================

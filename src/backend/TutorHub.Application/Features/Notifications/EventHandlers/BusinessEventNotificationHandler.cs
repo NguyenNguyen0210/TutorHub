@@ -36,6 +36,7 @@ public class BusinessEventNotificationHandler :
     INotificationHandler<DisputeCreatedEvent>,
     INotificationHandler<DisputeResolvedEvent>,
     INotificationHandler<ReportCreatedEvent>,
+    INotificationHandler<ReportResolvedEvent>,
     INotificationHandler<StudentTopUpRequestedEvent>,
     INotificationHandler<StudentTopUpConfirmedEvent>,
     INotificationHandler<StudentTopUpRejectedEvent>,
@@ -509,6 +510,26 @@ public class BusinessEventNotificationHandler :
         await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
     }
 
+    public async Task Handle(ReportResolvedEvent notification, CancellationToken cancellationToken)
+    {
+        var recipients = new List<(Guid UserId, string Title, string Message, string DeepLink)>();
+
+        if (notification.Decision == "WarningIssued")
+        {
+            recipients.Add((
+                UserId: notification.ReportedUserId,
+                Title: "Official Warning Issued",
+                Message: $"You have received an official warning from the platform administration: {notification.Resolution}",
+                DeepLink: NotificationRouteRegistry.AdminReport(notification.ReportId)
+            ));
+        }
+
+        if (recipients.Count > 0)
+        {
+            await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
+        }
+    }
+
     public async Task Handle(StudentTopUpRequestedEvent notification, CancellationToken cancellationToken)
     {
         var adminUserIds = await _dbContext.Users
@@ -703,7 +724,7 @@ public class BusinessEventNotificationHandler :
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex) when (IsInboxDuplicateViolation(ex))
         {
             // Concurrent execution already handled this InboxMessage
             _logger.LogInformation("Concurrent duplicate delivery ignored for EventId {EventId}", domainEvent.EventId);
@@ -741,4 +762,24 @@ public class BusinessEventNotificationHandler :
             }
         }
     }
+
+    private static bool IsInboxDuplicateViolation(DbUpdateException ex)
+    {
+        var inner = ex.InnerException;
+        if (inner == null)
+        {
+            return false;
+        }
+
+        var msg = inner.Message;
+        var constraintName = inner.GetType().GetProperty("ConstraintName")?.GetValue(inner) as string;
+        var sqlState = inner.GetType().GetProperty("SqlState")?.GetValue(inner) as string;
+
+        var isUniqueViolationCode = sqlState == "23505" || msg.Contains("23505", StringComparison.OrdinalIgnoreCase);
+        var isTargetConstraint = string.Equals(constraintName, "IX_InboxMessages_ConsumerEvent", StringComparison.OrdinalIgnoreCase) ||
+                                 msg.Contains("IX_InboxMessages_ConsumerEvent", StringComparison.OrdinalIgnoreCase);
+
+        return isUniqueViolationCode && isTargetConstraint;
+    }
 }
+

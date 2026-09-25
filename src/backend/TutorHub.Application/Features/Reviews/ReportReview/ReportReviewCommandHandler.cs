@@ -48,6 +48,21 @@ public class ReportReviewCommandHandler : IRequestHandler<ReportReviewCommand, R
 
         var reportedUserId = review.Enrollment?.StudentProfile?.UserId;
 
+        // Guard against self-reporting
+        if (reportedUserId.HasValue && reportedUserId.Value == userId)
+        {
+            throw new BadRequestException("You cannot report your own review.");
+        }
+
+        // Duplicate report check
+        var alreadyReported = await _context.Reports
+            .AnyAsync(r => r.TargetId == review.Id.ToString() && r.ReporterUserId == userId && r.Status == ReportStatus.Open, cancellationToken);
+
+        if (alreadyReported)
+        {
+            throw new ConflictException("You already have an open report for this review.");
+        }
+
         Report report;
         try
         {
@@ -77,7 +92,19 @@ public class ReportReviewCommandHandler : IRequestHandler<ReportReviewCommand, R
                 report.Description));
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            var innerMsg = ex.InnerException?.Message ?? string.Empty;
+            if (innerMsg.Contains("23505"))
+            {
+                throw new ConflictException("You have already submitted an active report for this review.");
+            }
+            throw;
+        }
 
         return new ReportSummaryDto(
             Id: report.Id,

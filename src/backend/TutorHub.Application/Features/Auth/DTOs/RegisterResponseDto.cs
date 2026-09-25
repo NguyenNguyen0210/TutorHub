@@ -5,5 +5,6 @@ public record RegisterResponseDto(
     string Email,
     string FullName,
     string? Phone,
-    string Role
+    string Role,
+    string Status
 );

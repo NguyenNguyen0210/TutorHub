@@ -31,11 +31,12 @@ public static class BusinessEventTypes
     public const string WithdrawalCompleted = "WithdrawalCompleted";
     public const string WithdrawalFailed = "WithdrawalFailed";
 
-    // 5. Trust, Safety & Disputes (4 events)
+    // 5. Trust, Safety & Disputes (5 events)
     public const string ReviewCreated = "ReviewCreated";
     public const string DisputeCreated = "DisputeCreated";
     public const string DisputeResolved = "DisputeResolved";
     public const string ReportCreated = "ReportCreated";
+    public const string ReportResolved = "ReportResolved";
     public const string PlatformSettingChanged = "PlatformSettingChanged";
 
     // Communication Domain Event (Separate from 24 Core Business Events - INV-EVENT-009)
