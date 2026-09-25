@@ -18,6 +18,7 @@ const STATUS_TABS = [
   { id: 'All', label: 'Tất cả' },
   { id: 'Draft', label: 'Bản nháp' },
   { id: 'Published', label: 'Đã xuất bản' },
+  { id: 'Paused', label: 'Tạm dừng' },
   { id: 'Unpublished', label: 'Đã ẩn' },
 ];
 
@@ -284,11 +285,13 @@ export default function TutorServices() {
   const stats = useMemo(() => {
     const published = services.filter((s) => s.status === 'Published').length;
     const draft = services.filter((s) => s.status === 'Draft').length;
+    const paused = services.filter((s) => s.status === 'Paused').length;
     const unpublished = services.filter((s) => s.status === 'Unpublished').length;
     return {
       total: services.length,
       published,
       draft,
+      paused,
       unpublished,
     };
   }, [services]);
@@ -298,10 +301,18 @@ export default function TutorServices() {
       All: stats.total,
       Draft: stats.draft,
       Published: stats.published,
+      Paused: stats.paused,
       Unpublished: stats.unpublished,
     }),
     [stats]
   );
+
+  // Clear search + dropdown filters (keeps the active status tab)
+  const handleClearFilters = useCallback(() => {
+    setSearch('');
+    setSubjectFilter('All');
+    setStatusFilter('All');
+  }, []);
 
   // Filtered services
   const filteredServices = useMemo(() => {
@@ -358,6 +369,7 @@ export default function TutorServices() {
         onSubjectIdChange={setSubjectFilter}
         status={statusFilter}
         onStatusChange={setStatusFilter}
+        onClear={handleClearFilters}
       />
 
       {/* Content */}
