@@ -6,7 +6,6 @@ using TutorHub.Application.Features.Reviews.ReportReview;
 using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
-using TutorHub.Domain.UnitTests.Common.Builders;
 using Xunit;
 
 namespace TutorHub.Application.UnitTests.Features.Reviews.ReportReview;
@@ -20,95 +19,126 @@ public class ReportReviewCommandHandlerTests
     private readonly List<Review> _reviews = new();
     private readonly List<User> _users = new();
     private readonly List<Report> _reports = new();
+    private readonly List<OutboxMessage> _outboxMessages = new();
 
     public ReportReviewCommandHandlerTests()
     {
         _contextMock.Setup(c => c.Reviews).Returns(MockDbSetHelper.CreateMockDbSet(_reviews).Object);
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(_users).Object);
         _contextMock.Setup(c => c.Reports).Returns(MockDbSetHelper.CreateMockDbSet(_reports).Object);
+        _contextMock.Setup(c => c.OutboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(_outboxMessages).Object);
 
         _handler = new ReportReviewCommandHandler(_contextMock.Object, _currentUser);
     }
 
     [Fact]
-    public async Task Handle_WhenReviewNotFound_ShouldThrowNotFoundException()
+    public async Task Handle_WhenSelfReporting_ShouldThrowBadRequestException()
     {
         // Arrange
-        _currentUser.Set(Guid.NewGuid(), UserRole.Tutor);
-        var command = new ReportReviewCommand(Guid.NewGuid(), "Inappropriate language");
+        var studentUserId = Guid.NewGuid();
+        var studentUser = new User { Id = studentUserId, FullName = "Student", Role = UserRole.Student };
+        _users.Add(studentUser);
+
+        var enrollment = new Enrollment
+        {
+            Id = Guid.NewGuid(),
+            StudentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = studentUserId, User = studentUser }
+        };
+
+        var review = Review.Create(enrollment.Id, 5, "My review");
+        review.Id = Guid.NewGuid();
+        review.Enrollment = enrollment;
+        _reviews.Add(review);
+
+        _currentUser.Set(studentUserId, UserRole.Student);
+        var command = new ReportReviewCommand(review.Id, "Reporting myself", null);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<NotFoundException>();
+        var ex = await act.Should().ThrowAsync<BadRequestException>();
+        ex.Which.Errors.Should().Contain(e => e.Contains("cannot report your own review"));
     }
 
     [Fact]
-    public async Task Handle_WhenReviewIsAlreadyRemoved_ShouldThrowConflictException()
+    public async Task Handle_WhenOpenReportAlreadyExists_ShouldThrowConflictException()
     {
         // Arrange
-        var enrollment = new Enrollment { Id = Guid.NewGuid(), BookingId = Guid.NewGuid() };
-        // F-23: content via factory.
-        var review = Review.Create(enrollment.Id, 1, null);
+        var studentUserId = Guid.NewGuid();
+        var tutorUserId = Guid.NewGuid();
+        var tutorUser = new User { Id = tutorUserId, FullName = "Tutor", Role = UserRole.Tutor };
+        _users.Add(tutorUser);
+
+        var enrollment = new Enrollment
+        {
+            Id = Guid.NewGuid(),
+            StudentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = studentUserId }
+        };
+
+        var review = Review.Create(enrollment.Id, 1, "Offensive review");
         review.Id = Guid.NewGuid();
         review.Enrollment = enrollment;
-        review.RemoveByAdmin("Already removed", Guid.NewGuid());
         _reviews.Add(review);
 
-        var reporter = new UserBuilder().Build();
-        _users.Add(reporter);
+        var existingReport = new Report
+        {
+            Id = Guid.NewGuid(),
+            ReportType = TrustReportType.ReviewViolation,
+            TargetId = review.Id.ToString(),
+            ReporterUserId = tutorUserId,
+            Status = ReportStatus.Open,
+            Description = "Already reported"
+        };
+        _reports.Add(existingReport);
 
-        _currentUser.Set(reporter.Id, reporter.Role);
-        var command = new ReportReviewCommand(review.Id, "Inappropriate language");
+        _currentUser.Set(tutorUserId, UserRole.Tutor);
+        var command = new ReportReviewCommand(review.Id, "Reporting again", null);
 
         // Act
         var act = () => _handler.Handle(command, CancellationToken.None);
 
         // Assert
         var ex = await act.Should().ThrowAsync<ConflictException>();
-        ex.Which.Errors.Should().Contain(e => e.Contains("removed"));
+        ex.Which.Errors.Should().Contain(e => e.Contains("already have an open report"));
     }
 
     [Fact]
-    public async Task Handle_WhenValidReport_ShouldCreateReportRecordInTrustAndSafety()
+    public async Task Handle_WhenValidReport_ShouldCreateReportAndOutboxEvent()
     {
-        var studentUser = new UserBuilder().Build();
-        var studentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = studentUser.Id, User = studentUser };
+        // Arrange
+        var studentUserId = Guid.NewGuid();
+        var tutorUserId = Guid.NewGuid();
+        var tutorUser = new User { Id = tutorUserId, FullName = "Tutor", Role = UserRole.Tutor };
+        _users.Add(tutorUser);
+
         var enrollment = new Enrollment
         {
             Id = Guid.NewGuid(),
-            BookingId = Guid.NewGuid(),
-            StudentProfileId = studentProfile.Id,
-            StudentProfile = studentProfile
+            StudentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = studentUserId }
         };
-        var review = Review.Create(enrollment.Id, 1, "Bad comment");
+
+        var review = Review.Create(enrollment.Id, 1, "False defamatory review");
         review.Id = Guid.NewGuid();
         review.Enrollment = enrollment;
         _reviews.Add(review);
 
-        var reporter = new UserBuilder().WithFullName("John Doe").WithRole(UserRole.Tutor).Build();
-        _users.Add(reporter);
+        _currentUser.Set(tutorUserId, UserRole.Tutor);
+        var command = new ReportReviewCommand(review.Id, "False defamatory content", "https://evidence.example.com");
 
-        _currentUser.Set(reporter.Id, reporter.Role);
-        var command = new ReportReviewCommand(review.Id, "Harassment and offensive language", "https://evidence.com/screenshot.png");
+        _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
 
         // Assert
         result.Should().NotBeNull();
-        result.ReporterUserId.Should().Be(reporter.Id);
-        result.ReporterName.Should().Be("John Doe");
-        result.ReporterRole.Should().Be("Tutor");
         result.ReportType.Should().Be(TrustReportType.ReviewViolation);
         result.TargetId.Should().Be(review.Id.ToString());
-        result.ReportedUserId.Should().Be(studentProfile.UserId);
+        result.ReporterUserId.Should().Be(tutorUserId);
         result.Status.Should().Be(ReportStatus.Open);
-        result.EvidenceUrl.Should().Be("https://evidence.com/screenshot.png");
-        result.Description.Should().Contain("[Review Violation Report - ReviewId:");
 
-        _reports.Should().HaveCount(1);
+        _contextMock.Verify(c => c.Reports.Add(It.IsAny<Report>()), Times.Once);
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 }

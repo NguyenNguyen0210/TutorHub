@@ -31,7 +31,7 @@ public class SignalRServiceTests
     }
 
     [Fact]
-    public async Task SignalRNotificationService_SendRealtimeNotificationAsync_PushesToGroupAndUser()
+    public async Task SignalRNotificationService_SendRealtimeNotificationAsync_PushesToUserGroup()
     {
         // Arrange
         var loggerMock = new Mock<ILogger<SignalRNotificationService>>();
@@ -43,7 +43,7 @@ public class SignalRServiceTests
         await service.SendRealtimeNotificationAsync(userId, dto, CancellationToken.None);
 
         // Assert
-        _notificationClientMock.Verify(c => c.ReceiveNotification(dto), Times.Exactly(2));
+        _notificationClientMock.Verify(c => c.ReceiveNotification(dto), Times.Once);
     }
 
     [Fact]

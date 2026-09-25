@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Moq;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -15,6 +15,7 @@ public class AdminModerateReviewCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
     private readonly StubCurrentUserService _currentUser = new();
+    private readonly Mock<IAuditLogService> _auditLogServiceMock = new();
     private readonly AdminModerateReviewCommandHandler _handler;
 
     private readonly List<Review> _reviews = new();
@@ -27,7 +28,7 @@ public class AdminModerateReviewCommandHandlerTests
         _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(_tutorProfiles).Object);
         _contextMock.Setup(c => c.Enrollments).Returns(MockDbSetHelper.CreateMockDbSet(_enrollments).Object);
 
-        _handler = new AdminModerateReviewCommandHandler(_contextMock.Object, _currentUser);
+        _handler = new AdminModerateReviewCommandHandler(_contextMock.Object, _currentUser, _auditLogServiceMock.Object);
     }
 
     [Fact]
@@ -144,6 +145,18 @@ public class AdminModerateReviewCommandHandlerTests
         // Recalculated Tutor Profile: Only review1 (Rating 5) remains
         tutorProfile.TotalReviews.Should().Be(1);
         tutorProfile.RatingAvg.Should().Be(5.0m);
+
+        _auditLogServiceMock.Verify(a => a.LogAsync(
+            "REVIEW_MODERATED",
+            "Review",
+            review2.Id.ToString(),
+            adminId,
+            It.IsAny<object>(),
+            It.IsAny<object>(),
+            null,
+            null,
+            null,
+            It.IsAny<CancellationToken>()), Times.Once);
 
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }

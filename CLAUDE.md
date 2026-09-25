@@ -91,8 +91,8 @@ Enrollment (Hợp đồng học tập trung tâm - Snapshot PlatformFeeRate & Fe
        ↓ (EnrollmentSessionAllocator tự động sinh N Sessions)
 Sessions (Unscheduled → Scheduled trong AvailabilitySlots của Tutor)
        ↓ (Học xong: Mở Attendance Window 24h)
-Attendance Verification (Student & Tutor cùng xác nhận 2 chiều)
-       ↓ (AttendanceVerificationJob tự động duyệt hoặc gắn cờ Conflict)
+Attendance Verification (Student & Tutor xác nhận 2 chiều — Row lock FOR UPDATE chống race condition)
+       ↓ (AttendanceVerificationJob: Phase 0 tự động recovery payout mồ côi; Phase 1 gắn cờ Conflict sau 24h)
 Wallet Payout Release (Giải ngân SessionPayoutCredit cho từng buổi hoàn thành)
        ↓ (Nếu có khiếu nại)
 Dispute Engine (Pre-release Escrow hold hoặc Post-release Balance hold)
@@ -111,7 +111,7 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
   - `src/store/authStore.js`: Zustand store quản lý trạng thái đăng nhập, user profile, vai trò và token.
   - `src/routes/RouteGuards.jsx`: Protected routes phân quyền theo vai trò (`Student`, `Tutor`, `Admin`).
   - `src/components/`, `src/pages/`, `src/layouts/`: Giao diện chia theo vai trò (Admin, Student, Tutor, Discovery, Checkout, Shared).
-* `src/test/`: **Kiểm Thử Tự Động** (640 test cases - 100% Deterministic Pass): `Domain.UnitTests` (226), `Application.UnitTests` (319), `Infrastructure.UnitTests` (21), `Api.IntegrationTests` (74, Postgres).
+* `src/test/`: **Kiểm Thử Tự Động** (649 test cases - 100% Deterministic Pass): `Domain.UnitTests` (229), `Application.UnitTests` (345), `Api.IntegrationTests` (75, Postgres).
 * `docs/`: **Baseline Nghiệp Vụ Chuẩn**: `prd.md`, `functional-requirements.md`, `user-stories.md`, `openapi.json`.
 * `scripts/` *(untracked local tooling)*: CI contract verification, dev bootstrap, secret scanning.
 
