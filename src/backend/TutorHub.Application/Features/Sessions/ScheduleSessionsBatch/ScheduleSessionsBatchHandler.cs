@@ -5,6 +5,7 @@ using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
+using TutorHub.Application.Features.Sessions.Common;
 using TutorHub.Application.Features.Sessions.Scheduling;
 using TutorHub.Domain.Enums;
 
@@ -66,13 +67,19 @@ public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatc
             }
 
             policy.RequireSchedulable(item.StartAt, item.EndAt);
+
+            SessionSchedulingValidationPolicy.ValidateUtc(item.StartAt, item.EndAt);
+            SessionSchedulingValidationPolicy.ValidateDuration(
+                item.StartAt, item.EndAt, session.Enrollment.SessionDurationMinutes);
         }
 
         // Overlap against the tutor's other Scheduled sessions (single query, batch ids excluded).
         var rangeStart = request.Items.Min(i => i.StartAt);
         var rangeEnd = request.Items.Max(i => i.EndAt);
+        var tutorProfileIds = sessions.Select(s => s.Enrollment.TutorProfileId).Distinct().ToList();
         var dbScheduled = await _context.Sessions
             .Where(s => !ids.Contains(s.Id) &&
+                        tutorProfileIds.Contains(s.Enrollment.TutorProfileId) &&
                         s.Status == SessionStatus.Scheduled &&
                         s.StartAt.HasValue &&
                         s.StartAt < rangeEnd && rangeStart < s.EndAt)

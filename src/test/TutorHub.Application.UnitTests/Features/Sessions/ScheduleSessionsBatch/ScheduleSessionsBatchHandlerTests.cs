@@ -84,6 +84,52 @@ public class ScheduleSessionsBatchHandlerTests : IDisposable
         return (s1, s2, enrollment, studentUser, tutorUser);
     }
 
+    private async Task<Guid> SeedScheduledSessionForEnrollmentAsync(Enrollment enrollment, DateTime startAt)
+    {
+        var scheduled = new Session
+        {
+            Id = Guid.NewGuid(),
+            EnrollmentId = enrollment.Id,
+            Enrollment = null!,
+            SessionNumber = 99,
+            EarningAmount = 0m
+        };
+        scheduled.Schedule(startAt, startAt.AddHours(1));
+        _context.Sessions.Add(scheduled);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+        return scheduled.Id;
+    }
+
+    private async Task<Guid> SeedOtherTutorWithScheduledSessionAsync(DateTime startAt)
+    {
+        var studentUser = new UserBuilder().WithRole(UserRole.Student).Build();
+        var studentProfile = new StudentProfile { Id = Guid.NewGuid(), UserId = studentUser.Id, User = studentUser };
+        var otherTutorUser = new UserBuilder().WithRole(UserRole.Tutor).WithStatus(AccountStatus.Active).Build();
+        var otherTutorProfile = new TutorProfileBuilder().WithUser(otherTutorUser).Build();
+
+        var enrollment = new Enrollment
+        {
+            Id = Guid.NewGuid(),
+            StudentProfileId = studentProfile.Id,
+            StudentProfile = studentProfile,
+            TutorProfileId = otherTutorProfile.Id,
+            TutorProfile = otherTutorProfile,
+            SubjectId = Guid.NewGuid(),
+            ServiceId = Guid.NewGuid(),
+            TotalPrice = 1_000_000m,
+            TotalSessions = 1,
+            SessionDurationMinutes = 60,
+            TeachingMode = TeachingMode.Online
+        };
+        enrollment.Activate();
+        _context.Enrollments.Add(enrollment);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        return await SeedScheduledSessionForEnrollmentAsync(enrollment, startAt);
+    }
+
     [Fact]
     public async Task Handle_WhenTwoValidItems_SchedulesBoth()
     {
@@ -164,6 +210,101 @@ public class ScheduleSessionsBatchHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_WhenBatchOverlapsExistingScheduledSessionOfSameTutor_ThrowsConflictAndPersistsNothing()
+    {
+        var (s1, s2, enrollment, _, tutorUser) = await SeedAggregateAsync();
+        var ownStart = _fixedNow.AddDays(2);
+        await SeedScheduledSessionForEnrollmentAsync(enrollment, ownStart.AddMinutes(30));
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
+        var command = new ScheduleSessionsBatchCommand(new List<SessionScheduleItem>
+        {
+            new(s1.Id, ownStart, ownStart.AddHours(1)),
+            new(s2.Id, _fixedNow.AddDays(3), _fixedNow.AddDays(3).AddHours(1))
+        });
+
+        var act = () => CreateHandler().Handle(command, CancellationToken.None);
+
+        await act.Should().ThrowAsync<ConflictException>();
+        (await _context.Sessions.FindAsync(s1.Id))!.Status.Should().Be(SessionStatus.Unscheduled);
+        (await _context.Sessions.FindAsync(s2.Id))!.Status.Should().Be(SessionStatus.Unscheduled);
+    }
+
+    [Fact]
+    public async Task Handle_WhenBatchOverlapsDifferentTutorsScheduledSession_SchedulesBatch()
+    {
+        var (s1, s2, _, _, tutorUser) = await SeedAggregateAsync();
+        var start = _fixedNow.AddDays(2);
+        await SeedOtherTutorWithScheduledSessionAsync(start.AddMinutes(30));
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
+        var command = new ScheduleSessionsBatchCommand(new List<SessionScheduleItem>
+        {
+            new(s1.Id, start, start.AddHours(1)),
+            new(s2.Id, _fixedNow.AddDays(3), _fixedNow.AddDays(3).AddHours(1))
+        });
+
+        var result = await CreateHandler().Handle(command, CancellationToken.None);
+
+        result.Should().HaveCount(2);
+        (await _context.Sessions.FindAsync(s1.Id))!.Status.Should().Be(SessionStatus.Scheduled);
+        (await _context.Sessions.FindAsync(s2.Id))!.Status.Should().Be(SessionStatus.Scheduled);
+    }
+
+    [Fact]
+    public async Task Handle_WhenSessionIdUnknown_ThrowsNotFoundException()
+    {
+        var (_, _, _, _, tutorUser) = await SeedAggregateAsync();
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
+        var start = _fixedNow.AddDays(2);
+        var command = new ScheduleSessionsBatchCommand(new List<SessionScheduleItem>
+        {
+            new(Guid.NewGuid(), start, start.AddHours(1))
+        });
+
+        var act = () => CreateHandler().Handle(command, CancellationToken.None);
+
+        await act.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
+    public async Task Handle_WhenDurationMismatchesEnrollment_ThrowsBadRequestAndPersistsNothing()
+    {
+        var (s1, s2, _, _, tutorUser) = await SeedAggregateAsync();
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
+        var start = _fixedNow.AddDays(2);
+        var command = new ScheduleSessionsBatchCommand(new List<SessionScheduleItem>
+        {
+            new(s1.Id, start, start.AddMinutes(30)),
+            new(s2.Id, _fixedNow.AddDays(3), _fixedNow.AddDays(3).AddHours(1))
+        });
+
+        var act = () => CreateHandler().Handle(command, CancellationToken.None);
+
+        await act.Should().ThrowAsync<BadRequestException>();
+        (await _context.Sessions.FindAsync(s1.Id))!.Status.Should().Be(SessionStatus.Unscheduled);
+        (await _context.Sessions.FindAsync(s2.Id))!.Status.Should().Be(SessionStatus.Unscheduled);
+    }
+
+    [Fact]
+    public async Task Handle_WhenStartAtIsNotUtcKind_ThrowsBadRequestAndPersistsNothing()
+    {
+        var (s1, s2, _, _, tutorUser) = await SeedAggregateAsync();
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
+        var start = _fixedNow.AddDays(2);
+        var localStart = DateTime.SpecifyKind(start, DateTimeKind.Local);
+        var command = new ScheduleSessionsBatchCommand(new List<SessionScheduleItem>
+        {
+            new(s1.Id, localStart, localStart.AddHours(1)),
+            new(s2.Id, _fixedNow.AddDays(3), _fixedNow.AddDays(3).AddHours(1))
+        });
+
+        var act = () => CreateHandler().Handle(command, CancellationToken.None);
+
+        await act.Should().ThrowAsync<BadRequestException>();
+        (await _context.Sessions.FindAsync(s1.Id))!.Status.Should().Be(SessionStatus.Unscheduled);
+        (await _context.Sessions.FindAsync(s2.Id))!.Status.Should().Be(SessionStatus.Unscheduled);
+    }
+
+    [Fact]
     public void Validate_WhenMoreThan50Items_Fails()
     {
         var validator = new ScheduleSessionsBatchValidator();
@@ -172,6 +313,17 @@ public class ScheduleSessionsBatchHandlerTests : IDisposable
             .ToList();
 
         validator.Validate(new ScheduleSessionsBatchCommand(items)).IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Validate_WhenItemsIsNull_FailsWithValidationErrorNotException()
+    {
+        var validator = new ScheduleSessionsBatchValidator();
+
+        var result = validator.Validate(new ScheduleSessionsBatchCommand(null!));
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "Items");
     }
 
     [Fact]

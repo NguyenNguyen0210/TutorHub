@@ -8,7 +8,7 @@ public class ScheduleSessionsBatchValidator : AbstractValidator<ScheduleSessions
     {
         RuleFor(x => x.Items)
             .NotEmpty().WithMessage("Items is required.")
-            .Must(items => items.Count <= 50).WithMessage("Items must not exceed 50.");
+            .Must(items => items is null || items.Count <= 50).WithMessage("Items must not exceed 50.");
 
         RuleForEach(x => x.Items).ChildRules(item =>
         {
