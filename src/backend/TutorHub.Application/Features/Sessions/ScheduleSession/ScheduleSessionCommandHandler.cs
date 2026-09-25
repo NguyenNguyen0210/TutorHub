@@ -36,7 +36,6 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
 
         var session = await _context.Sessions
             .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
-            .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
             .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(t => t.User)
             .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
 
@@ -75,6 +74,7 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
                 .Where(s => s.Id != session.Id &&
                             s.Enrollment.TutorProfileId == tutorProfileId &&
                             s.Status == SessionStatus.Scheduled &&
+                            s.StartAt.HasValue &&
                             s.StartAt < request.EndAt && request.StartAt < s.EndAt)
                 .Select(s => new
                 {
@@ -89,7 +89,6 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
                 request.StartAt,
                 request.EndAt,
                 overlapping
-                    .Where(s => s.StartAt.HasValue)
                     .Select(s => (s.TutorProfileId, s.StartAt!.Value, s.EndAt, nameof(SessionStatus.Scheduled))));
 
             // 6. Domain state transition (direct tutor schedule / reschedule, no ticket).

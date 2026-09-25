@@ -2,9 +2,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
-using Moq;
 using TutorHub.Application.Common.Exceptions;
-using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Sessions.ScheduleSession;
 using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
@@ -19,7 +17,7 @@ public class ScheduleSessionCommandHandlerTests : IDisposable
     private readonly AppDbContext _context;
     private readonly StubCurrentUserService _currentUserService = new();
     private readonly IConfiguration _configuration = new ConfigurationBuilder().Build();
-    private readonly Mock<IClock> _clockMock = new();
+    private readonly StubClock _clock;
     private readonly DateTime _fixedNow = new(2026, 9, 26, 10, 0, 0, DateTimeKind.Utc);
 
     public ScheduleSessionCommandHandlerTests()
@@ -29,13 +27,13 @@ public class ScheduleSessionCommandHandlerTests : IDisposable
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         _context = new AppDbContext(options);
-        _clockMock.Setup(c => c.UtcNow).Returns(_fixedNow);
+        _clock = new StubClock(_fixedNow);
     }
 
     public void Dispose() => _context.Dispose();
 
     private ScheduleSessionCommandHandler CreateHandler() =>
-        new(_context, _currentUserService, _configuration, _clockMock.Object);
+        new(_context, _currentUserService, _configuration, _clock);
 
     private async Task<(Session session, Enrollment enrollment, User studentUser, User tutorUser)> SeedAggregateAsync(
         DateTime? preScheduleStart = null)
