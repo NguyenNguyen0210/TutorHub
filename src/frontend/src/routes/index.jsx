@@ -60,7 +60,7 @@ import DisputeNew from '../pages/student/DisputeNew';
 
 // Tutor Space & Wallet Screens
 import TutorDashboard from '../pages/tutor/TutorDashboard';
-import TutorAvailability from '../pages/tutor/TutorAvailability';
+import TutorSchedule from '../pages/tutor/TutorSchedule';
 import TutorServices from '../pages/tutor/TutorServices';
 import TutorWallet from '../pages/tutor/TutorWallet';
 import TutorWithdraw from '../pages/tutor/TutorWithdraw';
@@ -148,7 +148,8 @@ export default function AppRoutes() {
         </RequireAuth>
       }>
         <Route path="dashboard" element={<TutorDashboard />} />
-        <Route path="availability" element={<TutorAvailability />} />
+        <Route path="schedule" element={<TutorSchedule />} />
+        <Route path="availability" element={<Navigate to="/tutor/schedule" replace />} />
         <Route path="services" element={<TutorServices />} />
         <Route path="wallet" element={<TutorWallet />} />
         <Route path="wallet/withdraw" element={<TutorWithdraw />} />
