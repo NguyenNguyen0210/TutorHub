@@ -95,7 +95,7 @@
 2. **Error contract:** `api.js` reject `{ status, code, message, errors[], traceId }`; bóc `data` **một lần duy nhất**.
 3. **Data fetching:** dùng **TanStack Query** (`useQuery`/`useMutation`) cho dữ liệu trang; Zustand chỉ giữ auth/session.
 4. **Enum:** một bảng map duy nhất theo giá trị backend (`Active/Suspended/Banned`, `Unscheduled/Scheduled/Completed/Cancelled`).
-5. **Timezone:** `dayjs/plugin/utc` + `timezone`; mọi mốc thời gian qua `formatDateTimeVN()`; AvailabilitySlot đối chiếu giờ VN.
+5. **Timezone:** `dayjs/plugin/utc` + `timezone`; mọi mốc thời gian qua `formatDateTimeVN()`; lịch buổi học đối chiếu giờ VN.
 6. **Signature components:** §3 component phải được **nối vào màn hình thật**; 4 component thiếu viết mới, nhận dữ liệu API.
 7. **A11y tooling:** eslint + `jsx-a11y` (bắt đầu ở mức **warn** để đo backlog, **P7 nâng thành error**). Vitest/Playwright ngoài phạm vi.
 8. **Dead code:** sau khi nối, service/component/dependency không consumer ⇒ xoá.

@@ -23,7 +23,6 @@ import { getTeachingModeMeta } from '@/config/enums';
  * Nguồn dữ liệu:
  * - GET /tutors/{id}            → TutorProfileDto (kèm `subjects` + `services`)
  * - GET /tutors/{id}/reviews    → PagedResult<TutorPublicReviewDto>
- * - GET /tutors/{id}/availability → TutorAvailabilityDto { days }
  *
  * Tuân thủ bất biến & Design System:
  * - DEC-S8-020: Package-based checkout, giữ chỗ 15 phút.
