@@ -59,13 +59,19 @@ public class SessionsController : ControllerBase
     [Authorize(Roles = "Tutor")]
     [HttpPost("schedule-batch")]
     [ProducesResponseType(typeof(ApiResponse<List<SessionDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ScheduleBatch(
-        [FromBody] ScheduleSessionsBatchRequest request, CancellationToken cancellationToken)
+        [FromBody] ScheduleSessionsBatchRequest request,
+        CancellationToken cancellationToken)
     {
         if (request.Items is null)
         {
             return BadRequest(ApiResponse<List<SessionDto>>.FailureResult(
-                "Validation failed.",
+                "Validation failed. One or more validation errors occurred.",
                 "Items is required."));
         }
 
