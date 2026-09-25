@@ -183,8 +183,8 @@ public record SessionRescheduledEvent(
     DateTime PreviousEndAt,
     DateTime NewStartAt,
     DateTime NewEndAt,
-    Guid RescheduleRequestId,
-    Guid AcceptedByUserId,
+    Guid? RescheduleRequestId = null,
+    Guid? AcceptedByUserId = null,
     Guid EventId = default,
     int EventVersion = 1,
     DateTime OccurredAt = default
