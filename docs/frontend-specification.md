@@ -25,7 +25,7 @@ Booking Checkout (Tạm giữ thanh toán 15 phút - HoldingExpiresAt)
        ↓ (VNPay IPN Webhook / Mock Pay)
 Enrollment (Hợp đồng học tập trung tâm - Snapshot PlatformFeeRate & FeePolicyVersion)
        ↓ (EnrollmentSessionAllocator tự động sinh N Sessions)
-Sessions (Unscheduled → Scheduled trong AvailabilitySlots của Tutor)
+Sessions (Gia sư chủ động xếp lịch trực tiếp theo quy tắc báo trước tối thiểu 24h)
        ↓ (Học xong: Mở Attendance Window 24h)
 Attendance Verification (Student & Tutor cùng xác nhận 2 chiều: Attended / Absent)
        ↓ (AttendanceVerificationJob tự động duyệt hoặc gắn cờ AttendanceConflict)
@@ -185,7 +185,7 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
    - Sidebar trái thu gọn: Dashboard (`/student/dashboard`), Khóa học của tôi (`/student/enrollments`), Đơn giữ chỗ (`/student/bookings`), Thỏa thuận riêng (`/student/agreements`), Khiếu nại (`/student/disputes`), Tin nhắn (`/app/messages`).
    - Topbar: Chuông thông báo Realtime với badge số lượng chưa đọc, Avatar học viên.
 3. **Tutor Workspace Layout:**
-   - Sidebar chuyên môn: Lớp dạy hôm nay (`/tutor/dashboard`), Gói dịch vụ (`/tutor/services`), Lịch rảnh tuần (`/tutor/availability`), Học viên (`/tutor/enrollments`), Ví & Thu nhập (`/tutor/wallet`), Yêu cầu rút tiền (`/tutor/wallet/withdraw`).
+   - Sidebar chuyên môn: Lớp dạy hôm nay (`/tutor/dashboard`), Quản lý lịch dạy (`/tutor/schedule`), Gói dịch vụ (`/tutor/services`), Học viên (`/tutor/enrollments`), Ví & Thu nhập (`/tutor/wallet`), Yêu cầu rút tiền (`/tutor/wallet/withdraw`).
    - Header: Thanh hiển thị nhanh số dư khả dụng (`AvailableBalance`) và nút "Rút tiền nhanh".
 4. **Admin Governance Layout:**
    - Dark Slate Navigation: Tổng quan KPI (`/admin/dashboard`), Duyệt gia sư (`/admin/tutor-applications`), Người dùng & Kỷ luật (`/admin/users`), Trọng tài tranh chấp (`/admin/disputes`), Duyệt rút tiền (`/admin/withdrawals`), Cấu hình sàn (`/admin/platform-settings`), Sổ cái kiểm toán (`/admin/audit-logs`).
@@ -225,8 +225,8 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
     - Giá niêm yết: `2.000.000 ₫` trọn gói (tương đương `200.000 ₫ / buổi`).
     - Nút chính: **"Đặt Mua Gói Học"** $\rightarrow$ Kích hoạt `POST /api/v1/bookings` và chuyển sang màn hình giữ chỗ 15 phút.
     - Nút phụ: **"Nhắn tin & Thương lượng riêng"** $\rightarrow$ Kích hoạt `POST /api/v1/conversations` và mở khung chat để gia sư tạo `CustomAgreement`.
-  - **Ma trận Lịch rảnh tuần (`AvailabilitySlots`):**
-    - Bảng thời khóa biểu 7 ngày hiển thị các slot gia sư nhận dạy: Thứ 2 (18:00 - 20:00), Thứ 4 (18:00 - 20:00), Thứ 6 (18:00 - 20:00), Chủ Nhật (08:00 - 11:00).
+  - **Quy trình Xếp lịch học linh hoạt:**
+    - Khóa học sau khi thanh toán giữ chỗ thành công sẽ được gia sư chủ động xếp thời khóa biểu chi tiết (từng buổi hoặc hàng loạt) với quy tắc báo trước tối thiểu 24 giờ.
   - **Mục Đánh giá từ Học viên:**
     - Danh sách review thật từ `Reviews` table: *"Thầy An dạy dễ hiểu, mẹo giải trắc nghiệm rất nhanh và chuẩn xác."* kèm câu trả lời của gia sư: *"Cảm ơn Tuấn, cố gắng luyện thêm các đề chuyên đề nữa nhé!"*.
 
@@ -285,23 +285,23 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
     - Hiển thị: `1 / 10 buổi hoàn thành (10%)`.
   - **Danh sách Buổi học con ($N$ Sessions Breakdown):**
     - Buổi 1: `200.000 ₫` — Đã học xong (14 ngày trước) — Trạng thái `Completed` (Đã giải ngân `180.000 ₫` vào ví gia sư, trừ `20.000 ₫` phí sàn 10%). Kèm nút "Xem nhật ký học".
-    - Buổi 2: `200.000 ₫` — Lịch học: Ngày mai 18:00 - 19:00 — Trạng thái `Scheduled`. Kèm nút "Dời lịch" và "Vào lớp học".
+    - Buổi 2: `200.000 ₫` — Lịch học: Ngày mai 18:00 - 19:00 — Trạng thái `Scheduled`. Kèm nút "Đổi lịch" (Gia sư) và "Chi tiết".
     - Buổi 3: `200.000 ₫` — Đang có bất đồng điểm danh — Trạng thái `AttendanceConflict` (Có khiếu nại vắng mặt).
-    - Buổi 4..10: `200.000 ₫` — Trạng thái `Unscheduled` (Chưa xếp lịch). Kèm nút "Chọn lịch học từ khung giờ rảnh của gia sư".
+    - Buổi 4..10: `200.000 ₫` — Trạng thái `Unscheduled` (Chờ gia sư xếp lịch). Gia sư có thể bấm [Xếp lịch] trực tiếp trên timeline hoặc trang Lịch dạy.
   - **Nút Hủy Hợp đồng Sớm (Pro-rata Cancellation):**
     - Mở modal xác nhận hủy kèm công thức tính tiền minh bạch:
       $$\text{Số tiền hoàn trả} = \text{Tổng học phí (2.000.000 ₫)} - \text{Học phí buổi đã học (200.000 ₫)} = \mathbf{1.800.000\text{ ₫}}$$
 
-#### Màn hình 3.2: Chi tiết Buổi học, Xếp lịch & Dời lịch (`/student/sessions/:id`)
-- **API sử dụng:** `GET /api/v1/sessions/:id/reschedule-requests`, `POST /api/v1/sessions/:id/reschedule-requests`, `POST /api/v1/sessions/:id/reschedule-requests/{requestId}/accept`, `POST /api/v1/sessions/:id/reschedule-requests/{requestId}/reject`, `POST /api/v1/sessions/:id/cancel`
+#### Màn hình 3.2: Chi tiết Buổi học, Xếp lịch & Dời lịch (`/student/sessions/:id` và `/tutor/sessions/:id`)
+- **API sử dụng:** `GET /api/v1/sessions/:id`, `POST /api/v1/sessions/:id/schedule`, `POST /api/v1/sessions/schedule-batch`, `POST /api/v1/sessions/:id/cancel`
 - **Chi tiết giao diện:**
-  - **Modal Xếp lịch:** Hiển thị lịch rảnh của gia sư theo múi giờ `Asia/Ho_Chi_Minh` để học viên chọn ngày và giờ bắt đầu.
-  - **Card Đề xuất Dời lịch (Reschedule Request Banner):**
-    - Hiển thị khi có yêu cầu đổi lịch `Pending`: Gia sư hoặc Học viên đề xuất giờ mới kèm lý do.
-    - Phía đối phương có 2 nút hành động: **"Đồng ý đổi lịch"** (`acceptReschedule`) hoặc **"Từ chối"** (`rejectReschedule` kèm lý do bắt buộc).
-  - **Modal Đề xuất Dời lịch Mới:** Cho phép gia sư chọn khung giờ mới trong lịch rảnh và nhập lý do dời lịch.
+  - **Đổi lịch trực tiếp (Gia sư):**
+    - Gia sư có thể đổi lịch học trực tiếp; thời gian bắt đầu mới phải cách thời điểm hiện tại tối thiểu 24 giờ.
+    - Không cần quy trình tạo đề xuất chờ học viên phê duyệt. Lịch học mới có hiệu lực ngay sau khi lưu.
+  - **Góc nhìn Học viên:**
+    - Hiển thị thông tin lịch học rõ ràng, minh bạch (read-only); xem trạng thái và chuẩn bị tham gia lớp học.
   - **Nút Hủy Buổi học Đơn lẻ (Single Session Cancel with Escrow Refund):**
-    - Cho phép khi buổi học ở trạng thái `Unscheduled` hoặc `Scheduled` trước giờ bắt đầu.
+    - Cho phép khi buổi học ở trạng thái `Unscheduled` hoặc `Scheduled` trước giờ bắt đầu (tuân thủ quy định báo trước tối thiểu 24 giờ).
     - Hộp thoại xác nhận yêu cầu nhập lý do hủy (tối thiểu 5 ký tự) và hiển thị cảnh báo: *"Hệ thống sẽ hoàn trả tiền ký quỹ của buổi học này cho học viên theo quy chế bảo chứng Escrow."*
     - Khi hủy thành công: Buổi học chuyển sang `Cancelled`, `PendingBalance` của gia sư được khấu trừ, transaction `StudentRefund` được tạo với `SettlementRequired = true`, và phát các sự kiện tương ứng.
 
