@@ -38,6 +38,7 @@ import PublicLayout from '../layouts/PublicLayout';
 import StudentLayout from '../layouts/StudentLayout';
 import TutorLayout from '../layouts/TutorLayout';
 import AdminLayout from '../layouts/AdminLayout';
+import WorkspaceLayout from '../layouts/WorkspaceLayout';
 
 // Auth & Onboarding Screens
 import Login from '../pages/auth/Login';
@@ -111,16 +112,22 @@ export default function AppRoutes() {
           <RequireAuth><BookingCheckout /></RequireAuth>
         } />
         <Route path="/payment/return" element={<PaymentReturn />} />
-        <Route path="/app/messages" element={
-          <RequireAuth><Messages /></RequireAuth>
-        } />
-        <Route path="/app/notifications" element={
-          <RequireAuth><Notifications /></RequireAuth>
-        } />
         <Route path="/tutor/application" element={
           <RequireAuth><TutorApplication /></RequireAuth>
         } />
         <Route path="/tutor/onboarding" element={<Navigate to="/tutor/application" replace />} />
+      </Route>
+
+      {/* 2b. Shared workspace routes (Hộp thư, Thông báo) — dùng shell của vai trò
+           đang đăng nhập, KHÔNG dùng PublicLayout: trước đây bấm "Tin nhắn" làm
+           mất sidebar và hiện topbar công khai lên trên. */}
+      <Route path="/app" element={
+        <RequireAuth>
+          <WorkspaceLayout />
+        </RequireAuth>
+      }>
+        <Route path="messages" element={<Messages />} />
+        <Route path="notifications" element={<Notifications />} />
       </Route>
 
       {/* 2. Auth Routes */}

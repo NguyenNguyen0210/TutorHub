@@ -18,17 +18,26 @@ export const NAV = {
   ],
 
   Tutor: [
-    // Thứ tự + nhãn bám mockup sidebar gia sư. Mỗi mục đều trỏ route thật;
-    // mục chưa có trang (Học viên, Đánh giá) được lược bỏ kèm TODO, không link chết.
+    // Mỗi mục trỏ một route khác nhau. Trước đây có HAI mục cùng `/tutor/settings`
+    // ("Hồ sơ cá nhân" và "Cài đặt") vì chưa tách được trang hồ sơ — người dùng bấm
+    // "Hồ sơ cá nhân" lại ra Cài đặt. Nay "Hồ sơ công khai" trỏ tới trang hồ sơ
+    // thật của gia sư (`/tutors/{idProfile}`), "Cài đặt" giữ trang thông tin + mật khẩu.
     { path: '/tutor/dashboard', label: 'Tổng quan', icon: 'space_dashboard', match: (p) => p === '/tutor/dashboard' },
     { path: '/tutor/schedule', label: 'Lịch dạy', icon: 'calendar_month', match: (p) => p.startsWith('/tutor/schedule') },
-    { path: '/app/messages', label: 'Tin nhắn', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
     // TODO(mockup): mục "Học viên" — chưa có trang danh sách học viên cho gia sư, bổ sung khi có route.
     { path: '/tutor/services', label: 'Dịch vụ của tôi', icon: 'inventory_2', match: (p) => p.startsWith('/tutor/services') },
-    { path: '/tutor/settings', label: 'Hồ sơ cá nhân', icon: 'person', match: (p) => p.startsWith('/tutor/settings') },
+    { path: '/app/messages', label: 'Hộp thư', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
+    // Hồ sơ công khai: id lấy từ `authStore.user.idProfile` (UserDto.IdProfile =
+    // TutorProfile.Id) nên không cần gọi API thêm. Chưa có hồ sơ (đang chờ duyệt)
+    // thì rơi về trang hồ sơ xét duyệt.
+    {
+      path: (ctx) => (ctx?.profileId ? `/tutors/${ctx.profileId}` : '/tutor/application'),
+      label: 'Hồ sơ công khai',
+      icon: 'person',
+      match: (p) => p.startsWith('/tutors/'),
+    },
     { path: '/tutor/wallet', label: 'Ví & Thanh toán', icon: 'account_balance_wallet', match: (p) => p.startsWith('/tutor/wallet') },
     // TODO(mockup): mục "Đánh giá" — chưa có trang đánh giá dành cho gia sư, bổ sung khi có route.
-    // "Cài đặt" dùng chung trang ProfileSettings (/tutor/settings) với "Hồ sơ cá nhân" cho tới khi tách trang.
     { path: '/tutor/settings', label: 'Cài đặt', icon: 'settings', match: (p) => p.startsWith('/tutor/settings') },
   ],
 
@@ -43,9 +52,21 @@ export const NAV = {
   ],
 };
 
-export function getNavForRole(role, isAuthenticated) {
-  if (!isAuthenticated) return NAV.guest;
-  return NAV[role] || NAV.guest;
+/**
+ * `path` có thể là chuỗi hoặc hàm nhận `{ profileId }` — dùng cho các mục cần id
+ * hồ sơ của chính người dùng (hồ sơ công khai của gia sư). Hàm được resolve ở
+ * đây để sidebar, dock và drawer luôn thấy cùng một `path` đã resolve.
+ */
+function resolveItems(items, ctx) {
+  return items.map((item) => ({
+    ...item,
+    path: typeof item.path === 'function' ? item.path(ctx) : item.path,
+  }));
+}
+
+export function getNavForRole(role, isAuthenticated, profileId) {
+  const list = !isAuthenticated ? NAV.guest : NAV[role] || NAV.guest;
+  return resolveItems(list, { profileId });
 }
 
 export function getDashboardPath(role) {

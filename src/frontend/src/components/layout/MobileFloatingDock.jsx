@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import Icon from '@/components/ui/Icon';
 import { useAuthStore } from '@/store/authStore';
-import { NAV } from './navConfig';
+import { getNavForRole } from './navConfig';
 
 /**
  * MobileFloatingDock — thanh điều hướng dưới cho mobile (< 1024px).
@@ -44,17 +44,34 @@ const SHORT_LABEL = {
   '/auth/login': 'Đăng nhập',
 };
 
+/**
+ * Màn chiếm toàn màn hình: dock nổi sẽ đè lên thanh nhập của Hộp thư
+ * (`fixed bottom-4` ~80px trong khi card hội thoại cao `calc(100vh - 140px)`).
+ * Trước khi `/app/messages` dùng chung shell với các màn trong sàn thì nó nằm ở
+ * PublicLayout nên không có dock, không có xung đột này.
+ */
+const IMMERSIVE_PATHS = ['/app/messages'];
+
+/** Dock cho khách: giữ 3 mục riêng vì `NAV.guest` chỉ có 1 mục khám phá. */
+const GUEST_ITEMS = [
+  { path: '/tutors', label: 'Khám phá', icon: 'explore', match: (p) => p.startsWith('/tutors') },
+  { path: '/tutor/application', label: 'Làm gia sư', icon: 'school', match: () => false },
+  { path: '/auth/login', label: 'Đăng nhập', icon: 'login', match: (p) => p.startsWith('/auth/login') },
+];
+
 export default function MobileFloatingDock() {
-  const { role, isAuthenticated } = useAuthStore();
+  const { user, role, isAuthenticated } = useAuthStore();
   const location = useLocation();
 
-  const items = !isAuthenticated
-    ? [
-        { path: '/tutors', label: 'Khám phá', icon: 'explore', match: (p) => p.startsWith('/tutors') },
-        { path: '/tutor/application', label: 'Làm gia sư', icon: 'school', match: () => false },
-        { path: '/auth/login', label: 'Đăng nhập', icon: 'login', match: (p) => p.startsWith('/auth/login') },
-      ]
-    : (NAV[role] || NAV.guest).slice(0, 4);
+  const isImmersive = IMMERSIVE_PATHS.some((p) => location.pathname.startsWith(p));
+  if (isImmersive) return null;
+
+  // Đi qua getNavForRole để `path` dạng hàm (hồ sơ công khai) được resolve y hệt
+  // sidebar — trước đây đọc NAV trực tiếp nên dock và sidebar lệch nhau.
+  const profileId = user?.idProfile || user?.tutorProfileId || null;
+  const items = isAuthenticated
+    ? getNavForRole(role, isAuthenticated, profileId).slice(0, 4)
+    : GUEST_ITEMS;
 
   return (
     <div className="lg:hidden fixed bottom-4 left-4 right-4 z-50">

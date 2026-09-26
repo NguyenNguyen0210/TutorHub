@@ -17,6 +17,9 @@ import MobileFloatingDock from './MobileFloatingDock';
  */
 export default function WorkspaceShell({ userRole: role, children }) {
   const { user, isAuthenticated, logout } = useAuthStore();
+  // UserDto.IdProfile = TutorProfile.Id / StudentProfile.Id, đã có sẵn trong
+  // authStore nên "Hồ sơ công khai" không cần gọi API thêm.
+  const profileId = user?.idProfile || user?.tutorProfileId || null;
   const location = useLocation();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -53,7 +56,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
     navigate('/auth/login');
   };
 
-  const navItems = getNavForRole(role, isAuthenticated);
+  const navItems = getNavForRole(role, isAuthenticated, profileId);
 
   const userMenuItems = [
     {
@@ -90,6 +93,18 @@ export default function WorkspaceShell({ userRole: role, children }) {
             label: <span className="font-semibold text-body-reg">Hồ sơ xét duyệt</span>,
             onClick: () => navigate('/tutor/application'),
           },
+          // Chỉ hiện khi đã có hồ sơ công khai; gia sư đang chờ duyệt thì chưa có
+          // TutorProfile nên không có trang nào để mở.
+          ...(profileId
+            ? [
+                {
+                  key: 'public-profile',
+                  icon: <Icon name="person" size="sm" />,
+                  label: <span className="font-semibold text-body-reg">Xem hồ sơ công khai</span>,
+                  onClick: () => navigate(`/tutors/${profileId}`),
+                },
+              ]
+            : []),
           {
             key: 'wallet',
             icon: <Icon name="account_balance_wallet" size="sm" />,
@@ -101,7 +116,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
     {
       key: 'settings',
       icon: <Icon name="settings" size="sm" />,
-      label: <span className="font-semibold text-body-reg">Hồ sơ & Cài đặt</span>,
+      label: <span className="font-semibold text-body-reg">Cài đặt tài khoản</span>,
       onClick: () => navigate(role === 'Tutor' ? '/tutor/settings' : role === 'Student' ? '/student/settings' : '/admin/settings'),
     },
     { type: 'divider' },
@@ -175,22 +190,32 @@ export default function WorkspaceShell({ userRole: role, children }) {
             <Icon name="arrow_forward" size="sm" />
           </Link>
         </div>
-        <Link
-          to={role === 'Tutor' ? '/tutor/settings' : role === 'Student' ? '/student/settings' : '/admin/settings'}
-          className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-brand-md bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors group"
-          title="Hồ sơ & Cài đặt tài khoản"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="w-2 h-2 rounded-full bg-success animate-pulse shrink-0" aria-hidden="true" />
-            <div className="min-w-0">
-              <p className="text-caption font-semibold text-slate-900 truncate group-hover:text-brand-primary-700 transition-colors">
-                {user?.fullName || user?.name || 'Tài khoản'}
-              </p>
-              <p className="text-[11px] text-slate-500 uppercase tracking-wide">{role}</p>
+        {/* Khối này trước đây là <Link> trỏ thẳng /tutor/settings nhưng hiển thị tên
+            người dùng → người dùng tưởng là "Hồ sơ cá nhân" và bấm nhầm, ra Cài đặt.
+            Nay nó là trigger của menu tài khoản (giống avatar ở header), nên
+            không còn đường nào mang tên mà điều hướng sai chỗ. */}
+        <Menu
+          items={userMenuItems}
+          align="top"
+          trigger={
+            <div className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-brand-md bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors group cursor-pointer">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-2 h-2 rounded-full bg-success shrink-0" aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className="text-caption font-semibold text-slate-900 truncate group-hover:text-brand-primary-700 transition-colors">
+                    {user?.fullName || user?.name || 'Tài khoản'}
+                  </p>
+                  <p className="text-[11px] text-slate-500 uppercase tracking-wide">{role}</p>
+                </div>
+              </div>
+              <Icon
+                name="expand_more"
+                size="xs"
+                className="text-slate-400 group-hover:text-slate-700 transition-colors shrink-0"
+              />
             </div>
-          </div>
-          <Icon name="settings" size="xs" className="text-slate-400 group-hover:text-slate-700 transition-colors shrink-0" />
-        </Link>
+          }
+        />
       </div>
     </div>
   );
