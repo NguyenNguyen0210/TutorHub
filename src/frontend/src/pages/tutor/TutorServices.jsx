@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
 import Money from '@/components/ui/Money';
 import { TEACHING_MODE } from '@/config/enums';
@@ -12,53 +13,36 @@ import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/Dialog';
 import ServiceRow from '@/components/tutor/services/ServiceRow';
 import ServiceFilterBar from '@/components/tutor/services/ServiceFilterBar';
-import ServiceDrawer, { parseTags } from '@/components/tutor/services/ServiceDrawer';
+import ServiceDrawer from '@/components/tutor/services/ServiceDrawer';
+import {
+  createInitialFormState,
+  validateServiceForm,
+  collectFaqs,
+  buildServicePayload,
+} from '@/components/tutor/services/serviceFormUtils';
 
-const SHORT_DESCRIPTION_MAX = 200;
-const TAGS_MAX = 10;
-const AUDIENCE_MAX = 8;
-const FAQ_MAX = 10;
-
-/** Split a textarea value into trimmed non-empty lines. */
-export function splitLines(raw) {
-  return String(raw || '')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
+const INITIAL_FORM_STATE = createInitialFormState();
 
 const STATUS_TABS = [
   { id: 'All', label: 'Tất cả' },
   { id: 'Draft', label: 'Bản nháp' },
   { id: 'Published', label: 'Đã xuất bản' },
   { id: 'Paused', label: 'Tạm dừng' },
-  { id: 'Unpublished', label: 'Đã ẩn' },
+  { id: 'Unpublished', label: 'Đã gỡ xuất bản' },
 ];
 
-const INITIAL_FORM_STATE = {
-  subjectId: '',
-  title: '',
-  shortDescription: '',
-  description: '',
-  learningScope: '',
-  expectedOutcome: '',
-  totalSessions: 10,
-  sessionDurationMinutes: 60,
-  price: 2000000,
-  teachingMode: TEACHING_MODE.ONLINE,
-  trialLessonUrl: '',
-  tags: '',
-  coverImageUrl: '',
-  // Section 4 — editor-local shapes (converted to backend payload on submit).
-  sessions: [],
-  targetAudienceText: '',
-  prerequisitesText: '',
-  faqs: [],
+const STATUS_LABELS = {
+  All: 'Tất cả',
+  Draft: 'Bản nháp',
+  Published: 'Đã xuất bản',
+  Paused: 'Tạm dừng',
+  Unpublished: 'Đã gỡ xuất bản',
 };
 
 export default function TutorServices() {
   const toast = useToast();
   const confirm = useConfirm();
+  const navigate = useNavigate();
 
   const [services, setServices] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -112,14 +96,9 @@ export default function TutorServices() {
     loadData();
   }, [loadData]);
 
-  // Open Create Drawer
+  // Open Create flow (dedicated wizard page)
   const handleOpenCreate = () => {
-    setEditingService(null);
-    setFormData({
-      ...INITIAL_FORM_STATE,
-      subjectId: subjects[0]?.id || '',
-    });
-    setShowDrawer(true);
+    navigate('/tutor/services/new');
   };
 
   // Open Edit Drawer
@@ -169,156 +148,32 @@ export default function TutorServices() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.title.trim() || formData.title.trim().length < 5) {
-      toast.error('Tiêu đề gói học cần tối thiểu 5 ký tự.');
+    const validationError = validateServiceForm(formData, editingService ? 'update' : 'create');
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
-
-    if (!formData.description.trim() || formData.description.trim().length < 20) {
-      toast.error('Mô tả gói học cần tối thiểu 20 ký tự để học viên nắm rõ lộ trình.');
+    const { error: faqError } = collectFaqs(formData);
+    if (faqError) {
+      toast.error(faqError);
       return;
     }
-
-    const shortDescription = (formData.shortDescription || '').trim();
-    if (shortDescription.length > SHORT_DESCRIPTION_MAX) {
-      toast.error(`Mô tả ngắn tối đa ${SHORT_DESCRIPTION_MAX} ký tự.`);
-      return;
-    }
-
-    const tags = parseTags(formData.tags);
-    if (tags.length > TAGS_MAX) {
-      toast.error(`Tối đa ${TAGS_MAX} thẻ liên quan cho mỗi gói học.`);
-      return;
-    }
-
-    const coverImageUrl = (formData.coverImageUrl || '').trim();
-
-    if (Number(formData.totalSessions) < 1) {
-      toast.error('Số buổi học phải từ 1 buổi trở lên.');
-      return;
-    }
-
-    if (Number(formData.price) <= 0) {
-      toast.error('Học phí gói học phải lớn hơn 0 ₫.');
-      return;
-    }
-
-    // ── Section 4 validation (toast style, same as above) ──
-    const totalSessionsNum = Number(formData.totalSessions) || 0;
-    const sessions = Array.isArray(formData.sessions) ? formData.sessions : [];
-    if (sessions.length > totalSessionsNum) {
-      toast.error(
-        `Số buổi chi tiết (${sessions.length}) vượt quá tổng số buổi của gói (${totalSessionsNum}).`
-      );
-      return;
-    }
-    for (let i = 0; i < sessions.length; i += 1) {
-      if (!(sessions[i]?.title || '').trim()) {
-        toast.error(`Buổi ${i + 1} chưa có tiêu đề. Vui lòng nhập tiêu đề cho từng buổi.`);
-        return;
-      }
-    }
-
-    const targetAudience = splitLines(formData.targetAudienceText);
-    if (targetAudience.length > AUDIENCE_MAX) {
-      toast.error(`Đối tượng phù hợp tối đa ${AUDIENCE_MAX} mục (mỗi mục một dòng).`);
-      return;
-    }
-
-    const prerequisites = splitLines(formData.prerequisitesText);
-    if (prerequisites.length > AUDIENCE_MAX) {
-      toast.error(`Điều kiện tiên quyết tối đa ${AUDIENCE_MAX} mục (mỗi mục một dòng).`);
-      return;
-    }
-
-    const faqRows = Array.isArray(formData.faqs) ? formData.faqs : [];
-    if (faqRows.length > FAQ_MAX) {
-      toast.error(`Câu hỏi thường gặp tối đa ${FAQ_MAX} mục.`);
-      return;
-    }
-    const faqs = [];
-    for (let i = 0; i < faqRows.length; i += 1) {
-      const question = (faqRows[i]?.question || '').trim();
-      const answer = (faqRows[i]?.answer || '').trim();
-      if (!question && !answer) continue;
-      if (!question || !answer) {
-        toast.error(`Mục hỏi đáp số ${i + 1} cần cả câu hỏi và câu trả lời.`);
-        return;
-      }
-      faqs.push({ question, answer });
-    }
-
-    // Convert editors' local shapes back to the backend payload shape.
-    // sessionIndex is auto-assigned by position (1-based).
-    const curriculum = sessions.map((s, i) => {
-      const item = { sessionIndex: i + 1, title: (s.title || '').trim() };
-      const desc = (s.description || '').trim();
-      if (desc) item.description = desc;
-      const topics = parseTags(s.keyTopicsText);
-      if (topics.length) item.keyTopics = topics;
-      const dur = Number(s.durationMinutes);
-      if (dur > 0) item.durationMinutes = dur;
-      return item;
-    });
-    const extraPayload = {
-      ...(curriculum.length ? { curriculum } : {}),
-      ...(targetAudience.length ? { targetAudience } : {}),
-      ...(prerequisites.length ? { prerequisites } : {}),
-      ...(faqs.length ? { faqs } : {}),
-    };
 
     try {
       setSubmitting(true);
 
       if (editingService) {
-        // PATCH update
-        const payload = {
-          title: formData.title.trim(),
-          description: formData.description.trim(),
-          learningScope: formData.learningScope.trim() || null,
-          expectedOutcome: formData.expectedOutcome.trim() || null,
-          trialLessonUrl: formData.trialLessonUrl.trim() || null,
-          // New optional keys are omitted when unused so the current backend
-          // (which doesn't know them yet) simply ignores nothing breaking.
-          ...(shortDescription ? { shortDescription } : {}),
-          ...(tags.length ? { tags } : {}),
-          ...(coverImageUrl ? { coverImageUrl } : {}),
-          ...extraPayload,
-        };
-
-        // If not published, allow changing commercial terms
-        if (editingService.status !== 'Published') {
-          payload.totalSessions = Number(formData.totalSessions);
-          payload.sessionDurationMinutes = Number(formData.sessionDurationMinutes);
-          payload.price = Number(formData.price);
-          payload.teachingMode = formData.teachingMode;
-        }
+        // PATCH update (commercial terms locked while Published)
+        const payload = buildServicePayload(formData, {
+          mode: 'update',
+          lockCommercialTerms: editingService.status === 'Published',
+        });
 
         await tutorService.updateService(editingService.id, payload);
         toast.success('Đã cập nhật gói dịch vụ thành công.');
       } else {
         // POST create
-        if (!formData.subjectId) {
-          toast.error('Vui lòng chọn môn học cho gói dịch vụ.');
-          return;
-        }
-
-        const payload = {
-          subjectId: formData.subjectId,
-          title: formData.title.trim(),
-          description: formData.description.trim(),
-          learningScope: formData.learningScope.trim() || null,
-          expectedOutcome: formData.expectedOutcome.trim() || null,
-          totalSessions: Number(formData.totalSessions),
-          sessionDurationMinutes: Number(formData.sessionDurationMinutes),
-          price: Number(formData.price),
-          teachingMode: formData.teachingMode,
-          trialLessonUrl: formData.trialLessonUrl.trim() || null,
-          ...(shortDescription ? { shortDescription } : {}),
-          ...(tags.length ? { tags } : {}),
-          ...(coverImageUrl ? { coverImageUrl } : {}),
-          ...extraPayload,
-        };
+        const payload = buildServicePayload(formData, { mode: 'create' });
 
         await tutorService.createService(payload);
         toast.success('Đã tạo gói dịch vụ mới ở trạng thái Bản nháp (Draft).');
@@ -411,6 +266,54 @@ export default function TutorServices() {
     }
   };
 
+  // Pause Action (Published -> Paused)
+  const handlePause = async (pkg) => {
+    const ok = await confirm({
+      title: 'Tạm dừng tuyển sinh',
+      content: (
+        <div className="space-y-2 text-caption text-fg-secondary">
+          <p>
+            Tạm dừng tuyển sinh gói học <strong>&ldquo;{pkg.title}&rdquo;</strong>? Học viên sẽ
+            không thấy gói này trên sàn cho đến khi bạn tiếp tục.
+          </p>
+          <p className="text-xs text-fg-muted">
+            Các hợp đồng đã thanh toán trước đó vẫn tiếp tục học bình thường.
+          </p>
+        </div>
+      ),
+      confirmText: 'Tạm dừng',
+      cancelText: 'Hủy',
+      danger: false,
+    });
+
+    if (!ok) return;
+
+    try {
+      setActionInProgressId(pkg.id);
+      await tutorService.pauseService(pkg.id);
+      toast.success('Đã tạm dừng tuyển sinh gói dịch vụ.');
+      await loadData();
+    } catch (err) {
+      toast.error(err?.message || 'Không thể tạm dừng gói dịch vụ.');
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
+
+  // Resume Action (Paused -> Published)
+  const handleResume = async (pkg) => {
+    try {
+      setActionInProgressId(pkg.id);
+      await tutorService.resumeService(pkg.id);
+      toast.success('Đã tiếp tục tuyển sinh gói dịch vụ.');
+      await loadData();
+    } catch (err) {
+      toast.error(err?.message || 'Không thể tiếp tục gói dịch vụ.');
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
+
   // Stats calculation
   const stats = useMemo(() => {
     const published = services.filter((s) => s.status === 'Published').length;
@@ -444,6 +347,31 @@ export default function TutorServices() {
     setStatusFilter('All');
   }, []);
 
+  // Clear everything including the status tab
+  const handleClearAll = useCallback(() => {
+    setSearch('');
+    setSubjectFilter('All');
+    setStatusFilter('All');
+    setActiveTab('All');
+  }, []);
+
+  // Active filter chips (search keyword + dropdowns)
+  const activeChips = useMemo(() => {
+    const chips = [];
+    const keyword = search.trim();
+    if (keyword) {
+      chips.push({ key: 'search', label: `Từ khóa: ${keyword}`, clear: () => setSearch('') });
+    }
+    if (subjectFilter !== 'All') {
+      const name = subjects.find((s) => s.id === subjectFilter)?.name || 'Môn học';
+      chips.push({ key: 'subject', label: name, clear: () => setSubjectFilter('All') });
+    }
+    if (statusFilter !== 'All') {
+      chips.push({ key: 'status', label: STATUS_LABELS[statusFilter] || statusFilter, clear: () => setStatusFilter('All') });
+    }
+    return chips;
+  }, [search, subjectFilter, statusFilter, subjects]);
+
   // Filtered services
   const filteredServices = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -461,15 +389,12 @@ export default function TutorServices() {
 
   return (
     <div className="space-y-5">
-      {/* Masthead */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      {/* Title row */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <p className="text-caption font-semibold uppercase tracking-[0.14em] text-brand-primary-600">
-            Gian hàng của tôi
-          </p>
-          <h1 className="text-headline-1 text-fg mt-1">Dịch vụ của tôi</h1>
+          <h1 className="text-[30px] leading-[1.2] font-bold text-fg tracking-tight">Dịch vụ của tôi</h1>
           <p className="text-body-reg text-fg-secondary mt-1">
-            Quản lý các gói học, khóa học và dịch vụ gia sư của bạn.
+            Quản lý các gói học bạn đang cung cấp
           </p>
         </div>
         <Button
@@ -483,33 +408,25 @@ export default function TutorServices() {
         </Button>
       </div>
 
-      {/* Ledger figures */}
-      <dl className="border-t-[3px] border-neutral-900 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4" aria-label="Tổng quan gian hàng">
-        <div>
-          <dt className="text-caption font-medium text-fg-secondary">Tổng số gói</dt>
-          <dd className="text-[28px] leading-tight font-bold tabular-nums tracking-tight text-fg">
-            {stats.total}
-          </dd>
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" aria-label="Tổng quan dịch vụ">
+        <div className="bg-surface border border-border rounded-brand-lg p-4">
+          <p className="text-2xl font-bold tabular-nums tracking-tight text-fg">{stats.total}</p>
+          <p className="text-caption font-medium text-fg-secondary mt-1">Tổng</p>
         </div>
-        <div>
-          <dt className="text-caption font-medium text-fg-secondary">Đã xuất bản</dt>
-          <dd className="text-[28px] leading-tight font-bold tabular-nums tracking-tight text-brand-primary-600">
-            {stats.published}
-          </dd>
+        <div className="bg-surface border border-border rounded-brand-lg p-4">
+          <p className="text-2xl font-bold tabular-nums tracking-tight text-brand-primary-600">{stats.published}</p>
+          <p className="text-caption font-medium text-fg-secondary mt-1">Xuất bản</p>
         </div>
-        <div>
-          <dt className="text-caption font-medium text-fg-secondary">Bản nháp</dt>
-          <dd className="text-[28px] leading-tight font-bold tabular-nums tracking-tight text-fg">
-            {stats.draft}
-          </dd>
+        <div className="bg-surface border border-border rounded-brand-lg p-4">
+          <p className="text-2xl font-bold tabular-nums tracking-tight text-fg">{stats.draft}</p>
+          <p className="text-caption font-medium text-fg-secondary mt-1">Bản nháp</p>
         </div>
-        <div>
-          <dt className="text-caption font-medium text-fg-secondary">Tạm dừng &amp; đã ẩn</dt>
-          <dd className="text-[28px] leading-tight font-bold tabular-nums tracking-tight text-fg">
-            {stats.paused + stats.unpublished}
-          </dd>
+        <div className="bg-surface border border-border rounded-brand-lg p-4">
+          <p className="text-2xl font-bold tabular-nums tracking-tight text-fg">{stats.unpublished}</p>
+          <p className="text-caption font-medium text-fg-secondary mt-1">Chưa xuất bản</p>
         </div>
-      </dl>
+      </div>
 
       {/* Status tabs with counts */}
       <Tabs
@@ -522,18 +439,42 @@ export default function TutorServices() {
       />
 
       {/* Search & filters */}
-      <div className="bg-surface border border-border rounded-brand-lg p-3 sm:p-4 shadow-brand-sm">
-        <ServiceFilterBar
-          search={search}
-          onSearchChange={setSearch}
-          subjects={subjects}
-          subjectId={subjectFilter}
-          onSubjectIdChange={setSubjectFilter}
-          status={statusFilter}
-          onStatusChange={setStatusFilter}
-          onClear={handleClearFilters}
-        />
-      </div>
+      <ServiceFilterBar
+        search={search}
+        onSearchChange={setSearch}
+        subjects={subjects}
+        subjectId={subjectFilter}
+        onSubjectIdChange={setSubjectFilter}
+        status={statusFilter}
+        onStatusChange={setStatusFilter}
+        onClear={handleClearFilters}
+      />
+
+      {/* Active filter chips */}
+      {activeChips.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap text-caption">
+          <span className="text-fg-secondary font-medium">Đang lọc:</span>
+          {activeChips.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={chip.clear}
+              className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1 rounded-full bg-brand-primary-50 border border-brand-primary-100 text-brand-primary-700 font-medium hover:bg-brand-primary-100 transition-colors cursor-pointer"
+              aria-label={`Xóa bộ lọc ${chip.label}`}
+            >
+              {chip.label}
+              <Icon name="close" size="xs" />
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={handleClearAll}
+            className="text-fg-secondary hover:text-fg font-medium underline underline-offset-2 cursor-pointer"
+          >
+            Xóa tất cả
+          </button>
+        </div>
+      )}
 
       {/* Content */}
       {loading && <CardSkeleton count={3} />}
@@ -575,19 +516,22 @@ export default function TutorServices() {
 
       {!loading && !error && filteredServices.length > 0 && (
         <div className="space-y-4">
-          {filteredServices.map((pkg, i) => (
+          {filteredServices.map((pkg) => (
             <ServiceRow
               key={pkg.id}
               pkg={pkg}
-              index={i}
               isActing={actionInProgressId === pkg.id}
               onEdit={handleOpenEdit}
               onPublish={handlePublish}
               onUnpublish={handleUnpublish}
+              onPause={handlePause}
+              onResume={handleResume}
             />
           ))}
         </div>
       )}
+
+      {/* Edit Drawer (creation moved to /tutor/services/new) */}
 
       {/* Create / Edit Drawer */}
       <ServiceDrawer

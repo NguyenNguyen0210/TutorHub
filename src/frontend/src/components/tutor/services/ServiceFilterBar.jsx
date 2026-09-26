@@ -9,7 +9,7 @@ export const SERVICE_STATUS_OPTIONS = [
   { value: 'Published', label: 'Đã xuất bản' },
   { value: 'Draft', label: 'Bản nháp' },
   { value: 'Paused', label: 'Tạm dừng' },
-  { value: 'Unpublished', label: 'Đã ẩn' },
+  { value: 'Unpublished', label: 'Đã gỡ xuất bản' },
 ];
 
 /**
@@ -86,9 +86,10 @@ export default function ServiceFilterBar({
         variant="outline"
         onClick={onClear}
         icon={<Icon name="filter_list" size="sm" />}
-        className="w-full sm:w-auto"
+        className="w-full sm:w-auto whitespace-nowrap"
+        aria-label="Xóa bộ lọc tìm kiếm"
       >
-        Bộ lọc
+        Xóa lọc
       </Button>
     </div>
   );

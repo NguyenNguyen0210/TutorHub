@@ -285,6 +285,18 @@ export const tutorService = {
     return res;
   },
 
+  /** POST /tutors/me/services/{serviceId}/pause → ServiceDto */
+  async pauseService(serviceId) {
+    const res = await api.post(`/tutors/me/services/${serviceId}/pause`);
+    return res;
+  },
+
+  /** POST /tutors/me/services/{serviceId}/resume → ServiceDto */
+  async resumeService(serviceId) {
+    const res = await api.post(`/tutors/me/services/${serviceId}/resume`);
+    return res;
+  },
+
   /** POST /tutors/me/application → TutorApplicationDto */
   async submitTutorApplication(payload) {
     return api.post('/tutors/me/application', payload);

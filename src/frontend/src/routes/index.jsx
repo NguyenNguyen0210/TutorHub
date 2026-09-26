@@ -66,6 +66,7 @@ import DisputeNew from '../pages/student/DisputeNew';
 import TutorDashboard from '../pages/tutor/TutorDashboard';
 import TutorSchedule from '../pages/tutor/TutorSchedule';
 import TutorServices from '../pages/tutor/TutorServices';
+import ServiceCreateWizard from '../pages/tutor/ServiceCreateWizard';
 import TutorWallet from '../pages/tutor/TutorWallet';
 import TutorWithdraw from '../pages/tutor/TutorWithdraw';
 
@@ -155,6 +156,7 @@ export default function AppRoutes() {
         <Route path="schedule" element={<TutorSchedule />} />
         <Route path="availability" element={<Navigate to="/tutor/schedule" replace />} />
         <Route path="services" element={<TutorServices />} />
+        <Route path="services/new" element={<ServiceCreateWizard />} />
         <Route path="enrollments/:id" element={<EnrollmentDetail />} />
         <Route path="wallet" element={<TutorWallet />} />
         <Route path="wallet/withdraw" element={<TutorWithdraw />} />

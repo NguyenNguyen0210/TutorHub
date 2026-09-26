@@ -135,9 +135,9 @@ export default function WorkspaceShell({ userRole: role, children }) {
               to={item.path}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'flex items-center gap-3 px-3.5 py-2.5 rounded-brand-md text-body-reg font-semibold transition-colors',
+                'flex items-center gap-3 px-3.5 py-2.5 rounded-[10px] text-body-reg font-semibold transition-colors',
                 isActive
-                  ? 'bg-brand-primary-50 text-brand-primary-700 shadow-sm'
+                  ? 'bg-brand-primary-50 text-brand-primary-600'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               )}
             >
