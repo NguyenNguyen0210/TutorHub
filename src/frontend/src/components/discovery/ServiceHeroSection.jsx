@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
-import heroServicesStudent from '@/assets/images/hero-services-student.jpg';
 
 export default function ServiceHeroSection({
   searchKeyword,
@@ -118,18 +117,13 @@ export default function ServiceHeroSection({
                 aria-hidden="true"
               />
 
-              {/* Framed hero photo */}
+              {/* Floating person cutout, same as main hero (/register & /login) */}
               <img
-                src={heroServicesStudent}
-                alt="Học viên TutorHub học tập trực tuyến cùng laptop và sách"
-                className="w-full h-auto aspect-[4/3] object-cover rounded-brand-xl border border-white/70 shadow-brand-lg select-none"
+                src="/images/transparent-student-clean.png"
+                alt="Học viên TutorHub học tập hiệu quả cùng gia sư"
+                className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-sm"
                 loading="eager"
               />
-
-              {/* Handwritten quote */}
-              <div className="absolute top-2 left-1 sm:left-2 bg-white/95 backdrop-blur-xs px-3 py-1 rounded-full border border-blue-100/80 shadow-xs transform -rotate-3 text-[12px] font-bold text-sky-600 tracking-wide z-20">
-                ✨ Học hôm nay • Sáng ngày mai
-              </div>
 
               {/* Floating Benefit Badge 1: Top Right - Gói học chất lượng */}
               <div className="absolute top-4 right-0 sm:right-1 bg-white/95 backdrop-blur-md p-2.5 px-3 rounded-2xl shadow-md border border-white/80 flex items-center gap-2 animate-float z-20">

@@ -74,11 +74,11 @@ export default function HowItWorksHero() {
                 aria-hidden="true"
               />
 
-              {/* Framed hero photo: students learning together */}
+              {/* Floating person cutout, same as main hero (/register & /login) */}
               <img
-                src="/images/hero-how-it-works.jpg"
-                alt="Học viên cùng nhau học tập với laptop"
-                className="w-full h-auto aspect-[4/3] object-cover rounded-brand-xl border border-white/70 shadow-brand-lg select-none"
+                src="/images/transparent-student-clean.png"
+                alt="Học viên TutorHub học tập hiệu quả cùng gia sư"
+                className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-sm"
                 loading="eager"
               />
 

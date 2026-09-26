@@ -184,12 +184,12 @@ export default function BecomeTutor() {
               </p>
 
               <div className="relative w-full max-w-[480px] select-none">
+                {/* Floating person cutout, same as main hero */}
                 <img
-                  src="/images/hero-become-tutor.jpg"
-                  alt="Gia sư TutorHub đang giảng dạy"
-                  className="w-full h-auto aspect-[4/3] object-cover rounded-brand-xl border border-white/70 shadow-brand-lg"
+                  src="/images/transparent-student-clean.png"
+                  alt="Học viên TutorHub học tập hiệu quả cùng gia sư"
+                  className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-sm"
                   loading="eager"
-                  srcSet="/images/hero-become-tutor.jpg 1x"
                 />
 
                 <div className="absolute top-2 -right-1 sm:right-0 bg-surface/95 backdrop-blur-md px-3 py-2.5 rounded-brand-lg shadow-brand-md border border-border flex items-center gap-2.5 animate-float">
