@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import studentWalletService from '@/services/studentWallet.service';
 import { formatCurrency, formatDateTime } from '@/utils/formatters';
-import Money from '@/components/ui/Money';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/Dialog';
 import Card, { CardHeader } from '@/components/ui/Card';
@@ -250,11 +249,11 @@ export default function AdminStudentWallets() {
       <div className="space-y-4">
         <Tabs
           tabs={[
-            { id: 'topups', label: 'Đối soát nạp tiền VNPay' },
-            { id: 'withdrawals', label: 'Xử lý rút tiền (Withdrawals)' },
-            { id: 'adjust', label: 'Điều chỉnh số dư đặc biệt' },
+            { key: 'topups', label: 'Đối soát nạp tiền VNPay' },
+            { key: 'withdrawals', label: 'Xử lý rút tiền (Withdrawals)' },
+            { key: 'adjust', label: 'Điều chỉnh số dư đặc biệt' },
           ]}
-          activeTab={activeTab}
+          value={activeTab}
           onChange={setActiveTab}
         />
 

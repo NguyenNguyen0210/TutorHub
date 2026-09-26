@@ -11,6 +11,10 @@ const VARIANT_CLASS = {
   ghost: 'bg-transparent text-fg-secondary hover:bg-neutral-100 hover:text-fg active:bg-neutral-200',
   danger:
     'bg-danger text-white hover:bg-danger-strong active:bg-danger-strong shadow-sm disabled:hover:bg-danger',
+  // Viền đỏ + chữ đỏ: hành động phá hủy nhưng không phải hành động chính.
+  // Cần vì trước đây gọi 'danger-outline' rơi vào fallback primary → nút hủy hiện màu xanh.
+  'danger-outline':
+    'bg-surface text-danger-strong border border-danger/40 hover:bg-danger-subtle hover:border-danger active:bg-danger-subtle disabled:hover:bg-surface',
   'danger-ghost':
     'bg-transparent text-danger-strong hover:bg-danger-subtle active:bg-danger-subtle disabled:hover:bg-transparent',
   success:

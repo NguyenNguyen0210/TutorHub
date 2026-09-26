@@ -197,16 +197,15 @@ export default function TutorSchedule() {
     return enrollmentsWithUnscheduled.reduce((acc, curr) => acc + (curr.unscheduledSessions?.length || 0), 0);
   }, [enrollmentsWithUnscheduled]);
 
+  // Tabs đọc `key` (không phải `id`) và `value` (không phải `activeTab`) — xem components/ui/Tabs.jsx
   const tabs = [
     {
-      id: 'upcoming',
-      label: 'Lịch dạy sắp tới',
-      count: upcomingSessions.length,
+      key: 'upcoming',
+      label: `Lịch dạy sắp tới (${upcomingSessions.length})`,
     },
     {
-      id: 'unscheduled',
-      label: 'Cần xếp lịch',
-      count: totalUnscheduledCount,
+      key: 'unscheduled',
+      label: `Cần xếp lịch (${totalUnscheduledCount})`,
     },
   ];
 
@@ -225,7 +224,7 @@ export default function TutorSchedule() {
       {/* Tabs */}
       <Tabs
         tabs={tabs}
-        activeTab={activeTab}
+        value={activeTab}
         onChange={handleTabChange}
       />
 

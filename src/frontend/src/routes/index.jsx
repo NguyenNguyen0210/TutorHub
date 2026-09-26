@@ -58,6 +58,8 @@ import PaymentReturn from '../pages/checkout/PaymentReturn';
 
 import StudentDashboard from '../pages/student/StudentDashboard';
 import StudentWallet from '../pages/student/StudentWallet';
+import StudentWalletTopUp from '../pages/student/StudentWalletTopUp';
+import StudentWalletWithdraw from '../pages/student/StudentWalletWithdraw';
 import EnrollmentDetail from '../pages/student/EnrollmentDetail';
 import SessionDetail from '../pages/student/SessionDetail';
 import DisputeNew from '../pages/student/DisputeNew';
@@ -137,6 +139,8 @@ export default function AppRoutes() {
       }>
         <Route path="dashboard" element={<StudentDashboard />} />
         <Route path="wallet" element={<StudentWallet />} />
+        <Route path="wallet/topup" element={<StudentWalletTopUp />} />
+        <Route path="wallet/withdraw" element={<StudentWalletWithdraw />} />
         <Route path="enrollments/:id" element={<EnrollmentDetail />} />
         <Route path="sessions/:id" element={<SessionDetail />} />
         <Route path="disputes/new" element={<DisputeNew />} />

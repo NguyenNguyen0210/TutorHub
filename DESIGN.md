@@ -3,7 +3,7 @@
 **Product:** TutorHub — Nền tảng kết nối Gia sư & Học viên trực tuyến
 **Core model:** Service / Package-based Learning với bảo chứng Escrow 2 chiều
 **Status:** Canonical visual specification — Brand Style Guide v2
-**Stack:** React 18 + Vite 5 + Tailwind CSS 3.4 + Lucide Icons + Inter (JavaScript thuần, không TypeScript)
+**Stack:** React 18 + Vite 5 + Tailwind CSS 3.4 + Lucide Icons + Be Vietnam Pro (JavaScript thuần, không TypeScript)
 
 > v2 thay thế hệ thống "Royal Navy / Indigo / Glassmorphism" của v1 bằng bản sắc
 > **Minimal SaaS sáng**: Primary Blue, Secondary Orange, neutral slate, sidebar tối nhỏ,
@@ -78,7 +78,7 @@ Giao diện phải truyền đạt 4 giá trị:
 
 ### 2.4 Quy ước tiền tệ
 - VND, phân cách dấu chấm: `2.500.000 ₫`.
-- **Số tiền dùng component `<Money>`** (`components/ui/Money.jsx`): Inter semibold +
+- **Số tiền dùng component `<Money>`** (`components/ui/Money.jsx`): Be Vietnam Pro semibold +
   `tabular-nums` (số thẳng cột mà vẫn hiện đại) + đơn vị ₫ thu nhỏ 0.8em.
 - `formatCurrency` chỉ dùng cho chuỗi trong toast/logic, không dùng để render số tiền lớn.
 - **`font-mono` (JetBrains Mono) chỉ dùng cho**: mã GD, `correlationId`, countdown,
@@ -89,7 +89,13 @@ Giao diện phải truyền đạt 4 giá trị:
 
 ## 3. Typography
 
-**Một họ chữ duy nhất: Inter.** JetBrains Mono chỉ cho dữ liệu tài chính/định danh.
+**Font chính: Be Vietnam Pro.** JetBrains Mono chỉ cho dữ liệu tài chính/định danh.
+
+> **Ghi chú (2026-09-26):** mục này trước đây ghi *Inter*. Thực tế `tokens.css` +
+> `tailwind.config.js` đã chạy **Be Vietnam Pro** (Inter vẫn được nạp sẵn trong
+> bundle cho các mục chưa chuyển). Vì code và bundle là nguồn sự thật, chuẩn hoá
+> docs theo code: **Be Vietnam Pro là font chính.** Inter giữ lại làm fallback.
+> Chi tiết font động: `src/frontend/src/styles/tokens.css`, `tailwind.config.js`.
 
 | Cấp bậc | Size / Line-height | Weight | Ứng dụng |
 |---|---|---|---|
