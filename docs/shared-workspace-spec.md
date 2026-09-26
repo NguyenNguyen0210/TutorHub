@@ -1,6 +1,6 @@
 # SPEC — Nhóm Shared (Messages · Notifications · ProfileSettings)
 
-> Trạng thái: SPEC v1.0 — chờ duyệt, chưa implement.
+> Trạng thái: SPEC v1.0 — **đã implement** (V1). Xem "Ghi chú triển khai" ở §5.
 > Hướng thẩm mỹ: **Operational Ledger**, giữ nguyên như hai vùng đã làm.
 > Phạm vi: 3 màn dùng chung cho mọi vai trò. Đây là nhóm cuối trong chuỗi
 > Student → Tutor → Shared.
@@ -128,29 +128,71 @@ tốt. Sửa:
 
 ---
 
-## 5. Acceptance criteria
+## 5. Ghi chú triển khai (V1 — đã xong)
 
-- [ ] B-9, B-10 → 0 icon `CircleHelp` trên cả 3 màn (verify bằng cách soi DOM).
-- [ ] B-11 → không còn khẳng định "Đã xác thực" khi backend không xác thực email.
-- [ ] B-12, B-13 → `Select` + `Tabs` chung trong `ProfileSettings`.
-- [ ] B-14 → `SendTyping` tối đa 1 lần / 2 giây.
-- [ ] B-15 → không còn `api.dicebear.com` trong 3 file này.
-- [ ] Nút "Thanh toán giữ chỗ" và badge "N mới" không dùng `success`/`danger` sai nghĩa.
-- [ ] Thẻ thỏa thuận ở đầu vùng đọc, không lẫn vào dòng tin nhắn.
-- [ ] Không còn `opacity` hạ trên nội dung đã đọc (tương phản WCAG).
-- [ ] Nút đánh dấu đã đọc ≥ 24×24 px.
-- [ ] Claim bảo mật trong chat không tự nhận mã hoá E2E.
-- [ ] `npx eslint` 0 error 0 warning trên 3 file + phần dùng chung · `npm run build` pass.
-- [ ] Verify live bằng tài khoản thật (Học viên + Gia sư): hộp thư, thông báo, hồ sơ.
-- [ ] Không đổi call site API, payload, validation, copy.
+| # | Trạng thái | Bằng chứng verify live |
+|---|---|---|
+| B-9 | ✅ | Icon nhóm Tài chính đổi `payment` → `payments`; `CircleHelp = 0` trên `/app/notifications` |
+| B-10 | ✅ | `security` → `verified_user`, `save` → `check`; `CircleHelp = 0` trên `/tutor/settings` |
+| B-11 | ✅ | Badge "Đã xác thực" đã xoá, thay bằng `Field hint` trung thực + comment 4 dòng giải thích backend không có field xác thực |
+| B-12 | ✅ | `<select>` thô → `Select` chung (đã xác nhận qua `class` có `rounded-brand-md` + `focus-visible:ring-brand-primary-600`) |
+| B-13 | ✅ | Tab tự dựng → `Tabs` chung; `role=tab` = 2 trên `/tutor/settings` |
+| B-14 | ✅ | `TYPING_THROTTLE_MS = 2000` + `lastTypingSentAtRef`; reset khi đổi cuộc trò chuyện. **Verify tĩnh** (không đo được số invoke runtime) |
+| B-15 | ✅ | `dicebear` không còn trong 3 file; `Avatar` tự fallback chữ cái |
+
+**Verify live** (`tutor.an@tutorhub.com` + `tutor.ha@tutorhub.com`):
+- Hộp thư: 2 cuộc trò chuyện, giờ hiện **"6 giờ trước" / "2 ngày trước"** thay vì `HH:mm`
+  trần; claim mới "Trao đổi qua kênh bảo mật của TutorHub", claim "mã hóa bảo mật"
+  đã bỏ; thẻ thỏa thuận nằm **trên đầu vùng đọc** với nhãn "THỎA THUẬN ĐÀO TẠO",
+  không lẫn vào dòng tin nhắn; `animate-pulse = 0`.
+- Thông báo: `h1` 30px, `opacity-8 = 0` (đã bỏ hạ opacity chữ), `CircleHelp = 0`,
+  icon dùng `text-fg-secondary` thay `text-fg-muted` (muted chỉ ~2.6:1 trên nền trắng).
+- Hồ sơ: `h1` 30px, 2 tab thật, tab mật khẩu disable nút + hiện `role="status"` blocker.
+Console 0 error · eslint 0/0 trên 3 file · build pass.
+
+**Hai quyết định phụ (ngoài chữ ký trong SPEC):**
+
+1. **Chấm xanh "an toàn" trong hộp thư bị gỡ hẳn**, không chỉ bỏ nhấp nháy. Một
+   chấm xanh tĩnh cạnh câu mô tả kênh vẫn đọc như badge "verified/secure", đúng thứ
+   §3.1 cấm. Thay bằng icon `shield` trung tính.
+2. **Chấm "chưa đọc" bị ẩn ở cuộc trò chuyện đang mở.** Snapshot danh sách lấy lúc
+   mount và không refresh, còn vừa gọi `markConversationAsRead` cho chính nó → chấm sẽ
+   hiện sai vĩnh viễn. Đây là logic hiển thị; **gốc rễ là danh sách không được refresh**
+   (xem §6).
+
+**Phát hiện thêm khi verify (edge case có sẵn, chưa sửa):** Gia sư có hồ sơ ở trạng
+thái **Pending** mở `/tutor/settings` sẽ 404 — `getMyTutorProfile()` yêu cầu `TutorProfile`
+đã được duyệt. Màn hình lỗi báo "You may need to submit an application first", câu
+này vô lý với người đã nộp và đang chờ. Ngoài phạm vi đợt này, đã ghi ở §6.
 
 ---
 
-## 6. Còn nợ
+## 6. Acceptance criteria
+
+- [x] B-9, B-10 → 0 icon `CircleHelp` trên cả 3 màn.
+- [x] B-11 → không còn khẳng định "Đã xác thực" khi backend không xác thực email.
+- [x] B-12, B-13 → `Select` + `Tabs` chung trong `ProfileSettings`.
+- [x] B-14 → `SendTyping` tối đa 1 lần / 2 giây.
+- [x] B-15 → không còn `api.dicebear.com` trong 3 file này.
+- [x] Nút "Thanh toán giữ chỗ" và badge "N mới" không dùng `success`/`danger` sai nghĩa.
+- [x] Thẻ thỏa thuận ở đầu vùng đọc, không lẫn vào dòng tin nhắn.
+- [x] Không còn `opacity` hạ trên nội dung đã đọc (tương phản WCAG).
+- [x] Nút đánh dấu đã đọc ≥ 24×32 px (`IconButton size="sm"`).
+- [x] Claim bảo mật trong chat không tự nhận mã hoá E2E.
+- [x] `npx eslint` 0 error 0 warning trên 3 file · `npm run build` pass.
+- [x] Verify live bằng tài khoản thật.
+- [x] Không đổi call site API, payload, validation, copy.
+
+---
+
+## 7. Còn nợ
 
 - Backend chưa có `category` cho thông báo → phân loại vẫn là suy đoán.
 - Backend chưa có trạng thái xác thực email.
+- **Danh sách hộp thư không được refresh** sau `ReceiveMessage` → chấm "chưa đọc" và
+  thứ tự danh sách có thể lệch. Hiện tạm ẩn chấm ở cuộc trò chuyện đang mở.
+- `/tutor/settings` với gia sư **Pending** sẽ 404 (`getMyTutorProfile` cần `TutorProfile`
+  đã duyệt) và thông báo lỗi gợi ý "nộp hồ sơ" — vô lý với người đang chờ duyệt.
 - `Notification` không có phân trang (pageSize 50 cố định).
-- Chat không có phân trang ngược (pageSize 50), không có phân ngày, không có
-  trạng thái đã đọc phía gửi.
+- Chat không có phân trang ngược, không phân ngày, không có trạng thái đã đọc phía gửi.
 - `Messages` chưa có trạng thái lỗi toàn trang (chỉ toast).

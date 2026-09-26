@@ -8,9 +8,9 @@ import EmptyState from '@/components/common/EmptyState';
 import { useToast } from '@/components/ui/Toast';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
+import Button, { IconButton } from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import Tabs from '@/components/ui/Tabs';
-import { PageHeader } from '@/components/ui/StatCard';
 import { useAuthStore } from '@/store/authStore';
 
 function resolveDeepLink(link, role) {
@@ -29,6 +29,54 @@ function resolveDeepLink(link, role) {
   }
   return link;
 }
+
+/**
+ * Phân loại thông báo — SUY ĐOÁN, không phải dữ liệu thật.
+ *
+ * DTO `Notification` từ API KHÔNG có field `category` (đã grep toàn repo: 0 kết quả),
+ * nên hàm dưới đoán nhóm bằng cách tìm chuỗi trong `type`. Hệ quả đã ghi ở SPEC §4/§6:
+ * một type mới từ backend có thể rơi nhầm nhóm mà không ai báo lỗi. Sửa đúng là thêm
+ * `category` vào DTO backend — không tự bịa bản phân loại ở file này.
+ *
+ * THỨ TỰ KIỂM TRA LÀ HỢP ĐỒNG, không phải tình cờ. Một type có thể khớp nhiều nhóm và
+ * nhóm đứng trước thắng — danh sách dưới chính là thứ tự đó, theo đúng thứ tự hàm cũ
+ * chạy, nên không có type nào bị đổi nhóm. Cụ thể `SessionPayoutCredit` khớp CẢ "payout"
+ * (Financial) LẪN "session" (Attendance); vì Financial đứng trước và có "payout" trong
+ * từ khoá nên nó về nhóm Tài chính & Ký quỹ. Đổi thứ tự là đổi nghĩa phân loại của các
+ * type đang chạy thật — nếu cần đổi thì phải sửa DTO, không sửa thứ tự ở đây.
+ */
+const CATEGORY_RULES = [
+  ['Financial', ['payment', 'earning', 'refund', 'wallet', 'payout']],
+  ['Attendance', ['attendance', 'session']],
+  ['Dispute', ['dispute']],
+];
+
+function getCategoryFromType(type) {
+  if (!type) return 'System';
+  const lower = type.toLowerCase();
+  for (const [category, keywords] of CATEGORY_RULES) {
+    if (keywords.some((keyword) => lower.includes(keyword))) return category;
+  }
+  return 'System';
+}
+
+/**
+ * Thanh bên trái + icon của từng nhóm.
+ *
+ * Mọi tên icon ở đây PHẢI có thật trong `lib/iconMap.js` — tên lạ sẽ fallback
+ * `CircleHelp`, tức là nhóm Tài chính (nhóm quan trọng nhất) lại mang icon hỏng
+ * (bug B-9: `payment` không tồn tại, đã đổi thành `payments` → Banknote).
+ *
+ * `System` dùng `text-fg-secondary` thay vì `text-fg-muted`: icon là nội dung
+ * phi văn bản có ý nghĩa nên cần ≥ 3:1, còn `text-fg-muted` trên nền trắng chỉ
+ * khoảng 2.6:1.
+ */
+const CATEGORY_STYLE = {
+  Financial: { bar: 'border-l-brand-primary-600', icon: 'payments', iconCls: 'text-brand-primary-600' },
+  Attendance: { bar: 'border-l-holding', icon: 'schedule', iconCls: 'text-holding' },
+  Dispute: { bar: 'border-l-danger', icon: 'gavel', iconCls: 'text-danger' },
+  System: { bar: 'border-l-neutral-400', icon: 'info', iconCls: 'text-fg-secondary' },
+};
 
 export default function Notifications() {
   const toast = useToast();
@@ -79,54 +127,44 @@ export default function Notifications() {
     }
   };
 
-  const getCategoryFromType = (type) => {
-    if (!type) return 'System';
-    const lower = type.toLowerCase();
-    if (lower.includes('payment') || lower.includes('earning') || lower.includes('refund') || lower.includes('wallet') || lower.includes('payout')) return 'Financial';
-    if (lower.includes('attendance') || lower.includes('session')) return 'Attendance';
-    if (lower.includes('dispute')) return 'Dispute';
-    return 'System';
-  };
-
   const filtered = activeTab === 'All'
     ? notifications
     : notifications.filter((n) => getCategoryFromType(n.type) === activeTab);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const CATEGORY_STYLE = {
-    Financial: { bar: 'border-l-brand-primary-600', icon: 'payment', iconCls: 'text-brand-primary-600' },
-    Attendance: { bar: 'border-l-holding', icon: 'schedule', iconCls: 'text-holding' },
-    Dispute: { bar: 'border-l-danger', icon: 'gavel', iconCls: 'text-danger' },
-    System: { bar: 'border-l-neutral-400', icon: 'info', iconCls: 'text-fg-muted' },
-  };
-
   return (
     <div className="max-w-3xl mx-auto space-y-5">
-      <PageHeader
-        title={
-          <span className="flex items-center gap-2 flex-wrap">
-            Trung tâm thông báo & Cảnh báo hệ thống
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-headline-page text-fg tracking-tight">
+              Trung tâm thông báo & Cảnh báo hệ thống
+            </h1>
+            {/* "Còn N mới" là trạng thái đọc, không phải tín hiệu nguy hiểm —
+                đỏ (danger) theo SPEC §1 dành cho xung đột / tranh chấp. */}
             {unreadCount > 0 && (
-              <Badge variant="danger" size="sm">
+              <Badge variant="primary" size="sm" dot>
                 {unreadCount} mới
               </Badge>
             )}
-          </span>
-        }
-        subtitle="Theo dõi tức thời các biến động tài chính, đối soát điểm danh 24h và cập nhật hợp đồng"
-        actions={
-          unreadCount > 0 && (
-            <button
-              type="button"
-              onClick={handleMarkAllRead}
-              className="text-caption font-semibold text-brand-primary-700 hover:underline"
-            >
-              Đánh dấu tất cả đã đọc
-            </button>
-          )
-        }
-      />
+          </div>
+          <p className="text-body-reg text-fg-secondary mt-2">
+            Theo dõi tức thời các biến động tài chính, đối soát điểm danh 24h và cập nhật hợp đồng
+          </p>
+        </div>
+        {unreadCount > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleMarkAllRead}
+            icon={<Icon name="done_all" size="sm" />}
+            className="self-start shrink-0"
+          >
+            Đánh dấu tất cả đã đọc
+          </Button>
+        )}
+      </header>
 
       <Tabs
         value={activeTab}
@@ -156,6 +194,7 @@ export default function Notifications() {
           filtered.map((item) => {
             const category = getCategoryFromType(item.type);
             const style = CATEGORY_STYLE[category] || CATEGORY_STYLE.System;
+            const isRead = Boolean(item.isRead);
 
             return (
               <Card
@@ -164,36 +203,49 @@ export default function Notifications() {
                 className={cn(
                   'w-full text-left border-l-4 space-y-2 hover:shadow-brand-md',
                   style.bar,
-                  !item.isRead ? 'bg-brand-primary-50/20' : 'opacity-85'
+                  // Trạng thái đọc phân biệt bằng bề mặt + chấm, KHÔNG bằng hạ
+                  // opacity: hạ opacity cả thẻ kéo chữ xuống dưới ngưỡng WCAG.
+                  isRead ? 'bg-surface' : 'bg-brand-primary-50/20'
                 )}
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 min-w-0">
                     <Icon name={style.icon} size="sm" className={style.iconCls} />
                     <h3 className="font-bold text-body-reg text-fg m-0 truncate">
                       {item.title}
                     </h3>
-                    {!item.isRead && (
-                      <button
-                        type="button"
+                    {/* Chấm + nền là tín hiệu thị giác; screen reader cần chữ.
+                        `sr-only` nên không dịch được hàng (absolute) — tiêu đề và
+                        nội dung vẫn thẳng hàng ở pl-6. */}
+                    {!isRead && <span className="sr-only">Chưa đọc</span>}
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {!isRead && (
+                      <span
+                        aria-hidden="true"
+                        className="w-2 h-2 rounded-full bg-brand-primary-600 shrink-0"
+                      />
+                    )}
+                    <span className="text-[11px] text-fg-secondary font-mono whitespace-nowrap">
+                      {item.createdAt ? formatRelativeTime(item.createdAt) : ''}
+                    </span>
+                    {!isRead && (
+                      <IconButton
+                        label={`Đánh dấu đã đọc: ${item.title}`}
+                        size="sm"
                         onClick={() => handleMarkAsRead(item.id, item.isRead)}
-                        aria-label={`Đánh dấu đã đọc: ${item.title}`}
-                        title="Đánh dấu đã đọc"
-                        className="w-2.5 h-2.5 rounded-full bg-brand-primary-600 shrink-0 hover:ring-2 hover:ring-brand-primary-300 transition-shadow"
+                        icon={<Icon name="check" size="sm" />}
                       />
                     )}
                   </div>
-                  <span className="text-[10px] text-fg-muted font-mono shrink-0">
-                    {item.createdAt ? formatRelativeTime(item.createdAt) : ''}
-                  </span>
                 </div>
 
-                <p className="text-caption text-fg-secondary leading-relaxed m-0 pl-7">
+                <p className="text-caption text-fg-secondary leading-relaxed m-0 pl-6">
                   {item.message}
                 </p>
 
                 {item.deepLink && (
-                  <div className="pl-7 pt-1">
+                  <div className="pl-6 pt-1">
                     <Link
                       to={resolveDeepLink(item.deepLink, role)}
                       onClick={(e) => e.stopPropagation()}
