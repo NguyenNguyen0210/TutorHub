@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import Avatar from '@/components/ui/Avatar';
 import Icon from '@/components/ui/Icon';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
@@ -140,13 +141,14 @@ export default function HeroSection({
                 <div className="flex -space-x-2 overflow-hidden py-0.5 pl-0.5">
                   {topTutors && topTutors.length > 0 ? (
                     topTutors.slice(0, 3).map((tutor, idx) => (
-                      <img
-                        key={tutor.id || idx}
-                        src={tutor.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_${idx}`}
-                        alt={tutor.fullName}
-                        title={tutor.fullName}
-                        className="inline-block h-7 w-7 sm:h-8 sm:w-8 rounded-full ring-2 ring-white object-cover bg-neutral-100 shrink-0"
-                      />
+                      <Avatar
+              key={tutor.id || idx}
+              src={tutor.avatarUrl}
+              name={tutor.fullName}
+              size="sm"
+              title={tutor.fullName}
+              className="inline-block h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-white shrink-0"
+            />
                     ))
                   ) : (
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-primary-100 text-brand-primary-600 font-bold text-xs flex items-center justify-center">

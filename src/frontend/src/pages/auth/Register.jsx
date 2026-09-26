@@ -14,6 +14,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import Avatar from '@/components/ui/Avatar';
 import { useToast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/services/api';
@@ -253,13 +254,14 @@ export default function Register() {
                 <div className="flex -space-x-2 overflow-hidden py-0.5 pl-0.5">
                   {tutorStats.topTutors.length > 0 ? (
                     tutorStats.topTutors.slice(0, 3).map((tutor, idx) => (
-                      <img
-                        key={tutor.id || idx}
-                        src={tutor.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=tutor_${idx}`}
-                        alt={tutor.fullName}
-                        title={tutor.fullName}
-                        className="inline-block h-7 w-7 sm:h-8 sm:w-8 rounded-full ring-2 ring-white object-cover bg-neutral-100 shrink-0"
-                      />
+                      <Avatar
+              key={tutor.id || idx}
+              src={tutor.avatarUrl}
+              name={tutor.fullName}
+              size="sm"
+              title={tutor.fullName}
+              className="inline-block h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-white shrink-0"
+            />
                     ))
                   ) : (
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-primary-100 text-brand-primary-600 font-bold text-xs flex items-center justify-center">

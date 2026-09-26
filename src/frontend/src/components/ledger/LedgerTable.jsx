@@ -45,7 +45,10 @@ LedgerTable.propTypes = {
   columns: PropTypes.arrayOf(
     PropTypes.shape({
       key: PropTypes.string.isRequired,
-      label: PropTypes.string.isRequired,
+      // `node` chứ không phải `string`: cột thực tế cần chứa Badge, Link, hay
+      // `<Money/>` — ví dụ cột "Trạng thái" trong bảng duyệt gia sư. Kẹt ở
+      // `string` thì màn đó phải tự dựng bảng riêng, lệch khỏi bộ kit.
+      label: PropTypes.node.isRequired,
       align: PropTypes.oneOf(['left', 'right', 'center']),
       width: PropTypes.string,
     })

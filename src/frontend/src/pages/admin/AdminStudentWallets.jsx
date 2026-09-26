@@ -512,8 +512,9 @@ export default function AdminStudentWallets() {
             </p>
 
             <form onSubmit={handleAdjustWallet} className="space-y-4 pt-2">
-              <Field label="Mã Ví Học Viên (StudentWalletId - GUID)">
+              <Field label="Mã Ví Học Viên (StudentWalletId - GUID)" htmlFor="adjust-wallet-id">
                 <Input
+                  id="adjust-wallet-id"
                   placeholder="Ví dụ: 3fa85f64-5717-4562-b3fc-2c963f66afa6"
                   value={adjustWalletId}
                   onChange={(e) => setAdjustWalletId(e.target.value)}
@@ -522,8 +523,9 @@ export default function AdminStudentWallets() {
               </Field>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Loại điều chỉnh">
+                <Field label="Loại điều chỉnh" htmlFor="adjust-direction">
                   <select
+                    id="adjust-direction"
                     value={adjustDirection}
                     onChange={(e) => setAdjustDirection(e.target.value)}
                     className="w-full h-10 rounded-brand-md border border-border bg-surface px-3 text-caption text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600"
@@ -533,8 +535,9 @@ export default function AdminStudentWallets() {
                   </select>
                 </Field>
 
-                <Field label="Số tiền điều chỉnh (VND)">
+                <Field label="Số tiền điều chỉnh (VND)" htmlFor="adjust-amount">
                   <Input
+                    id="adjust-amount"
                     type="number"
                     placeholder="Ví dụ: 100000"
                     value={adjustAmount}
@@ -546,8 +549,9 @@ export default function AdminStudentWallets() {
                 </Field>
               </div>
 
-              <Field label="Lý do điều chỉnh (Bắt buộc)">
+              <Field label="Lý do điều chỉnh (Bắt buộc)" htmlFor="adjust-reason">
                 <Input
+                  id="adjust-reason"
                   placeholder="Ví dụ: Đền bù gián đoạn hệ thống theo quyết định #123"
                   value={adjustReason}
                   onChange={(e) => setAdjustReason(e.target.value)}
@@ -579,8 +583,9 @@ export default function AdminStudentWallets() {
             <p className="text-caption text-fg leading-relaxed">
               Bạn xác nhận đã nhận được khoản chuyển <strong>{formatCurrency(confirmModalData.amount)}</strong> từ học viên <strong>{confirmModalData.studentName}</strong> (Cú pháp: <code>{confirmModalData.transferReference}</code>)?
             </p>
-            <Field label="Ghi chú đối soát (Tùy chọn)">
+            <Field label="Ghi chú đối soát (Tùy chọn)" htmlFor="adjust-note">
               <Input
+                id="adjust-note"
                 placeholder="Ví dụ: Khớp giao dịch VCB 10:30 ngày 22/09"
                 value={adminNoteInput}
                 onChange={(e) => setAdminNoteInput(e.target.value)}
@@ -609,8 +614,9 @@ export default function AdminStudentWallets() {
             <p className="text-caption text-fg leading-relaxed">
               Từ chối yêu cầu nạp tiền <strong>{formatCurrency(rejectModalData.amount)}</strong> (Ref: <code>{rejectModalData.transferReference}</code>). Vui lòng cung cấp lý do để gửi thông báo cho học viên.
             </p>
-            <Field label="Lý do từ chối (Bắt buộc)">
+            <Field label="Lý do từ chối (Bắt buộc)" htmlFor="reject-reason">
               <Input
+                id="reject-reason"
                 placeholder="Ví dụ: Không tìm thấy giao dịch ngân hàng khớp cú pháp sau 24h"
                 value={rejectionReasonInput}
                 onChange={(e) => setRejectionReasonInput(e.target.value)}
@@ -640,8 +646,9 @@ export default function AdminStudentWallets() {
             <p className="text-caption text-fg leading-relaxed">
               Lệnh rút <strong>{formatCurrency(failModalData.amount)}</strong> sẽ chuyển sang trạng thái Thất bại. Số tiền đang tạm giữ sẽ được <strong>tự động hoàn trả 100% về số dư khả dụng</strong> của học viên.
             </p>
-            <Field label="Lý do thất bại (Bắt buộc)">
+            <Field label="Lý do thất bại (Bắt buộc)" htmlFor="fail-reason">
               <Input
+                id="fail-reason"
                 placeholder="Ví dụ: Số tài khoản thụ hưởng không tồn tại hoặc sai tên chủ thẻ"
                 value={failReasonInput}
                 onChange={(e) => setFailReasonInput(e.target.value)}

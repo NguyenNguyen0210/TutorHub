@@ -131,6 +131,7 @@ export default function FilterSidebar({
                 return (
                   <label
                     key={item.id}
+                    htmlFor={`degree-${item.id}`}
                     className={cn(
                       'flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer transition-all select-none',
                       isSelected
@@ -141,6 +142,7 @@ export default function FilterSidebar({
                     <div className="flex items-center gap-2.5">
                       <input
                         type="radio"
+                        id={`degree-${item.id}`}
                         name="degreeLevel"
                         checked={isSelected}
                         onChange={() => onDegreeLevelChange && onDegreeLevelChange(item.id)}
@@ -182,6 +184,7 @@ export default function FilterSidebar({
               <div className="relative">
                 <input
                   type="text"
+                  aria-label="Lọc trường đại học"
                   placeholder="Lọc trường..."
                   value={uniSearch}
                   onChange={(e) => setUniSearch(e.target.value)}
@@ -329,10 +332,14 @@ export default function FilterSidebar({
               {/* Cascading Location Filter when InPerson or Both selected */}
               {showLocationFilter && (
                 <div className="pt-2 space-y-1.5 animate-fadeIn">
-                  <label className="text-[11.5px] font-semibold text-neutral-500 uppercase tracking-wide">
+                  <label
+                    htmlFor="filter-city"
+                    className="text-[11.5px] font-semibold text-neutral-500 uppercase tracking-wide"
+                  >
                     Tỉnh / Thành phố:
                   </label>
                   <select
+                    id="filter-city"
                     value={city}
                     onChange={(e) => onCityChange && onCityChange(e.target.value)}
                     className="w-full text-[12.5px] px-2.5 py-1.5 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-800 focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand-primary-600 cursor-pointer"

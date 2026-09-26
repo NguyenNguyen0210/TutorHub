@@ -118,7 +118,10 @@ export default function AdminTutorApplications() {
       userFullName: a.userFullName || `Gia sư ${idx + 1}`,
       userEmail: a.userEmail || `tutor${idx}@tutorhub.vn`,
       userPhone: a.userPhone || '—',
-      userAvatarUrl: a.userAvatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${a.userEmail || idx}`,
+      // Không sinh ảnh từ dịch vụ bên thứ ba: bản cũ đưa `a.userEmail` — tức email
+      // thật của người đang xét duyệt — vào seed rồi gửi ra máy chủ bên ngoài.
+      // `null` thì <Avatar> hiện chữ cái đầu.
+      userAvatarUrl: a.userAvatarUrl || null,
       subject: a.subject || 'Toán học',
       subjectSub: a.subjectSub || (a.teachingMode === 'Both' ? 'Online & Trực tiếp' : a.teachingMode || 'Online'),
       education: a.education || a.university || 'Đại học Sư phạm',

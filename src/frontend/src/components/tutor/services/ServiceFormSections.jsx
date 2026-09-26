@@ -470,12 +470,19 @@ export function ModeFields({ formData, onFieldChange, locked = false }) {
   };
 
   return (
-    <Field
-      label="Hình thức học"
-      required
-      hint="Chọn ít nhất một hình thức."
-    >
-      <div className="space-y-2.5" role="group" aria-label="Hình thức học">
+    /* Đây là NHÓM checkbox, không phải một control: `<label for>` chỉ trỏ được
+       tới đúng một control, nên dùng `Field` ở đây sẽ sinh ra một `<label>`
+       trỏ vào hư không. `<fieldset>` + `<legend>` là cách gom nhóm control có
+       sẵn của HTML — trình đọc màn hình đọc tên nhóm khi bước qua từng ô mà
+       không cần `role="group"` hay `aria-label` viết tay. */
+    <fieldset className="w-full">
+      <legend className="block text-caption font-semibold text-fg-secondary mb-1.5 uppercase tracking-wide">
+        Hình thức học
+        <span className="text-danger ml-0.5" aria-hidden="true">
+          *
+        </span>
+      </legend>
+      <div className="space-y-2.5" aria-describedby="service-mode-hint">
         <Checkbox
           id="service-mode-online"
           label="Online"
@@ -498,7 +505,10 @@ export function ModeFields({ formData, onFieldChange, locked = false }) {
           onChange={() => handlePlaceToggle('otherPlace')}
         />
       </div>
-    </Field>
+      <p id="service-mode-hint" className="text-caption text-fg-muted mt-1.5">
+        Chọn ít nhất một hình thức.
+      </p>
+    </fieldset>
   );
 }
 

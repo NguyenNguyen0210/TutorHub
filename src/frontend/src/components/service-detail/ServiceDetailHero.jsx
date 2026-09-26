@@ -193,19 +193,23 @@ export default function ServiceDetailHero({ service }) {
                 </div>
               )}
 
-              {/* Overlay with Play Button if trial url or video available */}
+              {/* Overlay with Play Button if trial url or video available.
+                  Nút thật, không phải div+onClick: bàn phím và trình đọc màn
+                  hình cần kích hoạt được, còn div thì không. */}
               {service.trialLessonUrl && (
-                <div
+                <button
+                  type="button"
                   onClick={() => setIsVideoModalOpen(true)}
-                  className="absolute inset-0 bg-black/40 hover:bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center cursor-pointer transition-all gap-2"
+                  aria-label="Xem video học thử miễn phí"
+                  className="absolute inset-0 w-full bg-black/40 hover:bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center cursor-pointer transition-all gap-2"
                 >
-                  <div className="w-14 h-14 rounded-full bg-white/95 text-brand-primary-600 shadow-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <span className="w-14 h-14 rounded-full bg-white/95 text-brand-primary-600 shadow-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                     <Icon name="play_arrow" size="lg" className="w-7 h-7 ml-1" />
-                  </div>
+                  </span>
                   <span className="text-xs font-bold text-white tracking-wide uppercase px-3 py-1 rounded-full bg-black/40 border border-white/20">
                     Xem video học thử miễn phí
                   </span>
-                </div>
+                </button>
               )}
             </div>
           </div>

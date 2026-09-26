@@ -61,7 +61,11 @@ export const useAuthStore = create((set, get) => ({
         email: u.email,
         role: u.role,
         phone: u.phone || null,
-        avatarUrl: u.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.email}`,
+        // KHÔNG sinh ảnh đại diện từ dịch vụ bên thứ ba. Bản cũ gọi
+        // `api.dicebear.com/...?seed=${u.email}` — tức gửi email của người dùng ra
+        // máy chủ bên thứ ba ngay mỗi lần đăng nhập, không cần họ bấm đồng ý.
+        // `null` thì <Avatar> tự hiện chữ cái đầu.
+        avatarUrl: u.avatarUrl || null,
         idProfile: u.idProfile || null,
         tutorProfileId: u.role === 'Tutor' ? (u.idProfile || null) : null,
         absentStrikes: u.absentStrikes ?? 0,

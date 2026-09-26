@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
+import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
 import { formatVND } from '@/utils/formatters';
 
@@ -54,7 +55,7 @@ const THEME_BY_CATEGORY = {
   },
 };
 
-export default function ServiceCard({ service, onDetail, onBookNow }) {
+export default function ServiceCard({ service }) {
   const navigate = useNavigate();
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -80,19 +81,17 @@ export default function ServiceCard({ service, onDetail, onBookNow }) {
   const rating = Number(service.tutorRating) > 0 ? Number(service.tutorRating).toFixed(1) : '5.0';
   const reviewsCount = service.tutorTotalReviews > 0 ? service.tutorTotalReviews : 12;
 
-  const handleCardClick = () => {
-    if (onDetail) {
-      onDetail(service);
-    } else {
-      navigate(`/services/${service.id}`);
-    }
-  };
-
   return (
-    <div
-      onClick={handleCardClick}
-      className="group relative flex flex-col justify-between bg-surface rounded-2xl border border-neutral-200/90 shadow-sm hover:shadow-brand-md hover:border-brand-primary-600/40 transition-all duration-200 overflow-hidden cursor-pointer"
-    >
+    /* Thẻ KHÔNG phải control: nó chứa hai link (dịch vụ, gia sư) và một nút yêu
+       thích, mà một <button>/<a> thì không được chứa control khác. Trước đây thẻ là
+       <div onClick> — bàn phím không với tới được, và mọi child phải
+       stopPropagation để giành quyền click.
+
+       Nay: <Link> tiêu đề có `::after` phủ kín thẻ ("stretched link"), nên toàn bộ
+       mặt thẻ bấm được, Tab tới được, Enter kích hoạt được, và chuột phải mở
+       được tab mới. Nút yêu thích và link gia sư được nâng lên `z-10` để nằm trên
+       lớp phủ đó. Không còn stopPropagation nào. */
+    <div className="group relative flex flex-col justify-between bg-surface rounded-2xl border border-neutral-200/90 shadow-sm hover:shadow-brand-md hover:border-brand-primary-600/40 transition-all duration-200 overflow-hidden">
       {/* Top Banner Header: Soft Pastel Tint Background */}
       <div className={`relative px-4 py-3 ${theme.bg} flex items-center justify-between`}>
         <span
@@ -104,11 +103,8 @@ export default function ServiceCard({ service, onDetail, onBookNow }) {
         {/* Favorite Heart Button: subtle gray border by default, red when active */}
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsFavorite(!isFavorite);
-          }}
-          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+          onClick={() => setIsFavorite(!isFavorite)}
+          className={`relative z-10 w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer ${
             isFavorite
               ? 'bg-danger-subtle text-danger border border-danger/20'
               : 'bg-white/90 text-neutral-400 border border-neutral-200/80 hover:text-danger hover:border-danger/20 shadow-sm'
@@ -130,8 +126,7 @@ export default function ServiceCard({ service, onDetail, onBookNow }) {
           {/* Service Full Title */}
           <Link
             to={`/services/${service.id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="group/title block"
+            className="group/title block after:absolute after:inset-0 after:content-['']"
           >
             <h3
               title={service.title}
@@ -141,24 +136,18 @@ export default function ServiceCard({ service, onDetail, onBookNow }) {
             </h3>
           </Link>
 
-          {/* Tutor Info Row */}
-          <div
-            className="flex items-center gap-2 hover:opacity-85 transition-opacity cursor-pointer group/tutor"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/tutors/${service.tutorProfileId}`);
-            }}
+          {/* Tutor Info Row — link thật, nằm trên lớp phủ của link tiêu đề */}
+          <Link
+            to={`/tutors/${service.tutorProfileId}`}
+            className="relative z-10 flex items-center gap-2 rounded-brand-sm hover:opacity-85 transition-opacity group/tutor"
           >
-            <img
-              src={
-                service.tutorAvatarUrl ||
-                `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(
-                  service.tutorName || 'tutor'
-                )}`
-              }
-              alt={service.tutorName}
-              className="w-7 h-7 rounded-full object-cover border border-border shrink-0 bg-neutral-100"
-              loading="lazy"
+            {/* Không dùng ảnh sinh từ dịch vụ bên thứ ba: bản cũ truyền TÊN thật
+                của gia sư vào seed của dicebear. <Avatar> tự hiện chữ cái đầu. */}
+            <Avatar
+              src={service.tutorAvatarUrl}
+              name={service.tutorName}
+              size="sm"
+              className="w-7 h-7 shrink-0"
             />
             <span className="text-[13px] font-semibold text-fg line-clamp-1 group-hover/tutor:text-brand-primary-600">
               {service.tutorName}
@@ -169,7 +158,7 @@ export default function ServiceCard({ service, onDetail, onBookNow }) {
             >
               <Icon name="verified" size="xs" filled className="text-success w-3.5 h-3.5" />
             </span>
-          </div>
+          </Link>
 
           {/* Rating & Reviews (Streamlined, no noisy student count) */}
           <div className="flex items-center gap-1.5 text-[12px] text-neutral-500">

@@ -106,7 +106,9 @@ ActionQueue.propTypes = {
   items: PropTypes.arrayOf(
     PropTypes.shape({
       key: PropTypes.string.isRequired,
-      title: PropTypes.string.isRequired,
+      // `node` chứ không phải `string`: tiêu đề hạng mục thường kèm Badge đếm
+      // số việc cần xử lý. Kẹt ở `string` thì phải bỏ Badge hoặc dựng lại cả queue.
+      title: PropTypes.node.isRequired,
       /** Số nhỏ hơn = lên trước. Mặc định 0. Ưu tiên trên deadlineAt. */
       priority: PropTypes.number,
       detail: PropTypes.string,
