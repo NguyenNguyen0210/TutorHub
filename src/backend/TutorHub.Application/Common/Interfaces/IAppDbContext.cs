@@ -47,6 +47,7 @@ public interface IAppDbContext
     DbSet<StudentWalletTransaction> StudentWalletTransactions { get; }
     DbSet<TopUpRequest> TopUpRequests { get; }
     DbSet<StudentWithdrawal> StudentWithdrawals { get; }
+    DbSet<ExternalLogin> ExternalLogins { get; }
 
     DatabaseFacade Database { get; }
 

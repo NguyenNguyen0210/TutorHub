@@ -51,6 +51,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<StudentWalletTransaction> StudentWalletTransactions => Set<StudentWalletTransaction>();
     public DbSet<TopUpRequest> TopUpRequests => Set<TopUpRequest>();
     public DbSet<StudentWithdrawal> StudentWithdrawals => Set<StudentWithdrawal>();
+    public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
 
     public override int SaveChanges()
     {

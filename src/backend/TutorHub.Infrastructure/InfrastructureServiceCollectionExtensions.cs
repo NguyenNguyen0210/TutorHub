@@ -7,11 +7,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Models;
 using TutorHub.Application.Common.Payments;
 using TutorHub.Application.Common.Security;
 using TutorHub.Application.Common.Storage;
 using TutorHub.Infrastructure.Authentication;
+using TutorHub.Infrastructure.Authentication.External;
 using TutorHub.Infrastructure.BackgroundServices;
 using TutorHub.Infrastructure.Persistence;
 using TutorHub.Infrastructure.Services;
@@ -132,6 +135,25 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<INotificationService, SignalRNotificationService>();
         services.AddScoped<IChatNotificationService, SignalRChatNotificationService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
+
+        // ── External sign-in (Google / Facebook) ──────────────────────────────
+        // Deliberately NOT ValidateOnStart: an API with no OAuth credentials must
+        // still boot and serve password login. A missing provider is a feature that
+        // is switched off (its button is hidden), not a misconfigured deployment.
+        services.AddOptions<ExternalAuthOptions>()
+            .BindConfiguration(ExternalAuthOptions.SectionName);
+
+        // Each provider gets its own named HttpClient so sockets are pooled per host
+        // and one provider's slowness cannot starve the other's.
+        services.AddHttpClient(nameof(GoogleAuthProvider));
+        services.AddHttpClient(nameof(FacebookAuthProvider));
+
+        services.AddMemoryCache();
+        services.TryAddSingleton(TimeProvider.System);
+
+        services.AddSingleton<IExternalAuthProvider, GoogleAuthProvider>();
+        services.AddSingleton<IExternalAuthProvider, FacebookAuthProvider>();
+        services.AddSingleton<IExternalAuthStateStore, MemoryExternalAuthStateStore>();
 
         services.AddSignalR();
 

@@ -36,6 +36,12 @@ public class User
     public StudentProfile? StudentProfile { get; set; }
     public ICollection<TutorApplication> TutorApplications { get; set; } = new List<TutorApplication>();
 
+    /// <summary>
+    /// Third-party identities (Google, Facebook) linked to this account. Empty for
+    /// accounts that only ever signed in with a password.
+    /// </summary>
+    public ICollection<ExternalLogin> ExternalLogins { get; set; } = new List<ExternalLogin>();
+
     // Media
     public ICollection<Media> MediaUploaded { get; set; } = new List<Media>();
 
