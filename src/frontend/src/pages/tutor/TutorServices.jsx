@@ -461,10 +461,13 @@ export default function TutorServices() {
 
   return (
     <div className="space-y-5">
-      {/* Page header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+      {/* Masthead */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-headline-1 text-fg">Dịch vụ của tôi</h1>
+          <p className="text-caption font-semibold uppercase tracking-[0.14em] text-brand-primary-600">
+            Gian hàng của tôi
+          </p>
+          <h1 className="text-headline-1 text-fg mt-1">Dịch vụ của tôi</h1>
           <p className="text-body-reg text-fg-secondary mt-1">
             Quản lý các gói học, khóa học và dịch vụ gia sư của bạn.
           </p>
@@ -480,6 +483,34 @@ export default function TutorServices() {
         </Button>
       </div>
 
+      {/* Ledger figures */}
+      <dl className="border-t-[3px] border-neutral-900 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4" aria-label="Tổng quan gian hàng">
+        <div>
+          <dt className="text-caption font-medium text-fg-secondary">Tổng số gói</dt>
+          <dd className="text-[28px] leading-tight font-bold tabular-nums tracking-tight text-fg">
+            {stats.total}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-caption font-medium text-fg-secondary">Đã xuất bản</dt>
+          <dd className="text-[28px] leading-tight font-bold tabular-nums tracking-tight text-brand-primary-600">
+            {stats.published}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-caption font-medium text-fg-secondary">Bản nháp</dt>
+          <dd className="text-[28px] leading-tight font-bold tabular-nums tracking-tight text-fg">
+            {stats.draft}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-caption font-medium text-fg-secondary">Tạm dừng &amp; đã ẩn</dt>
+          <dd className="text-[28px] leading-tight font-bold tabular-nums tracking-tight text-fg">
+            {stats.paused + stats.unpublished}
+          </dd>
+        </div>
+      </dl>
+
       {/* Status tabs with counts */}
       <Tabs
         tabs={STATUS_TABS.map((t) => ({
@@ -491,16 +522,18 @@ export default function TutorServices() {
       />
 
       {/* Search & filters */}
-      <ServiceFilterBar
-        search={search}
-        onSearchChange={setSearch}
-        subjects={subjects}
-        subjectId={subjectFilter}
-        onSubjectIdChange={setSubjectFilter}
-        status={statusFilter}
-        onStatusChange={setStatusFilter}
-        onClear={handleClearFilters}
-      />
+      <div className="bg-surface border border-border rounded-brand-lg p-3 sm:p-4 shadow-brand-sm">
+        <ServiceFilterBar
+          search={search}
+          onSearchChange={setSearch}
+          subjects={subjects}
+          subjectId={subjectFilter}
+          onSubjectIdChange={setSubjectFilter}
+          status={statusFilter}
+          onStatusChange={setStatusFilter}
+          onClear={handleClearFilters}
+        />
+      </div>
 
       {/* Content */}
       {loading && <CardSkeleton count={3} />}
@@ -542,10 +575,11 @@ export default function TutorServices() {
 
       {!loading && !error && filteredServices.length > 0 && (
         <div className="space-y-4">
-          {filteredServices.map((pkg) => (
+          {filteredServices.map((pkg, i) => (
             <ServiceRow
               key={pkg.id}
               pkg={pkg}
+              index={i}
               isActing={actionInProgressId === pkg.id}
               onEdit={handleOpenEdit}
               onPublish={handlePublish}
