@@ -246,7 +246,7 @@ export default function AdminWithdrawals() {
           </p>
           <div className="bg-holding-subtle text-holding-strong p-3 rounded-brand-md text-caption">
             <strong>Cơ chế hoàn trả ví (DEC-WD-003):</strong> Số tiền{' '}
-            <strong className="font-mono">{item.amount?.toLocaleString('vi-VN')} ₫</strong> sẽ được{' '}
+            <strong><Money value={item.amount} /></strong> sẽ được{' '}
             <strong>tự động hoàn trả ngay lập tức</strong> về số dư khả dụng (AvailableBalance) của gia sư.
           </div>
         </div>
@@ -311,7 +311,7 @@ export default function AdminWithdrawals() {
             stats.pendingTotal > 0 ? (
               <span>
                 Tổng chờ:{' '}
-                <strong className="text-holding-strong font-mono">
+                <strong className="text-holding-strong">
                   <Money value={stats.pendingTotal} />
                 </strong>
               </span>
@@ -329,7 +329,7 @@ export default function AdminWithdrawals() {
             stats.processingTotal > 0 ? (
               <span>
                 Đang chuyển:{' '}
-                <strong className="text-info font-mono">
+                <strong className="text-info">
                   <Money value={stats.processingTotal} />
                 </strong>
               </span>
@@ -432,7 +432,7 @@ export default function AdminWithdrawals() {
                         {/* Amount */}
                         <td className="px-4 py-3.5">
                           <div className="space-y-0.5">
-                            <span className="text-body font-bold text-success-strong font-mono">
+                            <span className="text-body-reg font-bold text-success-strong">
                               <Money value={item.amount} />
                             </span>
                           </div>
@@ -600,7 +600,7 @@ export default function AdminWithdrawals() {
           <button
             type="button"
             aria-label="Đóng cửa sổ"
-            className="fixed inset-0 w-full h-full bg-black/60 backdrop-blur-xs cursor-default"
+            className="fixed inset-0 w-full h-full bg-brand-navy-950/60 backdrop-blur-sm cursor-default"
             onClick={() => setSelectedWithdrawal(null)}
             tabIndex={-1}
           />
@@ -644,7 +644,7 @@ export default function AdminWithdrawals() {
                   <span className="text-caption text-fg-secondary block font-medium">
                     Số tiền yêu cầu rút:
                   </span>
-                  <span className="text-headline-1 font-bold text-success-strong font-mono">
+                  <span className="text-headline-1 font-bold text-success-strong">
                     <Money value={selectedWithdrawal.amount} />
                   </span>
                 </div>
@@ -715,7 +715,7 @@ export default function AdminWithdrawals() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-fg-muted">Chủ tài khoản:</span>
-                    <strong className="uppercase font-mono text-fg text-body">
+                    <strong className="uppercase font-mono text-fg text-body-reg">
                       {selectedWithdrawal.accountHolderName}
                     </strong>
                   </div>

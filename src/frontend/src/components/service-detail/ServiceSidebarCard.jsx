@@ -60,18 +60,18 @@ export default function ServiceSidebarCard({ service, onBookNow }) {
     <div className="sticky top-20 bg-white rounded-2xl border border-neutral-200/90 shadow-brand-sm p-6 flex flex-col gap-6">
       {/* Price Header */}
       <div>
-        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+        <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider block mb-1">
           Học phí trọn gói khóa học
         </span>
         <div className="flex items-baseline gap-2">
           <Money
             value={price}
-            className="text-3xl font-black text-blue-600 tracking-tight"
+            className="text-3xl font-black text-brand-primary-600 tracking-tight"
           />
         </div>
-        <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+        <p className="text-xs text-neutral-500 mt-1 flex items-center gap-1">
           <span>Trung bình:</span>
-          <strong className="text-slate-700">
+          <strong className="text-neutral-700">
             <Money value={pricePerSession} />
           </strong>
           <span>/ buổi ({totalSessions} buổi học)</span>
@@ -81,29 +81,29 @@ export default function ServiceSidebarCard({ service, onBookNow }) {
       {/* Package Key Specifications */}
       <div className="py-4 border-y border-neutral-100 flex flex-col gap-3 text-xs sm:text-sm">
         <div className="flex items-center justify-between">
-          <span className="text-slate-500 flex items-center gap-2">
-            <Icon name="event_repeat" size="xs" className="w-4 h-4 text-blue-600" />
+          <span className="text-neutral-500 flex items-center gap-2">
+            <Icon name="event_repeat" size="xs" className="w-4 h-4 text-brand-primary-600" />
             Số lượng buổi:
           </span>
-          <span className="font-bold text-slate-900">{totalSessions} buổi học</span>
+          <span className="font-bold text-fg">{totalSessions} buổi học</span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-slate-500 flex items-center gap-2">
-            <Icon name="schedule" size="xs" className="w-4 h-4 text-blue-600" />
+          <span className="text-neutral-500 flex items-center gap-2">
+            <Icon name="schedule" size="xs" className="w-4 h-4 text-brand-primary-600" />
             Thời lượng mỗi buổi:
           </span>
-          <span className="font-bold text-slate-900">
+          <span className="font-bold text-fg">
             {service.sessionDurationMinutes || 90} phút / buổi
           </span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-slate-500 flex items-center gap-2">
-            <Icon name="laptop_chromebook" size="xs" className="w-4 h-4 text-blue-600" />
+          <span className="text-neutral-500 flex items-center gap-2">
+            <Icon name="laptop_chromebook" size="xs" className="w-4 h-4 text-brand-primary-600" />
             Hình thức đào tạo:
           </span>
-          <span className="font-bold text-slate-900">
+          <span className="font-bold text-fg">
             {service.teachingMode === 'InPerson' || service.teachingMode === 'Offline'
               ? 'Tại nhà / Offline'
               : service.teachingMode === 'Both'
@@ -113,11 +113,11 @@ export default function ServiceSidebarCard({ service, onBookNow }) {
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-slate-500 flex items-center gap-2">
-            <Icon name="calendar_month" size="xs" className="w-4 h-4 text-blue-600" />
+          <span className="text-neutral-500 flex items-center gap-2">
+            <Icon name="calendar_month" size="xs" className="w-4 h-4 text-brand-primary-600" />
             Lịch học:
           </span>
-          <span className="font-bold text-slate-900">Linh hoạt theo thỏa thuận</span>
+          <span className="font-bold text-fg">Linh hoạt theo thỏa thuận</span>
         </div>
       </div>
 
@@ -140,37 +140,37 @@ export default function ServiceSidebarCard({ service, onBookNow }) {
           variant="outline"
           size="md"
           onClick={handleMessageTutor}
-          className="w-full !rounded-xl !py-2.5 text-sm font-semibold gap-2 border-neutral-300 text-slate-700 hover:bg-slate-50"
+          className="w-full !rounded-xl !py-2.5 text-sm font-semibold gap-2 border-neutral-300 text-neutral-700 hover:bg-neutral-50"
         >
-          <Icon name="chat" size="sm" className="w-4 h-4 text-blue-600" />
+          <Icon name="chat" size="sm" className="w-4 h-4 text-brand-primary-600" />
           <span>Nhắn tin tư vấn với gia sư</span>
         </Button>
       </div>
 
       {/* Trust & Guarantee Box */}
-      <div className="bg-slate-50/80 rounded-xl p-4 border border-neutral-200/70 flex flex-col gap-3">
-        <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+      <div className="bg-neutral-50/80 rounded-xl p-4 border border-neutral-200/70 flex flex-col gap-3">
+        <span className="text-xs font-bold text-neutral-700 uppercase tracking-wider block">
           Cam kết bảo đảm quyền lợi học viên
         </span>
 
-        <div className="flex items-start gap-2.5 text-xs text-slate-600">
-          <Icon name="security" size="xs" className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2.5 text-xs text-fg-secondary">
+          <Icon name="security" size="xs" className="w-4 h-4 text-success-strong shrink-0 mt-0.5" />
           <span>
-            <strong className="text-slate-800">Bảo chứng Escrow:</strong> Tiền học được bảo đảm, gia sư chỉ nhận tiền sau khi từng buổi học hoàn tất.
+            <strong className="text-fg">Bảo chứng Escrow:</strong> Tiền học được bảo đảm, gia sư chỉ nhận tiền sau khi từng buổi học hoàn tất.
           </span>
         </div>
 
-        <div className="flex items-start gap-2.5 text-xs text-slate-600">
-          <Icon name="autorenew" size="xs" className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2.5 text-xs text-fg-secondary">
+          <Icon name="autorenew" size="xs" className="w-4 h-4 text-brand-primary-600 shrink-0 mt-0.5" />
           <span>
-            <strong className="text-slate-800">Đổi gia sư / Hoàn tiền:</strong> Hỗ trợ hoàn học phí cho các buổi chưa học nếu không hài lòng chất lượng.
+            <strong className="text-fg">Đổi gia sư / Hoàn tiền:</strong> Hỗ trợ hoàn học phí cho các buổi chưa học nếu không hài lòng chất lượng.
           </span>
         </div>
 
-        <div className="flex items-start gap-2.5 text-xs text-slate-600">
-          <Icon name="support_agent" size="xs" className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2.5 text-xs text-fg-secondary">
+          <Icon name="support_agent" size="xs" className="w-4 h-4 text-holding shrink-0 mt-0.5" />
           <span>
-            <strong className="text-slate-800">Hỗ trợ 24/7:</strong> Can thiệp giải quyết tranh chấp lịch học và bảo đảm hợp đồng học tập.
+            <strong className="text-fg">Hỗ trợ 24/7:</strong> Can thiệp giải quyết tranh chấp lịch học và bảo đảm hợp đồng học tập.
           </span>
         </div>
       </div>

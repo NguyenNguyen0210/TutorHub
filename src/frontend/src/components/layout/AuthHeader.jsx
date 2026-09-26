@@ -16,7 +16,7 @@ export default function AuthHeader({ mode = 'login' }) {
 
         <Link
           to="/"
-          className="hidden sm:inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-500 hover:text-[#2563EB] transition-colors ml-6 pl-6 border-l border-slate-200"
+          className="hidden sm:inline-flex items-center gap-1.5 text-[13px] font-medium text-neutral-500 hover:text-brand-primary-600 transition-colors ml-6 pl-6 border-l border-border"
         >
           <Icon name="arrow_back" size="xs" />
           <span>Khám phá gia sư</span>
@@ -24,13 +24,13 @@ export default function AuthHeader({ mode = 'login' }) {
       </div>
 
       {/* Right: Auth Flow Switch Action */}
-      <div className="text-[13px] sm:text-[13.5px] text-slate-600 font-medium">
+      <div className="text-[13px] sm:text-[13.5px] text-fg-secondary font-medium">
         {isLogin ? (
           <>
             <span className="hidden xs:inline">Chưa có tài khoản?</span>{' '}
             <Link
               to="/auth/register"
-              className="text-[#2563EB] font-semibold hover:underline transition-colors ml-1"
+              className="text-brand-primary-600 font-semibold hover:underline transition-colors ml-1"
             >
               Đăng ký ngay
             </Link>
@@ -40,7 +40,7 @@ export default function AuthHeader({ mode = 'login' }) {
             <span className="hidden xs:inline">Đã có tài khoản?</span>{' '}
             <Link
               to="/auth/login"
-              className="text-[#2563EB] font-semibold hover:underline transition-colors ml-1"
+              className="text-brand-primary-600 font-semibold hover:underline transition-colors ml-1"
             >
               Đăng nhập ngay
             </Link>

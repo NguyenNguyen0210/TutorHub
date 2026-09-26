@@ -116,7 +116,7 @@ export default function BecomeTutor() {
   return (
     <div className="min-h-screen bg-canvas">
       {/* ── 1. Hero ─────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-[#EFF6FF] to-[#ECFEFF] border-b border-sky-100/70">
+      <section className="relative overflow-hidden bg-brand-primary-50 border-b border-brand-primary-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
             <div className="lg:col-span-6 space-y-5">

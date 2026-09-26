@@ -39,6 +39,28 @@
   -webkit-text-fill-color: transparent;
 }
 
+/* ========================================================
+   SCROLLBAR
+   ======================================================== */
+
+/* Ẩn thanh cuộn ngang nhưng VẪN cuộn được bằng bàn phím, chuột, cảm ứng và
+   trackpad. `overflow-x-auto` một mình sẽ hiện thanh cuộn xám mảnh chen ngang
+   dải tab dính ở trang chi tiết dịch vụ — chỉ `scrollbar-width`/`::-webkit`
+   mới ẩn được mà không khóa thao tác.
+
+   Không dùng plugin Tailwind: một utility 4 dòng không đáng để thêm dependency.
+   Đặt trong @layer utilities để vẫn bị override được như utility của Tailwind. */
+@layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .text-gradient-secondary {
   background: linear-gradient(135deg, rgb(var(--brand-secondary-700)) 0%, rgb(var(--brand-secondary-500)) 50%, rgb(var(--brand-secondary-400)) 100%);
   -webkit-background-clip: text;

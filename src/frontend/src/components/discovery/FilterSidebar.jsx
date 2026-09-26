@@ -94,11 +94,11 @@ export default function FilterSidebar({
 
   return (
     <aside className={cn('w-full', className)} aria-label="Bộ lọc gia sư đa chiều">
-      <div className="p-5 space-y-4 border border-neutral-200/80 shadow-sm rounded-[20px] bg-white">
+      <div className="p-5 space-y-4 border border-neutral-200/80 shadow-sm rounded-[20px] bg-surface">
         {/* Header */}
         <div className="flex items-center justify-between pb-3.5 border-b border-neutral-100">
           <div className="flex items-center gap-2 font-bold text-[15px] text-neutral-900">
-            <Icon name="tune" size="sm" className="text-[#2563EB]" />
+            <Icon name="tune" size="sm" className="text-brand-primary-600" />
             <span>Bộ lọc tìm kiếm</span>
           </div>
         </div>
@@ -111,7 +111,7 @@ export default function FilterSidebar({
             className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
-              <Icon name="school" size="xs" className="text-neutral-400 group-hover:text-[#2563EB] transition-colors" />
+              <Icon name="school" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
               <span>Bằng cấp & Học vị</span>
             </span>
             <Icon
@@ -134,7 +134,7 @@ export default function FilterSidebar({
                     className={cn(
                       'flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer transition-all select-none',
                       isSelected
-                        ? 'bg-blue-50/80 text-[#2563EB] font-semibold'
+                        ? 'bg-brand-primary-50/80 text-brand-primary-600 font-semibold'
                         : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
                     )}
                   >
@@ -144,7 +144,7 @@ export default function FilterSidebar({
                         name="degreeLevel"
                         checked={isSelected}
                         onChange={() => onDegreeLevelChange && onDegreeLevelChange(item.id)}
-                        className="w-3.5 h-3.5 text-[#2563EB] border-neutral-300 focus:ring-[#2563EB] cursor-pointer"
+                        className="w-3.5 h-3.5 text-brand-primary-600 border-neutral-300 focus:ring-brand-primary-600 cursor-pointer"
                       />
                       <span>{item.label}</span>
                     </div>
@@ -163,7 +163,7 @@ export default function FilterSidebar({
             className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
-              <Icon name="account_balance" size="xs" className="text-neutral-400 group-hover:text-[#2563EB] transition-colors" />
+              <Icon name="account_balance" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
               <span>Trường đại học</span>
             </span>
             <Icon
@@ -185,7 +185,7 @@ export default function FilterSidebar({
                   placeholder="Lọc trường..."
                   value={uniSearch}
                   onChange={(e) => setUniSearch(e.target.value)}
-                  className="w-full px-2.5 py-1 text-[12px] bg-neutral-50 border border-neutral-200 rounded-md focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
+                  className="w-full px-2.5 py-1 text-[12px] bg-neutral-50 border border-neutral-200 rounded-md focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand-primary-600"
                 />
                 {uniSearch && (
                   <button
@@ -207,7 +207,7 @@ export default function FilterSidebar({
                       className={cn(
                         'flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer select-none transition-colors text-[12.5px]',
                         isSelected
-                          ? 'bg-blue-50 text-[#2563EB] font-semibold'
+                          ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
                           : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
                       )}
                     >
@@ -216,7 +216,7 @@ export default function FilterSidebar({
                         name="university"
                         checked={isSelected}
                         onChange={() => onUniversityChange && onUniversityChange(item.id)}
-                        className="w-3.5 h-3.5 text-[#2563EB] border-neutral-300 focus:ring-[#2563EB] cursor-pointer"
+                        className="w-3.5 h-3.5 text-brand-primary-600 border-neutral-300 focus:ring-brand-primary-600 cursor-pointer"
                       />
                       <span className="truncate">{item.label}</span>
                     </label>
@@ -235,7 +235,7 @@ export default function FilterSidebar({
             className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
-              <Icon name="verified" size="xs" className="text-neutral-400 group-hover:text-[#2563EB] transition-colors" />
+              <Icon name="verified" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
               <span>Chứng chỉ nổi bật</span>
             </span>
             <Icon
@@ -258,7 +258,7 @@ export default function FilterSidebar({
                     className={cn(
                       'flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer select-none transition-colors text-[12.5px]',
                       isSelected
-                        ? 'bg-blue-50 text-[#2563EB] font-semibold'
+                        ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
                         : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
                     )}
                   >
@@ -267,7 +267,7 @@ export default function FilterSidebar({
                       name="certification"
                       checked={isSelected}
                       onChange={() => onCertificationChange && onCertificationChange(item.id)}
-                      className="w-3.5 h-3.5 text-[#2563EB] border-neutral-300 focus:ring-[#2563EB] cursor-pointer"
+                      className="w-3.5 h-3.5 text-brand-primary-600 border-neutral-300 focus:ring-brand-primary-600 cursor-pointer"
                     />
                     <span>{item.label}</span>
                   </label>
@@ -285,7 +285,7 @@ export default function FilterSidebar({
             className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
-              <Icon name="home_work" size="xs" className="text-neutral-400 group-hover:text-[#2563EB] transition-colors" />
+              <Icon name="home_work" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
               <span>Hình thức & Địa bàn</span>
             </span>
             <Icon
@@ -316,8 +316,8 @@ export default function FilterSidebar({
                       className={cn(
                         'py-1.5 px-2 rounded-lg text-[12px] font-medium border text-center transition-all cursor-pointer',
                         isSelected
-                          ? 'border-[#2563EB] bg-blue-50 text-[#2563EB] font-semibold shadow-xs'
-                          : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
+                          ? 'border-brand-primary-600 bg-brand-primary-50 text-brand-primary-600 font-semibold shadow-sm'
+                          : 'border-neutral-200 bg-surface text-neutral-700 hover:border-neutral-300'
                       )}
                     >
                       {option.label}
@@ -335,7 +335,7 @@ export default function FilterSidebar({
                   <select
                     value={city}
                     onChange={(e) => onCityChange && onCityChange(e.target.value)}
-                    className="w-full text-[12.5px] px-2.5 py-1.5 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#2563EB] cursor-pointer"
+                    className="w-full text-[12.5px] px-2.5 py-1.5 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-800 focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand-primary-600 cursor-pointer"
                   >
                     {CITY_OPTIONS.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -357,7 +357,7 @@ export default function FilterSidebar({
             className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
-              <Icon name="payments" size="xs" className="text-neutral-400 group-hover:text-[#2563EB] transition-colors" />
+              <Icon name="payments" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
               <span>Khoảng học phí</span>
             </span>
             <Icon
@@ -374,7 +374,7 @@ export default function FilterSidebar({
             <div className="space-y-3 pt-1">
               <div className="flex justify-between items-center text-[12.5px] font-semibold">
                 <span className="text-neutral-400 font-mono">0đ</span>
-                <span className="text-[#2563EB] font-bold font-mono text-[13px]">
+                <span className="text-brand-primary-600 font-bold font-mono text-[13px]">
                   {priceRange >= maxPrice ? 'Tất cả mức giá' : `Đến ${formatVND(priceRange)}`}
                 </span>
                 <span className="text-neutral-400 font-mono">5.000.000đ</span>
@@ -387,7 +387,7 @@ export default function FilterSidebar({
                 step="100000"
                 value={priceRange}
                 onChange={(e) => onPriceRangeChange(Number(e.target.value))}
-                className="w-full h-1.5 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-[#2563EB]"
+                className="w-full h-1.5 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-brand-primary-600"
                 aria-label="Khoảng học phí"
               />
 
@@ -403,7 +403,7 @@ export default function FilterSidebar({
                       className={cn(
                         'text-[11px] px-2 py-1 rounded-md border transition-colors cursor-pointer',
                         isActive
-                          ? 'border-[#2563EB] bg-blue-50 text-[#2563EB] font-semibold'
+                          ? 'border-brand-primary-600 bg-brand-primary-50 text-brand-primary-600 font-semibold'
                           : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
                       )}
                     >
@@ -424,7 +424,7 @@ export default function FilterSidebar({
             className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
-              <Icon name="star" size="xs" className="text-neutral-400 group-hover:text-amber-500 transition-colors" />
+              <Icon name="star" size="xs" className="text-neutral-400 group-hover:text-brand-secondary-500 transition-colors" />
               <span>Đánh giá & Kinh nghiệm</span>
             </span>
             <Icon
@@ -455,7 +455,7 @@ export default function FilterSidebar({
                       className={cn(
                         'flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer select-none text-[12.5px] transition-colors',
                         minRating === item.val
-                          ? 'bg-amber-50 text-amber-900 font-semibold'
+                          ? 'bg-brand-secondary-50 text-brand-secondary-700 font-semibold'
                           : 'text-neutral-700 hover:bg-neutral-50'
                       )}
                     >
@@ -464,7 +464,7 @@ export default function FilterSidebar({
                         name="ratingFilter"
                         checked={minRating === item.val}
                         onChange={() => onMinRatingChange(item.val)}
-                        className="w-3.5 h-3.5 text-amber-500 border-neutral-300 focus:ring-amber-500 cursor-pointer"
+                        className="w-3.5 h-3.5 text-brand-secondary-500 border-neutral-300 focus:ring-brand-secondary-500 cursor-pointer"
                       />
                       <span>{item.label}</span>
                     </label>
@@ -491,7 +491,7 @@ export default function FilterSidebar({
                       className={cn(
                         'text-[11.5px] py-1 px-2 rounded-md border text-center transition-colors cursor-pointer',
                         experienceRange === exp.id
-                          ? 'border-[#2563EB] bg-blue-50 text-[#2563EB] font-semibold'
+                          ? 'border-brand-primary-600 bg-brand-primary-50 text-brand-primary-600 font-semibold'
                           : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
                       )}
                     >

@@ -46,7 +46,8 @@ function FacebookSvg() {
     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="12" r="12" fill="#1877F2" />
       <path
-        fill="#FFFFFF"
+        fill="currentColor"
+        className="text-white"
         d="M15.12 12.75l.48-3.15h-3.03V7.55c0-.86.42-1.7 1.77-1.7h1.37V3.17s-1.24-.21-2.43-.21c-2.48 0-4.09 1.5-4.09 4.22v2.42H6.43v3.15h2.79V20.8c.56.09 1.13.13 1.71.13.58 0 1.15-.04 1.71-.13v-8.05h2.48z"
       />
     </svg>
@@ -55,7 +56,7 @@ function FacebookSvg() {
 
 function AppleSvg() {
   return (
-    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="#000000" aria-hidden="true">
+    <svg className="w-4 h-4 shrink-0 text-fg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.62-.75 1.04-1.8 1.01-2.87-.96.04-2.1.64-2.77 1.42-.58.68-1.1 1.76-.96 2.81 1.06.08 2.11-.57 2.72-1.36z" />
     </svg>
   );
@@ -156,7 +157,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F0F6FB] text-slate-900 selection:bg-blue-100 selection:text-blue-800">
+    <div className="min-h-screen flex flex-col bg-canvas text-fg selection:bg-brand-primary-100 selection:text-brand-primary-800">
       {/* Minimal Focused Auth Header */}
       <AuthHeader mode="login" />
 
@@ -166,18 +167,18 @@ export default function Login() {
           {/* Left Column: Marketing Message, Pillars & Seamless Illustration */}
           <section className="flex flex-col justify-center">
             {/* 1. Tag Pill */}
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#EFF6FF] text-[#2563EB] text-[11px] sm:text-[11.5px] font-bold uppercase tracking-wider mb-3.5 border border-blue-100/60 w-fit">
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-brand-primary-50 text-brand-primary-600 text-[11px] sm:text-[11.5px] font-bold uppercase tracking-wider mb-3.5 border border-brand-primary-100/60 w-fit">
               HỌC TỐT HƠN MỖI NGÀY
             </div>
 
             {/* 2. Headline */}
-            <h1 className="text-[36px] sm:text-[42px] font-bold text-[#0F172A] leading-[1.14] tracking-[-1px]">
+            <h1 className="text-[36px] sm:text-[42px] font-bold text-fg leading-[1.14] tracking-[-1px]">
               Kết nối tri thức, <br />
-              <span className="text-[#2563EB]">mở lối tương lai</span>
+              <span className="text-brand-primary-600">mở lối tương lai</span>
             </h1>
 
             {/* 3. Description */}
-            <p className="mt-3 text-[14px] sm:text-[14.5px] text-[#64748B] max-w-lg leading-relaxed">
+            <p className="mt-3 text-[14px] sm:text-[14.5px] text-neutral-500 max-w-lg leading-relaxed">
               TutorHub là nền tảng kết nối học viên với những gia sư chất lượng, giúp việc học hiệu quả hơn, dễ dàng hơn và an toàn hơn.
             </p>
 
@@ -185,34 +186,34 @@ export default function Login() {
             <div className="mt-5 flex flex-wrap sm:flex-nowrap items-center gap-4 sm:gap-6">
               {/* Benefit 1 */}
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-info-subtle text-info flex items-center justify-center shrink-0">
                   <GraduationCap className="w-5 h-5" />
                 </div>
                 <div className="leading-tight">
-                  <p className="text-[13px] font-bold text-[#0F172A]">Gia sư chất lượng</p>
-                  <p className="text-[11px] text-[#64748B] mt-0.5">Được xác thực kỹ càng</p>
+                  <p className="text-[13px] font-bold text-fg">Gia sư chất lượng</p>
+                  <p className="text-[11px] text-neutral-500 mt-0.5">Được xác thực kỹ càng</p>
                 </div>
               </div>
 
               {/* Benefit 2 */}
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-success-subtle text-success-strong flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div className="leading-tight">
-                  <p className="text-[13px] font-bold text-[#0F172A]">Thanh toán an toàn</p>
-                  <p className="text-[11px] text-[#64748B] mt-0.5">Bảo chứng qua Escrow</p>
+                  <p className="text-[13px] font-bold text-fg">Thanh toán an toàn</p>
+                  <p className="text-[11px] text-neutral-500 mt-0.5">Bảo chứng qua Escrow</p>
                 </div>
               </div>
 
               {/* Benefit 3 */}
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-[#F3E8FF] text-[#9333EA] flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center shrink-0">
                   <BarChart3 className="w-5 h-5" />
                 </div>
                 <div className="leading-tight">
-                  <p className="text-[13px] font-bold text-[#0F172A]">Học tập hiệu quả</p>
-                  <p className="text-[11px] text-[#64748B] mt-0.5">Đúng người, đúng mục tiêu</p>
+                  <p className="text-[13px] font-bold text-fg">Học tập hiệu quả</p>
+                  <p className="text-[11px] text-neutral-500 mt-0.5">Đúng người, đúng mục tiêu</p>
                 </div>
               </div>
             </div>
@@ -229,21 +230,21 @@ export default function Login() {
 
               {/* Floating Badge 1: Top Right - Hơn 10.000+ học viên */}
               <div
-                className="absolute top-4 sm:top-5 right-2 sm:right-3 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-[16px] sm:rounded-[18px] shadow-[0_10px_25px_rgba(0,0,0,0.08)] border border-white/80 max-w-[140px] sm:max-w-[155px] text-left z-20 animate-float"
+                className="absolute top-4 sm:top-5 right-2 sm:right-3 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-[16px] sm:rounded-[18px] shadow-brand-md border border-white/80 max-w-[140px] sm:max-w-[155px] text-left z-20 animate-float"
                 style={{ animationDuration: '5s' }}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center">
                     <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center text-[9px] sm:text-[10px] font-bold">
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center text-[9px] sm:text-[10px] font-bold">
                     ↗
                   </div>
                 </div>
-                <p className="text-[12px] sm:text-[13px] font-bold text-[#0F172A] leading-tight mt-1">
+                <p className="text-[12px] sm:text-[13px] font-bold text-fg leading-tight mt-1">
                   Hơn 10.000+
                 </p>
-                <p className="text-[9.5px] sm:text-[10.5px] text-[#64748B] leading-snug mt-0.5">
+                <p className="text-[9.5px] sm:text-[10.5px] text-neutral-500 leading-snug mt-0.5">
                   học viên đã tìm được gia sư phù hợp
                 </p>
               </div>
@@ -251,7 +252,7 @@ export default function Login() {
               {/* Floating Badge 2: Bottom Left - Dynamic PostgreSQL Query (55+ Gia sư chất lượng & Avatars) */}
               <Link
                 to="/"
-                className="absolute bottom-4 sm:bottom-6 left-2 sm:left-3 bg-white/95 backdrop-blur-md p-2 sm:p-2.5 sm:px-3.5 rounded-xl sm:rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.09)] border border-white/80 flex items-center gap-2 sm:gap-3 z-20 group hover:shadow-lg transition-all animate-float cursor-pointer"
+                className="absolute bottom-4 sm:bottom-6 left-2 sm:left-3 bg-white/95 backdrop-blur-md p-2 sm:p-2.5 sm:px-3.5 rounded-xl sm:rounded-2xl shadow-brand-md border border-white/80 flex items-center gap-2 sm:gap-3 z-20 group hover:shadow-brand-lg transition-all animate-float cursor-pointer"
                 style={{ animationDuration: '4.5s', animationDelay: '0.8s' }}
                 title="Khám phá danh sách gia sư chất lượng"
               >
@@ -268,20 +269,20 @@ export default function Login() {
                       />
                     ))
                   ) : (
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-100 text-[#2563EB] font-bold text-xs flex items-center justify-center">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-primary-100 text-brand-primary-600 font-bold text-xs flex items-center justify-center">
                       55+
                     </div>
                   )}
                 </div>
 
                 <div className="leading-tight text-left pr-0.5">
-                  <p className="text-[12px] sm:text-[13px] font-bold text-[#0F172A] group-hover:text-[#2563EB] transition-colors">
+                  <p className="text-[12px] sm:text-[13px] font-bold text-fg group-hover:text-brand-primary-600 transition-colors">
                     {tutorStats.totalCount > 0 ? `${tutorStats.totalCount}+ gia sư chất lượng` : '55+ gia sư chất lượng'}
                   </p>
-                  <p className="text-[10px] sm:text-[10.5px] text-[#64748B] mt-0.5">Sẵn sàng đồng hành cùng bạn</p>
+                  <p className="text-[10px] sm:text-[10.5px] text-neutral-500 mt-0.5">Sẵn sàng đồng hành cùng bạn</p>
                 </div>
 
-                <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-[#2563EB] transition-colors shrink-0">
+                <span className="w-5 h-5 rounded-full bg-neutral-100 text-fg-muted flex items-center justify-center group-hover:bg-brand-primary-50 group-hover:text-brand-primary-600 transition-colors shrink-0">
                   <ChevronRight className="w-3.5 h-3.5" />
                 </span>
               </Link>
@@ -290,13 +291,13 @@ export default function Login() {
 
           {/* Right Column: Login Card */}
           <section className="flex justify-center lg:justify-end">
-            <div className="w-full max-w-[480px] bg-white rounded-[24px] p-7 sm:px-[34px] sm:py-[32px] border border-[#F1F5F9] shadow-[0_15px_40px_rgba(0,0,0,0.06)]">
+            <div className="w-full max-w-[480px] bg-white rounded-[24px] p-7 sm:px-[34px] sm:py-[32px] border border-neutral-100 shadow-brand-lg">
               {/* Card Header */}
               <div className="text-left">
-                <h2 className="text-[25px] sm:text-[27px] font-bold text-[#0F172A] tracking-tight leading-tight">
+                <h2 className="text-[25px] sm:text-[27px] font-bold text-fg tracking-tight leading-tight">
                   Đăng nhập vào TutorHub
                 </h2>
-                <p className="mt-1 text-[13px] sm:text-[13.5px] text-[#64748B] leading-relaxed">
+                <p className="mt-1 text-[13px] sm:text-[13.5px] text-neutral-500 leading-relaxed">
                   Chào mừng bạn trở lại! Hãy đăng nhập để tiếp tục hành trình học tập.
                 </p>
               </div>
@@ -305,7 +306,7 @@ export default function Login() {
               {errorMsg && (
                 <div
                   role="alert"
-                  className="mt-3 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-[12px] flex items-center gap-2 animate-fadeIn"
+                  className="mt-3 p-2.5 rounded-xl bg-danger-subtle border-danger/20 text-danger-strong text-[12px] flex items-center gap-2 animate-fadeIn"
                 >
                   <span className="font-medium">{errorMsg}</span>
                 </div>
@@ -315,11 +316,11 @@ export default function Login() {
               <form onSubmit={handleSubmit} className="mt-5 text-left space-y-3">
                 {/* 1. Email hoặc số điện thoại */}
                 <div>
-                  <label htmlFor="login-email" className="block text-[13px] font-bold text-[#0F172A] mb-1">
+                  <label htmlFor="login-email" className="block text-[13px] font-bold text-fg mb-1">
                     Email hoặc số điện thoại
                   </label>
-                  <div className="relative flex items-center h-12 bg-white border border-[#E2E8F0] rounded-[12px] px-3.5 focus-within:border-[#2563EB] focus-within:ring-2 focus-within:ring-[#2563EB]/10 transition-all">
-                    <Mail className="w-4 h-4 text-[#94A3B8] shrink-0 mr-2.5 pointer-events-none" />
+                  <div className="relative flex items-center h-12 bg-white border border-border rounded-[12px] px-3.5 focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10 transition-all">
+                    <Mail className="w-4 h-4 text-fg-muted shrink-0 mr-2.5 pointer-events-none" />
                     <input
                       id="login-email"
                       type="text"
@@ -328,18 +329,18 @@ export default function Login() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Nhập email hoặc số điện thoại của bạn"
-                      className="w-full h-full text-[14px] text-[#0F172A] placeholder:text-[#94A3B8] bg-transparent outline-none"
+                      className="w-full h-full text-[14px] text-fg placeholder:text-fg-muted bg-transparent outline-none"
                     />
                   </div>
                 </div>
 
                 {/* 2. Mật khẩu */}
                 <div>
-                  <label htmlFor="login-password" className="block text-[13px] font-bold text-[#0F172A] mb-1">
+                  <label htmlFor="login-password" className="block text-[13px] font-bold text-fg mb-1">
                     Mật khẩu
                   </label>
-                  <div className="relative flex items-center h-12 bg-white border border-[#E2E8F0] rounded-[12px] px-3.5 focus-within:border-[#2563EB] focus-within:ring-2 focus-within:ring-[#2563EB]/10 transition-all">
-                    <Lock className="w-4 h-4 text-[#94A3B8] shrink-0 mr-2.5 pointer-events-none" />
+                  <div className="relative flex items-center h-12 bg-white border border-border rounded-[12px] px-3.5 focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10 transition-all">
+                    <Lock className="w-4 h-4 text-fg-muted shrink-0 mr-2.5 pointer-events-none" />
                     <input
                       id="login-password"
                       type={showPassword ? 'text' : 'password'}
@@ -348,12 +349,12 @@ export default function Login() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Nhập mật khẩu của bạn"
-                      className="w-full h-full pr-8 text-[14px] text-[#0F172A] placeholder:text-[#94A3B8] bg-transparent outline-none"
+                      className="w-full h-full pr-8 text-[14px] text-fg placeholder:text-fg-muted bg-transparent outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 p-1 text-[#94A3B8] hover:text-slate-700 transition-colors cursor-pointer"
+                      className="absolute right-3.5 p-1 text-fg-muted hover:text-neutral-700 transition-colors cursor-pointer"
                       aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                     >
                       {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -363,19 +364,19 @@ export default function Login() {
 
                 {/* 3. Options: Ghi nhớ đăng nhập & Quên mật khẩu */}
                 <div className="flex items-center justify-between pt-0.5">
-                  <label className="flex items-center gap-2 cursor-pointer select-none text-[12.5px] text-[#475569]">
+                  <label className="flex items-center gap-2 cursor-pointer select-none text-[12.5px] text-fg-secondary">
                     <input
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#2563EB] focus:ring-[#2563EB] border-slate-300 cursor-pointer shrink-0"
+                      className="w-4 h-4 rounded text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer shrink-0"
                     />
                     <span>Ghi nhớ đăng nhập</span>
                   </label>
 
                   <Link
                     to="/"
-                    className="text-[12.5px] font-medium text-[#2563EB] hover:underline transition-colors"
+                    className="text-[12.5px] font-medium text-brand-primary-600 hover:underline transition-colors"
                   >
                     Quên mật khẩu?
                   </Link>
@@ -386,7 +387,7 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full h-12 rounded-[12px] bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] disabled:opacity-60 text-white font-semibold text-[15px] shadow-sm flex items-center justify-center gap-2 transition-colors cursor-pointer select-none"
+                    className="w-full h-12 rounded-[12px] bg-brand-primary-600 hover:bg-brand-primary-700 active:bg-brand-primary-800 disabled:opacity-60 text-white font-semibold text-[15px] shadow-sm flex items-center justify-center gap-2 transition-colors cursor-pointer select-none"
                   >
                     {loading ? (
                       <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -402,8 +403,8 @@ export default function Login() {
 
               {/* 5. Social Divider */}
               <div className="relative flex items-center justify-center mt-4">
-                <div className="border-t border-[#E2E8F0] w-full" />
-                <span className="absolute bg-white px-2.5 text-[11.5px] text-[#94A3B8]">
+                <div className="border-t border-border w-full" />
+                <span className="absolute bg-white px-2.5 text-[11.5px] text-fg-muted">
                   Hoặc đăng nhập bằng
                 </span>
               </div>
@@ -413,7 +414,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => handleSocialLogin('Google')}
-                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-[#E2E8F0] bg-white hover:bg-slate-50 transition-colors text-[13px] font-medium text-[#334155] cursor-pointer shadow-none"
+                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none"
                 >
                   <GoogleSvg />
                   <span>Google</span>
@@ -422,7 +423,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => handleSocialLogin('Facebook')}
-                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-[#E2E8F0] bg-white hover:bg-slate-50 transition-colors text-[13px] font-medium text-[#334155] cursor-pointer shadow-none"
+                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none"
                 >
                   <FacebookSvg />
                   <span>Facebook</span>
@@ -431,7 +432,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => handleSocialLogin('Apple')}
-                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-[#E2E8F0] bg-white hover:bg-slate-50 transition-colors text-[13px] font-medium text-[#334155] cursor-pointer shadow-none"
+                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none"
                 >
                   <AppleSvg />
                   <span>Apple</span>
@@ -439,9 +440,9 @@ export default function Login() {
               </div>
 
               {/* 7. Bottom Register Link */}
-              <p className="text-[13px] text-[#475569] text-center mt-4">
+              <p className="text-[13px] text-fg-secondary text-center mt-4">
                 Chưa có tài khoản?{' '}
-                <Link to="/auth/register" className="text-[#2563EB] font-bold hover:underline ml-1">
+                <Link to="/auth/register" className="text-brand-primary-600 font-bold hover:underline ml-1">
                   Đăng ký ngay
                 </Link>
               </p>

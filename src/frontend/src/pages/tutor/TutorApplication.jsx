@@ -501,7 +501,7 @@ export default function TutorApplication() {
                   alt="TutorHub Learning"
                   className="w-48 h-auto object-contain drop-shadow-md"
                 />
-                <span className="absolute top-2 left-2 px-2.5 py-1 rounded-pill bg-surface backdrop-blur-xs border border-border shadow-brand-sm">
+                <span className="absolute top-2 left-2 px-2.5 py-1 rounded-pill bg-surface backdrop-blur-sm border border-border shadow-brand-sm">
                   <span className="text-[11px] font-bold text-brand-primary-700 tracking-wide">
                     Better Learning. Brighter Future.
                   </span>

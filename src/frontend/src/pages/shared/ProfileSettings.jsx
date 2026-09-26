@@ -40,15 +40,34 @@ export default function ProfileSettings() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  /**
+   * Gia sư chỉ có `TutorProfile` sau khi hồ sơ được duyệt. Giai đoạn Pending/Rejected,
+   * `GET /tutors/me` trả 404 ("You may need to submit an application first"), nên trước
+   * đây cả trang Cài đặt chết — kể cả tab Đổi mật khẩu vốn không cần hồ sơ giảng dạy.
+   * Nay fallback sang `GET /users/me` (luôn tồn tại) để thông tin cá nhân và mật khẩu vẫn
+   * dùng được, đồng thời hiện lưu ý rằng phần sư phạm sẽ mở sau khi được duyệt.
+   */
+  const [teachingProfileMissing, setTeachingProfileMissing] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     async function loadData() {
       try {
         setLoading(true);
         setError(null);
+        setTeachingProfileMissing(false);
 
         if (role === 'Tutor') {
-          const tutorData = await userService.getMyTutorProfile();
+          let tutorData = null;
+          try {
+            tutorData = await userService.getMyTutorProfile();
+          } catch (tutorErr) {
+            // 404 = chưa có TutorProfile. Lỗi khác (mạng, 500) thì vẫn phải hiện lỗi.
+            const status = tutorErr?.response?.status ?? tutorErr?.status;
+            if (status !== 404) throw tutorErr;
+            tutorData = await userService.getMyProfile();
+            if (!cancelled) setTeachingProfileMissing(true);
+          }
           if (!cancelled && tutorData) {
             setFullName(tutorData.fullName || '');
             setEmail(tutorData.email || user?.email || '');
@@ -93,6 +112,34 @@ export default function ProfileSettings() {
 
     try {
       setSavingProfile(true);
+
+      // Chưa có TutorProfile thì chỉ lưu được 3 trường ở cấp tài khoản; endpoint
+      // hồ sơ giảng dạy (`PATCH /tutors/me`) cũng sẽ 404 theo.
+      if (role === 'Tutor' && teachingProfileMissing) {
+        const updated = await userService.updateMyProfile({
+          fullName: fullName.trim(),
+          phone: phone.trim() || null,
+          avatarUrl: avatarUrl.trim() || null,
+        });
+
+        if (user && login && accessToken) {
+          login(
+            {
+              ...user,
+              name: updated.fullName || user.name,
+              fullName: updated.fullName || user.fullName,
+              phone: updated.phone || user.phone,
+              avatarUrl: updated.avatarUrl || user.avatarUrl,
+            },
+            { accessToken, refreshToken }
+          );
+        }
+
+        toast.success(
+          'Đã cập nhật thông tin tài khoản! Phần hồ sơ sư phạm sẽ mở sau khi hồ sơ được duyệt.'
+        );
+        return;
+      }
 
       if (role === 'Tutor') {
         const updated = await userService.updateMyTutorProfile({
@@ -220,6 +267,17 @@ export default function ProfileSettings() {
 
   const profileForm = (
     <form onSubmit={handleSaveProfile} className="space-y-6">
+      {teachingProfileMissing && (
+        <Callout
+          variant="holding"
+          title="Hồ sơ giảng dạy chưa được duyệt"
+          icon={<Icon name="hourglass_top" size="sm" />}
+        >
+          Hồ sơ giảng dạy của bạn đang chờ Ban duyệt, nên phần hồ sơ sư phạm (tiểu sử, học
+          vấn, hình thức dạy) tạm chưa mở. Bạn vẫn cập nhật được thông tin cá nhân bên
+          dưới và đổi mật khẩu ở tab bên cạnh. Xem tiến độ hồ sơ tại trang Hồ sơ xét duyệt.
+        </Callout>
+      )}
       <Card padding="lg" className="space-y-6">
         <CardHeader
           title="Thông tin cơ bản"
@@ -291,7 +349,7 @@ export default function ProfileSettings() {
             />
           </Field>
 
-          {role === 'Tutor' && (
+          {role === 'Tutor' && !teachingProfileMissing && (
             <Field label="Hình thức giảng dạy" htmlFor="profile-teachingMode">
               <Select
                 id="profile-teachingMode"
@@ -306,8 +364,8 @@ export default function ProfileSettings() {
           )}
         </div>
 
-        {/* Tutor professional info fields */}
-        {role === 'Tutor' && (
+        {/* Tutor professional info fields — chỉ có khi TutorProfile đã tồn tại */}
+        {role === 'Tutor' && !teachingProfileMissing && (
           <div className="space-y-4 pt-4 border-t border-border">
             <CardHeader
               title="Hồ sơ sư phạm & Chuyên môn"

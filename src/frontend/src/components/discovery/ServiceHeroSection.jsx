@@ -20,23 +20,23 @@ export default function ServiceHeroSection({
   onTagClick,
 }) {
   return (
-    <section className="relative py-6 sm:py-8 lg:py-9 bg-gradient-to-r from-[#EFF6FF] to-[#ECFEFF] border-b border-sky-100/70">
+    <section className="relative py-6 sm:py-8 lg:py-9 bg-brand-primary-50 border-b border-brand-primary-100">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">
           {/* Left Column: Breadcrumb, Headline, Search, Popular Tags */}
           <div className="lg:col-span-7 space-y-3 sm:space-y-3.5">
             {/* Breadcrumb */}
-            <nav className="flex items-center gap-1.5 text-[12px] font-medium text-slate-500" aria-label="Breadcrumb">
-              <Link to="/" className="text-slate-500 hover:text-[#2563EB] transition-colors">
+            <nav className="flex items-center gap-1.5 text-[12px] font-medium text-neutral-500" aria-label="Breadcrumb">
+              <Link to="/" className="text-neutral-500 hover:text-brand-primary-600 transition-colors">
                 Trang chủ
               </Link>
-              <span className="text-slate-300">›</span>
-              <span className="text-[#2563EB] font-semibold">Dịch vụ học tập</span>
+              <span className="text-neutral-300">›</span>
+              <span className="text-brand-primary-600 font-semibold">Dịch vụ học tập</span>
             </nav>
 
             <h1 className="text-[28px] sm:text-[36px] lg:text-[40px] font-bold text-neutral-900 leading-[1.18] tracking-tight">
               Dịch vụ học tập đa dạng <br />
-              cho <span className="text-[#2563EB]">mọi mục tiêu</span>
+              cho <span className="text-brand-primary-600">mọi mục tiêu</span>
             </h1>
 
             <p className="text-[13.5px] sm:text-[14.5px] text-neutral-600 max-w-xl leading-relaxed">
@@ -50,7 +50,7 @@ export default function ServiceHeroSection({
                 e.preventDefault();
                 onSearchSubmit(searchKeyword);
               }}
-              className="relative w-full max-w-[560px] h-[48px] flex items-center bg-white p-1 rounded-full border border-neutral-200/90 shadow-brand-sm hover:shadow-brand-md focus-within:ring-2 focus-within:ring-[#2563EB]/20 focus-within:border-[#2563EB] transition-all"
+              className="relative w-full max-w-[560px] h-[48px] flex items-center bg-surface p-1 rounded-full border border-neutral-200/90 shadow-brand-sm hover:shadow-brand-md focus-within:ring-2 focus-within:ring-brand-primary-600/20 focus-within:border-brand-primary-600 transition-all"
               role="search"
               aria-label="Tìm kiếm dịch vụ học tập"
             >
@@ -100,7 +100,7 @@ export default function ServiceHeroSection({
                   key={tag}
                   type="button"
                   onClick={() => onTagClick(tag)}
-                  className="px-2.5 py-0.5 rounded-full bg-white/90 hover:bg-white text-neutral-700 hover:text-[#2563EB] border border-neutral-200/80 hover:border-[#2563EB]/40 shadow-2xs font-medium text-[11.5px] transition-all cursor-pointer"
+                  className="px-2.5 py-0.5 rounded-full bg-white/90 hover:bg-white text-neutral-700 hover:text-brand-primary-600 border border-neutral-200/80 hover:border-brand-primary-600/40 shadow-sm font-medium text-[11.5px] transition-all cursor-pointer"
                 >
                   {tag}
                 </button>
@@ -113,7 +113,7 @@ export default function ServiceHeroSection({
             <div className="relative w-full max-w-[460px] flex items-center justify-center pt-2 pb-1 select-none">
               {/* Soft ambient backlight */}
               <div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] bg-sky-200/40 rounded-full blur-3xl -z-10 pointer-events-none"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] bg-brand-primary-200/40 rounded-full blur-3xl -z-10 pointer-events-none"
                 aria-hidden="true"
               />
 
@@ -127,12 +127,12 @@ export default function ServiceHeroSection({
 
               {/* Floating Benefit Badge 1: Top Right - Gói học chất lượng */}
               <div className="absolute top-4 right-0 sm:right-1 bg-white/95 backdrop-blur-md p-2.5 px-3 rounded-2xl shadow-md border border-white/80 flex items-center gap-2 animate-float z-20">
-                <div className="w-7 h-7 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 rounded-xl bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center shrink-0">
                   <Icon name="school" size="sm" />
                 </div>
                 <div>
-                  <p className="text-[11.5px] font-bold text-slate-900 leading-tight">Gói học chất lượng</p>
-                  <p className="text-[10px] text-slate-500 font-medium">Được kiểm duyệt kỹ lưỡng</p>
+                  <p className="text-[11.5px] font-bold text-fg leading-tight">Gói học chất lượng</p>
+                  <p className="text-[10px] text-neutral-500 font-medium">Được kiểm duyệt kỹ lưỡng</p>
                 </div>
               </div>
 
@@ -141,12 +141,12 @@ export default function ServiceHeroSection({
                 className="absolute top-1/2 -right-2 sm:-right-4 transform -translate-y-1/2 bg-white/95 backdrop-blur-md p-2.5 px-3 rounded-2xl shadow-md border border-white/80 flex items-center gap-2 animate-float z-20"
                 style={{ animationDelay: '1.2s' }}
               >
-                <div className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 rounded-xl bg-success-subtle text-success-strong flex items-center justify-center shrink-0">
                   <Icon name="trending_up" size="sm" />
                 </div>
                 <div>
-                  <p className="text-[11.5px] font-bold text-slate-900 leading-tight">Đa dạng cấp độ</p>
-                  <p className="text-[10px] text-slate-500 font-medium">Phù hợp mọi mục tiêu</p>
+                  <p className="text-[11.5px] font-bold text-fg leading-tight">Đa dạng cấp độ</p>
+                  <p className="text-[10px] text-neutral-500 font-medium">Phù hợp mọi mục tiêu</p>
                 </div>
               </div>
 
@@ -155,12 +155,12 @@ export default function ServiceHeroSection({
                 className="absolute bottom-2 left-0 sm:left-1 bg-white/95 backdrop-blur-md p-2.5 px-3 rounded-2xl shadow-md border border-white/80 flex items-center gap-2 animate-float z-20"
                 style={{ animationDelay: '0.6s' }}
               >
-                <div className="w-7 h-7 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 rounded-xl bg-brand-secondary-50 text-brand-secondary-600 flex items-center justify-center shrink-0">
                   <Icon name="groups" size="sm" />
                 </div>
                 <div>
-                  <p className="text-[11.5px] font-bold text-slate-900 leading-tight">Học linh hoạt</p>
-                  <p className="text-[10px] text-slate-500 font-medium">Online hoặc tại nhà</p>
+                  <p className="text-[11.5px] font-bold text-fg leading-tight">Học linh hoạt</p>
+                  <p className="text-[10px] text-neutral-500 font-medium">Online hoặc tại nhà</p>
                 </div>
               </div>
             </div>

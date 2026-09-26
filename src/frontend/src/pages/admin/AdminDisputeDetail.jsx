@@ -271,7 +271,9 @@ export default function AdminDisputeDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Badge variant={isPayoutReleased ? 'holding' : 'primary'} size="sm">
+          {/* Pre-Release Escrow = tiền nằm trong ký quỹ → `info`; Post-Release = tiền
+              đang bị giữ để phân xử → `holding`. Không dùng màu CTA cho trạng thái tiền. */}
+          <Badge variant={isPayoutReleased ? 'holding' : 'info'} size="sm">
             {isPayoutReleased ? 'Post-Release Balance' : 'Pre-Release Escrow'}
           </Badge>
         </div>
@@ -292,8 +294,8 @@ export default function AdminDisputeDetail() {
             <div className="text-fg font-bold text-body-reg">
               Buổi #{session?.sessionNumber || '—'}
             </div>
-            <div className="text-brand-primary-700 font-mono font-bold text-[13px]">
-              {formatCurrency(originalSessionFee)}
+            <div className="text-brand-primary-700 font-bold text-[13px]">
+              <Money value={originalSessionFee} />
             </div>
             {session?.startAt && (
               <span className="text-[11px] text-fg-muted block">
@@ -340,7 +342,7 @@ export default function AdminDisputeDetail() {
               Mở lúc: {formatDateTime(dispute?.createdAt, 'DD/MM/YYYY HH:mm')}
             </span>
           </div>
-          <p className="text-fg leading-relaxed m-0 whitespace-pre-line bg-white/70 p-3 rounded-brand-sm border border-danger/15">
+          <p className="text-fg leading-relaxed m-0 whitespace-pre-line bg-surface/70 p-3 rounded-brand-sm border border-danger/15">
             {dispute?.description || 'Không có mô tả chi tiết từ bên khiếu nại.'}
           </p>
         </div>
@@ -481,14 +483,14 @@ export default function AdminDisputeDetail() {
 
       {/* Closed Verdict Certificate */}
       {isClosed ? (
-        <Card padding="lg" className="space-y-4 border-2 border-emerald-500 shadow-brand-md bg-emerald-50/15">
-          <div className="flex items-center justify-between pb-3 border-b border-emerald-200">
+        <Card padding="lg" className="space-y-4 border-2 border-success/50 shadow-brand-md bg-success-subtle/40">
+          <div className="flex items-center justify-between pb-3 border-b border-success/20">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-brand-md bg-emerald-100 text-emerald-700 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-brand-md bg-success-subtle text-success-strong flex items-center justify-center">
                 <Icon name="verified" size="sm" />
               </div>
               <div>
-                <h3 className="text-body-bold text-fg m-0">
+                <h3 className="text-fg m-0">
                   Biên bản phán quyết trọng tài có hiệu lực
                 </h3>
                 <span className="text-[12px] text-fg-muted font-mono">
@@ -532,7 +534,8 @@ export default function AdminDisputeDetail() {
             title="Bộ cân bằng tài chính trọng tài DEC-S8-025"
             icon={<Icon name="calculate" size="sm" />}
             action={
-              <Badge variant="success" size="sm">
+              /* Phí sàn là dòng tiền trung tính — không tô xanh (SPEC §4.2). */
+              <Badge variant="neutral" size="sm">
                 Bảo toàn phí sàn {(platformFeeRate * 100).toFixed(0)}%
               </Badge>
             }
@@ -568,7 +571,7 @@ export default function AdminDisputeDetail() {
                 <span className="text-headline-1 text-success-strong font-bold tabular-nums">
                   <Money value={refundAmount} />
                 </span>
-                <span className="text-caption text-fg-muted font-mono">
+                <span className="text-caption text-fg-muted">
                   Tối đa: {formatCurrency(originalSessionFee)}
                 </span>
               </div>
@@ -606,7 +609,7 @@ export default function AdminDisputeDetail() {
                     <span className="text-fg-muted block font-semibold text-[11px] uppercase">
                       Hoàn phí sàn TutorHub ({(platformFeeRate * 100).toFixed(0)}%)
                     </span>
-                    <span className="text-headline-3 text-info font-semibold tabular-nums">
+                    <span className="text-headline-3 text-fg font-semibold tabular-nums">
                       -<Money value={platformFeeRefund} />
                     </span>
                     <p className="text-[11px] text-fg-muted m-0">
@@ -643,8 +646,9 @@ export default function AdminDisputeDetail() {
               )}
             </div>
 
-            {/* Conservation Math Identity Banner */}
-            <div className="p-3 rounded-brand-md bg-neutral-900 text-center font-mono text-caption text-slate-300">
+            {/* Conservation Math Identity Banner — số tiền KHÔNG dùng font-mono
+                (SPEC §2.4), chỉ `tabular-nums` để dọc thẳng cột. */}
+            <div className="p-3 rounded-brand-md bg-brand-navy-900 text-center text-caption text-neutral-300 tabular-nums">
               {isPayoutReleased ? (
                 <>
                   {formatCurrency(tutorClawback)} (Thu hồi từ Gia sư) + {formatCurrency(platformFeeRefund)} (Phí sàn hoàn) ≡{' '}
@@ -655,7 +659,7 @@ export default function AdminDisputeDetail() {
                   Ký quỹ Escrow {formatCurrency(originalSessionFee)} ≡{' '}
                   <strong className="text-success">{formatCurrency(refundAmount)}</strong> (Hoàn học viên) +{' '}
                   <strong className="text-info">{formatCurrency(tutorRemainingPayout)}</strong> (Gia sư nhận) +{' '}
-                  <span className="text-slate-400">{formatCurrency(platformRemainingFee)} (Phí sàn)</span>
+                  <span className="text-neutral-400">{formatCurrency(platformRemainingFee)} (Phí sàn)</span>
                 </>
               )}
             </div>
@@ -675,7 +679,7 @@ export default function AdminDisputeDetail() {
               placeholder="Ghi rõ lý do căn cứ vào biên bản đối soát điểm danh, trích lục chat và tài liệu xác minh..."
             />
             <div className="flex justify-end pt-1">
-              <span className={`text-[11px] font-mono ${adminNote.trim().length >= 10 ? 'text-success-strong' : 'text-danger-strong'}`}>
+              <span className={`text-[11px] tabular-nums ${adminNote.trim().length >= 10 ? 'text-success-strong' : 'text-danger-strong'}`}>
                 {adminNote.trim().length} / 10 ký tự tối thiểu
               </span>
             </div>
@@ -713,7 +717,7 @@ export default function AdminDisputeDetail() {
               </Button>
 
               <Button
-                variant="outline"
+                variant="danger-outline"
                 size="md"
                 disabled={resolving || adminNote.trim().length < 10}
                 onClick={() => handleResolve('dismiss')}

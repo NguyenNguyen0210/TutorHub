@@ -208,8 +208,8 @@ export default function BookingCheckout() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       {/* Checkout Progress Stepper */}
       <div className="flex items-center justify-between px-2 sm:px-6 py-3 rounded-brand-lg bg-surface border border-border text-caption">
-        <div className="flex items-center gap-2 text-emerald-700 font-semibold">
-          <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
+        <div className="flex items-center gap-2 text-success-strong font-semibold">
+          <span className="w-6 h-6 rounded-full bg-success-subtle text-success-strong flex items-center justify-center">
             <Icon name="check" size="xs" />
           </span>
           <span className="hidden sm:inline">1. Chọn gói học</span>
@@ -300,7 +300,7 @@ export default function BookingCheckout() {
                   <Money value={pricePerSession} /> / buổi
                 </dd>
               </div>
-              <div className="flex justify-between items-center text-[11px] text-emerald-700">
+              <div className="flex justify-between items-center text-[11px] text-success-strong">
                 <dt className="flex items-center gap-1">
                   <Icon name="check" size="xs" />
                   <span>Phí dịch vụ bảo chứng nền tảng:</span>
@@ -317,21 +317,21 @@ export default function BookingCheckout() {
           </Card>
 
           {/* High-Trust Escrow Certificate */}
-          <div className="p-4 rounded-brand-lg bg-emerald-50/80 border border-emerald-200/90 text-caption space-y-2 shadow-brand-sm">
-            <div className="flex items-center gap-2 text-emerald-900 font-bold text-body-reg">
-              <Icon name="shield" size="sm" filled className="text-emerald-600 shrink-0" />
+          <div className="p-4 rounded-brand-lg bg-success-subtle/80 border border-success-subtle/90 text-caption space-y-2 shadow-brand-sm">
+            <div className="flex items-center gap-2 text-success-strong font-bold text-body-reg">
+              <Icon name="shield" size="sm" filled className="text-success-strong shrink-0" />
               <span>Chứng thư ký quỹ bảo chứng Escrow 100%</span>
             </div>
-            <p className="text-emerald-800 leading-relaxed text-[12px]">
+            <p className="text-success-strong leading-relaxed text-[12px]">
               Số tiền <strong>{formatCurrency(totalPrice)}</strong> của bạn được bảo đảm an toàn 100% trong két ký quỹ trung lập của TutorHub. Tiền chỉ được giải ngân từng buổi sau khi học viên và gia sư hoàn tất đối soát xác nhận điểm danh 2 chiều.
             </p>
-            <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-emerald-700 font-medium">
+            <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-success-strong font-medium">
               <span className="flex items-center gap-1">
-                <Icon name="check_circle" size="xs" className="text-emerald-500" />
+                <Icon name="check_circle" size="xs" className="text-success" />
                 Không thanh toán trực tiếp cho gia sư
               </span>
               <span className="flex items-center gap-1">
-                <Icon name="check_circle" size="xs" className="text-emerald-500" />
+                <Icon name="check_circle" size="xs" className="text-success" />
                 Hoàn tiền 100% khi có khiếu nại hợp lệ
               </span>
             </div>
@@ -356,14 +356,14 @@ export default function BookingCheckout() {
                 aria-checked={selectedMethod === 'wallet'}
                 onClick={() => setSelectedMethod('wallet')}
                 className={cn(
-                  'w-full p-3.5 rounded-brand-md border-2 transition-all flex items-center justify-between text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 cursor-pointer',
+                  'w-full p-3.5 rounded-brand-md border-2 transition-all flex items-center justify-between text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 cursor-pointer',
                   selectedMethod === 'wallet'
-                    ? 'border-emerald-600 bg-emerald-50/40 shadow-brand-sm'
+                    ? 'border-success-strong bg-success-subtle/40 shadow-brand-sm'
                     : 'border-border hover:border-neutral-300'
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-brand-md bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-brand-sm">
+                  <div className="w-10 h-10 rounded-brand-md bg-success-strong text-white flex items-center justify-center shrink-0 shadow-brand-sm">
                     <Icon name="account_balance_wallet" size="sm" />
                   </div>
                   <div>
@@ -374,8 +374,8 @@ export default function BookingCheckout() {
                       <span className={cn(
                         "text-[11px] font-bold font-mono px-1.5 py-0.5 rounded",
                         hasEnoughWalletBalance
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-amber-100 text-amber-800"
+                          ? "bg-success-subtle text-success-strong"
+                          : "bg-holding-subtle text-holding-strong"
                       )}>
                         Số dư: {formatCurrency(wallet?.availableBalance || 0)}
                       </span>
@@ -389,9 +389,9 @@ export default function BookingCheckout() {
                 </div>
                 <div className={cn(
                   "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0",
-                  selectedMethod === 'wallet' ? "border-emerald-600" : "border-neutral-300"
+                  selectedMethod === 'wallet' ? "border-success-strong" : "border-neutral-300"
                 )}>
-                  {selectedMethod === 'wallet' && <div className="w-2.5 h-2.5 rounded-full bg-emerald-600" />}
+                  {selectedMethod === 'wallet' && <div className="w-2.5 h-2.5 rounded-full bg-success-strong" />}
                 </div>
               </button>
 
@@ -409,7 +409,7 @@ export default function BookingCheckout() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-brand-md bg-gradient-to-br from-blue-600 to-red-600 text-white font-extrabold text-[9px] flex items-center justify-center tracking-tight shrink-0 shadow-brand-sm">
+                  <div className="w-10 h-10 rounded-brand-md bg-brand-primary-600 text-white font-extrabold text-[9px] flex items-center justify-center tracking-tight shrink-0 shadow-brand-sm">
                     VNPAY
                   </div>
                   <div>
@@ -458,7 +458,7 @@ export default function BookingCheckout() {
                   >
                     Nạp thêm tiền vào Ví Học Viên
                   </Button>
-                  <p className="text-[11px] text-amber-800 text-center">
+                  <p className="text-[11px] text-holding-strong text-center">
                     Sau khi nạp xong, vui lòng <button type="button" onClick={loadWallet} disabled={loadingWallet} className="underline font-bold text-brand-primary-700">{loadingWallet ? 'đang làm mới...' : 'bấm vào đây để làm mới số dư'}</button>.
                   </p>
                 </div>
@@ -481,7 +481,7 @@ export default function BookingCheckout() {
 
             <div className="space-y-1.5 text-center text-[11px] text-fg-muted pt-1">
               <p className="flex items-center justify-center gap-1">
-                <Icon name="lock" size="xs" className="text-emerald-600" />
+                <Icon name="lock" size="xs" className="text-success-strong" />
                 <span>Bảo mật SSL 256-bit chuẩn quốc tế PCI-DSS</span>
               </p>
               <p>Hợp đồng và N buổi học sẽ được kích hoạt ngay sau thanh toán</p>

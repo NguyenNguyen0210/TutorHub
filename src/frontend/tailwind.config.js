@@ -96,6 +96,29 @@ export default {
         'brand-navy-950': 'rgb(var(--brand-navy-950) / <alpha-value>)',
 
         /* ── Foreground / text ───────────────────────────────────────── */
+        /* ── Neutral (slate ramp) ────────────────────────────────────────
+         * `tokens.css` khai báo --neutral-50..950 nhưng config này chưa nối,
+         * nên mọi class `neutral-*` trong code đang lấy mặc định Tailwind
+         * (#FAFAFA…) chứ không phải giá trị dự án. Thang này TRÙNG vùng giá
+         * trị với `slate-*` (#F8FAFC, #F1F5F9, #E2E8F0, #CBD5E1, #94A3B8,
+         * #64748B, #475569, #334155, #1E293B, #0F172A) — nên nối vào giúp
+         * việc thay `slate-N` → `neutral-N` là thay thuần tuý, không đổi màu.
+         * Đây là thang TRUNG TÍP (nền, viền, chữ phụ). Chữ chính dùng ngữ nghĩa
+         * `fg-*`; trạng thái dùng `success`/`holding`/`danger`/`info`. */
+        neutral: {
+          50: 'rgb(var(--neutral-50) / <alpha-value>)',
+          100: 'rgb(var(--neutral-100) / <alpha-value>)',
+          200: 'rgb(var(--neutral-200) / <alpha-value>)',
+          300: 'rgb(var(--neutral-300) / <alpha-value>)',
+          400: 'rgb(var(--neutral-400) / <alpha-value>)',
+          500: 'rgb(var(--neutral-500) / <alpha-value>)',
+          600: 'rgb(var(--neutral-600) / <alpha-value>)',
+          700: 'rgb(var(--neutral-700) / <alpha-value>)',
+          800: 'rgb(var(--neutral-800) / <alpha-value>)',
+          900: 'rgb(var(--neutral-900) / <alpha-value>)',
+          950: 'rgb(var(--neutral-950) / <alpha-value>)',
+        },
+
         fg: {
           DEFAULT: 'rgb(var(--text-primary) / <alpha-value>)',
           primary: 'rgb(var(--text-primary) / <alpha-value>)',

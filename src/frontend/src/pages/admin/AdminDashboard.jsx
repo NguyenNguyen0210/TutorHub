@@ -8,9 +8,20 @@ import ErrorState from '@/components/common/ErrorState';
 import Card, { CardHeader } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
-import StatCard, { PageHeader } from '@/components/ui/StatCard';
+import Money from '@/components/ui/Money';
 import Icon from '@/components/ui/Icon';
+import LedgerStrip from '@/components/ledger/LedgerStrip';
+import { PageHeader } from '@/components/ui/StatCard';
 import { useToast } from '@/components/ui/Toast';
+
+// Tông của thẻ hành động: dùng đúng bảng màu của `ActionQueue` trong
+// components/ledger/ để bàn trọng tài Admin trông giống hệt hàng đợi trong
+// workspace (chờ tiền = holding, tranh chấp = danger).
+const ACTION_TONE_CLASS = {
+  danger: 'border-l-danger bg-danger-subtle',
+  holding: 'border-l-holding bg-holding-subtle',
+  success: 'border-l-success bg-success-subtle',
+};
 
 export default function AdminDashboard() {
   const toast = useToast();
@@ -171,41 +182,38 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Top 4 Primary Financial & Volume KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Tổng GMV Giao dịch sàn"
-          value={formatCurrency(financials.totalGmv)}
-          mono={false}
-          hint={`Net GMV thực: ${formatCurrency(financials.netGmv)}`}
-          icon={<Icon name="payments" size="md" />}
-          tone="primary"
-        />
-        <StatCard
-          label="Doanh thu phí sàn đã thu"
-          value={formatCurrency(financials.totalPlatformRevenue)}
-          mono={false}
-          hint={`Hiệu suất thu phí: ~${feeRate}% tổng GMV`}
-          icon={<Icon name="account_balance" size="md" />}
-          tone="success"
-        />
-        <StatCard
-          label="Đã giải ngân cho Gia sư"
-          value={formatCurrency(financials.totalTutorPayouts)}
-          mono={false}
-          hint={`Tỷ trọng giải ngân: ~${payoutRate}% GMV`}
-          icon={<Icon name="currency_exchange" size="md" />}
-          tone="info"
-        />
-        <StatCard
-          label="Tổng bồi hoàn / Hoàn tiền"
-          value={formatCurrency(financials.totalRefundedAmount)}
-          mono={false}
-          hint={`Tỷ lệ hoàn tiền: ~${refundRate}% (Bảo chứng)`}
-          icon={<Icon name="replay" size="md" />}
-          tone="holding"
-        />
-      </div>
+      {/* Top 4 Primary Financial & Volume KPIs — hàng số liệu phẳng (LedgerStrip) */}
+      <LedgerStrip
+        columns={4}
+        figures={[
+          {
+            key: 'gmv',
+            label: 'Tổng GMV Giao dịch sàn',
+            value: <Money value={financials.totalGmv} />,
+            hint: `Net GMV thực: ${formatCurrency(financials.netGmv)}`,
+          },
+          {
+            // Phí sàn là dòng tiền trung tính, không phải "thành công" (SPEC §4.2).
+            key: 'platformFee',
+            label: 'Doanh thu phí sàn đã thu',
+            value: <Money value={financials.totalPlatformRevenue} />,
+            hint: `Hiệu suất thu phí: ~${feeRate}% tổng GMV`,
+          },
+          {
+            key: 'payouts',
+            label: 'Đã giải ngân cho Gia sư',
+            value: <Money value={financials.totalTutorPayouts} />,
+            hint: `Tỷ trọng giải ngân: ~${payoutRate}% GMV`,
+          },
+          {
+            key: 'refunds',
+            label: 'Tổng bồi hoàn / Hoàn tiền',
+            value: <Money value={financials.totalRefundedAmount} />,
+            hint: `Tỷ lệ hoàn tiền: ~${refundRate}% (Bảo chứng)`,
+            tone: 'holding',
+          },
+        ]}
+      />
 
       {/* Action Queue: Urgent Operational Tasks */}
       <Card padding="lg" className="space-y-4 shadow-brand-sm border border-border">
@@ -221,9 +229,7 @@ export default function AdminDashboard() {
               key={q.id}
               className={cn(
                 'p-5 rounded-brand-md border border-border border-l-4 space-y-3 flex flex-col justify-between transition-shadow hover:shadow-brand-sm',
-                q.tone === 'danger' && 'border-l-danger bg-danger-50/10',
-                q.tone === 'holding' && 'border-l-holding bg-amber-50/10',
-                q.tone === 'success' && 'border-l-success bg-emerald-50/10'
+                ACTION_TONE_CLASS[q.tone]
               )}
             >
               <div className="space-y-2">
@@ -231,7 +237,7 @@ export default function AdminDashboard() {
                   <span className="text-caption font-bold text-fg leading-snug">
                     {q.title}
                   </span>
-                  <Badge variant={q.tone} size="sm" className="shrink-0 font-mono">
+                  <Badge variant={q.tone} size="sm" className="shrink-0 tabular-nums">
                     {q.count}
                   </Badge>
                 </div>
@@ -267,7 +273,9 @@ export default function AdminDashboard() {
             icon={<Icon name="pie_chart" size="sm" className="text-brand-primary-600" />}
           />
 
-          {/* Visual Distribution Progress Bar */}
+          {/* Visual Distribution Progress Bar
+              Mảng "Phí sàn" cố tình TRUNG TÍNH (neutral) — phí sàn không phải
+              dòng tiền "thành công"; mảng hoàn trả dùng brand-secondary (SPEC §3.5). */}
           <div className="space-y-1.5 pt-1">
             <div className="flex justify-between text-[11px] font-semibold text-fg-muted">
               <span>Cơ cấu GMV sàn ({formatCurrency(totalGmv)})</span>
@@ -281,12 +289,12 @@ export default function AdminDashboard() {
               />
               <div
                 style={{ width: `${Math.max(3, Number(feeRate))}%` }}
-                className="bg-emerald-500 h-full transition-all"
+                className="bg-neutral-400 h-full transition-all"
                 title={`Phí sàn: ${feeRate}%`}
               />
               <div
                 style={{ width: `${Math.max(2, Number(refundRate))}%` }}
-                className="bg-amber-500 h-full transition-all"
+                className="bg-brand-secondary-500 h-full transition-all"
                 title={`Hoàn trả: ${refundRate}%`}
               />
             </div>
@@ -296,11 +304,11 @@ export default function AdminDashboard() {
                 <span>Thu nhập Gia sư ({payoutRate}%)</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <span className="w-2.5 h-2.5 rounded-full bg-neutral-400" />
                 <span>Phí sàn ({feeRate}%)</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                <span className="w-2.5 h-2.5 rounded-full bg-brand-secondary-500" />
                 <span>Hoàn tiền ({refundRate}%)</span>
               </div>
             </div>
@@ -311,8 +319,8 @@ export default function AdminDashboard() {
               <span className="text-[11px] text-fg-muted uppercase font-semibold block">
                 Tổng giá trị GMV
               </span>
-              <span className="text-body-bold text-fg font-mono block">
-                {formatCurrency(financials.totalGmv)}
+              <span className="text-fg block">
+                <Money value={financials.totalGmv} />
               </span>
               <span className="text-[10px] text-fg-muted block">
                 Bao gồm toàn bộ gói dịch vụ đã kích hoạt
@@ -323,8 +331,8 @@ export default function AdminDashboard() {
               <span className="text-[11px] text-fg-muted uppercase font-semibold block">
                 Net GMV Quyết toán
               </span>
-              <span className="text-body-bold text-brand-primary-700 font-mono block">
-                {formatCurrency(financials.netGmv)}
+              <span className="text-brand-primary-700 block">
+                <Money value={financials.netGmv} />
               </span>
               <span className="text-[10px] text-fg-muted block">
                 GMV sau khi trừ phần hoàn tiền tranh chấp
@@ -338,7 +346,7 @@ export default function AdminDashboard() {
           <CardHeader
             title="Quy mô cộng đồng & Chuyển đổi đặt gói"
             subtitle="Hiệu suất đặt chỗ 15 phút và mức độ thẩm định hồ sơ giảng dạy"
-            icon={<Icon name="group" size="sm" className="text-emerald-600" />}
+            icon={<Icon name="group" size="sm" className="text-success-strong" />}
           />
 
           <div className="space-y-4 pt-1">
@@ -346,17 +354,17 @@ export default function AdminDashboard() {
             <div className="space-y-1.5">
               <div className="flex justify-between text-[11px] font-semibold text-fg">
                 <span>Tỷ lệ thanh toán thành công ({bookings.paidBookings}/{totalBookingsCount})</span>
-                <span className="font-mono text-emerald-600">{paidRatio}%</span>
+                <span className="text-success-strong tabular-nums">{paidRatio}%</span>
               </div>
               <div className="h-2 w-full rounded-full bg-neutral-200 overflow-hidden">
                 <div
                   style={{ width: `${paidRatio}%` }}
-                  className="bg-emerald-600 h-full rounded-full transition-all"
+                  className="bg-success-strong h-full rounded-full transition-all"
                 />
               </div>
               <div className="flex justify-between text-[10px] text-fg-muted">
-                <span>Đang giữ chỗ 15p: <strong>{bookings.holdingBookings}</strong></span>
-                <span>Hết hạn / Hủy: <strong>{bookings.expiredBookings + bookings.cancelledBookings}</strong></span>
+                <span>Đang giữ chỗ 15p: <strong className="tabular-nums">{bookings.holdingBookings}</strong></span>
+                <span>Hết hạn / Hủy: <strong className="tabular-nums">{bookings.expiredBookings + bookings.cancelledBookings}</strong></span>
               </div>
             </div>
 
@@ -364,7 +372,7 @@ export default function AdminDashboard() {
             <div className="space-y-1.5 pt-1">
               <div className="flex justify-between text-[11px] font-semibold text-fg">
                 <span>Tỷ lệ gia sư đã cấp Verified Badge ({tutors.verifiedTutors}/{totalTutorsCount})</span>
-                <span className="font-mono text-brand-primary-700">{verifiedTutorRatio}%</span>
+                <span className="text-brand-primary-700 tabular-nums">{verifiedTutorRatio}%</span>
               </div>
               <div className="h-2 w-full rounded-full bg-neutral-200 overflow-hidden">
                 <div
@@ -373,8 +381,8 @@ export default function AdminDashboard() {
                 />
               </div>
               <div className="flex justify-between text-[10px] text-fg-muted">
-                <span>Chờ thẩm định bằng cấp: <strong>{tutors.pendingReviewTutors}</strong></span>
-                <span>Tạm đình chỉ: <strong>{tutors.suspendedTutors}</strong></span>
+                <span>Chờ thẩm định bằng cấp: <strong className="tabular-nums">{tutors.pendingReviewTutors}</strong></span>
+                <span>Tạm đình chỉ: <strong className="tabular-nums">{tutors.suspendedTutors}</strong></span>
               </div>
             </div>
 
@@ -382,15 +390,15 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-3 gap-2 pt-2 text-center text-caption">
               <div className="p-2 rounded-brand-md bg-neutral-50 border border-border">
                 <span className="text-[10px] text-fg-muted block uppercase font-semibold">Học viên</span>
-                <span className="text-body-bold text-fg font-mono">{users.totalStudents}</span>
+                <span className="text-fg block tabular-nums">{users.totalStudents}</span>
               </div>
               <div className="p-2 rounded-brand-md bg-neutral-50 border border-border">
                 <span className="text-[10px] text-fg-muted block uppercase font-semibold">Gia sư</span>
-                <span className="text-body-bold text-fg font-mono">{users.totalTutors}</span>
+                <span className="text-fg block tabular-nums">{users.totalTutors}</span>
               </div>
               <div className="p-2 rounded-brand-md bg-neutral-50 border border-border">
                 <span className="text-[10px] text-fg-muted block uppercase font-semibold">Đang hoạt động</span>
-                <span className="text-body-bold text-emerald-600 font-mono">{users.activeUsers}</span>
+                <span className="text-success-strong block tabular-nums">{users.activeUsers}</span>
               </div>
             </div>
           </div>
@@ -404,7 +412,7 @@ export default function AdminDashboard() {
           className="p-4 rounded-brand-lg bg-surface border border-border hover:border-brand-primary-500 hover:shadow-brand-md transition-all group block text-left"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-brand-md bg-danger-50 text-danger flex items-center justify-center shrink-0 border border-danger-100 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-brand-md bg-danger-subtle text-danger flex items-center justify-center shrink-0 border border-danger/20 group-hover:scale-105 transition-transform">
               <Icon name="gavel" size="sm" />
             </div>
             <div>
@@ -423,7 +431,7 @@ export default function AdminDashboard() {
           className="p-4 rounded-brand-lg bg-surface border border-border hover:border-brand-primary-500 hover:shadow-brand-md transition-all group block text-left"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-brand-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-brand-md bg-success-subtle text-success-strong flex items-center justify-center shrink-0 border border-success/20 group-hover:scale-105 transition-transform">
               <Icon name="verified_user" size="sm" />
             </div>
             <div>

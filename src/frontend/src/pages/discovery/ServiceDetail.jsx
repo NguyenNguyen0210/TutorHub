@@ -97,17 +97,17 @@ export default function ServiceDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50/50 py-12">
+      <div className="min-h-screen bg-neutral-50/50 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-8 animate-pulse">
-          <div className="h-6 w-64 bg-slate-200 rounded-md" />
-          <div className="h-44 bg-slate-200 rounded-2xl" />
+          <div className="h-6 w-64 bg-neutral-200 rounded-md" />
+          <div className="h-44 bg-neutral-200 rounded-2xl" />
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 flex flex-col gap-6">
-              <div className="h-64 bg-slate-200 rounded-2xl" />
-              <div className="h-96 bg-slate-200 rounded-2xl" />
+              <div className="h-64 bg-neutral-200 rounded-2xl" />
+              <div className="h-96 bg-neutral-200 rounded-2xl" />
             </div>
             <div className="lg:col-span-4">
-              <div className="h-80 bg-slate-200 rounded-2xl" />
+              <div className="h-80 bg-neutral-200 rounded-2xl" />
             </div>
           </div>
         </div>
@@ -161,12 +161,12 @@ export default function ServiceDetail() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50/60 pb-20">
+    <div className="min-h-screen bg-neutral-50/60 pb-20">
       {/* 1. Top Hero Section */}
       <ServiceDetailHero service={service} />
 
       {/* 2. Sticky Tab Navigation Bar */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-200/90 shadow-2xs">
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-200/90 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-2.5 no-scrollbar">
             {tabs.map((tab) => (
@@ -176,8 +176,8 @@ export default function ServiceDetail() {
                 onClick={() => scrollToSection(tab.sectionId, tab.key)}
                 className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold whitespace-nowrap transition-colors ${
                   activeTab === tab.key
-                    ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-blue-600 hover:bg-slate-100'
+                    ? 'bg-brand-primary-600 text-white shadow-sm'
+                    : 'text-fg-secondary hover:text-brand-primary-600 hover:bg-neutral-100'
                 }`}
               >
                 {tab.label}
@@ -193,36 +193,36 @@ export default function ServiceDetail() {
           {/* Left Column (70% - 8 Cols) */}
           <div className="lg:col-span-8 flex flex-col gap-8">
             {/* Section: Overview & Target Audience */}
-            <div id="overview" className="bg-white rounded-2xl border border-neutral-200 p-6 sm:p-8 shadow-2xs flex flex-col gap-6">
+            <div id="overview" className="bg-white rounded-2xl border border-neutral-200 p-6 sm:p-8 shadow-sm flex flex-col gap-6">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                <span className="w-2.5 h-2.5 rounded-full bg-brand-primary-600" />
+                <h2 className="text-xl sm:text-2xl font-bold text-fg tracking-tight">
                   Tổng quan dịch vụ & Phạm vi đào tạo
                 </h2>
               </div>
 
               {service.learningScope && (
-                <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100/70 text-slate-700 text-sm leading-relaxed">
-                  <strong className="text-blue-900 block mb-1">Phạm vi kiến thức trọng tâm:</strong>
+                <div className="p-4 bg-brand-primary-50/50 rounded-xl border border-brand-primary-100/70 text-neutral-700 text-sm leading-relaxed">
+                  <strong className="text-brand-primary-800 block mb-1">Phạm vi kiến thức trọng tâm:</strong>
                   {service.learningScope}
                 </div>
               )}
 
               {/* Target Audience */}
               <div>
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3">
+                <h3 className="text-sm font-bold text-fg uppercase tracking-wider mb-3">
                   Khóa học này dành cho ai?
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {targetAudience.map((aud, i) => (
                     <div
                       key={i}
-                      className="p-3.5 bg-slate-50/80 rounded-xl border border-neutral-100 flex items-start gap-3"
+                      className="p-3.5 bg-neutral-50/80 rounded-xl border border-neutral-100 flex items-start gap-3"
                     >
-                      <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <div className="w-6 h-6 rounded-full bg-brand-primary-100 text-brand-primary-700 flex items-center justify-center shrink-0 mt-0.5">
                         <Icon name="person" size="xs" className="w-3.5 h-3.5" />
                       </div>
-                      <span className="text-xs sm:text-sm text-slate-700 leading-snug">
+                      <span className="text-xs sm:text-sm text-neutral-700 leading-snug">
                         {aud}
                       </span>
                     </div>
@@ -232,16 +232,16 @@ export default function ServiceDetail() {
 
               {/* Prerequisites */}
               <div>
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3">
+                <h3 className="text-sm font-bold text-fg uppercase tracking-wider mb-3">
                   Yêu cầu chuẩn bị trước khi học
                 </h3>
                 <ul className="flex flex-col gap-2.5">
                   {prerequisites.map((pre, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
+                    <li key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-neutral-700">
                       <Icon
                         name="task_alt"
                         size="xs"
-                        className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"
+                        className="w-4 h-4 text-success-strong shrink-0 mt-0.5"
                       />
                       <span>{pre}</span>
                     </li>
@@ -251,10 +251,10 @@ export default function ServiceDetail() {
             </div>
 
             {/* Section: Expected Outcomes */}
-            <div id="outcomes" className="bg-white rounded-2xl border border-neutral-200 p-6 sm:p-8 shadow-2xs">
+            <div id="outcomes" className="bg-white rounded-2xl border border-neutral-200 p-6 sm:p-8 shadow-sm">
               <div className="flex items-center gap-2 mb-6">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                <span className="w-2.5 h-2.5 rounded-full bg-success" />
+                <h2 className="text-xl sm:text-2xl font-bold text-fg tracking-tight">
                   Bạn sẽ đạt được những gì sau khóa học?
                 </h2>
               </div>
@@ -263,16 +263,16 @@ export default function ServiceDetail() {
                 {expectedOutcomes.map((item, i) => (
                   <div
                     key={i}
-                    className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/30 flex items-start gap-3.5"
+                    className="p-4 rounded-xl border border-success/30 bg-success-subtle/30 flex items-start gap-3.5"
                   >
-                    <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                    <div className="w-7 h-7 rounded-full bg-success-subtle text-success-strong flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
                       <Icon name="check" size="xs" className="w-4 h-4 font-bold" />
                     </div>
                     <div>
-                      <span className="text-sm font-bold text-slate-900 block mb-0.5">
+                      <span className="text-sm font-bold text-fg block mb-0.5">
                         Mục tiêu {i + 1}
                       </span>
-                      <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                      <p className="text-xs sm:text-sm text-fg-secondary leading-relaxed">
                         {item}
                       </p>
                     </div>
@@ -289,21 +289,21 @@ export default function ServiceDetail() {
             />
 
             {/* Section: Tutor Detailed Profile Card */}
-            <div id="tutor-info" className="bg-white rounded-2xl border border-neutral-200 p-6 sm:p-8 shadow-2xs flex flex-col gap-6">
+            <div id="tutor-info" className="bg-white rounded-2xl border border-neutral-200 p-6 sm:p-8 shadow-sm flex flex-col gap-6">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                <span className="w-2.5 h-2.5 rounded-full bg-brand-primary-600" />
+                <h2 className="text-xl sm:text-2xl font-bold text-fg tracking-tight">
                   Thông tin Gia sư hướng dẫn
                 </h2>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-start gap-6 p-6 bg-slate-50/70 rounded-2xl border border-neutral-100">
+              <div className="flex flex-col sm:flex-row items-start gap-6 p-6 bg-neutral-50/70 rounded-2xl border border-neutral-100">
                 <Link to={`/tutors/${tutor.tutorProfileId}`} className="shrink-0">
                   <Avatar
                     src={tutor.avatarUrl}
                     name={tutor.fullName}
                     size="xl"
-                    className="ring-4 ring-blue-100 shadow-sm hover:scale-105 transition-transform"
+                    className="ring-4 ring-brand-primary-100 shadow-sm hover:scale-105 transition-transform"
                   />
                 </Link>
 
@@ -311,36 +311,36 @@ export default function ServiceDetail() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <Link
                       to={`/tutors/${tutor.tutorProfileId}`}
-                      className="text-xl font-extrabold text-slate-900 hover:text-blue-600 transition-colors"
+                      className="text-xl font-extrabold text-fg hover:text-brand-primary-600 transition-colors"
                     >
                       {tutor.fullName}
                     </Link>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand-primary-100 text-brand-primary-700">
                       <Icon name="verified" size="xs" className="w-3.5 h-3.5" />
                       Gia sư xác thực
                     </span>
                   </div>
 
-                  <p className="text-xs font-semibold text-slate-500">
+                  <p className="text-xs font-semibold text-neutral-500">
                     {tutor.education || 'Giảng viên chuyên môn chất lượng cao'}
                   </p>
 
-                  <div className="flex items-center gap-4 text-xs text-slate-600 mt-1 flex-wrap">
-                    <span className="flex items-center gap-1 font-bold text-amber-500">
-                      <Icon name="star" size="xs" className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  <div className="flex items-center gap-4 text-xs text-fg-secondary mt-1 flex-wrap">
+                    <span className="flex items-center gap-1 font-bold text-brand-secondary-500">
+                      <Icon name="star" size="xs" className="w-4 h-4 fill-brand-secondary-400 text-brand-secondary-400" />
                       {Number(tutor.ratingAvg) > 0 ? Number(tutor.ratingAvg).toFixed(1) : '5.0'}
-                      <span className="text-slate-400 font-normal">({tutor.totalReviews || 12} đánh giá)</span>
+                      <span className="text-fg-muted font-normal">({tutor.totalReviews || 12} đánh giá)</span>
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
-                      <Icon name="work_history" size="xs" className="w-3.5 h-3.5 text-slate-400" />
+                      <Icon name="work_history" size="xs" className="w-3.5 h-3.5 text-fg-muted" />
                       {tutor.experienceYears || 3} năm kinh nghiệm
                     </span>
                     {tutor.address && (
                       <>
                         <span>•</span>
                         <span className="flex items-center gap-1">
-                          <Icon name="location_on" size="xs" className="w-3.5 h-3.5 text-slate-400" />
+                          <Icon name="location_on" size="xs" className="w-3.5 h-3.5 text-fg-muted" />
                           {tutor.address}
                         </span>
                       </>
@@ -348,7 +348,7 @@ export default function ServiceDetail() {
                   </div>
 
                   {tutor.bio && (
-                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mt-2 line-clamp-3">
+                    <p className="text-xs sm:text-sm text-fg-secondary leading-relaxed mt-2 line-clamp-3">
                       {tutor.bio}
                     </p>
                   )}
@@ -356,7 +356,7 @@ export default function ServiceDetail() {
                   <div className="pt-3">
                     <Link
                       to={`/tutors/${tutor.tutorProfileId}`}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-primary-600 hover:text-brand-primary-700 hover:underline"
                     >
                       <span>Xem đầy đủ hồ sơ gia sư, bằng cấp & các gói học khác</span>
                       <Icon name="arrow_forward" size="xs" className="w-3.5 h-3.5" />
@@ -388,8 +388,8 @@ export default function ServiceDetail() {
       {/* 4. Mobile Sticky Bottom CTA Bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 p-4 shadow-lg flex items-center justify-between gap-4">
         <div>
-          <span className="text-[11px] text-slate-500 block">Học phí trọn gói:</span>
-          <Money value={service.price} className="text-xl font-extrabold text-blue-600" />
+          <span className="text-[11px] text-neutral-500 block">Học phí trọn gói:</span>
+          <Money value={service.price} className="text-xl font-extrabold text-brand-primary-600" />
         </div>
 
         <Button

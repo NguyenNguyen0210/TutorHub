@@ -22,7 +22,7 @@ export default function NotFound() {
         </div>
 
         <div className="space-y-2">
-          <span className="font-mono text-xs font-bold uppercase tracking-widest text-brand-primary-700 bg-brand-primary-50 px-2.5 py-1 rounded-brand-full border border-brand-primary-200">
+          <span className="font-mono text-xs font-bold uppercase tracking-widest text-brand-primary-700 bg-brand-primary-50 px-2.5 py-1 rounded-pill border border-brand-primary-200">
             Mã lỗi 404
           </span>
           <h1 className="text-headline-1 text-fg m-0">Trang không tồn tại</h1>

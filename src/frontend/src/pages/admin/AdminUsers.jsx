@@ -12,7 +12,39 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Tabs from '@/components/ui/Tabs';
 import EmptyState from '@/components/common/EmptyState';
-import StatCard, { PageHeader, Spinner } from '@/components/ui/StatCard';
+import LedgerTable from '@/components/ledger/LedgerTable';
+import LedgerStrip from '@/components/ledger/LedgerStrip';
+import { getStateMeta } from '@/components/ledger/StateBadge';
+import { PageHeader, Spinner } from '@/components/ui/StatCard';
+
+const USER_COLUMNS = [
+  { key: 'user', label: 'Người dùng' },
+  { key: 'role', label: 'Vai trò' },
+  { key: 'strike', label: 'Số Strike vi phạm' },
+  { key: 'status', label: 'Trạng thái & Bảo mật' },
+  { key: 'joined', label: 'Ngày tham gia' },
+  { key: 'actions', label: 'Thao tác', align: 'right' },
+];
+
+/** Chấm nhịp cho badge Strike — cùng hình với `dot` của Badge nhưng có animate. */
+function StrikeDot() {
+  return (
+    <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" aria-hidden="true" />
+  );
+}
+
+const STAT_COLUMNS = {
+  user: 'px-4 py-3',
+  role: 'px-4 py-3 whitespace-nowrap',
+  strike: 'px-4 py-3 whitespace-nowrap',
+  status: 'px-4 py-3 whitespace-nowrap',
+  joined: 'px-4 py-3 text-fg-secondary whitespace-nowrap text-[11px]',
+  actions: 'px-4 py-3 text-right whitespace-nowrap',
+};
+
+const roleBadgeVariant = (role) =>
+  role === 'Tutor' ? 'primary' : role === 'Admin' ? 'danger' : 'info';
+const roleLabel = (role) => (role === 'Tutor' ? 'Gia sư' : role === 'Admin' ? 'Admin' : 'Học viên');
 
 export default function AdminUsers() {
   const toast = useToast();
@@ -135,37 +167,47 @@ export default function AdminUsers() {
   ).length;
   const usersWithStrikesCount = users.filter((u) => (u.absentStrikes ?? 0) > 0).length;
 
+  /**
+   * Badge Strike: 0 = an toàn (success) · 1 = cảnh báo nhẹ (holding) ·
+   * 2 = cận đình chỉ (holding + viền nhấn) · 3+ = vi phạm nặng (danger).
+   * Không dùng `orange-*` vì không có token tương ứng (SPEC §3.6/§3.5).
+   */
   const renderStrikeBadge = (strikes) => {
     const s = Number(strikes || 0);
     if (s === 0) {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/60 text-emerald-700 text-[11px] font-semibold">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+        <Badge variant="success" size="sm" dot>
           0/3 An toàn
-        </span>
+        </Badge>
       );
     }
     if (s === 1) {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200/60 text-amber-700 text-[11px] font-semibold">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+        <Badge variant="holding" size="sm" icon={<StrikeDot />}>
           1/3 Cảnh báo nhẹ
-        </span>
+        </Badge>
       );
     }
     if (s === 2) {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200/80 text-orange-700 text-[11px] font-bold">
-          <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+        <Badge
+          variant="holding"
+          size="sm"
+          icon={<StrikeDot />}
+          className="ring-1 ring-inset ring-holding/40"
+        >
           2/3 Cận đình chỉ
-        </span>
+        </Badge>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-danger-50 border border-danger-200 text-danger-strong text-[11px] font-bold">
-        <span className="w-1.5 h-1.5 rounded-full bg-danger" />
+      <Badge
+        variant="danger"
+        size="sm"
+        icon={<span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true" />}
+      >
         {s}/3 Vi phạm nặng
-      </span>
+      </Badge>
     );
   };
 
@@ -189,7 +231,7 @@ export default function AdminUsers() {
       {/* Trust & Strike Invariant Banner */}
       <div className="p-4 rounded-brand-lg bg-surface border border-border shadow-brand-sm flex flex-col md:flex-row md:items-center justify-between gap-3 text-caption">
         <div className="flex items-start md:items-center gap-2.5">
-          <div className="w-8 h-8 rounded-brand-md bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200/80 mt-0.5 md:mt-0">
+          <div className="w-8 h-8 rounded-brand-md bg-holding-subtle text-holding-strong flex items-center justify-center shrink-0 border border-holding/20 mt-0.5 md:mt-0">
             <Icon name="gavel" size="xs" />
           </div>
           <div className="space-y-0.5">
@@ -208,41 +250,38 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {/* 4 Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Tổng người dùng hệ thống"
-          value={String(totalCount || users.length)}
-          mono={false}
-          hint="Học viên, Gia sư và Quản trị viên"
-          icon={<Icon name="group" size="md" />}
-          tone="primary"
-        />
-        <StatCard
-          label="Đang hoạt động (Trang hiện tại)"
-          value={String(activeCount)}
-          mono={false}
-          hint="Tài khoản sẵn sàng giao dịch & học tập"
-          icon={<Icon name="check_circle" size="md" />}
-          tone="success"
-        />
-        <StatCard
-          label="Người dùng có Strike vi phạm"
-          value={String(usersWithStrikesCount)}
-          mono={false}
-          hint="Cần theo dõi đối soát điểm danh"
-          icon={<Icon name="warning" size="md" />}
-          tone="holding"
-        />
-        <StatCard
-          label="Đang tạm khóa / Kỷ luật"
-          value={String(suspendedCount)}
-          mono={false}
-          hint="Bị đình chỉ hoạt động do vi phạm"
-          icon={<Icon name="lock" size="md" />}
-          tone="danger"
-        />
-      </div>
+      {/* 4 số liệu — hàng số liệu phẳng của Operational Ledger */}
+      <LedgerStrip
+        columns={4}
+        figures={[
+          {
+            key: 'total',
+            label: 'Tổng người dùng hệ thống',
+            value: String(totalCount || users.length),
+            hint: 'Học viên, Gia sư và Quản trị viên',
+          },
+          {
+            key: 'active',
+            label: 'Đang hoạt động (Trang hiện tại)',
+            value: String(activeCount),
+            hint: 'Tài khoản sẵn sàng giao dịch & học tập',
+          },
+          {
+            key: 'strikes',
+            label: 'Người dùng có Strike vi phạm',
+            value: String(usersWithStrikesCount),
+            hint: 'Cần theo dõi đối soát điểm danh',
+            tone: 'holding',
+          },
+          {
+            key: 'suspended',
+            label: 'Đang tạm khóa / Kỷ luật',
+            value: String(suspendedCount),
+            hint: 'Bị đình chỉ hoạt động do vi phạm',
+            tone: 'danger',
+          },
+        ]}
+      />
 
       {/* Search & Role/Status Filters */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
@@ -303,7 +342,7 @@ export default function AdminUsers() {
       </div>
 
       {/* Main Table Card */}
-      <Card padding="none" className="overflow-x-auto shadow-brand-sm border border-border">
+      <Card padding="none" className="shadow-brand-sm border border-border">
         {loading ? (
           <div className="text-center py-16 text-caption text-fg-muted space-y-3">
             <Spinner size="lg" className="mx-auto" />
@@ -326,157 +365,130 @@ export default function AdminUsers() {
           </div>
         ) : (
           <>
-            <table className="w-full min-w-[780px] text-caption text-left">
-              <thead>
-                <tr className="bg-neutral-50 border-b border-border">
-                  <th scope="col" className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">
-                    Người dùng
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">
-                    Vai trò
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">
-                    Số Strike vi phạm
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">
-                    Trạng thái & Bảo mật
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">
-                    Ngày tham gia
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide text-right">
-                    Thao tác
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {users.map((u) => {
-                  const statusMeta = getAccountStatusMeta(u.status);
-                  const isCopied = copiedId === u.id;
-                  const items = [];
-                  if (u.status === ACCOUNT_STATUS.ACTIVE) {
-                    items.push({ key: 'suspend', label: 'Tạm khóa tài khoản' });
-                    items.push({ key: 'ban', danger: true, label: 'Cấm vĩnh viễn' });
-                  } else if (u.status === ACCOUNT_STATUS.SUSPENDED) {
-                    items.push({ key: 'reactivate', label: 'Mở khóa hoạt động' });
-                    items.push({ key: 'ban', danger: true, label: 'Cấm vĩnh viễn' });
-                  } else {
-                    items.push({ key: 'reactivate', label: 'Mở khóa lại' });
-                  }
+            <LedgerTable
+              caption="Danh sách người dùng hệ thống kèm trạng thái kỷ luật Absent Strike"
+              columns={USER_COLUMNS}
+              minWidth={780}
+            >
+              {users.map((u) => {
+                const statusMeta = getAccountStatusMeta(u.status);
+                const isCopied = copiedId === u.id;
+                const items = [];
+                if (u.status === ACCOUNT_STATUS.ACTIVE) {
+                  items.push({ key: 'suspend', label: 'Tạm khóa tài khoản' });
+                  items.push({ key: 'ban', danger: true, label: 'Cấm vĩnh viễn' });
+                } else if (u.status === ACCOUNT_STATUS.SUSPENDED) {
+                  items.push({ key: 'reactivate', label: 'Mở khóa hoạt động' });
+                  items.push({ key: 'ban', danger: true, label: 'Cấm vĩnh viễn' });
+                } else {
+                  items.push({ key: 'reactivate', label: 'Mở khóa lại' });
+                }
 
-                  return (
-                    <tr
-                      key={u.id}
-                      onClick={() => setSelectedUser(u)}
-                      className="hover:bg-neutral-50/80 transition-colors cursor-pointer"
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <Avatar
-                            name={u.fullName || u.name}
-                            size="sm"
-                            className="shrink-0"
-                          />
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-fg block truncate">
-                                {u.fullName || u.name}
-                              </span>
-                              <span className="font-mono text-[10px] text-fg-muted font-normal">
-                                #{u.id?.substring(0, 8)}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={(e) => handleCopy(u.id, u.id, e)}
-                                title="Sao chép User ID"
-                                aria-label={`Sao chép mã người dùng ${u.id}`}
-                                className="text-fg-muted hover:text-brand-primary-600 p-0.5 rounded cursor-pointer transition-colors"
-                              >
-                                <Icon name={isCopied ? 'check' : 'content_copy'} size="xs" />
-                              </button>
-                            </div>
-                            <span className="text-[11px] text-fg-muted font-mono block truncate">
-                              {u.email}
+                return (
+                  <tr
+                    key={u.id}
+                    onClick={() => setSelectedUser(u)}
+                    className="hover:bg-neutral-50/80 transition-colors cursor-pointer"
+                  >
+                    <td className={STAT_COLUMNS.user}>
+                      <div className="flex items-center gap-3">
+                        <Avatar name={u.fullName || u.name} size="sm" className="shrink-0" />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-fg block truncate">
+                              {u.fullName || u.name}
                             </span>
+                            <span className="font-mono text-[10px] text-fg-muted font-normal">
+                              #{u.id?.substring(0, 8)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => handleCopy(u.id, u.id, e)}
+                              title="Sao chép User ID"
+                              aria-label={`Sao chép mã người dùng ${u.id}`}
+                              className="text-fg-muted hover:text-brand-primary-600 p-0.5 rounded cursor-pointer transition-colors"
+                            >
+                              <Icon name={isCopied ? 'check' : 'content_copy'} size="xs" />
+                            </button>
                           </div>
+                          <span className="text-[11px] text-fg-muted font-mono block truncate">
+                            {u.email}
+                          </span>
                         </div>
-                      </td>
+                      </div>
+                    </td>
 
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <Badge
-                          variant={u.role === 'Tutor' ? 'primary' : u.role === 'Admin' ? 'danger' : 'info'}
-                          size="sm"
-                        >
-                          {u.role === 'Tutor' ? 'Gia sư' : u.role === 'Admin' ? 'Admin' : 'Học viên'}
+                    <td className={STAT_COLUMNS.role}>
+                      <Badge variant={roleBadgeVariant(u.role)} size="sm">
+                        {roleLabel(u.role)}
+                      </Badge>
+                    </td>
+
+                    <td className={STAT_COLUMNS.strike}>
+                      {renderStrikeBadge(u.absentStrikes ?? u.strikes ?? 0)}
+                    </td>
+
+                    <td className={STAT_COLUMNS.status}>
+                      <div className="space-y-1">
+                        <Badge variant={statusMeta.color} size="sm">
+                          {statusMeta.label}
                         </Badge>
-                      </td>
-
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {renderStrikeBadge(u.absentStrikes ?? u.strikes ?? 0)}
-                      </td>
-
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="space-y-1">
-                          <Badge variant={statusMeta.color} size="sm">
-                            {statusMeta.label}
+                        {u.isLockedOut && (
+                          <Badge variant="danger" size="sm" className="ml-1.5 gap-1">
+                            <Icon name="lock" size="xs" /> Khóa đăng nhập
                           </Badge>
-                          {u.isLockedOut && (
-                            <Badge variant="danger" size="sm" className="ml-1.5 gap-1">
-                              <Icon name="lock" size="xs" /> Khóa đăng nhập
-                            </Badge>
-                          )}
-                          {u.accessFailedCount > 0 && !u.isLockedOut && (
-                            <span className="text-[10px] text-amber-700 block font-mono">
-                              Sai MK: {u.accessFailedCount} lần
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                        )}
+                        {u.accessFailedCount > 0 && !u.isLockedOut && (
+                          <span className="text-[10px] text-holding-strong block tabular-nums">
+                            Sai MK: {u.accessFailedCount} lần
+                          </span>
+                        )}
+                      </div>
+                    </td>
 
-                      <td className="px-4 py-3 text-fg-secondary whitespace-nowrap font-mono text-[11px]">
-                        {u.createdAt ? formatDateTime(u.createdAt, 'DD/MM/YYYY') : u.joinedDate || '—'}
-                      </td>
+                    <td className={`${STAT_COLUMNS.joined} font-mono`}>
+                      {u.createdAt ? formatDateTime(u.createdAt, 'DD/MM/YYYY') : u.joinedDate || '—'}
+                    </td>
 
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1.5">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedUser(u);
-                            }}
-                            icon={<Icon name="visibility" size="xs" />}
-                          >
-                            Chi tiết
-                          </Button>
-                          <Menu
-                            items={items.map((it) => ({
-                              ...it,
-                              onClick: () => handleAction(u, it.key),
-                            }))}
-                            trigger={
-                              <button
-                                type="button"
-                                aria-label={`Xử lý tài khoản ${u.fullName}`}
-                                className="px-2.5 py-1 rounded-brand-sm border border-border hover:bg-neutral-100 text-caption font-semibold text-fg-secondary cursor-pointer transition-colors"
-                              >
-                                Xử lý
-                              </button>
-                            }
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    <td className={STAT_COLUMNS.actions}>
+                      <div className="inline-flex items-center gap-1.5">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedUser(u);
+                          }}
+                          icon={<Icon name="visibility" size="xs" />}
+                        >
+                          Chi tiết
+                        </Button>
+                        <Menu
+                          items={items.map((it) => ({
+                            ...it,
+                            onClick: () => handleAction(u, it.key),
+                          }))}
+                          trigger={
+                            <button
+                              type="button"
+                              aria-label={`Xử lý tài khoản ${u.fullName}`}
+                              className="px-2.5 py-1 rounded-brand-sm border border-border hover:bg-neutral-100 text-caption font-semibold text-fg-secondary cursor-pointer transition-colors"
+                            >
+                              Xử lý
+                            </button>
+                          }
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </LedgerTable>
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="p-3.5 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-neutral-50/50">
-                <span className="text-caption text-fg-muted font-mono">
+                <span className="text-caption text-fg-muted tabular-nums">
                   Trang <strong>{page}</strong> / {totalPages} (Tổng {totalCount} người dùng)
                 </span>
                 <div className="flex items-center gap-2">
@@ -524,7 +536,7 @@ export default function AdminUsers() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleAction(selectedUser, 'suspend')}
-                      icon={<Icon name="pause_circle" size="xs" />}
+                      icon={<Icon name="lock" size="xs" />}
                     >
                       Tạm khóa
                     </Button>
@@ -568,20 +580,11 @@ export default function AdminUsers() {
               />
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <h3 className="text-body-bold text-fg m-0 font-bold">
+                  <h3 className="text-fg m-0 font-bold">
                     {selectedUser.fullName || selectedUser.name}
                   </h3>
                   <div className="flex items-center gap-1.5">
-                    <Badge
-                      variant={
-                        selectedUser.role === 'Tutor'
-                          ? 'primary'
-                          : selectedUser.role === 'Admin'
-                            ? 'danger'
-                            : 'info'
-                      }
-                      size="sm"
-                    >
+                    <Badge variant={roleBadgeVariant(selectedUser.role)} size="sm">
                       {selectedUser.role}
                     </Badge>
                     <Badge
@@ -606,7 +609,7 @@ export default function AdminUsers() {
             {/* Strike & Attendance Disciplines */}
             <div className="space-y-2">
               <h4 className="font-bold text-fg flex items-center gap-1.5 m-0">
-                <Icon name="history_toggle_off" size="xs" className="text-amber-600" />
+                <Icon name="history" size="xs" className="text-holding-strong" />
                 Chỉ số đối soát & Vi phạm vắng mặt (Absent Strikes)
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-brand-md bg-surface border border-border">
@@ -637,7 +640,7 @@ export default function AdminUsers() {
             {/* Security & Access Lockout */}
             <div className="space-y-2">
               <h4 className="font-bold text-fg flex items-center gap-1.5 m-0">
-                <Icon name="security" size="xs" className="text-brand-primary-600" />
+                <Icon name="shield" size="xs" className="text-brand-primary-600" />
                 Bảo mật tài khoản & Đăng nhập
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-brand-md bg-surface border border-border">
@@ -657,7 +660,7 @@ export default function AdminUsers() {
                   <span className="text-[11px] text-fg-muted block uppercase font-semibold">
                     Số lần nhập sai mật khẩu liên tiếp
                   </span>
-                  <span className="font-mono text-fg font-bold block mt-1">
+                  <span className="text-fg font-bold block mt-1 tabular-nums">
                     {selectedUser.accessFailedCount || 0} lần
                   </span>
                 </div>
@@ -667,12 +670,17 @@ export default function AdminUsers() {
             {selectedUser.tutorApplicationStatus && (
               <div className="space-y-2">
                 <h4 className="font-bold text-fg flex items-center gap-1.5 m-0">
-                  <Icon name="school" size="xs" className="text-emerald-600" />
+                  <Icon name="school" size="xs" className="text-success-strong" />
                   Hồ sơ ứng tuyển Gia sư
                 </h4>
                 <div className="p-3.5 rounded-brand-md bg-surface border border-border flex items-center justify-between">
                   <span>Trạng thái thẩm định văn bằng KYC:</span>
-                  <Badge variant="primary" size="sm">
+                  {/* Màu lấy từ resolver chung của kit; giữ nguyên giá trị enum
+                      hiển thị như trước (không đổi copy). */}
+                  <Badge
+                    variant={getStateMeta('application', selectedUser.tutorApplicationStatus).color}
+                    size="sm"
+                  >
                     {selectedUser.tutorApplicationStatus}
                   </Badge>
                 </div>

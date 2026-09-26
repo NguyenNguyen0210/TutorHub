@@ -80,7 +80,7 @@ export default function PublicTopbar() {
     : '/auth/login';
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-neutral-200/80">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-border/80">
       <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-[68px] gap-4">
         {/* Brand Logo */}
         <Link
@@ -99,8 +99,8 @@ export default function PublicTopbar() {
             className={cn(
               'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
               location.pathname === '/' || location.pathname.startsWith('/tutors')
-                ? 'bg-blue-50 text-[#2563EB] font-semibold'
-                : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+                ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
+                : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
             )}
           >
             Khám phá gia sư
@@ -112,8 +112,8 @@ export default function PublicTopbar() {
             className={cn(
               'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
               location.pathname.startsWith('/services')
-                ? 'bg-blue-50 text-[#2563EB] font-semibold'
-                : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+                ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
+                : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
             )}
           >
             Dịch vụ học tập
@@ -126,8 +126,8 @@ export default function PublicTopbar() {
               className={cn(
                 'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
                 location.pathname === '/how-it-works'
-                  ? 'bg-blue-50 text-[#2563EB] font-semibold'
-                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+                  ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
+                  : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
               )}
             >
               Cách hoạt động
@@ -139,8 +139,8 @@ export default function PublicTopbar() {
                 className={cn(
                   'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
                   location.pathname.includes('/schedule') || location.pathname.includes('/sessions')
-                    ? 'bg-blue-50 text-[#2563EB] font-semibold'
-                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+                    ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
+                    : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
                 )}
               >
                 Lịch học
@@ -151,8 +151,8 @@ export default function PublicTopbar() {
                 className={cn(
                   'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
                   location.pathname.startsWith('/app/messages')
-                    ? 'bg-blue-50 text-[#2563EB] font-semibold'
-                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+                    ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
+                    : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
                 )}
               >
                 Tin nhắn
@@ -163,8 +163,8 @@ export default function PublicTopbar() {
                 className={cn(
                   'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
                   location.pathname.includes('/dashboard') || location.pathname.includes('/services')
-                    ? 'bg-blue-50 text-[#2563EB] font-semibold'
-                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+                    ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
+                    : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
                 )}
               >
                 Gói học của tôi
@@ -183,8 +183,8 @@ export default function PublicTopbar() {
                   className={cn(
                     'hidden sm:inline-flex items-center gap-1.5 text-[13px] font-semibold px-3 py-1.5 rounded-lg border transition-all',
                     location.pathname.startsWith('/tutor/application')
-                      ? 'bg-blue-50 text-[#2563EB] border-blue-200'
-                      : 'text-slate-700 hover:text-[#2563EB] border-slate-200 hover:bg-slate-50'
+                      ? 'bg-brand-primary-50 text-brand-primary-600 border-brand-primary-200'
+                      : 'text-neutral-700 hover:text-brand-primary-600 border-border hover:bg-neutral-50'
                   )}
                 >
                   <Icon name="verified_user" size="xs" />
@@ -197,7 +197,7 @@ export default function PublicTopbar() {
                 to="/app/notifications"
                 variant="ghost"
                 aria-label="Thông báo"
-                icon={<Icon name="notifications" size="md" className="text-neutral-600" />}
+                icon={<Icon name="notifications" size="md" className="text-fg-secondary" />}
                 className="w-9 h-9 !px-0 rounded-full hover:bg-neutral-100"
               />
 
@@ -211,10 +211,10 @@ export default function PublicTopbar() {
                       size="sm"
                       className="w-8 h-8 text-[12px]"
                     />
-                    <span className="hidden sm:inline font-bold text-caption text-neutral-800">
+                    <span className="hidden sm:inline font-bold text-caption text-fg">
                       {displayName}
                     </span>
-                    <Icon name="chevron_right" size="xs" className="rotate-90 text-neutral-400" />
+                    <Icon name="chevron_right" size="xs" className="rotate-90 text-fg-muted" />
                   </span>
                 }
               />
@@ -223,7 +223,7 @@ export default function PublicTopbar() {
             <div className="flex items-center gap-2.5">
               <Link
                 to="/become-tutor"
-                className="hidden lg:inline-flex text-[14px] font-medium text-neutral-600 hover:text-[#2563EB] px-2.5 py-1.5 transition-colors"
+                className="hidden lg:inline-flex text-[14px] font-medium text-fg-secondary hover:text-brand-primary-600 px-2.5 py-1.5 transition-colors"
               >
                 Trở thành gia sư
               </Link>
@@ -235,7 +235,7 @@ export default function PublicTopbar() {
               </Link>
               <Link
                 to="/auth/login"
-                className="inline-flex items-center justify-center h-9 px-4 rounded-[8px] bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-[13.5px] font-medium transition-colors shadow-sm"
+                className="inline-flex items-center justify-center h-9 px-4 rounded-[8px] bg-brand-primary-600 hover:bg-brand-primary-700 text-white text-[13.5px] font-medium transition-colors shadow-sm"
               >
                 Đăng nhập
               </Link>
@@ -248,7 +248,7 @@ export default function PublicTopbar() {
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? 'Đóng menu' : 'Mở menu'}
             aria-expanded={mobileOpen}
-            className="md:hidden w-9 h-9 rounded-brand-md hover:bg-neutral-100 flex items-center justify-center text-neutral-600 transition-colors"
+            className="md:hidden w-9 h-9 rounded-brand-md hover:bg-neutral-100 flex items-center justify-center text-fg-secondary transition-colors"
           >
             <Icon name={mobileOpen ? 'close' : 'menu'} size="md" />
           </button>
@@ -282,7 +282,7 @@ export default function PublicTopbar() {
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold transition-colors',
                   location.pathname === '/how-it-works'
-                    ? 'bg-blue-50 text-[#2563EB]'
+                    ? 'bg-brand-primary-50 text-brand-primary-600'
                     : 'text-neutral-700 hover:bg-neutral-100'
                 )}
               >

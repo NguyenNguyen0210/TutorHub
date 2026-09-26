@@ -344,11 +344,11 @@ export default function AdminAuditLogs() {
           <button
             type="button"
             aria-label="Đóng cửa sổ"
-            className="fixed inset-0 w-full h-full bg-black/60 backdrop-blur-xs cursor-default"
+            className="fixed inset-0 w-full h-full bg-brand-navy-950/60 backdrop-blur-sm cursor-default"
             onClick={() => setSelectedLog(null)}
             tabIndex={-1}
           />
-          <div className="relative z-10 bg-surface rounded-brand-xl shadow-brand-xl border border-border w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-slide-up">
+          <div className="relative z-10 bg-surface rounded-brand-xl shadow-brand-xl border border-border w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-fadeIn">
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between bg-neutral-50/70">
               <div className="flex items-center gap-2.5">
@@ -356,7 +356,7 @@ export default function AdminAuditLogs() {
                   <Icon name="code" size="sm" />
                 </div>
                 <div>
-                  <h3 id="audit-log-inspector-title" className="font-bold text-body-bold text-fg m-0">
+                  <h3 id="audit-log-inspector-title" className="font-bold text-headline-3 text-fg m-0">
                     Chi tiết thay đổi bản ghi kiểm toán
                   </h3>
                   <p className="text-[12px] text-fg-muted m-0 font-mono">
