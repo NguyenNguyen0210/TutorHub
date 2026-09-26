@@ -56,7 +56,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
     navigate('/auth/login');
   };
 
-  const navItems = getNavForRole(role, isAuthenticated, profileId);
+  const navItems = getNavForRole(role, isAuthenticated);
 
   const userMenuItems = [
     {

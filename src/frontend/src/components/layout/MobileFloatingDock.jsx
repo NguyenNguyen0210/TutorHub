@@ -27,6 +27,7 @@ function DockLink({ to, icon, label, active, external }) {
 }
 
 const SHORT_LABEL = {
+  '/': 'Khám phá',
   '/student/dashboard': 'Bàn học',
   '/tutors': 'Tìm gia sư',
   '/app/messages': 'Hộp thư',
@@ -36,7 +37,6 @@ const SHORT_LABEL = {
   '/tutor/services': 'Dịch vụ',
   '/tutor/wallet': 'Ví Escrow',
   '/tutor/settings': 'Cài đặt',
-  '/services': 'Sàn DV',
   '/admin/dashboard': 'Tổng quan',
   '/admin/tutor-applications': 'Duyệt',
   '/admin/disputes': 'Tranh chấp',
@@ -62,18 +62,14 @@ const GUEST_ITEMS = [
 ];
 
 export default function MobileFloatingDock() {
-  const { user, role, isAuthenticated } = useAuthStore();
+  const { role, isAuthenticated } = useAuthStore();
   const location = useLocation();
 
   const isImmersive = IMMERSIVE_PATHS.some((p) => location.pathname.startsWith(p));
   if (isImmersive) return null;
 
-  // Đi qua getNavForRole để `path` dạng hàm (hồ sơ công khai) được resolve y hệt
-  // sidebar — trước đây đọc NAV trực tiếp nên dock và sidebar lệch nhau.
-  const profileId = user?.idProfile || user?.tutorProfileId || null;
-  const items = isAuthenticated
-    ? getNavForRole(role, isAuthenticated, profileId).slice(0, 4)
-    : GUEST_ITEMS;
+  // Đọc qua getNavForRole để dock và sidebar cùng nguồn danh sách.
+  const items = isAuthenticated ? getNavForRole(role, isAuthenticated).slice(0, 4) : GUEST_ITEMS;
 
   return (
     <div className="lg:hidden fixed bottom-4 left-4 right-4 z-50">
