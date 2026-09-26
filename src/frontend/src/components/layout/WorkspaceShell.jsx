@@ -144,20 +144,36 @@ export default function WorkspaceShell({ userRole: role, children }) {
         {navItems.map((item) => {
           const isActive = item.match(location.pathname);
           const showMsgBadge = item.path === '/app/messages' && unreadMessages > 0;
+          // `external` = trang nằm ngoài khung sàn (PublicLayout). Mở tab mới để
+          // người dùng không mất sidebar đang mở — điều hướng trong tab sẽ làm
+          // khung công khai hiện lên, đúng lỗi đã gặp ở Hộp thư.
+          const externalProps = item.external
+            ? { target: '_blank', rel: 'noopener noreferrer' }
+            : {};
           return (
             <Link
               key={`${item.path}__${item.label}`}
               to={item.path}
               aria-current={isActive ? 'page' : undefined}
+              title={item.external ? `${item.label} (mở tab mới)` : undefined}
               className={cn(
                 'flex items-center gap-3 px-3.5 py-2.5 rounded-[10px] text-body-reg font-semibold transition-colors',
                 isActive
                   ? 'bg-brand-primary-50 text-brand-primary-600'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               )}
+              {...externalProps}
             >
               <Icon name={item.icon} size="md" />
               <span className="flex-1 min-w-0 truncate">{item.label}</span>
+              {item.external && (
+                <Icon
+                  name="open_in_new"
+                  size="xs"
+                  className="text-fg-muted shrink-0"
+                  aria-hidden="true"
+                />
+              )}
               {showMsgBadge && (
                 <span
                   aria-label={`${unreadMessages} tin nhắn chưa đọc`}

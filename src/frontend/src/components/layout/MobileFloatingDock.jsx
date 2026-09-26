@@ -9,11 +9,12 @@ import { getNavForRole } from './navConfig';
  * MobileFloatingDock — thanh điều hướng dưới cho mobile (< 1024px).
  * Dữ liệu từ navConfig duy nhất; tối đa 4 mục + mục đăng nhập cho guest.
  */
-function DockLink({ to, icon, label, active }) {
+function DockLink({ to, icon, label, active, external }) {
   return (
     <Link
       to={to}
       aria-current={active ? 'page' : undefined}
+      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
       className={cn(
         'flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-brand-md text-[10px] font-semibold transition-colors min-w-[64px]',
         active ? 'text-brand-primary-700 bg-brand-primary-50' : 'text-fg-secondary'
@@ -35,6 +36,7 @@ const SHORT_LABEL = {
   '/tutor/services': 'Dịch vụ',
   '/tutor/wallet': 'Ví Escrow',
   '/tutor/settings': 'Cài đặt',
+  '/services': 'Sàn DV',
   '/admin/dashboard': 'Tổng quan',
   '/admin/tutor-applications': 'Duyệt',
   '/admin/disputes': 'Tranh chấp',
@@ -86,6 +88,7 @@ export default function MobileFloatingDock() {
             icon={item.icon}
             label={SHORT_LABEL[item.path] || item.label}
             active={item.match(location.pathname)}
+            external={item.external}
           />
         ))}
       </nav>

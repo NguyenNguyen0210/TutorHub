@@ -12,7 +12,8 @@ export const NAV = {
   Student: [
     { path: '/student/dashboard', label: 'Bàn học của tôi', icon: 'space_dashboard', match: (p) => p.startsWith('/student/dashboard') },
     { path: '/student/wallet', label: 'Ví học viên', icon: 'account_balance_wallet', match: (p) => p.startsWith('/student/wallet') },
-    { path: '/tutors', label: 'Khám phá gia sư', icon: 'explore', match: (p) => p.startsWith('/tutors') },
+    // Trang công khai: mở tab mới để không mất sidebar (xem ghi chú `external` ở Tutor).
+    { path: '/tutors', label: 'Khám phá gia sư', icon: 'explore', match: () => false, external: true },
     { path: '/app/messages', label: 'Hộp thư & Hợp đồng', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
     { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },
   ],
@@ -26,15 +27,23 @@ export const NAV = {
     { path: '/tutor/schedule', label: 'Lịch dạy', icon: 'calendar_month', match: (p) => p.startsWith('/tutor/schedule') },
     // TODO(mockup): mục "Học viên" — chưa có trang danh sách học viên cho gia sư, bổ sung khi có route.
     { path: '/tutor/services', label: 'Dịch vụ của tôi', icon: 'inventory_2', match: (p) => p.startsWith('/tutor/services') },
+    // Sàn công khai: gia sư cũng cần vào được trang dịch vụ để xem gói học của
+    // người khác. Đường dẫn này nằm ngoài `PublicLayout`? — không, nó thuộc
+    // PublicLayout nên chạy khung công khai; `external` báo cho shell mở tab mới để
+    // không mất sidebar đang mở. Học viên có mục "Khám phá gia sư" tương ứng.
+    { path: '/services', label: 'Sàn dịch vụ', icon: 'explore', match: () => false, external: true },
     { path: '/app/messages', label: 'Hộp thư', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
     // Hồ sơ công khai: id lấy từ `authStore.user.idProfile` (UserDto.IdProfile =
     // TutorProfile.Id) nên không cần gọi API thêm. Chưa có hồ sơ (đang chờ duyệt)
-    // thì rơi về trang hồ sơ xét duyệt.
+    // thì rơi về trang hồ sơ xét duyệt. Đây là trang *công khai* nên mở tab mới —
+    // xem hồ sơ của chính mình là hành động xem trước, không phải điều hướng
+    // trong sàn, nên không nên làm mất sidebar.
     {
       path: (ctx) => (ctx?.profileId ? `/tutors/${ctx.profileId}` : '/tutor/application'),
       label: 'Hồ sơ công khai',
       icon: 'person',
-      match: (p) => p.startsWith('/tutors/'),
+      match: () => false,
+      external: true,
     },
     { path: '/tutor/wallet', label: 'Ví & Thanh toán', icon: 'account_balance_wallet', match: (p) => p.startsWith('/tutor/wallet') },
     // TODO(mockup): mục "Đánh giá" — chưa có trang đánh giá dành cho gia sư, bổ sung khi có route.
