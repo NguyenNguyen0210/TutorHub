@@ -487,7 +487,7 @@ export default function SessionDetail() {
             </div>
 
             <form onSubmit={handleDirectReschedule} className="p-6 pt-5 space-y-4 text-caption">
-              <div className="p-3 bg-amber-50 rounded-brand-md border border-amber-200 text-xs text-amber-800">
+              <div className="p-3 bg-holding-subtle rounded-brand-md border border-holding/30 text-xs text-holding-strong">
                 <strong>Quy định đổi lịch:</strong> Lịch học mới phải cách thời điểm hiện tại ít nhất 24 giờ. Lịch học sẽ được cập nhật trực tiếp trên hệ thống ngay sau khi lưu.
               </div>
 
