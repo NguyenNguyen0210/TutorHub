@@ -138,7 +138,7 @@ export default function PublicTopbar() {
                 to={schedulePath}
                 className={cn(
                   'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
-                  location.pathname.includes('/availability') || location.pathname.includes('/sessions')
+                  location.pathname.includes('/schedule') || location.pathname.includes('/sessions')
                     ? 'bg-blue-50 text-[#2563EB] font-semibold'
                     : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
                 )}

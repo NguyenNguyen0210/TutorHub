@@ -30,7 +30,8 @@ public class SessionsController : ControllerBase
     }
 
     /// <summary>
-    /// Initial scheduling for an unscheduled session (Student or Tutor participant).
+    /// Tutor-direct scheduling for a session (Unscheduled → Schedule, Scheduled → direct Reschedule).
+    /// Only the session's tutor may call; minimum-notice rule (default 24h) applies.
     /// </summary>
     [Authorize]
     [HttpPost("{id:guid}/schedule")]
@@ -153,9 +154,10 @@ public class SessionsController : ControllerBase
     }
 
     /// <summary>
-    /// Cancel a single session (Student or Tutor participant, F-19 gate, no finance).
-    /// Only Unscheduled or future Scheduled sessions. Escrow stays held; the existing
-    /// enrollment pro-rata formula absorbs the amount on complete/cancel.
+    /// Cancel a single session (Student or Tutor participant).
+    /// Only Unscheduled or future Scheduled sessions; cancelling a Scheduled session
+    /// requires minimum notice (default 24h). Refund is credited directly to the
+    /// Student Wallet with a Succeeded StudentRefund record.
     /// </summary>
     [Authorize]
     [HttpPost("{id:guid}/cancel")]

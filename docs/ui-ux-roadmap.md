@@ -46,7 +46,7 @@
 | Quy mô | 23 page, 5 layout, 12 service, 13 component, 1 util, 3 thư mục rỗng (`hooks/`, `contexts/`, `assets/`) |
 | Nối API thật | **3/23** page (Login, Register, DisputeNew) |
 | Gọi API nhưng luôn rơi về mock | **3** (Marketplace, TutorProfile, BookingCheckout) do **double-unwrap `res.data`** ở **13 call site** — `services/api.js:56-58` đã bóc envelope |
-| Tĩnh / no-op | **13 tĩnh** + **4 stub** chỉ bắn toast (TutorApplication, TutorAvailability, TutorServices, TutorWithdraw) |
+| Tĩnh / no-op | **13 tĩnh** + **4 stub** chỉ bắn toast (TutorApplication, TutorAvailability — sau này thay bằng TutorSchedule v1.3, TutorServices, TutorWithdraw) |
 | Component chết | **9/13**; §3 signature: 3 file tồn tại (**đều dead**), **4 chưa có file** (chỉ inline JSX) |
 | Service chết | **7/11** module không được import |
 | Trạng thái | **0 Skeleton, 0 Empty, 0 error UI**; `@tanstack/react-query` provider-only (**0 `useQuery`**); `@microsoft/signalr` chỉ xuất hiện trong comment |
@@ -67,7 +67,7 @@
 | F4 | Body phân xử gửi `{verdictType, notes}`; backend cần `Decision`/`CustomRefundAmount`/`AdminNotes` → 400 | Frontend |
 | F5 | `TutorCard` đọc `rating`/`isVerified`/`minPrice`; `TutorSummaryDto` có `RatingAvg`/`TotalReviews`, **thiếu** `MinPrice`/`IsVerified`; `rating: null` ⇒ crash `toFixed` | Cả hai |
 | F6 | Audit log UI hiển thị "hash kiểm toán" bịa; DTO có `UserName`/`Action`/`OldValuesJson`/`NewValuesJson`, **không có** hash | Frontend (bỏ hash giả) |
-| F7a | Availability đọc `res.slots`; backend trả `Days` | Frontend |
+| F7a | Availability đọc `res.slots`; backend trả `Days` (lịch sử; subsystem availability đã xóa v1.3 — xem `TutorSchedule`) | Frontend |
 | F7b | Admin stats phẳng; backend `AdminDashboardStatsDto` lồng (`Users/Tutors/Bookings/Financials/ActionQueue`) | Frontend |
 | F7c | `u.absentStrikes` không có trên `AdminUserSummaryDto` | **Backend (thêm field)** |
 | F7d | `tutorName/fullName/avatarUrl` vs `User*` | Frontend |
@@ -113,7 +113,7 @@
 | **P2** | **Sự thật tiền tệ** | ✅ **xong** (`0e7a69d`) | Checkout gọi `createVnPayUrl` + lỗi thật + retry + nút dev "Giả lập thanh toán" (`VITE_DEV_PAYMENT_SIMULATOR`); PaymentReturn lấy kết quả **từ server**, không param ⇒ "không tìm thấy giao dịch"; AttendanceCard chỉ đọc `tutorAttendance` từ server; SessionDetail gắn `onClick` gọi `submitAttendance`; AdminDisputeDetail gọi service + `Modal.confirm` + bắt buộc nhập lý do; DisputeNew surface lỗi thật; AdminUsers map enum | Không còn `vnp_ResponseCode=00` sinh ở client; money action chỉ toast sau khi promise resolve |
 | **P3** | DESIGN §3.1 + §4.1 | ✅ **xong** (`a910bdc`) | Countdown: deadline từ `holdingExpiresAt`, re-sync `visibilitychange`, 3 urgency state, hết hạn ⇒ `disabled` + `00:00` + nút "Tạo lại đơn hàng"; shell: sidebar 260px ≥1024, rail 768–1023, dock <640 + `pb-24`, admin nav <1024, container trong `PublicLayout` | Countdown khớp booking; hết hạn khoá CTA; admin vào được 4 route trên mobile |
 | **P4** | State infrastructure | ✅ **xong** (`aca45a4`) | `Skeleton`/`EmptyState`/`ErrorState`+retry/`AsyncBoundary`; adopt TanStack Query; typed error → UX | Không còn `return null` khi loading; lỗi ⇒ error UI + retry (không mock) |
-| **P5** | Nối Student + Tutor | ✅ **xong** (`0e0196a`) | StudentDashboard, EnrollmentDetail (§3.5), SessionDetail (§3.2 + countdown 24h), TutorDashboard, TutorAvailability, TutorServices, TutorWallet (§3.3 + `Withdrawable=Available−Held`), TutorWithdraw (gate 50.000), TutorApplication wizard | 8 màn chỉ render dữ liệu API; ví khớp DEC-WD-001 |
+| **P5** | Nối Student + Tutor | ✅ **xong** (`0e0196a`) | StudentDashboard, EnrollmentDetail (§3.5), SessionDetail (§3.2 + countdown 24h), TutorDashboard, TutorAvailability (sau này thay bằng TutorSchedule v1.3), TutorServices, TutorWallet (§3.3 + `Withdrawable=Available−Held`), TutorWithdraw (gate 50.000), TutorApplication wizard | 8 màn chỉ render dữ liệu API; ví khớp DEC-WD-001 |
 | **P6** | Nối Shared + Admin | ✅ **xong** (`f75a3bf`) | Messages (+SignalR), Notifications (PATCH + badge realtime), AdminDashboard (KPI thật), AdminTutorApplications, AdminUsers (strike tracker), AdminAuditLogs (search + diff, **bỏ hash giả**), AdminDisputeDetail (§3.7 + DEC-S8-025 + gate DEC-S8-028) | Realtime chạy; audit log tìm/diff được; calculator không cho clawback vượt số thực nhận |
 | **P7** | Accessibility | ✅ **xong** (`2136c3b`) | Xử lý 89 warning a11y (label/control/anchor/keyboard), `htmlFor`/`id`, `aria-label` icon-only, `aria-live`, `Modal.confirm` cho hành động tiền bất khả hoàn, token `financial-available-strong`, tap target ≥44px, `:focus-visible`; **nâng jsx-a11y lên error** | `npm run lint` 0 error với a11y = error; luồng chính chạy được chỉ bằng bàn phím |
 | **P8** | Tokens & design system | ✅ **xong** (`c057449`) | `borderRadius` scale (6/10/16/24), `.glass-surface`, `animate-fadeIn`, keyframe `shake` + `prefers-reduced-motion`, `outline-hidden`→`outline-none` (16 chỗ), `text-[10px]`→`caption`, bỏ `darkMode` chết | Không còn class không tồn tại trong Tailwind 3.4 |
@@ -214,7 +214,7 @@ TypeScript/đổi framework; dark mode; Vitest/Playwright; thiết kế lại vi
 | F | Login, Register, TutorApplication, Marketplace, TutorProfile | ✅ |
 | G | BookingCheckout, PaymentReturn (read-only; countdown 15m từ `holdingExpiresAt`) | ✅ |
 | H | StudentDashboard, EnrollmentDetail, SessionDetail, DisputeNew | ✅ |
-| I | TutorDashboard, TutorAvailability, TutorServices, TutorWallet (4 thẻ DEC-WD-001), TutorWithdraw (gate 50.000 ₫) | ✅ |
+| I | TutorDashboard, TutorAvailability (lịch sử; thay bằng TutorSchedule v1.3), TutorServices, TutorWallet (4 thẻ DEC-WD-001), TutorWithdraw (gate 50.000 ₫) | ✅ |
 | J | Messages (SignalR giữ nguyên), Notifications (Tabs + PATCH read) | ✅ |
 | K | AdminDashboard, AdminTutorApplications, AdminDisputes, AdminDisputeDetail (DEC-S8-025 + DEC-S8-028 giữ nguyên), AdminUsers, AdminAuditLogs | ✅ |
 | L | Quality gate: xem dưới | ✅ |

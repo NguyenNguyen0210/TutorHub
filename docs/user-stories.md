@@ -743,50 +743,42 @@ Session contains or references:
 
 ---
 
-## US-SESSION-003 — Schedule Sessions
+## US-SESSION-003 — Schedule Sessions (Tutor-Direct)
 
-**Actor:** Tutor / System
+**Actor:** Tutor
 
-> As a Tutor, I want Sessions to have an agreed schedule, so that both Student and Tutor know when learning will take place.
+> As a Tutor, I want to schedule my Sessions directly (single or batch), so that both Student and Tutor know when learning will take place.
 
 **Related FR:** FR-SESSION-003
 
 ### Acceptance Criteria
 
-- Sessions belonging to an Enrollment can be scheduled.
-- Schedule belongs to the Enrollment/Session context.
+- Only the session's Tutor can schedule (`403` for Student).
+- Every new `StartAt` satisfies minimum notice (default 24h).
+- Batch scheduling (up to 50) is atomic: any invalid item leaves all sessions `Unscheduled`.
+- Overlapping times are rejected with `409 Conflict`.
 
 ---
 
-## US-SESSION-004 — Propose Schedule Change
+## US-SESSION-004 — Direct Schedule Change (Supersedes Propose Flow)
 
 **Actor:** Tutor
 
-> As a Tutor, I want to propose a schedule change, so that I can coordinate a different learning time when necessary.
+> As a Tutor, I want to change a Session time directly, so that I can coordinate a different learning time without waiting for approval.
 
 **Related FR:** FR-SESSION-004
 
 ### Acceptance Criteria
 
-- Tutor can propose a Schedule change.
-- Proposed change is communicated to the Student.
-- Existing agreed schedule is not silently changed.
+- Tutor changes the time directly; it takes effect immediately.
+- Student is notified and sees the new time read-only.
+- No propose/accept ticket exists (`SessionRescheduleRequest` removed).
 
 ---
 
-## US-SESSION-005 — Accept Schedule Change
+## US-SESSION-005 — No Student Acceptance Step (Superseded)
 
-**Actor:** Student
-
-> As a Student, I want to accept or reject a proposed schedule change, so that my agreed learning schedule remains under my control.
-
-**Related FR:** FR-SESSION-005
-
-### Acceptance Criteria
-
-- Student can review the proposed change.
-- Student acceptance is required when the agreed schedule is affected.
-- Tutor cannot unilaterally change an agreed Student schedule.
+Superseded by US-SESSION-004. Student acceptance is not required; the former accept/reject flow no longer exists.
 
 ---
 
@@ -802,7 +794,7 @@ Session contains or references:
 
 - Reschedule event is recorded.
 - Affected parties are notified.
-- Relevant Session schedule is updated only after required acceptance.
+- Relevant Session schedule is updated immediately by the Tutor (no acceptance gate).
 
 ---
 
@@ -817,9 +809,10 @@ Session contains or references:
 ### Acceptance Criteria
 
 - Participant (Student or Tutor) can cancel single `Unscheduled` or future-`Scheduled` sessions with a mandatory reason (minimum 5 characters).
+- Cancelling a `Scheduled` session requires minimum notice (default 24h); `Unscheduled` needs no notice.
 - System unlocks and debits the session's escrow amount from the Tutor's `PendingBalance`.
-- System creates a `StudentRefund` transaction with `SettlementRequired = true` and `Pending` status.
-- System emits `SessionCancelledEvent` and `RefundCreatedEvent` to outbox.
+- System credits the refund directly to the Student Wallet `AvailableBalance` (`RefundCredit`) and records a `StudentRefund` transaction with `SettlementRequired = false`, status `Succeeded`.
+- System emits `SessionCancelledEvent`, `RefundCreatedEvent`, and `RefundCompletedEvent` to outbox.
 - Audit record `SESSION_CANCELLED` is recorded in Central Audit Log.
 - Affected users receive in-app notification and email.
 - Enrollment completion evaluation checks if all sessions are now terminal.

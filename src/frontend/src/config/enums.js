@@ -87,17 +87,6 @@ export const TEACHING_MODE_META = {
   [TEACHING_MODE.BOTH]: { label: 'Online & Tại nhà', color: 'primary' },
 };
 
-/** Backend `DayOfWeek` enum name → Vietnamese label (used for availability). */
-export const DAY_OF_WEEK_LABELS = {
-  Monday: 'Thứ 2',
-  Tuesday: 'Thứ 3',
-  Wednesday: 'Thứ 4',
-  Thursday: 'Thứ 5',
-  Friday: 'Thứ 6',
-  Saturday: 'Thứ 7',
-  Sunday: 'Chủ Nhật',
-};
-
 /**
  * Resolve an enum value against a meta map without throwing on unknown input.
  * Unknown values are shown verbatim (so a new backend enum is visible, not hidden).
@@ -117,5 +106,3 @@ export const getTutorApplicationStatusMeta = (value) =>
   enumMeta(TUTOR_APPLICATION_STATUS_META, value, 'Không rõ');
 export const getWithdrawalStatusMeta = (value) => enumMeta(WITHDRAWAL_STATUS_META, value, 'Không rõ');
 export const getTeachingModeMeta = (value) => enumMeta(TEACHING_MODE_META, value, 'Chưa xác định');
-export const getDayOfWeekLabel = (dayOfWeekName) =>
-  DAY_OF_WEEK_LABELS[dayOfWeekName] ?? dayOfWeekName ?? '';

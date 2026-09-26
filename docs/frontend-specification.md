@@ -303,7 +303,14 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
   - **Nút Hủy Buổi học Đơn lẻ (Single Session Cancel with Escrow Refund):**
     - Cho phép khi buổi học ở trạng thái `Unscheduled` hoặc `Scheduled` trước giờ bắt đầu (tuân thủ quy định báo trước tối thiểu 24 giờ).
     - Hộp thoại xác nhận yêu cầu nhập lý do hủy (tối thiểu 5 ký tự) và hiển thị cảnh báo: *"Hệ thống sẽ hoàn trả tiền ký quỹ của buổi học này cho học viên theo quy chế bảo chứng Escrow."*
-    - Khi hủy thành công: Buổi học chuyển sang `Cancelled`, `PendingBalance` của gia sư được khấu trừ, transaction `StudentRefund` được tạo với `SettlementRequired = true`, và phát các sự kiện tương ứng.
+    - Khi hủy thành công: Buổi học chuyển sang `Cancelled`, `PendingBalance` của gia sư được khấu trừ, tiền hoàn trả ghi có ngay vào Ví Học Viên (`AvailableBalance`, `RefundCredit`), transaction `StudentRefund` được tạo với `SettlementRequired = false`, status `Succeeded`, và phát các sự kiện `SessionCancelled` + `RefundCreated` + `RefundCompleted`.
+
+#### Màn hình 3.3: Lịch Dạy Của Gia Sư (`/tutor/schedule`)
+- **API sử dụng:** `GET /api/v1/sessions/mine`, `GET /api/v1/enrollments/mine`, `GET /api/v1/enrollments/:id`, `POST /api/v1/sessions/:id/schedule`, `POST /api/v1/sessions/schedule-batch`
+- **Chi tiết giao diện:**
+  - **Tab Upcoming:** danh sách buổi `Scheduled` sắp tới (ngày/giờ, tên gói, `Session #n`, badge `SESSION_STATUS_META`), link tới `/tutor/sessions/:id`.
+  - **Tab Cần xếp lịch:** enrollments còn buổi `Unscheduled`; mỗi buổi có input `datetime-local` (`min` = hiện tại + 24h, chỉ gợi ý UX, server enforce), nút [Xếp lịch] từng dòng và [Xếp tất cả] gọi batch atomic (tối đa 50, distinct `SessionId`).
+  - Route cũ `/tutor/availability` redirect về `/tutor/schedule`; `?filter=unscheduled` cuộn tới khu Cần xếp lịch.
 
 ---
 
