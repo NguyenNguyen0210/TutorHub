@@ -55,8 +55,3 @@ LedgerTable.propTypes = {
   minWidth: PropTypes.number,
 };
 
-LedgerTable.defaultProps = {
-  children: null,
-  className: '',
-  minWidth: 640,
-};

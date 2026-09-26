@@ -595,7 +595,7 @@ export default function AdminWithdrawals() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="withdrawal-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
         >
           <button
             type="button"

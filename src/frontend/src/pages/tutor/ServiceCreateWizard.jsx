@@ -304,7 +304,7 @@ export default function ServiceCreateWizard() {
           <Icon name="arrow_back" size="xs" />
           Quay lại danh sách dịch vụ
         </Link>
-        <h1 className="text-[30px] leading-[1.2] font-bold text-fg tracking-tight mt-2">
+        <h1 className="text-headline-page text-fg tracking-tight mt-2">
           Tạo dịch vụ mới
         </h1>
         <p className="text-body-reg text-fg-secondary mt-1">

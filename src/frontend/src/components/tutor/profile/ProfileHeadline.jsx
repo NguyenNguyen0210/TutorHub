@@ -80,7 +80,7 @@ export default function ProfileHeadline({ tutor }) {
 
       {/* Tên + tick thẩm định */}
       <div className="flex items-center gap-2.5 flex-wrap">
-        <h1 className="text-[30px] sm:text-[34px] leading-[1.15] font-bold text-fg tracking-tight">
+        <h1 className="text-headline-page sm:text-[34px] leading-[1.15] font-bold text-fg tracking-tight">
           {tutor.fullName}
         </h1>
         {tutor.isVerified && (

@@ -194,7 +194,7 @@ export default function StudentDashboard() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-[30px] leading-[1.2] font-bold text-fg tracking-tight">
+          <h1 className="text-headline-page text-fg tracking-tight">
             Chào mừng trở lại, {user?.fullName || user?.name || 'bạn'}!
           </h1>
           <p className="text-body-reg text-fg-secondary mt-1">

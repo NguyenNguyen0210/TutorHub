@@ -18,7 +18,7 @@ export default function HowItWorksHero() {
               <span className="text-[#2563EB] font-semibold">Cách hoạt động</span>
             </nav>
 
-            <h1 className="text-[30px] sm:text-[38px] lg:text-[42px] font-bold text-neutral-900 leading-[1.18] tracking-tight">
+            <h1 className="text-headline-page sm:text-[38px] lg:text-[42px] font-bold text-neutral-900 leading-[1.18] tracking-tight">
               Hành trình học tập dễ dàng <br />
               cùng <span className="text-[#2563EB]">TutorHub</span>
             </h1>

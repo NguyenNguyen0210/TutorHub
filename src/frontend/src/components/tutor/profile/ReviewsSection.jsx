@@ -64,7 +64,7 @@ export default function ReviewsSection({ tutor, reviews = [] }) {
             {/* Tóm tắt: điểm trung bình + phân bố sao */}
             <div className="grid sm:grid-cols-[auto_1fr] gap-6 items-center pb-5 border-b border-border">
               <div className="text-center sm:text-left">
-                <p className="text-[30px] leading-none font-bold text-fg tabular-nums">
+                <p className="text-headline-page leading-none font-bold text-fg tabular-nums">
                   {ratingValue.toFixed(1)}
                 </p>
                 <div className="mt-1.5">

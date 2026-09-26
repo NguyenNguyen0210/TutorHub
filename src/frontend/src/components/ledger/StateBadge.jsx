@@ -72,11 +72,5 @@ StateBadge.propTypes = {
   className: PropTypes.string,
 };
 
-StateBadge.defaultProps = {
-  status: null,
-  domain: 'session',
-  size: 'sm',
-  className: '',
-};
 
 export { ENROLLMENT_STATUS_META, TOPUP_STATUS_META, SESSION_STATUS, ATTENDANCE_STATUS, WITHDRAWAL_STATUS };

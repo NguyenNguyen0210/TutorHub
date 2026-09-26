@@ -392,7 +392,7 @@ export default function TutorServices() {
       {/* Title row */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h1 className="text-[30px] leading-[1.2] font-bold text-fg tracking-tight">Dịch vụ của tôi</h1>
+          <h1 className="text-headline-page text-fg tracking-tight">Dịch vụ của tôi</h1>
           <p className="text-body-reg text-fg-secondary mt-1">
             Quản lý các gói học bạn đang cung cấp
           </p>

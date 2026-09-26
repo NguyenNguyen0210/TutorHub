@@ -211,6 +211,10 @@ export default {
 
       fontSize: {
         'display-hero': ['36px', { lineHeight: '1.2', fontWeight: '700' }],
+        // Tiêu đề trang trong workspace/public. Tách khỏi headline-1 (28px) vì
+        // vai trò khác: lớn hơn tiêu đề khối, nhỏ hơn hero. Thêm 2026-09-26 để bỏ
+        // arbitrary value text-[30px] rải rác ở 11 file.
+        'headline-page': ['30px', { lineHeight: '1.2', fontWeight: '700' }],
         'headline-1': ['28px', { lineHeight: '1.3', fontWeight: '700' }],
         'headline-2': ['22px', { lineHeight: '1.35', fontWeight: '600' }],
         'headline-3': ['18px', { lineHeight: '1.4', fontWeight: '600' }],

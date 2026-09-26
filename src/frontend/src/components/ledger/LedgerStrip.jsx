@@ -65,7 +65,3 @@ LedgerStrip.propTypes = {
   columns: PropTypes.oneOf([2, 3, 4]),
 };
 
-LedgerStrip.defaultProps = {
-  className: '',
-  columns: 4,
-};

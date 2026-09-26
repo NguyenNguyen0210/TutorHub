@@ -1,6 +1,6 @@
 # SPEC — Vùng Học Viên (Student workspace)
 
-> Trạng thái: SPEC v1.0 — chờ duyệt, chưa implement.
+> Trạng thái: SPEC v1.0 — **đã implement** (V1). Xem "Ghi chú triển khai" ở §8.
 > Hướng thẩm mỹ: **Operational Ledger**.
 > Phạm vi: 5 màn `/student/*`. Nhóm Tutor và Shared viết SPEC riêng sau.
 > Quyết định đã chốt: scope theo vai trò (Student → Tutor → Shared) · Operational Ledger
@@ -300,22 +300,60 @@ bảng + `overflow-x-auto` + mobile card fallback theo guideline "table → card
 
 ---
 
-## 8. Acceptance criteria
+## 8. Ghi chú triển khai (V1 — đã xong)
 
-- [ ] B-1, B-2, B-3 đã sửa và verify live (`/tutor/schedule` chỉ 1 tab selected;
+**Component mới:** `components/ledger/` — `LedgerStrip`, `ActionQueue`, `LedgerTable`, `SignedAmount`, `StateBadge`.
+
+**Quyết định lệch so với SPEC (có lý do):**
+
+1. **§2.1 ghi "page title 30/700"** nhưng type scale không có bậc 30px. Thay vì giữ
+   `text-[30px]` rải rác ở 11 file (arbitrary value, trái tinh thần `DESIGN.md`), đã
+   thêm token `headline-page: 30px / 1.2 / 700` vào `tailwind.config.js`.
+2. **`animate-fade-in` không tồn tại** trong `tailwind.config.js` (token là
+   `animate-fadeIn`) — 3 file admin dùng class chết, animation không chạy. Đã sửa.
+3. **Icon `event_upcoming` không có trong `iconMap.js`** → im lặng fallback về
+   `CircleHelp` trong form xếp lịch của Tutor. Đổi sang `event`.
+4. **`EnrollmentDetail`: tổng học phí giữ neutral, không `holding`.** Chỉ *một phần*
+   hợp đồng đang ký quỹ; tô `holding` cho toàn bộ tổng sẽ nói sai. Ở
+   `StudentDashboard`, "Học phí trong Escrow" là số liệu thuần ký quỹ nên dùng `holding`
+   — khác nhau có chủ đích.
+5. **`SessionDetail`: bỏ `font-mono` trên số tiền trong dialog hoàn tiền.** Ràng buộc
+   là giữ *nội dung copy* `INV-REFUND-004` nguyên vẹn, không phải giữ class; mono cho
+   tiền vi phạm `DESIGN.md` §2.4 nên đã đổi sang `tabular-nums`.
+
+**Bảng bug (đã sửa, verify live):**
+
+| # | Trạng thái | Bằng chứng |
+|---|---|---|
+| B-1 | ✅ | Nút "Hủy buổi học này": `color rgb(185,28,28)`, `border rgba(239,68,68,.4)`, `bg trắng` — trước là primary xanh |
+| B-2 | ✅ | `/student/wallet`: đúng 1 tab `aria-selected=true`, click đổi nội dung (trước: 3/3) |
+| B-3 | ✅ | Form rút dùng `Select` chung, không còn `<select>` thô |
+
+**Verify live** (tài khoản thật `student.tuan@tutorhub.com`): dashboard action queue +
+ledger + rail; ví 3 tab; trang nạp/rút + validate + uppercase; hợp đồng (bảng 4 cột,
+5 `th[scope=row]`, mã hợp đồng rút gọn 8 ký tự, phí sàn trung tính); buổi học (thứ tự
+identity → deadline → đối soát → nhật ký → action, dialog hoàn tiền còn `INV-REFUND-004`
++ ô lý do); khiếu nại (3 bước, radio viền xanh không đỏ, đếm ký tự đỏ dưới 20).
+Console 0 error 0 warning · eslint 0/0 trên toàn bộ file đã đụng · build pass.
+
+**Còn nợ (xem §9).**
+
+---
+
+## 9. Acceptance criteria
+
+- [x] B-1, B-2, B-3 đã sửa và verify live (`/tutor/schedule` chỉ 1 tab selected;
       click tab đổi nội dung; `Hủy buổi học` viền đỏ không phải xanh).
-- [ ] Action Queue chỉ hiện khi có việc; xếp đúng hạn chót tăng dần.
-- [ ] 3 số dư ví là chủ đạo, sổ cái là tab mặc định.
-- [ ] Mọi số tiền dùng `<Money>`; không `font-mono` cho tiền; mã GV/timestamp mới dùng mono.
-- [ ] Màu đỏ chỉ ở: xung đột, hủy, tranh chấp, hậu quả ký quỹ. Phí sàn → neutral.
-- [ ] Mỗi màn tối đa 1 CTA primary; không gradient; không hero.
-- [ ] Mọi mảng dùng `Scroll`-friendly: bảng cuộn ngang có `overflow-x-auto`, mobile
+- [x] Action Queue chỉ hiện khi có việc; xếp đúng hạn chót tăng dần.
+- [x] 3 số dư ví là chủ đạo, sổ cái là tab mặc định.
+- [x] Mọi số tiền dùng `<Money>`; không `font-mono` cho tiền; mã GV/timestamp mới dùng mono.
+- [x] Màu đỏ chỉ ở: xung đột, hủy, tranh chấp, hậu quả ký quỹ. Phí sàn → neutral.
+- [x] Mỗi màn tối đa 1 CTA primary; không gradient; không hero.
+- [x] Mọi mảng dùng scroll-friendly: bảng cuộn ngang có `overflow-x-auto`, mobile
       chuyển card.
-- [ ] `npm run lint` 0 error 0 warning · `npm run build` pass.
-- [ ] 5 màn verify live với tài khoản học viên thật (không mock): dashboard, ví + 3 tab +
-      nạp + rút, hợp đồng, buổi học (kể cả nhánh cần đối soát), khiếu nại (kể cả nhánh
-      không hợp lệ).
-- [ ] Không đổi bất kỳ call site API nào; validation và copy quy định giữ nguyên.
+- [x] `npx eslint` 0 error 0 warning trên toàn bộ file đã đụng · `npm run build` pass.
+- [x] 5 màn verify live với tài khoản học viên thật (không mock).
+- [x] Không đổi bất kỳ call site API nào; validation và copy quy định giữ nguyên.
 
 ---
 

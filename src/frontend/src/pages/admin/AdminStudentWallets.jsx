@@ -573,7 +573,7 @@ export default function AdminStudentWallets() {
 
       {/* CONFIRM TOP-UP MODAL */}
       {confirmModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
           <div className="w-full max-w-md bg-surface rounded-brand-lg border border-border shadow-brand-xl p-5 space-y-4 animate-scale-up">
             <div className="flex items-center gap-2 text-success-strong font-bold">
               <Icon name="check_circle" size="sm" />
@@ -603,7 +603,7 @@ export default function AdminStudentWallets() {
 
       {/* REJECT TOP-UP MODAL */}
       {rejectModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
           <div className="w-full max-w-md bg-surface rounded-brand-lg border border-border shadow-brand-xl p-5 space-y-4 animate-scale-up">
             <div className="flex items-center gap-2 text-danger-strong font-bold">
               <Icon name="cancel" size="sm" />
@@ -634,7 +634,7 @@ export default function AdminStudentWallets() {
 
       {/* FAIL WITHDRAWAL MODAL */}
       {failModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
           <div className="w-full max-w-md bg-surface rounded-brand-lg border border-border shadow-brand-xl p-5 space-y-4 animate-scale-up">
             <div className="flex items-center gap-2 text-danger-strong font-bold">
               <Icon name="error" size="sm" />

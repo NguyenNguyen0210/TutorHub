@@ -69,7 +69,7 @@ export default function StudentWalletTopUp() {
       </nav>
 
       <div>
-        <h1 className="text-[30px] leading-[1.2] font-bold text-fg tracking-tight">
+        <h1 className="text-headline-page text-fg tracking-tight">
           Nạp tiền vào ví
         </h1>
         <p className="text-body-reg text-fg-secondary mt-1">

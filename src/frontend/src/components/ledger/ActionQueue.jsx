@@ -112,8 +112,3 @@ ActionQueue.propTypes = {
   className: PropTypes.string,
 };
 
-ActionQueue.defaultProps = {
-  items: [],
-  title: 'Việc đang chờ bạn',
-  className: '',
-};

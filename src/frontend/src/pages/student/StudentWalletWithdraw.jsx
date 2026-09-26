@@ -164,7 +164,7 @@ export default function StudentWalletWithdraw() {
       </nav>
 
       <div>
-        <h1 className="text-[30px] leading-[1.2] font-bold text-fg tracking-tight">
+        <h1 className="text-headline-page text-fg tracking-tight">
           Rút tiền về ngân hàng
         </h1>
         <p className="text-body-reg text-fg-secondary mt-1">

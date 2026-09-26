@@ -35,8 +35,3 @@ SignedAmount.propTypes = {
   showZero: PropTypes.bool,
 };
 
-SignedAmount.defaultProps = {
-  amount: 0,
-  className: '',
-  showZero: true,
-};

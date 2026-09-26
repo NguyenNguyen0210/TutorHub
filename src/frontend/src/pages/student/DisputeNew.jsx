@@ -13,8 +13,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
-import Badge from '@/components/ui/Badge';
-import { Textarea, Field } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Input';
 
 const ALLOWED_MIME_TYPES = [
   'image/jpeg',
@@ -24,6 +23,41 @@ const ALLOWED_MIME_TYPES = [
   'text/plain',
 ];
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB per DEC-S8-018
+const MIN_DESCRIPTION_LENGTH = 20;
+
+const REASONS = [
+  { key: 'TutorNoShow', title: 'Gia sư vắng mặt không báo trước', desc: 'Học viên vào lớp đúng giờ nhưng gia sư không xuất hiện.' },
+  { key: 'IncompleteSession', title: 'Buổi học không trọn vẹn thời lượng', desc: 'Gia sư kết thúc buổi học sớm hơn thời gian quy định.' },
+  { key: 'QualityIssue', title: 'Nội dung không đúng cam kết', desc: 'Gia sư không chuẩn bị bài hoặc dạy không đúng lộ trình.' },
+  { key: 'TutorLate', title: 'Gia sư vào lớp muộn quá 15 phút', desc: 'Không bù giờ hoặc làm ảnh hưởng nghiêm trọng đến việc học.' },
+  { key: 'InappropriateBehavior', title: 'Hành vi không phù hợp', desc: 'Gia sư có thái độ, lời nói hoặc hành vi thiếu chuẩn mực.' },
+  { key: 'TechnicalFailure', title: 'Sự cố kỹ thuật từ gia sư', desc: 'Mất kết nối hoặc thiết bị hỏng khiến buổi học bị gián đoạn kéo dài.' },
+  { key: 'Other', title: 'Lý do khác', desc: 'Các vấn đề phát sinh khác cần ban trọng tài can thiệp đối soát.' },
+];
+
+/**
+ * StepHeading — tiêu đề bước 15/600 kèm số thứ tự (SPEC §5.6).
+ *
+ * Mở khiếu nại là việc có hậu quả tài chính, nên đánh số bước để người dùng thấy
+ * còn bao nhiêu việc thay vì một form dài. `aside` là meta căn phải (bộ đếm ký
+ * tự của bước 2).
+ */
+function StepHeading({ step, title, id, aside }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <h2 id={id} className="flex items-center gap-2.5 text-[15px] font-semibold text-fg">
+        <span
+          aria-hidden="true"
+          className="w-6 h-6 shrink-0 rounded-full bg-brand-primary-100 text-brand-primary-700 flex items-center justify-center text-caption font-bold"
+        >
+          {step}
+        </span>
+        {title}
+      </h2>
+      {aside && <div className="shrink-0">{aside}</div>}
+    </div>
+  );
+}
 
 export default function DisputeNew() {
   const toast = useToast();
@@ -39,16 +73,6 @@ export default function DisputeNew() {
   const [description, setDescription] = useState('');
   const [evidenceFile, setEvidenceFile] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  const reasonsList = [
-    { key: 'TutorNoShow', title: 'Gia sư vắng mặt không báo trước', desc: 'Học viên vào lớp đúng giờ nhưng gia sư không xuất hiện.' },
-    { key: 'IncompleteSession', title: 'Buổi học không trọn vẹn thời lượng', desc: 'Gia sư kết thúc buổi học sớm hơn thời gian quy định.' },
-    { key: 'QualityIssue', title: 'Nội dung không đúng cam kết', desc: 'Gia sư không chuẩn bị bài hoặc dạy không đúng lộ trình.' },
-    { key: 'TutorLate', title: 'Gia sư vào lớp muộn quá 15 phút', desc: 'Không bù giờ hoặc làm ảnh hưởng nghiêm trọng đến việc học.' },
-    { key: 'InappropriateBehavior', title: 'Hành vi không phù hợp', desc: 'Gia sư có thái độ, lời nói hoặc hành vi thiếu chuẩn mực.' },
-    { key: 'TechnicalFailure', title: 'Sự cố kỹ thuật từ gia sư', desc: 'Mất kết nối hoặc thiết bị hỏng khiến buổi học bị gián đoạn kéo dài.' },
-    { key: 'Other', title: 'Lý do khác', desc: 'Các vấn đề phát sinh khác cần ban trọng tài can thiệp đối soát.' },
-  ];
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +160,21 @@ export default function DisputeNew() {
   const isCancelled = session?.status === 'Cancelled';
   const cannotDispute = isFutureSession || isUnscheduled || isCancelled;
 
+  const descriptionLength = description.trim().length;
+  const descriptionTooShort = descriptionLength < MIN_DESCRIPTION_LENGTH;
+
+  const sessionTitle = session
+    ? `Buổi #${session.sessionNumber}${session.subjectName ? ` · ${session.subjectName}` : ''}`
+    : '';
+  const sessionMeta = session
+    ? [
+        session.tutorName ? `Gia sư: ${session.tutorName}` : null,
+        session.startAt ? `Giờ học: ${formatDateTime(session.startAt)}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -144,7 +183,7 @@ export default function DisputeNew() {
       return;
     }
 
-    if (!description.trim() || description.trim().length < 20) {
+    if (!description.trim() || description.trim().length < MIN_DESCRIPTION_LENGTH) {
       toast.error('Mô tả chi tiết phải từ 20 ký tự trở lên để trọng tài có đủ căn cứ.');
       return;
     }
@@ -185,89 +224,82 @@ export default function DisputeNew() {
         Quay lại chi tiết buổi học
       </Link>
 
-      <Card padding="lg" className="space-y-5">
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <h1 className="text-headline-1 text-fg m-0">Mở đơn khiếu nại tranh chấp buổi học</h1>
-            <Badge variant="holding" size="md">
-              Bảo chứng Escrow
-            </Badge>
-          </div>
-          <p className="text-caption text-fg-muted">
-            Hệ thống bàn trọng tài bảo vệ quyền lợi tài chính minh bạch cho cả học viên và gia sư theo chuẩn DEC-S8-025
+      <header className="space-y-1.5">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+          <h1 className="text-headline-page text-fg tracking-tight">
+            Mở đơn khiếu nại tranh chấp buổi học
+          </h1>
+          <p className="text-[13px] text-fg-secondary sm:pt-2 sm:text-right shrink-0">
+            Tiền sẽ được giữ an toàn
           </p>
         </div>
+        <p className="text-body-reg text-fg-secondary">
+          Mô tả điều xảy ra để Ban Trọng Tài có căn cứ đối soát.
+        </p>
+        <p className="text-[13px] text-fg-muted">
+          Hệ thống bàn trọng tài bảo vệ quyền lợi tài chính minh bạch cho cả học viên và gia sư theo chuẩn DEC-S8-025.
+        </p>
+      </header>
 
-        {session && (
-          <div className="p-4 rounded-brand-md bg-neutral-50 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-caption">
-            <div>
-              <span className="font-bold text-fg block">
-                Buổi #{session.sessionNumber} {session.subjectName ? `• ${session.subjectName}` : ''}
-              </span>
-              <span className="text-fg-muted">
-                {session.tutorName ? `Gia sư: ${session.tutorName}` : ''}
-                {session.startAt ? ` • Giờ học: ${formatDateTime(session.startAt)}` : ''}
-              </span>
-            </div>
-            <div className="text-left sm:text-right">
-              <span className="text-[11px] text-fg-muted block">Học phí bảo chứng:</span>
-              <span className="font-bold text-success-strong text-body-reg font-mono">
-                <Money value={session.earningAmount || 0} />
-              </span>
-            </div>
+      {/* Bối cảnh buổi học — dữ liệu đối soán, không tô màu cảnh báo. */}
+      {session && (
+        <div className="rounded-brand-lg border border-border bg-neutral-50 sm:flex sm:items-center sm:justify-between">
+          <div className="px-4 py-3.5 min-w-0">
+            <p className="text-[15px] font-semibold text-fg">{sessionTitle}</p>
+            {sessionMeta && <p className="text-caption text-fg-secondary mt-0.5">{sessionMeta}</p>}
           </div>
-        )}
+          <div className="px-4 pb-3.5 sm:py-3.5 sm:pl-5 sm:border-l sm:border-border sm:text-right">
+            <p className="text-caption text-fg-muted">Học phí bảo chứng</p>
+            <p className="text-[20px] leading-tight font-bold text-fg mt-0.5">
+              <Money value={session.earningAmount || 0} />
+            </p>
+          </div>
+        </div>
+      )}
 
-        {/* Cannot dispute future or unscheduled session banner */}
-        {cannotDispute && (
-          <Callout
-            variant="danger"
-            title="Không thể mở khiếu nại cho buổi học này"
-            icon={<Icon name="warning" size="md" />}
-          >
-            {isFutureSession && (
-              <p className="m-0">
-                Theo quy chế sàn (FR-DISPUTE-001), khiếu nại tranh chấp chỉ áp dụng cho buổi học đã diễn ra trong quá khứ. Với buổi học sắp diễn ra, bạn có thể thực hiện <strong>Hủy buổi học</strong> (hoàn 100% học phí về ví ký quỹ) hoặc <strong>Dời lịch học</strong> trên trang chi tiết buổi học.
-              </p>
-            )}
-            {isUnscheduled && (
-              <p className="m-0">
-                Buổi học chưa được xếp lịch cụ thể. Bạn có thể chọn ngày giờ học hoặc hủy buổi học để nhận lại tiền cọc.
-              </p>
-            )}
-            {isCancelled && (
-              <p className="m-0">
-                Buổi học này đã được hủy trước đó và tiền ký quỹ đã được hoàn trả.
-              </p>
-            )}
-            <div className="pt-2">
-              <Button
-                as={Link}
-                to={`/student/sessions/${session?.id}`}
-                variant="outline"
-                size="sm"
-                icon={<Icon name="arrow_back" size="xs" />}
-              >
-                Về trang chi tiết buổi học
-              </Button>
-            </div>
-          </Callout>
-        )}
+      {/* Cannot dispute future or unscheduled session banner */}
+      {cannotDispute && (
+        <Callout
+          variant="danger"
+          title="Không thể mở khiếu nại cho buổi học này"
+          icon={<Icon name="warning" size="md" />}
+        >
+          {isFutureSession && (
+            <p className="m-0">
+              Theo quy chế sàn (FR-DISPUTE-001), khiếu nại tranh chấp chỉ áp dụng cho buổi học đã diễn ra trong quá khứ. Với buổi học sắp diễn ra, bạn có thể thực hiện <strong>Hủy buổi học</strong> (hoàn 100% học phí về ví ký quỹ) hoặc <strong>Dời lịch học</strong> trên trang chi tiết buổi học.
+            </p>
+          )}
+          {isUnscheduled && (
+            <p className="m-0">
+              Buổi học chưa được xếp lịch cụ thể. Bạn có thể chọn ngày giờ học hoặc hủy buổi học để nhận lại tiền cọc.
+            </p>
+          )}
+          {isCancelled && (
+            <p className="m-0">
+              Buổi học này đã được hủy trước đó và tiền ký quỹ đã được hoàn trả.
+            </p>
+          )}
+          <div className="pt-2">
+            <Button
+              as={Link}
+              to={`/student/sessions/${session?.id}`}
+              variant="outline"
+              size="sm"
+              icon={<Icon name="arrow_back" size="xs" />}
+            >
+              Về trang chi tiết buổi học
+            </Button>
+          </div>
+        </Callout>
+      )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit}>
+        <Card padding="lg" className="space-y-6">
+          {/* ── Bước 1 · chọn lý do (chọn lý do không phải lỗi → brand, không đỏ) ── */}
           <div className="space-y-3">
-            <span
-              id="dispute-reason-label"
-              className="text-caption font-semibold text-fg-secondary uppercase tracking-wide block"
-            >
-              Chọn lý do khiếu nại chính
-            </span>
-            <div
-              className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-              role="radiogroup"
-              aria-labelledby="dispute-reason-label"
-            >
-              {reasonsList.map((r) => {
+            <StepHeading step={1} id="dispute-step-1" title="Chọn lý do chính" />
+            <div className="space-y-2" role="radiogroup" aria-labelledby="dispute-step-1">
+              {REASONS.map((r) => {
                 const selected = reason === r.key;
                 return (
                   <button
@@ -278,19 +310,31 @@ export default function DisputeNew() {
                     disabled={cannotDispute}
                     onClick={() => setReason(r.key)}
                     className={cn(
-                      'p-4 rounded-brand-md border-2 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger cursor-pointer',
+                      'w-full flex items-start gap-3 p-3.5 rounded-brand-md border text-left transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 focus-visible:ring-offset-2',
                       selected
-                        ? 'border-danger bg-danger-subtle'
+                        ? 'border-brand-primary-600 bg-brand-primary-50'
                         : 'border-border hover:bg-neutral-50',
                       cannotDispute && 'opacity-60 cursor-not-allowed'
                     )}
                   >
-                    <span className="flex items-center justify-between">
-                      <span className="font-semibold text-body-reg text-fg">{r.title}</span>
-                      {selected && <Icon name="radio_button_checked" size="sm" className="text-danger" />}
-                    </span>
-                    <span className="text-[11px] text-fg-muted mt-1 leading-normal block">
-                      {r.desc}
+                    <Icon
+                      name={selected ? 'radio_button_checked' : 'radio_button_unchecked'}
+                      size="md"
+                      className={cn('mt-0.5', selected ? 'text-brand-primary-600' : 'text-fg-muted')}
+                    />
+                    <span className="min-w-0">
+                      <span
+                        className={cn(
+                          'block text-[15px] font-semibold leading-snug',
+                          selected ? 'text-brand-primary-700' : 'text-fg'
+                        )}
+                      >
+                        {r.title}
+                      </span>
+                      <span className="block text-caption text-fg-secondary mt-0.5 leading-normal">
+                        {r.desc}
+                      </span>
                     </span>
                   </button>
                 );
@@ -298,80 +342,99 @@ export default function DisputeNew() {
             </div>
           </div>
 
-          <Field
-            label="Mô tả chi tiết vụ việc (tối thiểu 20 ký tự, bắt buộc)"
-            htmlFor="dispute-description"
-            required
-          >
+          {/* ── Bước 2 · mô tả chi tiết (đếm ký tự trực tiếp cạnh tiêu đề) ── */}
+          <div className="space-y-2">
+            <StepHeading
+              step={2}
+              id="dispute-step-2"
+              title="Mô tả chi tiết"
+              aside={
+                <p
+                  id="dispute-description-count"
+                  className={cn(
+                    'text-caption tabular-nums',
+                    descriptionTooShort ? 'text-danger-strong' : 'text-fg-secondary'
+                  )}
+                >
+                  {descriptionLength} / {MIN_DESCRIPTION_LENGTH} tối thiểu
+                </p>
+              }
+            />
             <Textarea
               id="dispute-description"
-              rows={4}
+              rows={5}
               required
               disabled={cannotDispute}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              aria-labelledby="dispute-step-2"
+              aria-describedby="dispute-description-count"
               placeholder="Mô tả diễn biến cụ thể (thời gian vào lớp, sự cố phát sinh...) để trọng tài có đầy đủ cơ sở đối soát..."
             />
-          </Field>
+          </div>
 
-          <Field
-            label="Tệp bằng chứng minh họa (Ảnh chụp màn hình, tài liệu PDF, văn bản...)"
-            htmlFor="dispute-evidence-input"
-          >
-            <div className="p-4 rounded-brand-md border-2 border-dashed border-border text-center space-y-2 bg-neutral-50">
+          {/* ── Bước 3 · bằng chứng (tùy chọn) ── */}
+          <div className="space-y-2">
+            <StepHeading step={3} id="dispute-step-3" title="Bằng chứng (tùy chọn)" />
+            <div className="p-5 rounded-brand-md border-2 border-dashed border-border bg-neutral-50 text-center space-y-3">
               <Icon name="cloud_upload" size="lg" strokeWidth={1.5} className="text-fg-muted mx-auto" />
-              <div>
-                <input
-                  id="dispute-evidence-input"
-                  type="file"
-                  disabled={cannotDispute}
-                  accept="image/jpeg,image/png,image/webp,application/pdf,text/plain"
-                  onChange={handleFileChange}
-                  className="text-caption text-fg-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-brand-md file:border-0 file:text-caption file:font-semibold file:bg-brand-primary-50 file:text-brand-primary-700 hover:file:bg-brand-primary-100 cursor-pointer disabled:opacity-50"
-                />
-              </div>
+              <p id="dispute-evidence-hint" className="text-caption text-fg-secondary m-0">
+                Tệp minh họa: ảnh chụp màn hình, tài liệu PDF hoặc văn bản.
+              </p>
+              <input
+                id="dispute-evidence-input"
+                type="file"
+                disabled={cannotDispute}
+                accept="image/jpeg,image/png,image/webp,application/pdf,text/plain"
+                onChange={handleFileChange}
+                aria-labelledby="dispute-step-3 dispute-evidence-hint"
+                className="text-caption text-fg-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-brand-md file:border-0 file:text-caption file:font-semibold file:bg-brand-primary-50 file:text-brand-primary-700 hover:file:bg-brand-primary-100 cursor-pointer disabled:opacity-50"
+              />
               {evidenceFile && (
-                <p className="text-caption text-success-strong font-semibold m-0">
+                <p className="text-caption text-fg font-medium m-0">
                   Đã chọn: {evidenceFile.name} ({Math.round(evidenceFile.size / 1024)} KB)
                 </p>
               )}
-              <p className="text-[11px] text-fg-muted m-0">
+              <p className="text-caption text-fg-muted m-0">
                 Chuẩn DEC-S8-018: Hỗ trợ JPG, PNG, WEBP, PDF, TXT (tối đa 10 MB)
               </p>
             </div>
-          </Field>
-
-          <Callout
-            variant="danger"
-            title="Quy tắc bảo chứng tài chính Escrow"
-            icon={<Icon name="lock" size="md" />}
-          >
-            Sau khi gửi khiếu nại thành công, học phí buổi học sẽ được bảo chứng trong Escrow và
-            chỉ được giải ngân hoặc hoàn trả theo phán quyết phân xử của Ban Trọng Tài (Admin).
-          </Callout>
-
-          <div className="flex gap-3 pt-1">
-            <Button
-              type="submit"
-              variant="danger"
-              size="lg"
-              loading={loading}
-              disabled={cannotDispute}
-              icon={!loading && <Icon name="send" size="sm" />}
-            >
-              Gửi đơn khiếu nại lên Admin
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              onClick={() => navigate(session ? `/student/sessions/${session.id}` : '/student/dashboard')}
-            >
-              Hủy bỏ
-            </Button>
           </div>
-        </form>
-      </Card>
+
+          {/* ── Hậu quả tiền + hành động ── */}
+          <div className="space-y-4 border-t border-border pt-5">
+            <Callout
+              variant="danger"
+              title="Quy tắc bảo chứng tài chính Escrow"
+              icon={<Icon name="lock" size="md" />}
+            >
+              Sau khi gửi khiếu nại thành công, học phí buổi học sẽ được bảo chứng trong Escrow và
+              chỉ được giải ngân hoặc hoàn trả theo phán quyết phân xử của Ban Trọng Tài (Admin).
+            </Callout>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="submit"
+                variant="danger"
+                size="lg"
+                loading={loading}
+                disabled={cannotDispute}
+                icon={!loading && <Icon name="send" size="sm" />}
+              >
+                Gửi đơn khiếu nại lên Admin
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={() => navigate(session ? `/student/sessions/${session.id}` : '/student/dashboard')}
+              >
+                Hủy bỏ
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </form>
     </div>
   );
 }
