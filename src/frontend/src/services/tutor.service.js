@@ -97,6 +97,10 @@ export function normalizeTutorReview(raw = {}) {
     studentAvatarUrl: raw.studentAvatarUrl || null,
     rating: toNumber(raw.rating, 5),
     comment: raw.comment || '',
+    // Backend TutorPublicReviewDto có trả 2 field này; thiếu khai báo ở đây
+    // khiến phần "phản hồi từ gia sư" không bao giờ hiển thị.
+    tutorReply: raw.tutorReply || null,
+    tutorRepliedAt: raw.tutorRepliedAt ?? null,
     createdAt: raw.createdAt ?? null,
   };
 }

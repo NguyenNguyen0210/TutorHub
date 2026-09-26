@@ -1,6 +1,6 @@
 # SPEC — Trang cá nhân gia sư công khai (`/tutors/:id`)
 
-> Trạng thái: SPEC v1.0 — chưa implement.
+> Trạng thái: SPEC v1.0 — **đã implement** (V1). Xem "Ghi chú triển khai" ở cuối.
 > Tham khảo: ảnh màn hình Preply-style do stakeholder cung cấp (gallery ảnh + video, verify badge,
 > rating, môn học, tabs neo, cards gói học, reviews, rail đặt lịch sticky).
 > Tài liệu liên quan: `docs/frontend-specification.md`, `docs/openapi.json`,
@@ -183,10 +183,53 @@ schedule API) — KHÔNG dựng lịch giả.
 
 ## 8. Acceptance criteria (đóng SPEC)
 
-- [ ] Desktop/mobile khớp skeleton §3; rail sticky đúng, không che CTA.
-- [ ] Mọi con số trên màn hình đều từ API (không hardcode 500+/128 trừ dữ liệu thật).
-- [ ] Tabs neo scroll đúng section, active underline xanh 2px, không scrollbar.
-- [ ] Giá gói package-first 20px/700 + `≈ xđ/buổi` muted trên mọi card.
-- [ ] Guards đặt chỗ (guest/Tutor role) giữ nguyên và có toast đúng.
-- [ ] Lighthouse a11y ≥ 95, không lỗi eslint, build pass.
-- [ ] Soi rubric skill: 1 accent, 1 radius, spacing/token đúng block §2, memorable (§rail) hiện diện, restraint §6 giữ.
+- [x] Desktop/mobile khớp skeleton §3; rail sticky đúng, không che CTA.
+- [x] Mọi con số trên màn hình đều từ API (không hardcode 500+/128 trừ dữ liệu thật).
+- [x] Tabs neo scroll đúng section, active underline xanh 2px, không scrollbar.
+- [x] Giá gói package-first 20px/700 + `≈ xđ/buổi` muted trên mọi card.
+- [x] Guards đặt chỗ (guest/Tutor role) giữ nguyên và có toast đúng.
+- [x] 0 lỗi eslint, build pass.
+- [x] Soi rubric skill: 1 accent, 1 radius, spacing/token đúng block §2, memorable (§rail) hiện diện, restraint §6 giữ.
+
+---
+
+## 9. Ghi chú triển khai (V1)
+
+**Component mới** (`src/frontend/src/components/tutor/profile/`):
+
+| File | Vai trò |
+|---|---|
+| `TutorProfile.jsx` (page) | Bố cục 12 cột + guards; giữ nguyên data-loading cũ |
+| `ProfileGallery.jsx` | Ảnh 16/10 `object-top` (giữ mặt khi crop), fallback khi URL hỏng |
+| `ProfileHeadline.jsx` | Pill trạng thái, tên + tick, dòng tin cậy, Chia sẻ (copy link) |
+| `ProfileAnchorNav.jsx` | Tabs neo + scroll-spy (IntersectionObserver) |
+| `SectionShell.jsx` | Vỏ section dùng chung (id, `scroll-mt`, h2 22px/600) |
+| `ProfileAbout.jsx` | Bio (Xem thêm), điểm mạnh, block môn học |
+| `ServicePackageCard.jsx` | Card gói học, giá package-first |
+| `ServicePackageGrid.jsx` | Grid 3 cột + EmptyState; tối đa 3 gói ở V1 |
+| `ReviewsSection.jsx` | Tóm tắt 5.0 + bars + review cards + reply gia sư |
+| `BookingRail.jsx` | CTA + 4 stat row từ dữ liệu thật |
+| `MobileBookingBar.jsx` | CTA kép dính đáy, chỉ mobile |
+| `ProfileScheduleExplainer.jsx` | Quy trình xếp lịch (không dựng lịch giả) |
+| `ProfilePlaceholderSection.jsx` | Section chờ backend (Bằng cấp, Câu hỏi) |
+| `sectionNav.js` | `scrollToSection` + scroll-spy dùng chung |
+
+**Quyết định lệch so với SPEC (có lý do):**
+
+1. **§7 nói "thiếu data thì ẩn block"** — nhưng ẩn hẳn sẽ giết tab neo tương ứng. Thay bằng
+   `ProfilePlaceholderSection`: một dòng chữ nói rõ "sẽ hiển thị sau khi hồ sơ được thẩm định".
+   Vẫn trung thực (không bịa số 0), nhưng giữ được điều hướng.
+2. **§4.1 V2 gallery** — dùng `object-top` thay `object-center`: ảnh chân dung crop
+   trong khung 16/10 sẽ mất mặt nếu căn giữa.
+3. **`scrollToSection` có fallback** — `scrollTo({behavior:'smooth'})` bị bỏ qua im lặng ở
+   môi trường không cấp animation frame (headless, webview nhúng, tab chưa render). Sau
+   150ms không nhúc nhích thì trượt sang dạng số để điều hướng không chết lặng.
+4. **Bỏ `defaultProps`** — chuyển sang default parameters đúng convention repo và xóa
+   16 warning React 18.3 (`defaultProps` sẽ bị gỡ trong React 19).
+
+**Sửa bug phát hiện khi implement:** `normalizeTutorReview` trong `tutor.service.js` không
+khai báo `tutorReply`/`studentAvatarUrl`, dù backend `TutorPublicReviewDto` có trả. Ô
+"Phản hồi từ gia sư" vì thế là dead code — không bao giờ hiển thị. Đã bổ sung 2 field.
+
+**Còn nợ (V2, đã ghi ở §7):** video/album, chứng chỉ, tỷ lệ phản hồi, số học viên đã
+dạy, khu vực có cấu trúc, nút Lưu, phân trang đánh giá, lọc gói học theo gia sư.

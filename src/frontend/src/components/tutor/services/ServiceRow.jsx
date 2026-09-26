@@ -72,8 +72,8 @@ export default function ServiceRow({
   onEdit,
   onPublish,
   onUnpublish,
-  onPause,
-  onResume,
+  onPause = undefined,
+  onResume = undefined,
 }) {
   const modeMeta = getTeachingModeMeta(pkg.teachingMode);
   const pricePerSession =
@@ -315,7 +315,3 @@ ServiceRow.propTypes = {
   onResume: PropTypes.func,
 };
 
-ServiceRow.defaultProps = {
-  onPause: undefined,
-  onResume: undefined,
-};

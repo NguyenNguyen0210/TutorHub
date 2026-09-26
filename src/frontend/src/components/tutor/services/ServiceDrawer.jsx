@@ -30,12 +30,12 @@ export { parseTags } from './serviceFormUtils';
 export default function ServiceDrawer({
   open,
   onClose,
-  editingService,
+  editingService = null,
   subjects,
   formData,
   onFieldChange,
   onSubmit,
-  submitting,
+  submitting = false,
 }) {
   const isPublished = editingService?.status === 'Published';
 
@@ -125,7 +125,3 @@ ServiceDrawer.propTypes = {
   submitting: PropTypes.bool,
 };
 
-ServiceDrawer.defaultProps = {
-  editingService: null,
-  submitting: false,
-};

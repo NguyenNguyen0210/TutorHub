@@ -311,7 +311,7 @@ TrialFields.propTypes = {
 };
 
 /* ── Subject: select (create) or locked box (edit) + category + tags ── */
-export function SubjectFields({ formData, onFieldChange, subjects, editingService }) {
+export function SubjectFields({ formData, onFieldChange, subjects, editingService = null }) {
   const selectedSubject = subjects.find((s) => s.id === formData.subjectId);
   const categoryName =
     selectedSubject?.categoryName || editingService?.categoryName || '';
@@ -383,12 +383,9 @@ SubjectFields.propTypes = {
   }),
 };
 
-SubjectFields.defaultProps = {
-  editingService: null,
-};
 
 /* ── Package terms: sessions, duration, price ── */
-export function PackageTermsFields({ formData, onFieldChange, locked }) {
+export function PackageTermsFields({ formData, onFieldChange, locked = false }) {
   const sessions = Number(formData.totalSessions) || 0;
   const price = Number(formData.price) || 0;
   const pricePerSession = sessions > 0 ? Math.round(price / sessions) : 0;
@@ -461,12 +458,9 @@ PackageTermsFields.propTypes = {
   locked: PropTypes.bool,
 };
 
-PackageTermsFields.defaultProps = {
-  locked: false,
-};
 
 /* ── Teaching mode checkboxes ── */
-export function ModeFields({ formData, onFieldChange, locked }) {
+export function ModeFields({ formData, onFieldChange, locked = false }) {
   const places = placesFromTeachingMode(formData.teachingMode);
   const handlePlaceToggle = (key) => {
     const next = { ...places, [key]: !places[key] };
@@ -514,12 +508,9 @@ ModeFields.propTypes = {
   locked: PropTypes.bool,
 };
 
-ModeFields.defaultProps = {
-  locked: false,
-};
 
 /* ── Curriculum: per-session editors + audience + prerequisites ── */
-export function CurriculumFields({ formData, onFieldChange, step }) {
+export function CurriculumFields({ formData, onFieldChange, step = 4 }) {
   const [sectionOpen, setSectionOpen] = useState(true);
   const [openSessions, setOpenSessions] = useState({});
   const sessionsList = Array.isArray(formData.sessions) ? formData.sessions : [];
@@ -712,9 +703,6 @@ CurriculumFields.propTypes = {
   step: PropTypes.number,
 };
 
-CurriculumFields.defaultProps = {
-  step: 4,
-};
 
 /* ── FAQs ── */
 export function FaqFields({ formData, onFieldChange }) {

@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import Input, { Select } from '@/components/ui/Input';
+import Input, { Select, Field } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 
@@ -24,7 +24,7 @@ export default function ServiceFilterBar({
   onSubjectIdChange,
   status,
   onStatusChange,
-  onClear,
+  onClear = undefined,
 }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_200px_200px_auto] gap-3 sm:items-end">
@@ -41,16 +41,9 @@ export default function ServiceFilterBar({
           className="pl-9"
         />
       </div>
-      <div>
-        <label
-          htmlFor="service-filter-subject"
-          className="block text-caption font-medium text-fg-secondary mb-1"
-        >
-          Môn học
-        </label>
+      <Field label="Môn học" htmlFor="service-filter-subject">
         <Select
           id="service-filter-subject"
-          aria-label="Lọc theo môn học"
           value={subjectId}
           onChange={(e) => onSubjectIdChange(e.target.value)}
         >
@@ -61,17 +54,10 @@ export default function ServiceFilterBar({
             </option>
           ))}
         </Select>
-      </div>
-      <div>
-        <label
-          htmlFor="service-filter-status"
-          className="block text-caption font-medium text-fg-secondary mb-1"
-        >
-          Trạng thái
-        </label>
+      </Field>
+      <Field label="Trạng thái" htmlFor="service-filter-status">
         <Select
           id="service-filter-status"
-          aria-label="Lọc theo trạng thái"
           value={status}
           onChange={(e) => onStatusChange(e.target.value)}
         >
@@ -81,7 +67,7 @@ export default function ServiceFilterBar({
             </option>
           ))}
         </Select>
-      </div>
+      </Field>
       <Button
         variant="outline"
         onClick={onClear}
@@ -108,6 +94,3 @@ ServiceFilterBar.propTypes = {
   onClear: PropTypes.func,
 };
 
-ServiceFilterBar.defaultProps = {
-  onClear: undefined,
-};
