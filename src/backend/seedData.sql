@@ -1,3 +1,5 @@
+-- PATCHED 2026-09-26: old large dataset adapted to tutor-direct schema (36 tables).
+-- Removed legacy slot + reschedule-ticket inserts. StorageProvider legacy value -> MinIO. Users block1 += AccessFailedCount/LockoutEndAt.
 -- =============================================================================
 -- TutorHub Platform - Master Comprehensive Seed Data Script (10-15+ rows/table)
 -- =============================================================================
@@ -20,7 +22,6 @@ TRUNCATE TABLE
     "DisputeEvidences",
     "Disputes",
     "LearningRecords",
-    "SessionRescheduleRequests",
     "PlatformSettingVersions",
     "PlatformSettings",
     "Media",
@@ -39,7 +40,6 @@ TRUNCATE TABLE
     "Enrollments",
     "Bookings",
     "Services",
-    "AvailabilitySlots",
     "TutorSubjects",
     "Subjects",
     "Categories",
@@ -53,23 +53,23 @@ RESTART IDENTITY CASCADE;
 -- -----------------------------------------------------------------------------
 -- 1. USERS (1 Admin, 6 Tutors, 8 Students = 15 Users)
 -- -----------------------------------------------------------------------------
-INSERT INTO "Users" ("Id", "Email", "PasswordHash", "FullName", "Phone", "AvatarUrl", "Role", "Status", "CreatedAt", "AbsentStrikes", "StrikeWindowStart", "LastAbsentAt")
+INSERT INTO "Users" ("Id", "Email", "PasswordHash", "FullName", "Phone", "AvatarUrl", "Role", "Status", "CreatedAt", "AbsentStrikes", "StrikeWindowStart", "LastAbsentAt", "AccessFailedCount", "LockoutEndAt")
 VALUES
-    ('11111111-1111-1111-1111-111111111111', 'admin@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Quản Trị Viên Hệ Thống', '0901234567', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80', 'Admin', 'Active', NOW() - INTERVAL '60 days', 0, NULL, NULL),
-    ('22222222-1111-1111-1111-111111111111', 'tutor.an@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Nguyễn Văn An', '0912345678', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80', 'Tutor', 'Active', NOW() - INTERVAL '50 days', 0, NULL, NULL),
-    ('33333333-1111-1111-1111-111111111111', 'tutor.bich@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trần Thị Bích', '0983456789', 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80', 'Tutor', 'Active', NOW() - INTERVAL '45 days', 0, NULL, NULL),
-    ('44444444-1111-1111-1111-111111111111', 'tutor.nam@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lê Hoàng Nam', '0904567891', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80', 'Tutor', 'Active', NOW() - INTERVAL '40 days', 0, NULL, NULL),
-    ('44444444-2222-1111-1111-111111111111', 'tutor.ha@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đỗ Thu Hà', '0934567891', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80', 'Tutor', 'Active', NOW() - INTERVAL '35 days', 0, NULL, NULL),
-    ('44444444-3333-1111-1111-111111111111', 'tutor.quang@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Vũ Minh Quang', '0978901234', 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=400&q=80', 'Tutor', 'Active', NOW() - INTERVAL '30 days', 0, NULL, NULL),
-    ('44444444-4444-1111-1111-111111111111', 'tutor.mai@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phạm Ngọc Mai', '0934567893', 'https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=400&q=80', 'Tutor', 'Active', NOW() - INTERVAL '25 days', 0, NULL, NULL),
-    ('55555555-1111-1111-1111-111111111111', 'student.tuan@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phạm Minh Tuấn', '0945678901', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '30 days', 0, NULL, NULL),
-    ('66666666-1111-1111-1111-111111111111', 'student.lan@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Hoàng Lan Anh', '0956789012', 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '28 days', 0, NULL, NULL),
-    ('77777777-1111-1111-1111-111111111111', 'student.bad@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trần Văn Bùng', '0967890123', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '20 days', 2, NOW() - INTERVAL '4 days', NOW() - INTERVAL '2 days'),
-    ('55555555-2222-1111-1111-111111111111', 'student.hung@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đặng Quốc Hùng', '0978901234', 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '18 days', 0, NULL, NULL),
-    ('55555555-3333-1111-1111-111111111111', 'student.linh@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Ngô Phương Linh', '0989012345', 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '15 days', 0, NULL, NULL),
-    ('55555555-4444-1111-1111-111111111111', 'student.khoa@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Bùi Đăng Khoa', '0990123456', 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '12 days', 0, NULL, NULL),
-    ('55555555-5555-1111-1111-111111111111', 'student.thao@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lê Thanh Thảo', '0901234568', 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '10 days', 0, NULL, NULL),
-    ('55555555-6666-1111-1111-111111111111', 'student.duc@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Nguyễn Minh Đức', '0912345679', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '8 days', 0, NULL, NULL);
+    ('11111111-1111-1111-1111-111111111111', 'admin@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Quản Trị Viên Hệ Thống', '0901234567', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80', 'Admin', 'Active', NOW() - INTERVAL '60 days', 0, NULL, NULL, 0, NULL),
+    ('22222222-1111-1111-1111-111111111111', 'tutor.an@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Nguyễn Văn An', '0912345678', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80', 'Tutor', 'Active', NOW() - INTERVAL '50 days', 0, NULL, NULL, 0, NULL),
+    ('33333333-1111-1111-1111-111111111111', 'tutor.bich@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trần Thị Bích', '0983456789', 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80', 'Tutor', 'Active', NOW() - INTERVAL '45 days', 0, NULL, NULL, 0, NULL),
+    ('44444444-1111-1111-1111-111111111111', 'tutor.nam@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lê Hoàng Nam', '0904567891', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80', 'Tutor', 'Active', NOW() - INTERVAL '40 days', 0, NULL, NULL, 0, NULL),
+    ('44444444-2222-1111-1111-111111111111', 'tutor.ha@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đỗ Thu Hà', '0934567891', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80', 'Tutor', 'Active', NOW() - INTERVAL '35 days', 0, NULL, NULL, 0, NULL),
+    ('44444444-3333-1111-1111-111111111111', 'tutor.quang@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Vũ Minh Quang', '0978901234', 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=400&q=80', 'Tutor', 'Active', NOW() - INTERVAL '30 days', 0, NULL, NULL, 0, NULL),
+    ('44444444-4444-1111-1111-111111111111', 'tutor.mai@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phạm Ngọc Mai', '0934567893', 'https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=400&q=80', 'Tutor', 'Active', NOW() - INTERVAL '25 days', 0, NULL, NULL, 0, NULL),
+    ('55555555-1111-1111-1111-111111111111', 'student.tuan@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Phạm Minh Tuấn', '0945678901', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '30 days', 0, NULL, NULL, 0, NULL),
+    ('66666666-1111-1111-1111-111111111111', 'student.lan@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Hoàng Lan Anh', '0956789012', 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '28 days', 0, NULL, NULL, 0, NULL),
+    ('77777777-1111-1111-1111-111111111111', 'student.bad@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Trần Văn Bùng', '0967890123', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '20 days', 2, NOW() - INTERVAL '4 days', NOW() - INTERVAL '2 days', 0, NULL),
+    ('55555555-2222-1111-1111-111111111111', 'student.hung@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Đặng Quốc Hùng', '0978901234', 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '18 days', 0, NULL, NULL, 0, NULL),
+    ('55555555-3333-1111-1111-111111111111', 'student.linh@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Ngô Phương Linh', '0989012345', 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '15 days', 0, NULL, NULL, 0, NULL),
+    ('55555555-4444-1111-1111-111111111111', 'student.khoa@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Bùi Đăng Khoa', '0990123456', 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '12 days', 0, NULL, NULL, 0, NULL),
+    ('55555555-5555-1111-1111-111111111111', 'student.thao@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Lê Thanh Thảo', '0901234568', 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '10 days', 0, NULL, NULL, 0, NULL),
+    ('55555555-6666-1111-1111-111111111111', 'student.duc@tutorhub.com', '$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.', 'Nguyễn Minh Đức', '0912345679', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', 'Student', 'Active', NOW() - INTERVAL '8 days', 0, NULL, NULL, 0, NULL);
 
 -- -----------------------------------------------------------------------------
 -- 2. STUDENT PROFILES (8 Profiles)
@@ -228,24 +228,6 @@ VALUES
 -- -----------------------------------------------------------------------------
 -- 9. AVAILABILITY SLOTS (15 Slots)
 -- -----------------------------------------------------------------------------
-INSERT INTO "AvailabilitySlots" ("Id", "TutorProfileId", "DayOfWeek", "StartTime", "EndTime", "IsActive")
-VALUES
-    ('cccccccc-0001-0000-0000-000000000001', '22222222-2222-2222-2222-111111111111', 'Monday', '18:00:00', '20:00:00', true),
-    ('cccccccc-0001-0000-0000-000000000002', '22222222-2222-2222-2222-111111111111', 'Wednesday', '18:00:00', '20:00:00', true),
-    ('cccccccc-0001-0000-0000-000000000003', '22222222-2222-2222-2222-111111111111', 'Friday', '18:00:00', '20:00:00', true),
-    ('cccccccc-0001-0000-0000-000000000004', '22222222-2222-2222-2222-111111111111', 'Sunday', '08:00:00', '11:00:00', true),
-    ('cccccccc-0001-0000-0000-000000000005', '33333333-2222-2222-2222-111111111111', 'Tuesday', '19:00:00', '21:00:00', true),
-    ('cccccccc-0001-0000-0000-000000000006', '33333333-2222-2222-2222-111111111111', 'Thursday', '19:00:00', '21:00:00', true),
-    ('cccccccc-0001-0000-0000-000000000007', '33333333-2222-2222-2222-111111111111', 'Saturday', '14:00:00', '17:00:00', true),
-    ('cccccccc-0001-0000-0000-000000000008', '44444444-2222-2222-2222-111111111111', 'Monday', '20:00:00', '22:00:00', true),
-    ('cccccccc-0001-0000-0000-000000000009', '44444444-2222-2222-2222-111111111111', 'Wednesday', '20:00:00', '22:00:00', true),
-    ('cccccccc-0001-0000-0000-000000000010', '44444444-2222-2222-2222-111111111111', 'Saturday', '09:00:00', '12:00:00', true),
-    ('cccccccc-0001-0000-0000-000000000011', '44444444-2222-2222-2222-333333333333', 'Tuesday', '18:30:00', '20:30:00', true),
-    ('cccccccc-0001-0000-0000-000000000012', '44444444-2222-2222-2222-333333333333', 'Thursday', '18:30:00', '20:30:00', true),
-    ('cccccccc-0001-0000-0000-000000000013', '44444444-2222-2222-2222-444444444444', 'Wednesday', '17:30:00', '19:30:00', true),
-    ('cccccccc-0001-0000-0000-000000000014', '44444444-2222-2222-2222-444444444444', 'Friday', '17:30:00', '19:30:00', true),
-    ('cccccccc-0001-0000-0000-000000000015', '44444444-2222-2222-2222-444444444444', 'Sunday', '15:00:00', '18:00:00', true);
-
 -- -----------------------------------------------------------------------------
 -- 10. SERVICES (15 Packages)
 -- -----------------------------------------------------------------------------
@@ -520,16 +502,16 @@ INSERT INTO "Media" (
     "Status", "UploadedByUserId", "CreatedAt", "DeletedAt"
 )
 VALUES
-    ('99999999-0001-0000-0000-000000000001', 'profiles/22222222-1111-1111-1111-111111111111/avatar/an-avatar.png', 'an-avatar.png', 'image/png', 142500, 'CloudflareR2', 'Avatar', false, 'Active', '22222222-1111-1111-1111-111111111111', NOW() - INTERVAL '50 days', NULL),
-    ('99999999-0001-0000-0000-000000000002', 'profiles/33333333-1111-1111-1111-111111111111/avatar/bich-avatar.png', 'bich-avatar.png', 'image/png', 156000, 'CloudflareR2', 'Avatar', false, 'Active', '33333333-1111-1111-1111-111111111111', NOW() - INTERVAL '45 days', NULL),
-    ('99999999-0001-0000-0000-000000000003', 'profiles/44444444-1111-1111-1111-111111111111/avatar/nam-avatar.png', 'nam-avatar.png', 'image/png', 138000, 'CloudflareR2', 'Avatar', false, 'Active', '44444444-1111-1111-1111-111111111111', NOW() - INTERVAL '40 days', NULL),
-    ('99999999-0001-0000-0000-000000000004', 'tutors/22222222-1111-1111-1111-111111111111/documents/math-degree.pdf', 'math-degree.pdf', 'application/pdf', 2450000, 'CloudflareR2', 'Certificate', true, 'Active', '22222222-1111-1111-1111-111111111111', NOW() - INTERVAL '50 days', NULL),
-    ('99999999-0001-0000-0000-000000000005', 'tutors/33333333-1111-1111-1111-111111111111/documents/ielts-certificate-8.0.pdf', 'ielts-certificate-8.0.pdf', 'application/pdf', 1850000, 'CloudflareR2', 'Certificate', true, 'Active', '33333333-1111-1111-1111-111111111111', NOW() - INTERVAL '45 days', NULL),
-    ('99999999-0001-0000-0000-000000000006', 'tutors/44444444-1111-1111-1111-111111111111/documents/hcmut-degree.pdf', 'hcmut-degree.pdf', 'application/pdf', 3100000, 'CloudflareR2', 'Certificate', true, 'Active', '44444444-1111-1111-1111-111111111111', NOW() - INTERVAL '40 days', NULL),
-    ('99999999-0001-0000-0000-000000000007', 'tutors/44444444-3333-1111-1111-111111111111/documents/jlpt-n1-cert.pdf', 'jlpt-n1-cert.pdf', 'application/pdf', 1950000, 'CloudflareR2', 'Certificate', true, 'Active', '44444444-3333-1111-1111-111111111111', NOW() - INTERVAL '30 days', NULL),
-    ('99999999-0001-0000-0000-000000000008', 'reports/55555555-1111-1111-1111-111111111111/attachments/meet-waiting.png', 'meet-waiting.png', 'image/png', 854000, 'CloudflareR2', 'DisputeEvidence', true, 'Active', '55555555-1111-1111-1111-111111111111', NOW() - INTERVAL '1 day', NULL),
-    ('99999999-0001-0000-0000-000000000009', 'reports/66666666-1111-1111-1111-111111111111/attachments/chat-evidence.png', 'chat-evidence.png', 'image/png', 720000, 'CloudflareR2', 'DisputeEvidence', true, 'Active', '66666666-1111-1111-1111-111111111111', NOW() - INTERVAL '3 days', NULL),
-    ('99999999-0001-0000-0000-000000000010', 'profiles/55555555-1111-1111-1111-111111111111/avatar/tuan-avatar.png', 'tuan-avatar.png', 'image/png', 125000, 'CloudflareR2', 'Avatar', false, 'Active', '55555555-1111-1111-1111-111111111111', NOW() - INTERVAL '30 days', NULL);
+    ('99999999-0001-0000-0000-000000000001', 'profiles/22222222-1111-1111-1111-111111111111/avatar/an-avatar.png', 'an-avatar.png', 'image/png', 142500, 'MinIO', 'Avatar', false, 'Active', '22222222-1111-1111-1111-111111111111', NOW() - INTERVAL '50 days', NULL),
+    ('99999999-0001-0000-0000-000000000002', 'profiles/33333333-1111-1111-1111-111111111111/avatar/bich-avatar.png', 'bich-avatar.png', 'image/png', 156000, 'MinIO', 'Avatar', false, 'Active', '33333333-1111-1111-1111-111111111111', NOW() - INTERVAL '45 days', NULL),
+    ('99999999-0001-0000-0000-000000000003', 'profiles/44444444-1111-1111-1111-111111111111/avatar/nam-avatar.png', 'nam-avatar.png', 'image/png', 138000, 'MinIO', 'Avatar', false, 'Active', '44444444-1111-1111-1111-111111111111', NOW() - INTERVAL '40 days', NULL),
+    ('99999999-0001-0000-0000-000000000004', 'tutors/22222222-1111-1111-1111-111111111111/documents/math-degree.pdf', 'math-degree.pdf', 'application/pdf', 2450000, 'MinIO', 'Certificate', true, 'Active', '22222222-1111-1111-1111-111111111111', NOW() - INTERVAL '50 days', NULL),
+    ('99999999-0001-0000-0000-000000000005', 'tutors/33333333-1111-1111-1111-111111111111/documents/ielts-certificate-8.0.pdf', 'ielts-certificate-8.0.pdf', 'application/pdf', 1850000, 'MinIO', 'Certificate', true, 'Active', '33333333-1111-1111-1111-111111111111', NOW() - INTERVAL '45 days', NULL),
+    ('99999999-0001-0000-0000-000000000006', 'tutors/44444444-1111-1111-1111-111111111111/documents/hcmut-degree.pdf', 'hcmut-degree.pdf', 'application/pdf', 3100000, 'MinIO', 'Certificate', true, 'Active', '44444444-1111-1111-1111-111111111111', NOW() - INTERVAL '40 days', NULL),
+    ('99999999-0001-0000-0000-000000000007', 'tutors/44444444-3333-1111-1111-111111111111/documents/jlpt-n1-cert.pdf', 'jlpt-n1-cert.pdf', 'application/pdf', 1950000, 'MinIO', 'Certificate', true, 'Active', '44444444-3333-1111-1111-111111111111', NOW() - INTERVAL '30 days', NULL),
+    ('99999999-0001-0000-0000-000000000008', 'reports/55555555-1111-1111-1111-111111111111/attachments/meet-waiting.png', 'meet-waiting.png', 'image/png', 854000, 'MinIO', 'DisputeEvidence', true, 'Active', '55555555-1111-1111-1111-111111111111', NOW() - INTERVAL '1 day', NULL),
+    ('99999999-0001-0000-0000-000000000009', 'reports/66666666-1111-1111-1111-111111111111/attachments/chat-evidence.png', 'chat-evidence.png', 'image/png', 720000, 'MinIO', 'DisputeEvidence', true, 'Active', '66666666-1111-1111-1111-111111111111', NOW() - INTERVAL '3 days', NULL),
+    ('99999999-0001-0000-0000-000000000010', 'profiles/55555555-1111-1111-1111-111111111111/avatar/tuan-avatar.png', 'tuan-avatar.png', 'image/png', 125000, 'MinIO', 'Avatar', false, 'Active', '55555555-1111-1111-1111-111111111111', NOW() - INTERVAL '30 days', NULL);
 
 -- -----------------------------------------------------------------------------
 -- 21. PLATFORM SETTINGS & VERSIONS
@@ -554,19 +536,6 @@ VALUES
 -- -----------------------------------------------------------------------------
 -- 22. SESSION RESCHEDULE REQUESTS (6 Requests)
 -- -----------------------------------------------------------------------------
-INSERT INTO "SessionRescheduleRequests" (
-    "Id", "SessionId", "ProposerUserId", "RecipientUserId",
-    "ProposedStartAt", "ProposedEndAt", "Reason",
-    "Status", "RejectionReason", "CreatedAt", "RespondedAt"
-)
-VALUES
-    ('ba05ba05-0001-0000-0000-000000000001', 'a1a1a1a1-0001-0000-0000-000000000002', '22222222-1111-1111-1111-111111111111', '55555555-1111-1111-1111-111111111111', NOW() + INTERVAL '2 days', NOW() + INTERVAL '2 days' + INTERVAL '1 hour', 'Thầy có lịch tập huấn tại trường, xin phép dời sang tối thứ 6 nhé.', 'Pending', NULL, NOW() - INTERVAL '6 hours', NULL),
-    ('ba05ba05-0001-0000-0000-000000000002', 'a1a1a1a1-0001-0000-0000-000000000014', '44444444-1111-1111-1111-111111111111', '55555555-2222-1111-1111-111111111111', NOW() + INTERVAL '3 days', NOW() + INTERVAL '3 days' + INTERVAL '1 hour', 'Trùng lịch thi giữa kỳ, dời sang chiều Chủ Nhật.', 'Accepted', NULL, NOW() - INTERVAL '3 days', NOW() - INTERVAL '2 days'),
-    ('ba05ba05-0001-0000-0000-000000000003', 'a1a1a1a1-0001-0000-0000-000000000020', '44444444-4444-1111-1111-111111111111', '55555555-4444-1111-1111-111111111111', NOW() + INTERVAL '2 days' + INTERVAL '15 hours', NOW() + INTERVAL '2 days' + INTERVAL '16 hours' + INTERVAL '30 minutes', 'Gia sư có việc gia đình đột xuất.', 'Rejected', 'Học viên vướng lịch học thêm tiếng Anh', NOW() - INTERVAL '4 days', NOW() - INTERVAL '3 days'),
-    ('ba05ba05-0001-0000-0000-000000000004', 'a1a1a1a1-0001-0000-0000-000000000012', '44444444-1111-1111-1111-111111111111', '55555555-2222-1111-1111-111111111111', NOW() - INTERVAL '8 days', NOW() - INTERVAL '8 days' + INTERVAL '1 hour', 'Đổi lịch sang buổi tối cho mát mẻ.', 'Accepted', NULL, NOW() - INTERVAL '10 days', NOW() - INTERVAL '9 days'),
-    ('ba05ba05-0001-0000-0000-000000000005', 'a1a1a1a1-0001-0000-0000-000000000015', '44444444-3333-1111-1111-111111111111', '55555555-3333-1111-1111-111111111111', NOW() - INTERVAL '6 days', NOW() - INTERVAL '6 days' + INTERVAL '1 hour', 'Sensei có lịch họp khoa.', 'Accepted', NULL, NOW() - INTERVAL '8 days', NOW() - INTERVAL '7 days'),
-    ('ba05ba05-0001-0000-0000-000000000006', 'a1a1a1a1-0001-0000-0000-000000000018', '44444444-4444-1111-1111-111111111111', '55555555-4444-1111-1111-111111111111', NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days' + INTERVAL '90 minutes', 'Dời buổi 1 sang chiều thứ 7.', 'Accepted', NULL, NOW() - INTERVAL '7 days', NOW() - INTERVAL '6 days');
-
 -- -----------------------------------------------------------------------------
 -- 23. LEARNING RECORDS (10 Summaries)
 -- -----------------------------------------------------------------------------
@@ -1403,13 +1372,6 @@ INSERT INTO "TutorSubjects" ("Id", "TutorProfileId", "SubjectId", "IsActive") VA
 ON CONFLICT ("TutorProfileId", "SubjectId") DO NOTHING;
 
 -- 8. AVAILABILITY SLOTS
-INSERT INTO "AvailabilitySlots" ("Id", "TutorProfileId", "DayOfWeek", "StartTime", "EndTime", "IsActive")
-SELECT ('b0a10000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid, ('b2000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid, 'Monday', '18:00:00'::time, '21:00:00'::time, true FROM generate_series(1, 50) AS i ON CONFLICT ("Id") DO NOTHING;
-INSERT INTO "AvailabilitySlots" ("Id", "TutorProfileId", "DayOfWeek", "StartTime", "EndTime", "IsActive")
-SELECT ('b0a20000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid, ('b2000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid, 'Wednesday', '18:00:00'::time, '21:00:00'::time, true FROM generate_series(1, 50) AS i ON CONFLICT ("Id") DO NOTHING;
-INSERT INTO "AvailabilitySlots" ("Id", "TutorProfileId", "DayOfWeek", "StartTime", "EndTime", "IsActive")
-SELECT ('b0a30000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid, ('b2000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid, 'Saturday', '08:30:00'::time, '11:30:00'::time, true FROM generate_series(1, 50) AS i ON CONFLICT ("Id") DO NOTHING;
-
 -- 9. SERVICES (150 Services: 3 per tutor, tailored to their actual subject expertise)
 INSERT INTO "Services" (
     "Id", "TutorProfileId", "SubjectId", "Title", "Description", 
