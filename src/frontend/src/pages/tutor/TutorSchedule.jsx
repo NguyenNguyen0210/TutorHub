@@ -1,37 +1,41 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/cn';
 import sessionService from '@/services/session.service';
 import { enrollmentService } from '@/services/enrollment.service';
-import { getSessionStatusMeta } from '@/config/enums';
-import { formatDateTime } from '@/utils/formatters';
+import { formatDateTime, formatCurrency } from '@/utils/formatters';
+import { getMinNoticeDateTimeLocal, assertMinNotice } from '@/utils/scheduling';
 import { CardSkeleton } from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
-import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import Tabs from '@/components/ui/Tabs';
 import { useToast } from '@/components/ui/Toast';
+import StateBadge from '@/components/ledger/StateBadge';
 
 /**
- * Returns min datetime-local string (now + 24 hours + 5 min margin)
+ * Lịch dạy của gia sư — Operational Ledger (SPEC Tutor §4.2).
+ *
+ * Bố cục 2 tab, tab state nằm trên URL (`?tab=`) để link từ Action Queue ở
+ * dashboard mở thẳng đúng nhánh.
+ *
+ * Ba bug đã sửa ở đây:
+ *  - EmptyState nhận `icon` dạng chuỗi và CTA qua `actionLabel`/`onAction`; trước
+ *    đó truyền element + prop `action` không tồn tại nên CTA bị bỏ rơi.
+ *  - Icon `clock` / `user` / `checkCircle` không có trong `iconMap.js`, âm thầm
+ *    fallback về CircleHelp.
+ *  - Cả hai luồng xếp lịch đều thiếu kiểm tra 24h, chỉ dựa vào thuộc tính `min`
+ *    của `datetime-local` (bypass được). Bất biến này giờ kiểm ở client.
  */
-function getMinNoticeDateTimeLocal() {
-  const minDate = new Date(Date.now() + 24 * 60 * 60 * 1000 + 5 * 60 * 1000);
-  const year = minDate.getFullYear();
-  const month = String(minDate.getMonth() + 1).padStart(2, '0');
-  const day = String(minDate.getDate()).padStart(2, '0');
-  const hours = String(minDate.getHours()).padStart(2, '0');
-  const minutes = String(minDate.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
-
 export default function TutorSchedule() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
 
-  const activeTab = searchParams.get('tab') || (searchParams.get('filter') === 'unscheduled' ? 'unscheduled' : 'upcoming');
+  const activeTab =
+    searchParams.get('tab') ||
+    (searchParams.get('filter') === 'unscheduled' ? 'unscheduled' : 'upcoming');
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -50,44 +54,51 @@ export default function TutorSchedule() {
       setLoading(true);
       setError(null);
 
-      // 1. Fetch all upcoming/active sessions
       const sessions = await sessionService.getMySessions();
       const sessionList = Array.isArray(sessions) ? sessions : [];
 
-      // Sort upcoming sessions with a startAt date
       const scheduledSessions = sessionList
         .filter((s) => s.status === 'Scheduled' || (s.startAt && s.status !== 'Cancelled'))
         .sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
       setUpcomingSessions(scheduledSessions);
 
-      // 2. Fetch active enrollments to find unscheduled sessions
-      const enrollmentsPaged = await enrollmentService.getMyEnrollments({ status: 'Active', pageSize: 20 });
-      const enrollments = enrollmentsPaged?.items || [];
+      // `GET /sessions` đã trả cả session `Unscheduled` kèm `enrollmentId`, nên ta
+      // chỉ cần mở chi tiết cho những hợp đồng thực sự có buổi chưa xếp. Trước đây
+      // trang này gọi `getEnrollmentById` cho *mọi* hợp đồng Active rồi mới lọc
+      // (N+1 request) — giữ nguyên endpoint, chỉ bỏ các call thừa.
+      const enrollmentIdsWithUnscheduled = new Set(
+        sessionList.filter((s) => s.status === 'Unscheduled').map((s) => s.enrollmentId)
+      );
 
-      // Fetch details for each enrollment to get its session list
+      const enrollmentsPaged = await enrollmentService.getMyEnrollments({
+        status: 'Active',
+        pageSize: 20,
+      });
+      const enrollments = (enrollmentsPaged?.items || []).filter((e) =>
+        enrollmentIdsWithUnscheduled.has(e.id)
+      );
+
       const detailedEnrollments = await Promise.all(
         enrollments.map(async (e) => {
           try {
-            const detail = await enrollmentService.getEnrollmentById(e.id);
-            return detail;
+            return await enrollmentService.getEnrollmentById(e.id);
           } catch {
             return null;
           }
         })
       );
 
-      const needingSchedule = detailedEnrollments
-        .filter(Boolean)
-        .map((enrollment) => {
-          const unscheduled = (enrollment.sessions || []).filter((s) => s.status === 'Unscheduled');
-          return {
+      setEnrollmentsWithUnscheduled(
+        detailedEnrollments
+          .filter(Boolean)
+          .map((enrollment) => ({
             ...enrollment,
-            unscheduledSessions: unscheduled,
-          };
-        })
-        .filter((e) => e.unscheduledSessions.length > 0);
-
-      setEnrollmentsWithUnscheduled(needingSchedule);
+            unscheduledSessions: (enrollment.sessions || []).filter(
+              (s) => s.status === 'Unscheduled'
+            ),
+          }))
+          .filter((e) => e.unscheduledSessions.length > 0)
+      );
     } catch (err) {
       setError(err);
     } finally {
@@ -109,11 +120,19 @@ export default function TutorSchedule() {
   };
 
   const handleDateChange = (sessionId, value) => {
-    setFormValues((prev) => ({
-      ...prev,
-      [sessionId]: value,
-    }));
+    setFormValues((prev) => ({ ...prev, [sessionId]: value }));
   };
+
+  const clearFormValues = (sessionIds) => {
+    setFormValues((prev) => {
+      const next = { ...prev };
+      sessionIds.forEach((id) => delete next[id]);
+      return next;
+    });
+  };
+
+  const computeEnd = (startAt, durationMinutes) =>
+    new Date(new Date(startAt).getTime() + (durationMinutes || 60) * 60 * 1000);
 
   // Schedule a single session
   const handleScheduleSingle = async (session, durationMinutes) => {
@@ -123,22 +142,26 @@ export default function TutorSchedule() {
       return;
     }
 
+    // B-7: bất biến báo trước 24h, kiểm ở client thay vì trông backend từ chối.
+    const noticeError = assertMinNotice(new Date(localVal));
+    if (noticeError) {
+      toast.error(noticeError);
+      return;
+    }
+
     try {
       setSubmittingSessionId(session.id);
       const startAtDate = new Date(localVal);
-      const endAtDate = new Date(startAtDate.getTime() + (durationMinutes || 60) * 60 * 1000);
+      const endAtDate = computeEnd(startAtDate, durationMinutes);
 
-      await sessionService.scheduleSession(session.id, startAtDate.toISOString(), endAtDate.toISOString());
+      await sessionService.scheduleSession(
+        session.id,
+        startAtDate.toISOString(),
+        endAtDate.toISOString()
+      );
 
       toast.success(`Buổi ${session.sessionNumber} đã được xếp lịch thành công.`);
-
-      // Clear the local input value and reload data
-      setFormValues((prev) => {
-        const next = { ...prev };
-        delete next[session.id];
-        return next;
-      });
-
+      clearFormValues([session.id]);
       await loadData();
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Không thể xếp lịch buổi học.');
@@ -154,19 +177,24 @@ export default function TutorSchedule() {
 
     for (const session of enrollment.unscheduledSessions) {
       const localVal = formValues[session.id];
-      if (localVal) {
-        const startAtDate = new Date(localVal);
-        const endAtDate = new Date(startAtDate.getTime() + durationMinutes * 60 * 1000);
-        items.push({
-          sessionId: session.id,
-          startAt: startAtDate.toISOString(),
-          endAt: endAtDate.toISOString(),
-        });
-      }
+      if (!localVal) continue;
+      const startAtDate = new Date(localVal);
+      items.push({
+        sessionId: session.id,
+        startAt: startAtDate.toISOString(),
+        endAt: computeEnd(startAtDate, durationMinutes).toISOString(),
+      });
     }
 
     if (items.length === 0) {
       toast.error('Vui lòng chọn thời gian cho ít nhất một buổi học để xếp lịch.');
+      return;
+    }
+
+    // B-7: kiểm 24h cho toàn bộ lô, không chỉ buổi đầu.
+    const offending = items.find((i) => assertMinNotice(i.startAt));
+    if (offending) {
+      toast.error(assertMinNotice(offending.startAt));
       return;
     }
 
@@ -175,16 +203,7 @@ export default function TutorSchedule() {
       await sessionService.scheduleSessionsBatch(items);
 
       toast.success(`Đã xếp lịch cho ${items.length} buổi học.`);
-
-      // Clear scheduled session inputs
-      setFormValues((prev) => {
-        const next = { ...prev };
-        items.forEach((item) => {
-          delete next[item.sessionId];
-        });
-        return next;
-      });
-
+      clearFormValues(items.map((i) => i.sessionId));
       await loadData();
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Không thể xếp lịch.');
@@ -193,42 +212,32 @@ export default function TutorSchedule() {
     }
   };
 
-  const totalUnscheduledCount = useMemo(() => {
-    return enrollmentsWithUnscheduled.reduce((acc, curr) => acc + (curr.unscheduledSessions?.length || 0), 0);
-  }, [enrollmentsWithUnscheduled]);
+  const totalUnscheduledCount = useMemo(
+    () =>
+      enrollmentsWithUnscheduled.reduce(
+        (acc, curr) => acc + (curr.unscheduledSessions?.length || 0),
+        0
+      ),
+    [enrollmentsWithUnscheduled]
+  );
 
-  // Tabs đọc `key` (không phải `id`) và `value` (không phải `activeTab`) — xem components/ui/Tabs.jsx
+  // Tabs đọc `key` / `value` — xem components/ui/Tabs.jsx
   const tabs = [
-    {
-      key: 'upcoming',
-      label: `Lịch dạy sắp tới (${upcomingSessions.length})`,
-    },
-    {
-      key: 'unscheduled',
-      label: `Cần xếp lịch (${totalUnscheduledCount})`,
-    },
+    { key: 'upcoming', label: `Lịch dạy sắp tới (${upcomingSessions.length})` },
+    { key: 'unscheduled', label: `Cần xếp lịch (${totalUnscheduledCount})` },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Lịch dạy</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Quản lý lịch học và sắp xếp buổi dạy cho các lớp học của bạn
-          </p>
-        </div>
+      <div>
+        <h1 className="text-headline-page text-fg tracking-tight">Lịch dạy</h1>
+        <p className="text-body-reg text-fg-secondary mt-1">
+          Xếp lịch buổi dạy cho các lớp học. Quy tắc báo trước tối thiểu 24 giờ.
+        </p>
       </div>
 
-      {/* Tabs */}
-      <Tabs
-        tabs={tabs}
-        value={activeTab}
-        onChange={handleTabChange}
-      />
+      <Tabs tabs={tabs} value={activeTab} onChange={handleTabChange} />
 
-      {/* Loading & Error States */}
       {loading && (
         <div className="space-y-4">
           <CardSkeleton count={3} />
@@ -243,136 +252,157 @@ export default function TutorSchedule() {
         />
       )}
 
-      {/* Tab 1: Upcoming Scheduled Sessions */}
+      {/* ── Tab 1: buổi đã xếp lịch ─────────────────────────── */}
       {!loading && !error && activeTab === 'upcoming' && (
         <div className="space-y-3">
           {upcomingSessions.length === 0 ? (
+            /* B-4 + B-5: icon là chuỗi, CTA đi qua actionLabel + onAction.
+       Trước đây prop `action` không tồn tại nên nút bị bỏ rơi — mất đường điều hướng. */
             <EmptyState
-              icon={<Icon name="calendar" size="lg" className="text-gray-400" />}
+              icon="calendar_month"
               title="Chưa có buổi học nào sắp tới"
               description="Các buổi học sau khi được xếp lịch sẽ hiển thị tại đây."
-              action={
-                totalUnscheduledCount > 0 ? (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => handleTabChange('unscheduled')}
-                  >
-                    Xem {totalUnscheduledCount} buổi cần xếp lịch
-                  </Button>
-                ) : null
+              actionLabel={
+                totalUnscheduledCount > 0
+                  ? `Xem ${totalUnscheduledCount} buổi cần xếp lịch`
+                  : undefined
+              }
+              onAction={
+                totalUnscheduledCount > 0 ? () => handleTabChange('unscheduled') : undefined
               }
             />
           ) : (
-            upcomingSessions.map((session) => {
-              const meta = getSessionStatusMeta(session.status);
-              return (
-                <div
-                  key={session.id}
-                  className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-gray-300 transition-colors shadow-sm"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex flex-col items-center justify-center shrink-0 border border-blue-100">
-                      <span className="text-xs font-medium uppercase">
-                        {session.startAt ? new Date(session.startAt).toLocaleDateString('vi-VN', { weekday: 'short' }) : 'Buổi'}
-                      </span>
-                      <span className="text-sm font-bold">
-                        {session.sessionNumber}
-                      </span>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-gray-900 text-base">
-                          {session.subjectName || 'Buổi học'}
-                        </h3>
-                        <Badge variant={meta.color || 'info'} size="sm">
-                          {meta.label}
-                        </Badge>
-                      </div>
-
-                      <div className="text-sm text-gray-600 mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
-                        <span className="flex items-center gap-1.5 font-medium text-gray-700">
-                          <Icon name="clock" size="xs" className="text-gray-400" />
-                          {session.startAt ? formatDateTime(session.startAt, 'DD/MM/YYYY HH:mm') : 'Chưa xếp'}
-                          {session.endAt ? ` - ${formatDateTime(session.endAt, 'HH:mm')}` : ''}
-                        </span>
-
-                        {session.studentName && (
-                          <span className="flex items-center gap-1.5">
-                            <Icon name="user" size="xs" className="text-gray-400" />
-                            Học viên: {session.studentName}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+            upcomingSessions.map((session) => (
+              <article
+                key={session.id}
+                className="bg-surface border border-border rounded-brand-lg shadow-brand-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-brand-primary-200 hover:shadow-brand-md transition-all"
+              >
+                <div className="flex items-start gap-4">
+                  <div
+                    aria-hidden="true"
+                    className="w-12 h-12 rounded-brand-md bg-brand-primary-50 text-brand-primary-700 border border-brand-primary-100 flex flex-col items-center justify-center shrink-0"
+                  >
+                    <span className="text-[10px] font-medium uppercase">
+                      {session.startAt
+                        ? new Date(session.startAt).toLocaleDateString('vi-VN', {
+                            weekday: 'short',
+                          })
+                        : 'Buổi'}
+                    </span>
+                    <span className="text-sm font-bold tabular-nums">
+                      {session.sessionNumber}
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-2 self-end sm:self-center">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/tutor/sessions/${session.id}`)}
-                    >
-                      Chi tiết
-                    </Button>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-[15px] font-semibold text-fg leading-snug">
+                        {session.subjectName || 'Buổi học'}
+                      </h2>
+                      <StateBadge status={session.status} domain="session" />
+                    </div>
+
+                    <div className="text-caption text-fg-secondary mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <span className="flex items-center gap-1.5 font-medium text-fg tabular-nums">
+                        <Icon name="timer" size="xs" className="text-fg-muted" />
+                        {session.startAt
+                          ? formatDateTime(session.startAt, 'DD/MM/YYYY HH:mm')
+                          : 'Chưa xếp'}
+                        {session.endAt ? ` - ${formatDateTime(session.endAt, 'HH:mm')}` : ''}
+                      </span>
+
+                      {session.studentName && (
+                        <span className="flex items-center gap-1.5">
+                          <Icon name="person" size="xs" className="text-fg-muted" />
+                          Học viên: {session.studentName}
+                        </span>
+                      )}
+
+                      {session.earningAmount > 0 && (
+                        <span className="flex items-center gap-1.5 tabular-nums">
+                          <Icon name="account_balance_wallet" size="xs" className="text-fg-muted" />
+                          {formatCurrency(session.earningAmount)} ký quỹ
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              );
-            })
+
+                <div className="flex items-center gap-2 self-end sm:self-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/tutor/sessions/${session.id}`)}
+                  >
+                    Chi tiết
+                  </Button>
+                </div>
+              </article>
+            ))
           )}
         </div>
       )}
 
-      {/* Tab 2: Enrollments with Unscheduled Sessions */}
+      {/* ── Tab 2: buổi chưa xếp lịch ───────────────────────── */}
       {!loading && !error && activeTab === 'unscheduled' && (
         <div className="space-y-6">
           {enrollmentsWithUnscheduled.length === 0 ? (
             <EmptyState
-              icon={<Icon name="checkCircle" size="lg" className="text-green-500" />}
+              icon="check_circle"
               title="Tất cả buổi học đã được xếp lịch!"
               description="Hiện tại không có buổi học nào cần xếp lịch."
             />
           ) : (
             <>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 flex items-start gap-3">
-                <Icon name="info" size="sm" className="text-amber-600 shrink-0 mt-0.5" />
+              <div className="p-4 rounded-brand-md bg-holding-subtle border border-holding/30 text-caption text-holding-strong flex items-start gap-3">
+                <Icon name="info" size="sm" className="shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold">Quy tắc xếp lịch:</p>
-                  <p className="mt-0.5">
-                    Buổi học phải được xếp lịch trước giờ bắt đầu ít nhất 24 giờ.
-                    Bạn có thể xếp từng buổi hoặc điền nhiều buổi rồi nhấn <strong>Xếp tất cả</strong>. Các buổi chưa chọn thời gian sẽ giữ nguyên trạng thái chưa xếp để bạn xếp dần sau.
+                  <p className="font-semibold m-0">Quy tắc xếp lịch:</p>
+                  <p className="mt-0.5 mb-0">
+                    Buổi học phải được xếp lịch trước giờ bắt đầu ít nhất 24 giờ. Bạn có thể
+                    xếp từng buổi hoặc điền nhiều buổi rồi nhấn <strong>Xếp tất cả</strong>.
+                    Các buổi chưa chọn thời gian sẽ giữ nguyên trạng thái chưa xếp để bạn xếp
+                    dần sau.
                   </p>
                 </div>
               </div>
 
               {enrollmentsWithUnscheduled.map((enrollment) => {
-                const filledCount = enrollment.unscheduledSessions.filter((s) => Boolean(formValues[s.id])).length;
+                const filledCount = enrollment.unscheduledSessions.filter((s) =>
+                  Boolean(formValues[s.id])
+                ).length;
                 const isBatchSubmitting = submittingEnrollmentId === enrollment.id;
 
                 return (
-                  <div
+                  <section
                     key={enrollment.id}
-                    className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm space-y-4"
+                    className="bg-surface border border-border rounded-brand-lg shadow-brand-sm p-5 space-y-4"
                   >
-                    {/* Enrollment Card Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-gray-100">
-                      <div>
-                        <h2 className="text-lg font-bold text-gray-900">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-border">
+                      <div className="min-w-0">
+                        <h2 className="text-[20px] font-semibold text-fg tracking-tight">
                           {enrollment.subjectName || 'Khóa học'}
                         </h2>
-                        <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-3">
-                          <span>Thời lượng: {enrollment.sessionDurationMinutes || 60} phút/buổi</span>
-                          <span>•</span>
-                          <span>Tổng số buổi: {enrollment.totalSessions}</span>
-                          <span>•</span>
-                          <span className="text-amber-600 font-medium">
+                        <div className="text-caption text-fg-muted mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                          <span>
+                            Thời lượng: {enrollment.sessionDurationMinutes || 60} phút/buổi
+                          </span>
+                          <span aria-hidden="true">•</span>
+                          <span className="tabular-nums">
+                            Tổng số buổi: {enrollment.totalSessions}
+                          </span>
+                          <span aria-hidden="true">•</span>
+                          <span className="text-holding-strong font-semibold tabular-nums">
                             Còn {enrollment.unscheduledSessions.length} buổi chưa xếp
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="sr-only" aria-live="polite">
+                          Đã điền {filledCount} trên {enrollment.unscheduledSessions.length}{' '}
+                          buổi
+                        </span>
                         <Button
                           variant="primary"
                           size="sm"
@@ -385,29 +415,35 @@ export default function TutorSchedule() {
                       </div>
                     </div>
 
-                    {/* Unscheduled Sessions Rows */}
-                    <div className="space-y-3">
+                    <ul className="space-y-3">
                       {enrollment.unscheduledSessions.map((session) => {
                         const localVal = formValues[session.id] || '';
                         const isSubmittingThis = submittingSessionId === session.id;
 
                         let calculatedEnd = '';
                         if (localVal) {
-                          const startD = new Date(localVal);
-                          const endD = new Date(startD.getTime() + (enrollment.sessionDurationMinutes || 60) * 60 * 1000);
-                          calculatedEnd = `${String(endD.getHours()).padStart(2, '0')}:${String(endD.getMinutes()).padStart(2, '0')}`;
+                          const endD = computeEnd(
+                            localVal,
+                            enrollment.sessionDurationMinutes || 60
+                          );
+                          calculatedEnd = `${String(endD.getHours()).padStart(2, '0')}:${String(
+                            endD.getMinutes()
+                          ).padStart(2, '0')}`;
                         }
 
                         return (
-                          <div
+                          <li
                             key={session.id}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100"
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-brand-md bg-neutral-50 border border-border"
                           >
-                            <div className="flex items-center gap-3">
-                              <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center shrink-0">
-                                #{session.sessionNumber}
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span
+                                aria-hidden="true"
+                                className="w-8 h-8 rounded-full bg-brand-primary-50 text-brand-primary-700 font-bold text-caption flex items-center justify-center shrink-0 tabular-nums"
+                              >
+                                {session.sessionNumber}
                               </span>
-                              <span className="font-medium text-gray-800 text-sm">
+                              <span className="text-caption font-medium text-fg">
                                 Buổi {session.sessionNumber}
                               </span>
                             </div>
@@ -420,10 +456,14 @@ export default function TutorSchedule() {
                                   min={minNoticeString}
                                   value={localVal}
                                   onChange={(e) => handleDateChange(session.id, e.target.value)}
-                                  className="text-xs sm:text-sm px-2.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                  className={cn(
+                                    'text-caption px-2.5 py-1.5 border border-border rounded-brand-md',
+                                    'bg-surface text-fg',
+                                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600'
+                                  )}
                                 />
                                 {calculatedEnd && (
-                                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                                  <span className="text-caption text-fg-muted whitespace-nowrap tabular-nums">
                                     → {calculatedEnd}
                                   </span>
                                 )}
@@ -434,16 +474,21 @@ export default function TutorSchedule() {
                                 size="sm"
                                 disabled={!localVal || isSubmittingThis}
                                 loading={isSubmittingThis}
-                                onClick={() => handleScheduleSingle(session, enrollment.sessionDurationMinutes)}
+                                onClick={() =>
+                                  handleScheduleSingle(
+                                    session,
+                                    enrollment.sessionDurationMinutes
+                                  )
+                                }
                               >
                                 Xếp lịch
                               </Button>
                             </div>
-                          </div>
+                          </li>
                         );
                       })}
-                    </div>
-                  </div>
+                    </ul>
+                  </section>
                 );
               })}
             </>

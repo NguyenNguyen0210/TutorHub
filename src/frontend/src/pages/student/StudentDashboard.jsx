@@ -42,10 +42,35 @@ export default function StudentDashboard() {
           enrollmentService.getMyEnrollments({ pageSize: 20 }),
           sessionService.getMySessions(),
         ]);
+        if (!isMounted) return;
+
+        const calendar = Array.isArray(sessionList) ? sessionList : [];
+        setEnrollments(enrollmentRes?.items || []);
+        setError(null);
+
+        // `GET /sessions` trả `SessionCalendarDto` — KHÔNG có
+        // `attendanceVerificationDueAt` / `studentAttendance` / `hasAttendanceConflict`.
+        // Nếu chỉ dựa vào danh sách này thì nhánh "cần đối soát điểm danh" của action
+        // queue sẽ không bao giờ chạy. Ta chỉ hydrate các buổi *đã kết thúc nhưng còn
+        // Scheduled* (thường 0–3 buổi), nên phạm vi gọi thêm vẫn nhỏ và có kiểm soát.
+        const ended = new Date();
+        const candidates = calendar.filter(
+          (s) => s.status === 'Scheduled' && s.endAt && new Date(s.endAt) < ended
+        );
+        if (candidates.length === 0) {
+          setSessions(calendar);
+          return;
+        }
+
+        const details = await Promise.all(
+          candidates.map((s) =>
+            sessionService.getSessionById(s.id).catch(() => null)
+          )
+        );
         if (isMounted) {
-          setEnrollments(enrollmentRes?.items || []);
-          setSessions(Array.isArray(sessionList) ? sessionList : []);
-          setError(null);
+          const byId = new Map();
+          details.filter(Boolean).forEach((d) => byId.set(d.id, d));
+          setSessions(calendar.map((s) => ({ ...s, ...(byId.get(s.id) || {}) })));
         }
       } catch (err) {
         if (isMounted) {
@@ -115,6 +140,8 @@ export default function StudentDashboard() {
       .forEach((s) => {
         items.push({
           key: `attendance-${s.id}`,
+          // Đối soát điểm danh ăn tiền của buổi này còn nằm trong Escrow → ưu tiên cao.
+          priority: 0,
           title: `Buổi #${s.sessionNumber}${s.subjectName ? ` · ${s.subjectName}` : ''} — đối soát điểm danh`,
           detail: 'Cửa sổ 24h đang mở. Chưa xác nhận thì tiền buổi học chưa được giải ngân.',
           deadlineAt: s.attendanceVerificationDueAt,
@@ -137,6 +164,7 @@ export default function StudentDashboard() {
     if (nextSession) {
       items.push({
         key: `next-${nextSession.id}`,
+        priority: 1,
         title: `Buổi #${nextSession.sessionNumber}${
           nextSession.subjectName ? ` · ${nextSession.subjectName}` : ''
         } sắp bắt đầu`,

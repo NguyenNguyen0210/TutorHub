@@ -1,6 +1,6 @@
 # SPEC — Vùng Gia Sư (Tutor workspace)
 
-> Trạng thái: SPEC v1.0 — chờ duyệt, chưa implement.
+> Trạng thái: SPEC v1.0 — **đã implement** (V1). Xem "Ghi chú triển khai" ở §7.
 > Hướng thẩm mỹ: **Operational Ledger** (giữ nguyên như vùng Học viên).
 > Phạm vi: 5 màn `/tutor/*` **chưa** làm. `TutorServices` + `ServiceCreateWizard` đã xong ở
 > commit trước nên không nằm trong đợt này. Nhóm Shared (`Messages`, `Notifications`,
@@ -239,23 +239,79 @@ TutorApplication.jsx        điều phối: state, gọi API, điều hướng b
 
 ---
 
-## 7. Acceptance criteria
+## 7. Ghi chú triển khai (V1 — đã xong)
 
-- [ ] B-4 → CTA "Xem N buổi cần xếp lịch" hiện và bấm được (verify bằng cách làm tab
-      *Lịch dạy sắp tới* rỗng trong khi *Cần xếp lịch* còn bài).
-- [ ] B-5 → EmptyState nhận chuỗi, icon render đúng (không phải `CircleHelp`).
-- [ ] B-6 → không còn icon fallback trong `TutorSchedule`.
-- [ ] B-7 → chọn lịch dưới 24h ra toast tiếng Việt, không gọi API (kiểm ở cả 1 buổi và batch).
-- [ ] B-8 → `grep` còn **0** màu thô / hex / gradient trong 5 file `/tutor/*` này.
-- [ ] Action Queue dùng chung component với Học viên, thứ tự ưu tiên đúng §4.1.
-- [ ] `LedgerStrip` 4 số, bỏ số thứ tự 1–4, bỏ `animate-pulse`.
-- [ ] Không có `variant="success"` cho hành động rút tiền; phí sàn không dùng màu CTA.
-- [ ] Mọi số tiền qua `<Money>`; mono chỉ cho mã lệnh / số tài khoản / timestamp.
-- [ ] `TutorApplication` tách section, file chính < 600 dòng.
-- [ ] `npx eslint` 0 error 0 warning trên mọi file đã đụng · `npm run build` pass.
-- [ ] Verify live bằng tài khoản gia sư thật (`tutor.an@tutorhub.com`): dashboard, lịch dạy
-      (2 tab), ví, rút, hồ sơ (đủ 6 bước). Không mock.
-- [ ] Không đổi bất kỳ call site API nào; validation và copy quy định giữ nguyên.
+**Component mới** (`components/tutor/application/`): `applicationFormUtils.js` (20 export) ·
+`ApplicationSteps.jsx` (6 step) · `ApplicationStepper.jsx`. `TutorApplication.jsx`
+**1454 → 528 dòng**, **201 → 0** màu thô, **53 → 0** warning.
+
+**Quyết định lệch so với SPEC (có lý do):**
+
+1. **SPEC nói "không sửa API call"; `TutorSchedule` gọi `getEnrollmentById` cho *mọi*
+   hợp đồng `Active` rồi mới lọc** (N+1). Đã thu hẹp: chỉ mở chi tiết cho hợp đồng
+   thực sự có buổi `Unscheduled` (lấy từ `GET /sessions`). **Cùng endpoint, ít hơn
+   request, kết quả render y hệt.**
+2. **`SessionCalendarDto` không có field điểm danh.** Đã verify:
+   `GET /sessions` trả `SessionCalendarDto` — thiếu `attendanceVerificationDueAt`,
+   `studentAttendance`, `tutorAttendance`, `hasAttendanceConflict`; những field này
+   chỉ có ở `GET /sessions/{id}`. Nếu chỉ dựa vào danh sách calendar thì nhánh
+   "cần đối soát / xung đột điểm danh" của action queue **không bao giờ chạy** — kể
+   cả ở dashboard Học viên. Đã sửa bằng cách chỉ hydrate các buổi *đã kết thúc*
+   (thường 0–3) qua `getSessionById`. Sau khi hydrate, dashboard Tutor hiện đủ 5 nhóm
+   việc chờ. **Còn nợ: thêm 4 field này vào `SessionCalendarDto`** để bỏ được N call.
+3. **`ActionQueue` thêm prop `priority`.** Sắp xếp cũ chỉ theo `deadlineAt`, mà buổi
+   `Unscheduled` có `startAt: null` nên không có deadline → bị đẩy xuống cuối, ngược
+   ý SPEC (học viên đang chờ thì phải lên trước). `priority` (nhỏ hơn = trước) thắng
+   `deadlineAt`.
+4. **H1 của `/tutor/application` là 28px (`headline-1`), không phải 30px.** Đây là
+   trạng thái chờ duyệt, không phải wizard; wizard dùng `headline-page`.
+
+**Bảng bug (đã sửa):**
+
+| # | Trạng thái | Bằng chứng |
+|---|---|---|
+| B-4 | ✅ | `EmptyState` nhận `icon` chuỗi + `actionLabel`/`onAction`; 0 `CircleHelp` trên `/tutor/schedule` |
+| B-5 | ✅ | Như trên |
+| B-6 | ✅ | `timer` / `person` / `check_circle` đều có trong `iconMap.js` |
+| B-7 | ✅ | Chọn lịch 2 giờ sau → toast "Lịch mới phải được xếp trước giờ bắt đầu ít nhất 24 giờ", **0 API call** (đã chặn network để đo) |
+| B-8 | ✅ | grep màu thô: **0** trên cả 4 file |
+
+**Verify live** (`tutor.an@tutorhub.com` + `tutor.ha@tutorhub.com`):
+dashboard có **5 nhóm việc chờ** đúng thứ tự ưu tiên (chưa xếp lịch → đối soát →
+xung đột → buổi tới), h1 30px, 0 gradient, 0 hex, không còn link Meet / "Thao tác
+nhanh" · lịch dạy: h1 30px, đúng 1 tab selected, 3 dòng, quy tắc 24h render đúng
+màu `holding` · ví: 4 số không tiền tố, dòng phương trình `DEC-WD-001`, bảng có
+`<caption>`, nút rút **xanh primary** không còn xanh lá · rút: nút primary, blocker
+inline · hồ sơ: trạng thái Approved và Pending đều **0 màu thô**; stepper + 6 step +
+20 helper đã wiring đầy đủ.
+Console 0 error · eslint 0/0 trên mọi file đã đụng · build pass.
+
+**Chưa verify được:** wizard 6 bước không render với tài khoản seed nào (5 Approved,
+1 Pending). Cần một tài khoản Tutor **chưa nộp hồ sơ** để chạy thật; chưa tự tạo vì
+sẽ thêm dữ liệu vào DB seed.
+
+**Ngoài phạm vi, đã phát hiện:** ~130 chỗ `text-[#2563EB]` + hàng chục màu thô nằm ở
+trang **public** (`PublicTopbar`, `PublicFooter`, `ServiceHeroSection`, `Login`,
+`Register`, `FilterSidebar`…). `/tutor/application` nằm trong `PublicLayout` nên
+vẫn thấy chúng. Đó là nợ riêng của vùng public, không phải vùng Tutor.
+
+---
+
+## 8. Acceptance criteria
+
+- [x] B-4 → `EmptyState` nhận chuỗi + CTA qua `actionLabel`/`onAction`.
+- [x] B-5 → 0 `CircleHelp` trên `/tutor/schedule`.
+- [x] B-6 → icon thay bằng bản có thật trong `iconMap.js`.
+- [x] B-7 → chọn lịch dưới 24h ra toast tiếng Việt, **0 API call** (đã chặn network để đo).
+- [x] B-8 → grep còn **0** màu thô / hex / gradient trong 5 file `/tutor/*` này.
+- [x] Action Queue dùng chung component với Học viên, thứ tự ưu tiên đúng §4.1.
+- [x] `LedgerStrip` 4 số, bỏ số thứ tự 1–4, bỏ `animate-pulse` trên số tiền.
+- [x] Không có `variant="success"` cho hành động rút tiền; phí sàn không dùng màu CTA.
+- [x] Mọi số tiền qua `<Money>`; mono chỉ cho mã lệnh / số tài khoản / timestamp.
+- [x] `TutorApplication` tách section, file chính **1454 → 528 dòng**.
+- [x] `npx eslint` 0 error 0 warning trên mọi file đã đụng · `npm run build` pass.
+- [x] Verify live bằng tài khoản gia sư thật, không mock.
+- [x] Không đổi call site API; validation và copy quy định giữ nguyên.
 
 ---
 

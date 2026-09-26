@@ -8,6 +8,7 @@ import {
   ATTENDANCE_STATUS_META,
   WITHDRAWAL_STATUS,
   WITHDRAWAL_STATUS_META,
+  TUTOR_APPLICATION_STATUS_META,
 } from '@/config/enums';
 
 /**
@@ -36,6 +37,7 @@ const RESOLVERS = {
   attendance: (v) => ATTENDANCE_STATUS_META[v] || { label: v, color: 'neutral' },
   withdrawal: (v) => WITHDRAWAL_STATUS_META[v] || { label: v, color: 'neutral' },
   topup: (v) => TOPUP_STATUS_META[v] || { label: v, color: 'neutral' },
+  application: (v) => TUTOR_APPLICATION_STATUS_META[v] || { label: v, color: 'neutral' },
 };
 
 export function getStateMeta(domain, value) {
@@ -67,6 +69,7 @@ StateBadge.propTypes = {
     'attendance',
     'withdrawal',
     'topup',
+    'application',
   ]),
   size: PropTypes.oneOf(['sm', 'md']),
   className: PropTypes.string,

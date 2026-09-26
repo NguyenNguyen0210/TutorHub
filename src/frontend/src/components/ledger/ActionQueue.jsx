@@ -33,6 +33,12 @@ export default function ActionQueue({ items, title = 'Việc đang chờ bạn',
     return [...items]
       .filter(Boolean)
       .sort((a, b) => {
+        // `priority` thắng `deadlineAt`: một số việc không có mốc hạn (buổi chưa xếp
+        // lịch → `startAt` null) nhưng vẫn phải lên trước việc có deadline, vì
+        // học viên đang chờ mình chứ không phải vì đồng hồ đang đếm ngược.
+        const pa = a.priority ?? 0;
+        const pb = b.priority ?? 0;
+        if (pa !== pb) return pa - pb;
         const at = a.deadlineAt ? Date.parse(a.deadlineAt) : Number.MAX_SAFE_INTEGER;
         const bt = b.deadlineAt ? Date.parse(b.deadlineAt) : Number.MAX_SAFE_INTEGER;
         return at - bt;
@@ -101,6 +107,8 @@ ActionQueue.propTypes = {
     PropTypes.shape({
       key: PropTypes.string.isRequired,
       title: PropTypes.string.isRequired,
+      /** Số nhỏ hơn = lên trước. Mặc định 0. Ưu tiên trên deadlineAt. */
+      priority: PropTypes.number,
       detail: PropTypes.string,
       deadlineAt: PropTypes.string,
       icon: PropTypes.string,
