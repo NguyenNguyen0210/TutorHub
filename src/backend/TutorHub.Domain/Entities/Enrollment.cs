@@ -151,17 +151,17 @@ public class Enrollment
         CancellationReason = reason;
         CancelledBy = cancelledBy;
 
-        // Cancel all non-completed sessions
-        foreach (var session in Sessions.Where(s => s.Status != SessionStatus.Completed))
+        // Cancel all non-completed and not-already-cancelled sessions
+        var newlyCancelledSessions = Sessions
+            .Where(s => s.Status != SessionStatus.Completed && s.Status != SessionStatus.Cancelled)
+            .ToList();
+
+        foreach (var session in newlyCancelledSessions)
         {
             session.CancelFromEnrollment();
         }
 
-        // Refund = TotalPrice - sum of EarningAmounts of completed sessions only
-        var earnedAmount = Sessions
-            .Where(s => s.Status == SessionStatus.Completed)
-            .Sum(s => s.EarningAmount);
-
-        return TotalPrice - earnedAmount;
+        // Refund matches exactly the unearned, unrefunded sessions' escrow allocations
+        return newlyCancelledSessions.Sum(s => s.EarningAmount);
     }
 }
