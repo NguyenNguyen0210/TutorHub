@@ -153,7 +153,17 @@ public class PayBookingFromWalletCommandHandler : IRequestHandler<PayBookingFrom
                 now
             ));
 
-            await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex) when (IsDuplicateEnrollmentViolation(ex))
+            {
+                await tx.RollbackAsync(cancellationToken);
+                _logger.LogInformation("Wallet payment: concurrent activation for Booking #{BookingId}; treated as already paid.", booking.Id);
+                throw new ConflictException("This booking has already been paid and activated. No duplicate charge was applied.");
+            }
+
             await tx.CommitAsync(cancellationToken);
 
             _logger.LogInformation("Student Wallet payment successful: Booking #{BookingId}, Transaction #{TxId}, Paid={Amount}, Remaining={Balance}",
@@ -168,5 +178,25 @@ public class PayBookingFromWalletCommandHandler : IRequestHandler<PayBookingFrom
                 PaidAt = now
             };
         });
+    }
+
+    private static bool IsDuplicateEnrollmentViolation(DbUpdateException ex)
+    {
+        var inner = ex.InnerException;
+        if (inner == null)
+        {
+            return false;
+        }
+
+        var msg = inner.Message;
+        var constraint = inner.GetType().GetProperty("ConstraintName")?.GetValue(inner) as string;
+        var sqlState = inner.GetType().GetProperty("SqlState")?.GetValue(inner) as string;
+
+        var isUnique = sqlState == "23505" || msg.Contains("23505", StringComparison.OrdinalIgnoreCase);
+        var isEnrollmentIndex = string.Equals(constraint, "IX_Enrollments_BookingId", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("IX_Enrollments_BookingId", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("Enrollments_BookingId", StringComparison.OrdinalIgnoreCase);
+
+        return isUnique && isEnrollmentIndex;
     }
 }
