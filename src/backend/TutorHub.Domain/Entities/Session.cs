@@ -134,6 +134,10 @@ public class Session
             }
             else
             {
+                // INTENTIONAL (FR-ATT-005, DEC-RM10): Any combination other than Attended+Attended
+                // (including Both Absent) is flagged as a conflict. Even though both agree they did
+                // not attend, tutor earnings cannot be released and automatic cancellation without
+                // human review risks unintended contract disruption. It must proceed to resolution.
                 HasAttendanceConflict = true;
             }
         }
