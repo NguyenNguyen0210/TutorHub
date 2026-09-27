@@ -167,6 +167,16 @@ public class AppDbContext : DbContext, IAppDbContext
             var ids = string.Join(",", modifiedStudentWalletTxs.Select(e => e.Entity.Id));
             throw new InvalidOperationException($"StudentWalletTransaction records are append-only and cannot be modified or deleted. Ids: {ids}.");
         }
+
+        // Enforce append-only on TutorWalletTransaction (INV-TUTOR-WALLET-001)
+        var modifiedTutorWalletTxs = ChangeTracker.Entries<TutorWalletTransaction>()
+            .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
+            .ToList();
+        if (modifiedTutorWalletTxs.Count > 0)
+        {
+            var ids = string.Join(",", modifiedTutorWalletTxs.Select(e => e.Entity.Id));
+            throw new InvalidOperationException($"TutorWalletTransaction records are append-only and cannot be modified or deleted. Ids: {ids}.");
+        }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
