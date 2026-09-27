@@ -80,6 +80,8 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [facebookEnabled, setFacebookEnabled] = useState(false);
+  const [appleEnabled, setAppleEnabled] = useState(false);
   const [socialLoading, setSocialLoading] = useState(false);
 
   // Truy vấn dữ liệu gia sư thật từ Database (PostgreSQL)
@@ -113,9 +115,11 @@ export default function Register() {
     let cancelled = false;
     externalAuthService.getProviders()
       .then(({ providers }) => {
-        if (!cancelled && providers.some((p) => String(p).toLowerCase() === 'google')) {
-          setGoogleEnabled(true);
-        }
+        if (cancelled) return;
+        const names = providers.map((p) => String(p).toLowerCase());
+        if (names.includes('google')) setGoogleEnabled(true);
+        if (names.includes('facebook')) setFacebookEnabled(true);
+        if (names.includes('apple')) setAppleEnabled(true);
       })
       .catch((err) => {
         console.warn('[Register] Không tải được OAuth providers:', err);
@@ -161,11 +165,7 @@ export default function Register() {
     }
   };
 
-  const handleSocialRegister = async (provider) => {
-    if (provider !== 'Google') {
-      toast.info(`Đăng ký với ${provider} sẽ sớm có mặt.`);
-      return;
-    }
+  const handleSocialRegister = async (_provider) => {
     try {
       setSocialLoading(true);
       const { authorizeUrl } = await externalAuthService.startGoogleLogin();
@@ -550,8 +550,8 @@ export default function Register() {
                 </span>
               </div>
 
-              {/* 8. 3 Social Buttons */}
-              <div className="grid grid-cols-3 gap-2.5 mt-3">
+              {/* 8. Social Buttons */}
+              <div className="flex flex-wrap gap-2.5 justify-center mt-3">
                 {googleEnabled && (
                 <button
                   type="button"
@@ -564,6 +564,7 @@ export default function Register() {
                 </button>
                 )}
 
+                {facebookEnabled && (
                 <button
                   type="button"
                   onClick={() => handleSocialRegister('Facebook')}
@@ -573,7 +574,9 @@ export default function Register() {
                   <FacebookSvg />
                   <span>Facebook</span>
                 </button>
+                )}
 
+                {appleEnabled && (
                 <button
                   type="button"
                   onClick={() => handleSocialRegister('Apple')}
@@ -583,6 +586,7 @@ export default function Register() {
                   <AppleSvg />
                   <span>Apple</span>
                 </button>
+                )}
               </div>
 
               {/* 9. Bottom Login Link */}
