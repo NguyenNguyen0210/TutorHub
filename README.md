@@ -32,13 +32,10 @@
 1. [Tổng Quan Dự Án](#-tổng-quan-dự-án)
 2. [Kiến Trúc Kỹ Thuật (Architecture)](#-kiến-trúc-kỹ-thuật-architecture)
 3. [Các Tính Năng & Nghiệp Vụ Cốt Lõi](#-các-tính-năng--nghiệp-vụ-cốt-lõi)
-4. [Công Thức & Invariants Tài Chính](#-công-thức--invariants-tài-chính)
-5. [Ngăn Xếp Công Nghệ (Technology Stack)](#-ngăn-xếp-công-nghệ-technology-stack)
-6. [Cấu Trúc Thư Mục Repository](#-cấu-trúc-thư-mục-repository)
-7. [Hướng Dẫn Cài Đặt & Khởi Chạy](#-hướng-dẫn-cài-đặt--khởi-chạy)
-8. [Kiểm Thử Tự Động (Automated Testing)](#-kiểm-thử-tự-động-automated-testing)
-9. [Tài Khoản Dữ Liệu Khởi Tạo (Seed Accounts)](#-tài-khoản-dữ-liệu-khởi-tạo-seed-accounts)
-10. [Bảo Mật & Tiêu Chuẩn Sản Phẩm (Production Readiness)](#-bảo-mật--tiêu-chuẩn-sản-phẩm-production-readiness)
+4. [Ngăn Xếp Công Nghệ (Technology Stack)](#-ngăn-xếp-công-nghệ-technology-stack)
+5. [Cấu Trúc Thư Mục Repository](#-cấu-trúc-thư-mục-repository)
+6. [Hướng Dẫn Cài Đặt & Khởi Chạy](#-hướng-dẫn-cài-đặt--khởi-chạy)
+7. [Kiểm Thử Tự Động (Automated Testing)](#-kiểm-thử-tự-động-automated-testing)
 
 ---
 
@@ -93,15 +90,6 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Các Dịch Vụ Nền Định Kỳ (Background Workers)
-TutorHub vận hành 6 `BackgroundService` độc lập đảm bảo tính nhất quán dữ liệu và tự động hóa quy trình:
-1. **`AutoPayoutJob`**: Quét và tự động giải ngân ký quỹ cho các buổi học đã kết thúc và vượt qua 12 giờ Grace Period mà không có khiếu nại.
-2. **`GracePeriodReminderJob`**: Gửi thông báo nhắc nhở học viên kiểm tra chất lượng buổi học trước khi lệnh tự động giải ngân được thực thi.
-3. **`SessionReminderJob`**: Gửi email và thông báo đẩy nhắc nhở lịch học trước thời điểm bắt đầu cho học viên và gia sư.
-4. **`BookingTimeoutBackgroundService`**: Hủy các đơn đặt lịch quá hạn 15 phút chưa thanh toán, giải phóng slot lịch dạy ngay lập tức.
-5. **`EmailDeliveryJob`**: Xử lý hàng đợi gửi thư điện tử qua Amazon SES hoặc Log-only provider với cơ chế exponential backoff retry.
-6. **`OutboxDispatcherJob`**: Hiện thực mẫu Transactional Outbox, đồng bộ các sự kiện miền phát sinh trong cùng transaction cơ sở dữ liệu.
-
 ---
 
 ## ⚡ Các Tính Năng & Nghiệp Vụ Cốt Lõi
@@ -124,7 +112,7 @@ TutorHub vận hành 6 `BackgroundService` độc lập đảm bảo tính nhấ
   * Sau khi buổi học kết thúc (`SessionStatus.Completed`), kích hoạt cửa sổ chờ 12 giờ (`GracePeriodExpiresAt = CompletedAt + 12h`).
   * Trong 12 giờ này, học viên có quyền báo cáo sự cố hoặc mở khiếu nại tranh chấp nếu buổi học có vấn đề.
   * Nếu học viên báo cáo sự cố, lệnh giải ngân bị đóng băng ngay lập tức, chuyển sang trạng thái tranh chấp.
-  * Nếu không phát sinh sự cố, khi đồng hồ điểm hết 12 giờ, `AutoPayoutJob` sẽ tự động giải ngân thù lao buổi học vào Ví gia sư.
+  * Nếu không phát sinh sự cố, khi đồng hồ điểm hết 12 giờ, hệ thống sẽ tự động giải ngân thù lao buổi học vào Ví gia sư.
 
 ### 5. Hệ Thống Ví & Ký Quỹ Độc Lập (Escrow & Double-Entry Ledger)
 * **Ví gia sư (Tutor Wallet):** Ký quỹ thù lao theo từng buổi học. Toàn bộ tiền học được giữ an toàn trong Escrow và chỉ giải ngân từng buổi khi hoàn thành.
@@ -141,26 +129,6 @@ TutorHub vận hành 6 `BackgroundService` độc lập đảm bảo tính nhấ
 
 ### 8. Kiểm Toán Bất Biến (Immutable Central Audit Log)
 * Mọi giao dịch tài chính (`Transactions`) và nhật ký kiểm toán (`AuditLogs`) được bảo vệ bởi trigger cấp cơ sở dữ liệu: **Append-Only, nghiêm cấm UPDATE và DELETE**.
-
----
-
-## 📐 Công Thức & Invariants Tài Chính
-
-Hệ thống cam đoan tính toàn vẹn tài chính thông qua bộ công thức toán học bất biến được kiểm thử nghiêm ngặt:
-
-1. **Hạn mức rút tiền khả dụng của Gia Sư:**
-   $$\text{WithdrawableBalance} \equiv \text{AvailableBalance} - \text{HeldBalance}$$
-   *(Bảo đảm gia sư không thể rút phần tiền đang bị phong tỏa do có tranh chấp khiếu nại)*
-
-2. **Phân bổ doanh thu từng buổi học (Enrollment Session Allocation):**
-   Với khóa học gồm $N$ buổi có tổng học phí $T$ và tỷ lệ hoa hồng sàn $r$:
-   $$\text{SessionTuition}_i = \begin{cases} \lfloor T / N \rfloor, & i < N \\ T - \sum_{k=1}^{N-1} \text{SessionTuition}_k, & i = N \end{cases}$$
-   $$\text{PlatformFee}_i = \text{Round}(\text{SessionTuition}_i \times r), \quad \text{TutorPayout}_i = \text{SessionTuition}_i - \text{PlatformFee}_i$$
-   *(Triệt tiêu hoàn toàn sai số làm tròn số thập phân, bảo toàn đúng từng đồng tiền)*
-
-3. **Cân đối hoàn trả & thu hồi khi xử lý tranh chấp (Dispute Settlement):**
-   $$\text{StudentRefund} \equiv \text{TutorRecovery} + \text{PlatformFeeReversal}$$
-   *(Đảm bảo tổng tiền hoàn trả cho học viên luôn bằng tổng tiền truy thu từ gia sư cộng với tiền sàn hoàn phí hoa hồng, không làm lệch sổ cái hệ thống)*
 
 ---
 
@@ -317,7 +285,7 @@ dotnet test src/backend/TutorHub.sln --logger "console;verbosity=normal"
 
 ### Chạy Kiểm Thử Từng Dự Án
 ```bash
-# Domain Unit Tests (Invariants & Toán học tài chính)
+# Domain Unit Tests (Invariants & Nghiệp vụ cốt lõi)
 dotnet test src/test/TutorHub.Domain.UnitTests
 
 # Application Unit Tests (CQRS Handlers & Validators)
@@ -339,52 +307,6 @@ playwright install chromium
 # Thực thi bộ test kịch bản tự động giải ngân và khiếu nại
 python scripts/e2e_grace_period.py
 ```
-
----
-
-## 🔑 Tài Khoản Dữ Liệu Khởi Tạo (Seed Accounts)
-
-Mật khẩu chuẩn áp dụng cho tất cả tài khoản dữ liệu mẫu: **`Test@123`**
-
-| Vai Trò | Email Đăng Nhập | Họ và Tên | Mô Tả Dữ Liệu |
-| :--- | :--- | :--- | :--- |
-| **Quản trị viên** | `admin@tutorhub.com` | Quản Trị Viên Hệ Thống | Toàn quyền kiểm soát hệ thống, duyệt hồ sơ gia sư, đối soát tài chính, trọng tài giải quyết khiếu nại |
-| **Gia sư** | `tutor.an@tutorhub.com` | Nguyễn Văn An | Gia sư môn Toán, có sẵn các gói dịch vụ và hợp đồng học tập |
-| **Gia sư** | `tutor.bich@tutorhub.com` | Trần Thị Bích | Gia sư Tiếng Anh IELTS, có lịch dạy và số dư ví ký quỹ |
-| **Gia sư** | `thutrang.math@tutorhub.vn` | ThS. Nguyễn Thị Thu Trang | Gia sư cao cấp môn Toán, hồ sơ mẫu đã được chứng thực |
-| **Gia sư** | `long.vu.dev@tutorhub.vn` | ThS. Vũ Hoàng Long | Gia sư Lập trình C# / .NET & Kiến trúc phần mềm |
-| **Học viên** | `student.tuan@tutorhub.com` | Phạm Minh Tuấn | Học viên mẫu, có ví tiền, lịch học đang diễn ra trong thời gian Grace Period |
-| **Học viên** | `student.lan@tutorhub.com` | Hoàng Lan Anh | Học viên mẫu, đã hoàn thành các khóa học và để lại đánh giá |
-| **Học viên** | `student.bad@tutorhub.com` | Trần Văn Bùng | Học viên mẫu phục vụ kiểm thử vi phạm chính sách & xử phạt |
-
----
-
-## 🛡️ Bảo Mật & Tiêu Chuẩn Sản Phẩm (Production Readiness)
-
-1. **Bảo Mật Xác Thực & Lưu Trữ Phiên (Storage Hygiene):**
-   * Hỗ trợ cơ chế ghi nhớ đăng nhập thông minh: Nếu người dùng chọn `Ghi nhớ đăng nhập`, token được lưu trữ tại `localStorage`. Nếu không chọn, token được bảo quản tại `sessionStorage` và tự động bị hủy khi đóng tab trình duyệt.
-   * Toàn bộ dữ liệu phiên làm việc được thanh tẩy hoàn toàn khi đăng xuất nhằm ngăn chặn tấn công đánh cắp phiên (Session Hijacking).
-2. **Loại Bỏ Console & Debugger Trong Bản Build:**
-   * Cấu hình Vite (`vite.config.js`) tự động loại bỏ toàn bộ lệnh `console.*` và `debugger` trong quá trình biên dịch production, bảo đảm không rò rỉ log nghiệp vụ trên trình duyệt người dùng.
-3. **Cơ Chế Khởi Động An Toàn (StartupSecretGuard):**
-   * Backend API kiểm tra nghiêm ngặt các chuỗi cấu hình nhạy cảm (`Jwt:Secret`, `VnPay:HashSecret`, `RefreshToken:Pepper`) khi khởi động. Ứng dụng sẽ từ chối khởi chạy ở môi trường Production nếu phát hiện các giá trị bí mật đang để chuỗi mặc định hoặc để trống.
-4. **Chuẩn Hóa Ngôn Từ Doanh Nghiệp (Enterprise Copywriting):**
-   * Toàn bộ giao diện người dùng từ Dashboard Quản trị đến màn hình Học viên/Gia sư được biên tập ngôn ngữ nghiệp vụ sư phạm - tài chính chuyên nghiệp, triệt tiêu toàn bộ các mã kỹ thuật (`INV-*`, `DEC-*`, dev badges, mock simulator).
-5. **Giao Diện Không Tràn Ngang (Mobile Zero-Overflow):**
-   * Đã được tự động audit kiểm chứng trên các kích thước màn hình điện thoại thực tế (390px, 320px): đảm bảo `scrollWidth === clientWidth`, trải nghiệm vuốt chạm mượt mà 100%.
-
----
-
-## 📜 Quy Ước Nhánh Git (Branching Workflow)
-
-Repository áp dụng quy chuẩn đặt tên nhánh Git chuẩn quốc tế:
-
-* **Nhánh trục chính:** `main` (Production ổn định), `develop` (Tích hợp phát triển liên tục).
-* **Nhánh chức năng:** `feature/<ten-tinh-nang-kebab-case>` (ví dụ: `feature/tutor-services-redesign`).
-* **Nhánh sửa lỗi:** `fix/<ten-loi-kebab-case>` (ví dụ: `fix/critical-financial-integrity`).
-* **Nhánh tái cấu trúc:** `refactor/<noi-dung-kebab-case>` (ví dụ: `refactor/booking-enrollment`).
-* **Nhánh kiểm thử:** `test/<hang-muc-kebab-case>` (ví dụ: `test/booking`).
-* **Nhánh lưu trữ:** `archive/<ten-nhanh-cu>` (ví dụ: `archive/backup-test-init-before-rebase`).
 
 ---
 
