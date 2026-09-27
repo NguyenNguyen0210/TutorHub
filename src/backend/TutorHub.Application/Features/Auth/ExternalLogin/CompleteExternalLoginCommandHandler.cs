@@ -131,19 +131,12 @@ public class CompleteExternalLoginCommandHandler
                 user = CreateStudent(identity, normalizedEmail, now);
             }
 
-            loginEntry = new ExternalLoginEntity
-            {
-                Id = Guid.NewGuid(),
-                UserId = user.Id,
-                Provider = identity.Provider,
-                ProviderUserId = identity.ProviderUserId,
-                EmailAtLinkTime = normalizedEmail,
-                CreatedAt = now,
-                LastLoginAt = now
-            };
-            _context.ExternalLogins.Add(loginEntry);
+            loginEntry = null!;
         }
 
+        // Validate account status BEFORE creating any ExternalLogin link.
+        // This prevents banned/suspended users from establishing a permanent
+        // OAuth login path that bypasses the email-matching branch on next attempt.
         if (user.Status == AccountStatus.Suspended)
         {
             throw new UnauthorizedException("Your account has been suspended. Please contact support.");
@@ -162,6 +155,22 @@ public class CompleteExternalLoginCommandHandler
         if (user.AccessFailedCount > 0 || user.LockoutEndAt.HasValue)
         {
             user.ResetFailedLogin();
+        }
+
+        // Only create the ExternalLogin link after status validation passes.
+        if (externalLogin is null)
+        {
+            loginEntry = new ExternalLoginEntity
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Provider = identity.Provider,
+                ProviderUserId = identity.ProviderUserId,
+                EmailAtLinkTime = normalizedEmail,
+                CreatedAt = now,
+                LastLoginAt = now
+            };
+            _context.ExternalLogins.Add(loginEntry);
         }
 
         loginEntry.LastLoginAt = now;
