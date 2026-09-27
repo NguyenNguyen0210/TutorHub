@@ -162,8 +162,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddHostedService<OutboxDispatcherJob>();
         services.AddHostedService<EmailDeliveryJob>();
         services.AddHostedService<SessionReminderJob>();
-        services.AddHostedService<AttendanceReminderJob>();
-        services.AddHostedService<AttendanceVerificationJob>();
+        services.AddHostedService<GracePeriodReminderJob>();
+        services.AddHostedService<AutoPayoutJob>();
 
         return services;
     }
