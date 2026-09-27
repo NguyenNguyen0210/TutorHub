@@ -21,9 +21,8 @@ import StateBadge from '@/components/ledger/StateBadge';
 /**
  * Bàn học của học viên — Operational Ledger (SPEC §5.1).
  *
- * Nguyên tắc bố cục: thứ đang chờ mình nằm trên cùng. Cảnh báo đối soát điểm danh
- * 24h là thời điểm tiền học còn bị ký quỹ, nên nó phải là hàng đầu — trước đây nó
- * nằm ẩn sau 4 stat card.
+ * Nguyên tắc bố cục: thứ đang chờ xử lý nằm trên cùng. Cửa sổ báo cáo sự cố
+ * 12h là thời điểm tiền học trong thời gian chờ giải ngân, nên nó nằm ở hàng đầu.
  */
 export default function StudentDashboard() {
   const { user } = useAuthStore();
@@ -49,14 +48,10 @@ export default function StudentDashboard() {
         setError(null);
 
         // `GET /sessions` trả `SessionCalendarDto` — KHÔNG có
-        // `attendanceVerificationDueAt` / `studentAttendance` / `hasAttendanceConflict`.
-        // Nếu chỉ dựa vào danh sách này thì nhánh "cần đối soát điểm danh" của action
-        // queue sẽ không bao giờ chạy. Ta chỉ hydrate các buổi *đã kết thúc nhưng còn
-        // Scheduled* (thường 0–3 buổi), nên phạm vi gọi thêm vẫn nhỏ và có kiểm soát.
-        const ended = new Date();
-        const candidates = calendar.filter(
-          (s) => s.status === 'Scheduled' && s.endAt && new Date(s.endAt) < ended
-        );
+        // `gracePeriodEndsAt` / `hasIssueReport`.
+        // Để hiển thị các buổi trong thời gian chờ giải ngân (AwaitingPayout),
+        // ta hydrate các buổi có status === 'AwaitingPayout'.
+        const candidates = calendar.filter((s) => s.status === 'AwaitingPayout');
         if (candidates.length === 0) {
           setSessions(calendar);
           return;
@@ -121,8 +116,8 @@ export default function StudentDashboard() {
   }, [activeEnrollments]);
 
   /**
-   * Action queue — chỉ những việc học viên phải làm.
-   * Ưu tiên buổi đã diễn ra chưa xác nhận điểm danh (tiền đang bị ký quỹ), sau
+   * Action queue — chỉ những việc học viên có thể cần làm / theo dõi.
+   * Cửa sổ báo cáo sự cố 12h (tiền đang trong thời gian chờ giải ngân), sau
    * đó tới buổi sắp diễn ra. `deadlineAt` để ActionQueue tự sắp xếp tăng dần.
    */
   const queue = useMemo(() => {
@@ -131,20 +126,18 @@ export default function StudentDashboard() {
     sessions
       .filter(
         (s) =>
-          s.status === 'Scheduled' &&
-          s.endAt &&
-          dayjs(s.endAt).isBefore(now) &&
-          s.attendanceVerificationDueAt &&
-          !s.studentAttendance
+          s.status === 'AwaitingPayout' &&
+          !s.hasIssueReport &&
+          s.gracePeriodEndsAt &&
+          dayjs(s.gracePeriodEndsAt).isAfter(now)
       )
       .forEach((s) => {
         items.push({
-          key: `attendance-${s.id}`,
-          // Đối soát điểm danh ăn tiền của buổi này còn nằm trong Escrow → ưu tiên cao.
+          key: `grace-period-${s.id}`,
           priority: 0,
-          title: `Buổi #${s.sessionNumber}${s.subjectName ? ` · ${s.subjectName}` : ''} — đối soát điểm danh`,
-          detail: 'Cửa sổ 24h đang mở. Chưa xác nhận thì tiền buổi học chưa được giải ngân.',
-          deadlineAt: s.attendanceVerificationDueAt,
+          title: `Buổi #${s.sessionNumber}${s.subjectName ? ` · ${s.subjectName}` : ''} — Cửa sổ báo cáo sự cố đang mở`,
+          detail: 'Tiền học sẽ tự động giải ngân cho gia sư sau khi hết thời gian chờ nếu không có sự cố.',
+          deadlineAt: s.gracePeriodEndsAt,
           icon: 'timer',
           tone: 'holding',
           action: (
@@ -155,7 +148,7 @@ export default function StudentDashboard() {
               size="sm"
               className="whitespace-nowrap"
             >
-              Xác nhận
+              Chi tiết buổi học
             </Button>
           ),
         });
@@ -195,13 +188,11 @@ export default function StudentDashboard() {
     return [...enrollments].sort((a, b) => rank(a) - rank(b));
   }, [enrollments]);
 
-  const strikes = user?.absentStrikes ?? 0;
-
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="h-16 bg-neutral-200 rounded-brand-md animate-pulse" />
-        <StatsSkeleton count={4} />
+        <StatsSkeleton count={3} />
       </div>
     );
   }
@@ -269,17 +260,6 @@ export default function StudentDashboard() {
               <span className="text-[20px] text-fg-muted">Chưa có lịch</span>
             ),
             hint: nextSession?.tutorName || (nextSession?.subjectName || '—'),
-          },
-          {
-            key: 'strike',
-            label: 'Chỉ số tín nhiệm',
-            value: (
-              <span className={strikes > 0 ? 'text-danger-strong' : undefined}>
-                {strikes} / 3
-              </span>
-            ),
-            hint: strikes === 0 ? 'Chưa vi phạm vắng mặt' : 'Đã ghi nhận vắng mặt',
-            tone: strikes > 0 ? 'danger' : 'default',
           },
         ]}
       />
@@ -386,7 +366,7 @@ export default function StudentDashboard() {
                 </div>
               </dl>
               <p className="text-[12px] text-fg-muted leading-relaxed border-t border-border pt-2.5 m-0">
-                Tiền chỉ chuyển từ ký quỹ sang đã giải ngân sau khi cả hai bên xác nhận điểm danh.
+                Tiền sẽ tự động giải ngân cho gia sư sau 12 giờ nếu không có báo cáo sự cố.
               </p>
               <Button
                 as={Link}
