@@ -7,7 +7,7 @@ namespace TutorHub.Application.Features.Sessions.Scheduling;
 
 public sealed class SessionSchedulePolicy
 {
-    private const int DefaultMinimumNoticeHours = 24;
+    private const int DefaultMinimumNoticeHours = 2;
     private const string MinimumNoticeHoursKey = "Scheduling:MinimumNoticeHours";
 
     private readonly int _noticeHours;
