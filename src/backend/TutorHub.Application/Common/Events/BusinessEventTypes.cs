@@ -18,8 +18,8 @@ public static class BusinessEventTypes
     public const string SessionScheduled = "SessionScheduled";
     public const string SessionRescheduled = "SessionRescheduled";
     public const string SessionCancelled = "SessionCancelled";
-    public const string AttendanceVerificationRequired = "AttendanceVerificationRequired";
-    public const string AttendanceConflictDetected = "AttendanceConflictDetected";
+    public const string GracePeriodStarted = "GracePeriodStarted";
+    public const string SessionIssueReported = "SessionIssueReported";
     public const string SessionCompleted = "SessionCompleted";
 
     // 4. Financial & Payouts (6 events)
