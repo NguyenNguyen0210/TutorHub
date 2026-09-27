@@ -168,6 +168,11 @@ public class FastTrackResolveDisputeCommandHandlerTests
         seed.Outbox.Select(m => m.EventType).Should().BeEquivalentTo(
             "RefundCreated", "RefundCompleted", "DisputeResolved");
 
+        seed.Wallet.PendingBalance.Should().Be(0m);
+
+        _locker.Verify(l => l.LockDisputeAsync(seed.Dispute.Id, It.IsAny<CancellationToken>()), Times.Once);
+        _locker.Verify(l => l.LockTutorWalletAsync(seed.Enrollment.TutorProfileId, It.IsAny<CancellationToken>()), Times.Once);
+
         _context.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -201,6 +206,9 @@ public class FastTrackResolveDisputeCommandHandlerTests
 
         seed.Wallet.AvailableBalance.Should().Be(800_000m);
         seed.Wallet.PendingBalance.Should().Be(0m);
+
+        _locker.Verify(l => l.LockDisputeAsync(seed.Dispute.Id, It.IsAny<CancellationToken>()), Times.Once);
+        _locker.Verify(l => l.LockTutorWalletAsync(seed.Enrollment.TutorProfileId, It.IsAny<CancellationToken>()), Times.Once);
 
         _context.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
