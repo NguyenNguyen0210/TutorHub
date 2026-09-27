@@ -199,7 +199,6 @@ export default function AppRoutes() {
       </Route>
 
       {/* Deep Link Redirections (from notifications & external URLs) */}
-      <Route path="/student/wallet" element={<RequireAuth><Navigate to="/student/wallet" replace /></RequireAuth>} />
       <Route path="/admin/student-topups" element={<RequireAuth><Navigate to="/admin/student-wallets" replace /></RequireAuth>} />
       <Route path="/admin/student-withdrawals" element={<RequireAuth><Navigate to="/admin/student-wallets" replace /></RequireAuth>} />
       <Route path="/enrollments/:id" element={<RequireAuth><EnrollmentRedirect /></RequireAuth>} />
