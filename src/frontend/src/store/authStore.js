@@ -105,6 +105,31 @@ export const useAuthStore = create((set, get) => ({
     return { success: true, user: mappedUser };
   },
 
+  // Revalidate session from server on app boot — detect bans, suspensions, role changes.
+  revalidateSession: async () => {
+    const token = get().accessToken;
+    if (!token) return;
+    try {
+      const serverUser = await api.get('/auth/me');
+      if (!serverUser || !serverUser.userId) {
+        get().logout();
+        return;
+      }
+      if (serverUser.status === 'Suspended' || serverUser.status === 'Banned') {
+        get().logout();
+        return;
+      }
+      const current = get().user;
+      if (current && (current.role !== serverUser.role || current.fullName !== serverUser.fullName)) {
+        const updated = { ...current, role: serverUser.role, fullName: serverUser.fullName, name: serverUser.fullName };
+        localStorage.setItem('tutorhub_user', JSON.stringify(updated));
+        set({ user: updated, role: serverUser.role });
+      }
+    } catch {
+      // Network error or 401 — silent fail, interceptor handles refresh/logout
+    }
+  },
+
   // Register via real backend API
   registerWithCredentials: async (email, password, fullName, phone, role = 'Student') => {
     const res = await api.post('/auth/register', { email, password, fullName, phone, role });
