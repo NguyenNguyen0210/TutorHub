@@ -82,7 +82,6 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Log out and revoke the specified refresh token.
     /// </summary>
-    [Authorize]
     [HttpPost("logout")]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Logout([FromBody] LogoutRequest request, CancellationToken cancellationToken)
