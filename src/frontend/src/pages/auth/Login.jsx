@@ -119,7 +119,9 @@ export default function Login() {
           setGoogleEnabled(true);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.warn('[Login] Không tải được OAuth providers:', err);
+      });
 
     return () => {
       isMounted = false;
@@ -448,7 +450,7 @@ export default function Login() {
                   type="button"
                   onClick={() => handleSocialLogin('Google')}
                   disabled={socialLoading}
-                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none"
+                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
                 >
                   <GoogleSvg />
                   <span>Google</span>
@@ -459,7 +461,7 @@ export default function Login() {
                   type="button"
                   onClick={() => handleSocialLogin('Facebook')}
                   disabled={socialLoading}
-                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none"
+                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
                 >
                   <FacebookSvg />
                   <span>Facebook</span>
@@ -469,7 +471,7 @@ export default function Login() {
                   type="button"
                   onClick={() => handleSocialLogin('Apple')}
                   disabled={socialLoading}
-                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none"
+                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
                 >
                   <AppleSvg />
                   <span>Apple</span>

@@ -117,7 +117,9 @@ export default function Register() {
           setGoogleEnabled(true);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.warn('[Register] Không tải được OAuth providers:', err);
+      });
 
     return () => {
       isMounted = false;
@@ -555,7 +557,7 @@ export default function Register() {
                   type="button"
                   onClick={() => handleSocialRegister('Google')}
                   disabled={socialLoading}
-                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none"
+                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
                 >
                   <GoogleSvg />
                   <span>Google</span>
@@ -566,7 +568,7 @@ export default function Register() {
                   type="button"
                   onClick={() => handleSocialRegister('Facebook')}
                   disabled={socialLoading}
-                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none"
+                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
                 >
                   <FacebookSvg />
                   <span>Facebook</span>
@@ -576,7 +578,7 @@ export default function Register() {
                   type="button"
                   onClick={() => handleSocialRegister('Apple')}
                   disabled={socialLoading}
-                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none"
+                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
                 >
                   <AppleSvg />
                   <span>Apple</span>
