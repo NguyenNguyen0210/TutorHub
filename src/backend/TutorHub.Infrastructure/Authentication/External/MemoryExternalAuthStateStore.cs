@@ -20,6 +20,7 @@ namespace TutorHub.Infrastructure.Authentication.External;
 public sealed class MemoryExternalAuthStateStore : IExternalAuthStateStore
 {
     private static readonly string StateKeyPrefix = "external-auth:state:";
+    private readonly object _stateLock = new();
 
     private readonly IMemoryCache _cache;
     private readonly ExternalAuthOptions _options;
@@ -61,14 +62,18 @@ public sealed class MemoryExternalAuthStateStore : IExternalAuthStateStore
             return null;
         }
 
-        // Remove BEFORE inspecting: a second attempt with the same state finds
-        // nothing, which is what makes this single-use.
-        if (!_cache.TryGetValue(StateKeyPrefix + state, out PendingExternalAuth? entry) || entry is null)
+        PendingExternalAuth? entry;
+        lock (_stateLock)
         {
-            return null;
-        }
+            // Remove BEFORE inspecting: a second attempt with the same state finds
+            // nothing, which is what makes this single-use.
+            if (!_cache.TryGetValue(StateKeyPrefix + state, out entry) || entry is null)
+            {
+                return null;
+            }
 
-        _cache.Remove(StateKeyPrefix + state);
+            _cache.Remove(StateKeyPrefix + state);
+        }
 
         // A state minted for Google must not complete a Facebook sign-in.
         if (entry.Provider != provider)
