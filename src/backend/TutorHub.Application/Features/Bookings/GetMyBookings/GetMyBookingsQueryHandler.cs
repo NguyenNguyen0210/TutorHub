@@ -62,8 +62,8 @@ public class GetMyBookingsQueryHandler : IRequestHandler<GetMyBookingsQuery, Pag
 
         if (request.ToDate.HasValue)
         {
-            var toUtc = request.ToDate.Value.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
-            query = query.Where(b => b.CreatedAt <= toUtc);
+            var toExclusive = request.ToDate.Value.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            query = query.Where(b => b.CreatedAt < toExclusive);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
