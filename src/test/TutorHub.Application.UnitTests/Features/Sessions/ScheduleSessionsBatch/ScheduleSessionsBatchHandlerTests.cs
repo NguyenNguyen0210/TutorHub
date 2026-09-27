@@ -157,7 +157,7 @@ public class ScheduleSessionsBatchHandlerTests : IDisposable
         var (s1, s2, _, _, tutorUser) = await SeedAggregateAsync();
         _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
         var start1 = _fixedNow.AddDays(2);
-        var badStart = _fixedNow.AddHours(2);
+        var badStart = _fixedNow.AddHours(1);
         var command = new ScheduleSessionsBatchCommand(new List<SessionScheduleItem>
         {
             new(s1.Id, start1, start1.AddHours(1)),

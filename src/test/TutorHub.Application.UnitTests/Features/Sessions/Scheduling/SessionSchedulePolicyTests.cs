@@ -44,13 +44,13 @@ public class SessionSchedulePolicyTests
     [InlineData(null)] // key missing
     [InlineData("-5")] // negative
     [InlineData("abc")] // non-numeric
-    public void RequireSchedulable_FallsBackToDefault24h_WhenConfigMissingOrNegative(string? rawValue)
+    public void RequireSchedulable_FallsBackToDefault2h_WhenConfigMissingOrNegative(string? rawValue)
     {
         var policy = new SessionSchedulePolicy(ConfigWithRawValue(rawValue), FixedClock(Utc(2026, 9, 26, 10, 0)));
 
         var ex = Assert.Throws<BadRequestException>(() =>
-            policy.RequireSchedulable(Utc(2026, 9, 27, 9, 0), Utc(2026, 9, 27, 10, 0)));
-        Assert.Contains(ex.Errors, e => e.Contains("24"));
+            policy.RequireSchedulable(Utc(2026, 9, 26, 11, 0), Utc(2026, 9, 26, 12, 0)));
+        Assert.Contains(ex.Errors, e => e.Contains("2"));
     }
 
     [Fact]

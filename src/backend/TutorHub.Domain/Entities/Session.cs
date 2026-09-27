@@ -131,6 +131,18 @@ public class Session
     /// </summary>
     public void Complete(DateTime? now = null)
     {
+        if (Status != SessionStatus.Scheduled)
+        {
+            throw new InvalidOperationException(
+                $"Cannot complete a session in '{Status}' status. Session must be Scheduled.");
+        }
+
+        if (IsPayoutReleased)
+        {
+            throw new InvalidOperationException(
+                "Payout for this session has already been released.");
+        }
+
         var timestamp = now ?? DateTime.UtcNow;
         Status = SessionStatus.Completed;
         IsPayoutReleased = true;
@@ -147,13 +159,13 @@ public class Session
         if (Status == SessionStatus.Completed || Status == SessionStatus.AwaitingPayout)
         {
             throw new InvalidOperationException(
-                $"Cannot schedule a session in '{Status}' status.");
+                "Cannot reschedule a completed session.");
         }
 
         if (Status == SessionStatus.Cancelled)
         {
             throw new InvalidOperationException(
-                "Cannot schedule a cancelled session.");
+                "Cannot reschedule a cancelled session.");
         }
 
         if (endAt <= startAt)

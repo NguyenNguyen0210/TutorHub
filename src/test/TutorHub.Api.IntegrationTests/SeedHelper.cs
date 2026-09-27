@@ -153,6 +153,11 @@ public static class SeedHelper
         var (commissionAmount, netPayout) = TutorHub.Domain.Services.PlatformFeeCalculator.SplitGross(gross, commissionRate);
 
         var wallet = await db.Wallets.FirstAsync(w => w.TutorProfileId == session.Enrollment.TutorProfileId, ct);
+        if (session.Status == SessionStatus.Unscheduled || session.Status == SessionStatus.Scheduled)
+        {
+            session.Schedule(now.AddHours(-15), now.AddHours(-14));
+            session.TryStartGracePeriod(now.AddHours(-13), TimeSpan.FromHours(12));
+        }
         session.AutoComplete(now);
         session.Enrollment.RecordCompletedSession(session.Id);
 

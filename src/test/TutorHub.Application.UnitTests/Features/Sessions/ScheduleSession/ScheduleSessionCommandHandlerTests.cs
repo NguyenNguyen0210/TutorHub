@@ -98,13 +98,13 @@ public class ScheduleSessionCommandHandlerTests : IDisposable
     {
         var (session, _, _, tutorUser) = await SeedAggregateAsync();
         _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
-        var start = _fixedNow.AddHours(2);
+        var start = _fixedNow.AddHours(1);
         var command = new ScheduleSessionCommand(session.Id, start, start.AddHours(1));
 
         var act = () => CreateHandler().Handle(command, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<BadRequestException>();
-        ex.Which.Errors.Should().Contain(e => e.Contains("24"));
+        ex.Which.Errors.Should().Contain(e => e.Contains("2"));
     }
 
     [Fact]

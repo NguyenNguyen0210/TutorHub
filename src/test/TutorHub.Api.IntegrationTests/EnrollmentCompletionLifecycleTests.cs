@@ -50,7 +50,8 @@ public class EnrollmentCompletionLifecycleTests : IntegrationTestBase
     private async Task CompleteSessionAsync(Guid studentUserId, Guid tutorUserId, Guid sessionId)
     {
         var tracked = await Db.Sessions.Include(s => s.Enrollment).FirstAsync(s => s.Id == sessionId);
-        tracked.Schedule(DateTime.UtcNow.AddHours(-3), DateTime.UtcNow.AddHours(-2));
+        tracked.Schedule(DateTime.UtcNow.AddHours(-15), DateTime.UtcNow.AddHours(-14));
+        tracked.TryStartGracePeriod(DateTime.UtcNow.AddHours(-13), TimeSpan.FromHours(12));
         tracked.AutoComplete(DateTime.UtcNow);
         tracked.Enrollment.RecordCompletedSession(tracked.Id);
         await Db.SaveChangesAsync();

@@ -43,6 +43,7 @@ public class DisputeEvidenceUploadTests : IntegrationTestBase
 
         var session = await Db.Sessions.FirstAsync(s => s.Enrollment.BookingId == booking.Id && s.SessionNumber == 1);
         session.Schedule(DateTime.UtcNow.AddHours(-2), DateTime.UtcNow.AddHours(-1));
+        session.TryStartGracePeriod(DateTime.UtcNow.AddHours(-1), TimeSpan.FromHours(12));
         await Db.SaveChangesAsync();
 
         // Create dispute

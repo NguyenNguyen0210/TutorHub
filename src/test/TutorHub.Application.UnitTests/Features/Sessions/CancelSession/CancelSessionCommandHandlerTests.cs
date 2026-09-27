@@ -90,7 +90,7 @@ public class CancelSessionCommandHandlerTests : IDisposable
     [Fact]
     public async Task Handle_WhenTutorCancelsScheduledSessionInsideNoticeWindow_ThrowsBadRequestException()
     {
-        var start = _fixedNow.AddHours(2);
+        var start = _fixedNow.AddHours(1);
         var (session, _, tutorUser) = await SeedAggregateAsync(scheduledStart: start);
         _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
         var command = new CancelSessionCommand(session.Id, "Change of plans");
@@ -98,7 +98,7 @@ public class CancelSessionCommandHandlerTests : IDisposable
         var act = () => CreateHandler().Handle(command, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<BadRequestException>();
-        ex.Which.Errors.Should().Contain(e => e.Contains("24"));
+        ex.Which.Errors.Should().Contain(e => e.Contains("2"));
         ex.Which.Errors.Should().Contain(e => e.Contains("cancelled"));
     }
 

@@ -49,6 +49,7 @@ public class DisputeFlowTests : IntegrationTestBase
 
         // Schedule in the past at domain level (availability is handler-level concern).
         session.Schedule(DateTime.UtcNow.AddHours(-3), DateTime.UtcNow.AddHours(-2));
+        session.TryStartGracePeriod(DateTime.UtcNow.AddHours(-2), TimeSpan.FromHours(12));
         await Db.SaveChangesAsync();
 
         return (admin.Id, studentUser.Id, session);
