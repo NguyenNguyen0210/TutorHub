@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using TutorHub.Application.Features.Bookings.CreateBooking;
 using TutorHub.Application.Features.Enrollments.Common;
 using TutorHub.Application.Features.Sessions.CancelSession;
-using TutorHub.Application.Features.Sessions.SubmitAttendance;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 
@@ -50,14 +49,11 @@ public class EnrollmentCompletionLifecycleTests : IntegrationTestBase
 
     private async Task CompleteSessionAsync(Guid studentUserId, Guid tutorUserId, Guid sessionId)
     {
-        var tracked = await Db.Sessions.FirstAsync(s => s.Id == sessionId);
+        var tracked = await Db.Sessions.Include(s => s.Enrollment).FirstAsync(s => s.Id == sessionId);
         tracked.Schedule(DateTime.UtcNow.AddHours(-3), DateTime.UtcNow.AddHours(-2));
+        tracked.AutoComplete(DateTime.UtcNow);
+        tracked.Enrollment.RecordCompletedSession(tracked.Id);
         await Db.SaveChangesAsync();
-
-        SetCurrentUser(studentUserId, UserRole.Student);
-        await SendAsync(new SubmitAttendanceCommand(sessionId, AttendanceStatus.Attended));
-        SetCurrentUser(tutorUserId, UserRole.Tutor);
-        await SendAsync(new SubmitAttendanceCommand(sessionId, AttendanceStatus.Attended));
     }
 
     [Fact]

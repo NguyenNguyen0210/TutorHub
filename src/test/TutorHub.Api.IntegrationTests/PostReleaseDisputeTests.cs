@@ -5,10 +5,8 @@ using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Features.Bookings.CreateBooking;
 using TutorHub.Application.Features.Disputes.Commands.AdminResolveDispute;
 using TutorHub.Application.Features.Disputes.Commands.CreateDispute;
-using TutorHub.Application.Features.Disputes.Commands.FastTrackResolveDispute;
 using TutorHub.Application.Features.Disputes.Commands.UploadDisputeEvidence;
 using TutorHub.Application.Features.Enrollments.Common;
-using TutorHub.Application.Features.Sessions.SubmitAttendance;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 
@@ -124,32 +122,8 @@ public class PostReleaseDisputeTests : IntegrationTestBase
         wallet.HeldBalance.Should().Be(0m);
     }
 
-    [Fact]
-    public async Task FastTrack_OnPostReleaseDispute_IsRefused()
-    {
-        // Arrange
-        var (adminId, studentUserId, session) = await SetupReleasedPayoutAsync();
-
-        SetCurrentUser(studentUserId, UserRole.Student);
-        var dispute = await SendAsync(new CreateDisputeCommand(
-            SessionId: session.Id,
-            Reason: DisputeReason.QualityIssue,
-            Description: "Post-release dispute that must not take the fast-track path."));
-
-        // Act
-        SetCurrentUser(adminId, UserRole.Admin);
-        var act = () => SendAsync(new FastTrackResolveDisputeCommand(
-            DisputeId: dispute.Id,
-            AdminNotes: "Attempting fast-track on an already released payout."));
-
-        // Assert
-        var ex = await act.Should().ThrowAsync<ConflictException>();
-        ex.Which.Errors.Should().Contain(e => e.Contains("pre-release escrow only"),
-            "post-release disputes require full investigation instead of the fast-track template");
-    }
-
     /// <summary>
-    /// Seeds a paid session whose payout has already been released (dual Attended), so
+    /// Seeds a paid session whose payout has already been released, so
     /// disputes against it follow the post-release branch.
     /// </summary>
     private async Task<(Guid AdminId, Guid StudentUserId, Session Session)> SetupReleasedPayoutAsync()
@@ -178,12 +152,7 @@ public class PostReleaseDisputeTests : IntegrationTestBase
         session.Schedule(DateTime.UtcNow.AddHours(-3), DateTime.UtcNow.AddHours(-2));
         await Db.SaveChangesAsync();
 
-        SetCurrentUser(studentUser.Id, UserRole.Student);
-        await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
-
-        SetCurrentUser(tutorUser.Id, UserRole.Tutor);
-        var completed = await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
-        completed.Status.Should().Be(SessionStatus.Completed);
+        await SeedHelper.CompleteAndReleasePayoutAsync(Db, session);
 
         return (admin.Id, studentUser.Id, session);
     }

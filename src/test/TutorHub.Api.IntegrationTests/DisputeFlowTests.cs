@@ -6,7 +6,6 @@ using TutorHub.Application.Features.Disputes.Commands.AdminResolveDispute;
 using TutorHub.Application.Features.Disputes.Commands.CreateDispute;
 using TutorHub.Application.Features.Disputes.Commands.UploadDisputeEvidence;
 using TutorHub.Application.Features.Enrollments.Common;
-using TutorHub.Application.Features.Sessions.SubmitAttendance;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 
@@ -56,20 +55,12 @@ public class DisputeFlowTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task DualAttended_ReleasesPayout_ThenPartialRefund_ReconcilesFee()
+    public async Task CompletedSession_ReleasesPayout_ThenPartialRefund_ReconcilesFee()
     {
         // Arrange
         var (adminId, studentUserId, session) = await SetupPaidSessionAsync();
 
-        SetCurrentUser(studentUserId, UserRole.Student);
-        await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
-        var tutorUserId = (await Db.Sessions
-            .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
-            .FirstAsync(s => s.Id == session.Id)).Enrollment.TutorProfile.UserId;
-        SetCurrentUser(tutorUserId, UserRole.Tutor);
-        var completed = await SendAsync(new SubmitAttendanceCommand(session.Id, AttendanceStatus.Attended));
-
-        completed.Status.Should().Be(SessionStatus.Completed);
+        await SeedHelper.CompleteAndReleasePayoutAsync(Db, session);
 
         var payoutTx = await Db.Transactions.AsNoTracking().FirstAsync(t =>
             t.SessionId == session.Id && t.Type == TransactionType.SessionPayoutCredit);

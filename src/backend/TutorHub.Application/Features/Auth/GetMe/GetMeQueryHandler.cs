@@ -46,8 +46,7 @@ public class GetMeQueryHandler : IRequestHandler<GetMeQuery, GetMeResponseDto>
             user.Role.ToString(),
             user.Status.ToString(),
             user.AvatarUrl,
-            idProfile,
-            user.AbsentStrikes
+            idProfile
         );
     }
 }

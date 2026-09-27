@@ -82,13 +82,7 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
             throw new BadRequestException("Tutors cannot book their own services.");
         }
 
-        // 3b. No-show freeze (Q1b): 2+ strikes in 30 days with the latest under 7 days old.
-        // StudentProfile.User is always loaded above (Include) or attached at creation.
         var now = _clock.UtcNow;
-        if (student.User.IsBookingBlocked(now))
-        {
-            throw new ForbiddenException("Booking is temporarily frozen due to repeated no-show absences. Please try again after the freeze period.");
-        }
 
         // Prevent duplicate active holding booking for same student and service (RM13)
         var existingHolding = await _context.Bookings

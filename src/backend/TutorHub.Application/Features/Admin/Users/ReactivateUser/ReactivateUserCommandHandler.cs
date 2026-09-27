@@ -81,7 +81,6 @@ public class ReactivateUserCommandHandler : IRequestHandler<ReactivateUserComman
             Role: user.Role,
             Status: user.Status,
             CreatedAt: user.CreatedAt,
-            AbsentStrikes: user.AbsentStrikes,
             TutorApplicationStatus: latestAppStatus
         );
     }

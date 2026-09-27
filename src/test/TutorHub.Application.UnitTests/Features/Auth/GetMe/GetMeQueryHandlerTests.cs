@@ -37,7 +37,6 @@ public class GetMeQueryHandlerTests
             .WithRole(role)
             .Build();
         user.AvatarUrl = "https://example.com/avatar.jpg";
-        user.AbsentStrikes = 2;
 
         var usersList = new List<User> { user };
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
@@ -59,7 +58,6 @@ public class GetMeQueryHandlerTests
         result.Role.Should().Be(role.ToString());
         result.Status.Should().Be(user.Status.ToString());
         result.AvatarUrl.Should().Be("https://example.com/avatar.jpg");
-        result.AbsentStrikes.Should().Be(2);
     }
 
     [Fact]

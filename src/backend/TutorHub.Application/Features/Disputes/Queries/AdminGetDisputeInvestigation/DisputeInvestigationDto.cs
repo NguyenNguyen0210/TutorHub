@@ -25,11 +25,13 @@ public class SessionInvestigationDto
     public DateTime? EndAt { get; set; }
     public decimal EarningAmount { get; set; }
     public bool IsPayoutReleased { get; set; }
-    public AttendanceStatus? StudentAttendance { get; set; }
-    public DateTime? StudentAttendanceSubmittedAt { get; set; }
-    public AttendanceStatus? TutorAttendance { get; set; }
-    public DateTime? TutorAttendanceSubmittedAt { get; set; }
-    public bool HasAttendanceConflict { get; set; }
+    public DateTime? GracePeriodStartedAt { get; set; }
+    public DateTime? GracePeriodEndsAt { get; set; }
+    public bool HasIssueReport { get; set; }
+    public string? IssueReportReason { get; set; }
+    public string? IssueReportDescription { get; set; }
+    public DateTime? IssueReportedAt { get; set; }
+    public Guid? IssueReportedByUserId { get; set; }
 }
 
 public class EnrollmentInvestigationDto

@@ -18,15 +18,15 @@ public static class NotificationDeliveryPolicy
         BusinessEventTypes.EnrollmentActivated,
         BusinessEventTypes.EnrollmentCancelled,
 
-        // 3. Sessions & Bilateral Attendance
+        // 3. Sessions & Grace Period
         BusinessEventTypes.SessionScheduled,
         BusinessEventTypes.SessionRescheduled,
         BusinessEventTypes.SessionCancelled,
-        BusinessEventTypes.AttendanceVerificationRequired,
-        BusinessEventTypes.AttendanceConflictDetected,
+        BusinessEventTypes.GracePeriodStarted,
+        BusinessEventTypes.SessionIssueReported,
         BusinessEventTypes.SessionCompleted,
         "SessionReminder",
-        "AttendanceReminder",
+        "GracePeriodReminder",
 
         // 4. Financial, Payouts & Escrow
         BusinessEventTypes.EarningCreated,
@@ -54,7 +54,7 @@ public static class NotificationDeliveryPolicy
         BusinessEventTypes.EnrollmentActivated,
         BusinessEventTypes.EnrollmentCancelled,
         BusinessEventTypes.SessionCancelled,
-        BusinessEventTypes.AttendanceConflictDetected,
+        BusinessEventTypes.SessionIssueReported,
         BusinessEventTypes.RefundCreated,
         BusinessEventTypes.RefundCompleted,
         BusinessEventTypes.RefundFailed,

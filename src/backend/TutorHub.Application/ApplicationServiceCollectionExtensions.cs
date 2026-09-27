@@ -27,7 +27,6 @@ public static class ApplicationServiceCollectionExtensions
 
         services.AddScoped<IEnrollmentActivationService, EnrollmentActivationService>();
         services.AddScoped<TutorHub.Application.Common.Interfaces.IStudentWalletService, TutorHub.Application.Features.StudentWallets.Services.StudentWalletService>();
-        services.AddScoped<TutorHub.Application.Common.Interfaces.IFastTrackDisputeLocker, TutorHub.Application.Features.Disputes.Commands.FastTrackResolveDispute.FastTrackDisputeLocker>();
 
         return services;
     }

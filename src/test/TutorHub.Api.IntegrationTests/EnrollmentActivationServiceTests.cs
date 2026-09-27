@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TutorHub.Application.Features.Bookings.CreateBooking;
 using TutorHub.Application.Features.Enrollments.Common;
-using TutorHub.Application.Features.Sessions.SubmitAttendance;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Api.IntegrationTests;
@@ -54,17 +53,14 @@ public class EnrollmentActivationServiceTests : IntegrationTestBase
         sessions.Should().HaveCount(3);
         sessions.Sum(s => s.EarningAmount).Should().Be(900_000m);
 
-        // Act: schedule + dual-attend every session -> all payouts release.
+        // Act: schedule + complete every session -> all payouts release.
         foreach (var s in sessions)
         {
             var tracked = await Db.Sessions.Include(x => x.Enrollment).FirstAsync(x => x.Id == s.Id);
             tracked.Schedule(DateTime.UtcNow.AddHours(-3), DateTime.UtcNow.AddHours(-2));
             await Db.SaveChangesAsync();
 
-            SetCurrentUser(studentUser.Id, UserRole.Student);
-            await SendAsync(new SubmitAttendanceCommand(tracked.Id, AttendanceStatus.Attended));
-            SetCurrentUser(tutorUser.Id, UserRole.Tutor);
-            await SendAsync(new SubmitAttendanceCommand(tracked.Id, AttendanceStatus.Attended));
+            await SeedHelper.CompleteAndReleasePayoutAsync(Db, tracked);
         }
 
         // Assert: escrow fully drained; net credited (1,000,000 + 3 * 270,000).

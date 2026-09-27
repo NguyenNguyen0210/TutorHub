@@ -57,13 +57,18 @@ public class ReportSessionIssueCommandHandler : IRequestHandler<ReportSessionIss
 
             // Auto-create a dispute for admin resolution
             var tutorUserId = session.Enrollment.TutorProfile.UserId;
+            if (!Enum.TryParse<DisputeReason>(request.Reason, true, out var disputeReason))
+            {
+                disputeReason = DisputeReason.Other;
+            }
+
             var dispute = new Dispute
             {
                 Id = Guid.NewGuid(),
                 SessionId = session.Id,
                 InitiatorUserId = userId,
                 RespondentUserId = tutorUserId,
-                Reason = request.Reason,
+                Reason = disputeReason,
                 Description = request.Description,
                 CreatedAt = now
             };

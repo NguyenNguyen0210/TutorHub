@@ -81,7 +81,6 @@ public class UnbanUserCommandHandler : IRequestHandler<UnbanUserCommand, AdminUs
             Role: user.Role,
             Status: user.Status,
             CreatedAt: user.CreatedAt,
-            AbsentStrikes: user.AbsentStrikes,
             TutorApplicationStatus: latestAppStatus
         );
     }

@@ -9,6 +9,5 @@ public record GetMeResponseDto(
     string Role,
     string Status,
     string? AvatarUrl,
-    Guid? IdProfile,
-    int AbsentStrikes = 0
+    Guid? IdProfile
 );

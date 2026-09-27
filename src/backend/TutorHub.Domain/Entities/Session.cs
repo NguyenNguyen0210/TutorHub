@@ -127,6 +127,18 @@ public class Session
     }
 
     /// <summary>
+    /// Direct completion of a session.
+    /// </summary>
+    public void Complete(DateTime? now = null)
+    {
+        var timestamp = now ?? DateTime.UtcNow;
+        Status = SessionStatus.Completed;
+        IsPayoutReleased = true;
+        CompletedAt = timestamp;
+        UpdatedAt = timestamp;
+    }
+
+    /// <summary>
     /// Sets or updates the schedule for this Session.
     /// Valid from Unscheduled or Scheduled status.
     /// </summary>
