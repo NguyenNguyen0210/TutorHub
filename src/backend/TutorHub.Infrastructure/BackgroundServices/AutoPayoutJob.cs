@@ -11,15 +11,15 @@ using TutorHub.Domain.Services;
 
 namespace TutorHub.Infrastructure.BackgroundServices;
 
-public class AttendanceVerificationJob : BackgroundService
+public class AutoPayoutJob : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<AttendanceVerificationJob> _logger;
+    private readonly ILogger<AutoPayoutJob> _logger;
     private readonly IClock _clock;
 
-    public AttendanceVerificationJob(
+    public AutoPayoutJob(
         IServiceScopeFactory scopeFactory,
-        ILogger<AttendanceVerificationJob> logger,
+        ILogger<AutoPayoutJob> logger,
         IClock clock)
     {
         _scopeFactory = scopeFactory;
@@ -29,13 +29,13 @@ public class AttendanceVerificationJob : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("AttendanceVerificationJob started");
+        _logger.LogInformation("AutoPayoutJob started");
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                await ProcessAttendanceVerificationWindowsAsync(stoppingToken);
+                await ProcessAutoPayoutAsync(stoppingToken);
                 await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -44,35 +44,76 @@ public class AttendanceVerificationJob : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error executing AttendanceVerificationJob loop");
+                _logger.LogError(ex, "Error executing AutoPayoutJob loop");
                 await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
             }
         }
 
-        _logger.LogInformation("AttendanceVerificationJob stopped");
+        _logger.LogInformation("AutoPayoutJob stopped");
     }
 
-    public async Task<int> ProcessAttendanceVerificationWindowsAsync(CancellationToken cancellationToken)
+    public async Task<int> ProcessAutoPayoutAsync(CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
-
         var now = _clock.UtcNow;
         var count = 0;
 
-        // 0. Safety net: Recover orphaned sessions where both attended but payout was not released (INV-003, DEC-S8-020)
-        var orphanedSessions = await dbContext.Sessions
+        // Phase 1: Open 12-hour grace period for ended sessions
+        var endedSessions = await dbContext.Sessions
+            .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
+            .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
+            .Where(s => s.Status == SessionStatus.Scheduled &&
+                        s.EndAt.HasValue &&
+                        s.EndAt.Value <= now &&
+                        s.GracePeriodStartedAt == null)
+            .ToListAsync(cancellationToken);
+
+        foreach (var session in endedSessions)
+        {
+            if (session.TryStartGracePeriod(now, TimeSpan.FromHours(12)))
+            {
+                var studentUserId = session.Enrollment?.StudentProfile?.UserId ?? Guid.Empty;
+                var tutorUserId = session.Enrollment?.TutorProfile?.UserId ?? Guid.Empty;
+
+                dbContext.AddOutboxMessage(new GracePeriodStartedEvent(
+                    session.Id,
+                    session.EnrollmentId,
+                    studentUserId,
+                    tutorUserId,
+                    session.GracePeriodEndsAt!.Value));
+
+                count++;
+            }
+        }
+
+        if (endedSessions.Count > 0)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        // Phase 2: Auto-complete and release payout for expired grace periods
+        count += await ProcessExpiredGracePeriodsAsync(dbContext, now, cancellationToken);
+
+        return count;
+    }
+
+    private async Task<int> ProcessExpiredGracePeriodsAsync(IAppDbContext dbContext, DateTime now, CancellationToken cancellationToken)
+    {
+        var count = 0;
+
+        var expiredSessions = await dbContext.Sessions
             .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
             .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
             .Include(s => s.Enrollment).ThenInclude(e => e.Sessions)
-            .Where(s => s.Status == SessionStatus.Scheduled &&
-                        s.StudentAttendance == AttendanceStatus.Attended &&
-                        s.TutorAttendance == AttendanceStatus.Attended &&
-                        !s.IsPayoutReleased &&
-                        s.CompletedAt == null)
+            .Where(s => s.Status == SessionStatus.AwaitingPayout &&
+                        s.GracePeriodEndsAt.HasValue &&
+                        s.GracePeriodEndsAt.Value <= now &&
+                        !s.HasIssueReport &&
+                        !s.IsPayoutReleased)
             .ToListAsync(cancellationToken);
 
-        foreach (var session in orphanedSessions)
+        foreach (var session in expiredSessions)
         {
             var hasActiveDispute = await dbContext.Disputes
                 .AsNoTracking()
@@ -81,11 +122,9 @@ public class AttendanceVerificationJob : BackgroundService
                     && d.Status != DisputeStatus.Dismissed, cancellationToken);
 
             if (hasActiveDispute)
-            {
                 continue;
-            }
 
-            _logger.LogWarning("Recovering orphaned session {SessionId}: both Attended but payout not released", session.Id);
+            _logger.LogInformation("Auto-completing session {SessionId} after 12h grace period", session.Id);
 
             var gross = session.EarningAmount;
             var commissionRate = session.Enrollment.PlatformFeeRate;
@@ -100,12 +139,12 @@ public class AttendanceVerificationJob : BackgroundService
 
                 if (wallet == null || wallet.PendingBalance < gross)
                 {
-                    _logger.LogError("Financial invariant violated during orphaned session recovery: Pending escrow balance insufficient for session {SessionId}", session.Id);
+                    _logger.LogError("Financial invariant violated during auto-payout: insufficient pending balance for session {SessionId}", session.Id);
                     await tx.RollbackAsync(cancellationToken);
                     continue;
                 }
 
-                session.Complete();
+                session.AutoComplete(now);
                 session.Enrollment.RecordCompletedSession(session.Id);
 
                 wallet.DebitPending(gross, now);
@@ -119,7 +158,7 @@ public class AttendanceVerificationJob : BackgroundService
                     feeRate: commissionRate,
                     feeAmount: commissionAmount,
                     netPayout: netPayout,
-                    paymentGatewayRef: $"EscrowRelease-Recovery-{session.Id:N}",
+                    paymentGatewayRef: $"AutoPayout-{session.Id:N}",
                     now: now);
 
                 dbContext.Transactions.Add(payoutTx);
@@ -131,7 +170,7 @@ public class AttendanceVerificationJob : BackgroundService
                     Type = TutorWalletTransactionType.SessionPayoutCredit,
                     Amount = netPayout,
                     BalanceAfter = wallet.AvailableBalance,
-                    Description = $"Payout released for Session #{session.SessionNumber} (Safety net recovery)",
+                    Description = $"Auto-payout for Session #{session.SessionNumber}",
                     CreatedAt = now
                 };
 
@@ -163,68 +202,8 @@ public class AttendanceVerificationJob : BackgroundService
             catch (Exception ex)
             {
                 await tx.RollbackAsync(cancellationToken);
-                _logger.LogError(ex, "Failed to recover orphaned session {SessionId}", session.Id);
+                _logger.LogError(ex, "Failed to auto-payout session {SessionId}", session.Id);
             }
-        }
-
-        // Phases 1 & 2 use a separate DbContext scope so that any dirty entities
-        // from rolled-back orphan recovery iterations cannot leak into these saves.
-        using var verificationScope = _scopeFactory.CreateScope();
-        var verificationContext = verificationScope.ServiceProvider.GetRequiredService<IAppDbContext>();
-
-        // 1. Open verification window for ended sessions (DEC-S7-021, INV-EVENT-014)
-        var endedSessions = await verificationContext.Sessions
-            .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
-            .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
-            .Where(s => s.Status == SessionStatus.Scheduled &&
-                        s.EndAt.HasValue &&
-                        s.EndAt.Value <= now &&
-                        s.AttendanceVerificationOpenedAt == null)
-            .ToListAsync(cancellationToken);
-
-        foreach (var session in endedSessions)
-        {
-            if (session.TryOpenAttendanceVerificationWindow(now, TimeSpan.FromHours(24)))
-            {
-                var studentUserId = session.Enrollment?.StudentProfile?.UserId ?? Guid.Empty;
-                var tutorUserId = session.Enrollment?.TutorProfile?.UserId ?? Guid.Empty;
-
-                // Enqueue AttendanceVerificationRequiredEvent in same DB transaction (DEC-S7-014)
-                verificationContext.AddOutboxMessage(new AttendanceVerificationRequiredEvent(
-                    session.Id,
-                    session.EnrollmentId,
-                    studentUserId,
-                    tutorUserId,
-                    session.AttendanceVerificationDueAt!.Value));
-
-                count++;
-            }
-        }
-
-        if (endedSessions.Count > 0)
-        {
-            await verificationContext.SaveChangesAsync(cancellationToken);
-        }
-
-        // 2. Timeout unverified / incomplete sessions to PendingResolution (PRD §14, DEC-S7-021)
-        var expiredSessions = await verificationContext.Sessions
-            .Where(s => s.Status == SessionStatus.Scheduled &&
-                        s.AttendanceVerificationDueAt.HasValue &&
-                        s.AttendanceVerificationDueAt.Value <= now &&
-                        s.CompletedAt == null &&
-                        (s.StudentAttendance != AttendanceStatus.Attended || s.TutorAttendance != AttendanceStatus.Attended))
-            .ToListAsync(cancellationToken);
-
-        foreach (var session in expiredSessions)
-        {
-            // Set flag for unresolved attendance (without auto-completing or releasing payouts)
-            session.FlagAttendanceConflict();
-            count++;
-        }
-
-        if (expiredSessions.Count > 0)
-        {
-            await verificationContext.SaveChangesAsync(cancellationToken);
         }
 
         return count;
