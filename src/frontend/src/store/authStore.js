@@ -28,14 +28,7 @@ export const useAuthStore = create((set, get) => ({
   },
 
   logout: async () => {
-    try {
-      const refreshToken = get().refreshToken;
-      if (refreshToken) {
-        await api.post('/auth/logout', { refreshToken });
-      }
-    } catch (err) {
-      console.warn('[authStore] Logout API error:', err.message);
-    }
+    const refreshToken = get().refreshToken;
     localStorage.removeItem('tutorhub_user');
     localStorage.removeItem('tutorhub_token');
     localStorage.removeItem('tutorhub_refresh_token');
@@ -46,6 +39,13 @@ export const useAuthStore = create((set, get) => ({
       role: null,
       isAuthenticated: false,
     });
+    try {
+      if (refreshToken) {
+        await api.post('/auth/logout', { refreshToken });
+      }
+    } catch (err) {
+      console.warn('[authStore] Logout API error:', err.message);
+    }
   },
 
   // Login via real backend API - no mock fallback

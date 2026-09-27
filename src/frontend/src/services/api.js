@@ -80,7 +80,7 @@ let isRefreshing = false;
 let failedQueue = [];
 
 // 401 ở chính các endpoint thông tin đăng nhập là sai thông tin, không phải token hết hạn.
-const CREDENTIAL_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/refresh'];
+const CREDENTIAL_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout'];
 
 const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
