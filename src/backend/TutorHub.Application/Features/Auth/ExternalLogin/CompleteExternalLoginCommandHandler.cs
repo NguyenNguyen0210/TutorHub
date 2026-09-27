@@ -116,6 +116,8 @@ public class CompleteExternalLoginCommandHandler
         else
         {
             var existing = await _context.Users
+                .Include(u => u.TutorProfile)
+                .Include(u => u.StudentProfile)
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail, cancellationToken);
 
             if (existing is not null)

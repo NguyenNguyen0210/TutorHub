@@ -143,4 +143,44 @@ public class CompleteExternalLoginCommandHandlerTests
         externalLogins.Should().ContainSingle(l =>
             l.UserId == tutor.Id && l.ProviderUserId == "google-sub-9");
     }
+
+    [Fact]
+    public async Task Handle_ExistingTutorLinksGoogle_JwtIncludesTutorProfileId()
+    {
+        // Arrange: an existing Tutor with a TutorProfile, no prior ExternalLogin.
+        var tutorProfileId = Guid.NewGuid();
+        var tutor = new UserBuilder()
+            .WithEmail("linked-tutor@example.com")
+            .WithFullName("Tutor With Profile")
+            .WithRole(UserRole.Tutor)
+            .WithTutorProfile(new TutorProfile
+            {
+                Id = tutorProfileId,
+                Bio = "Test bio",
+                Education = "Test education",
+                ExperienceYears = 3,
+                TeachingMode = TeachingMode.Online
+            })
+            .Build();
+
+        var externalLogins = new List<ExternalLoginEntity>();
+        var users = new List<User> { tutor };
+        var refreshTokens = new List<RefreshTokenEntity>();
+
+        _contextMock.Setup(c => c.ExternalLogins).Returns(MockDbSetHelper.CreateMockDbSet(externalLogins).Object);
+        _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
+        _contextMock.Setup(c => c.RefreshTokens).Returns(MockDbSetHelper.CreateMockDbSet(refreshTokens).Object);
+        _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        SetupExchange(new ExternalIdentity(
+            ExternalAuthProvider.Google, "google-sub-tutor", "linked-tutor@example.com", true, "Tutor With Profile", null));
+
+        // Act
+        var result = await _handler.Handle(
+            new CompleteExternalLoginCommand("Google", "code", "state", null), CancellationToken.None);
+
+        // Assert: the returned UserDto must carry the TutorProfile.Id.
+        result.User.IdProfile.Should().NotBeNull();
+        result.User.IdProfile.Should().Be(tutorProfileId);
+    }
 }
