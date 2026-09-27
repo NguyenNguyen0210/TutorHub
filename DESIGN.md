@@ -1,7 +1,7 @@
 # TutorHub — Design System Specification (`DESIGN.md` v2)
 
 **Product:** TutorHub — Nền tảng kết nối Gia sư & Học viên trực tuyến
-**Core model:** Service / Package-based Learning với bảo chứng Escrow 2 chiều
+**Core model:** Service / Package-based Learning với bảo chứng Escrow giải ngân tự động 12h (Auto-Payout Grace Period)
 **Status:** Canonical visual specification — Brand Style Guide v2
 **Stack:** React 18 + Vite 5 + Tailwind CSS 3.4 + Lucide Icons + Be Vietnam Pro (JavaScript thuần, không TypeScript)
 
@@ -64,11 +64,11 @@ Giao diện phải truyền đạt 4 giá trị:
 
 | Token | Hex | Ý nghĩa backend | Ứng dụng UI |
 |---|---|---|---|
-| `--semantic-success` | `#10B981` | `AvailableBalance`, `SessionPayoutCredit`, `Paid`, `Attended` | Số dư khả dụng, badge "Đã xác nhận" |
+| `--semantic-success` | `#10B981` | `AvailableBalance`, `SessionPayoutCredit`, `Paid`, `Completed` | Số dư khả dụng, badge "Đã hoàn thành" |
 | `--semantic-success-subtle` | `#ECFDF5` | — | Nền thẻ thu nhập |
-| `--semantic-holding` | `#D97706` | `HoldingExpiresAt` (15m), `PendingBalance`, `Proposed` | Countdown giữ chỗ, tiền trong Escrow |
+| `--semantic-holding` | `#D97706` | `HoldingExpiresAt` (15m), `PendingBalance`, `Proposed`, `AwaitingPayout` | Countdown giữ chỗ, đếm ngược giải ngân 12h, tiền trong Escrow |
 | `--semantic-holding-subtle` | `#FFFBEB` | — | Nền banner đếm ngược |
-| `--semantic-danger` | `#EF4444` | `HeldBalance`, `AttendanceConflict`, `DisputeActive`, `Banned` | Phong tỏa tranh chấp, xung đột điểm danh |
+| `--semantic-danger` | `#EF4444` | `HeldBalance`, `DisputeActive`, `Banned` | Phong tỏa tranh chấp, báo cáo sự cố |
 | `--semantic-danger-subtle` | `#FEF2F2` | — | Nền thẻ tranh chấp |
 | `--semantic-info` | `#3B82F6` | `EnrollmentActive`, `Scheduled`, `UnderReview` | Tiến độ học, lịch sắp tới |
 
@@ -191,16 +191,18 @@ AuthShell         Thẻ căn giữa, nền sáng tối giản
 
 ## 7. Signature Components
 
-### 7.1 Holding Countdown (15 phút)
-- Deadline lấy từ `holdingExpiresAt` của server, **không** đếm cục bộ từ đầu.
-- 3 trạng thái: Calm (`> 5 phút`, holding-subtle) → Caution (`2–5 phút`, đậm hơn)
-  → Emergency (`< 2 phút`, danger-subtle, nhịp `pulse`).
-- Chạm `00:00`: khoá CTA thanh toán, hiện nút "Tạo lại đơn hàng".
+### 7.1 Holding Countdown (15 phút Checkout & 12 giờ Grace Period)
+- **15 phút Booking Hold:** Deadline lấy từ `holdingExpiresAt` của server, **không** đếm cục bộ từ đầu.
+  - 3 trạng thái: Calm (`> 5 phút`, holding-subtle) → Caution (`2–5 phút`, đậm hơn)
+    → Emergency (`< 2 phút`, danger-subtle, nhịp `pulse`).
+  - Chạm `00:00`: khoá CTA thanh toán, hiện nút "Tạo lại đơn hàng".
+- **12 giờ Auto-Payout Grace Period:** Đếm ngược từ `gracePeriodEndsAt` sau khi buổi học kết thúc (`AwaitingPayout`). Sau 12 giờ không có tranh chấp/báo cáo sự cố, hệ thống tự động giải ngân.
 
-### 7.2 Dual Attendance Verification Card
-- Hai cột song song Student | Tutor, mỗi bên hiện lựa chọn **đọc từ server**.
-- Đồng thuận `Attended` → badge success "Đồng thuận hoàn thành".
-- Bất đồng (`HasAttendanceConflict`) → khối danger + CTA mở khiếu nại, `animate-shake`.
+### 7.2 Grace Period Countdown Card (`GracePeriodCard`)
+- Hiển thị đồng hồ đếm ngược 12 giờ (`timeLeft`) dựa trên `gracePeriodEndsAt` từ server.
+- Trạng thái `AwaitingPayout`: hiển thị banner holding với countdown, thông tin thời điểm tự động giải ngân, và CTA báo cáo sự cố (`ReportSessionIssue`).
+- Khi có báo cáo sự cố (`hasIssueReport`): khối danger thông báo buổi học đang có sự cố cần giải quyết khiếu nại, tiền được bảo lưu an toàn.
+- Khi hoàn thành và đã giải ngân (`Completed` + `isPayoutReleased`): callout success xác nhận đã hoàn tất giải ngân cho gia sư.
 
 ### 7.3 Escrow Wallet — 4 chỉ số
 `PendingBalance` · `AvailableBalance` · `HeldBalance` · `WithdrawableBalance`
@@ -227,7 +229,7 @@ Progress `x / N buổi`; mỗi dòng: số buổi · giá · trạng thái · th
 ## 8. Motion & Loading
 
 1. **Holding pulse** — countdown `pulse` nhẹ lan tỏa khi đang giữ chỗ.
-2. **Conflict shake** — `animate-shake` (0.4s) khi phát hiện `AttendanceConflict`.
+2. **Conflict shake** — `animate-shake` (0.4s) khi phát hiện sự cố tranh chấp hoặc thao tác bị từ chối.
 3. **Message pop** — tin nhắn SignalR trượt lên (`animate-fadeIn`).
 4. **Skeleton, không spinner toàn trang** — `CardSkeleton`, `TableSkeleton`,
    `StatsSkeleton`, `ProfileSkeleton`, `ListSkeleton`, `DetailSkeleton`.
@@ -250,14 +252,13 @@ Progress `x / N buổi`; mỗi dòng: số buổi · giá · trạng thái · th
 ## 10. Checklist cho Frontend Engineer
 
 - [ ] Không hex trực tiếp trong JSX; dùng token Tailwind.
-- [ ] Enum dùng đúng giá trị backend (`Attended`, `Absent`, `Holding`, `Paid`,
-      `Unscheduled`, `Scheduled`, `Completed`, `Cancelled`).
+- [ ] Enum dùng đúng giá trị backend (Holding, Paid, Unscheduled, Scheduled, AwaitingPayout, Completed, Cancelled).
 - [ ] Không phát minh dữ liệu ngoài `seedData.sql` / API thật.
 - [ ] Ví gia sư hiển thị đủ 4 chỉ số.
 - [ ] Tiền dùng `<Money>`, không dùng `font-mono` cho tiền.
 - [ ] Ngày giờ đã convert sang `Asia/Ho_Chi_Minh`.
 - [ ] Countdown khoá CTA tại `00:00`.
-- [ ] Thẻ điểm danh đủ 2 cột Student | Tutor.
+- [ ] Thẻ Grace Period (`GracePeriodCard`) hiển thị countdown 12h và form báo cáo sự cố.
 - [ ] Calculator tranh chấp tuân thủ `StudentRefund ≡ TutorNetRecovery + PlatformFeeReversal`.
 - [ ] Icon Lucide, đúng scale, icon-only có `aria-label`.
 - [ ] Đã kiểm tra 360 / 768 / 1024 / 1440 / 2560 px.

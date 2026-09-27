@@ -52,7 +52,7 @@
 * **Quản lý gói dịch vụ (Package-based Learning):** Gia sư đăng tải gói học với số buổi, thời lượng, học phí và mục tiêu rõ ràng.
 * **Đặt mua & Giữ chỗ checkout (Booking 15-min Hold):** Cơ chế tạm giữ chỗ thanh toán 15 phút, tự động hủy khi quá hạn nhằm tránh xung đột lịch.
 * **Hợp đồng & Phân rã buổi học (Enrollment & Session Allocator):** Tự động phân bổ lịch học và chia đều doanh thu từng buổi học với công thức tài chính bảo chứng bất biến.
-* **Điểm danh 2 chiều (Attendance Window):** Mở cửa sổ 24 giờ sau mỗi buổi học để cả gia sư và học viên cùng xác nhận trước khi giải ngân.
+* **Giải ngân tự động 12 giờ (Auto-Payout Grace Period):** Sau khi buổi học kết thúc, kích hoạt thời gian chờ 12 giờ (Grace Period). Nếu không có báo cáo sự cố từ học viên hoặc gia sư, hệ thống sẽ tự động giải ngân cho gia sư.
 * **Ví bảo chứng & Giải ngân từng buổi (Escrow Wallet):** Thù lao giải ngân theo từng buổi học hoàn thành sau khi trừ phí hoa hồng sàn. Hạn mức rút tiền bảo vệ số dư tranh chấp:
   $$\text{WithdrawableBalance} \equiv \text{AvailableBalance} - \text{HeldBalance}$$
 * **Ví học viên & Thanh toán nội bộ (Student Wallet):** Học viên sở hữu ví tài khoản riêng để nạp tiền tự động 24/7 qua Cổng VNPay, thanh toán khóa học 100% từ ví, nhận tiền hoàn trả tức thì và rút tiền về tài khoản ngân hàng.
