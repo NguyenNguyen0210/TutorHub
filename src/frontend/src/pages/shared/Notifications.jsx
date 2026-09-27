@@ -39,16 +39,14 @@ function resolveDeepLink(link, role) {
  * `category` vào DTO backend — không tự bịa bản phân loại ở file này.
  *
  * THỨ TỰ KIỂM TRA LÀ HỢP ĐỒNG, không phải tình cờ. Một type có thể khớp nhiều nhóm và
- * nhóm đứng trước thắng — danh sách dưới chính là thứ tự đó, theo đúng thứ tự hàm cũ
- * chạy, nên không có type nào bị đổi nhóm. Cụ thể `SessionPayoutCredit` khớp CẢ "payout"
- * (Financial) LẪN "session" (Attendance); vì Financial đứng trước và có "payout" trong
- * từ khoá nên nó về nhóm Tài chính & Ký quỹ. Đổi thứ tự là đổi nghĩa phân loại của các
- * type đang chạy thật — nếu cần đổi thì phải sửa DTO, không sửa thứ tự ở đây.
+ * nhóm đứng trước thắng. `Dispute` đứng trước để bắt `SessionIssueReported`,
+ * `Financial` đứng tiếp theo để `SessionPayoutCredit` về nhóm Tài chính,
+ * và `GracePeriod` bắt các thông báo `GracePeriodStarted` và session còn lại.
  */
 const CATEGORY_RULES = [
+  ['Dispute', ['dispute', 'sessionissuereported', 'issue']],
   ['Financial', ['payment', 'earning', 'refund', 'wallet', 'payout']],
-  ['Attendance', ['attendance', 'session']],
-  ['Dispute', ['dispute']],
+  ['GracePeriod', ['graceperiod', 'grace', 'graceperiodstarted', 'session']],
 ];
 
 function getCategoryFromType(type) {
@@ -73,7 +71,7 @@ function getCategoryFromType(type) {
  */
 const CATEGORY_STYLE = {
   Financial: { bar: 'border-l-brand-primary-600', icon: 'payments', iconCls: 'text-brand-primary-600' },
-  Attendance: { bar: 'border-l-holding', icon: 'schedule', iconCls: 'text-holding' },
+  GracePeriod: { bar: 'border-l-holding', icon: 'schedule', iconCls: 'text-holding' },
   Dispute: { bar: 'border-l-danger', icon: 'gavel', iconCls: 'text-danger' },
   System: { bar: 'border-l-neutral-400', icon: 'info', iconCls: 'text-fg-secondary' },
 };
@@ -150,7 +148,7 @@ export default function Notifications() {
             )}
           </div>
           <p className="text-body-reg text-fg-secondary mt-2">
-            Theo dõi tức thời các biến động tài chính, đối soát điểm danh 24h và cập nhật hợp đồng
+            Theo dõi tức thời các biến động tài chính, thời gian chờ giải ngân 12h và cập nhật hợp đồng
           </p>
         </div>
         {unreadCount > 0 && (
@@ -172,7 +170,7 @@ export default function Notifications() {
         tabs={[
           { key: 'All', label: 'Tất cả' },
           { key: 'Financial', label: 'Tài chính & Ký quỹ' },
-          { key: 'Attendance', label: 'Điểm danh 24h' },
+          { key: 'GracePeriod', label: 'Grace Period' },
           { key: 'Dispute', label: 'Tranh chấp' },
         ]}
       />

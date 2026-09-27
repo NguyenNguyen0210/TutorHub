@@ -43,13 +43,6 @@ const REASON_TRANSLATIONS = {
   Other: 'Lý do khác',
 };
 
-const ATTENDANCE_LABELS = {
-  Present: { label: 'Có mặt', variant: 'success' },
-  Absent: { label: 'Vắng mặt', variant: 'danger' },
-  Late: { label: 'Đi muộn', variant: 'holding' },
-  LeftEarly: { label: 'Về sớm', variant: 'holding' },
-};
-
 export default function AdminDisputeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -347,56 +340,38 @@ export default function AdminDisputeDetail() {
           </p>
         </div>
 
-        {/* Bilateral Attendance Comparison */}
+        {/* Issue Report Details */}
         <div className="space-y-3 pt-1">
           <h3 className="text-caption font-bold text-fg flex items-center justify-between">
             <span className="flex items-center gap-1.5">
-              <Icon name="fact_check" size="xs" className="text-brand-primary-600" />
-              Đối soát điểm danh 2 chiều (Attendance Window 24h)
+              <Icon name="report" size="xs" className="text-brand-primary-600" />
+              Chi tiết báo cáo sự cố (Issue Report Details)
             </span>
-            {session?.hasAttendanceConflict && (
+            {session?.hasIssueReport && (
               <Badge variant="danger" size="sm">
-                Xung đột điểm danh phát hiện
+                Đã báo cáo sự cố
               </Badge>
             )}
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-caption">
-            <div className="p-3.5 rounded-brand-md bg-neutral-50 border border-border space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-fg-secondary">Xác nhận của Học viên</span>
-                {session?.studentAttendance ? (
-                  <Badge variant={ATTENDANCE_LABELS[session.studentAttendance]?.variant || 'neutral'} size="sm">
-                    {ATTENDANCE_LABELS[session.studentAttendance]?.label || session.studentAttendance}
-                  </Badge>
-                ) : (
-                  <span className="text-fg-muted font-mono text-[11px]">Chưa xác nhận</span>
-                )}
-              </div>
-              <p className="text-[11px] text-fg-muted m-0 font-mono">
-                {session?.studentAttendanceSubmittedAt
-                  ? `Thời điểm gửi: ${formatDateTime(session.studentAttendanceSubmittedAt, 'DD/MM/YYYY HH:mm')}`
-                  : 'Học viên không gửi điểm danh trong 24h'}
-              </p>
+          <div className="p-3.5 rounded-brand-md bg-neutral-50 border border-border space-y-2 text-caption">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <span className="font-semibold text-fg">
+                Lý do báo cáo: <span className="text-danger-strong">{session?.issueReportReason || dispute?.reason || 'Không rõ'}</span>
+              </span>
+              <span className="text-[11px] text-fg-muted font-mono">
+                {session?.issueReportedAt
+                  ? `Thời điểm báo cáo: ${formatDateTime(session.issueReportedAt, 'DD/MM/YYYY HH:mm')}`
+                  : dispute?.createdAt
+                    ? `Thời điểm báo cáo: ${formatDateTime(dispute.createdAt, 'DD/MM/YYYY HH:mm')}`
+                    : ''}
+              </span>
             </div>
-
-            <div className="p-3.5 rounded-brand-md bg-neutral-50 border border-border space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-fg-secondary">Xác nhận của Gia sư</span>
-                {session?.tutorAttendance ? (
-                  <Badge variant={ATTENDANCE_LABELS[session.tutorAttendance]?.variant || 'neutral'} size="sm">
-                    {ATTENDANCE_LABELS[session.tutorAttendance]?.label || session.tutorAttendance}
-                  </Badge>
-                ) : (
-                  <span className="text-fg-muted font-mono text-[11px]">Chưa xác nhận</span>
-                )}
-              </div>
-              <p className="text-[11px] text-fg-muted m-0 font-mono">
-                {session?.tutorAttendanceSubmittedAt
-                  ? `Thời điểm gửi: ${formatDateTime(session.tutorAttendanceSubmittedAt, 'DD/MM/YYYY HH:mm')}`
-                  : 'Gia sư không gửi điểm danh trong 24h'}
+            {dispute?.description && (
+              <p className="text-fg-secondary m-0 text-[13px] leading-relaxed bg-surface p-2.5 rounded-brand-sm border border-border">
+                {dispute.description}
               </p>
-            </div>
+            )}
           </div>
         </div>
 
@@ -676,7 +651,7 @@ export default function AdminDisputeDetail() {
               rows={3}
               value={adminNote}
               onChange={(e) => setAdminNote(e.target.value)}
-              placeholder="Ghi rõ lý do căn cứ vào biên bản đối soát điểm danh, trích lục chat và tài liệu xác minh..."
+              placeholder="Ghi rõ lý do căn cứ vào báo cáo sự cố, trích lục chat và tài liệu xác minh..."
             />
             <div className="flex justify-end pt-1">
               <span className={`text-[11px] tabular-nums ${adminNote.trim().length >= 10 ? 'text-success-strong' : 'text-danger-strong'}`}>

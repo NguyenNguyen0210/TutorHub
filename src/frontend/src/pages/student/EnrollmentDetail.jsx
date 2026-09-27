@@ -56,6 +56,11 @@ const TONE_CLASS = {
     bar: 'bg-success',
     chip: 'bg-success-subtle text-success-strong',
   },
+  holding: {
+    border: 'border-l-holding',
+    bar: 'bg-holding',
+    chip: 'bg-holding-subtle text-holding-strong',
+  },
   info: {
     border: 'border-l-info',
     bar: 'bg-info',
@@ -74,7 +79,7 @@ const TONE_CLASS = {
 };
 
 function sessionTone(session) {
-  if (session.hasAttendanceConflict) return TONE_CLASS.danger;
+  if (session.hasIssueReport) return TONE_CLASS.danger;
   const { color } = getStateMeta('session', session.status);
   return TONE_CLASS[color] || TONE_CLASS.neutral;
 }
@@ -123,7 +128,7 @@ export default function EnrollmentDetail() {
   const [submittingSchedule, setSubmittingSchedule] = useState(false);
 
   const minNoticeString = useMemo(() => {
-    return dayjs().add(24, 'hour').add(5, 'minute').format('YYYY-MM-DDTHH:mm');
+    return dayjs().add(2, 'hour').add(5, 'minute').format('YYYY-MM-DDTHH:mm');
   }, []);
 
   // Review states
@@ -177,9 +182,9 @@ export default function EnrollmentDetail() {
     }
 
     const startAtDate = dayjs(scheduleDatetime);
-    const minNotice = dayjs().add(24, 'hour');
+    const minNotice = dayjs().add(2, 'hour');
     if (startAtDate.isBefore(minNotice)) {
-      toast.error('Lịch mới phải cách thời điểm hiện tại ít nhất 24 giờ.');
+      toast.error('Lịch mới phải cách thời điểm hiện tại ít nhất 2 giờ.');
       return;
     }
 
@@ -225,27 +230,23 @@ export default function EnrollmentDetail() {
   };
 
   /**
-   * Thứ tự ưu tiên giữ nguyên: xung đột điểm danh > cửa sổ chờ điểm danh 24h >
-   * trạng thái buổi học. Hai nhánh đầu không có enum nên dùng `Badge` trực tiếp;
-   * nhánh cuối luôn đi qua `StateBadge` để nhãn/màu chỉ có một nơi.
+   * Thứ tự ưu tiên: có báo cáo sự cố > chờ giải ngân (AwaitingPayout) >
+   * trạng thái buổi học.
    */
   const getStatusBadge = (session) => {
-    if (session.hasAttendanceConflict) {
+    if (session.hasIssueReport) {
       return (
         <Badge variant="danger" size="sm" icon={<Icon name="warning" size="sm" />}>
-          Bất đồng điểm danh
+          Có báo cáo sự cố
         </Badge>
       );
     }
-    if (session.status === SESSION_STATUS.SCHEDULED && session.attendanceVerificationDueAt) {
-      const isWindowOpen = new Date(session.attendanceVerificationDueAt) > new Date();
-      if (isWindowOpen && !session.studentAttendance) {
-        return (
-          <Badge variant="holding" size="sm" icon={<Icon name="timer" size="sm" />}>
-            Chờ điểm danh 24h
-          </Badge>
-        );
-      }
+    if (session.status === SESSION_STATUS.AWAITING_PAYOUT) {
+      return (
+        <Badge variant="holding" size="sm" icon={<Icon name="timer" size="sm" />}>
+          Chờ giải ngân
+        </Badge>
+      );
     }
     return <StateBadge domain="session" status={session.status} />;
   };
@@ -353,7 +354,7 @@ export default function EnrollmentDetail() {
             Chi tiết
           </Button>
 
-          {sess.hasAttendanceConflict && (
+          {sess.hasIssueReport && (
             <Button
               as={Link}
               to={`/student/disputes/new?sessionId=${sess.id}`}
@@ -392,7 +393,7 @@ export default function EnrollmentDetail() {
               />
             </label>
             <span className="block text-[11px] text-holding-strong mt-1 font-medium">
-              Lịch học phải cách thời điểm hiện tại ít nhất 24 giờ. Thời lượng:{' '}
+              Lịch học phải cách thời điểm hiện tại ít nhất 2 giờ. Thời lượng:{' '}
               {durationMinutes} phút.
             </span>
           </div>
@@ -509,8 +510,7 @@ export default function EnrollmentDetail() {
             Lộ trình &amp; Tiến độ phân rã {enrollment.totalSessions} buổi học
           </h2>
           <p className="text-caption text-fg-muted mt-0.5">
-            Mỗi buổi học tương ứng một khoản ký quỹ riêng biệt được giải ngân sau khi đối soát
-            thành công
+            Mỗi buổi học tương ứng một khoản ký quỹ riêng biệt được giải ngân tự động sau khi kết thúc buổi học
           </p>
         </div>
 

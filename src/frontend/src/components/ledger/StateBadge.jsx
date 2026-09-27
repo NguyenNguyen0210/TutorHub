@@ -4,8 +4,6 @@ import Badge from '@/components/ui/Badge';
 import {
   SESSION_STATUS,
   SESSION_STATUS_META,
-  ATTENDANCE_STATUS,
-  ATTENDANCE_STATUS_META,
   WITHDRAWAL_STATUS,
   WITHDRAWAL_STATUS_META,
   TUTOR_APPLICATION_STATUS_META,
@@ -34,7 +32,6 @@ const TOPUP_STATUS_META = {
 const RESOLVERS = {
   session: (v) => SESSION_STATUS_META[v] || { label: v, color: 'neutral' },
   enrollment: (v) => ENROLLMENT_STATUS_META[v] || { label: v, color: 'neutral' },
-  attendance: (v) => ATTENDANCE_STATUS_META[v] || { label: v, color: 'neutral' },
   withdrawal: (v) => WITHDRAWAL_STATUS_META[v] || { label: v, color: 'neutral' },
   topup: (v) => TOPUP_STATUS_META[v] || { label: v, color: 'neutral' },
   application: (v) => TUTOR_APPLICATION_STATUS_META[v] || { label: v, color: 'neutral' },
@@ -66,7 +63,6 @@ StateBadge.propTypes = {
   domain: PropTypes.oneOf([
     'session',
     'enrollment',
-    'attendance',
     'withdrawal',
     'topup',
     'application',
@@ -76,4 +72,4 @@ StateBadge.propTypes = {
 };
 
 
-export { ENROLLMENT_STATUS_META, TOPUP_STATUS_META, SESSION_STATUS, ATTENDANCE_STATUS, WITHDRAWAL_STATUS };
+export { ENROLLMENT_STATUS_META, TOPUP_STATUS_META, SESSION_STATUS, WITHDRAWAL_STATUS };

@@ -20,23 +20,14 @@ import { PageHeader, Spinner } from '@/components/ui/StatCard';
 const USER_COLUMNS = [
   { key: 'user', label: 'Người dùng' },
   { key: 'role', label: 'Vai trò' },
-  { key: 'strike', label: 'Số Strike vi phạm' },
   { key: 'status', label: 'Trạng thái & Bảo mật' },
   { key: 'joined', label: 'Ngày tham gia' },
   { key: 'actions', label: 'Thao tác', align: 'right' },
 ];
 
-/** Chấm nhịp cho badge Strike — cùng hình với `dot` của Badge nhưng có animate. */
-function StrikeDot() {
-  return (
-    <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" aria-hidden="true" />
-  );
-}
-
 const STAT_COLUMNS = {
   user: 'px-4 py-3',
   role: 'px-4 py-3 whitespace-nowrap',
-  strike: 'px-4 py-3 whitespace-nowrap',
   status: 'px-4 py-3 whitespace-nowrap',
   joined: 'px-4 py-3 text-fg-secondary whitespace-nowrap text-[11px]',
   actions: 'px-4 py-3 text-right whitespace-nowrap',
@@ -165,57 +156,12 @@ export default function AdminUsers() {
   const suspendedCount = users.filter(
     (u) => u.status === ACCOUNT_STATUS.SUSPENDED || u.status === 'Banned'
   ).length;
-  const usersWithStrikesCount = users.filter((u) => (u.absentStrikes ?? 0) > 0).length;
-
-  /**
-   * Badge Strike: 0 = an toàn (success) · 1 = cảnh báo nhẹ (holding) ·
-   * 2 = cận đình chỉ (holding + viền nhấn) · 3+ = vi phạm nặng (danger).
-   * Không dùng `orange-*` vì không có token tương ứng (SPEC §3.6/§3.5).
-   */
-  const renderStrikeBadge = (strikes) => {
-    const s = Number(strikes || 0);
-    if (s === 0) {
-      return (
-        <Badge variant="success" size="sm" dot>
-          0/3 An toàn
-        </Badge>
-      );
-    }
-    if (s === 1) {
-      return (
-        <Badge variant="holding" size="sm" icon={<StrikeDot />}>
-          1/3 Cảnh báo nhẹ
-        </Badge>
-      );
-    }
-    if (s === 2) {
-      return (
-        <Badge
-          variant="holding"
-          size="sm"
-          icon={<StrikeDot />}
-          className="ring-1 ring-inset ring-holding/40"
-        >
-          2/3 Cận đình chỉ
-        </Badge>
-      );
-    }
-    return (
-      <Badge
-        variant="danger"
-        size="sm"
-        icon={<span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true" />}
-      >
-        {s}/3 Vi phạm nặng
-      </Badge>
-    );
-  };
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Quản lý người dùng & Kỷ luật vi phạm sàn"
-        subtitle="Theo dõi trạng thái tài khoản, vai trò và xử lý vi phạm quy chế điểm danh (Absent Strike Tracker)"
+        subtitle="Theo dõi trạng thái tài khoản, vai trò và bảo mật đăng nhập"
         actions={
           <Button
             variant="outline"
@@ -228,31 +174,9 @@ export default function AdminUsers() {
         }
       />
 
-      {/* Trust & Strike Invariant Banner */}
-      <div className="p-4 rounded-brand-lg bg-surface border border-border shadow-brand-sm flex flex-col md:flex-row md:items-center justify-between gap-3 text-caption">
-        <div className="flex items-start md:items-center gap-2.5">
-          <div className="w-8 h-8 rounded-brand-md bg-holding-subtle text-holding-strong flex items-center justify-center shrink-0 border border-holding/20 mt-0.5 md:mt-0">
-            <Icon name="gavel" size="xs" />
-          </div>
-          <div className="space-y-0.5">
-            <span className="font-bold text-fg block">
-              Cơ chế giám sát vắng mặt 2 chiều (Absent Strike Tracker)
-            </span>
-            <p className="text-fg-secondary text-[12px] m-0 leading-relaxed">
-              Học viên hoặc gia sư vắng mặt không lý do qua đối soát điểm danh 2 chiều 24h sẽ bị ghi nhận 1 Strike. Đạt <strong>3 Strikes</strong> sẽ tự động chuyển sang diện kiểm soát kỷ luật hoặc tạm khóa tài khoản để bảo vệ quyền lợi cộng đồng.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0 self-start md:self-auto">
-          <Badge variant="holding" size="md">
-            Chính sách 3 Strikes
-          </Badge>
-        </div>
-      </div>
-
-      {/* 4 số liệu — hàng số liệu phẳng của Operational Ledger */}
+      {/* 3 số liệu — hàng số liệu phẳng của Operational Ledger */}
       <LedgerStrip
-        columns={4}
+        columns={3}
         figures={[
           {
             key: 'total',
@@ -265,13 +189,6 @@ export default function AdminUsers() {
             label: 'Đang hoạt động (Trang hiện tại)',
             value: String(activeCount),
             hint: 'Tài khoản sẵn sàng giao dịch & học tập',
-          },
-          {
-            key: 'strikes',
-            label: 'Người dùng có Strike vi phạm',
-            value: String(usersWithStrikesCount),
-            hint: 'Cần theo dõi đối soát điểm danh',
-            tone: 'holding',
           },
           {
             key: 'suspended',
@@ -366,7 +283,7 @@ export default function AdminUsers() {
         ) : (
           <>
             <LedgerTable
-              caption="Danh sách người dùng hệ thống kèm trạng thái kỷ luật Absent Strike"
+              caption="Danh sách người dùng hệ thống kèm trạng thái tài khoản"
               columns={USER_COLUMNS}
               minWidth={780}
             >
@@ -422,10 +339,6 @@ export default function AdminUsers() {
                       <Badge variant={roleBadgeVariant(u.role)} size="sm">
                         {roleLabel(u.role)}
                       </Badge>
-                    </td>
-
-                    <td className={STAT_COLUMNS.strike}>
-                      {renderStrikeBadge(u.absentStrikes ?? u.strikes ?? 0)}
                     </td>
 
                     <td className={STAT_COLUMNS.status}>
@@ -603,37 +516,6 @@ export default function AdminUsers() {
                     SĐT: {selectedUser.phone}
                   </p>
                 )}
-              </div>
-            </div>
-
-            {/* Strike & Attendance Disciplines */}
-            <div className="space-y-2">
-              <h4 className="font-bold text-fg flex items-center gap-1.5 m-0">
-                <Icon name="history" size="xs" className="text-holding-strong" />
-                Chỉ số đối soát & Vi phạm vắng mặt (Absent Strikes)
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-brand-md bg-surface border border-border">
-                <div>
-                  <span className="text-[11px] text-fg-muted block uppercase font-semibold">
-                    Trạng thái Strike hiện tại
-                  </span>
-                  <div className="mt-1">
-                    {renderStrikeBadge(selectedUser.absentStrikes ?? 0)}
-                  </div>
-                  <span className="text-[10px] text-fg-muted block mt-1">
-                    Ngưỡng đình chỉ: 3 Strikes vắng mặt không lý do
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[11px] text-fg-muted block uppercase font-semibold">
-                    Lần vắng mặt gần nhất
-                  </span>
-                  <span className="font-mono text-fg font-medium block mt-1 text-[12px]">
-                    {selectedUser.lastAbsentAt
-                      ? formatDateTime(selectedUser.lastAbsentAt, 'DD/MM/YYYY HH:mm')
-                      : 'Chưa có ghi nhận vi phạm'}
-                  </span>
-                </div>
               </div>
             </div>
 
