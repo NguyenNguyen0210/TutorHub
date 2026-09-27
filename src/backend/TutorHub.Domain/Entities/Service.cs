@@ -50,6 +50,11 @@ public class Service
             throw new InvalidOperationException("Service is already published.");
         }
 
+        if (Status == ServiceStatus.Paused)
+        {
+            throw new InvalidOperationException("A paused service must be resumed, not republished.");
+        }
+
         Status = ServiceStatus.Published;
         UpdatedAt = DateTime.UtcNow;
     }

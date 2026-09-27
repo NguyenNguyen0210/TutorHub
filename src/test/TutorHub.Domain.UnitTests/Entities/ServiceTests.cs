@@ -83,6 +83,23 @@ public class ServiceTests
     }
 
     [Fact]
+    public void Publish_WhenPaused_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var service = new Service
+        {
+            Status = ServiceStatus.Paused
+        };
+
+        // Act
+        var act = () => service.Publish();
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("A paused service must be resumed, not republished.");
+    }
+
+    [Fact]
     public void Unpublish_FromPublished_ShouldTransitionToUnpublished()
     {
         // Arrange
