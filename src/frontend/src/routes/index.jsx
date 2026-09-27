@@ -112,7 +112,9 @@ export default function AppRoutes() {
         <Route path="/student/bookings/:id/checkout" element={
           <RequireAuth><BookingCheckout /></RequireAuth>
         } />
-        <Route path="/payment/return" element={<PaymentReturn />} />
+        <Route path="/payment/return" element={
+          <RequireAuth><PaymentReturn /></RequireAuth>
+        } />
         <Route path="/tutor/application" element={
           <RequireAuth><TutorApplication /></RequireAuth>
         } />
