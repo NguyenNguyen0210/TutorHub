@@ -2,11 +2,6 @@ using TutorHub.Domain.Entities;
 
 namespace TutorHub.Application.Features.Bookings.DTOs;
 
-/// <summary>
-/// F-23 (Đợt 4): single mapping point for Session → SessionDto.
-/// Previously duplicated inline at 9 handler sites; adding a field
-/// required touching all of them.
-/// </summary>
 public static class SessionMapper
 {
     public static SessionDto ToDto(Session session)
@@ -23,10 +18,11 @@ public static class SessionMapper
             CreatedAt: session.CreatedAt,
             CompletedAt: session.CompletedAt,
             CancelledAt: session.CancelledAt,
-            StudentAttendance: session.StudentAttendance,
-            TutorAttendance: session.TutorAttendance,
-            HasAttendanceConflict: session.HasAttendanceConflict,
-            AttendanceVerificationDueAt: session.AttendanceVerificationDueAt,
+            GracePeriodStartedAt: session.GracePeriodStartedAt,
+            GracePeriodEndsAt: session.GracePeriodEndsAt,
+            HasIssueReport: session.HasIssueReport,
+            IssueReportReason: session.IssueReportReason,
+            IssueReportedAt: session.IssueReportedAt,
             TutorName: session.Enrollment?.TutorProfile?.User?.FullName,
             SubjectName: session.Enrollment?.Subject?.Name
         );

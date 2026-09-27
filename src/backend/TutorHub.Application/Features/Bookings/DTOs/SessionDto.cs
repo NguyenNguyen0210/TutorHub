@@ -14,10 +14,11 @@ public record SessionDto(
     DateTime CreatedAt,
     DateTime? CompletedAt,
     DateTime? CancelledAt,
-    AttendanceStatus? StudentAttendance = null,
-    AttendanceStatus? TutorAttendance = null,
-    bool HasAttendanceConflict = false,
-    DateTime? AttendanceVerificationDueAt = null,
+    DateTime? GracePeriodStartedAt = null,
+    DateTime? GracePeriodEndsAt = null,
+    bool HasIssueReport = false,
+    string? IssueReportReason = null,
+    DateTime? IssueReportedAt = null,
     string? TutorName = null,
     string? SubjectName = null
 );
