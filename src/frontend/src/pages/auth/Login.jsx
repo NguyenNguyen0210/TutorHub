@@ -16,6 +16,7 @@ import { useAuthStore } from '@/store/authStore';
 import Avatar from '@/components/ui/Avatar';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/services/api';
+import { externalAuthService } from '@/services/externalAuth.service';
 import tutorService from '@/services/tutor.service';
 import AuthHeader from '@/components/layout/AuthHeader';
 
@@ -80,6 +81,8 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(false);
 
   // Truy vấn dữ liệu gia sư thật từ Database (PostgreSQL)
   const [tutorStats, setTutorStats] = useState({
@@ -109,8 +112,18 @@ export default function Login() {
         }
       });
 
+    let cancelled = false;
+    externalAuthService.getProviders()
+      .then(({ providers }) => {
+        if (!cancelled && providers.some((p) => String(p).toLowerCase() === 'google')) {
+          setGoogleEnabled(true);
+        }
+      })
+      .catch(() => {});
+
     return () => {
       isMounted = false;
+      cancelled = true;
     };
   }, []);
 
@@ -158,8 +171,20 @@ export default function Login() {
     }
   };
 
-  const handleSocialLogin = (provider) => {
-    toast.info(`Đăng nhập với ${provider} sẽ sớm có mặt.`);
+  const handleSocialLogin = async (provider) => {
+    if (provider !== 'Google') {
+      toast.info(`Đăng nhập với ${provider} sẽ sớm có mặt.`);
+      return;
+    }
+    try {
+      setSocialLoading(true);
+      const { authorizeUrl } = await externalAuthService.startGoogleLogin();
+      window.location.href = authorizeUrl;
+    } catch (err) {
+      toast.error(err?.message || 'Không khởi tạo được đăng nhập Google.');
+    } finally {
+      setSocialLoading(false);
+    }
   };
 
   return (
@@ -418,18 +443,22 @@ export default function Login() {
 
               {/* 6. 3 Social Buttons */}
               <div className="grid grid-cols-3 gap-2.5 mt-3.5">
+                {googleEnabled && (
                 <button
                   type="button"
                   onClick={() => handleSocialLogin('Google')}
+                  disabled={socialLoading}
                   className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none"
                 >
                   <GoogleSvg />
                   <span>Google</span>
                 </button>
+                )}
 
                 <button
                   type="button"
                   onClick={() => handleSocialLogin('Facebook')}
+                  disabled={socialLoading}
                   className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none"
                 >
                   <FacebookSvg />
@@ -439,6 +468,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => handleSocialLogin('Apple')}
+                  disabled={socialLoading}
                   className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none"
                 >
                   <AppleSvg />
