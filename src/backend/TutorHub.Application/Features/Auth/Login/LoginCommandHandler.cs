@@ -45,7 +45,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
         var user = await _context.Users
             .Include(u => u.TutorProfile)
             .Include(u => u.StudentProfile)
-            .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email.ToLowerInvariant() == normalizedEmail, cancellationToken);
 
         var now = _clock.UtcNow;
 
