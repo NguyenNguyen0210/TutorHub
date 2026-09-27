@@ -80,6 +80,31 @@ export const useAuthStore = create((set, get) => ({
     throw new Error('Phản hồi đăng nhập không hợp lệ từ máy chủ.');
   },
 
+  // Login via Google OAuth callback - AuthResponseDto shape == login response
+  loginWithExternal: async (authResponse) => {
+    const u = authResponse?.user;
+    if (!authResponse?.accessToken || !u) {
+      throw new Error('Phản hồi đăng nhập không hợp lệ từ máy chủ.');
+    }
+    const mappedUser = {
+      id: u.id,
+      name: u.fullName || u.email,
+      fullName: u.fullName || u.email,
+      email: u.email,
+      role: u.role,
+      phone: u.phone || null,
+      avatarUrl: u.avatarUrl || null,
+      idProfile: u.idProfile || null,
+      tutorProfileId: u.role === 'Tutor' ? (u.idProfile || null) : null,
+      absentStrikes: u.absentStrikes ?? 0,
+    };
+    get().login(mappedUser, {
+      accessToken: authResponse.accessToken,
+      refreshToken: authResponse.refreshToken,
+    });
+    return { success: true, user: mappedUser };
+  },
+
   // Register via real backend API
   registerWithCredentials: async (email, password, fullName, phone, role = 'Student') => {
     const res = await api.post('/auth/register', { email, password, fullName, phone, role });
