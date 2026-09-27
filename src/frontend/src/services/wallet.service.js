@@ -7,6 +7,8 @@
  * - GET  /tutors/me/wallet/withdrawals  → PagedResult<WithdrawalDto>
  * - POST /tutors/me/wallet/withdrawals  → 201 WithdrawalDto
  * - GET  /tutors/me/wallet/payout-account → TutorPayoutAccountDto
+ * - PUT  /tutors/me/wallet/payout-account → TutorPayoutAccountDto
+ * - GET  /tutors/me/wallet/statement    → PagedResult<WalletTransactionDto>
  */
 import api from './api';
 
@@ -57,6 +59,14 @@ export const walletService = {
   },
 
   /**
+   * PUT /tutors/me/wallet/payout-account
+   * Body: { bankName, bankCode, accountNumber, accountHolderName }
+   */
+  async updatePayoutAccount(payload) {
+    return api.put('/tutors/me/wallet/payout-account', payload);
+  },
+
+  /**
    * GET /tutors/me/wallet/withdrawals → PagedResult<WithdrawalDto>
    */
   async getWithdrawals({ status = null, pageNumber = 1, pageSize = 10 } = {}) {
@@ -72,6 +82,18 @@ export const walletService = {
    */
   async createWithdrawal(payload) {
     return api.post('/tutors/me/wallet/withdrawals', payload);
+  },
+
+  /**
+   * GET /tutors/me/wallet/statement → PagedResult<WalletTransactionDto>
+   * Params: { fromDate, toDate, pageNumber, pageSize }
+   */
+  async getWalletStatement({ fromDate = null, toDate = null, pageNumber = 1, pageSize = 20 } = {}) {
+    const params = { pageNumber, pageSize };
+    if (fromDate) params.fromDate = fromDate;
+    if (toDate) params.toDate = toDate;
+    const res = await api.get('/tutors/me/wallet/statement', { params });
+    return res;
   },
 };
 
