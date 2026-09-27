@@ -18,13 +18,17 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
     private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IStudentWalletService _studentWalletService;
+    private readonly IFastTrackDisputeLocker _locker;
 
-    public FastTrackResolveDisputeCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService, ICurrentUserService currentUserService)
+    public FastTrackResolveDisputeCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService, ICurrentUserService currentUserService, IStudentWalletService studentWalletService, IFastTrackDisputeLocker locker)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
         _currentUserService = currentUserService;
+        _studentWalletService = studentWalletService;
+        _locker = locker;
     }
 
     public async Task<DisputeDto> Handle(FastTrackResolveDisputeCommand request, CancellationToken cancellationToken)
@@ -37,9 +41,7 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
         {
             // Locked via separate SELECT ... FOR UPDATE (see AdminResolveDispute:
             // FromSql+Include breaks on the Disputes xmin row-version).
-            await _context.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT 1 FROM \"Disputes\" WHERE \"Id\" = {request.DisputeId} FOR UPDATE",
-                cancellationToken);
+            await _locker.LockDisputeAsync(request.DisputeId, cancellationToken);
 
             var dispute = await _context.Disputes
                 .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(sp => sp.User)
@@ -105,9 +107,7 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
                 throw new ConflictException("Fast-track resolution requires at least one uploaded evidence.");
             }
 
-            var tutorWallet = await _context.Wallets
-                .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {enrollment.TutorProfileId} FOR UPDATE")
-                .FirstOrDefaultAsync(cancellationToken);
+            var tutorWallet = await _locker.LockTutorWalletAsync(enrollment.TutorProfileId, cancellationToken);
 
             if (tutorWallet == null)
             {
@@ -143,50 +143,44 @@ public class FastTrackResolveDisputeCommandHandler : IRequestHandler<FastTrackRe
                     CreatedAt = now
                 });
 
-                var payoutTx = new Transaction
-                {
-                    Id = Guid.NewGuid(),
-                    BookingId = enrollment.BookingId,
-                    SessionId = session.Id,
-                    DisputeId = dispute.Id,
-                    Type = TransactionType.SessionPayoutCredit,
-                    Amount = gross,
-                    CommissionRate = feeRate,
-                    CommissionAmount = platformFee,
-                    PayoutAmount = tutorNetPayout,
-                    PaymentGatewayRef = $"FastTrackEscrowRelease-{dispute.Id:N}",
-                    Status = TransactionStatus.Released,
-                    CreatedAt = now,
-                    ReleasedAt = now
-                };
+                var payoutTx = Transaction.CreatePayout(
+                    enrollment.BookingId, session.Id, dispute.Id, gross, feeRate,
+                    platformFee, tutorNetPayout, $"FastTrackEscrowRelease-{dispute.Id:N}", now);
                 _context.Transactions.Add(payoutTx);
             }
             else
             {
                 // Student attended, tutor ghosted: full refund.
                 decision = DisputeResolutionDecision.StudentWinsFullRefund;
-                var refundTx = new Transaction
-                {
-                    Id = Guid.NewGuid(),
-                    BookingId = enrollment.BookingId,
-                    SessionId = session.Id,
-                    DisputeId = dispute.Id,
-                    Type = TransactionType.StudentRefund,
-                    Amount = gross,
-                    CommissionRate = 0,
-                    CommissionAmount = 0,
-                    PayoutAmount = 0,
-                    PaymentGatewayRef = $"FastTrackEscrowRefund-{dispute.Id:N}",
-                    Status = TransactionStatus.Pending,
-                    CreatedAt = now
-                };
+                await _studentWalletService.CreditRefundAsync(
+                    enrollment.StudentProfileId,
+                    gross,
+                    "DisputeResolution",
+                    dispute.Id,
+                    $"Hoàn tiền fast-track Buổi #{session.SessionNumber}",
+                    now,
+                    cancellationToken);
+
+                var refundTx = Transaction.CreateRefund(
+                    bookingId: enrollment.BookingId,
+                    sessionId: session.Id,
+                    disputeId: dispute.Id,
+                    originalPayout: null,
+                    amount: gross,
+                    paymentGatewayRef: $"FastTrackEscrowRefund-{dispute.Id:N}",
+                    description: $"Pre-release escrow refund for Session #{session.SessionNumber}",
+                    now: now);
+                refundTx.Status = TransactionStatus.Succeeded;
+                refundTx.RefundedAt = now;
+                refundTx.SettlementRequired = false;
                 _context.Transactions.Add(refundTx);
 
                 _context.AddOutboxMessage(new RefundCreatedEvent(
-                    enrollment.Id,
-                    enrollment.StudentProfile.UserId,
-                    new MoneyDto(gross),
-                    refundTx.Id));
+                    enrollment.Id, enrollment.StudentProfile.UserId, new MoneyDto(gross), refundTx.Id,
+                    Guid.NewGuid(), 1, now));
+                _context.AddOutboxMessage(new RefundCompletedEvent(
+                    enrollment.Id, enrollment.StudentProfile.UserId, new MoneyDto(gross), refundTx.Id,
+                    Guid.NewGuid(), 1, now));
             }
 
             session.ResolveAttendanceByAdmin(userId, request.AdminNotes, "DisputeFastTrack", now, releasePayout: tutorClaims);
