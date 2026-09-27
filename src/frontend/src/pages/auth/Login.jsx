@@ -348,10 +348,10 @@ export default function Login() {
 
               {/* Login Form */}
               <form onSubmit={handleSubmit} className="mt-5 text-left space-y-3">
-                {/* 1. Email hoặc số điện thoại */}
+                {/* 1. Email */}
                 <div>
                   <label htmlFor="login-email" className="block text-[13px] font-bold text-fg mb-1">
-                    Email hoặc số điện thoại
+                    Email
                   </label>
                   <div className="relative flex items-center h-12 bg-white border border-border rounded-[12px] px-3.5 focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10 transition-all">
                     <Mail className="w-4 h-4 text-fg-muted shrink-0 mr-2.5 pointer-events-none" />
@@ -362,7 +362,7 @@ export default function Login() {
                       autoComplete="username"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Nhập email hoặc số điện thoại của bạn"
+                      placeholder="Nhập email của bạn"
                       className="w-full h-full text-[14px] text-fg placeholder:text-fg-muted bg-transparent outline-none"
                     />
                   </div>
