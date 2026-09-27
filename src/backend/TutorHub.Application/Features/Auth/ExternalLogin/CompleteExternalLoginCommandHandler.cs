@@ -105,11 +105,13 @@ public class CompleteExternalLoginCommandHandler
             .FirstOrDefaultAsync(l => l.Provider == identity.Provider && l.ProviderUserId == identity.ProviderUserId, cancellationToken);
 
         User user;
+        ExternalLoginEntity loginEntry;
 
         if (externalLogin is not null)
         {
             user = await LoadUserAsync(externalLogin.UserId, cancellationToken)
                    ?? throw new UnauthorizedException("The account linked to this sign-in no longer exists.");
+            loginEntry = externalLogin;
         }
         else
         {
@@ -127,7 +129,7 @@ public class CompleteExternalLoginCommandHandler
                 user = CreateStudent(identity, normalizedEmail, now);
             }
 
-            _context.ExternalLogins.Add(new ExternalLoginEntity
+            loginEntry = new ExternalLoginEntity
             {
                 Id = Guid.NewGuid(),
                 UserId = user.Id,
@@ -136,7 +138,8 @@ public class CompleteExternalLoginCommandHandler
                 EmailAtLinkTime = normalizedEmail,
                 CreatedAt = now,
                 LastLoginAt = now
-            });
+            };
+            _context.ExternalLogins.Add(loginEntry);
         }
 
         if (user.Status == AccountStatus.Suspended)
@@ -159,7 +162,7 @@ public class CompleteExternalLoginCommandHandler
             user.ResetFailedLogin();
         }
 
-        externalLogin!.LastLoginAt = now;
+        loginEntry.LastLoginAt = now;
 
         var tutorProfileId = user.TutorProfile?.Id;
         var studentProfileId = user.StudentProfile?.Id;
