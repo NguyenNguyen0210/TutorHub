@@ -132,8 +132,8 @@ public class Transaction
             throw new ArgumentException(
                 "Fee reversals must reference the original payout transaction (DEC-S8-030).",
                 nameof(originalPayout));
-        if (feeReversalAmount < 0)
-            throw new ArgumentException("Fee reversal cannot be negative.", nameof(feeReversalAmount));
+        if (feeReversalAmount <= 0)
+            throw new ArgumentOutOfRangeException(nameof(feeReversalAmount), feeReversalAmount, "Fee reversal amount must be strictly greater than zero.");
 
         return new Transaction
         {
