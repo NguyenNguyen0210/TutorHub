@@ -50,10 +50,7 @@ public class ProcessBookingTimeoutsCommandHandler : IRequestHandler<ProcessBooki
 
             foreach (var booking in expiredHoldingBookings)
             {
-                booking.Status = BookingStatus.Expired;
-                booking.CancelledBy = CancelledBy.System;
-                booking.CancellationReason = "HoldingExpired";
-                booking.CancelledAt = now;
+                booking.Expire(now);
             }
             processedCount += expiredHoldingBookings.Count;
         }

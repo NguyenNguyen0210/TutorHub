@@ -78,16 +78,17 @@ public class Booking
         return actor != Enums.CancelledBy.Tutor;
     }
 
-    public (decimal RefundPercentage, decimal RefundAmount, decimal PayoutAmount) CalculateRefund(CancelledBy actor)
+    public void Expire(DateTime now)
     {
         if (Status != BookingStatus.Holding)
         {
-            throw new InvalidOperationException(
-                "Booking-level refund is only valid for an unpaid Holding booking. Use Enrollment cancellation.");
+            throw new InvalidOperationException($"Cannot expire booking in '{Status}' status.");
         }
 
-        // An unpaid holding moved no money.
-        return (0, 0, 0);
+        Status = BookingStatus.Expired;
+        CancelledBy = Enums.CancelledBy.System;
+        CancellationReason = "HoldingExpired";
+        CancelledAt = now;
     }
 
     public void Cancel(CancelledBy actor, string? reason, DateTime now)
