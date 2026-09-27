@@ -44,5 +44,7 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
             .IsUnique();
 
         builder.HasIndex(s => new { s.Status, s.StartAt });
+
+        builder.HasIndex(s => new { s.Status, s.GracePeriodEndsAt });
     }
 }
