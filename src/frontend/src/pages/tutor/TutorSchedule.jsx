@@ -232,7 +232,7 @@ export default function TutorSchedule() {
       <div>
         <h1 className="text-headline-page text-fg tracking-tight">Lịch dạy</h1>
         <p className="text-body-reg text-fg-secondary mt-1">
-          Xếp lịch buổi dạy cho các lớp học. Quy tắc báo trước tối thiểu 24 giờ.
+          Xếp lịch buổi dạy cho các lớp học. Quy tắc báo trước tối thiểu 2 giờ.
         </p>
       </div>
 
@@ -359,7 +359,7 @@ export default function TutorSchedule() {
                 <div>
                   <p className="font-semibold m-0">Quy tắc xếp lịch:</p>
                   <p className="mt-0.5 mb-0">
-                    Buổi học phải được xếp lịch trước giờ bắt đầu ít nhất 24 giờ. Bạn có thể
+                    Buổi học phải được xếp lịch trước giờ bắt đầu ít nhất 2 giờ. Bạn có thể
                     xếp từng buổi hoặc điền nhiều buổi rồi nhấn <strong>Xếp tất cả</strong>.
                     Các buổi chưa chọn thời gian sẽ giữ nguyên trạng thái chưa xếp để bạn xếp
                     dần sau.

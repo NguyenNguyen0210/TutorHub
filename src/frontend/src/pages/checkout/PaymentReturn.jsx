@@ -192,8 +192,7 @@ export default function PaymentReturn() {
                   <li>Hợp đồng học tập đã chính thức có hiệu lực.</li>
                   <li>Tự động phân rã các buổi học con tương ứng.</li>
                   <li>
-                    Học phí chỉ giải ngân từng buổi sau khi học viên và gia sư đối soát điểm danh 2
-                    chiều.
+                    Học phí được giải ngân sau mỗi buổi học thành công và qua thời gian bảo lưu 12 giờ.
                   </li>
                 </ul>
               )}

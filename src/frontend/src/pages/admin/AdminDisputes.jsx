@@ -114,10 +114,10 @@ export default function AdminDisputes() {
     <div className="space-y-5">
       <PageHeader
         title="Bàn trọng tài — Phân xử tranh chấp buổi học"
-        subtitle="Giám sát chứng cứ đối soát 24h, phân bổ bồi hoàn và thực thi phán quyết trọng tài theo chuẩn DEC-S8-025"
+        subtitle="Giám sát chứng cứ đối soát, phân bổ bồi hoàn và thực thi phán quyết trọng tài công bằng, minh bạch"
       />
 
-      {/* Trust & Invariant Banner */}
+      {/* Trust Banner */}
       <div className="p-4 rounded-brand-lg bg-surface border border-border shadow-brand-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-caption">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-brand-md bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center shrink-0 border border-brand-primary-100">
@@ -125,16 +125,16 @@ export default function AdminDisputes() {
           </div>
           <div className="space-y-0.5">
             <span className="font-bold text-fg block">
-              Quy chế phân xử & Cân đối tài chính bất biến (DEC-S8-025 & INV-DISP-008)
+              Quy chế phân xử & Nguyên tắc bảo toàn tài chính
             </span>
             <p className="text-fg-secondary text-[12px] m-0">
-              Công thức bảo toàn: <code className="font-mono text-brand-primary-700 bg-brand-primary-50 px-1 py-0.5 rounded">StudentRefund ≡ TutorNetRecovery + PlatformFeeReversal</code>. Trong tranh chấp sau giải ngân, nếu số dư khả dụng của gia sư không đủ, hệ thống giữ 0₫ để bảo vệ hạn mức và chuyển sang diện can thiệp tài chính.
+              Nguyên tắc cân bằng: Tỷ lệ hoàn trả cho học viên luôn tương ứng với phần thu hồi từ gia sư và điều chỉnh phí sàn. Nếu gia sư không đủ số dư khả dụng, hệ thống sẽ chuyển sang diện Quản trị viên xử lý bù trừ tài chính trực tiếp.
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Badge variant="primary" size="md">
-            DEC-S8-025 Sovereign
+            Cơ chế bảo chứng tài chính
           </Badge>
         </div>
       </div>

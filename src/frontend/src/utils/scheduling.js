@@ -1,15 +1,10 @@
 /**
- * Quy tắc bất biến: lịch học phải báo trước tối thiểu 24 giờ.
- *
- * Trước đây chỉ `EnrollmentDetail` và `SessionDetail` kiểm tra điều này, còn
- * `TutorSchedule` dựa vào thuộc tính `min` của `datetime-local` — thứ có thể bị bỏ
- * qua dễ dàng. Đây là bất biến nghiệp vụ nên mọi luồng xếp lịch phải kiểm tra ở
- * client, không chỉ dựa vào backend từ chối.
+ * Quy định xếp lịch & dời lịch: phải báo trước tối thiểu 2 giờ.
  */
 
-export const MIN_NOTICE_HOURS = 24;
+export const MIN_NOTICE_HOURS = 2;
 
-/** Chuỗi `datetime-local` tối thiểu: now + 24h (+5 phút đệm cho trễ thao tác). */
+/** Chuỗi `datetime-local` tối thiểu: now + 2h (+5 phút đệm cho trễ thao tác). */
 export function getMinNoticeDateTimeLocal() {
   const minDate = new Date(
     Date.now() + MIN_NOTICE_HOURS * 60 * 60 * 1000 + 5 * 60 * 1000
@@ -33,7 +28,7 @@ export function assertMinNotice(startAt) {
     return 'Thời gian bắt đầu không hợp lệ.';
   }
   if (start.getTime() < Date.now() + MIN_NOTICE_HOURS * 60 * 60 * 1000) {
-    return 'Lịch mới phải được xếp trước giờ bắt đầu ít nhất 24 giờ.';
+    return 'Lịch mới phải được xếp trước giờ bắt đầu ít nhất 2 giờ.';
   }
   return null;
 }

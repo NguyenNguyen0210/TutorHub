@@ -70,15 +70,10 @@ export default function Login() {
   const toast = useToast();
   const { loginWithCredentials } = useAuthStore();
 
-  // Không pre-fill tài khoản demo. Bản cũ đặt sẵn
-  // `student.tuan@tutorhub.com` / `Test@123` và bật `rememberMe` — nghĩa là ai
-  // mở /auth/login cũng đăng nhập được vào tài khoản có sẵn bằng một cú click,
-  // và không ai từng chạy qua nhánh validate trường rỗng. Muốn thử thì gõ tay;
-  // tài khoản seed vẫn nằm trong `src/backend/seedData.sql`.
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [googleEnabled, setGoogleEnabled] = useState(false);
@@ -143,7 +138,7 @@ export default function Login() {
     try {
       setLoading(true);
       setErrorMsg('');
-      const res = await loginWithCredentials(email, password);
+      const res = await loginWithCredentials(email, password, rememberMe);
       const user = res.user;
 
       toast.success(`Đăng nhập thành công! Chào mừng ${user.fullName || user.email}.`);
@@ -357,7 +352,8 @@ export default function Login() {
                     <Mail className="w-4 h-4 text-fg-muted shrink-0 mr-2.5 pointer-events-none" />
                     <input
                       id="login-email"
-                      type="text"
+                      type="email"
+                      inputMode="email"
                       required
                       autoComplete="username"
                       value={email}

@@ -23,7 +23,8 @@ export default function PublicTopbar() {
     navigate('/auth/login');
   };
 
-  const displayName = user?.fullName || user?.name || (isAuthenticated ? 'Nguyễn Văn A' : '');
+  const displayName =
+    user?.fullName || user?.name || user?.email?.split('@')[0] || (isAuthenticated ? 'Tài khoản' : '');
 
   const userMenuItems = isAuthenticated
     ? [

@@ -1,9 +1,11 @@
 import { create } from 'zustand';
 import api from '../services/api';
 
-const savedUser = JSON.parse(localStorage.getItem('tutorhub_user') || 'null');
-const savedToken = localStorage.getItem('tutorhub_token') || null;
-const savedRefreshToken = localStorage.getItem('tutorhub_refresh_token') || null;
+const getStoredItem = (key) => localStorage.getItem(key) || sessionStorage.getItem(key);
+
+const savedUser = JSON.parse(getStoredItem('tutorhub_user') || 'null');
+const savedToken = getStoredItem('tutorhub_token') || null;
+const savedRefreshToken = getStoredItem('tutorhub_refresh_token') || null;
 
 export const useAuthStore = create((set, get) => ({
   user: savedUser,
@@ -12,11 +14,18 @@ export const useAuthStore = create((set, get) => ({
   role: savedUser?.role || null,
   isAuthenticated: !!(savedUser && savedToken),
 
-  login: (userData, tokens) => {
-    localStorage.setItem('tutorhub_user', JSON.stringify(userData));
-    localStorage.setItem('tutorhub_token', tokens.accessToken);
+  login: (userData, tokens, rememberMe = true) => {
+    const targetStorage = rememberMe ? localStorage : sessionStorage;
+    const alternateStorage = rememberMe ? sessionStorage : localStorage;
+
+    alternateStorage.removeItem('tutorhub_user');
+    alternateStorage.removeItem('tutorhub_token');
+    alternateStorage.removeItem('tutorhub_refresh_token');
+
+    targetStorage.setItem('tutorhub_user', JSON.stringify(userData));
+    targetStorage.setItem('tutorhub_token', tokens.accessToken);
     if (tokens.refreshToken) {
-      localStorage.setItem('tutorhub_refresh_token', tokens.refreshToken);
+      targetStorage.setItem('tutorhub_refresh_token', tokens.refreshToken);
     }
     set({
       user: userData,
@@ -32,6 +41,9 @@ export const useAuthStore = create((set, get) => ({
     localStorage.removeItem('tutorhub_user');
     localStorage.removeItem('tutorhub_token');
     localStorage.removeItem('tutorhub_refresh_token');
+    sessionStorage.removeItem('tutorhub_user');
+    sessionStorage.removeItem('tutorhub_token');
+    sessionStorage.removeItem('tutorhub_refresh_token');
     set({
       user: null,
       accessToken: null,
@@ -43,13 +55,13 @@ export const useAuthStore = create((set, get) => ({
       if (refreshToken) {
         await api.post('/auth/logout', { refreshToken });
       }
-    } catch (err) {
-      console.warn('[authStore] Logout API error:', err.message);
+    } catch {
+      // Silent error on logout
     }
   },
 
-  // Login via real backend API - no mock fallback
-  loginWithCredentials: async (email, password) => {
+  // Login via real backend API
+  loginWithCredentials: async (email, password, rememberMe = true) => {
     const res = await api.post('/auth/login', { email, password });
 
     if (res && res.accessToken) {
@@ -61,18 +73,18 @@ export const useAuthStore = create((set, get) => ({
         email: u.email,
         role: u.role,
         phone: u.phone || null,
-        // KHÔNG sinh ảnh đại diện từ dịch vụ bên thứ ba. Bản cũ gọi
-        // `api.dicebear.com/...?seed=${u.email}` — tức gửi email của người dùng ra
-        // máy chủ bên thứ ba ngay mỗi lần đăng nhập, không cần họ bấm đồng ý.
-        // `null` thì <Avatar> tự hiện chữ cái đầu.
         avatarUrl: u.avatarUrl || null,
         idProfile: u.idProfile || null,
         tutorProfileId: u.role === 'Tutor' ? (u.idProfile || null) : null,
       };
-      get().login(mappedUser, {
-        accessToken: res.accessToken,
-        refreshToken: res.refreshToken,
-      });
+      get().login(
+        mappedUser,
+        {
+          accessToken: res.accessToken,
+          refreshToken: res.refreshToken,
+        },
+        rememberMe
+      );
       return { success: true, user: mappedUser };
     }
 
@@ -128,7 +140,12 @@ export const useAuthStore = create((set, get) => ({
           idProfile: serverUser.idProfile ?? current.idProfile,
           tutorProfileId: serverUser.role === 'Tutor' ? (serverUser.idProfile ?? current.tutorProfileId) : null,
         };
-        localStorage.setItem('tutorhub_user', JSON.stringify(updated));
+        if (localStorage.getItem('tutorhub_user')) {
+          localStorage.setItem('tutorhub_user', JSON.stringify(updated));
+        }
+        if (sessionStorage.getItem('tutorhub_user')) {
+          sessionStorage.setItem('tutorhub_user', JSON.stringify(updated));
+        }
         set({ user: updated, role: serverUser.role });
       }
     } catch {

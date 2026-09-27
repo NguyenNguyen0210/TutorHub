@@ -177,7 +177,7 @@ export default function SessionDetail() {
             Bạn có chắc chắn muốn hủy <strong>Buổi học #{session.sessionNumber}</strong>?
           </p>
           <div className="bg-holding-subtle text-holding-strong p-3 rounded-brand-md text-caption space-y-1">
-            <strong className="block font-semibold">Quy định hoàn tiền ký quỹ (INV-REFUND-004):</strong>
+            <strong className="block font-semibold">Quy định hoàn tiền học phí:</strong>
             <p className="text-xs m-0">
               Phần tiền học phí tương ứng (
               <strong className="tabular-nums">{session.earningAmount?.toLocaleString('vi-VN')} ₫</strong>

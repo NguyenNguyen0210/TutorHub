@@ -16,8 +16,8 @@ const STEPS = [
     body: 'Sau khi giữ chỗ thành công, gia sư chủ động sắp xếp thời khóa biểu chi tiết cho từng buổi học cùng bạn.',
   },
   {
-    title: 'Học & đối soát',
-    body: 'Mỗi buổi học được báo trước tối thiểu 24 giờ và chỉ tất toán giải ngân sau khi bạn xác nhận hoàn thành.',
+    title: 'Học tập & bảo đảm',
+    body: 'Mỗi buổi học được báo trước tối thiểu 2 giờ và tự động giải ngân sau 12 giờ hoàn thành nếu không có khiếu nại phát sinh.',
   },
 ];
 

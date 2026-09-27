@@ -245,9 +245,9 @@ export default function AdminWithdrawals() {
             Giao dịch chuyển khoản không thành công hoặc thông tin tài khoản ngân hàng không hợp lệ.
           </p>
           <div className="bg-holding-subtle text-holding-strong p-3 rounded-brand-md text-caption">
-            <strong>Cơ chế hoàn trả ví (DEC-WD-003):</strong> Số tiền{' '}
+            <strong>Cơ chế hoàn trả số dư:</strong> Số tiền{' '}
             <strong><Money value={item.amount} /></strong> sẽ được{' '}
-            <strong>tự động hoàn trả ngay lập tức</strong> về số dư khả dụng (AvailableBalance) của gia sư.
+            <strong>tự động hoàn trả ngay lập tức</strong> về số dư khả dụng của gia sư.
           </div>
         </div>
       ),

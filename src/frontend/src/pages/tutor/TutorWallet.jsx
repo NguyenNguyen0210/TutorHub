@@ -37,8 +37,8 @@ const ESCROW_STEPS = [
     titleClass: 'text-holding-strong',
   },
   {
-    title: 'Bước 2: Đối soát điểm danh',
-    body: 'Sau mỗi buổi học, hai bên xác nhận có mặt trong 24h. Tiền buổi đó được giải ngân vào Available.',
+    title: 'Bước 2: Giải ngân tự động',
+    body: 'Sau mỗi buổi học hoàn thành và qua thời gian bảo lưu 12h không có khiếu nại, tiền buổi học tự động chuyển vào số dư khả dụng.',
     titleClass: 'text-success-strong',
   },
   {
@@ -131,8 +131,7 @@ export default function TutorWallet() {
             Trung tâm tài chính &amp; Ví bảo chứng gia sư
           </h1>
           <p className="text-body-reg text-fg-secondary mt-1">
-            Quản trị minh bạch dòng tiền Escrow, thu nhập từng buổi học và hạn mức rút
-            tiền (Quy tắc bất biến DEC-WD-001)
+            Quản trị minh bạch dòng tiền bảo chứng, thu nhập từng buổi học và hạn mức rút tiền.
           </p>
         </div>
         {canWithdraw ? (
@@ -204,8 +203,8 @@ export default function TutorWallet() {
           Phong tỏa {formatCurrency(wallet.heldBalance)}
           <span className="mx-1.5 text-fg-muted">=</span>
           <span className="font-bold text-fg">{formatCurrency(withdrawable)}</span>
-          <span className="ml-2 inline-block align-middle text-[11px] font-semibold uppercase tracking-wide text-fg-muted border border-border rounded-brand-sm px-1.5 py-0.5">
-            DEC-WD-001
+          <span className="ml-2 inline-block align-middle text-[11px] font-semibold text-fg-muted border border-border rounded-brand-sm px-1.5 py-0.5">
+            Quy tắc rút tiền
           </span>
         </p>
       </div>

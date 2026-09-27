@@ -100,7 +100,7 @@ export default function AdminDashboard() {
       urgent: actionQueue.openReportsCount > 0,
       desc:
         actionQueue.openReportsCount > 0
-          ? 'Có khiếu nại tranh chấp buổi học đối soát 24h hoặc xung đột điểm danh đang chờ tiếp nhận.'
+          ? 'Có khiếu nại tranh chấp buổi học đang chờ tiếp nhận và xử lý.'
           : 'Bàn trọng tài hiện không có vụ việc tồn đọng.',
       link: '/admin/disputes',
       btnText: 'Phân xử trọng tài',
@@ -114,7 +114,7 @@ export default function AdminDashboard() {
       urgent: actionQueue.pendingWithdrawalsCount > 0,
       desc:
         actionQueue.pendingWithdrawalsCount > 0
-          ? 'Gia sư yêu cầu rút thu nhập khả dụng về tài khoản ngân hàng đã liên kết (DEC-WD-001).'
+          ? 'Gia sư yêu cầu rút thu nhập khả dụng về tài khoản ngân hàng đã liên kết.'
           : 'Không có yêu cầu rút tiền mới chờ đối soát.',
       link: '/admin/withdrawals',
       btnText: 'Duyệt lệnh rút tiền',
@@ -168,16 +168,16 @@ export default function AdminDashboard() {
           </div>
           <div className="space-y-0.5">
             <span className="font-bold text-fg block text-body-reg">
-              Bộ ba trụ cột bảo chứng giao dịch nền tảng (Platform Invariants)
+              Hệ thống bảo chứng giao dịch & an toàn thanh toán
             </span>
             <p className="text-fg-secondary text-[12px] m-0 leading-relaxed">
-              <strong>100% Escrow bảo toàn</strong> cho từng buổi học • <strong>Công thức cân đối DEC-S8-025</strong> bảo vệ quyền tài chính các bên • <strong>Sổ cái Append-Only (INV-LEDGER-006)</strong> lưu trữ bất biến.
+              <strong>100% Ký quỹ bảo toàn</strong> cho từng buổi học • <strong>Cơ chế phân xử minh bạch</strong> bảo vệ quyền lợi các bên • <strong>Hệ thống sổ cái giao dịch</strong> ghi nhận minh bạch & bất biến.
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 self-start md:self-auto">
           <Badge variant="primary" size="md">
-            Sovereign Ledger Active
+            Bảo chứng kích hoạt
           </Badge>
         </div>
       </div>
@@ -219,7 +219,7 @@ export default function AdminDashboard() {
       <Card padding="lg" className="space-y-4 shadow-brand-sm border border-border">
         <CardHeader
           title="Hàng đợi nghiệp vụ & Tác vụ cần xử lý ngay"
-          subtitle="Giám sát khiếu nại phát sinh từ đối soát 24h và yêu cầu thanh khoản của thành viên"
+          subtitle="Giám sát khiếu nại phát sinh và yêu cầu rút tiền của thành viên"
           icon={<Icon name="emergency" size="sm" className="text-danger" />}
         />
 
@@ -420,7 +420,7 @@ export default function AdminDashboard() {
                 Bàn trọng tài tranh chấp
               </span>
               <span className="text-[11px] text-fg-muted block">
-                Phân xử bồi hoàn theo DEC-S8-025
+                Phân xử bồi hoàn & bảo vệ quyền lợi
               </span>
             </div>
           </div>

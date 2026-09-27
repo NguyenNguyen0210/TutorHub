@@ -502,7 +502,7 @@ export default function AdminStudentWallets() {
         {activeTab === 'adjust' && (
           <Card padding="lg" className="max-w-xl mx-auto space-y-4 border border-border shadow-brand-sm">
             <CardHeader
-              title="Điều chỉnh số dư sổ cái học viên (Manual Ledger Adjustment)"
+              title="Điều chỉnh số dư học viên"
               icon={<Icon name="tune" size="sm" className="text-brand-primary-600" />}
             />
             <p className="text-caption text-fg-muted">
@@ -510,10 +510,10 @@ export default function AdminStudentWallets() {
             </p>
 
             <form onSubmit={handleAdjustWallet} className="space-y-4 pt-2">
-              <Field label="Mã Ví Học Viên (StudentWalletId - GUID)" htmlFor="adjust-wallet-id">
+              <Field label="Mã định danh ví học viên" htmlFor="adjust-wallet-id">
                 <Input
                   id="adjust-wallet-id"
-                  placeholder="Ví dụ: 3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  placeholder="Nhập mã ví học viên (UUID)..."
                   value={adjustWalletId}
                   onChange={(e) => setAdjustWalletId(e.target.value)}
                   required

@@ -104,7 +104,7 @@ export default function DisputeNew() {
     }
 
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      toast.error('Định dạng tệp không hợp lệ (DEC-S8-018). Chỉ chấp nhận JPG, PNG, WEBP, PDF hoặc TXT.');
+      toast.error('Định dạng tệp không hợp lệ. Chỉ chấp nhận JPG, PNG, WEBP, PDF hoặc TXT.');
       e.target.value = '';
       setEvidenceFile(null);
       return;
@@ -237,7 +237,7 @@ export default function DisputeNew() {
           Mô tả điều xảy ra để Ban Trọng Tài có căn cứ đối soát.
         </p>
         <p className="text-[13px] text-fg-muted">
-          Hệ thống bàn trọng tài bảo vệ quyền lợi tài chính minh bạch cho cả học viên và gia sư theo chuẩn DEC-S8-025.
+          Hệ thống trọng tài bảo vệ quyền lợi tài chính minh bạch cho cả học viên và gia sư.
         </p>
       </header>
 
@@ -266,7 +266,7 @@ export default function DisputeNew() {
         >
           {isFutureSession && (
             <p className="m-0">
-              Theo quy chế sàn (FR-DISPUTE-001), khiếu nại tranh chấp chỉ áp dụng cho buổi học đã diễn ra trong quá khứ. Với buổi học sắp diễn ra, bạn có thể thực hiện <strong>Hủy buổi học</strong> (hoàn 100% học phí về ví ký quỹ) hoặc <strong>Dời lịch học</strong> trên trang chi tiết buổi học.
+              Theo quy chế hoạt động, khiếu nại tranh chấp chỉ áp dụng cho buổi học đã diễn ra trong quá khứ. Với buổi học sắp diễn ra, bạn có thể thực hiện <strong>Hủy buổi học</strong> (hoàn 100% học phí về ví ký quỹ) hoặc <strong>Dời lịch học</strong> trên trang chi tiết buổi học.
             </p>
           )}
           {isUnscheduled && (
@@ -396,7 +396,7 @@ export default function DisputeNew() {
                 </p>
               )}
               <p className="text-caption text-fg-muted m-0">
-                Chuẩn DEC-S8-018: Hỗ trợ JPG, PNG, WEBP, PDF, TXT (tối đa 10 MB)
+                Định dạng hỗ trợ: JPG, PNG, WEBP, PDF, TXT (tối đa 10 MB)
               </p>
             </div>
           </div>

@@ -107,11 +107,11 @@ export default function AdminAuditLogs() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Sổ cái kiểm toán bất biến trung tâm (Central Audit Log)"
-        subtitle="Hệ thống sổ cái Append-Only ghi nhận vĩnh viễn mọi biến động Escrow, hợp đồng và phán quyết trọng tài"
+        title="Nhật ký kiểm toán hệ thống"
+        subtitle="Ghi nhận minh bạch mọi biến động số dư, giao dịch bảo chứng, hợp đồng và phán quyết phân xử"
       />
 
-      {/* Invariant Trust Banner */}
+      {/* Trust Banner */}
       <div className="p-4 rounded-brand-lg bg-surface border border-border shadow-brand-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-caption">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-brand-md bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center shrink-0 border border-brand-primary-100">
@@ -119,16 +119,16 @@ export default function AdminAuditLogs() {
           </div>
           <div className="space-y-0.5">
             <span className="font-bold text-fg block">
-              Bất biến sổ cái kiểm toán (INV-LEDGER-006 & INV-LEDGER-007)
+              Bảo toàn dữ liệu nhật ký kiểm toán
             </span>
             <p className="text-fg-secondary text-[12px] m-0">
-              Mọi bản ghi kiểm toán được interceptor của cơ sở dữ liệu khóa chặt: cấm sửa đổi (UPDATE) hoặc xóa (DELETE), đảm bảo tính toàn vẹn pháp lý và đối soát tài chính.
+              Toàn bộ bản ghi kiểm toán được hệ thống bảo vệ tự động, không thể chỉnh sửa hoặc xóa bỏ, đảm bảo tính toàn vẹn và đối soát minh bạch.
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Badge variant="primary" size="md">
-            Append-Only Ledger
+            Dữ liệu bất biến
           </Badge>
         </div>
       </div>

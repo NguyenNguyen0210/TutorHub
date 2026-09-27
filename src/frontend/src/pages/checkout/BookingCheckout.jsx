@@ -30,11 +30,8 @@ export default function BookingCheckout() {
   const [wallet, setWallet] = useState(null);
   const [loadingWallet, setLoadingWallet] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [simulating, setSimulating] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
-
-  const isDev = import.meta.env.DEV || import.meta.env.VITE_DEV_PAYMENT_SIMULATOR === 'true';
 
   const loadWallet = useCallback(async () => {
     try {
@@ -180,30 +177,6 @@ export default function BookingCheckout() {
     }
   };
 
-  const handleSimulatePayment = async (success = true) => {
-    try {
-      setSimulating(true);
-      setPaymentError(null);
-      try {
-        await paymentService.createVnPayUrl(booking.id);
-      } catch {
-        // Tiếp tục gọi simulator
-      }
-
-      const result = await paymentService.simulateIpn(booking.id, success);
-      if (result?.success || result?.ackCode === '00') {
-        toast.success('Giả lập thanh toán thành công! Hợp đồng học tập đã được kích hoạt.');
-        navigate('/student/dashboard');
-      } else {
-        toast.warning(`Giả lập kết thúc với mã ${result?.ackCode || 'thất bại'}.`);
-      }
-    } catch (err) {
-      toast.error(err?.message || 'Không thể gọi dev payment simulator.');
-    } finally {
-      setSimulating(false);
-    }
-  };
-
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       {/* Checkout Progress Stepper */}
@@ -323,7 +296,7 @@ export default function BookingCheckout() {
               <span>Chứng thư ký quỹ bảo chứng Escrow 100%</span>
             </div>
             <p className="text-success-strong leading-relaxed text-[12px]">
-              Số tiền <strong>{formatCurrency(totalPrice)}</strong> của bạn được bảo đảm an toàn 100% trong két ký quỹ trung lập của TutorHub. Tiền chỉ được giải ngân từng buổi sau khi học viên và gia sư hoàn tất đối soát xác nhận điểm danh 2 chiều.
+              Số tiền <strong>{formatCurrency(totalPrice)}</strong> của bạn được bảo đảm an toàn 100% trong két ký quỹ trung lập của TutorHub. Tiền chỉ được giải ngân sau mỗi buổi học thành công và qua thời gian bảo lưu 12 giờ nếu không có khiếu nại phát sinh.
             </p>
             <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-success-strong font-medium">
               <span className="flex items-center gap-1">
@@ -414,7 +387,7 @@ export default function BookingCheckout() {
                   </div>
                   <div>
                     <span className="font-bold text-caption sm:text-body-reg text-fg block">
-                      Cổng VNPay 2.1.0
+                      Cổng thanh toán VNPAY
                     </span>
                     <span className="text-[10px] text-fg-muted block">
                       ATM nội địa, VNPAY-QR, Visa/Mastercard
@@ -469,7 +442,7 @@ export default function BookingCheckout() {
                 size="lg"
                 fullWidth
                 loading={loading}
-                disabled={isExpired || simulating}
+                disabled={isExpired}
                 onClick={handlePayVNPay}
                 icon={!loading && <Icon name="lock" size="sm" />}
               >
@@ -484,42 +457,8 @@ export default function BookingCheckout() {
                 <Icon name="lock" size="xs" className="text-success-strong" />
                 <span>Bảo mật SSL 256-bit chuẩn quốc tế PCI-DSS</span>
               </p>
-              <p>Hợp đồng và N buổi học sẽ được kích hoạt ngay sau thanh toán</p>
+              <p>Hợp đồng và các buổi học sẽ được kích hoạt ngay sau thanh toán</p>
             </div>
-
-            {/* Dev Simulator Panel */}
-            {isDev && (
-              <div className="pt-4 border-t border-dashed border-holding/40 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-holding-strong flex items-center gap-1">
-                    <Icon name="terminal" size="xs" />
-                    Dev IPN Simulator
-                  </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-holding-subtle text-holding-strong font-mono font-bold">
-                    DEV ONLY
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="success"
-                    size="sm"
-                    disabled={simulating || isExpired || loading}
-                    onClick={() => handleSimulatePayment(true)}
-                    loading={simulating}
-                  >
-                    Giả lập thành công
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={simulating || isExpired || loading}
-                    onClick={() => handleSimulatePayment(false)}
-                  >
-                    Giả lập thất bại
-                  </Button>
-                </div>
-              </div>
-            )}
           </Card>
 
           <div className="text-center">

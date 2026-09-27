@@ -22,7 +22,7 @@ const STATUS_BADGES = {
   Resolved: { label: 'Đã phân xử', variant: 'success' },
   Dismissed: { label: 'Đã bác bỏ', variant: 'neutral' },
   RequiresAdminFinancialIntervention: {
-    label: 'Cần can thiệp tài chính (INV-DISP-008)',
+    label: 'Cần xử lý bù trừ tài chính',
     variant: 'holding',
   },
 };
@@ -274,8 +274,8 @@ export default function AdminDisputeDetail() {
 
       {/* Intervention Warning if applicable */}
       {dispute?.status === 'RequiresAdminFinancialIntervention' && (
-        <Callout variant="holding" title="Cảnh báo can thiệp tài chính (INV-DISP-008)">
-          Số dư khả dụng trong ví của gia sư không đủ để tạm giữ toàn bộ số tiền tranh chấp tối đa ({formatCurrency(tutorReceivedOriginal)}). Theo quy chuẩn bảo vệ hạn mức, hệ thống đã giữ 0₫ và chuyển vụ việc sang diện Admin can thiệp tài chính thủ công ngoài sàn.
+        <Callout variant="holding" title="Cảnh báo can thiệp tài chính">
+          Số dư khả dụng trong ví của gia sư không đủ để tạm giữ toàn bộ số tiền tranh chấp tối đa ({formatCurrency(tutorReceivedOriginal)}). Do số dư hiện tại không đủ trích lập, hệ thống đã chuyển vụ việc sang diện Quản trị viên xử lý bù trừ tài chính trực tiếp.
         </Callout>
       )}
 
@@ -506,7 +506,7 @@ export default function AdminDisputeDetail() {
         /* Active Arbitration Balancing & Resolution Form */
         <Card padding="lg" className="space-y-5 border-2 border-brand-primary-500 shadow-brand-md">
           <CardHeader
-            title="Bộ cân bằng tài chính trọng tài DEC-S8-025"
+            title="Công cụ phân bổ tài chính & giải quyết bồi hoàn"
             icon={<Icon name="calculate" size="sm" />}
             action={
               /* Phí sàn là dòng tiền trung tính — không tô xanh (SPEC §4.2). */

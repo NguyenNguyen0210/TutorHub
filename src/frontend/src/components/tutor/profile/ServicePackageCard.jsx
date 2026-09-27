@@ -25,8 +25,8 @@ export default function ServicePackageCard({ service, isBooking = false, onBook 
   const benefits = [
     { key: 'sessions', text: `${totalSessions} buổi học 1 kèm 1 (${service.sessionDurationMinutes} phút/buổi)` },
     { key: 'mode', text: `Hình thức: ${modeMeta.label}` },
-    { key: 'escrow', text: 'Giải ngân từng buổi sau khi bạn xác nhận' },
-    { key: 'reschedule', text: 'Được đổi lịch báo trước tối thiểu 24 giờ' },
+    { key: 'escrow', text: 'Bảo lưu 12 giờ & giải ngân an toàn từng buổi' },
+    { key: 'reschedule', text: 'Được đổi lịch báo trước tối thiểu 2 giờ' },
   ];
 
   return (
