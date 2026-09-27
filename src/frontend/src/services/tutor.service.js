@@ -318,6 +318,22 @@ export const tutorService = {
     const res = await api.get(`/tutors/${id}/reviews`, { params: { pageNumber, pageSize } });
     return normalizePaged(res, normalizeTutorReview);
   },
+
+  /** POST /tutors/me/application/resubmit → TutorApplicationDto */
+  async resubmitTutorApplication(payload) {
+    return api.post('/tutors/me/application/resubmit', payload);
+  },
+
+  /** PUT /tutors/me/subjects body { subjects: [{ subjectId, isActive }] } → TutorSubjectDto[] */
+  async updateMySubjects(subjects) {
+    const payload = Array.isArray(subjects) ? { subjects } : subjects;
+    return api.put('/tutors/me/subjects', payload);
+  },
+
+  /** POST /reviews/{reviewId}/reply body { reply } → ReviewDto */
+  async replyReview(reviewId, reply) {
+    return api.post(`/reviews/${reviewId}/reply`, { reply });
+  },
 };
 
 export default tutorService;
