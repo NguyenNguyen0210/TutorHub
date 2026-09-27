@@ -3,4 +3,4 @@ using TutorHub.Application.Features.Auth.DTOs;
 
 namespace TutorHub.Application.Features.Auth.GetMe;
 
-public record GetMeQuery : IRequest<RegisterResponseDto>;
+public record GetMeQuery : IRequest<GetMeResponseDto>;

@@ -111,7 +111,7 @@ export const useAuthStore = create((set, get) => ({
     if (!token) return;
     try {
       const serverUser = await api.get('/auth/me');
-      if (!serverUser || !serverUser.userId) {
+      if (!serverUser || (!serverUser.userId && !serverUser.id)) {
         get().logout();
         return;
       }
@@ -120,8 +120,17 @@ export const useAuthStore = create((set, get) => ({
         return;
       }
       const current = get().user;
-      if (current && (current.role !== serverUser.role || current.fullName !== serverUser.fullName)) {
-        const updated = { ...current, role: serverUser.role, fullName: serverUser.fullName, name: serverUser.fullName };
+      if (current) {
+        const updated = {
+          ...current,
+          role: serverUser.role,
+          fullName: serverUser.fullName,
+          name: serverUser.fullName,
+          avatarUrl: serverUser.avatarUrl ?? current.avatarUrl,
+          idProfile: serverUser.idProfile ?? current.idProfile,
+          tutorProfileId: serverUser.role === 'Tutor' ? (serverUser.idProfile ?? current.tutorProfileId) : null,
+          absentStrikes: serverUser.absentStrikes ?? current.absentStrikes ?? 0,
+        };
         localStorage.setItem('tutorhub_user', JSON.stringify(updated));
         set({ user: updated, role: serverUser.role });
       }

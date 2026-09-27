@@ -27,14 +27,17 @@ public class GetMeQueryHandlerTests
     [InlineData(UserRole.Student)]
     [InlineData(UserRole.Tutor)]
     [InlineData(UserRole.Admin)]
-    public async Task Handle_ShouldReturnUserDto_WhenUserExists(UserRole role)
+    public async Task Handle_ShouldReturnGetMeResponseDto_WhenUserExists(UserRole role)
     {
         // Arrange
         var user = new UserBuilder()
             .WithFullName("Profile Owner")
             .WithEmail("owner@example.com")
+            .WithPhone("0123456789")
             .WithRole(role)
             .Build();
+        user.AvatarUrl = "https://example.com/avatar.jpg";
+        user.AbsentStrikes = 2;
 
         var usersList = new List<User> { user };
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
@@ -48,10 +51,61 @@ public class GetMeQueryHandlerTests
 
         // Assert
         result.Should().NotBeNull();
+        result.Id.Should().Be(user.Id);
         result.UserId.Should().Be(user.Id);
         result.Email.Should().Be("owner@example.com");
         result.FullName.Should().Be("Profile Owner");
+        result.Phone.Should().Be("0123456789");
         result.Role.Should().Be(role.ToString());
+        result.Status.Should().Be(user.Status.ToString());
+        result.AvatarUrl.Should().Be("https://example.com/avatar.jpg");
+        result.AbsentStrikes.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnTutorProfileId_WhenUserIsTutor()
+    {
+        // Arrange
+        var tutorProfileId = Guid.NewGuid();
+        var user = new UserBuilder()
+            .WithRole(UserRole.Tutor)
+            .WithTutorProfile(new TutorProfile { Id = tutorProfileId })
+            .Build();
+
+        var usersList = new List<User> { user };
+        _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
+
+        _currentUser.Set(user.Id, UserRole.Tutor);
+
+        // Act
+        var result = await _handler.Handle(new GetMeQuery(), CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IdProfile.Should().Be(tutorProfileId);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnStudentProfileId_WhenUserIsStudent()
+    {
+        // Arrange
+        var studentProfileId = Guid.NewGuid();
+        var user = new UserBuilder()
+            .WithRole(UserRole.Student)
+            .WithStudentProfile(new StudentProfile { Id = studentProfileId })
+            .Build();
+
+        var usersList = new List<User> { user };
+        _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
+
+        _currentUser.Set(user.Id, UserRole.Student);
+
+        // Act
+        var result = await _handler.Handle(new GetMeQuery(), CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IdProfile.Should().Be(studentProfileId);
     }
 
     [Fact]
