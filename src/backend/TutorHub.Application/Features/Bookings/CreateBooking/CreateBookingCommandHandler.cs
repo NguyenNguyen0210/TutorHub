@@ -90,6 +90,18 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
             throw new ForbiddenException("Booking is temporarily frozen due to repeated no-show absences. Please try again after the freeze period.");
         }
 
+        // Prevent duplicate active holding booking for same student and service (RM13)
+        var existingHolding = await _context.Bookings
+            .FirstOrDefaultAsync(b => b.StudentProfileId == student.Id
+                                   && b.ServiceId == service.Id
+                                   && b.Status == BookingStatus.Holding
+                                   && b.HoldingExpiresAt.HasValue
+                                   && b.HoldingExpiresAt.Value > now, cancellationToken);
+        if (existingHolding != null)
+        {
+            throw new ConflictException("You already have an active pending booking held for this service. Please proceed to payment or wait for the hold to expire.");
+        }
+
         // 4. Pure Service Checkout Holding Snapshot (15m expiration lock)
         var booking = new Booking
         {
