@@ -98,7 +98,8 @@ public class EnrollmentActivationService : IEnrollmentActivationService
         // Escrow holds the GROSS enrollment amount; the platform fee is only
         // removed when each session is released (FR-EARN-003).
         var wallet = await _context.Wallets
-            .FirstOrDefaultAsync(w => w.TutorProfileId == booking.TutorProfileId, cancellationToken);
+            .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {booking.TutorProfileId} FOR UPDATE")
+            .FirstOrDefaultAsync(cancellationToken);
         if (wallet == null)
         {
             wallet = new Wallet
