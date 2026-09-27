@@ -455,10 +455,10 @@ export default function AdminDashboard() {
             </div>
             <div>
               <span className="font-bold text-caption text-fg group-hover:text-brand-primary-700 block">
-                Người dùng & Absent Strikes
+                Người dùng & Tài khoản
               </span>
               <span className="text-[11px] text-fg-muted block">
-                Quản lý kỷ luật & khóa tài khoản
+                Quản lý trạng thái & khóa tài khoản
               </span>
             </div>
           </div>

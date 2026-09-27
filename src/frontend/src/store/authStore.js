@@ -68,7 +68,6 @@ export const useAuthStore = create((set, get) => ({
         avatarUrl: u.avatarUrl || null,
         idProfile: u.idProfile || null,
         tutorProfileId: u.role === 'Tutor' ? (u.idProfile || null) : null,
-        absentStrikes: u.absentStrikes ?? 0,
       };
       get().login(mappedUser, {
         accessToken: res.accessToken,
@@ -96,7 +95,6 @@ export const useAuthStore = create((set, get) => ({
       avatarUrl: u.avatarUrl || null,
       idProfile: u.idProfile || null,
       tutorProfileId: u.role === 'Tutor' ? (u.idProfile || null) : null,
-      absentStrikes: u.absentStrikes ?? 0,
     };
     get().login(mappedUser, {
       accessToken: authResponse.accessToken,
@@ -129,7 +127,6 @@ export const useAuthStore = create((set, get) => ({
           avatarUrl: serverUser.avatarUrl ?? current.avatarUrl,
           idProfile: serverUser.idProfile ?? current.idProfile,
           tutorProfileId: serverUser.role === 'Tutor' ? (serverUser.idProfile ?? current.tutorProfileId) : null,
-          absentStrikes: serverUser.absentStrikes ?? current.absentStrikes ?? 0,
         };
         localStorage.setItem('tutorhub_user', JSON.stringify(updated));
         set({ user: updated, role: serverUser.role });
