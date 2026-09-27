@@ -70,6 +70,9 @@ services:
       # Browser origins allowed to call the API (P0-E2). Comma-separated for more
       # than one; the container is not Development, so an empty list stops startup.
       Cors__AllowedOrigins: ${Cors__AllowedOrigins}
+      ExternalAuth__RedirectUri: ${ExternalAuth__RedirectUri:-http://localhost:5173/auth/oauth/callback}
+      ExternalAuth__Google__ClientId: ${ExternalAuth__Google__ClientId}
+      ExternalAuth__Google__ClientSecret: ${ExternalAuth__Google__ClientSecret}
     ports:
       - "8080:8080"
     healthcheck:
