@@ -106,6 +106,35 @@ public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatc
                         .Select(s => (s.TutorProfileId, s.StartAt!.Value, s.EndAt, nameof(SessionStatus.Scheduled))));
             }
 
+            var studentProfileIds = sessions.Select(s => s.Enrollment.StudentProfileId).Distinct().ToList();
+            var dbStudentScheduled = await _context.Sessions
+                .Where(s => !ids.Contains(s.Id) &&
+                            studentProfileIds.Contains(s.Enrollment.StudentProfileId) &&
+                            s.Status == SessionStatus.Scheduled &&
+                            s.StartAt.HasValue &&
+                            s.StartAt < rangeEnd && rangeStart < s.EndAt)
+                .Select(s => new
+                {
+                    StudentProfileId = s.Enrollment.StudentProfileId,
+                    StartAt = s.StartAt,
+                    EndAt = s.EndAt
+                })
+                .ToListAsync(cancellationToken);
+
+            foreach (var item in request.Items)
+            {
+                var session = byId[item.SessionId];
+                var sId = session.Enrollment.StudentProfileId;
+                var hasStudentOverlap = dbStudentScheduled.Any(s =>
+                    s.StudentProfileId == sId &&
+                    s.StartAt < item.EndAt && item.StartAt < s.EndAt);
+
+                if (hasStudentOverlap)
+                {
+                    throw new ConflictException("The student already has another session scheduled during this time slot.");
+                }
+            }
+
             // Intra-batch pairwise overlap (all items are tutor-owned by now).
             for (var i = 0; i < request.Items.Count; i++)
             {

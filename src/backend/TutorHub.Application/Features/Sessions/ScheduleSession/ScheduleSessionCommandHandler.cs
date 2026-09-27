@@ -91,6 +91,21 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
                 overlapping
                     .Select(s => (s.TutorProfileId, s.StartAt!.Value, s.EndAt, nameof(SessionStatus.Scheduled))));
 
+            // 5b. Overlap with the student's other Scheduled sessions in range (RM9)
+            var studentId = session.Enrollment.StudentProfileId;
+            var studentOverlap = await _context.Sessions
+                .Where(s => s.Id != session.Id &&
+                            s.Enrollment.StudentProfileId == studentId &&
+                            s.Status == SessionStatus.Scheduled &&
+                            s.StartAt.HasValue &&
+                            s.StartAt < request.EndAt && request.StartAt < s.EndAt)
+                .AnyAsync(cancellationToken);
+
+            if (studentOverlap)
+            {
+                throw new ConflictException("The student already has another session scheduled during this time slot.");
+            }
+
             // 6. Domain state transition (direct tutor schedule / reschedule, no ticket).
             var now = _clock.UtcNow;
             try
