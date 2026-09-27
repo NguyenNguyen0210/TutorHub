@@ -51,9 +51,9 @@ export default function Button({
       aria-disabled={!isNativeButton && isDisabled ? true : undefined}
       aria-busy={loading || undefined}
       className={cn(
-        'inline-flex items-center justify-center font-semibold transition-colors select-none',
+        'inline-flex items-center justify-center font-semibold transition-all duration-150 active:scale-[0.98] select-none cursor-pointer',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 focus-visible:ring-offset-2',
-        'disabled:opacity-50 disabled:cursor-not-allowed',
+        'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
         fullWidth && 'w-full',
         SIZE_CLASS[size] || SIZE_CLASS.md,
         VARIANT_CLASS[variant] || VARIANT_CLASS.primary,
@@ -86,9 +86,9 @@ export function IconButton({ label, variant = 'ghost', size = 'md', className, i
       aria-label={label}
       title={label}
       className={cn(
-        'inline-flex items-center justify-center rounded-brand-md transition-colors',
+        'inline-flex items-center justify-center rounded-brand-md transition-all duration-150 active:scale-[0.96] cursor-pointer',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 focus-visible:ring-offset-2',
-        'disabled:opacity-50 disabled:cursor-not-allowed',
+        'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
         box,
         VARIANT_CLASS[variant] || VARIANT_CLASS.ghost,
         className

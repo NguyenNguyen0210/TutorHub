@@ -220,7 +220,7 @@ export default function PublicTopbar() {
               />
             </>
           ) : (
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2 sm:gap-2.5">
               <Link
                 to="/become-tutor"
                 className="hidden lg:inline-flex text-[14px] font-medium text-fg-secondary hover:text-brand-primary-600 px-2.5 py-1.5 transition-colors"
@@ -235,7 +235,7 @@ export default function PublicTopbar() {
               </Link>
               <Link
                 to="/auth/login"
-                className="inline-flex items-center justify-center h-9 px-4 rounded-[8px] bg-brand-primary-600 hover:bg-brand-primary-700 text-white text-[13.5px] font-medium transition-colors shadow-sm"
+                className="inline-flex items-center justify-center h-8 sm:h-9 px-3 sm:px-4 rounded-[8px] bg-brand-primary-600 hover:bg-brand-primary-700 active:scale-[0.98] text-white text-[13px] sm:text-[13.5px] font-medium transition-all shadow-sm"
               >
                 Đăng nhập
               </Link>
@@ -297,6 +297,22 @@ export default function PublicTopbar() {
                 <Icon name="school" size="md" className="text-brand-primary-600" />
                 Trở thành gia sư
               </Link>
+              <div className="pt-3 border-t border-border grid grid-cols-2 gap-2">
+                <Link
+                  to="/auth/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center h-10 rounded-brand-md bg-brand-primary-600 text-white font-semibold text-caption hover:bg-brand-primary-700 active:scale-[0.98] transition-all shadow-sm"
+                >
+                  Đăng nhập
+                </Link>
+                <Link
+                  to="/auth/register"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center h-10 rounded-brand-md border border-neutral-300 bg-white text-neutral-800 font-semibold text-caption hover:bg-neutral-50 active:scale-[0.98] transition-all"
+                >
+                  Đăng ký
+                </Link>
+              </div>
             </>
           ) : (
             <>

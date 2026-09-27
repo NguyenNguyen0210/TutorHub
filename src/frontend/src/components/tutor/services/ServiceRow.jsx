@@ -265,20 +265,22 @@ export default function ServiceRow({
         )}
       </div>
 
-      <div className="shrink-0 flex sm:flex-col items-end sm:items-end justify-between sm:justify-start gap-3 sm:w-48 sm:text-right sm:border-l sm:border-border sm:pl-4">
-        <div>
-          <p className="text-[20px] font-bold text-fg tabular-nums tracking-tight leading-none">
-            <Money value={pkg.price} />
-          </p>
-          <p className="text-[13px] text-fg-secondary mt-1.5">
-            Gói {pkg.totalSessions} buổi
-          </p>
-          <p className="text-[12px] text-fg-muted tabular-nums">
+      <div className="w-full sm:w-48 sm:shrink-0 flex flex-col items-stretch sm:items-end justify-between gap-3 sm:text-right sm:border-l sm:border-border sm:pl-4 border-t sm:border-t-0 border-border pt-3 sm:pt-0">
+        <div className="flex items-center justify-between sm:justify-end gap-2 w-full">
+          <div>
+            <p className="text-[18px] sm:text-[20px] font-bold text-fg tabular-nums tracking-tight leading-none">
+              <Money value={pkg.price} />
+            </p>
+            <p className="text-[12px] sm:text-[13px] text-fg-secondary mt-1">
+              Gói {pkg.totalSessions} buổi
+            </p>
+          </div>
+          <p className="text-[12px] text-fg-muted tabular-nums text-right">
             ≈ {pricePerSession.toLocaleString('vi-VN')}đ/buổi
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:mt-auto sm:pt-2">
+        <div className="flex items-center justify-end gap-1.5 w-full sm:w-auto sm:mt-auto sm:pt-2 flex-wrap">
           {renderActions()}
         </div>
       </div>

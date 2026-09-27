@@ -69,8 +69,7 @@ export default function HeroSection({
 
               <button
                 type="submit"
-                className="h-[40px] px-4 sm:px-5 rounded-full bg-brand-primary-600 hover:bg-brand-primary-700 active:bg-brand-primary-800 text-white text-[13.5px] sm:text-[14px] font-semibold flex items-center justify-center gap-1.5 shrink-0 transition-colors cursor-pointer shadow-sm"
-                style={{ minWidth: '128px' }}
+                className="h-[40px] px-3.5 sm:px-5 rounded-full bg-brand-primary-600 hover:bg-brand-primary-700 active:scale-[0.98] text-white text-[13px] sm:text-[14px] font-semibold flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer shadow-sm min-w-[105px] sm:min-w-[128px]"
               >
                 <span>Tìm gia sư</span>
                 <Icon name="arrow_forward" size="xs" />

@@ -286,14 +286,13 @@ export default function AdminStudentWallets() {
         {activeTab === 'topups' && (
           <Card padding="lg" className="space-y-4 border border-border shadow-brand-sm">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-border">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <CardHeader
-                  title="Danh sách giao dịch nạp tiền VNPay"
+                  className="mb-0 min-w-0"
+                  title="Danh sách nạp tiền VNPay"
+                  subtitle={`${filteredTopUps.length} yêu cầu`}
                   icon={<Icon name="add_card" size="sm" className="text-brand-primary-600" />}
                 />
-                <span className="text-caption text-fg-muted tabular-nums">
-                  ({filteredTopUps.length} yêu cầu)
-                </span>
               </div>
 
               {/* Status Filters & Search */}
@@ -389,14 +388,13 @@ export default function AdminStudentWallets() {
         {activeTab === 'withdrawals' && (
           <Card padding="lg" className="space-y-4 border border-border shadow-brand-sm">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-border">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <CardHeader
-                  title="Danh sách yêu cầu rút tiền học viên"
+                  className="mb-0 min-w-0"
+                  title="Yêu cầu rút tiền học viên"
+                  subtitle={`${withdrawals.length} lệnh`}
                   icon={<Icon name="payments" size="sm" className="text-brand-primary-600" />}
                 />
-                <span className="text-caption text-fg-muted tabular-nums">
-                  ({withdrawals.length} lệnh)
-                </span>
               </div>
 
               <select
