@@ -87,9 +87,6 @@ public class AttendanceVerificationJob : BackgroundService
 
             _logger.LogWarning("Recovering orphaned session {SessionId}: both Attended but payout not released", session.Id);
 
-            session.Complete();
-            session.Enrollment.RecordCompletedSession(session.Id);
-
             var gross = session.EarningAmount;
             var commissionRate = session.Enrollment.PlatformFeeRate;
             var (commissionAmount, netPayout) = PlatformFeeCalculator.SplitGross(gross, commissionRate);
@@ -107,6 +104,9 @@ public class AttendanceVerificationJob : BackgroundService
                     await tx.RollbackAsync(cancellationToken);
                     continue;
                 }
+
+                session.Complete();
+                session.Enrollment.RecordCompletedSession(session.Id);
 
                 wallet.DebitPending(gross, now);
                 wallet.CreditAvailable(netPayout, now);
