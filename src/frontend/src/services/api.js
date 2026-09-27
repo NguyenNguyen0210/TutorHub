@@ -156,6 +156,11 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return api(originalRequest);
         }
+
+        const missingTokenErr = new Error('No access token returned from refresh.');
+        processQueue(missingTokenErr, null);
+        useAuthStore.getState().logout();
+        return Promise.reject(toApiError(missingTokenErr));
       } catch (refreshErr) {
         processQueue(refreshErr, null);
         useAuthStore.getState().logout();
