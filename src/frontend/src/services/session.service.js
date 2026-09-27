@@ -4,7 +4,7 @@
  * Contract (SessionsController):
  * - GET  /sessions                    → List<SessionCalendarDto>
  * - GET  /sessions/{id}               → SessionDto
- * - POST /sessions/{id}/attendance    body { outcome: 'Attended' | 'Absent' } → SessionDto
+ * - POST /sessions/{id}/report-issue body { reason, description } → SessionDto
  * - POST /sessions/{id}/schedule      body { startAt, endAt } → SessionDto
  * - GET  /sessions/{id}/learning-record → LearningRecordDto
  * - POST /sessions/{id}/learning-record body { content } → LearningRecordDto
@@ -28,12 +28,9 @@ export const sessionService = {
     return res;
   },
 
-  /**
-   * POST /sessions/{id}/attendance → SessionDto
-   * @param {'Attended'|'Absent'} outcome
-   */
-  async submitAttendance(id, outcome) {
-    const res = await api.post(`/sessions/${id}/attendance`, { outcome });
+  /** POST /sessions/{id}/report-issue body { reason, description } → SessionDto */
+  async reportSessionIssue(id, reason, description) {
+    const res = await api.post(`/sessions/${id}/report-issue`, { reason, description });
     return res;
   },
 
