@@ -40,7 +40,10 @@ public class UpdateServiceCommandHandler : IRequestHandler<UpdateServiceCommand,
             throw new ForbiddenException("You do not have permission to update this service.");
         }
 
-        // Commercial invariants check when Published
+        // Commercial invariants check when Published.
+        // ShortDescription/Tags/CoverImageUrl follow the same lock rule as
+        // price/sessions: editable while Draft/Unpublished/Paused, frozen while
+        // Published (unpublish or pause first).
         if (service.Status == ServiceStatus.Published)
         {
             var isChangingCommercialTerms =
@@ -49,9 +52,14 @@ public class UpdateServiceCommandHandler : IRequestHandler<UpdateServiceCommand,
                 (request.Price.HasValue && request.Price.Value != service.Price) ||
                 (request.TeachingMode.HasValue && request.TeachingMode.Value != service.TeachingMode);
 
-            if (isChangingCommercialTerms)
+            var isChangingShowcaseFields =
+                (request.ShortDescription != null && request.ShortDescription != service.ShortDescription) ||
+                (request.Tags != null && ServiceDtoMapper.SerializeTags(request.Tags) != service.TagsJson) ||
+                (request.CoverImageUrl != null && request.CoverImageUrl != service.CoverImageUrl);
+
+            if (isChangingCommercialTerms || isChangingShowcaseFields)
             {
-                throw new ConflictException("Cannot modify commercial terms (sessions, duration, price, mode) of a published service. Please unpublish the service first.");
+                throw new ConflictException("Cannot modify commercial terms or showcase fields (short description, tags, cover image) of a published service. Please unpublish or pause the service first.");
             }
         }
 
@@ -61,6 +69,12 @@ public class UpdateServiceCommandHandler : IRequestHandler<UpdateServiceCommand,
 
         if (!string.IsNullOrWhiteSpace(request.Description))
             service.Description = request.Description;
+
+        if (request.ShortDescription != null)
+            service.ShortDescription = request.ShortDescription;
+
+        if (request.Tags != null)
+            service.TagsJson = ServiceDtoMapper.SerializeTags(request.Tags);
 
         if (request.LearningScope != null)
             service.LearningScope = request.LearningScope;
@@ -83,28 +97,39 @@ public class UpdateServiceCommandHandler : IRequestHandler<UpdateServiceCommand,
         if (request.TrialLessonUrl != null)
             service.TrialLessonUrl = request.TrialLessonUrl;
 
+        if (request.CoverImageUrl != null)
+            service.CoverImageUrl = request.CoverImageUrl;
+
+        // Marketing content (same Published treatment as Description): editable
+        // in every status, including Published. Null means "no change".
+        if (request.Curriculum != null)
+        {
+            if (request.Curriculum.Count > service.TotalSessions)
+            {
+                throw new BadRequestException(
+                    $"Curriculum cannot have more items ({request.Curriculum.Count}) than total sessions ({service.TotalSessions}).");
+            }
+
+            service.CurriculumJson = ServiceDtoMapper.SerializeCurriculum(request.Curriculum, service.SessionDurationMinutes);
+        }
+
+        if (request.TargetAudience != null)
+            service.TargetAudienceJson = ServiceDtoMapper.SerializeStringList(request.TargetAudience);
+
+        if (request.Prerequisites != null)
+            service.PrerequisitesJson = ServiceDtoMapper.SerializeStringList(request.Prerequisites);
+
+        if (request.Faqs != null)
+            service.FaqsJson = ServiceDtoMapper.SerializeFaqs(request.Faqs);
+
         service.UpdatedAt = _clock.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new ServiceDto(
-            Id: service.Id,
-            TutorProfileId: service.TutorProfileId,
-            SubjectId: service.SubjectId,
-            SubjectName: service.Subject.Name,
-            SubjectCategoryName: service.Subject.Category.Name,
-            Title: service.Title,
-            Description: service.Description,
-            LearningScope: service.LearningScope,
-            ExpectedOutcome: service.ExpectedOutcome,
-            TotalSessions: service.TotalSessions,
-            SessionDurationMinutes: service.SessionDurationMinutes,
-            Price: service.Price,
-            TeachingMode: service.TeachingMode.ToString(),
-            TrialLessonUrl: service.TrialLessonUrl,
-            Status: service.Status.ToString(),
-            CreatedAt: service.CreatedAt,
-            UpdatedAt: service.UpdatedAt
+        return ServiceDtoMapper.FromService(
+            service,
+            service.Subject.Name,
+            service.Subject.Category.Name
         );
     }
 }

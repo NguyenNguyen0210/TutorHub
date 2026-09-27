@@ -28,6 +28,11 @@ export default function Avatar({ src, name, size = 'md', className, ...rest }) {
       {...rest}
     >
       {showImage ? (
+        // `onError` KHÔNG phải tương tác người dùng — nó là phản ứng với việc ảnh
+        // hỏng, nên `no-noninteractive-element-interactions` báo nhầm. Cách duy
+        // nhất khác là đi qua ref/callback, thêm code mà không thêm được gì:
+        // `<img onError>` là cách chuẩn của React và không mở ra tương tác nào.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
         <img
           src={src}
           alt={name || 'Ảnh đại diện'}

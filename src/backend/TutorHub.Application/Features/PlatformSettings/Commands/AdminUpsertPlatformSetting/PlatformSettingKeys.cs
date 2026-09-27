@@ -31,7 +31,7 @@ public static class PlatformSettingKeys
 
     public static readonly Dictionary<string, string> Defaults = new()
     {
-        // 24h matches AttendanceVerificationJob + SessionReminderJob today.
+        // 12h grace period / VerificationWindowHours.
         [VerificationWindowHours] = "24",
         // 30d matches review eligibility window in CreateEnrollmentReview today.
         [ReviewWindowDays] = "30",

@@ -60,9 +60,9 @@ export default function FAQSection() {
       <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-[840px] mx-auto">
           {/* Header Row: Title & Link */}
-          <div className="flex items-center justify-between pb-6 border-b border-neutral-200">
-            <h2 className="text-[22px] sm:text-[26px] font-bold text-neutral-900">
-              Câu hỏi <span className="text-[#2563EB]">thường gặp</span>
+          <div className="flex items-center justify-between pb-6 border-b border-border">
+            <h2 className="text-[22px] sm:text-[26px] font-bold text-fg">
+              Câu hỏi <span className="text-brand-primary-600">thường gặp</span>
             </h2>
             <button
               type="button"
@@ -74,7 +74,7 @@ export default function FAQSection() {
                   setOpenIds(new Set(FAQ_ITEMS.map((item) => item.id)));
                 }
               }}
-              className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#2563EB] hover:text-blue-700 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 text-[13px] font-semibold text-brand-primary-600 hover:text-brand-primary-700 transition-colors cursor-pointer"
             >
               <span>{openIds.size === FAQ_ITEMS.length ? 'Thu gọn' : 'Xem tất cả'}</span>
               <Icon name="arrow_forward" size="xs" />
@@ -94,12 +94,12 @@ export default function FAQSection() {
                     aria-controls={`faq-answer-${item.id}`}
                     className="w-full flex items-center justify-between gap-4 text-left group cursor-pointer"
                   >
-                    <span className="text-[15px] sm:text-[16px] font-semibold text-neutral-900 group-hover:text-[#2563EB] transition-colors leading-snug">
+                    <span className="text-[15px] sm:text-[16px] font-semibold text-fg group-hover:text-brand-primary-600 transition-colors leading-snug">
                       {item.question}
                     </span>
                     <span
-                      className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-neutral-400 group-hover:text-[#2563EB] transition-all transform duration-200 ${
-                        isOpen ? 'rotate-180 bg-blue-50 text-[#2563EB]' : 'hover:bg-neutral-100'
+                      className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-fg-muted group-hover:text-brand-primary-600 transition-all transform duration-200 ${
+                        isOpen ? 'rotate-180 bg-brand-primary-50 text-brand-primary-600' : 'hover:bg-neutral-100'
                       }`}
                     >
                       <Icon name="expand_more" size="sm" />
@@ -114,7 +114,7 @@ export default function FAQSection() {
                     }`}
                   >
                     <div className="overflow-hidden">
-                      <p className="text-[13.5px] sm:text-[14px] text-neutral-600 leading-relaxed pr-6">
+                      <p className="text-[13.5px] sm:text-[14px] text-fg-secondary leading-relaxed pr-6">
                         {item.answer}
                       </p>
                     </div>

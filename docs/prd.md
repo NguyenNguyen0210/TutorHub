@@ -707,15 +707,11 @@ Sau khi Enrollment Active, các Session thuộc Service được xác định d�
 
 ---
 
-## 11.2. Schedule
+## 11.2. Schedule (v1.3: tutor-direct)
 
-Tutor có thể đề xuất thay đổi Schedule.
+Tutor xếp/đổi/hủy lịch trực tiếp (đơn + batch atomic); lịch mới có hiệu lực ngay, Student xem read-only và được thông báo.
 
-Nếu thay đổi ảnh hưởng lịch đã thỏa thuận:
-
-> Student phải accept.
-
-Tutor không được tự ý thay đổi Schedule của Student.
+Mọi lịch mới/đổi (kể cả hủy `Scheduled`) tuân thủ báo trước tối thiểu 24h (`Scheduling:MinimumNoticeHours`); `Unscheduled` được xếp dần, không bắt buộc xếp hết một lần.
 
 ---
 

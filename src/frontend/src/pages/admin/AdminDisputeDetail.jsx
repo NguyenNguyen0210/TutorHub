@@ -22,7 +22,7 @@ const STATUS_BADGES = {
   Resolved: { label: 'Đã phân xử', variant: 'success' },
   Dismissed: { label: 'Đã bác bỏ', variant: 'neutral' },
   RequiresAdminFinancialIntervention: {
-    label: 'Cần can thiệp tài chính (INV-DISP-008)',
+    label: 'Cần xử lý bù trừ tài chính',
     variant: 'holding',
   },
 };
@@ -41,13 +41,6 @@ const REASON_TRANSLATIONS = {
   IncompleteSession: 'Buổi học bị gián đoạn / Thiếu giờ',
   StudentNoShow: 'Học viên vắng mặt',
   Other: 'Lý do khác',
-};
-
-const ATTENDANCE_LABELS = {
-  Present: { label: 'Có mặt', variant: 'success' },
-  Absent: { label: 'Vắng mặt', variant: 'danger' },
-  Late: { label: 'Đi muộn', variant: 'holding' },
-  LeftEarly: { label: 'Về sớm', variant: 'holding' },
 };
 
 export default function AdminDisputeDetail() {
@@ -271,7 +264,9 @@ export default function AdminDisputeDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Badge variant={isPayoutReleased ? 'holding' : 'primary'} size="sm">
+          {/* Pre-Release Escrow = tiền nằm trong ký quỹ → `info`; Post-Release = tiền
+              đang bị giữ để phân xử → `holding`. Không dùng màu CTA cho trạng thái tiền. */}
+          <Badge variant={isPayoutReleased ? 'holding' : 'info'} size="sm">
             {isPayoutReleased ? 'Post-Release Balance' : 'Pre-Release Escrow'}
           </Badge>
         </div>
@@ -279,8 +274,8 @@ export default function AdminDisputeDetail() {
 
       {/* Intervention Warning if applicable */}
       {dispute?.status === 'RequiresAdminFinancialIntervention' && (
-        <Callout variant="holding" title="Cảnh báo can thiệp tài chính (INV-DISP-008)">
-          Số dư khả dụng trong ví của gia sư không đủ để tạm giữ toàn bộ số tiền tranh chấp tối đa ({formatCurrency(tutorReceivedOriginal)}). Theo quy chuẩn bảo vệ hạn mức, hệ thống đã giữ 0₫ và chuyển vụ việc sang diện Admin can thiệp tài chính thủ công ngoài sàn.
+        <Callout variant="holding" title="Cảnh báo can thiệp tài chính">
+          Số dư khả dụng trong ví của gia sư không đủ để tạm giữ toàn bộ số tiền tranh chấp tối đa ({formatCurrency(tutorReceivedOriginal)}). Do số dư hiện tại không đủ trích lập, hệ thống đã chuyển vụ việc sang diện Quản trị viên xử lý bù trừ tài chính trực tiếp.
         </Callout>
       )}
 
@@ -292,8 +287,8 @@ export default function AdminDisputeDetail() {
             <div className="text-fg font-bold text-body-reg">
               Buổi #{session?.sessionNumber || '—'}
             </div>
-            <div className="text-brand-primary-700 font-mono font-bold text-[13px]">
-              {formatCurrency(originalSessionFee)}
+            <div className="text-brand-primary-700 font-bold text-[13px]">
+              <Money value={originalSessionFee} />
             </div>
             {session?.startAt && (
               <span className="text-[11px] text-fg-muted block">
@@ -340,61 +335,43 @@ export default function AdminDisputeDetail() {
               Mở lúc: {formatDateTime(dispute?.createdAt, 'DD/MM/YYYY HH:mm')}
             </span>
           </div>
-          <p className="text-fg leading-relaxed m-0 whitespace-pre-line bg-white/70 p-3 rounded-brand-sm border border-danger/15">
+          <p className="text-fg leading-relaxed m-0 whitespace-pre-line bg-surface/70 p-3 rounded-brand-sm border border-danger/15">
             {dispute?.description || 'Không có mô tả chi tiết từ bên khiếu nại.'}
           </p>
         </div>
 
-        {/* Bilateral Attendance Comparison */}
+        {/* Issue Report Details */}
         <div className="space-y-3 pt-1">
           <h3 className="text-caption font-bold text-fg flex items-center justify-between">
             <span className="flex items-center gap-1.5">
-              <Icon name="fact_check" size="xs" className="text-brand-primary-600" />
-              Đối soát điểm danh 2 chiều (Attendance Window 24h)
+              <Icon name="report" size="xs" className="text-brand-primary-600" />
+              Chi tiết báo cáo sự cố (Issue Report Details)
             </span>
-            {session?.hasAttendanceConflict && (
+            {session?.hasIssueReport && (
               <Badge variant="danger" size="sm">
-                Xung đột điểm danh phát hiện
+                Đã báo cáo sự cố
               </Badge>
             )}
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-caption">
-            <div className="p-3.5 rounded-brand-md bg-neutral-50 border border-border space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-fg-secondary">Xác nhận của Học viên</span>
-                {session?.studentAttendance ? (
-                  <Badge variant={ATTENDANCE_LABELS[session.studentAttendance]?.variant || 'neutral'} size="sm">
-                    {ATTENDANCE_LABELS[session.studentAttendance]?.label || session.studentAttendance}
-                  </Badge>
-                ) : (
-                  <span className="text-fg-muted font-mono text-[11px]">Chưa xác nhận</span>
-                )}
-              </div>
-              <p className="text-[11px] text-fg-muted m-0 font-mono">
-                {session?.studentAttendanceSubmittedAt
-                  ? `Thời điểm gửi: ${formatDateTime(session.studentAttendanceSubmittedAt, 'DD/MM/YYYY HH:mm')}`
-                  : 'Học viên không gửi điểm danh trong 24h'}
-              </p>
+          <div className="p-3.5 rounded-brand-md bg-neutral-50 border border-border space-y-2 text-caption">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <span className="font-semibold text-fg">
+                Lý do báo cáo: <span className="text-danger-strong">{session?.issueReportReason || dispute?.reason || 'Không rõ'}</span>
+              </span>
+              <span className="text-[11px] text-fg-muted font-mono">
+                {session?.issueReportedAt
+                  ? `Thời điểm báo cáo: ${formatDateTime(session.issueReportedAt, 'DD/MM/YYYY HH:mm')}`
+                  : dispute?.createdAt
+                    ? `Thời điểm báo cáo: ${formatDateTime(dispute.createdAt, 'DD/MM/YYYY HH:mm')}`
+                    : ''}
+              </span>
             </div>
-
-            <div className="p-3.5 rounded-brand-md bg-neutral-50 border border-border space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-fg-secondary">Xác nhận của Gia sư</span>
-                {session?.tutorAttendance ? (
-                  <Badge variant={ATTENDANCE_LABELS[session.tutorAttendance]?.variant || 'neutral'} size="sm">
-                    {ATTENDANCE_LABELS[session.tutorAttendance]?.label || session.tutorAttendance}
-                  </Badge>
-                ) : (
-                  <span className="text-fg-muted font-mono text-[11px]">Chưa xác nhận</span>
-                )}
-              </div>
-              <p className="text-[11px] text-fg-muted m-0 font-mono">
-                {session?.tutorAttendanceSubmittedAt
-                  ? `Thời điểm gửi: ${formatDateTime(session.tutorAttendanceSubmittedAt, 'DD/MM/YYYY HH:mm')}`
-                  : 'Gia sư không gửi điểm danh trong 24h'}
+            {dispute?.description && (
+              <p className="text-fg-secondary m-0 text-[13px] leading-relaxed bg-surface p-2.5 rounded-brand-sm border border-border">
+                {dispute.description}
               </p>
-            </div>
+            )}
           </div>
         </div>
 
@@ -481,14 +458,14 @@ export default function AdminDisputeDetail() {
 
       {/* Closed Verdict Certificate */}
       {isClosed ? (
-        <Card padding="lg" className="space-y-4 border-2 border-emerald-500 shadow-brand-md bg-emerald-50/15">
-          <div className="flex items-center justify-between pb-3 border-b border-emerald-200">
+        <Card padding="lg" className="space-y-4 border-2 border-success/50 shadow-brand-md bg-success-subtle/40">
+          <div className="flex items-center justify-between pb-3 border-b border-success/20">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-brand-md bg-emerald-100 text-emerald-700 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-brand-md bg-success-subtle text-success-strong flex items-center justify-center">
                 <Icon name="verified" size="sm" />
               </div>
               <div>
-                <h3 className="text-body-bold text-fg m-0">
+                <h3 className="text-fg m-0">
                   Biên bản phán quyết trọng tài có hiệu lực
                 </h3>
                 <span className="text-[12px] text-fg-muted font-mono">
@@ -529,10 +506,11 @@ export default function AdminDisputeDetail() {
         /* Active Arbitration Balancing & Resolution Form */
         <Card padding="lg" className="space-y-5 border-2 border-brand-primary-500 shadow-brand-md">
           <CardHeader
-            title="Bộ cân bằng tài chính trọng tài DEC-S8-025"
+            title="Công cụ phân bổ tài chính & giải quyết bồi hoàn"
             icon={<Icon name="calculate" size="sm" />}
             action={
-              <Badge variant="success" size="sm">
+              /* Phí sàn là dòng tiền trung tính — không tô xanh (SPEC §4.2). */
+              <Badge variant="neutral" size="sm">
                 Bảo toàn phí sàn {(platformFeeRate * 100).toFixed(0)}%
               </Badge>
             }
@@ -568,7 +546,7 @@ export default function AdminDisputeDetail() {
                 <span className="text-headline-1 text-success-strong font-bold tabular-nums">
                   <Money value={refundAmount} />
                 </span>
-                <span className="text-caption text-fg-muted font-mono">
+                <span className="text-caption text-fg-muted">
                   Tối đa: {formatCurrency(originalSessionFee)}
                 </span>
               </div>
@@ -606,7 +584,7 @@ export default function AdminDisputeDetail() {
                     <span className="text-fg-muted block font-semibold text-[11px] uppercase">
                       Hoàn phí sàn TutorHub ({(platformFeeRate * 100).toFixed(0)}%)
                     </span>
-                    <span className="text-headline-3 text-info font-semibold tabular-nums">
+                    <span className="text-headline-3 text-fg font-semibold tabular-nums">
                       -<Money value={platformFeeRefund} />
                     </span>
                     <p className="text-[11px] text-fg-muted m-0">
@@ -643,8 +621,9 @@ export default function AdminDisputeDetail() {
               )}
             </div>
 
-            {/* Conservation Math Identity Banner */}
-            <div className="p-3 rounded-brand-md bg-neutral-900 text-center font-mono text-caption text-slate-300">
+            {/* Conservation Math Identity Banner — số tiền KHÔNG dùng font-mono
+                (SPEC §2.4), chỉ `tabular-nums` để dọc thẳng cột. */}
+            <div className="p-3 rounded-brand-md bg-brand-navy-900 text-center text-caption text-neutral-300 tabular-nums">
               {isPayoutReleased ? (
                 <>
                   {formatCurrency(tutorClawback)} (Thu hồi từ Gia sư) + {formatCurrency(platformFeeRefund)} (Phí sàn hoàn) ≡{' '}
@@ -655,7 +634,7 @@ export default function AdminDisputeDetail() {
                   Ký quỹ Escrow {formatCurrency(originalSessionFee)} ≡{' '}
                   <strong className="text-success">{formatCurrency(refundAmount)}</strong> (Hoàn học viên) +{' '}
                   <strong className="text-info">{formatCurrency(tutorRemainingPayout)}</strong> (Gia sư nhận) +{' '}
-                  <span className="text-slate-400">{formatCurrency(platformRemainingFee)} (Phí sàn)</span>
+                  <span className="text-neutral-400">{formatCurrency(platformRemainingFee)} (Phí sàn)</span>
                 </>
               )}
             </div>
@@ -672,10 +651,10 @@ export default function AdminDisputeDetail() {
               rows={3}
               value={adminNote}
               onChange={(e) => setAdminNote(e.target.value)}
-              placeholder="Ghi rõ lý do căn cứ vào biên bản đối soát điểm danh, trích lục chat và tài liệu xác minh..."
+              placeholder="Ghi rõ lý do căn cứ vào báo cáo sự cố, trích lục chat và tài liệu xác minh..."
             />
             <div className="flex justify-end pt-1">
-              <span className={`text-[11px] font-mono ${adminNote.trim().length >= 10 ? 'text-success-strong' : 'text-danger-strong'}`}>
+              <span className={`text-[11px] tabular-nums ${adminNote.trim().length >= 10 ? 'text-success-strong' : 'text-danger-strong'}`}>
                 {adminNote.trim().length} / 10 ký tự tối thiểu
               </span>
             </div>
@@ -713,7 +692,7 @@ export default function AdminDisputeDetail() {
               </Button>
 
               <Button
-                variant="outline"
+                variant="danger-outline"
                 size="md"
                 disabled={resolving || adminNote.trim().length < 10}
                 onClick={() => handleResolve('dismiss')}

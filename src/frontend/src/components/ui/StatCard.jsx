@@ -23,7 +23,13 @@ const ICON_BG = {
 /**
  * StatCard — thẻ chỉ số tài chính/KPI.
  * `value` nên được truyền đã format sẵn (formatCurrency hoặc node <Money/>).
- * Mặc định dùng Inter + tabular-nums cho số; `mono` chỉ dùng cho mã/ID.
+ * Mặc định dùng Be Vietnam Pro + tabular-nums cho số; `mono` chỉ dùng cho mã/ID.
+ *
+ * `mono` mặc định là FALSE. Trước đây là TRUE, nên mọi KPI — kể cả số lượng
+ * lệnh và số tiền — đều hiện bằng JetBrains Mono, trái với `DESIGN.md` §2.4
+ * ("không dùng cho tiền tệ, đếm số, phần trăm") và trái với chính dòng comment
+ * ngay phía trên. Bốn chỗ gọi ở `AdminDisputes` phải truyền `mono={false}` thủ
+ * công để sửa lỗi, cho thấy default sai chứ không phải thiếu cấu hình.
  */
 export default function StatCard({
   label,
@@ -31,7 +37,7 @@ export default function StatCard({
   hint,
   icon,
   tone = 'neutral',
-  mono = true,
+  mono = false,
   action,
   className,
   ...rest

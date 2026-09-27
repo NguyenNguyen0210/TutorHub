@@ -43,13 +43,14 @@ public class AdminGetAuditLogsQueryHandler : IRequestHandler<AdminGetAuditLogsQu
 
         if (request.DateFrom.HasValue)
         {
-            query = query.Where(a => a.CreatedAt >= request.DateFrom.Value);
+            var fromUtc = DateTime.SpecifyKind(request.DateFrom.Value, DateTimeKind.Utc);
+            query = query.Where(a => a.CreatedAt >= fromUtc);
         }
 
         if (request.DateTo.HasValue)
         {
-            var endOfDayExclusive = request.DateTo.Value.Date.AddDays(1);
-            query = query.Where(a => a.CreatedAt < endOfDayExclusive);
+            var toExclusive = DateTime.SpecifyKind(request.DateTo.Value.Date.AddDays(1), DateTimeKind.Utc);
+            query = query.Where(a => a.CreatedAt < toExclusive);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

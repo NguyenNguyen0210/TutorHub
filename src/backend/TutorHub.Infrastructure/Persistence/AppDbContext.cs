@@ -20,7 +20,6 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Subject> Subjects => Set<Subject>();
     public DbSet<TutorSubject> TutorSubjects => Set<TutorSubject>();
     public DbSet<Service> Services => Set<Service>();
-    public DbSet<AvailabilitySlot> AvailabilitySlots => Set<AvailabilitySlot>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
     public DbSet<Session> Sessions => Set<Session>();
@@ -47,12 +46,12 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<PlatformSettingVersion> PlatformSettingVersions => Set<PlatformSettingVersion>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<CustomAgreement> CustomAgreements => Set<CustomAgreement>();
-    public DbSet<SessionRescheduleRequest> SessionRescheduleRequests => Set<SessionRescheduleRequest>();
     public DbSet<LearningRecord> LearningRecords => Set<LearningRecord>();
     public DbSet<StudentWallet> StudentWallets => Set<StudentWallet>();
     public DbSet<StudentWalletTransaction> StudentWalletTransactions => Set<StudentWalletTransaction>();
     public DbSet<TopUpRequest> TopUpRequests => Set<TopUpRequest>();
     public DbSet<StudentWithdrawal> StudentWithdrawals => Set<StudentWithdrawal>();
+    public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
 
     public override int SaveChanges()
     {
@@ -107,8 +106,11 @@ public class AppDbContext : DbContext, IAppDbContext
                 // Historical earnings & fee reversals are strictly immutable
                 if (origType == TransactionType.SessionPayoutCredit || origType == TransactionType.PlatformFeeReversal)
                     return true;
-                // Terminal statuses (Released, Succeeded) cannot be modified
-                return origStatus == TransactionStatus.Released || origStatus == TransactionStatus.Succeeded;
+                // Terminal statuses (Released, Succeeded, Failed, Refunded) cannot be modified
+                return origStatus == TransactionStatus.Released
+                    || origStatus == TransactionStatus.Succeeded
+                    || origStatus == TransactionStatus.Failed
+                    || origStatus == TransactionStatus.Refunded;
             })
             .ToList();
 
@@ -167,6 +169,41 @@ public class AppDbContext : DbContext, IAppDbContext
         {
             var ids = string.Join(",", modifiedStudentWalletTxs.Select(e => e.Entity.Id));
             throw new InvalidOperationException($"StudentWalletTransaction records are append-only and cannot be modified or deleted. Ids: {ids}.");
+        }
+
+        // Enforce append-only on TutorWalletTransaction (INV-TUTOR-WALLET-001)
+        var modifiedTutorWalletTxs = ChangeTracker.Entries<TutorWalletTransaction>()
+            .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
+            .ToList();
+        if (modifiedTutorWalletTxs.Count > 0)
+        {
+            var ids = string.Join(",", modifiedTutorWalletTxs.Select(e => e.Entity.Id));
+            throw new InvalidOperationException($"TutorWalletTransaction records are append-only and cannot be modified or deleted. Ids: {ids}.");
+        }
+
+        // Enforce append-only / terminal immutability on TopUpRequest (INV-STUDENT-WALLET-004)
+        var deletedTopUpRequests = ChangeTracker.Entries<TopUpRequest>()
+            .Where(e => e.State == EntityState.Deleted)
+            .ToList();
+        if (deletedTopUpRequests.Count > 0)
+        {
+            var ids = string.Join(",", deletedTopUpRequests.Select(e => e.Entity.Id));
+            throw new InvalidOperationException($"TopUpRequest records cannot be deleted. Ids: {ids}.");
+        }
+
+        var modifiedTerminalTopUps = ChangeTracker.Entries<TopUpRequest>()
+            .Where(e => e.State == EntityState.Modified)
+            .Where(e =>
+            {
+                var origStatus = (TopUpRequestStatus)e.OriginalValues[nameof(TopUpRequest.Status)]!;
+                return origStatus == TopUpRequestStatus.Confirmed || origStatus == TopUpRequestStatus.Rejected;
+            })
+            .ToList();
+
+        if (modifiedTerminalTopUps.Count > 0)
+        {
+            var ids = string.Join(",", modifiedTerminalTopUps.Select(e => e.Entity.Id));
+            throw new InvalidOperationException($"Settled TopUpRequest records are immutable and cannot be modified. Ids: {ids}.");
         }
     }
 

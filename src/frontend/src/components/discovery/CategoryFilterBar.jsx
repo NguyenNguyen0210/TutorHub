@@ -72,7 +72,7 @@ export default function CategoryFilterBar({
   }, [categories, selectedCategoryId]);
 
   return (
-    <div className="w-full bg-white border-b border-neutral-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.03)] z-30">
+    <div className="w-full bg-surface border-b border-neutral-200/80 shadow-brand-sm z-30">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div
           className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-2.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
@@ -91,7 +91,7 @@ export default function CategoryFilterBar({
             className={cn(
               'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13.5px] font-medium shrink-0 transition-all cursor-pointer whitespace-nowrap',
               !selectedCategoryId
-                ? 'bg-[#2563EB] text-white shadow-sm font-semibold'
+                ? 'bg-brand-primary-600 text-white shadow-sm font-semibold'
                 : 'bg-transparent text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
             )}
           >
@@ -115,7 +115,7 @@ export default function CategoryFilterBar({
                 className={cn(
                   'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13.5px] font-medium shrink-0 transition-all cursor-pointer whitespace-nowrap',
                   isActive
-                    ? 'bg-[#2563EB] text-white shadow-sm font-semibold'
+                    ? 'bg-brand-primary-600 text-white shadow-sm font-semibold'
                     : 'bg-transparent text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
                 )}
               >
@@ -134,7 +134,7 @@ export default function CategoryFilterBar({
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13.5px] font-medium transition-all cursor-pointer whitespace-nowrap',
                   activeOtherCategory
-                    ? 'bg-[#2563EB] text-white shadow-sm font-semibold'
+                    ? 'bg-brand-primary-600 text-white shadow-sm font-semibold'
                     : 'bg-transparent text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
                 )}
                 aria-haspopup="true"
@@ -153,7 +153,7 @@ export default function CategoryFilterBar({
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-brand-lg border border-neutral-200/80 py-1.5 z-50 animate-fadeIn">
+                <div className="absolute right-0 top-full mt-1.5 w-52 bg-surface rounded-xl shadow-brand-lg border border-neutral-200/80 py-1.5 z-50 animate-fadeIn">
                   {otherCategories.map((cat) => {
                     const isSelected = selectedCategoryId === cat.id;
                     return (
@@ -166,14 +166,14 @@ export default function CategoryFilterBar({
                         }}
                         className={cn(
                           'w-full text-left px-3.5 py-2 text-[13px] font-medium flex items-center justify-between hover:bg-neutral-50 transition-colors cursor-pointer',
-                          isSelected ? 'text-[#2563EB] bg-blue-50/60 font-semibold' : 'text-neutral-700'
+                          isSelected ? 'text-brand-primary-600 bg-brand-primary-50/60 font-semibold' : 'text-neutral-700'
                         )}
                       >
                         <div className="flex items-center gap-2 truncate">
-                          <Icon name={cat.icon} size="xs" className={isSelected ? 'text-[#2563EB]' : 'text-neutral-400'} />
+                          <Icon name={cat.icon} size="xs" className={isSelected ? 'text-brand-primary-600' : 'text-neutral-400'} />
                           <span className="truncate">{cat.name}</span>
                         </div>
-                        {isSelected && <Icon name="check" size="xs" className="text-[#2563EB] shrink-0" />}
+                        {isSelected && <Icon name="check" size="xs" className="text-brand-primary-600 shrink-0" />}
                       </button>
                     );
                   })}

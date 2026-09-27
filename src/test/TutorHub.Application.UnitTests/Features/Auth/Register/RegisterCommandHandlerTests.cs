@@ -21,6 +21,9 @@ public class RegisterCommandHandlerTests
 
     public RegisterCommandHandlerTests()
     {
+        _contextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(new List<Notification>()).Object);
+        _contextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(new List<EmailDelivery>()).Object);
+
         _handler = new RegisterCommandHandler(
             _contextMock.Object,
             StubClock.Instance,

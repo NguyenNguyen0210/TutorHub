@@ -690,37 +690,43 @@ A Session SHALL contain or reference:
 
 ---
 
-## FR-SESSION-003 — Schedule Session
-
-System SHALL support scheduling Sessions belonging to an Enrollment.
-
----
-
-## FR-SESSION-004 — Propose Schedule Change
+## FR-SESSION-003 — Schedule Session (Tutor-Direct, v1.3)
 
 **Actor:** Tutor
 
-Tutor SHALL be able to propose a Schedule change.
+System SHALL support tutor-direct scheduling of Sessions belonging to an `Active` Enrollment — single (`POST /sessions/{id}/schedule`) and atomic batch (`POST /sessions/schedule-batch`, max 50 items, all-or-nothing).
+
+### Business Rules (v1.3: scheduling simplification 2026-09-26)
+
+- Only the session's Tutor may schedule; a Student attempting to schedule receives `403 Forbidden`.
+- Every new `StartAt` must satisfy `StartAt >= now + Scheduling:MinimumNoticeHours` (default 24h) via `SessionSchedulePolicy`.
+- New time must not overlap the Tutor's other `Scheduled` sessions (intra-batch overlaps included).
+- `Unscheduled` → `Schedule()`; `Scheduled` → direct `Reschedule()` (no ticket, see FR-SESSION-004/005 superseded below).
+- There is no availability-slot membership check (`AvailabilitySlot` subsystem removed).
 
 ---
 
-## FR-SESSION-005 — Accept Schedule Change
+## FR-SESSION-004 — Direct Schedule Change (Supersedes Propose Flow, v1.3)
 
-**Actor:** Student
+**Actor:** Tutor
 
-If a Schedule change affects an already agreed schedule, Student SHALL accept the change.
+Tutor changes the Schedule directly; the new time takes effect immediately.
 
-### Business Rule
+> Supersedes the former propose/accept ticket flow (`SessionRescheduleRequest` removed 2026-09-26). No Student acceptance step exists anywhere.
 
-Tutor SHALL NOT unilaterally change an agreed Student schedule.
+---
+
+## FR-SESSION-005 — No Student Acceptance Step (Superseded, v1.3)
+
+Superseded by FR-SESSION-004. There is no accept/reject step: the Tutor's reschedule is effective on save and the Student is notified read-only.
 
 ---
 
 ## FR-SESSION-006 — Reschedule Session
 
-System SHALL record a Session reschedule event when an agreed Schedule is changed.
+System SHALL record a Session reschedule event when the Tutor changes an agreed Schedule.
 
-Affected parties SHALL be notified.
+Affected parties SHALL be notified (`SessionRescheduled` event; schedule takes effect immediately, no acceptance gate).
 
 ---
 
@@ -730,12 +736,13 @@ System SHALL support Session cancellation where permitted by policy.
 
 Cancellation SHALL produce appropriate business and financial consequences.
 
-### Business Rule (v1.2: Escrow Release & Refund Settlement)
+### Business Rule (v1.3: Escrow Release & Direct Student-Wallet Refund)
 
 - A participant (Student or Tutor) may cancel a single Session only from `Unscheduled`, or from `Scheduled` with a future start time (`StartAt > now`); a non-empty reason is required (minimum 5 characters).
+- Cancelling a `Scheduled` session additionally requires minimum notice (`StartAt >= now + Scheduling:MinimumNoticeHours`, default 24h; `Unscheduled` needs no notice).
 - Single-session cancellation unlocks and debits the Tutor's Escrow pending balance (`wallet.DebitPending(session.EarningAmount, now)`).
-- System creates a corresponding `TransactionType.StudentRefund` record linked to the booking and session with `SettlementRequired = true` and status `Pending`.
-- System dispatches `SessionCancelledEvent` and `RefundCreatedEvent` to the transactional outbox.
+- System credits the refund directly into the Student's Wallet `AvailableBalance` (`StudentWalletTransaction` type `RefundCredit`) and records a `TransactionType.StudentRefund` with `SettlementRequired = false` and status `Succeeded` (immediate settlement, no gateway wait).
+- System dispatches `SessionCancelledEvent`, `RefundCreatedEvent`, and `RefundCompletedEvent` to the transactional outbox.
 - Cancellation action is recorded into the Central Audit Log (`SESSION_CANCELLED`).
 - Enrollment completion evaluation (`enrollment.EvaluateCompletion()`) is triggered; if all remaining sessions are terminal (`Completed` or `Cancelled`), the Enrollment transitions to `Completed`.
 

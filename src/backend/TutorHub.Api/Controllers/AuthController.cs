@@ -7,6 +7,7 @@ using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Auth.ChangePassword;
 using TutorHub.Application.Features.Auth.DTOs;
+using TutorHub.Application.Features.Auth.ExternalLogin;
 using TutorHub.Application.Features.Auth.GetMe;
 using TutorHub.Application.Features.Auth.Login;
 using TutorHub.Application.Features.Auth.Logout;
@@ -81,7 +82,6 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Log out and revoke the specified refresh token.
     /// </summary>
-    [Authorize]
     [HttpPost("logout")]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Logout([FromBody] LogoutRequest request, CancellationToken cancellationToken)
@@ -109,15 +109,62 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Which external sign-in buttons the client should render.
+    /// Returns an empty list when no provider has credentials, so the UI hides the
+    /// buttons instead of showing a dead one.
+    /// </summary>
+    [HttpGet("oauth/providers")]
+    [ProducesResponseType(typeof(ApiResponse<ExternalProvidersDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetExternalProviders(CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new GetExternalProvidersQuery(), cancellationToken);
+        return Ok(ApiResponse<ExternalProvidersDto>.SuccessResult(result, "External sign-in providers retrieved."));
+    }
+
+    /// <summary>
+    /// Begin an external sign-in. Returns the provider URL to navigate to plus the
+    /// <c>state</c> the callback must echo back.
+    /// </summary>
+    [HttpGet("oauth/{provider}/start")]
+    [EnableRateLimiting(RateLimitingPolicies.AuthStrict)]
+    [ProducesResponseType(typeof(ApiResponse<ExternalAuthorizeUrlDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> StartExternalLogin([FromRoute] string provider, [FromQuery] string? returnUrl, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new GetExternalAuthorizeUrlQuery(provider, returnUrl), cancellationToken);
+        return Ok(ApiResponse<ExternalAuthorizeUrlDto>.SuccessResult(result, "External sign-in started."));
+    }
+
+    /// <summary>
+    /// Finish an external sign-in.
+    /// POST-only: the authorization code then never reaches a URL, browser history,
+    /// or an access log. There is deliberately no GET counterpart.
+    /// </summary>
+    [HttpPost("oauth/{provider}/callback")]
+    [EnableRateLimiting(RateLimitingPolicies.AuthStrict)]
+    [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CompleteExternalLogin(
+        [FromRoute] string provider,
+        [FromBody] CompleteExternalLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new CompleteExternalLoginCommand(provider, request.Code, request.State, request.ReturnUrl);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<AuthResponseDto>.SuccessResult(result, "Logged in successfully."));
+    }
+
+    /// <summary>
     /// Get information about the currently authenticated user.
     /// </summary>
     [Authorize]
     [HttpGet("me")]
-    [ProducesResponseType(typeof(ApiResponse<RegisterResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<GetMeResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMe(CancellationToken cancellationToken)
     {
         var result = await _sender.Send(new GetMeQuery(), cancellationToken);
-        return Ok(ApiResponse<RegisterResponseDto>.SuccessResult(result, "User profile retrieved successfully."));
+        return Ok(ApiResponse<GetMeResponseDto>.SuccessResult(result, "User profile retrieved successfully."));
     }
 }

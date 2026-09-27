@@ -11,6 +11,5 @@ public record AdminUserSummaryDto(
     UserRole Role,
     AccountStatus Status,
     DateTime CreatedAt,
-    int AbsentStrikes,
     string? TutorApplicationStatus = null
 );

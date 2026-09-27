@@ -3,9 +3,11 @@
  *
  * Verified payloads:
  * - GET  /conversations                     → CursorPagedResult<ConversationDto>
+ * - POST /conversations                      → ConversationDto (body { targetUserId })
  * - GET  /conversations/{id}/messages       → CursorPagedResult<MessageDto>
  * - POST /conversations/{id}/messages       → MessageDto (body { content, attachmentKey... })
  * - PUT  /conversations/{id}/read           → số message đã đọc
+ * - POST /conversations/{id}/messages/attachment → AttachmentUploadResponseDto (body FormData { file })
  */
 import api from './api';
 import { HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
@@ -114,6 +116,28 @@ export const chatService = {
 
   /** PUT /conversations/{id}/read → số message đã đánh dấu đã đọc */
   markConversationAsRead: (conversationId) => api.put(`/conversations/${conversationId}/read`),
+
+  /**
+   * POST /conversations → ConversationDto
+   * Get or create a 1-to-1 conversation with the target user.
+   */
+  async getOrCreateConversation(targetUserId) {
+    const res = await api.post('/conversations', { targetUserId });
+    return normalizeConversation(res);
+  },
+
+  /**
+   * POST /conversations/{id}/messages/attachment
+   * Body: FormData with file
+   * Returns: AttachmentUploadResponseDto { storageKey, fileName, contentType, sizeBytes }
+   */
+  async uploadAttachment(conversationId, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/conversations/${conversationId}/messages/attachment`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 export default chatService;

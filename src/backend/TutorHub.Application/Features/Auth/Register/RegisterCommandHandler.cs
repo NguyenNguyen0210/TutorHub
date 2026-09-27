@@ -32,7 +32,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
 
         if (emailExists)
         {
-            throw new ConflictException($"User with email '{request.Email}' already exists.");
+            throw new ConflictException("An account with this email already exists.");
         }
 
         var userId = Guid.NewGuid();
@@ -76,7 +76,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
             DeduplicationKey = $"account:welcome:{user.Id}",
             CreatedAt = _clock.UtcNow
         };
-        _context.Notifications?.Add(welcomeNotif);
+        _context.Notifications.Add(welcomeNotif);
 
         var welcomeEmail = new EmailDelivery
         {
@@ -106,7 +106,7 @@ Trân trọng,
             Status = EmailDeliveryStatus.Pending,
             CreatedAt = _clock.UtcNow
         };
-        _context.EmailDeliveries?.Add(welcomeEmail);
+        _context.EmailDeliveries.Add(welcomeEmail);
 
         await _context.SaveChangesAsync(cancellationToken);
 

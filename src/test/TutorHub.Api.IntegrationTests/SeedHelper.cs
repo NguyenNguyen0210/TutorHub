@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 using TutorHub.Infrastructure.Persistence;
@@ -142,5 +143,39 @@ public static class SeedHelper
         await db.SaveChangesAsync(ct);
 
         return (studentUser, student, service);
+    }
+
+    public static async Task CompleteAndReleasePayoutAsync(AppDbContext db, Session session, CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var gross = session.EarningAmount;
+        var commissionRate = session.Enrollment.PlatformFeeRate;
+        var (commissionAmount, netPayout) = TutorHub.Domain.Services.PlatformFeeCalculator.SplitGross(gross, commissionRate);
+
+        var wallet = await db.Wallets.FirstAsync(w => w.TutorProfileId == session.Enrollment.TutorProfileId, ct);
+        if (session.Status == SessionStatus.Unscheduled || session.Status == SessionStatus.Scheduled)
+        {
+            session.Schedule(now.AddHours(-15), now.AddHours(-14));
+            session.TryStartGracePeriod(now.AddHours(-13), TimeSpan.FromHours(12));
+        }
+        session.AutoComplete(now);
+        session.Enrollment.RecordCompletedSession(session.Id);
+
+        wallet.DebitPending(gross, now);
+        wallet.CreditAvailable(netPayout, now);
+
+        var payoutTx = Transaction.CreatePayout(
+            bookingId: session.Enrollment.BookingId,
+            sessionId: session.Id,
+            disputeId: null,
+            gross: gross,
+            feeRate: commissionRate,
+            feeAmount: commissionAmount,
+            netPayout: netPayout,
+            paymentGatewayRef: $"AutoPayout-{session.Id:N}",
+            now: now);
+
+        db.Transactions.Add(payoutTx);
+        await db.SaveChangesAsync(ct);
     }
 }

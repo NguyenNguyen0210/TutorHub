@@ -117,8 +117,6 @@ function normalizeAdminUser(raw = {}) {
     phone: raw.phone || null,
     role: raw.role || 'Student',
     status: raw.status || 'Active',
-    absentStrikes: toNumber(raw.absentStrikes, 0),
-    lastAbsentAt: raw.lastAbsentAt ?? null,
     accessFailedCount: toNumber(raw.accessFailedCount, 0),
     isLockedOut: Boolean(raw.isLockedOut),
     tutorApplicationStatus: raw.tutorApplicationStatus ?? null,

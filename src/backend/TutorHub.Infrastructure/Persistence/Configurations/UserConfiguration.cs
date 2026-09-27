@@ -45,10 +45,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.CreatedAt)
             .IsRequired();
 
-        builder.Property(u => u.AbsentStrikes)
-            .IsRequired()
-            .HasDefaultValue(0);
-
         // P0-D3: brute-force lockout counters.
         builder.Property(u => u.AccessFailedCount)
             .IsRequired()
@@ -56,7 +52,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.ToTable(t =>
         {
-            t.HasCheckConstraint("CK_User_NonNegativeStrikes", "\"AbsentStrikes\" >= 0");
             t.HasCheckConstraint("CK_User_NonNegativeFailedLogins", "\"AccessFailedCount\" >= 0");
         });
     }

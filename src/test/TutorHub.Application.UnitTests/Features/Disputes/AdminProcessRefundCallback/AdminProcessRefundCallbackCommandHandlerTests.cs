@@ -1,5 +1,9 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Moq;
+using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Disputes.Commands.AdminProcessRefundCallback;
 using TutorHub.Application.UnitTests.TestHelpers;
@@ -14,10 +18,16 @@ public class AdminProcessRefundCallbackCommandHandlerTests
     private readonly Mock<IAppDbContext> _contextMock = new();
     private readonly Mock<IAuditLogService> _auditLogServiceMock = new();
     private readonly StubCurrentUserService _currentUser = new();
+    private readonly Mock<IDbContextTransaction> _txMock = new();
     private readonly AdminProcessRefundCallbackCommandHandler _handler;
 
     public AdminProcessRefundCallbackCommandHandlerTests()
     {
+        var facadeMock = new Mock<DatabaseFacade>(new Mock<DbContext>(new DbContextOptions<DbContext>()).Object);
+        facadeMock.Setup(f => f.BeginTransactionAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(_txMock.Object);
+        _contextMock.Setup(c => c.Database).Returns(facadeMock.Object);
+
         _handler = new AdminProcessRefundCallbackCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object, _currentUser);
     }
 
@@ -75,6 +85,8 @@ public class AdminProcessRefundCallbackCommandHandlerTests
             null,
             null,
             It.IsAny<CancellationToken>()), Times.Once);
+
+        _txMock.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -128,6 +140,7 @@ public class AdminProcessRefundCallbackCommandHandlerTests
         outbox[0].EventType.Should().Be("RefundCompleted");
         outbox[0].Payload.Should().Contain(studentUserId.ToString());
         outbox[0].Payload.Should().NotContain(studentProfileId.ToString());
+        _txMock.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -194,5 +207,87 @@ public class AdminProcessRefundCallbackCommandHandlerTests
             null,
             null,
             It.IsAny<CancellationToken>()), Times.Once);
+
+        _txMock.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTransactionNotFound_ThrowsNotFoundException_AndRollsBack()
+    {
+        // Arrange
+        _currentUser.Set(Guid.NewGuid(), UserRole.Admin);
+        _contextMock.Setup(c => c.Transactions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Transaction>()).Object);
+
+        var command = new AdminProcessRefundCallbackCommand(
+            RefundTransactionId: Guid.NewGuid(),
+            Outcome: TransactionStatus.Succeeded,
+            ProviderReference: "REF-123",
+            FailureReason: null);
+
+        // Act
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<NotFoundException>();
+        _txMock.Verify(t => t.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _txMock.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTransactionIsNotStudentRefund_ThrowsBadRequestException_AndRollsBack()
+    {
+        // Arrange
+        _currentUser.Set(Guid.NewGuid(), UserRole.Admin);
+        var tx = new Transaction
+        {
+            Id = Guid.NewGuid(),
+            Type = TransactionType.BookingPayment,
+            Status = TransactionStatus.Pending
+        };
+        _contextMock.Setup(c => c.Transactions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Transaction> { tx }).Object);
+
+        var command = new AdminProcessRefundCallbackCommand(
+            RefundTransactionId: tx.Id,
+            Outcome: TransactionStatus.Succeeded,
+            ProviderReference: "REF-123",
+            FailureReason: null);
+
+        // Act
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        var ex = await act.Should().ThrowAsync<BadRequestException>();
+        ex.Which.Errors.Should().ContainMatch("*Transaction is not a StudentRefund*");
+        _txMock.Verify(t => t.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _txMock.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenRefundAlreadySucceeded_ThrowsConflictException_AndRollsBack()
+    {
+        // Arrange
+        _currentUser.Set(Guid.NewGuid(), UserRole.Admin);
+        var tx = new Transaction
+        {
+            Id = Guid.NewGuid(),
+            Type = TransactionType.StudentRefund,
+            Status = TransactionStatus.Succeeded
+        };
+        _contextMock.Setup(c => c.Transactions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Transaction> { tx }).Object);
+
+        var command = new AdminProcessRefundCallbackCommand(
+            RefundTransactionId: tx.Id,
+            Outcome: TransactionStatus.Succeeded,
+            ProviderReference: "REF-123",
+            FailureReason: null);
+
+        // Act
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        var ex = await act.Should().ThrowAsync<ConflictException>();
+        ex.Which.Errors.Should().ContainMatch("*Refund has already settled successfully*");
+        _txMock.Verify(t => t.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _txMock.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

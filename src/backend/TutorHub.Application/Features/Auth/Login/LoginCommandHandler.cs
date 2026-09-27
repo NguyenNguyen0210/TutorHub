@@ -120,8 +120,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
             user.Phone,
             user.Role.ToString(),
             user.AvatarUrl,
-            idProfile,
-            user.AbsentStrikes
+            idProfile
         );
 
         return new AuthResponseDto(

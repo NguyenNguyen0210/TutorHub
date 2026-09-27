@@ -72,8 +72,7 @@ public class TutorProfileBuilder
             Education = _education,
             TeachingMode = _teachingMode,
             Address = _address,
-            TutorSubjects = new List<TutorSubject>(),
-            AvailabilitySlots = new List<AvailabilitySlot>()
+            TutorSubjects = new List<TutorSubject>()
         };
         profile.ApplyReview(_ratings);
 

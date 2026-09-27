@@ -17,10 +17,10 @@ export default function Tabs({ tabs = [], defaultKey, value, onChange, className
   const activeTab = tabs.find((t) => t.key === active);
 
   return (
-    <div className={className}>
+    <div className={cn('w-full max-w-full min-w-0', className)}>
       <div
         role="tablist"
-        className="flex items-center gap-1 border-b border-border overflow-x-auto"
+        className="flex items-center gap-1 border-b border-border overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       >
         {tabs.map((t) => {
           const isActive = t.key === active;
@@ -32,20 +32,20 @@ export default function Tabs({ tabs = [], defaultKey, value, onChange, className
               aria-selected={isActive}
               onClick={() => select(t.key)}
               className={cn(
-                'inline-flex items-center gap-2 px-4 py-2.5 text-body-reg font-semibold whitespace-nowrap border-b-2 -mb-px transition-colors',
+                'inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 text-[13.5px] sm:text-[14px] font-medium whitespace-nowrap border-b-2 -mb-px shrink-0 transition-colors cursor-pointer',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 rounded-t-brand-sm',
                 isActive
-                  ? 'border-brand-primary-600 text-brand-primary-700'
+                  ? 'border-brand-primary-600 text-brand-primary-700 font-semibold'
                   : 'border-transparent text-fg-secondary hover:text-fg hover:border-neutral-300'
               )}
             >
               {t.icon}
-              {t.label}
+              <span>{t.label}</span>
             </button>
           );
         })}
       </div>
-      {activeTab && (
+      {activeTab?.content && (
         <div role="tabpanel" className="pt-4">
           {activeTab.content}
         </div>

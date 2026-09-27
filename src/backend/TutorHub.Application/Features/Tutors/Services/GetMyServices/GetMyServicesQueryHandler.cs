@@ -45,25 +45,34 @@ public class GetMyServicesQueryHandler : IRequestHandler<GetMyServicesQuery, Lis
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync(cancellationToken);
 
+        // Per-service engagement stats. No per-tutor fallback is needed:
+        // Enrollment.ServiceId is a required FK to the purchased service, and
+        // Review hangs off Enrollment (1:0..1), so both aggregates join
+        // directly per service. Removed reviews are excluded. No new tables.
+        var serviceIds = services.Select(s => s.Id).ToList();
+
+        var studentCounts = await _context.Enrollments
+            .AsNoTracking()
+            .Where(e => serviceIds.Contains(e.ServiceId))
+            .GroupBy(e => e.ServiceId)
+            .Select(g => new { ServiceId = g.Key, Count = g.Select(e => e.StudentProfileId).Distinct().Count() })
+            .ToDictionaryAsync(g => g.ServiceId, g => g.Count, cancellationToken);
+
+        var reviewStats = await _context.Reviews
+            .AsNoTracking()
+            .Where(r => !r.IsRemoved && serviceIds.Contains(r.Enrollment.ServiceId))
+            .GroupBy(r => r.Enrollment.ServiceId)
+            .Select(g => new { ServiceId = g.Key, Count = g.Count(), Avg = g.Average(r => r.Rating) })
+            .ToDictionaryAsync(g => g.ServiceId, cancellationToken);
+
         return services
-            .Select(s => new ServiceDto(
-                Id: s.Id,
-                TutorProfileId: s.TutorProfileId,
-                SubjectId: s.SubjectId,
-                SubjectName: s.Subject.Name,
-                SubjectCategoryName: s.Subject.Category.Name,
-                Title: s.Title,
-                Description: s.Description,
-                LearningScope: s.LearningScope,
-                ExpectedOutcome: s.ExpectedOutcome,
-                TotalSessions: s.TotalSessions,
-                SessionDurationMinutes: s.SessionDurationMinutes,
-                Price: s.Price,
-                TeachingMode: s.TeachingMode.ToString(),
-                TrialLessonUrl: s.TrialLessonUrl,
-                Status: s.Status.ToString(),
-                CreatedAt: s.CreatedAt,
-                UpdatedAt: s.UpdatedAt
+            .Select(s => ServiceDtoMapper.FromService(
+                s,
+                s.Subject.Name,
+                s.Subject.Category.Name,
+                studentCount: studentCounts.TryGetValue(s.Id, out var sc) ? sc : 0,
+                averageRating: reviewStats.TryGetValue(s.Id, out var rs) ? rs.Avg : null,
+                reviewCount: reviewStats.TryGetValue(s.Id, out var rs2) ? rs2.Count : 0
             ))
             .ToList();
     }

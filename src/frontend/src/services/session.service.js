@@ -4,7 +4,7 @@
  * Contract (SessionsController):
  * - GET  /sessions                    → List<SessionCalendarDto>
  * - GET  /sessions/{id}               → SessionDto
- * - POST /sessions/{id}/attendance    body { outcome: 'Attended' | 'Absent' } → SessionDto
+ * - POST /sessions/{id}/report-issue body { reason, description } → SessionDto
  * - POST /sessions/{id}/schedule      body { startAt, endAt } → SessionDto
  * - GET  /sessions/{id}/learning-record → LearningRecordDto
  * - POST /sessions/{id}/learning-record body { content } → LearningRecordDto
@@ -28,12 +28,9 @@ export const sessionService = {
     return res;
   },
 
-  /**
-   * POST /sessions/{id}/attendance → SessionDto
-   * @param {'Attended'|'Absent'} outcome
-   */
-  async submitAttendance(id, outcome) {
-    const res = await api.post(`/sessions/${id}/attendance`, { outcome });
+  /** POST /sessions/{id}/report-issue body { reason, description } → SessionDto */
+  async reportSessionIssue(id, reason, description) {
+    const res = await api.post(`/sessions/${id}/report-issue`, { reason, description });
     return res;
   },
 
@@ -41,6 +38,12 @@ export const sessionService = {
   async scheduleSession(id, startAt, endAt) {
     const res = await api.post(`/sessions/${id}/schedule`, { startAt, endAt });
     return res;
+  },
+
+  /** POST /sessions/schedule-batch body { items: [{ sessionId, startAt, endAt }] } → SessionDto[] */
+  async scheduleSessionsBatch(items) {
+    const res = await api.post('/sessions/schedule-batch', { items });
+    return Array.isArray(res) ? res : [];
   },
 
   /** GET /sessions/{id}/learning-record → LearningRecordDto */
@@ -52,36 +55,6 @@ export const sessionService = {
   /** POST /sessions/{id}/learning-record body { content } → LearningRecordDto */
   async createLearningRecord(id, content) {
     const res = await api.post(`/sessions/${id}/learning-record`, { content });
-    return res;
-  },
-
-  /** GET /sessions/{id}/reschedule-requests → SessionRescheduleRequestDto[] */
-  async getRescheduleRequests(id) {
-    const res = await api.get(`/sessions/${id}/reschedule-requests`);
-    return Array.isArray(res) ? res : [];
-  },
-
-  /** POST /sessions/{id}/reschedule-requests body { proposedStartAt, proposedEndAt, reason } → SessionRescheduleRequestDto */
-  async proposeReschedule(id, proposedStartAt, proposedEndAt, reason = '') {
-    const res = await api.post(`/sessions/${id}/reschedule-requests`, {
-      proposedStartAt,
-      proposedEndAt,
-      reason,
-    });
-    return res;
-  },
-
-  /** POST /sessions/{id}/reschedule-requests/{requestId}/accept → SessionDto */
-  async acceptReschedule(id, requestId) {
-    const res = await api.post(`/sessions/${id}/reschedule-requests/${requestId}/accept`);
-    return res;
-  },
-
-  /** POST /sessions/{id}/reschedule-requests/{requestId}/reject body { reason } → SessionRescheduleRequestDto */
-  async rejectReschedule(id, requestId, reason = '') {
-    const res = await api.post(`/sessions/${id}/reschedule-requests/${requestId}/reject`, {
-      reason,
-    });
     return res;
   },
 

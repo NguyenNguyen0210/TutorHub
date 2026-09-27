@@ -16,6 +16,8 @@ public class Service
     // Content & Scope
     public string Title { get; set; } = default!;
     public string Description { get; set; } = default!;
+    public string? ShortDescription { get; set; }
+    public string? TagsJson { get; set; }
     public string? LearningScope { get; set; }
     public string? ExpectedOutcome { get; set; }
 
@@ -48,6 +50,11 @@ public class Service
             throw new InvalidOperationException("Service is already published.");
         }
 
+        if (Status == ServiceStatus.Paused)
+        {
+            throw new InvalidOperationException("A paused service must be resumed, not republished.");
+        }
+
         Status = ServiceStatus.Published;
         UpdatedAt = DateTime.UtcNow;
     }
@@ -65,6 +72,28 @@ public class Service
         }
 
         Status = ServiceStatus.Unpublished;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Pause()
+    {
+        if (Status != ServiceStatus.Published)
+        {
+            throw new InvalidOperationException($"Only a published service can be paused. Current status: {Status}.");
+        }
+
+        Status = ServiceStatus.Paused;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Resume()
+    {
+        if (Status != ServiceStatus.Paused)
+        {
+            throw new InvalidOperationException($"Only a paused service can be resumed. Current status: {Status}.");
+        }
+
+        Status = ServiceStatus.Published;
         UpdatedAt = DateTime.UtcNow;
     }
 }

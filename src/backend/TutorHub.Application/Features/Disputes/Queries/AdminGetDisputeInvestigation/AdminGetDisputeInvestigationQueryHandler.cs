@@ -114,11 +114,13 @@ public class AdminGetDisputeInvestigationQueryHandler : IRequestHandler<AdminGet
                 EndAt = session.EndAt,
                 EarningAmount = session.EarningAmount,
                 IsPayoutReleased = session.IsPayoutReleased,
-                StudentAttendance = session.StudentAttendance,
-                StudentAttendanceSubmittedAt = session.StudentAttendanceSubmittedAt,
-                TutorAttendance = session.TutorAttendance,
-                TutorAttendanceSubmittedAt = session.TutorAttendanceSubmittedAt,
-                HasAttendanceConflict = session.HasAttendanceConflict
+                GracePeriodStartedAt = session.GracePeriodStartedAt,
+                GracePeriodEndsAt = session.GracePeriodEndsAt,
+                HasIssueReport = session.HasIssueReport,
+                IssueReportReason = session.IssueReportReason,
+                IssueReportDescription = session.IssueReportDescription,
+                IssueReportedAt = session.IssueReportedAt,
+                IssueReportedByUserId = session.IssueReportedByUserId
             },
             Enrollment = new EnrollmentInvestigationDto
             {

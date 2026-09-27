@@ -39,8 +39,8 @@ public class OutboxDispatcherJob : BackgroundService
         [BusinessEventTypes.SessionScheduled] = typeof(SessionScheduledEvent),
         [BusinessEventTypes.SessionRescheduled] = typeof(SessionRescheduledEvent),
         [BusinessEventTypes.SessionCancelled] = typeof(SessionCancelledEvent),
-        [BusinessEventTypes.AttendanceVerificationRequired] = typeof(AttendanceVerificationRequiredEvent),
-        [BusinessEventTypes.AttendanceConflictDetected] = typeof(AttendanceConflictDetectedEvent),
+        [BusinessEventTypes.GracePeriodStarted] = typeof(GracePeriodStartedEvent),
+        [BusinessEventTypes.SessionIssueReported] = typeof(SessionIssueReportedEvent),
         [BusinessEventTypes.SessionCompleted] = typeof(SessionCompletedEvent),
 
         // 4. Financial & Payouts

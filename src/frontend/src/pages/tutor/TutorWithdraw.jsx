@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import walletService from '@/services/wallet.service';
 import { formatCurrency, formatDateTime } from '@/utils/formatters';
@@ -12,9 +12,20 @@ import Badge from '@/components/ui/Badge';
 import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
 import Input, { Field } from '@/components/ui/Input';
-import { PageHeader } from '@/components/ui/StatCard';
-import { getWithdrawalStatusMeta } from '@/config/enums';
+import StateBadge from '@/components/ledger/StateBadge';
 
+const MIN_WITHDRAW = 50000;
+
+/**
+ * Yêu cầu rút tiền về tài khoản ngân hàng — Operational Ledger (SPEC Tutor §4.4).
+ *
+ * Rút tiền là TIỀN RA, không phải "đã quyết toán" → nút submit và Callout hạn
+ * mức dùng `primary` / trung tính, không dùng `success` (xanh lá) như bản cũ.
+ *
+ * Bất biến tài chính:
+ * - DEC-WD-001: Withdrawable = AvailableBalance - HeldBalance.
+ * - Hạn mức tối thiểu tạo lệnh rút: 50.000 ₫.
+ */
 export default function TutorWithdraw() {
   const toast = useToast();
   const navigate = useNavigate();
@@ -64,11 +75,27 @@ export default function TutorWithdraw() {
 
   // DEC-WD-001
   const withdrawableLimit = Math.max(0, (wallet?.availableBalance || 0) - (wallet?.heldBalance || 0));
+  const parsedAmount = parseInt(amount, 10);
+
+  // Lý do chặn submit — hiện ngay cạnh nút thay vì chỉ bắt người dùng bấm rồi mới
+  // nhận toast, để họ biết trước mình đang thiếu gì.
+  const blocker = useMemo(() => {
+    if (!Number.isFinite(parsedAmount) || parsedAmount < MIN_WITHDRAW) {
+      return 'Số tiền rút tối thiểu là 50.000 ₫';
+    }
+    if (parsedAmount > withdrawableLimit) {
+      return 'Số tiền rút vượt quá hạn mức được rút hiện tại';
+    }
+    if (!payoutAccount?.accountNumber) {
+      return 'Chưa có thông tin tài khoản ngân hàng thụ hưởng.';
+    }
+    return null;
+  }, [parsedAmount, withdrawableLimit, payoutAccount]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const num = parseInt(amount, 10);
-    if (!num || num < 50000) {
+    if (!num || num < MIN_WITHDRAW) {
       toast.error('Số tiền rút tối thiểu là 50.000 ₫');
       return;
     }
@@ -118,22 +145,31 @@ export default function TutorWithdraw() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <Link
-        to="/tutor/wallet"
-        className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
-      >
-        <Icon name="arrow_back" size="sm" />
-        Quay lại ví bảo chứng
-      </Link>
+      <nav aria-label="Breadcrumb">
+        <Link
+          to="/tutor/wallet"
+          className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
+        >
+          <Icon name="arrow_back" size="sm" />
+          Quay lại ví bảo chứng
+        </Link>
+      </nav>
 
-      <PageHeader
-        title="Yêu cầu rút tiền về tài khoản ngân hàng"
-        subtitle="Chỉ được rút từ Số dư khả dụng (Available) sau khi trừ đi các khoản tiền đang bị phong tỏa tranh chấp (Held)"
-      />
+      <div>
+        <h1 className="text-headline-page text-fg tracking-tight">
+          Yêu cầu rút tiền về tài khoản ngân hàng
+        </h1>
+        <p className="text-body-reg text-fg-secondary mt-1">
+          Chỉ được rút từ Số dư khả dụng (Available) sau khi trừ đi các khoản tiền đang
+          bị phong tỏa tranh chấp (Held)
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card padding="lg" className="lg:col-span-2 space-y-5">
-          <Callout variant="success" title="Hạn mức được phép rút hiện tại">
+          {/* Callout trung tính: hạn mức là số liệu tham chiếu, không phải
+              "đã quyết toán" — xanh lá là sai ngữ nghĩa tiền. */}
+          <Callout variant="neutral" title="Hạn mức được phép rút hiện tại">
             <span className="text-headline-2 font-semibold">
               <Money value={withdrawableLimit} />
             </span>
@@ -149,10 +185,11 @@ export default function TutorWithdraw() {
               <Input
                 id="withdraw-amount"
                 type="number"
+                inputMode="numeric"
                 required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                min="50000"
+                min={MIN_WITHDRAW}
                 max={withdrawableLimit}
                 className="tabular-nums font-bold text-body-lg"
               />
@@ -162,8 +199,8 @@ export default function TutorWithdraw() {
               <span className="block text-caption font-semibold text-fg-secondary uppercase tracking-wide">
                 Tài khoản ngân hàng thụ hưởng đã xác thực
               </span>
-              <div className="p-4 rounded-brand-md bg-neutral-50 border border-border flex items-center justify-between text-caption">
-                <div>
+              <div className="p-4 rounded-brand-md bg-neutral-50 border border-border flex items-center justify-between gap-3 text-caption">
+                <div className="min-w-0">
                   <span className="font-semibold text-fg block">
                     {payoutAccount?.bankName || 'Ngân hàng thụ hưởng'}
                   </span>
@@ -172,7 +209,7 @@ export default function TutorWithdraw() {
                     {payoutAccount?.accountHolderName || ''}
                   </span>
                 </div>
-                <Badge variant="success" size="sm">
+                <Badge variant="success" size="sm" className="shrink-0">
                   Đã xác thực KYC
                 </Badge>
               </div>
@@ -187,13 +224,19 @@ export default function TutorWithdraw() {
               />
             </Field>
 
+            {blocker && (
+              <p className="text-caption text-danger-strong m-0" role="status">
+                {blocker}
+              </p>
+            )}
+
             <Button
               type="submit"
-              variant="success"
+              variant="primary"
               size="lg"
               fullWidth
               loading={submitting}
-              disabled={withdrawableLimit < 50000}
+              disabled={Boolean(blocker)}
               icon={!submitting && <Icon name="send" size="sm" />}
             >
               {`Xác nhận rút ${formatCurrency(parseInt(amount, 10) || 0)} về ngân hàng`}
@@ -210,30 +253,25 @@ export default function TutorWithdraw() {
             </p>
           ) : (
             <ul className="space-y-3 text-caption">
-              {withdrawals.map((w) => {
-                const meta = getWithdrawalStatusMeta(w.status);
-                return (
-                  <li
-                    key={w.id}
-                    className="p-3.5 rounded-brand-md bg-neutral-50 border border-border space-y-1"
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="font-mono font-bold text-fg">
-                        {w.id.slice(0, 8).toUpperCase()}
-                      </span>
-                      <Badge variant={meta.color} size="sm">
-                        {meta.label}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between text-fg-muted">
-                      <span>{formatDateTime(w.requestedAt, 'DD/MM/YYYY')}</span>
-                      <span className="font-bold text-fg tabular-nums">
-                        {formatCurrency(w.amount)}
-                      </span>
-                    </div>
-                  </li>
-                );
-              })}
+              {withdrawals.map((w) => (
+                <li
+                  key={w.id}
+                  className="p-3.5 rounded-brand-md bg-neutral-50 border border-border space-y-1"
+                >
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="font-mono font-bold text-fg">
+                      {w.id.slice(0, 8).toUpperCase()}
+                    </span>
+                    <StateBadge status={w.status} domain="withdrawal" />
+                  </div>
+                  <div className="flex justify-between items-center gap-2 text-fg-muted">
+                    <span>{formatDateTime(w.requestedAt, 'DD/MM/YYYY')}</span>
+                    <span className="font-bold text-fg tabular-nums">
+                      {formatCurrency(w.amount)}
+                    </span>
+                  </div>
+                </li>
+              ))}
             </ul>
           )}
         </Card>

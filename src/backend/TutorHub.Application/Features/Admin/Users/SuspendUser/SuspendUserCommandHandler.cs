@@ -109,7 +109,6 @@ public class SuspendUserCommandHandler : IRequestHandler<SuspendUserCommand, Adm
             Role: user.Role,
             Status: user.Status,
             CreatedAt: user.CreatedAt,
-            AbsentStrikes: user.AbsentStrikes,
             TutorApplicationStatus: latestAppStatus
         );
     }

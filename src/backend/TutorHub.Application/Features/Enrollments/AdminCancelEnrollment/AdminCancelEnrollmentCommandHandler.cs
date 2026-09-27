@@ -66,8 +66,29 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
             throw new ConflictException("Enrollment is already cancelled.");
         }
 
+        // Block cancellation when sessions have active disputes (RH1-DISPUTE-GUARD)
+        var sessionIds = enrollment.Sessions
+            .Where(s => s.Status != SessionStatus.Completed)
+            .Select(s => s.Id)
+            .ToList();
+
+        if (sessionIds.Count > 0)
+        {
+            var hasActiveDispute = await _context.Disputes
+                .AsNoTracking()
+                .AnyAsync(d => sessionIds.Contains(d.SessionId)
+                    && d.Status != DisputeStatus.Resolved
+                    && d.Status != DisputeStatus.Dismissed, cancellationToken);
+
+            if (hasActiveDispute)
+            {
+                throw new ConflictException("Cannot cancel enrollment while sessions have active disputes. Please resolve all disputes first.");
+            }
+        }
+
         // 3. Domain state transition and refund calculation (DEC-C7-REFUND-001)
         var now = _clock.UtcNow;
+        var oldStatus = enrollment.Status.ToString();
         var refundAmount = enrollment.Cancel(request.Reason, CancelledBy.Admin);
 
         // 4. Financial Escrow Adjustment & Refund Record (DEC-C7-FINANCE-003).
@@ -142,7 +163,7 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
                 entityName: "Enrollment",
                 entityId: enrollment.Id.ToString(),
                 userId: userId,
-                oldValues: new { status = "Active" },
+                oldValues: new { status = oldStatus },
                 newValues: new { status = "Cancelled", reason = request.Reason, refundAmount },
                 cancellationToken: cancellationToken);
 

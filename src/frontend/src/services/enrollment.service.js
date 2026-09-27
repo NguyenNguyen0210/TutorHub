@@ -5,6 +5,7 @@
  * - GET  /enrollments        → PagedResult<EnrollmentSummaryDto>
  * - GET  /enrollments/{id}   → EnrollmentDto (kèm `sessions`)
  * - POST /enrollments/{id}/cancel body { reason } → EnrollmentDto
+ * - POST /enrollments/{id}/tutor-cannot-continue body { reason } → EnrollmentDto
  */
 import { api } from './api';
 
@@ -46,6 +47,12 @@ export const enrollmentService = {
   /** POST /enrollments/{id}/cancel body { reason } → EnrollmentDto */
   async cancelEnrollment(id, reason = 'Học viên yêu cầu dừng khóa học') {
     const res = await api.post(`/enrollments/${id}/cancel`, { reason });
+    return res;
+  },
+
+  /** POST /enrollments/{id}/tutor-cannot-continue body { reason } → EnrollmentDto */
+  async tutorCannotContinue(id, reason = 'Gia sư không thể tiếp tục giảng dạy') {
+    const res = await api.post(`/enrollments/${id}/tutor-cannot-continue`, { reason });
     return res;
   },
 

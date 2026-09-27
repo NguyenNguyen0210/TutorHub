@@ -28,109 +28,120 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
     {
         var userId = _currentUserService.UserIdOrThrow();
 
-        var refundTx = await _context.Transactions
-            .FirstOrDefaultAsync(t => t.Id == request.RefundTransactionId, cancellationToken);
-
-        if (refundTx == null)
+        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
         {
-            throw new NotFoundException(nameof(Transaction), request.RefundTransactionId);
-        }
+            var refundTx = await _context.Transactions
+                .FromSqlInterpolated($"SELECT * FROM \"Transactions\" WHERE \"Id\" = {request.RefundTransactionId} FOR UPDATE")
+                .FirstOrDefaultAsync(cancellationToken);
 
-        if (refundTx.Type != TransactionType.StudentRefund)
-        {
-            throw new BadRequestException("Transaction is not a StudentRefund.");
-        }
-
-        if (refundTx.Status == TransactionStatus.Succeeded)
-        {
-            throw new ConflictException("Refund has already settled successfully.");
-        }
-
-        var now = _clock.UtcNow;
-        var oldStatus = refundTx.Status;
-
-        Dispute? dispute = null;
-        if (refundTx.DisputeId.HasValue)
-        {
-            dispute = await _context.Disputes
-                .FirstOrDefaultAsync(d => d.Id == refundTx.DisputeId.Value, cancellationToken);
-        }
-
-        var booking = await _context.Bookings
-            .Include(b => b.Enrollment)
-            .Include(b => b.StudentProfile)
-            .FirstOrDefaultAsync(b => b.Id == refundTx.BookingId, cancellationToken);
-
-        var enrollmentId = booking?.Enrollment?.Id ?? Guid.Empty;
-        // Notifications must target the student's UserId, not the StudentProfile Id.
-        var studentUserId = booking?.StudentProfile?.UserId ?? Guid.Empty;
-
-        if (request.Outcome == TransactionStatus.Succeeded)
-        {
-            refundTx.Status = TransactionStatus.Succeeded;
-            refundTx.RefundedAt = now;
-            refundTx.SettlementRequired = false;
-            if (!string.IsNullOrWhiteSpace(request.ProviderReference))
+            if (refundTx == null)
             {
-                refundTx.PaymentGatewayRef = request.ProviderReference;
+                throw new NotFoundException(nameof(Transaction), request.RefundTransactionId);
             }
 
-            _context.AddOutboxMessage(new RefundCompletedEvent(
-                enrollmentId,
-                studentUserId,
-                new MoneyDto(refundTx.Amount),
-                refundTx.Id));
-        }
-        else
-        {
-            // TransactionStatus.Failed (DEC-S8-032, INV-REFUND-004)
-            // Economic obligation remains outstanding; does not revert tutor debit or platform fee reversal
-            refundTx.Status = TransactionStatus.Failed;
-            refundTx.SettlementRequired = true;
-            if (!string.IsNullOrWhiteSpace(request.FailureReason))
+            if (refundTx.Type != TransactionType.StudentRefund)
             {
-                refundTx.Description = string.IsNullOrWhiteSpace(refundTx.Description)
-                    ? $"Settlement failure: {request.FailureReason}"
-                    : $"{refundTx.Description}; Settlement failure: {request.FailureReason}";
+                throw new BadRequestException("Transaction is not a StudentRefund.");
             }
 
-            if (dispute != null)
+            if (refundTx.Status == TransactionStatus.Succeeded)
             {
-                dispute.MarkRequiresAdminRefundSettlement(request.FailureReason ?? "External settlement provider failed.");
+                throw new ConflictException("Refund has already settled successfully.");
             }
 
-            _context.AddOutboxMessage(new RefundFailedEvent(
-                enrollmentId,
-                studentUserId,
-                new MoneyDto(refundTx.Amount),
-                refundTx.Id,
-                request.FailureReason ?? "External refund settlement failed"));
+            var now = _clock.UtcNow;
+            var oldStatus = refundTx.Status;
+
+            Dispute? dispute = null;
+            if (refundTx.DisputeId.HasValue)
+            {
+                dispute = await _context.Disputes
+                    .FirstOrDefaultAsync(d => d.Id == refundTx.DisputeId.Value, cancellationToken);
+            }
+
+            var booking = await _context.Bookings
+                .Include(b => b.Enrollment)
+                .Include(b => b.StudentProfile)
+                .FirstOrDefaultAsync(b => b.Id == refundTx.BookingId, cancellationToken);
+
+            var enrollmentId = booking?.Enrollment?.Id ?? Guid.Empty;
+            // Notifications must target the student's UserId, not the StudentProfile Id.
+            var studentUserId = booking?.StudentProfile?.UserId ?? Guid.Empty;
+
+            if (request.Outcome == TransactionStatus.Succeeded)
+            {
+                refundTx.Status = TransactionStatus.Succeeded;
+                refundTx.RefundedAt = now;
+                refundTx.SettlementRequired = false;
+                if (!string.IsNullOrWhiteSpace(request.ProviderReference))
+                {
+                    refundTx.PaymentGatewayRef = request.ProviderReference;
+                }
+
+                _context.AddOutboxMessage(new RefundCompletedEvent(
+                    enrollmentId,
+                    studentUserId,
+                    new MoneyDto(refundTx.Amount),
+                    refundTx.Id));
+            }
+            else
+            {
+                // TransactionStatus.Failed (DEC-S8-032, INV-REFUND-004)
+                // Economic obligation remains outstanding; does not revert tutor debit or platform fee reversal
+                refundTx.Status = TransactionStatus.Failed;
+                refundTx.SettlementRequired = true;
+                if (!string.IsNullOrWhiteSpace(request.FailureReason))
+                {
+                    refundTx.Description = string.IsNullOrWhiteSpace(refundTx.Description)
+                        ? $"Settlement failure: {request.FailureReason}"
+                        : $"{refundTx.Description}; Settlement failure: {request.FailureReason}";
+                }
+
+                if (dispute != null)
+                {
+                    dispute.MarkRequiresAdminRefundSettlement(request.FailureReason ?? "External settlement provider failed.");
+                }
+
+                _context.AddOutboxMessage(new RefundFailedEvent(
+                    enrollmentId,
+                    studentUserId,
+                    new MoneyDto(refundTx.Amount),
+                    refundTx.Id,
+                    request.FailureReason ?? "External refund settlement failed"));
+            }
+
+            // Central audit log (Slice D3)
+            await _auditLogService.LogAsync(
+                action: request.Outcome == TransactionStatus.Succeeded ? "RefundSettlementSucceeded" : "RefundSettlementFailed",
+                entityName: "Transaction",
+                entityId: refundTx.Id.ToString(),
+                userId: userId,
+                oldValues: new { Status = oldStatus.ToString() },
+                newValues: new { Status = refundTx.Status.ToString(), SettlementRequired = refundTx.SettlementRequired, Reason = request.FailureReason },
+                cancellationToken: cancellationToken);
+
+            // Refund settlement mutates an in-flight (Pending) StudentRefund into a
+            // terminal state; the append-only guard in AppDbContext permits this
+            // because the original status is not Released/Succeeded (DEC-S8-032).
+            await _context.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+
+            return new RefundCallbackResultDto
+            {
+                TransactionId = refundTx.Id,
+                Status = refundTx.Status,
+                SettlementRequired = refundTx.SettlementRequired,
+                DisputeStatus = dispute?.Status.ToString(),
+                Message = request.Outcome == TransactionStatus.Succeeded
+                    ? "External refund settled successfully."
+                    : "External refund settlement marked as failed; administrative settlement intervention required."
+            };
         }
-
-        // Central audit log (Slice D3)
-        await _auditLogService.LogAsync(
-            action: request.Outcome == TransactionStatus.Succeeded ? "RefundSettlementSucceeded" : "RefundSettlementFailed",
-            entityName: "Transaction",
-            entityId: refundTx.Id.ToString(),
-            userId: userId,
-            oldValues: new { Status = oldStatus.ToString() },
-            newValues: new { Status = refundTx.Status.ToString(), SettlementRequired = refundTx.SettlementRequired, Reason = request.FailureReason },
-            cancellationToken: cancellationToken);
-
-        // Refund settlement mutates an in-flight (Pending) StudentRefund into a
-        // terminal state; the append-only guard in AppDbContext permits this
-        // because the original status is not Released/Succeeded (DEC-S8-032).
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return new RefundCallbackResultDto
+        catch
         {
-            TransactionId = refundTx.Id,
-            Status = refundTx.Status,
-            SettlementRequired = refundTx.SettlementRequired,
-            DisputeStatus = dispute?.Status.ToString(),
-            Message = request.Outcome == TransactionStatus.Succeeded
-                ? "External refund settled successfully."
-                : "External refund settlement marked as failed; administrative settlement intervention required."
-        };
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 }

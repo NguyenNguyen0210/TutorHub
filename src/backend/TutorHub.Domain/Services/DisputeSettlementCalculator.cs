@@ -45,8 +45,8 @@ public static class DisputeSettlementCalculator
         var tutorFinalGross = originalGross - studentRefund;
         var (platformFinalFee, tutorFinalNet) = PlatformFeeCalculator.SplitGross(tutorFinalGross, appliedRate);
 
-        var tutorNetRecovery = originalTutorNet - tutorFinalNet;
-        var platformFeeReversal = originalPlatformFee - platformFinalFee;
+        var tutorNetRecovery = Math.Max(0m, originalTutorNet - tutorFinalNet);
+        var platformFeeReversal = Math.Max(0m, originalPlatformFee - platformFinalFee);
 
         return new Settlement(
             StudentRefund: studentRefund,

@@ -183,8 +183,8 @@ public record SessionRescheduledEvent(
     DateTime PreviousEndAt,
     DateTime NewStartAt,
     DateTime NewEndAt,
-    Guid RescheduleRequestId,
-    Guid AcceptedByUserId,
+    Guid? RescheduleRequestId = null,
+    Guid? AcceptedByUserId = null,
     Guid EventId = default,
     int EventVersion = 1,
     DateTime OccurredAt = default
@@ -218,39 +218,38 @@ public record SessionCancelledEvent(
     public Guid AggregateId => SessionId;
 }
 
-public record AttendanceVerificationRequiredEvent(
+public record GracePeriodStartedEvent(
     Guid SessionId,
     Guid EnrollmentId,
     Guid StudentUserId,
     Guid TutorUserId,
-    DateTime DueAt,
+    DateTime GracePeriodEndsAt,
     Guid EventId = default,
     int EventVersion = 1,
     DateTime OccurredAt = default
 ) : IBusinessEvent
 {
     public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
-    public string EventType => BusinessEventTypes.AttendanceVerificationRequired;
+    public string EventType => BusinessEventTypes.GracePeriodStarted;
     public int EventVersion { get; init; } = EventVersion;
     public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
     public string AggregateType => "Session";
     public Guid AggregateId => SessionId;
 }
 
-public record AttendanceConflictDetectedEvent(
+public record SessionIssueReportedEvent(
     Guid SessionId,
     Guid EnrollmentId,
     Guid StudentUserId,
     Guid TutorUserId,
-    string StudentStatus,
-    string TutorStatus,
+    string Reason,
     Guid EventId = default,
     int EventVersion = 1,
     DateTime OccurredAt = default
 ) : IBusinessEvent
 {
     public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
-    public string EventType => BusinessEventTypes.AttendanceConflictDetected;
+    public string EventType => BusinessEventTypes.SessionIssueReported;
     public int EventVersion { get; init; } = EventVersion;
     public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
     public string AggregateType => "Session";

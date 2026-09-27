@@ -5,6 +5,10 @@ import { useAuthStore } from '../store/authStore';
 // Deep link redirect helpers for notifications and external URLs
 function EnrollmentRedirect() {
   const { id } = useParams();
+  const { role } = useAuthStore();
+  if (role === 'Tutor') {
+    return <Navigate to={`/tutor/enrollments/${id}`} replace />;
+  }
   return <Navigate to={`/student/enrollments/${id}`} replace />;
 }
 
@@ -34,14 +38,17 @@ import PublicLayout from '../layouts/PublicLayout';
 import StudentLayout from '../layouts/StudentLayout';
 import TutorLayout from '../layouts/TutorLayout';
 import AdminLayout from '../layouts/AdminLayout';
+import WorkspaceLayout from '../layouts/WorkspaceLayout';
 
 // Auth & Onboarding Screens
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
+import OAuthCallback from '../pages/auth/OAuthCallback';
 import TutorApplication from '../pages/tutor/TutorApplication';
 
 // Discovery Screens
 import Marketplace from '../pages/discovery/Marketplace';
+import BecomeTutor from '../pages/discovery/BecomeTutor';
 import TutorProfile from '../pages/discovery/TutorProfile';
 import ServicesMarketplace from '../pages/discovery/ServicesMarketplace';
 import ServiceDetail from '../pages/discovery/ServiceDetail';
@@ -53,14 +60,17 @@ import PaymentReturn from '../pages/checkout/PaymentReturn';
 
 import StudentDashboard from '../pages/student/StudentDashboard';
 import StudentWallet from '../pages/student/StudentWallet';
+import StudentWalletTopUp from '../pages/student/StudentWalletTopUp';
+import StudentWalletWithdraw from '../pages/student/StudentWalletWithdraw';
 import EnrollmentDetail from '../pages/student/EnrollmentDetail';
 import SessionDetail from '../pages/student/SessionDetail';
 import DisputeNew from '../pages/student/DisputeNew';
 
 // Tutor Space & Wallet Screens
 import TutorDashboard from '../pages/tutor/TutorDashboard';
-import TutorAvailability from '../pages/tutor/TutorAvailability';
+import TutorSchedule from '../pages/tutor/TutorSchedule';
 import TutorServices from '../pages/tutor/TutorServices';
+import ServiceCreateWizard from '../pages/tutor/ServiceCreateWizard';
 import TutorWallet from '../pages/tutor/TutorWallet';
 import TutorWithdraw from '../pages/tutor/TutorWithdraw';
 
@@ -96,17 +106,14 @@ export default function AppRoutes() {
         <Route path="/service" element={<Navigate to="/services" replace />} />
         <Route path="/service/:id" element={<ServiceDetail />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/become-tutor" element={<BecomeTutor />} />
 
         {/* Protected: requires login */}
         <Route path="/student/bookings/:id/checkout" element={
           <RequireAuth><BookingCheckout /></RequireAuth>
         } />
-        <Route path="/payment/return" element={<PaymentReturn />} />
-        <Route path="/app/messages" element={
-          <RequireAuth><Messages /></RequireAuth>
-        } />
-        <Route path="/app/notifications" element={
-          <RequireAuth><Notifications /></RequireAuth>
+        <Route path="/payment/return" element={
+          <RequireAuth><PaymentReturn /></RequireAuth>
         } />
         <Route path="/tutor/application" element={
           <RequireAuth><TutorApplication /></RequireAuth>
@@ -114,10 +121,23 @@ export default function AppRoutes() {
         <Route path="/tutor/onboarding" element={<Navigate to="/tutor/application" replace />} />
       </Route>
 
+      {/* 2b. Shared workspace routes (Hộp thư, Thông báo) — dùng shell của vai trò
+           đang đăng nhập, KHÔNG dùng PublicLayout: trước đây bấm "Tin nhắn" làm
+           mất sidebar và hiện topbar công khai lên trên. */}
+      <Route path="/app" element={
+        <RequireAuth>
+          <WorkspaceLayout />
+        </RequireAuth>
+      }>
+        <Route path="messages" element={<Messages />} />
+        <Route path="notifications" element={<Notifications />} />
+      </Route>
+
       {/* 2. Auth Routes */}
       <Route path="/auth/login" element={<GuestGuard><Login /></GuestGuard>} />
       <Route path="/login" element={<Navigate to="/auth/login" replace />} />
       <Route path="/auth/register" element={<GuestGuard><Register /></GuestGuard>} />
+      <Route path="/auth/oauth/callback" element={<GuestGuard><OAuthCallback /></GuestGuard>} />
       <Route path="/register" element={<Navigate to="/auth/register" replace />} />
 
       {/* 3. Student Routes (auth + Student role) */}
@@ -130,6 +150,8 @@ export default function AppRoutes() {
       }>
         <Route path="dashboard" element={<StudentDashboard />} />
         <Route path="wallet" element={<StudentWallet />} />
+        <Route path="wallet/topup" element={<StudentWalletTopUp />} />
+        <Route path="wallet/withdraw" element={<StudentWalletWithdraw />} />
         <Route path="enrollments/:id" element={<EnrollmentDetail />} />
         <Route path="sessions/:id" element={<SessionDetail />} />
         <Route path="disputes/new" element={<DisputeNew />} />
@@ -146,8 +168,11 @@ export default function AppRoutes() {
         </RequireAuth>
       }>
         <Route path="dashboard" element={<TutorDashboard />} />
-        <Route path="availability" element={<TutorAvailability />} />
+        <Route path="schedule" element={<TutorSchedule />} />
+        <Route path="availability" element={<Navigate to="/tutor/schedule" replace />} />
         <Route path="services" element={<TutorServices />} />
+        <Route path="services/new" element={<ServiceCreateWizard />} />
+        <Route path="enrollments/:id" element={<EnrollmentDetail />} />
         <Route path="wallet" element={<TutorWallet />} />
         <Route path="wallet/withdraw" element={<TutorWithdraw />} />
         <Route path="sessions/:id" element={<SessionDetail />} />
@@ -176,7 +201,6 @@ export default function AppRoutes() {
       </Route>
 
       {/* Deep Link Redirections (from notifications & external URLs) */}
-      <Route path="/student/wallet" element={<RequireAuth><Navigate to="/student/wallet" replace /></RequireAuth>} />
       <Route path="/admin/student-topups" element={<RequireAuth><Navigate to="/admin/student-wallets" replace /></RequireAuth>} />
       <Route path="/admin/student-withdrawals" element={<RequireAuth><Navigate to="/admin/student-wallets" replace /></RequireAuth>} />
       <Route path="/enrollments/:id" element={<RequireAuth><EnrollmentRedirect /></RequireAuth>} />

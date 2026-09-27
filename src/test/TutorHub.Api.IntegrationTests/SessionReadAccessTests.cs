@@ -80,7 +80,7 @@ public class SessionReadAccessTests : IntegrationTestBase
             data.GetProperty("enrollmentId").GetGuid().Should().Be(session.EnrollmentId);
             data.GetProperty("sessionNumber").GetInt32().Should().Be(1);
             data.GetProperty("status").GetString().Should().Be(nameof(SessionStatus.Unscheduled));
-            data.GetProperty("attendanceVerificationDueAt").ValueKind.Should().Be(JsonValueKind.Null);
+            data.GetProperty("gracePeriodEndsAt").ValueKind.Should().Be(JsonValueKind.Null);
         }
 
         // Act 2: an unrelated authenticated user.

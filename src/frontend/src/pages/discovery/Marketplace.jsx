@@ -255,7 +255,7 @@ export default function Marketplace() {
   };
 
   return (
-    <div className="w-full flex-1 bg-[#F8FAFC] pb-12">
+    <div className="w-full flex-1 bg-canvas pb-12">
       {/* 1. Hero Section */}
       <HeroSection
         searchKeyword={searchKeyword}
@@ -337,21 +337,21 @@ export default function Marketplace() {
           <div className="flex-1 min-w-0 space-y-4">
             {/* Active Filters Bar */}
             {activeFilters.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 p-3 bg-blue-50/70 border border-blue-100/90 rounded-[14px] shadow-xs">
+              <div className="flex flex-wrap items-center gap-2 p-3 bg-brand-primary-50/70 border border-brand-primary-100/90 rounded-[14px] shadow-sm">
                 <div className="flex items-center gap-1.5 text-[12.5px] font-bold text-neutral-700">
-                  <Icon name="filter_alt" size="xs" className="text-[#2563EB] w-3.5 h-3.5" />
+                  <Icon name="filter_alt" size="xs" className="text-brand-primary-600 w-3.5 h-3.5" />
                   <span>Đang lọc:</span>
                 </div>
                 {activeFilters.map((af) => (
                   <span
                     key={af.key}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-[#2563EB] text-[12px] font-semibold border border-blue-200/90 shadow-xs hover:border-blue-300 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface text-brand-primary-600 text-[12px] font-semibold border border-brand-primary-200/90 shadow-sm hover:border-brand-primary-300 transition-colors"
                   >
                     <span>{af.label}</span>
                     <button
                       type="button"
                       onClick={af.clear}
-                      className="hover:text-rose-500 transition-colors font-bold text-[14px] leading-none cursor-pointer -mr-0.5 ml-0.5"
+                      className="hover:text-danger transition-colors font-bold text-[14px] leading-none cursor-pointer -mr-0.5 ml-0.5"
                       title="Gỡ bộ lọc này"
                     >
                       ×
@@ -361,7 +361,7 @@ export default function Marketplace() {
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className="text-[12px] font-semibold text-neutral-500 hover:text-rose-600 transition-colors ml-auto cursor-pointer flex items-center gap-1"
+                  className="text-[12px] font-semibold text-neutral-500 hover:text-danger-strong transition-colors ml-auto cursor-pointer flex items-center gap-1"
                 >
                   <Icon name="close" size="xs" className="w-3.5 h-3.5" />
                   <span>Xóa tất cả</span>
@@ -387,7 +387,7 @@ export default function Marketplace() {
                       setSortBy(e.target.value);
                       setPageNumber(1);
                     }}
-                    className="!py-1.5 !text-[13px] font-medium bg-white border-neutral-200/80"
+                    className="!py-1.5 !text-[13px] font-medium bg-surface border-neutral-200/80"
                   >
                     {SORT_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>

@@ -38,24 +38,29 @@ public class GetMyServiceByIdQueryHandler : IRequestHandler<GetMyServiceByIdQuer
             throw new ForbiddenException("You do not have permission to view this service.");
         }
 
-        return new ServiceDto(
-            Id: service.Id,
-            TutorProfileId: service.TutorProfileId,
-            SubjectId: service.SubjectId,
-            SubjectName: service.Subject.Name,
-            SubjectCategoryName: service.Subject.Category.Name,
-            Title: service.Title,
-            Description: service.Description,
-            LearningScope: service.LearningScope,
-            ExpectedOutcome: service.ExpectedOutcome,
-            TotalSessions: service.TotalSessions,
-            SessionDurationMinutes: service.SessionDurationMinutes,
-            Price: service.Price,
-            TeachingMode: service.TeachingMode.ToString(),
-            TrialLessonUrl: service.TrialLessonUrl,
-            Status: service.Status.ToString(),
-            CreatedAt: service.CreatedAt,
-            UpdatedAt: service.UpdatedAt
+        // Per-service engagement stats (see GetMyServicesQueryHandler for the
+        // schema note): distinct enrolled students via Enrollment.ServiceId,
+        // visible reviews via Review -> Enrollment.ServiceId.
+        var studentCount = await _context.Enrollments
+            .AsNoTracking()
+            .Where(e => e.ServiceId == service.Id)
+            .Select(e => e.StudentProfileId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        var ratings = await _context.Reviews
+            .AsNoTracking()
+            .Where(r => !r.IsRemoved && r.Enrollment.ServiceId == service.Id)
+            .Select(r => r.Rating)
+            .ToListAsync(cancellationToken);
+
+        return ServiceDtoMapper.FromService(
+            service,
+            service.Subject.Name,
+            service.Subject.Category.Name,
+            studentCount: studentCount,
+            averageRating: ratings.Count > 0 ? ratings.Average() : null,
+            reviewCount: ratings.Count
         );
     }
 }

@@ -14,7 +14,6 @@ public interface IAppDbContext
     DbSet<Subject> Subjects { get; }
     DbSet<TutorSubject> TutorSubjects { get; }
     DbSet<Service> Services { get; }
-    DbSet<AvailabilitySlot> AvailabilitySlots { get; }
     DbSet<Booking> Bookings { get; }
     DbSet<Enrollment> Enrollments { get; }
     DbSet<Session> Sessions { get; }
@@ -43,12 +42,12 @@ public interface IAppDbContext
     DbSet<PlatformSettingVersion> PlatformSettingVersions { get; }
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<CustomAgreement> CustomAgreements { get; }
-    DbSet<SessionRescheduleRequest> SessionRescheduleRequests { get; }
     DbSet<LearningRecord> LearningRecords { get; }
     DbSet<StudentWallet> StudentWallets { get; }
     DbSet<StudentWalletTransaction> StudentWalletTransactions { get; }
     DbSet<TopUpRequest> TopUpRequests { get; }
     DbSet<StudentWithdrawal> StudentWithdrawals { get; }
+    DbSet<ExternalLogin> ExternalLogins { get; }
 
     DatabaseFacade Database { get; }
 

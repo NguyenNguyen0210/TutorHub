@@ -4,7 +4,7 @@ import { cn } from '@/lib/cn';
 import chatService, { createChatHubConnection } from '@/services/chat.service';
 import agreementService from '@/services/agreement.service';
 import { useAuthStore } from '@/store/authStore';
-import { formatDateTime } from '@/utils/formatters';
+import { formatDateTime, formatRelativeTime } from '@/utils/formatters';
 import Money from '@/components/ui/Money';
 import { useToast } from '@/components/ui/Toast';
 import EmptyState from '@/components/common/EmptyState';
@@ -15,6 +15,9 @@ import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
 import Input from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/StatCard';
+
+/** B-14: `SendTyping` tối đa 1 lần / 2s. Trước đây mỗi phím gõ đều invoke hub. */
+const TYPING_THROTTLE_MS = 2000;
 
 export default function Messages() {
   const toast = useToast();
@@ -34,6 +37,7 @@ export default function Messages() {
 
   const hubConnectionRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const lastTypingSentAtRef = useRef(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -138,7 +142,16 @@ export default function Messages() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messagesList]);
 
+  // Đổi cuộc trò chuyện → nới throttle, nếu không phím gõ đầu tiên ở cuộc trò
+  // chuyện mới sẽ bị nuốt vì lần gõ gần nhất cách đây chưa đủ 2 giây.
+  useEffect(() => {
+    lastTypingSentAtRef.current = 0;
+  }, [activeConversationId]);
+
   const activeConv = conversations.find((c) => c.id === activeConversationId);
+  const activeAgreement = activeConv
+    ? agreements.find((a) => a.conversationId === activeConv.id) || null
+    : null;
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -162,10 +175,16 @@ export default function Messages() {
     }
   };
 
+  // B-14 — throttle theo ref: tối đa 1 invoke `SendTyping` mỗi TYPING_THROTTLE_MS.
   const handleTyping = () => {
-    if (hubConnectionRef.current && activeConversationId) {
-      hubConnectionRef.current.invoke('SendTyping', activeConversationId).catch(() => {});
-    }
+    const connection = hubConnectionRef.current;
+    if (!connection || !activeConversationId) return;
+
+    const now = Date.now();
+    if (now - lastTypingSentAtRef.current < TYPING_THROTTLE_MS) return;
+    lastTypingSentAtRef.current = now;
+
+    connection.invoke('SendTyping', activeConversationId).catch(() => {});
   };
 
   return (
@@ -188,17 +207,26 @@ export default function Messages() {
               <p>Đang tải danh sách...</p>
             </div>
           ) : conversations.length === 0 ? (
-            <div className="p-6 text-center text-fg-muted text-caption">
-              Chưa có cuộc trò chuyện nào.
+            <div className="p-4">
+              <EmptyState
+                icon="inbox"
+                title="Chưa có cuộc trò chuyện"
+                description="Hãy nhắn tin từ hồ sơ gia sư để bắt đầu cuộc trò chuyện đầu tiên."
+                className="border-0 shadow-none"
+              />
             </div>
           ) : (
             conversations.map((conv) => {
               const otherName = conv.tutorName || conv.studentName || 'Người dùng';
-              const otherAvatar =
-                conv.tutorAvatarUrl ||
-                conv.studentAvatarUrl ||
-                `https://api.dicebear.com/7.x/avataaars/svg?seed=${otherName}`;
+              // B-15: không gọi dịch vụ avatar ngoài. `Avatar` tự fallback về chữ cái đầu
+              // khi `src` rỗng hoặc ảnh hỏng — không cần URL giả.
+              const otherAvatar = conv.tutorAvatarUrl || conv.studentAvatarUrl || null;
               const isSelected = conv.id === activeConversationId;
+              // `unreadCount` là field thật của ConversationDto. Cuộc trò chuyện đang mở
+              // đã được `markConversationAsRead` nên không hiện chấm — snapshot danh sách
+              // không tự refresh sau khi đọc.
+              const unreadCount = Number(conv.unreadCount) || 0;
+              const hasUnread = unreadCount > 0 && !isSelected;
 
               return (
                 <button
@@ -215,12 +243,26 @@ export default function Messages() {
                 >
                   <Avatar src={otherAvatar} name={otherName} size="lg" className="rounded-brand-md" />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-caption text-fg truncate">{otherName}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5 min-w-0 font-bold text-caption text-fg">
+                        {hasUnread && (
+                          <span
+                            className="w-1.5 h-1.5 rounded-full bg-brand-primary-600 shrink-0"
+                            aria-hidden="true"
+                          />
+                        )}
+                        <span className="truncate">{otherName}</span>
+                        {hasUnread && (
+                          <span className="sr-only">{unreadCount} tin nhắn chưa đọc</span>
+                        )}
+                      </span>
                       {conv.lastMessageAt && (
-                        <span className="text-[10px] text-fg-muted">
-                          {formatDateTime(conv.lastMessageAt, 'HH:mm')}
-                        </span>
+                        <time
+                          dateTime={conv.lastMessageAt}
+                          className="shrink-0 text-[10px] text-fg-muted"
+                        >
+                          {formatRelativeTime(conv.lastMessageAt)}
+                        </time>
                       )}
                     </div>
                     <p className="text-[11px] text-fg-muted truncate mt-0.5 m-0">
@@ -237,31 +279,94 @@ export default function Messages() {
       <div className="flex-1 flex flex-col bg-surface min-h-0">
         {activeConv ? (
           <>
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Avatar
-                  src={
-                    activeConv.tutorAvatarUrl ||
-                    activeConv.studentAvatarUrl ||
-                    `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeConv.id}`
-                  }
-                  name={activeConv.tutorName || activeConv.studentName}
-                  size="md"
-                  className="rounded-brand-md"
-                />
-                <div>
-                  <h2 className="text-body-reg font-bold text-fg m-0 leading-tight">
-                    {activeConv.tutorName || activeConv.studentName || 'Cuộc trò chuyện'}
-                  </h2>
-                  <span className="text-[11px] text-success-strong font-semibold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                    Kênh nhắn tin mã hóa bảo mật
-                  </span>
-                </div>
+            <div className="p-4 border-b border-border flex items-center gap-3">
+              <Avatar
+                src={activeConv.tutorAvatarUrl || activeConv.studentAvatarUrl || null}
+                name={activeConv.tutorName || activeConv.studentName}
+                size="md"
+                className="rounded-brand-md"
+              />
+              <div className="min-w-0">
+                <h2 className="text-body-reg font-bold text-fg m-0 leading-tight truncate">
+                  {activeConv.tutorName || activeConv.studentName || 'Cuộc trò chuyện'}
+                </h2>
+                {/* SignalR qua HTTPS chỉ mã hoá KÊNH TRUYỀN, không phải mã hoá đầu-cuối —
+                    nên không viết "mã hóa bảo mật" và không dùng nền xanh (đọc như huy hiệu
+                    "đã xác minh"). */}
+                <span className="text-[11px] text-fg-muted flex items-center gap-1.5">
+                  <Icon name="shield" size="sm" className="w-3 h-3" />
+                  Trao đổi qua kênh bảo mật của TutorHub
+                </span>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-neutral-50/50">
+            {/* Thỏa thuận ghim ngay dưới header, KHÔNG nằm trong dòng tin nhắn.
+                Đặt sau `messagesList.map` (bản cũ) nó nằm chung khung, chung căn
+                phải-trái, chung cỡ chữ với bubble nên trông y hệt tin nhắn của đối
+                phương — nhưng đây là panel hợp đồng cần ký/thanh toán, không phải
+                lời thoại. Ghim ở đầu vùng đọc để tách bạch hai loại nội dung. */}
+            {activeAgreement && (
+              <Card
+                padding="sm"
+                className="m-4 mb-0 shrink-0 border-brand-primary-200 space-y-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-brand-primary-600">
+                      <Icon name="description" size="sm" className="w-3 h-3" />
+                      Thỏa thuận đào tạo
+                    </span>
+                    <h3 className="text-caption font-bold text-fg m-0 mt-1">
+                      {activeAgreement.title || 'Hợp đồng học tập tùy chỉnh'}
+                    </h3>
+                  </div>
+                  <Badge variant="primary" size="sm" className="shrink-0">
+                    {activeAgreement.status}
+                  </Badge>
+                </div>
+                <p className="text-caption text-fg-secondary leading-relaxed m-0">
+                  {activeAgreement.description ||
+                    'Thỏa thuận đào tạo riêng giữa Gia sư và Học viên.'}
+                </p>
+                <div className="flex items-center justify-between gap-3 pt-2 border-t border-border text-caption">
+                  <div>
+                    <span className="font-bold text-success-strong text-body-reg block">
+                      <Money value={activeAgreement.totalPrice || 0} />
+                    </span>
+                    <span className="text-[10px] text-fg-muted">
+                      {activeAgreement.totalSessions} buổi (
+                      {activeAgreement.sessionDurationMinutes || 60}p/buổi)
+                    </span>
+                  </div>
+                  {activeAgreement.bookingId ? (
+                    // Tiền đi ra khỏi ví → `primary`, không phải `success` (xanh = đã chốt
+                    // thành công). Cùng lý do đã sửa nút rút tiền ở vùng Tutor.
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() =>
+                        navigate(`/student/bookings/${activeAgreement.bookingId}/checkout`)
+                      }
+                    >
+                      Thanh toán giữ chỗ
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => navigate('/student/dashboard')}
+                    >
+                      Xem khóa học
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            <div
+              aria-live="polite"
+              className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-neutral-50/50"
+            >
               {loadingMessages ? (
                 <div className="text-center py-8 text-caption text-fg-muted space-y-2">
                   <Spinner size="md" className="mx-auto" />
@@ -300,62 +405,13 @@ export default function Messages() {
                 })
               )}
 
-              {(() => {
-                const activeAgreement = agreements.find(
-                  (a) => a.conversationId === activeConv?.id,
-                );
-                if (!activeAgreement) return null;
-
-                return (
-                  <Card className="my-3 border-2 border-brand-primary-200 space-y-3 max-w-lg mx-auto">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-brand-primary-900 font-bold text-caption uppercase tracking-wide">
-                        <Icon name="description" size="sm" className="text-brand-primary-600" />
-                        {activeAgreement.title || 'Hợp đồng học tập tùy chỉnh'}
-                      </div>
-                      <Badge variant="primary" size="sm">
-                        {activeAgreement.status}
-                      </Badge>
-                    </div>
-                    <p className="text-caption text-fg-secondary leading-relaxed m-0">
-                      {activeAgreement.description || 'Thỏa thuận đào tạo riêng giữa Gia sư và Học viên.'}
-                    </p>
-                    <div className="flex items-center justify-between pt-2 border-t border-border text-caption">
-                      <div>
-                        <span className="font-bold text-success-strong text-body-reg block">
-                          <Money value={activeAgreement.totalPrice || 0} />
-                        </span>
-                        <span className="text-[10px] text-fg-muted">
-                          {activeAgreement.totalSessions} buổi ({activeAgreement.sessionDurationMinutes || 60}p/buổi)
-                        </span>
-                      </div>
-                      {activeAgreement.bookingId ? (
-                        <Button
-                          variant="success"
-                          size="sm"
-                          onClick={() =>
-                            navigate(`/student/bookings/${activeAgreement.bookingId}/checkout`)
-                          }
-                        >
-                          Thanh toán giữ chỗ
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => navigate('/student/dashboard')}
-                        >
-                          Xem khóa học
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })()}
-
               {typingUser && (
-                <div className="text-[11px] text-fg-muted italic flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-neutral-400 animate-pulse" />
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="text-[11px] text-fg-muted italic flex items-center gap-1"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
                   {typingUser}
                 </div>
               )}

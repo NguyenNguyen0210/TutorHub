@@ -60,6 +60,26 @@ public class CancelEnrollmentCommandHandler : IRequestHandler<CancelEnrollmentCo
             throw new ConflictException($"Cannot cancel an enrollment in '{enrollment.Status}' status. Only Active enrollments can be cancelled.");
         }
 
+        // Block cancellation when sessions have active disputes (RH1-DISPUTE-GUARD)
+        var sessionIds = enrollment.Sessions
+            .Where(s => s.Status != SessionStatus.Completed)
+            .Select(s => s.Id)
+            .ToList();
+
+        if (sessionIds.Count > 0)
+        {
+            var hasActiveDispute = await _context.Disputes
+                .AsNoTracking()
+                .AnyAsync(d => sessionIds.Contains(d.SessionId)
+                    && d.Status != DisputeStatus.Resolved
+                    && d.Status != DisputeStatus.Dismissed, cancellationToken);
+
+            if (hasActiveDispute)
+            {
+                throw new ConflictException("Cannot cancel enrollment while sessions have active disputes. Please resolve all disputes first.");
+            }
+        }
+
         // 3. Domain Logic: Cancel sessions and compute refund (INV-REFUND-001)
         var now = _clock.UtcNow;
         var refundAmount = enrollment.Cancel(request.Reason, CancelledBy.Student);

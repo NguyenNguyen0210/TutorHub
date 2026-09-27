@@ -52,11 +52,11 @@ export default function ServiceFilterSidebar({
 
   return (
     <aside className={`w-full ${className}`} aria-label="Bộ lọc dịch vụ học tập">
-      <div className="p-4 sm:p-5 space-y-4 border border-neutral-200/90 shadow-2xs rounded-2xl bg-white sticky top-[84px]">
+      <div className="p-4 sm:p-5 space-y-4 border border-neutral-200/90 shadow-sm rounded-2xl bg-surface sticky top-[84px]">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
           <div className="flex items-center gap-2 font-bold text-[14.5px] text-neutral-900">
-            <Icon name="tune" size="sm" className="text-[#2563EB]" />
+            <Icon name="tune" size="sm" className="text-brand-primary-600" />
             <span>Bộ lọc tìm kiếm</span>
           </div>
         </div>
@@ -69,7 +69,7 @@ export default function ServiceFilterSidebar({
             className="w-full flex items-center justify-between text-[13px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
-              <Icon name="category" size="xs" className="text-neutral-400 group-hover:text-[#2563EB] transition-colors" />
+              <Icon name="category" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
               <span>Danh mục dịch vụ</span>
             </span>
             <Icon
@@ -85,7 +85,7 @@ export default function ServiceFilterSidebar({
             <div className="pt-0.5 space-y-1">
               <label
                 className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors cursor-pointer ${
-                  !selectedCategoryId ? 'bg-blue-50 text-[#2563EB] font-bold' : 'text-neutral-700 hover:bg-neutral-50'
+                  !selectedCategoryId ? 'bg-brand-primary-50 text-brand-primary-600 font-bold' : 'text-neutral-700 hover:bg-neutral-50'
                 }`}
               >
                 <input
@@ -96,7 +96,7 @@ export default function ServiceFilterSidebar({
                     onSelectCategory('');
                     onSelectSubject('');
                   }}
-                  className="w-3.5 h-3.5 text-[#2563EB] focus:ring-[#2563EB] border-slate-300 cursor-pointer"
+                  className="w-3.5 h-3.5 text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer"
                 />
                 <span>Tất cả danh mục</span>
               </label>
@@ -106,7 +106,7 @@ export default function ServiceFilterSidebar({
                   key={cat.id}
                   className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors cursor-pointer ${
                     selectedCategoryId === cat.id
-                      ? 'bg-blue-50 text-[#2563EB] font-bold'
+                      ? 'bg-brand-primary-50 text-brand-primary-600 font-bold'
                       : 'text-neutral-700 hover:bg-neutral-50'
                   }`}
                 >
@@ -118,7 +118,7 @@ export default function ServiceFilterSidebar({
                       onSelectCategory(cat.id);
                       onSelectSubject('');
                     }}
-                    className="w-3.5 h-3.5 text-[#2563EB] focus:ring-[#2563EB] border-slate-300 cursor-pointer"
+                    className="w-3.5 h-3.5 text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer"
                   />
                   <span className="line-clamp-1">{cat.name}</span>
                 </label>
@@ -136,7 +136,7 @@ export default function ServiceFilterSidebar({
               className="w-full flex items-center justify-between text-[13px] font-bold text-neutral-900 group cursor-pointer"
             >
               <span className="flex items-center gap-1.5">
-                <Icon name="menu_book" size="xs" className="text-neutral-400 group-hover:text-[#2563EB] transition-colors" />
+                <Icon name="menu_book" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
                 <span>Môn học / Kỹ năng</span>
               </span>
               <Icon
@@ -152,7 +152,7 @@ export default function ServiceFilterSidebar({
               <div className="pt-0.5 space-y-1 max-h-[220px] overflow-y-auto pr-0.5">
                 <label
                   className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors cursor-pointer ${
-                    !selectedSubjectId ? 'bg-blue-50 text-[#2563EB] font-bold' : 'text-neutral-700 hover:bg-neutral-50'
+                    !selectedSubjectId ? 'bg-brand-primary-50 text-brand-primary-600 font-bold' : 'text-neutral-700 hover:bg-neutral-50'
                   }`}
                 >
                   <input
@@ -160,7 +160,7 @@ export default function ServiceFilterSidebar({
                     name="service-subject"
                     checked={!selectedSubjectId}
                     onChange={() => onSelectSubject('')}
-                    className="w-3.5 h-3.5 text-[#2563EB] focus:ring-[#2563EB] border-slate-300 cursor-pointer"
+                    className="w-3.5 h-3.5 text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer"
                   />
                   <span>Tất cả môn học</span>
                 </label>
@@ -170,7 +170,7 @@ export default function ServiceFilterSidebar({
                     key={sub.id}
                     className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors cursor-pointer ${
                       selectedSubjectId === sub.id
-                        ? 'bg-blue-50 text-[#2563EB] font-bold'
+                        ? 'bg-brand-primary-50 text-brand-primary-600 font-bold'
                         : 'text-neutral-700 hover:bg-neutral-50'
                     }`}
                   >
@@ -179,7 +179,7 @@ export default function ServiceFilterSidebar({
                       name="service-subject"
                       checked={selectedSubjectId === sub.id}
                       onChange={() => onSelectSubject(sub.id)}
-                      className="w-3.5 h-3.5 text-[#2563EB] focus:ring-[#2563EB] border-slate-300 cursor-pointer"
+                      className="w-3.5 h-3.5 text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer"
                     />
                     <span className="line-clamp-1">{sub.name}</span>
                   </label>
@@ -197,7 +197,7 @@ export default function ServiceFilterSidebar({
             className="w-full flex items-center justify-between text-[13px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
-              <Icon name="devices" size="xs" className="text-neutral-400 group-hover:text-[#2563EB] transition-colors" />
+              <Icon name="devices" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
               <span>Hình thức học</span>
             </span>
             <Icon
@@ -216,7 +216,7 @@ export default function ServiceFilterSidebar({
                   key={m.value}
                   className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors cursor-pointer ${
                     teachingMode === m.value
-                      ? 'bg-blue-50 text-[#2563EB] font-bold'
+                      ? 'bg-brand-primary-50 text-brand-primary-600 font-bold'
                       : 'text-neutral-700 hover:bg-neutral-50'
                   }`}
                 >
@@ -225,7 +225,7 @@ export default function ServiceFilterSidebar({
                     name="service-mode"
                     checked={teachingMode === m.value}
                     onChange={() => onTeachingModeChange(m.value)}
-                    className="w-3.5 h-3.5 text-[#2563EB] focus:ring-[#2563EB] border-slate-300 cursor-pointer"
+                    className="w-3.5 h-3.5 text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer"
                   />
                   <span>{m.label}</span>
                 </label>
@@ -242,7 +242,7 @@ export default function ServiceFilterSidebar({
             className="w-full flex items-center justify-between text-[13px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
-              <Icon name="payments" size="xs" className="text-neutral-400 group-hover:text-[#2563EB] transition-colors" />
+              <Icon name="payments" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
               <span>Khoảng giá</span>
             </span>
             <Icon
@@ -258,7 +258,7 @@ export default function ServiceFilterSidebar({
             <div className="pt-0.5 space-y-2.5">
               <div className="flex items-center justify-between text-[12px]">
                 <span className="text-neutral-500 font-medium">Học phí tối đa:</span>
-                <span className="font-extrabold text-[#2563EB]">{formatVND(priceRange)}</span>
+                <span className="font-extrabold text-brand-primary-600">{formatVND(priceRange)}</span>
               </div>
 
               <input
@@ -268,7 +268,7 @@ export default function ServiceFilterSidebar({
                 step="500000"
                 value={priceRange}
                 onChange={(e) => onPriceRangeChange(Number(e.target.value))}
-                className="w-full h-1.5 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-[#2563EB]"
+                className="w-full h-1.5 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-brand-primary-600"
                 aria-label="Thanh kéo chọn mức giá học phí"
               />
 
@@ -288,7 +288,7 @@ export default function ServiceFilterSidebar({
             className="w-full flex items-center justify-between text-[13px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
-              <Icon name="star" size="xs" className="text-neutral-400 group-hover:text-[#2563EB] transition-colors" />
+              <Icon name="star" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
               <span>Đánh giá gia sư</span>
             </span>
             <Icon
@@ -307,7 +307,7 @@ export default function ServiceFilterSidebar({
                   key={String(opt.value)}
                   className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors cursor-pointer ${
                     minRating === opt.value
-                      ? 'bg-blue-50 text-[#2563EB] font-bold'
+                      ? 'bg-brand-primary-50 text-brand-primary-600 font-bold'
                       : 'text-neutral-700 hover:bg-neutral-50'
                   }`}
                 >
@@ -316,7 +316,7 @@ export default function ServiceFilterSidebar({
                     name="service-rating"
                     checked={minRating === opt.value}
                     onChange={() => onMinRatingChange(opt.value)}
-                    className="w-3.5 h-3.5 text-[#2563EB] focus:ring-[#2563EB] border-slate-300 cursor-pointer"
+                    className="w-3.5 h-3.5 text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer"
                   />
                   <span>{opt.label}</span>
                 </label>

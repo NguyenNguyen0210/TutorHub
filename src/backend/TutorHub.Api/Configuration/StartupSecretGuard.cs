@@ -27,7 +27,11 @@ public static class StartupSecretGuard
         "Jwt:Secret",
         "VnPay:HashSecret",
         "CloudflareR2:AccessKeyId",
-        "CloudflareR2:SecretAccessKey"
+        "CloudflareR2:SecretAccessKey",
+        // A copied .env.example value would let anyone sign in as anyone against the
+        // real provider app, so these are guarded exactly like the other secrets.
+        "ExternalAuth:Google:ClientSecret",
+        "ExternalAuth:Facebook:ClientSecret"
     };
 
     public static void ValidateNoPlaceholderSecrets(IConfiguration configuration)

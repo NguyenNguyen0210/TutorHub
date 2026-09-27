@@ -68,7 +68,8 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
             throw new UnauthorizedException("Security Alert: Invalid refresh token reuse detected. All active sessions have been terminated.");
         }
 
-        if (existingToken.IsExpired)
+        var now = _clock.UtcNow;
+        if (existingToken.IsExpiredAt(now))
         {
             throw new UnauthorizedException("Refresh token has expired. Please log in again.");
         }

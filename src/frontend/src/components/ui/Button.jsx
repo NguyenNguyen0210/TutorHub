@@ -11,6 +11,12 @@ const VARIANT_CLASS = {
   ghost: 'bg-transparent text-fg-secondary hover:bg-neutral-100 hover:text-fg active:bg-neutral-200',
   danger:
     'bg-danger text-white hover:bg-danger-strong active:bg-danger-strong shadow-sm disabled:hover:bg-danger',
+  // Viền đỏ + chữ đỏ: hành động phá hủy nhưng không phải hành động chính.
+  // Cần vì trước đây gọi 'danger-outline' rơi vào fallback primary → nút hủy hiện màu xanh.
+  'danger-outline':
+    'bg-surface text-danger-strong border border-danger/40 hover:bg-danger-subtle hover:border-danger active:bg-danger-subtle disabled:hover:bg-surface',
+  'danger-ghost':
+    'bg-transparent text-danger-strong hover:bg-danger-subtle active:bg-danger-subtle disabled:hover:bg-transparent',
   success:
     'bg-success text-white hover:bg-success-strong active:bg-success-strong shadow-sm disabled:hover:bg-success',
 };
@@ -45,9 +51,9 @@ export default function Button({
       aria-disabled={!isNativeButton && isDisabled ? true : undefined}
       aria-busy={loading || undefined}
       className={cn(
-        'inline-flex items-center justify-center font-semibold transition-colors select-none',
+        'inline-flex items-center justify-center font-semibold transition-all duration-150 active:scale-[0.98] select-none cursor-pointer',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 focus-visible:ring-offset-2',
-        'disabled:opacity-50 disabled:cursor-not-allowed',
+        'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
         fullWidth && 'w-full',
         SIZE_CLASS[size] || SIZE_CLASS.md,
         VARIANT_CLASS[variant] || VARIANT_CLASS.primary,
@@ -80,9 +86,9 @@ export function IconButton({ label, variant = 'ghost', size = 'md', className, i
       aria-label={label}
       title={label}
       className={cn(
-        'inline-flex items-center justify-center rounded-brand-md transition-colors',
+        'inline-flex items-center justify-center rounded-brand-md transition-all duration-150 active:scale-[0.96] cursor-pointer',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 focus-visible:ring-offset-2',
-        'disabled:opacity-50 disabled:cursor-not-allowed',
+        'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
         box,
         VARIANT_CLASS[variant] || VARIANT_CLASS.ghost,
         className

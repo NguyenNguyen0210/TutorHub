@@ -3,17 +3,18 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import Icon from '@/components/ui/Icon';
 import { useAuthStore } from '@/store/authStore';
-import { NAV } from './navConfig';
+import { getNavForRole } from './navConfig';
 
 /**
  * MobileFloatingDock — thanh điều hướng dưới cho mobile (< 1024px).
  * Dữ liệu từ navConfig duy nhất; tối đa 4 mục + mục đăng nhập cho guest.
  */
-function DockLink({ to, icon, label, active }) {
+function DockLink({ to, icon, label, active, external }) {
   return (
     <Link
       to={to}
       aria-current={active ? 'page' : undefined}
+      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
       className={cn(
         'flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-brand-md text-[10px] font-semibold transition-colors min-w-[64px]',
         active ? 'text-brand-primary-700 bg-brand-primary-50' : 'text-fg-secondary'
@@ -26,14 +27,16 @@ function DockLink({ to, icon, label, active }) {
 }
 
 const SHORT_LABEL = {
+  '/': 'Khám phá',
   '/student/dashboard': 'Bàn học',
   '/tutors': 'Tìm gia sư',
   '/app/messages': 'Hộp thư',
   '/app/notifications': 'Thông báo',
   '/tutor/dashboard': 'Tổng quan',
-  '/tutor/availability': 'Lịch dạy',
-  '/tutor/services': 'Gói học',
+  '/tutor/schedule': 'Lịch dạy',
+  '/tutor/services': 'Dịch vụ',
   '/tutor/wallet': 'Ví Escrow',
+  '/tutor/settings': 'Cài đặt',
   '/admin/dashboard': 'Tổng quan',
   '/admin/tutor-applications': 'Duyệt',
   '/admin/disputes': 'Tranh chấp',
@@ -43,17 +46,30 @@ const SHORT_LABEL = {
   '/auth/login': 'Đăng nhập',
 };
 
+/**
+ * Màn chiếm toàn màn hình: dock nổi sẽ đè lên thanh nhập của Hộp thư
+ * (`fixed bottom-4` ~80px trong khi card hội thoại cao `calc(100vh - 140px)`).
+ * Trước khi `/app/messages` dùng chung shell với các màn trong sàn thì nó nằm ở
+ * PublicLayout nên không có dock, không có xung đột này.
+ */
+const IMMERSIVE_PATHS = ['/app/messages'];
+
+/** Dock cho khách: giữ 3 mục riêng vì `NAV.guest` chỉ có 1 mục khám phá. */
+const GUEST_ITEMS = [
+  { path: '/tutors', label: 'Khám phá', icon: 'explore', match: (p) => p.startsWith('/tutors') },
+  { path: '/tutor/application', label: 'Làm gia sư', icon: 'school', match: () => false },
+  { path: '/auth/login', label: 'Đăng nhập', icon: 'login', match: (p) => p.startsWith('/auth/login') },
+];
+
 export default function MobileFloatingDock() {
   const { role, isAuthenticated } = useAuthStore();
   const location = useLocation();
 
-  const items = !isAuthenticated
-    ? [
-        { path: '/tutors', label: 'Khám phá', icon: 'explore', match: (p) => p.startsWith('/tutors') },
-        { path: '/tutor/application', label: 'Làm gia sư', icon: 'school', match: () => false },
-        { path: '/auth/login', label: 'Đăng nhập', icon: 'login', match: (p) => p.startsWith('/auth/login') },
-      ]
-    : (NAV[role] || NAV.guest).slice(0, 4);
+  const isImmersive = IMMERSIVE_PATHS.some((p) => location.pathname.startsWith(p));
+  if (isImmersive) return null;
+
+  // Đọc qua getNavForRole để dock và sidebar cùng nguồn danh sách.
+  const items = isAuthenticated ? getNavForRole(role, isAuthenticated).slice(0, 4) : GUEST_ITEMS;
 
   return (
     <div className="lg:hidden fixed bottom-4 left-4 right-4 z-50">
@@ -68,6 +84,7 @@ export default function MobileFloatingDock() {
             icon={item.icon}
             label={SHORT_LABEL[item.path] || item.label}
             active={item.match(location.pathname)}
+            external={item.external}
           />
         ))}
       </nav>

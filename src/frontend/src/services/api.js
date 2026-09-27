@@ -80,7 +80,7 @@ let isRefreshing = false;
 let failedQueue = [];
 
 // 401 ở chính các endpoint thông tin đăng nhập là sai thông tin, không phải token hết hạn.
-const CREDENTIAL_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/refresh'];
+const CREDENTIAL_URL_PATTERN = /^(?:\/api\/v1)?\/?auth\/(login|register|refresh|logout|oauth)/i;
 
 const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
@@ -118,7 +118,7 @@ api.interceptors.response.use(
     const originalRequest = error.config ?? {};
     const status = error.response?.status;
     const url = originalRequest.url ?? '';
-    const isCredentialCall = CREDENTIAL_ENDPOINTS.some((endpoint) => url.includes(endpoint));
+    const isCredentialCall = CREDENTIAL_URL_PATTERN.test(url);
     const hasRefreshToken = Boolean(useAuthStore.getState().refreshToken);
 
     // Xử lý lỗi 401 Unauthorized (Token hết hạn) — bỏ qua khi thiếu refresh token,
@@ -156,6 +156,11 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return api(originalRequest);
         }
+
+        const missingTokenErr = new Error('No access token returned from refresh.');
+        processQueue(missingTokenErr, null);
+        useAuthStore.getState().logout();
+        return Promise.reject(toApiError(missingTokenErr));
       } catch (refreshErr) {
         processQueue(refreshErr, null);
         useAuthStore.getState().logout();

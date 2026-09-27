@@ -22,9 +22,9 @@ export default function Card({
   return (
     <Component
       className={cn(
-        'bg-surface border border-border rounded-brand-lg shadow-brand-sm',
+        'bg-surface border border-border rounded-brand-lg shadow-brand-sm min-w-0 max-w-full',
         CARD_PADDING[padding] ?? CARD_PADDING.md,
-        hoverable && 'transition-all hover:shadow-brand-md hover:border-brand-primary-200',
+        hoverable && 'transition-all duration-200 hover:shadow-brand-md hover:border-brand-primary-300 hover:-translate-y-0.5 active:translate-y-0',
         className
       )}
       {...rest}
@@ -36,14 +36,14 @@ export default function Card({
 
 export function CardHeader({ className, title, subtitle, action, icon, children, ...rest }) {
   return (
-    <div className={cn('flex items-start justify-between gap-4 mb-4', className)} {...rest}>
-      <div className="flex items-start gap-3 min-w-0">
+    <div className={cn('flex items-start justify-between gap-4 mb-4 min-w-0', className)} {...rest}>
+      <div className="flex items-start gap-3 min-w-0 flex-1">
         {icon && (
           <div className="w-10 h-10 rounded-brand-md bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center shrink-0">
             {icon}
           </div>
         )}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           {title && <h3 className="text-headline-3 text-fg truncate">{title}</h3>}
           {subtitle && <p className="text-caption text-fg-muted mt-0.5">{subtitle}</p>}
           {children}

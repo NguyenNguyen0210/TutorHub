@@ -94,31 +94,35 @@ public class BookingTests
     }
 
     [Fact]
-    public void CalculateRefund_WhenHolding_ReturnsZero()
+    public void Expire_WhenHolding_UpdatesStatusAndCancellationDetails()
     {
         // Arrange
-        var booking = CreateTestBooking(BookingStatus.Holding, 1_500_000m);
+        var booking = CreateTestBooking(BookingStatus.Holding);
+        var now = DateTime.UtcNow;
 
         // Act
-        var (percentage, amount, payout) = booking.CalculateRefund(CancelledBy.Student);
+        booking.Expire(now);
 
         // Assert
-        percentage.Should().Be(0);
-        amount.Should().Be(0);
-        payout.Should().Be(0);
+        booking.Status.Should().Be(BookingStatus.Expired);
+        booking.CancelledBy.Should().Be(CancelledBy.System);
+        booking.CancellationReason.Should().Be("HoldingExpired");
+        booking.CancelledAt.Should().Be(now);
     }
 
     [Fact]
-    public void CalculateRefund_WhenPaid_ThrowsInvalidOperation()
+    public void Expire_WhenNotHolding_ThrowsInvalidOperationException()
     {
         // Arrange
-        var booking = CreateTestBooking(BookingStatus.Paid, 2_000_000m);
+        var booking = CreateTestBooking(BookingStatus.Paid);
+        var now = DateTime.UtcNow;
 
         // Act
-        var act = () => booking.CalculateRefund(CancelledBy.Student);
+        var act = () => booking.Expire(now);
 
         // Assert
-        act.Should().Throw<InvalidOperationException>();
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Cannot expire booking in 'Paid' status.");
     }
 
     [Fact]

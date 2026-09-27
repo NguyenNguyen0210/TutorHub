@@ -6,22 +6,50 @@ import Logo from '@/components/ui/Logo';
 import Avatar, { Menu } from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
 import { useAuthStore } from '@/store/authStore';
+import { chatService } from '@/services/chat.service';
 import { getNavForRole, getDashboardPath } from './navConfig';
 import MobileFloatingDock from './MobileFloatingDock';
 
 /**
  * WorkspaceShell — khung làm việc chuẩn cho Student / Tutor / Admin.
- * Sidebar tối 240px + canvas sáng; < 1024px sidebar thành drawer.
+ * Sidebar sáng 240px (nền trắng, active pill xanh nhạt) + canvas xám nhạt;
+ * < 1024px sidebar thành drawer.
  */
 export default function WorkspaceShell({ userRole: role, children }) {
   const { user, isAuthenticated, logout } = useAuthStore();
+  // UserDto.IdProfile = TutorProfile.Id / StudentProfile.Id, đã có sẵn trong
+  // authStore nên "Hồ sơ công khai" không cần gọi API thêm.
+  const profileId = user?.idProfile || user?.tutorProfileId || null;
   const location = useLocation();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Tổng tin nhắn chưa đọc thật từ /conversations (0 / lỗi → ẩn badge, không số giả).
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     setDrawerOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadUnread() {
+      if (!isAuthenticated) {
+        setUnreadMessages(0);
+        return;
+      }
+      try {
+        const page = await chatService.getConversations({ pageSize: 50 });
+        const total = (page?.items || []).reduce((sum, c) => sum + (Number(c.unreadCount) || 0), 0);
+        if (!cancelled) setUnreadMessages(total);
+      } catch {
+        if (!cancelled) setUnreadMessages(0);
+      }
+    }
+    loadUnread();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, location.pathname]);
 
   const handleLogout = async () => {
     await logout();
@@ -65,6 +93,18 @@ export default function WorkspaceShell({ userRole: role, children }) {
             label: <span className="font-semibold text-body-reg">Hồ sơ xét duyệt</span>,
             onClick: () => navigate('/tutor/application'),
           },
+          // Chỉ hiện khi đã có hồ sơ công khai; gia sư đang chờ duyệt thì chưa có
+          // TutorProfile nên không có trang nào để mở.
+          ...(profileId
+            ? [
+                {
+                  key: 'public-profile',
+                  icon: <Icon name="person" size="sm" />,
+                  label: <span className="font-semibold text-body-reg">Xem hồ sơ công khai</span>,
+                  onClick: () => navigate(`/tutors/${profileId}`),
+                },
+              ]
+            : []),
           {
             key: 'wallet',
             icon: <Icon name="account_balance_wallet" size="sm" />,
@@ -76,7 +116,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
     {
       key: 'settings',
       icon: <Icon name="settings" size="sm" />,
-      label: <span className="font-semibold text-body-reg">Hồ sơ & Cài đặt</span>,
+      label: <span className="font-semibold text-body-reg">Cài đặt tài khoản</span>,
       onClick: () => navigate(role === 'Tutor' ? '/tutor/settings' : role === 'Student' ? '/student/settings' : '/admin/settings'),
     },
     { type: 'divider' },
@@ -93,59 +133,112 @@ export default function WorkspaceShell({ userRole: role, children }) {
     <div className="flex flex-col h-full">
       <Link
         to={getDashboardPath(role)}
-        className="flex items-center gap-2.5 px-5 h-16 shrink-0 border-b border-white/10"
+        className="flex items-center gap-2.5 px-5 h-16 shrink-0 border-b border-border"
         aria-label="TutorHub — về trang tổng quan"
       >
         <Logo variant="mark" size={36} />
-        <Logo variant="wordmark" size={30} tone="light" />
+        <Logo variant="wordmark" size={30} tone="color" />
       </Link>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1" aria-label={`${role} navigation`}>
         {navItems.map((item) => {
           const isActive = item.match(location.pathname);
+          const showMsgBadge = item.path === '/app/messages' && unreadMessages > 0;
+          // `external` = trang nằm ngoài khung sàn (PublicLayout). Mở tab mới để
+          // người dùng không mất sidebar đang mở — điều hướng trong tab sẽ làm
+          // khung công khai hiện lên, đúng lỗi đã gặp ở Hộp thư.
+          const externalProps = item.external
+            ? { target: '_blank', rel: 'noopener noreferrer' }
+            : {};
           return (
             <Link
-              key={item.path}
+              key={`${item.path}__${item.label}`}
               to={item.path}
               aria-current={isActive ? 'page' : undefined}
+              title={item.external ? `${item.label} (mở tab mới)` : undefined}
               className={cn(
-                'flex items-center gap-3 px-3.5 py-2.5 rounded-brand-md text-body-reg font-semibold transition-colors',
+                'flex items-center gap-3 px-3.5 py-2.5 rounded-[10px] text-body-reg font-semibold transition-colors',
                 isActive
-                  ? 'bg-brand-primary-600 text-white shadow-sm'
-                  : 'text-slate-300 hover:text-white hover:bg-white/10'
+                  ? 'bg-brand-primary-50 text-brand-primary-600'
+                  : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
               )}
+              {...externalProps}
             >
               <Icon name={item.icon} size="md" />
-              {item.label}
+              <span className="flex-1 min-w-0 truncate">{item.label}</span>
+              {item.external && (
+                <Icon
+                  name="open_in_new"
+                  size="xs"
+                  className="text-fg-muted shrink-0"
+                  aria-hidden="true"
+                />
+              )}
+              {showMsgBadge && (
+                <span
+                  aria-label={`${unreadMessages} tin nhắn chưa đọc`}
+                  className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-danger text-white text-[11px] font-bold flex items-center justify-center"
+                >
+                  {unreadMessages > 99 ? '99+' : unreadMessages}
+                </span>
+              )}
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-3 border-t border-white/10">
-        <Link
-          to={role === 'Tutor' ? '/tutor/settings' : role === 'Student' ? '/student/settings' : '/admin/settings'}
-          className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-brand-md bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group"
-          title="Hồ sơ & Cài đặt tài khoản"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="w-2 h-2 rounded-full bg-success animate-pulse shrink-0" aria-hidden="true" />
-            <div className="min-w-0">
-              <p className="text-caption font-semibold text-white truncate group-hover:text-brand-primary-300 transition-colors">
-                {user?.fullName || user?.name || 'Tài khoản'}
-              </p>
-              <p className="text-[11px] text-slate-400 uppercase tracking-wide">{role}</p>
-            </div>
+      <div className="p-3 border-t border-border space-y-3">
+        <div className="rounded-brand-md bg-brand-primary-50/70 border border-brand-primary-100 p-3.5">
+          <div className="flex items-center gap-2">
+            <span className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
+              <Icon name="contact_support" size="sm" className="text-brand-primary-600" />
+            </span>
+            <p className="text-body-reg font-bold text-fg">Cần hỗ trợ?</p>
           </div>
-          <Icon name="settings" size="xs" className="text-slate-400 group-hover:text-white transition-colors shrink-0" />
-        </Link>
+          <p className="mt-2 text-caption text-fg-muted leading-relaxed">
+            Xem hướng dẫn sử dụng và câu hỏi thường gặp.
+          </p>
+          <Link
+            to="/how-it-works"
+            className="mt-2.5 flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-brand-md bg-white border border-brand-primary-200 text-brand-primary-700 text-body-reg font-bold hover:bg-brand-primary-50 transition-colors"
+          >
+            Trung tâm trợ giúp
+            <Icon name="arrow_forward" size="sm" />
+          </Link>
+        </div>
+        {/* Khối này trước đây là <Link> trỏ thẳng /tutor/settings nhưng hiển thị tên
+            người dùng → người dùng tưởng là "Hồ sơ cá nhân" và bấm nhầm, ra Cài đặt.
+            Nay nó là trigger của menu tài khoản (giống avatar ở header), nên
+            không còn đường nào mang tên mà điều hướng sai chỗ. */}
+        <Menu
+          items={userMenuItems}
+          align="top"
+          trigger={
+            <div className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-brand-md bg-neutral-50 border border-border hover:bg-neutral-100 transition-colors group cursor-pointer">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-2 h-2 rounded-full bg-success shrink-0" aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className="text-caption font-semibold text-fg truncate group-hover:text-brand-primary-700 transition-colors">
+                    {user?.fullName || user?.name || 'Tài khoản'}
+                  </p>
+                  <p className="text-[11px] text-fg-muted uppercase tracking-wide">{role}</p>
+                </div>
+              </div>
+              <Icon
+                name="expand_more"
+                size="xs"
+                className="text-fg-muted group-hover:text-fg-secondary transition-colors shrink-0"
+              />
+            </div>
+          }
+        />
       </div>
     </div>
   );
 
   return (
     <div className="min-h-screen flex bg-canvas text-fg antialiased">
-      <aside className="hidden lg:flex w-60 shrink-0 bg-brand-navy-900 text-white sticky top-0 h-screen flex-col">
+      <aside className="hidden lg:flex w-60 shrink-0 bg-surface text-fg border-r border-border sticky top-0 h-screen flex-col">
         {sidebarBody}
       </aside>
 
@@ -157,7 +250,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
             className="absolute inset-0 bg-brand-navy-950/60 backdrop-blur-sm cursor-default"
             onClick={() => setDrawerOpen(false)}
           />
-          <aside className="absolute left-0 top-0 bottom-0 w-72 max-w-[85vw] bg-brand-navy-900 text-white shadow-brand-xl">
+          <aside className="absolute left-0 top-0 bottom-0 w-72 max-w-[85vw] bg-surface text-fg border-r border-border shadow-brand-xl">
             {sidebarBody}
           </aside>
         </div>

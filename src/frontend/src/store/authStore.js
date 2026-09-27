@@ -1,9 +1,11 @@
 import { create } from 'zustand';
 import api from '../services/api';
 
-const savedUser = JSON.parse(localStorage.getItem('tutorhub_user') || 'null');
-const savedToken = localStorage.getItem('tutorhub_token') || null;
-const savedRefreshToken = localStorage.getItem('tutorhub_refresh_token') || null;
+const getStoredItem = (key) => localStorage.getItem(key) || sessionStorage.getItem(key);
+
+const savedUser = JSON.parse(getStoredItem('tutorhub_user') || 'null');
+const savedToken = getStoredItem('tutorhub_token') || null;
+const savedRefreshToken = getStoredItem('tutorhub_refresh_token') || null;
 
 export const useAuthStore = create((set, get) => ({
   user: savedUser,
@@ -12,11 +14,18 @@ export const useAuthStore = create((set, get) => ({
   role: savedUser?.role || null,
   isAuthenticated: !!(savedUser && savedToken),
 
-  login: (userData, tokens) => {
-    localStorage.setItem('tutorhub_user', JSON.stringify(userData));
-    localStorage.setItem('tutorhub_token', tokens.accessToken);
+  login: (userData, tokens, rememberMe = true) => {
+    const targetStorage = rememberMe ? localStorage : sessionStorage;
+    const alternateStorage = rememberMe ? sessionStorage : localStorage;
+
+    alternateStorage.removeItem('tutorhub_user');
+    alternateStorage.removeItem('tutorhub_token');
+    alternateStorage.removeItem('tutorhub_refresh_token');
+
+    targetStorage.setItem('tutorhub_user', JSON.stringify(userData));
+    targetStorage.setItem('tutorhub_token', tokens.accessToken);
     if (tokens.refreshToken) {
-      localStorage.setItem('tutorhub_refresh_token', tokens.refreshToken);
+      targetStorage.setItem('tutorhub_refresh_token', tokens.refreshToken);
     }
     set({
       user: userData,
@@ -28,17 +37,13 @@ export const useAuthStore = create((set, get) => ({
   },
 
   logout: async () => {
-    try {
-      const refreshToken = get().refreshToken;
-      if (refreshToken) {
-        await api.post('/auth/logout', { refreshToken });
-      }
-    } catch (err) {
-      console.warn('[authStore] Logout API error:', err.message);
-    }
+    const refreshToken = get().refreshToken;
     localStorage.removeItem('tutorhub_user');
     localStorage.removeItem('tutorhub_token');
     localStorage.removeItem('tutorhub_refresh_token');
+    sessionStorage.removeItem('tutorhub_user');
+    sessionStorage.removeItem('tutorhub_token');
+    sessionStorage.removeItem('tutorhub_refresh_token');
     set({
       user: null,
       accessToken: null,
@@ -46,10 +51,17 @@ export const useAuthStore = create((set, get) => ({
       role: null,
       isAuthenticated: false,
     });
+    try {
+      if (refreshToken) {
+        await api.post('/auth/logout', { refreshToken });
+      }
+    } catch {
+      // Silent error on logout
+    }
   },
 
-  // Login via real backend API - no mock fallback
-  loginWithCredentials: async (email, password) => {
+  // Login via real backend API
+  loginWithCredentials: async (email, password, rememberMe = true) => {
     const res = await api.post('/auth/login', { email, password });
 
     if (res && res.accessToken) {
@@ -61,19 +73,84 @@ export const useAuthStore = create((set, get) => ({
         email: u.email,
         role: u.role,
         phone: u.phone || null,
-        avatarUrl: u.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.email}`,
+        avatarUrl: u.avatarUrl || null,
         idProfile: u.idProfile || null,
         tutorProfileId: u.role === 'Tutor' ? (u.idProfile || null) : null,
-        absentStrikes: u.absentStrikes ?? 0,
       };
-      get().login(mappedUser, {
-        accessToken: res.accessToken,
-        refreshToken: res.refreshToken,
-      });
+      get().login(
+        mappedUser,
+        {
+          accessToken: res.accessToken,
+          refreshToken: res.refreshToken,
+        },
+        rememberMe
+      );
       return { success: true, user: mappedUser };
     }
 
     throw new Error('Phản hồi đăng nhập không hợp lệ từ máy chủ.');
+  },
+
+  // Login via Google OAuth callback - AuthResponseDto shape == login response
+  loginWithExternal: async (authResponse) => {
+    const u = authResponse?.user;
+    if (!authResponse?.accessToken || !u) {
+      throw new Error('Phản hồi đăng nhập không hợp lệ từ máy chủ.');
+    }
+    const mappedUser = {
+      id: u.id,
+      name: u.fullName || u.email,
+      fullName: u.fullName || u.email,
+      email: u.email,
+      role: u.role,
+      phone: u.phone || null,
+      avatarUrl: u.avatarUrl || null,
+      idProfile: u.idProfile || null,
+      tutorProfileId: u.role === 'Tutor' ? (u.idProfile || null) : null,
+    };
+    get().login(mappedUser, {
+      accessToken: authResponse.accessToken,
+      refreshToken: authResponse.refreshToken,
+    });
+    return { success: true, user: mappedUser };
+  },
+
+  // Revalidate session from server on app boot — detect bans, suspensions, role changes.
+  revalidateSession: async () => {
+    const token = get().accessToken;
+    if (!token) return;
+    try {
+      const serverUser = await api.get('/auth/me');
+      if (!serverUser || (!serverUser.userId && !serverUser.id)) {
+        get().logout();
+        return;
+      }
+      if (serverUser.status === 'Suspended' || serverUser.status === 'Banned') {
+        get().logout();
+        return;
+      }
+      const current = get().user;
+      if (current) {
+        const updated = {
+          ...current,
+          role: serverUser.role,
+          fullName: serverUser.fullName,
+          name: serverUser.fullName,
+          avatarUrl: serverUser.avatarUrl ?? current.avatarUrl,
+          idProfile: serverUser.idProfile ?? current.idProfile,
+          tutorProfileId: serverUser.role === 'Tutor' ? (serverUser.idProfile ?? current.tutorProfileId) : null,
+        };
+        if (localStorage.getItem('tutorhub_user')) {
+          localStorage.setItem('tutorhub_user', JSON.stringify(updated));
+        }
+        if (sessionStorage.getItem('tutorhub_user')) {
+          sessionStorage.setItem('tutorhub_user', JSON.stringify(updated));
+        }
+        set({ user: updated, role: serverUser.role });
+      }
+    } catch {
+      // Network error or 401 — silent fail, interceptor handles refresh/logout
+    }
   },
 
   // Register via real backend API

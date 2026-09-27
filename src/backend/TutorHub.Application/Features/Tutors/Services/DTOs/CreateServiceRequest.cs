@@ -4,11 +4,18 @@ public record CreateServiceRequest(
     Guid SubjectId,
     string Title,
     string Description,
+    string? ShortDescription,
+    string[]? Tags,
     string? LearningScope,
     string? ExpectedOutcome,
     int TotalSessions,
     int SessionDurationMinutes,
     decimal Price,
     string TeachingMode,
-    string? TrialLessonUrl
+    string? TrialLessonUrl,
+    string? CoverImageUrl,
+    List<CurriculumItemInput>? Curriculum = null,
+    List<string>? TargetAudience = null,
+    List<string>? Prerequisites = null,
+    List<FaqInput>? Faqs = null
 );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import sessionService from '@/services/session.service';
-import AttendanceCard from '@/components/feedback/AttendanceCard';
+import GracePeriodCard from '@/components/feedback/GracePeriodCard';
 import { formatDateTime } from '@/utils/formatters';
 import Money from '@/components/ui/Money';
 import { useAuthStore } from '@/store/authStore';
@@ -12,12 +12,23 @@ import { DetailSkeleton } from '@/components/common/Skeleton';
 import Card, { CardHeader } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Callout from '@/components/ui/Callout';
-import Badge from '@/components/ui/Badge';
 import Icon from '@/components/ui/Icon';
 import Input, { Textarea, Field } from '@/components/ui/Input';
-import { getSessionStatusMeta } from '@/config/enums';
+import StateBadge from '@/components/ledger/StateBadge';
+import LedgerStrip from '@/components/ledger/LedgerStrip';
 import dayjs from 'dayjs';
 
+/**
+ * SessionDetail — `/student/sessions/:id` và `/tutor/sessions/:id` (cùng component,
+ * phân nhánh theo `isTutor`).
+ *
+ * Thứ tự khối (SPEC §5.5): identity → hạn chót báo cáo sự cố → cửa sổ bảo vệ 12 giờ →
+ * nhật ký buổi học → thanh action ở chân trang. Hành động không còn chen giữa
+ * header và khối đối soát — khối quan trọng nhất phải nằm ngay dưới hạn chót.
+ *
+ * Operational Ledger: số ở `LedgerStrip` phẳng, màu = trạng thái, tiền qua
+ * `<Money>` (tabular, không `font-mono`), chỉ timestamp mới dùng mono.
+ */
 export default function SessionDetail() {
   const toast = useToast();
   const confirm = useConfirm();
@@ -26,7 +37,6 @@ export default function SessionDetail() {
 
   const [session, setSession] = useState(null);
   const [learningRecord, setLearningRecord] = useState(null);
-  const [rescheduleRequests, setRescheduleRequests] = useState([]);
   const [recordInput, setRecordInput] = useState('');
   const [submittingRecord, setSubmittingRecord] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -37,7 +47,6 @@ export default function SessionDetail() {
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleStartTime, setRescheduleStartTime] = useState('');
   const [rescheduleEndTime, setRescheduleEndTime] = useState('');
-  const [rescheduleReason, setRescheduleReason] = useState('');
   const [submittingReschedule, setSubmittingReschedule] = useState(false);
 
   // Action loading state
@@ -47,15 +56,24 @@ export default function SessionDetail() {
   const backPath = isTutor ? '/tutor/dashboard' : '/student/dashboard';
   const backLabel = isTutor ? 'Quay lại bàn điều hành' : 'Quay lại bàn học';
 
-  // Load all session details, records, and reschedule requests
+  // Modal tự đóng bằng Escape, khớp hành vi `Dialog` dùng chung.
+  useEffect(() => {
+    if (!showRescheduleModal) return undefined;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setShowRescheduleModal(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showRescheduleModal]);
+
+  // Load all session details and records
   const loadSessionData = useCallback(async () => {
     if (!id) return;
     try {
       setLoading(true);
-      const [sessionData, recordData, reschedulesData] = await Promise.allSettled([
+      const [sessionData, recordData] = await Promise.allSettled([
         sessionService.getSessionById(id),
         sessionService.getLearningRecord(id),
-        sessionService.getRescheduleRequests(id),
       ]);
 
       if (sessionData.status === 'fulfilled') {
@@ -70,12 +88,6 @@ export default function SessionDetail() {
       } else {
         setLearningRecord(null);
       }
-
-      if (reschedulesData.status === 'fulfilled' && Array.isArray(reschedulesData.value)) {
-        setRescheduleRequests(reschedulesData.value);
-      } else {
-        setRescheduleRequests([]);
-      }
     } catch (err) {
       setError(err);
     } finally {
@@ -87,11 +99,10 @@ export default function SessionDetail() {
     loadSessionData();
   }, [loadSessionData]);
 
-  // Handle Attendance submission from AttendanceCard
-  const handleAttendanceSubmitted = async (outcome) => {
-    const updated = await sessionService.submitAttendance(id, outcome);
+  // Handle Issue Report from GracePeriodCard
+  const handleIssueReported = async (reason, description) => {
+    const updated = await sessionService.reportSessionIssue(id, reason, description);
     setSession(updated);
-    toast.success('Đã cập nhật trạng thái điểm danh buổi học.');
   };
 
   // Handle Learning Record creation (Tutor only)
@@ -114,11 +125,8 @@ export default function SessionDetail() {
     }
   };
 
-  // Find active Pending Reschedule Request
-  const pendingReschedule = rescheduleRequests.find((r) => r.status === 'Pending');
-
-  // Handle Propose Reschedule (Tutor)
-  const handleProposeReschedule = async (e) => {
+  // Handle Direct Reschedule (Tutor)
+  const handleDirectReschedule = async (e) => {
     e.preventDefault();
     if (!rescheduleDate || !rescheduleStartTime || !rescheduleEndTime) {
       toast.error('Vui lòng chọn đầy đủ ngày, giờ bắt đầu và giờ kết thúc.');
@@ -133,113 +141,28 @@ export default function SessionDetail() {
       return;
     }
 
-    if (startDateTime.isBefore(dayjs())) {
-      toast.error('Thời gian đề xuất phải ở tương lai.');
+    const minNotice = dayjs().add(2, 'hour');
+    if (startDateTime.isBefore(minNotice)) {
+      toast.error('Lịch mới phải được xếp trước giờ bắt đầu ít nhất 2 giờ.');
       return;
     }
 
     try {
       setSubmittingReschedule(true);
-      const proposedStartAt = startDateTime.toISOString();
-      const proposedEndAt = endDateTime.toISOString();
+      const proposedStartAt = startDateTime.toDate().toISOString();
+      const proposedEndAt = endDateTime.toDate().toISOString();
 
-      await sessionService.proposeReschedule(id, proposedStartAt, proposedEndAt, rescheduleReason.trim());
-      toast.success('Đã gửi đề xuất dời lịch thành công đến học viên.');
+      await sessionService.scheduleSession(id, proposedStartAt, proposedEndAt);
+      toast.success('Đã cập nhật lịch học mới thành công.');
       setShowRescheduleModal(false);
       setRescheduleDate('');
       setRescheduleStartTime('');
       setRescheduleEndTime('');
-      setRescheduleReason('');
       await loadSessionData();
     } catch (err) {
-      toast.error(err?.message || 'Không thể gửi yêu cầu dời lịch.');
+      toast.error(err?.response?.data?.message || err?.message || 'Không thể cập nhật lịch học.');
     } finally {
       setSubmittingReschedule(false);
-    }
-  };
-
-  // Handle Accept Reschedule (Student)
-  const handleAcceptReschedule = async (requestId) => {
-    const ok = await confirm({
-      title: 'Xác nhận đồng ý dời lịch học',
-      content: (
-        <div className="space-y-2 text-caption text-fg-secondary">
-          <p>
-            Bạn có chắc chắn muốn chấp thuận thời gian học mới do Gia sư đề xuất?
-          </p>
-          <div className="bg-neutral-50 p-3 rounded-brand-md border border-border space-y-1">
-            <div className="flex justify-between">
-              <span>Lịch mới:</span>
-              <strong className="text-fg">
-                {formatDateTime(pendingReschedule.proposedStartAt)} -{' '}
-                {formatDateTime(pendingReschedule.proposedEndAt, 'HH:mm')}
-              </strong>
-            </div>
-            {pendingReschedule.reason && (
-              <div className="flex justify-between">
-                <span>Ghi chú:</span>
-                <span className="text-fg-secondary italic">{pendingReschedule.reason}</span>
-              </div>
-            )}
-          </div>
-          <p className="text-[11px] text-fg-muted">
-            Lịch buổi học sẽ được cập nhật chính thức trên hệ thống ngay sau khi xác nhận.
-          </p>
-        </div>
-      ),
-      confirmText: 'Đồng ý dời lịch',
-      cancelText: 'Hủy',
-      danger: false,
-    });
-
-    if (!ok) return;
-
-    try {
-      setActionLoading(true);
-      const updatedSession = await sessionService.acceptReschedule(id, requestId);
-      setSession(updatedSession);
-      toast.success('Đã chấp thuận dời lịch học thành công.');
-      await loadSessionData();
-    } catch (err) {
-      toast.error(err?.message || 'Không thể chấp thuận dời lịch học.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Handle Reject Reschedule (Student)
-  const handleRejectReschedule = async (requestId) => {
-    let rejectionReason = '';
-    const ok = await confirm({
-      title: 'Từ chối đề xuất dời lịch học',
-      content: (
-        <p className="text-caption text-fg-secondary">
-          Vui lòng nhập lý do từ chối để gia sư có thể sắp xếp khung giờ khác phù hợp hơn:
-        </p>
-      ),
-      confirmText: 'Từ chối đề xuất',
-      cancelText: 'Hủy',
-      danger: true,
-      requireReason: true,
-      reasonLabel: 'Lý do từ chối',
-      reasonPlaceholder: 'Ví dụ: Khung giờ này tôi bận học tại trường...',
-      minReasonLength: 5,
-      onConfirmReason: (val) => {
-        rejectionReason = val;
-      },
-    });
-
-    if (!ok) return;
-
-    try {
-      setActionLoading(true);
-      await sessionService.rejectReschedule(id, requestId, rejectionReason);
-      toast.success('Đã từ chối đề xuất dời lịch.');
-      await loadSessionData();
-    } catch (err) {
-      toast.error(err?.message || 'Không thể từ chối đề xuất dời lịch.');
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -254,10 +177,10 @@ export default function SessionDetail() {
             Bạn có chắc chắn muốn hủy <strong>Buổi học #{session.sessionNumber}</strong>?
           </p>
           <div className="bg-holding-subtle text-holding-strong p-3 rounded-brand-md text-caption space-y-1">
-            <strong className="block font-semibold">Quy định hoàn tiền ký quỹ (INV-REFUND-004):</strong>
+            <strong className="block font-semibold">Quy định hoàn tiền học phí:</strong>
             <p className="text-xs m-0">
               Phần tiền học phí tương ứng (
-              <strong className="font-mono">{session.earningAmount?.toLocaleString('vi-VN')} ₫</strong>
+              <strong className="tabular-nums">{session.earningAmount?.toLocaleString('vi-VN')} ₫</strong>
               ) sẽ được trừ khỏi két ký quỹ của gia sư và hoàn trả đầy đủ cho học viên.
             </p>
           </div>
@@ -315,214 +238,167 @@ export default function SessionDetail() {
     );
   }
 
-  const sessionStatusMeta = getSessionStatusMeta(session.status);
   const isCancelled = session.status === 'Cancelled';
   const isCompleted = session.status === 'Completed';
   const isScheduled = session.status === 'Scheduled';
   const isFutureScheduled = isScheduled && session.startAt && dayjs(session.startAt).isAfter(dayjs());
   const canCancel = (isScheduled || session.status === 'Unscheduled') && !isCancelled && !isCompleted;
-  const canTutorPropose = isTutor && isFutureScheduled && !pendingReschedule;
+  const canTutorReschedule = isTutor && isFutureScheduled;
+
+  // Chênh lệch giữa hai mốc ISO nên độc lập múi giờ; chỉ dùng để hiện số phút.
+  const durationMinutes =
+    session.startAt && session.endAt
+      ? dayjs(session.endAt).diff(dayjs(session.startAt), 'minute')
+      : 0;
+
+  // Màu = trạng thái (SPEC §2.2): đã quyết toán → neutral, đã hoàn → muted,
+  // còn nằm trong két ký quỹ → holding.
+  const ledgerFigures = [
+    {
+      key: 'session-fee',
+      label: 'Học phí buổi này',
+      value: <Money value={session.earningAmount || 0} />,
+      tone: isCompleted ? 'default' : isCancelled ? 'muted' : 'holding',
+    },
+    {
+      key: 'session-duration',
+      label: 'Thời lượng buổi học',
+      value: durationMinutes > 0 ? `${durationMinutes} phút` : '—',
+      tone: 'default',
+    },
+  ];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Top Back Navigation */}
       <Link
         to={backPath}
-        className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
+        className="inline-flex items-center gap-1.5 rounded-brand-md text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 focus-visible:ring-offset-2 transition-colors"
       >
         <Icon name="arrow_back" size="sm" />
         {backLabel}
       </Link>
 
-      {/* Main Session Card Header */}
-      <Card padding="lg" className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-caption font-bold text-brand-primary-700 uppercase font-mono">
-                Buổi học #{session.sessionNumber || 1}
-              </span>
-              <Badge variant={sessionStatusMeta.color} size="sm">
-                {sessionStatusMeta.label}
-              </Badge>
-            </div>
-            <h1 className="text-headline-1 text-fg mt-0.5">
-              {session.subjectName || 'Nội dung buổi học'}
-            </h1>
-            <p className="text-caption text-fg-muted mt-1">
-              {session.tutorName ? `Gia sư: ${session.tutorName} • ` : ''}
-              Thời gian: {session.startAt ? formatDateTime(session.startAt) : 'Chưa xếp lịch'}
-              {session.endAt ? ` - ${formatDateTime(session.endAt, 'HH:mm')}` : ''}
-            </p>
-          </div>
-
-          <div className="text-left sm:text-right shrink-0">
-            <span className="text-[11px] text-fg-muted block">Học phí buổi học:</span>
-            <span className="text-headline-2 text-success-strong font-semibold font-mono">
-              <Money value={session.earningAmount || 0} />
-            </span>
-          </div>
+      {/* 1 · Identity — ai, môn gì, lúc nào, trạng thái */}
+      <Card padding="lg">
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          {/* "#N" là số thứ tự buổi học, không phải mã kỹ thuật → chữ thường, không mono. */}
+          <span className="text-caption font-bold text-fg-secondary">
+            Buổi học #{session.sessionNumber || 1}
+          </span>
+          <StateBadge status={session.status} domain="session" size="md" />
         </div>
 
-        {/* Cancellation Notice if Cancelled */}
-        {isCancelled && (
-          <Callout
-            variant="danger"
-            title="Buổi học đã bị hủy"
-            icon={<Icon name="cancel" size="md" />}
-          >
-            {session.cancellationReason ? (
-              <p className="m-0">
-                Lý do: <strong>{session.cancellationReason}</strong>
-              </p>
-            ) : (
-              <p className="m-0">Buổi học đã được hủy và tiền ký quỹ đã hoàn trả cho học viên.</p>
-            )}
-            {session.cancelledAt && (
-              <span className="text-[11px] block mt-1 opacity-80">
-                Thời gian hủy: {formatDateTime(session.cancelledAt)}
+        <h1 className="text-headline-1 text-fg m-0">
+          {session.subjectName || 'Nội dung buổi học'}
+        </h1>
+
+        <p className="text-body-reg text-fg-secondary mt-2 mb-0">
+          {session.tutorName ? `Gia sư: ${session.tutorName}` : 'Chưa phân công gia sư'}
+          {session.startAt && (
+            <>
+              <span aria-hidden="true"> · </span>
+              {/* Timestamp là phần tử mono duy nhất trên trang. */}
+              <span className="font-mono tabular-nums">
+                {formatDateTime(session.startAt)}
+                {session.endAt ? ` – ${formatDateTime(session.endAt, 'HH:mm')}` : ''}
               </span>
-            )}
-          </Callout>
-        )}
-
-        {/* Attendance Verification Due Warning */}
-        {session.attendanceVerificationDueAt && !isCancelled && !isCompleted && (
-          <Callout
-            variant="holding"
-            title="Cửa sổ đối soát điểm danh 24h"
-            icon={<Icon name="timer" size="md" />}
-          >
-            Hạn chót: <strong>{formatDateTime(session.attendanceVerificationDueAt)}</strong> — Đối soát 2 chiều
-          </Callout>
-        )}
-
-        {/* Action Controls for Reschedule and Cancellation */}
-        {!isCancelled && !isCompleted && (
-          <div className="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-border">
-            {canTutorPropose && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowRescheduleModal(true)}
-                icon={<Icon name="edit_calendar" size="xs" />}
-              >
-                Đề xuất dời lịch
-              </Button>
-            )}
-
-            {canCancel && (
-              <Button
-                variant="danger-outline"
-                size="sm"
-                loading={actionLoading}
-                onClick={handleCancelSession}
-                icon={<Icon name="cancel" size="xs" />}
-              >
-                Hủy buổi học này
-              </Button>
-            )}
-          </div>
-        )}
+            </>
+          )}
+          {!session.startAt && ' · Chưa xếp lịch'}
+        </p>
       </Card>
 
-      {/* Pending Reschedule Proposal Banner */}
-      {pendingReschedule && !isCancelled && (
-        <Card className="border-brand-primary-200 bg-brand-primary-50/40">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <span className="p-2 rounded-brand-md bg-brand-primary-100 text-brand-primary-700 mt-0.5">
-                <Icon name="event_repeat" size="md" />
+      {/* Cancellation Notice if Cancelled */}
+      {isCancelled && (
+        <Callout
+          variant="danger"
+          title="Buổi học đã bị hủy"
+          icon={<Icon name="cancel" size="md" />}
+        >
+          {session.cancellationReason ? (
+            <p className="m-0">
+              Lý do: <strong>{session.cancellationReason}</strong>
+            </p>
+          ) : (
+            <p className="m-0">Buổi học đã được hủy và tiền ký quỹ đã hoàn trả cho học viên.</p>
+          )}
+          {session.cancelledAt && (
+            <p className="m-0 mt-1">
+              Thời gian hủy:{' '}
+              <span className="font-mono tabular-nums">
+                {formatDateTime(session.cancelledAt)}
               </span>
-              <div>
-                <h3 className="text-body font-bold text-fg m-0">
-                  {!isTutor
-                    ? 'Gia sư đề xuất dời lịch buổi học này'
-                    : 'Đã gửi đề xuất dời lịch học (Đang chờ học viên)'}
-                </h3>
-                <div className="text-caption text-fg-secondary mt-1 space-y-0.5">
-                  <p className="m-0">
-                    Thời gian mới đề xuất:{' '}
-                    <strong className="text-brand-primary-800">
-                      {formatDateTime(pendingReschedule.proposedStartAt)} -{' '}
-                      {formatDateTime(pendingReschedule.proposedEndAt, 'HH:mm')}
-                    </strong>
-                  </p>
-                  {pendingReschedule.reason && (
-                    <p className="m-0 text-xs italic text-fg-muted">
-                      Lý do: {pendingReschedule.reason}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Student Action Buttons: Accept / Reject */}
-            {!isTutor && (
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  loading={actionLoading}
-                  onClick={() => handleRejectReschedule(pendingReschedule.id)}
-                  icon={<Icon name="close" size="xs" />}
-                >
-                  Từ chối
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  loading={actionLoading}
-                  onClick={() => handleAcceptReschedule(pendingReschedule.id)}
-                  icon={<Icon name="check" size="xs" />}
-                >
-                  Đồng ý dời lịch
-                </Button>
-              </div>
-            )}
-          </div>
-        </Card>
+            </p>
+          )}
+        </Callout>
       )}
 
-      {/* Attendance 2-way Verification Card */}
+      {/* 2 · Deadline banner — hạn chót phải thấy TRƯỚC khi học viên bắt đầu thao tác */}
+      {session.gracePeriodEndsAt && !isCancelled && !isCompleted && (
+        <Callout
+          variant="holding"
+          title="Cửa sổ bảo vệ 12 giờ"
+          icon={<Icon name="timer" size="md" />}
+        >
+          Hạn chót báo cáo sự cố:{' '}
+          <strong className="font-mono tabular-nums">
+            {formatDateTime(session.gracePeriodEndsAt)}
+          </strong>{' '}
+          — Nếu không có báo cáo, tiền sẽ tự động chuyển cho gia sư.
+        </Callout>
+      )}
+
+      {/* Hai số cứng của buổi học: tiền và thời lượng. Số là nhân vật chính. */}
+      <LedgerStrip figures={ledgerFigures} columns={2} />
+
+      {/* 3 · Cửa sổ bảo vệ 12 giờ — khối quan trọng nhất của màn */}
       {!isCancelled && (
-        <AttendanceCard
+        <GracePeriodCard
           session={session}
-          onAttendanceSubmitted={handleAttendanceSubmitted}
+          onIssueReported={handleIssueReported}
           isTutor={isTutor}
         />
       )}
 
-      {/* Learning Record / Notes */}
-      <Card>
+      {/* 4 · Learning Record / Notes */}
+      <Card padding="lg">
         <CardHeader
-          title="Nhật ký buổi học (Learning Record)"
+          title="Nhật ký buổi học"
+          subtitle="Nội dung do gia sư ghi lại sau buổi học."
           icon={<Icon name="menu_book" size="sm" />}
         />
         {learningRecord ? (
-          <div className="text-caption text-fg-secondary leading-relaxed bg-neutral-50 p-4 rounded-brand-md border border-border space-y-1">
-            <p className="m-0">{learningRecord.content}</p>
+          <div className="text-body-reg text-fg-secondary leading-relaxed bg-neutral-50 p-4 rounded-brand-md border border-border space-y-2">
+            <p className="m-0 whitespace-pre-line">{learningRecord.content}</p>
             {learningRecord.createdAt && (
-              <span className="text-[10px] text-fg-muted block pt-1">
-                Ghi nhận lúc: {formatDateTime(learningRecord.createdAt)}
-              </span>
+              <p className="m-0 text-caption text-fg-muted">
+                Ghi nhận lúc:{' '}
+                <span className="font-mono tabular-nums">
+                  {formatDateTime(learningRecord.createdAt)}
+                </span>
+              </p>
             )}
           </div>
         ) : (
-          <p className="text-caption text-fg-muted italic m-0">
+          <p className="m-0 text-body-reg text-fg-muted bg-neutral-50 border border-dashed border-border rounded-brand-md p-4">
             Chưa có nhật ký học tập nào được ghi nhận cho buổi học này.
           </p>
         )}
 
         {isTutor && !learningRecord && !isCancelled && (
-          <form onSubmit={handleCreateLearningRecord} className="space-y-3 pt-3 mt-3 border-t border-border">
+          <form
+            onSubmit={handleCreateLearningRecord}
+            className="space-y-3 pt-5 mt-5 border-t border-border"
+          >
             <Field
               label="Ghi nhận tiến độ và nội dung bài học (dành cho gia sư)"
               htmlFor="learning-record-input"
+              hint="Tối thiểu 10 ký tự. Học viên đọc nội dung này ngay sau buổi học."
             >
               <Textarea
                 id="learning-record-input"
-                rows={3}
+                rows={4}
                 value={recordInput}
                 onChange={(e) => setRecordInput(e.target.value)}
                 placeholder="Tóm tắt nội dung đã dạy, mức độ tiếp thu của học viên và bài tập về nhà..."
@@ -533,6 +409,7 @@ export default function SessionDetail() {
               variant="primary"
               size="md"
               loading={submittingRecord}
+              icon={<Icon name="check" size="xs" />}
             >
               Lưu nhật ký buổi học
             </Button>
@@ -540,41 +417,80 @@ export default function SessionDetail() {
         )}
       </Card>
 
-      {/* Modal: Propose Reschedule (Tutor Only) */}
+      {/* 5 · Footer action bar — luôn nằm sau nội dung, không chen giữa các khối.
+          `danger-outline` (B-1) cho hủy buổi: hành động phá hủy nhưng không phải
+          hành động chính, nên viền đỏ chứ không phải nút đỏ đặc. */}
+      {(canTutorReschedule || canCancel) && (
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 rounded-brand-lg border border-border bg-surface shadow-brand-sm px-5 py-4">
+          <p className="m-0 text-caption text-fg-muted">
+            Các hành động dưới đây chỉ áp dụng cho riêng buổi học này.
+          </p>
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-2">
+            {canTutorReschedule && (
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setShowRescheduleModal(true)}
+                icon={<Icon name="edit_calendar" size="xs" />}
+              >
+                Đổi lịch học
+              </Button>
+            )}
+
+            {canCancel && (
+              <Button
+                variant="danger-outline"
+                size="md"
+                loading={actionLoading}
+                onClick={handleCancelSession}
+                icon={<Icon name="cancel" size="xs" />}
+              >
+                Hủy buổi học này
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Direct Reschedule (Tutor Only) */}
       {showRescheduleModal && (
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="reschedule-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
         >
           <button
             type="button"
             aria-label="Đóng cửa sổ"
-            className="fixed inset-0 w-full h-full bg-black/60 backdrop-blur-xs cursor-default"
+            className="fixed inset-0 w-full h-full bg-brand-navy-950/50 backdrop-blur-sm cursor-default"
             onClick={() => setShowRescheduleModal(false)}
             tabIndex={-1}
           />
-          <div className="relative bg-surface rounded-brand-xl shadow-brand-xl border border-border w-full max-w-md flex flex-col z-10">
-            <div className="p-5 border-b border-border flex items-center justify-between bg-neutral-50/50">
-              <div className="flex items-center gap-2">
+          <div className="relative bg-surface rounded-brand-lg shadow-brand-xl border border-border w-full max-w-md flex flex-col z-10">
+            <div className="p-6 pb-4 border-b border-border flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
                 <Icon name="calendar_month" size="md" className="text-brand-primary-600" />
                 <h3 id="reschedule-modal-title" className="text-headline-3 text-fg font-bold m-0">
-                  Đề xuất dời lịch học
+                  Đổi lịch học
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowRescheduleModal(false)}
                 aria-label="Đóng"
-                className="text-fg-muted hover:text-fg p-1 rounded-brand-md transition-colors"
+                className="text-fg-muted hover:text-fg p-1 rounded-brand-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600"
               >
                 <Icon name="close" size="sm" />
               </button>
             </div>
 
-            <form onSubmit={handleProposeReschedule} className="p-5 space-y-4 text-caption">
-              <Field label="Ngày học mới đề xuất" htmlFor="reschedule-date" required>
+            <form onSubmit={handleDirectReschedule} className="p-6 pt-5 space-y-4 text-caption">
+              <div className="p-3 bg-holding-subtle rounded-brand-md border border-holding/30 text-xs text-holding-strong">
+                <strong>Quy định đổi lịch:</strong> Lịch học mới phải cách thời điểm hiện tại ít nhất 2 giờ. Lịch học sẽ được cập nhật trực tiếp trên hệ thống ngay sau khi lưu.
+              </div>
+
+              <Field label="Ngày học mới" htmlFor="reschedule-date" required>
                 <Input
                   id="reschedule-date"
                   type="date"
@@ -606,20 +522,6 @@ export default function SessionDetail() {
                 </Field>
               </div>
 
-              <Field label="Lý do dời lịch (gửi tới học viên)" htmlFor="reschedule-reason">
-                <Textarea
-                  id="reschedule-reason"
-                  rows={2}
-                  value={rescheduleReason}
-                  onChange={(e) => setRescheduleReason(e.target.value)}
-                  placeholder="Ví dụ: Bận đột xuất kỳ thi tại trường, xin phép dời lịch học..."
-                />
-              </Field>
-
-              <div className="p-3 bg-neutral-50 rounded-brand-md border border-border text-xs text-fg-muted">
-                <strong>Lưu ý hợp đồng:</strong> Lịch học chỉ thay đổi sau khi học viên bấm đồng ý trên hệ thống (INV-RESCHED-002).
-              </div>
-
               <div className="pt-2 flex items-center justify-end gap-2">
                 <Button
                   type="button"
@@ -634,9 +536,9 @@ export default function SessionDetail() {
                   variant="primary"
                   size="md"
                   loading={submittingReschedule}
-                  icon={<Icon name="send" size="xs" />}
+                  icon={<Icon name="check" size="xs" />}
                 >
-                  Gửi đề xuất
+                  Lưu lịch mới
                 </Button>
               </div>
             </form>

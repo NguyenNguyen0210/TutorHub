@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Disputes.Commands.AdminMoveDisputeUnderReview;
 using TutorHub.Application.Features.Disputes.Commands.AdminResolveDispute;
-using TutorHub.Application.Features.Disputes.Commands.FastTrackResolveDispute;
 using TutorHub.Application.Features.Disputes.Commands.AdminProcessRefundCallback;
 using TutorHub.Application.Features.Disputes.DTOs;
 using TutorHub.Application.Features.Disputes.Queries.AdminGetDisputeInvestigation;
@@ -91,28 +90,6 @@ public class AdminDisputesController : ControllerBase
     }
 
     /// <summary>
-    /// Admin: Fast-track template resolution for one-sided-silence disputes (pre-release escrow only).
-    /// </summary>
-    [HttpPost("{id:guid}/fast-track-resolve")]
-    [ProducesResponseType(typeof(ApiResponse<DisputeDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> FastTrackResolve(
-        [FromRoute] Guid id,
-        [FromBody] FastTrackResolveRequest request,
-        CancellationToken cancellationToken)
-    {
-        var command = new FastTrackResolveDisputeCommand(
-            DisputeId: id,
-            AdminNotes: request.AdminNotes
-        );
-
-        var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<DisputeDto>.SuccessResult(result, "Dispute has been fast-track resolved."));
-    }
-
-    /// <summary>
     /// Admin: Process external settlement callback for student refund.
     /// </summary>
     [HttpPost("refunds/{transactionId:guid}/callback")]
@@ -137,10 +114,6 @@ public class AdminDisputesController : ControllerBase
 public record AdminResolveDisputeRequest(
     DisputeResolutionDecision Decision,
     decimal? CustomRefundAmount,
-    string AdminNotes
-);
-
-public record FastTrackResolveRequest(
     string AdminNotes
 );
 

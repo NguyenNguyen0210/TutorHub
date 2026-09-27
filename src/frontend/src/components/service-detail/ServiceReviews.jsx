@@ -17,31 +17,31 @@ export default function ServiceReviews({ reviews, ratingAvg, totalReviews, satis
   });
 
   return (
-    <div id="reviews" className="bg-white rounded-2xl border border-neutral-200 p-6 sm:p-8 shadow-2xs">
+    <div id="reviews" className="bg-white rounded-2xl border border-neutral-200 p-6 sm:p-8 shadow-sm">
       <div className="flex items-center gap-2 mb-6">
-        <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+        <span className="w-2.5 h-2.5 rounded-full bg-brand-secondary-500" />
+        <h2 className="text-xl sm:text-2xl font-bold text-fg tracking-tight">
           Đánh giá & Nhận xét từ học viên
         </h2>
       </div>
 
       {/* Rating Overview Box */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-6 bg-slate-50/70 rounded-xl border border-neutral-100 mb-8 items-center">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-6 bg-neutral-50/70 rounded-xl border border-neutral-100 mb-8 items-center">
         {/* Left score */}
         <div className="md:col-span-4 flex flex-col items-center justify-center text-center border-b md:border-b-0 md:border-r border-neutral-200/80 pb-6 md:pb-0 md:pr-6">
-          <span className="text-5xl font-black text-slate-900 tracking-tight leading-none mb-2">
+          <span className="text-5xl font-black text-fg tracking-tight leading-none mb-2">
             {avg}
           </span>
-          <div className="flex items-center gap-1 text-amber-400 mb-1">
+          <div className="flex items-center gap-1 text-brand-secondary-400 mb-1">
             {[1, 2, 3, 4, 5].map((s) => (
-              <Icon key={s} name="star" size="sm" className="w-4 h-4 fill-amber-400" />
+              <Icon key={s} name="star" size="sm" className="w-4 h-4 fill-brand-secondary-400" />
             ))}
           </div>
-          <span className="text-xs text-slate-500 font-medium">
+          <span className="text-xs text-neutral-500 font-medium">
             Dựa trên {total} lượt đánh giá thực tế
           </span>
           {satisfactionRate != null && (
-            <span className="inline-block mt-2.5 px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+            <span className="inline-block mt-2.5 px-3 py-0.5 rounded-full text-xs font-bold bg-success-subtle text-success-strong">
               {satisfactionRate}% học viên hài lòng
             </span>
           )}
@@ -55,16 +55,16 @@ export default function ServiceReviews({ reviews, ratingAvg, totalReviews, satis
 
             return (
               <div key={star} className="flex items-center gap-3 text-xs">
-                <span className="w-10 text-slate-600 font-semibold flex items-center gap-1">
-                  {star} <Icon name="star" size="xs" className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                <span className="w-10 text-fg-secondary font-semibold flex items-center gap-1">
+                  {star} <Icon name="star" size="xs" className="w-3.5 h-3.5 text-brand-secondary-400 fill-brand-secondary-400" />
                 </span>
                 <div className="flex-1 h-2 rounded-full bg-neutral-200/70 overflow-hidden">
                   <div
-                    className="h-full bg-amber-400 rounded-full transition-all duration-300"
+                    className="h-full bg-brand-secondary-400 rounded-full transition-all duration-300"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <span className="w-8 text-right text-slate-400 font-medium">
+                <span className="w-8 text-right text-fg-muted font-medium">
                   {Math.round(pct)}%
                 </span>
               </div>
@@ -87,8 +87,8 @@ export default function ServiceReviews({ reviews, ratingAvg, totalReviews, satis
             onClick={() => setFilterRating(tab.key)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               filterRating === tab.key
-                ? 'bg-blue-600 text-white shadow-2xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-brand-primary-600 text-white shadow-sm'
+                : 'bg-neutral-100 text-fg-secondary hover:bg-neutral-200'
             }`}
           >
             {tab.label}
@@ -98,9 +98,9 @@ export default function ServiceReviews({ reviews, ratingAvg, totalReviews, satis
 
       {/* Review Items List */}
       {filteredList.length === 0 ? (
-        <div className="text-center py-10 bg-slate-50/50 rounded-xl border border-dashed border-neutral-200">
-          <Icon name="rate_review" size="lg" className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-          <p className="text-sm text-slate-500 font-medium">
+        <div className="text-center py-10 bg-neutral-50/50 rounded-xl border border-dashed border-neutral-200">
+          <Icon name="rate_review" size="lg" className="w-10 h-10 text-neutral-300 mx-auto mb-2" />
+          <p className="text-sm text-neutral-500 font-medium">
             Chưa có đánh giá nào cho bộ lọc này.
           </p>
         </div>
@@ -113,46 +113,46 @@ export default function ServiceReviews({ reviews, ratingAvg, totalReviews, satis
                   <Avatar src={item.studentAvatarUrl} name={item.studentName} size="md" />
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-slate-900">
+                      <span className="text-sm font-bold text-fg">
                         {item.studentName}
                       </span>
-                      <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700">
-                        <Icon name="verified" size="xs" className="w-3 h-3 text-blue-600" />
+                      <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[10px] font-bold bg-brand-primary-50 text-brand-primary-700">
+                        <Icon name="verified" size="xs" className="w-3 h-3 text-brand-primary-600" />
                         Đã học
                       </span>
                     </div>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-fg-muted">
                       {formatDateTime(item.createdAt, 'DD/MM/YYYY')}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-0.5 text-amber-400">
+                <div className="flex items-center gap-0.5 text-brand-secondary-400">
                   {[...Array(item.rating || 5)].map((_, i) => (
-                    <Icon key={i} name="star" size="xs" className="w-4 h-4 fill-amber-400" />
+                    <Icon key={i} name="star" size="xs" className="w-4 h-4 fill-brand-secondary-400" />
                   ))}
                 </div>
               </div>
 
               {item.comment && (
-                <p className="text-sm text-slate-700 leading-relaxed pl-13">
+                <p className="text-sm text-neutral-700 leading-relaxed pl-[52px]">
                   {item.comment}
                 </p>
               )}
 
               {/* Tutor Official Reply */}
               {item.tutorReply && (
-                <div className="ml-13 p-3.5 bg-blue-50/50 rounded-xl border border-blue-100/80 flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-blue-800">
-                    <Icon name="reply" size="xs" className="w-3.5 h-3.5 text-blue-600" />
+                <div className="ml-[52px] p-3.5 bg-brand-primary-50/50 rounded-xl border border-brand-primary-100/80 flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-brand-primary-800">
+                    <Icon name="reply" size="xs" className="w-3.5 h-3.5 text-brand-primary-600" />
                     <span>Phản hồi từ gia sư</span>
                     {item.tutorRepliedAt && (
-                      <span className="text-[11px] font-normal text-slate-400 ml-1">
+                      <span className="text-[11px] font-normal text-fg-muted ml-1">
                         • {formatDateTime(item.tutorRepliedAt, 'DD/MM/YYYY')}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-700 leading-relaxed">
+                  <p className="text-xs text-neutral-700 leading-relaxed">
                     {item.tutorReply}
                   </p>
                 </div>

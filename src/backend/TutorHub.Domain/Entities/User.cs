@@ -21,11 +21,6 @@ public class User
     public AccountStatus Status { get; set; } = AccountStatus.Active;
     public DateTime CreatedAt { get; set; }
 
-    // No-show discipline (Q1b): rolling 30-day window of recorded absences.
-    public int AbsentStrikes { get; set; }
-    public DateTime? StrikeWindowStart { get; set; }
-    public DateTime? LastAbsentAt { get; set; }
-
     // Brute-force lockout (P0-D3). Counted per ACCOUNT rather than per IP so a
     // distributed credential-stuffing attempt cannot sidestep the IP rate limiter.
     public int AccessFailedCount { get; set; }
@@ -35,6 +30,12 @@ public class User
     public TutorProfile? TutorProfile { get; set; }
     public StudentProfile? StudentProfile { get; set; }
     public ICollection<TutorApplication> TutorApplications { get; set; } = new List<TutorApplication>();
+
+    /// <summary>
+    /// Third-party identities (Google, Facebook) linked to this account. Empty for
+    /// accounts that only ever signed in with a password.
+    /// </summary>
+    public ICollection<ExternalLogin> ExternalLogins { get; set; } = new List<ExternalLogin>();
 
     // Media
     public ICollection<Media> MediaUploaded { get; set; } = new List<Media>();
@@ -86,44 +87,6 @@ public class User
             throw new InvalidOperationException(
                 $"Cannot unban account with status '{Status}'. Only Banned accounts can be unbanned.");
         Status = AccountStatus.Active;
-    }
-
-    /// <summary>
-    /// Records a no-show absence (Q1b). Strikes accumulate in a rolling 30-day
-    /// window; a strike older than the window resets the counter.
-    /// </summary>
-    public void RecordAbsentStrike(DateTime now)
-    {
-        if (!StrikeWindowStart.HasValue || (now - StrikeWindowStart.Value).TotalDays > 30)
-        {
-            AbsentStrikes = 1;
-            StrikeWindowStart = now;
-        }
-        else
-        {
-            AbsentStrikes++;
-        }
-
-        LastAbsentAt = now;
-    }
-
-    /// <summary>
-    /// Booking freeze (Q1b): 2+ strikes in the active window and the latest
-    /// strike less than 7 days ago blocks new bookings.
-    /// </summary>
-    public bool IsBookingBlocked(DateTime now)
-    {
-        if (AbsentStrikes < 2)
-        {
-            return false;
-        }
-
-        if (!StrikeWindowStart.HasValue || (now - StrikeWindowStart.Value).TotalDays > 30)
-        {
-            return false;
-        }
-
-        return LastAbsentAt.HasValue && (now - LastAbsentAt.Value).TotalDays < 7;
     }
 
     /// <summary>

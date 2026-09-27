@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 > **TutorHub** là nền tảng marketplace kết nối Gia Sư (Tutor) và Học Viên (Student) trực tuyến theo mô hình **Service / Package-based Learning**.  
-> Hệ thống hỗ trợ đặt mua gói dịch vụ (15 phút checkout hold), phân rã hợp đồng học tập (**Enrollment**) thành các buổi học (**Sessions**), đối soát điểm danh 2 chiều (**Attendance Verification Window**), giải ngân từng buổi vào ví bảo chứng (**Escrow Wallet**), thanh toán thực tế **VNPay 2.1.0**, Realtime **SignalR**, **Transactional Outbox** (26 sự kiện + MessageSent), công cụ giải quyết tranh chấp 2 giai đoạn (**Dispute Engine**), và sổ cái kiểm toán bất biến (**Central Audit Log**).
+> Hệ thống hỗ trợ đặt mua gói dịch vụ (15 phút checkout hold), phân rã hợp đồng học tập (**Enrollment**) thành các buổi học (**Sessions**), cơ chế giải ngân tự động 12 giờ (**Auto-Payout Grace Period**), giải ngân từng buổi vào ví bảo chứng (**Escrow Wallet**), thanh toán thực tế **VNPay 2.1.0**, Realtime **SignalR**, **Transactional Outbox** (26 sự kiện + MessageSent), công cụ giải quyết tranh chấp 2 giai đoạn (**Dispute Engine**), và sổ cái kiểm toán bất biến (**Central Audit Log**).
 >
 > **Auth policy (F-08, owner-accepted):** Suspended/Banned được chặn ở login/refresh; access token đang bay được tôn trọng tới hết hạn (tối đa 15 phút).
 
@@ -90,11 +90,11 @@ Booking Checkout (Tạm giữ thanh toán 15 phút - Holding)
 Enrollment (Hợp đồng học tập trung tâm - Snapshot PlatformFeeRate & FeePolicyVersion)
        ↓ (EnrollmentSessionAllocator tự động sinh N Sessions)
 Sessions (Unscheduled → Scheduled trong AvailabilitySlots của Tutor)
-       ↓ (Học xong: Mở Attendance Window 24h)
-Attendance Verification (Student & Tutor xác nhận 2 chiều — Row lock FOR UPDATE chống race condition)
-       ↓ (AttendanceVerificationJob: Phase 0 tự động recovery payout mồ côi; Phase 1 gắn cờ Conflict sau 24h)
+       ↓ (Học xong: Kích hoạt Grace Period 12 giờ — Session chuyển sang AwaitingPayout)
+Auto-Payout Grace Period (12 giờ phản hồi — Nếu không có báo cáo sự cố ReportSessionIssue → Tự động giải ngân)
+       ↓ (AutoPayoutJob: Quét các buổi AwaitingPayout hết hạn 12h và giải ngân tự động)
 Wallet Payout Release (Giải ngân SessionPayoutCredit cho từng buổi hoàn thành)
-       ↓ (Nếu có khiếu nại)
+       ↓ (Nếu có khiếu nại / ReportSessionIssue)
 Dispute Engine (Pre-release Escrow hold hoặc Post-release Balance hold)
        ↓ (Admin phân xử bằng công thức cân đối phí sàn bất biến)
 Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + AuditLog)
@@ -103,7 +103,7 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
 ### 2. Codebase Structure
 * `src/backend/TutorHub.Domain/`: **Domain Cốt Lõi Độc Lập**. Entities (`User`, `TutorProfile`, `StudentProfile`, `Service`, `Booking`, `Enrollment`, `Session`, `Wallet`, `StudentWallet`, `StudentWalletTransaction`, `StudentWithdrawal`, `TopUpRequest`, `Transaction`, `Dispute`, `PlatformSetting`, `AuditLog`), Enums, Allocators (`EnrollmentSessionAllocator`), và Domain Invariants. Tuyệt đối không phụ thuộc vào hạ tầng hay UI.
 * `src/backend/TutorHub.Application/`: **Nghiệp Vụ Ứng Dụng (Vertical Slice / CQRS)**. Chia theo feature (`Features/{Module}/{FeatureName}/`). Chứa `Command/Query`, `Validator`, `Handler`, `DTOs`, Business Events, và Abstractions (`IAppDbContext`, `IAuditLogService`, `IStudentWalletService`, `IPaymentGateway`, `IObjectStorageService`, `IJwtService`).
-* `src/backend/TutorHub.Infrastructure/`: **Hạ Tầng Kỹ Thuật**. `AppDbContext` (interceptor bảo vệ sổ cái bất biến), 6 Background Jobs (`BookingTimeoutBackgroundService`, `OutboxDispatcherJob`, `EmailDeliveryJob`, `SessionReminderJob`, `AttendanceReminderJob`, `AttendanceVerificationJob`), VNPay SHA512, Cloudflare R2, và SignalR hubs (`/hubs/chat`, `/hubs/notifications`).
+* `src/backend/TutorHub.Infrastructure/`: **Hạ Tầng Kỹ Thuật**. `AppDbContext` (interceptor bảo vệ sổ cái bất biến), 6 Background Jobs (`BookingTimeoutBackgroundService`, `OutboxDispatcherJob`, `EmailDeliveryJob`, `SessionReminderJob`, `GracePeriodReminderJob`, `AutoPayoutJob`), VNPay SHA512, Cloudflare R2, và SignalR hubs (`/hubs/chat`, `/hubs/notifications`).
 * `src/backend/TutorHub.Api/`: **Giao Tiếp Ngoại Vi (Thin Controllers)**. Controller chỉ dispatch MediatR, Middlewares (`CorrelationIdMiddleware`, `GlobalExceptionHandler`).
 * `src/frontend/`: **Giao Diện Người Dùng (React 18 + Vite + Tailwind)**:
   - `src/styles/tokens.css`: **Nguồn sự thật duy nhất** về Design Tokens (Brand Style Guide v2).
@@ -122,9 +122,9 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
 * **Design Identity:** Minimal SaaS sáng — Primary Blue (`#2563EB`), Secondary Orange (`#F59E0B`), neutral slate canvas (`#F8FAFC`), dark navy sidebar/chrome (`#0F172A`).
 * **Không Hardcode Hex:** Mọi màu sắc phải dùng qua Tailwind tokens trỏ tới `src/frontend/src/styles/tokens.css` (e.g. `bg-brand-primary-600`, `text-neutral-900`).
 * **Semantic Status Invariants:**
-  - `--semantic-success` (`#10B981`): `AvailableBalance`, `SessionPayoutCredit`, `Paid`, `Attended`.
-  - `--semantic-holding` (`#D97706`): `HoldingExpiresAt` (15m checkout), `PendingBalance`, `Proposed`. *Cố ý tách biệt với Secondary Orange (`#F59E0B`)*.
-  - `--semantic-danger` (`#EF4444`): `HeldBalance`, `AttendanceConflict`, `DisputeActive`, `Banned`.
+  - `--semantic-success` (`#10B981`): `AvailableBalance`, `SessionPayoutCredit`, `Paid`, `Completed`.
+  - `--semantic-holding` (`#D97706`): `HoldingExpiresAt` (15m checkout), `PendingBalance`, `Proposed`, `AwaitingPayout` (12h Grace Period). *Cố ý tách biệt với Secondary Orange (`#F59E0B`)*.
+  - `--semantic-danger` (`#EF4444`): `HeldBalance`, `DisputeActive`, `Banned`.
   - `--semantic-info` (`#3B82F6`): `EnrollmentActive`, `Scheduled`, `UnderReview`.
 * **Currency Formatting:** Định dạng số tiền VND phân cách dấu chấm (e.g. `2.500.000 ₫`). Monospace font cho số liệu tài chính.
 * **Pure JavaScript:** Frontend sử dụng JavaScript chuẩn (`.jsx`), không dùng TypeScript.

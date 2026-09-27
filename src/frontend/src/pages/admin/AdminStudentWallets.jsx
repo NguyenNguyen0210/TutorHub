@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import studentWalletService from '@/services/studentWallet.service';
 import { formatCurrency, formatDateTime } from '@/utils/formatters';
-import Money from '@/components/ui/Money';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/Dialog';
 import Card, { CardHeader } from '@/components/ui/Card';
@@ -12,7 +11,32 @@ import Input, { Field } from '@/components/ui/Input';
 import Tabs from '@/components/ui/Tabs';
 import { TableSkeleton } from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
+import LedgerTable from '@/components/ledger/LedgerTable';
+import SignedAmount from '@/components/ledger/SignedAmount';
+import StateBadge from '@/components/ledger/StateBadge';
 import { PageHeader } from '@/components/ui/StatCard';
+
+const TOPUP_COLUMNS = [
+  { key: 'student', label: 'Học viên' },
+  { key: 'ref', label: 'Mã chuyển khoản' },
+  { key: 'amount', label: 'Số tiền nạp', align: 'right' },
+  { key: 'time', label: 'Thời gian' },
+  { key: 'status', label: 'Trạng thái' },
+  { key: 'actions', label: 'Thao tác', align: 'right' },
+];
+
+const WITHDRAWAL_COLUMNS = [
+  { key: 'student', label: 'Học viên' },
+  { key: 'bank', label: 'Tài khoản nhận tiền' },
+  { key: 'amount', label: 'Số tiền rút', align: 'right' },
+  { key: 'time', label: 'Thời gian' },
+  { key: 'status', label: 'Trạng thái' },
+  { key: 'actions', label: 'Thao tác', align: 'right' },
+];
+
+const CELL = 'px-4 py-3';
+const CELL_RIGHT = 'px-4 py-3 text-right';
+const CELL_MUTED = 'px-4 py-3 font-mono text-fg-secondary whitespace-nowrap';
 
 export default function AdminStudentWallets() {
   const toast = useToast();
@@ -250,11 +274,11 @@ export default function AdminStudentWallets() {
       <div className="space-y-4">
         <Tabs
           tabs={[
-            { id: 'topups', label: 'Đối soát nạp tiền VNPay' },
-            { id: 'withdrawals', label: 'Xử lý rút tiền (Withdrawals)' },
-            { id: 'adjust', label: 'Điều chỉnh số dư đặc biệt' },
+            { key: 'topups', label: 'Đối soát nạp tiền VNPay' },
+            { key: 'withdrawals', label: 'Xử lý rút tiền (Withdrawals)' },
+            { key: 'adjust', label: 'Điều chỉnh số dư đặc biệt' },
           ]}
-          activeTab={activeTab}
+          value={activeTab}
           onChange={setActiveTab}
         />
 
@@ -262,14 +286,13 @@ export default function AdminStudentWallets() {
         {activeTab === 'topups' && (
           <Card padding="lg" className="space-y-4 border border-border shadow-brand-sm">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-border">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <CardHeader
-                  title="Danh sách giao dịch nạp tiền VNPay"
+                  className="mb-0 min-w-0"
+                  title="Danh sách nạp tiền VNPay"
+                  subtitle={`${filteredTopUps.length} yêu cầu`}
                   icon={<Icon name="add_card" size="sm" className="text-brand-primary-600" />}
                 />
-                <span className="text-caption text-fg-muted font-mono">
-                  ({filteredTopUps.length} yêu cầu)
-                </span>
               </div>
 
               {/* Status Filters & Search */}
@@ -304,78 +327,59 @@ export default function AdminStudentWallets() {
                 description="Khi học viên tạo yêu cầu nạp tiền chuyển khoản, thông tin sẽ xuất hiện ở đây."
               />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[750px] text-caption text-left">
-                  <thead>
-                    <tr className="bg-neutral-50 border-b border-border">
-                      <th className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">Học viên</th>
-                      <th className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">Mã chuyển khoản</th>
-                      <th className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide text-right">Số tiền nạp</th>
-                      <th className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">Thời gian</th>
-                      <th className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">Trạng thái</th>
-                      <th className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide text-right">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {filteredTopUps.map((row) => {
-                      const isPending = row.status === 'Pending';
-                      const isConfirmed = row.status === 'Confirmed';
-                      const isRejected = row.status === 'Rejected';
-                      return (
-                        <tr key={row.id} className="hover:bg-neutral-50/80 transition-colors">
-                          <td className="px-4 py-3">
-                            <span className="font-bold text-fg block">{row.studentName || 'Học viên'}</span>
-                            <span className="text-[11px] text-fg-muted font-mono block">{row.studentEmail}</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="font-mono font-bold text-brand-primary-700 bg-brand-primary-50 px-2 py-0.5 rounded border border-brand-primary-200">
-                              {row.transferReference}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-right font-bold font-mono text-success-strong tabular-nums whitespace-nowrap">
-                            +{formatCurrency(row.amount)}
-                          </td>
-                          <td className="px-4 py-3 font-mono text-fg-secondary whitespace-nowrap">
-                            {formatDateTime(row.requestedAt)}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <Badge
-                              variant={isConfirmed ? 'success' : isRejected ? 'danger' : 'warning'}
+              <LedgerTable
+                caption="Danh sách yêu cầu nạp tiền qua cổng VNPay của học viên"
+                columns={TOPUP_COLUMNS}
+                minWidth={750}
+              >
+                {filteredTopUps.map((row) => {
+                  const isPending = row.status === 'Pending';
+                  return (
+                    <tr key={row.id} className="hover:bg-neutral-50/80 transition-colors">
+                      <td className={CELL}>
+                        <span className="font-bold text-fg block">{row.studentName || 'Học viên'}</span>
+                        <span className="text-[11px] text-fg-muted font-mono block">{row.studentEmail}</span>
+                      </td>
+                      <td className={CELL}>
+                        <span className="font-mono font-bold text-brand-primary-700 bg-brand-primary-50 px-2 py-0.5 rounded border border-brand-primary-200">
+                          {row.transferReference}
+                        </span>
+                      </td>
+                      <td className={CELL_RIGHT}>
+                        <SignedAmount amount={row.amount} direction="Credit" />
+                      </td>
+                      <td className={CELL_MUTED}>{formatDateTime(row.requestedAt)}</td>
+                      <td className={`${CELL} whitespace-nowrap`}>
+                        <StateBadge status={row.status} domain="topup" />
+                      </td>
+                      <td className={`${CELL_RIGHT} whitespace-nowrap`}>
+                        {isPending ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="success"
                               size="sm"
+                              onClick={() => setConfirmModalData(row)}
                             >
-                              {isConfirmed ? 'Đã cộng tiền' : isRejected ? 'Đã từ chối' : 'Chờ xác nhận'}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3 text-right whitespace-nowrap">
-                            {isPending ? (
-                              <div className="flex items-center justify-end gap-2">
-                                <Button
-                                  variant="success"
-                                  size="sm"
-                                  onClick={() => setConfirmModalData(row)}
-                                >
-                                  Xác nhận nạp
-                                </Button>
-                                <Button
-                                  variant="danger"
-                                  size="sm"
-                                  onClick={() => setRejectModalData(row)}
-                                >
-                                  Từ chối
-                                </Button>
-                              </div>
-                            ) : (
-                              <span className="text-[11px] text-fg-muted italic">
-                                {row.rejectionReason || row.adminNote || 'Đã hoàn tất'}
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                              Xác nhận nạp
+                            </Button>
+                            <Button
+                              variant="danger-outline"
+                              size="sm"
+                              onClick={() => setRejectModalData(row)}
+                            >
+                              Từ chối
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-fg-muted italic">
+                            {row.rejectionReason || row.adminNote || 'Đã hoàn tất'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </LedgerTable>
             )}
           </Card>
         )}
@@ -384,14 +388,13 @@ export default function AdminStudentWallets() {
         {activeTab === 'withdrawals' && (
           <Card padding="lg" className="space-y-4 border border-border shadow-brand-sm">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-border">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <CardHeader
-                  title="Danh sách yêu cầu rút tiền học viên"
+                  className="mb-0 min-w-0"
+                  title="Yêu cầu rút tiền học viên"
+                  subtitle={`${withdrawals.length} lệnh`}
                   icon={<Icon name="payments" size="sm" className="text-brand-primary-600" />}
                 />
-                <span className="text-caption text-fg-muted font-mono">
-                  ({withdrawals.length} lệnh)
-                </span>
               </div>
 
               <select
@@ -416,90 +419,81 @@ export default function AdminStudentWallets() {
                 description="Khi học viên tạo lệnh rút tiền, thông tin sẽ xuất hiện ở đây để kế toán xử lý."
               />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[800px] text-caption text-left">
-                  <thead>
-                    <tr className="bg-neutral-50 border-b border-border">
-                      <th className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">Học viên</th>
-                      <th className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">Tài khoản nhận tiền</th>
-                      <th className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide text-right">Số tiền rút</th>
-                      <th className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">Thời gian</th>
-                      <th className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">Trạng thái</th>
-                      <th className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide text-right">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {withdrawals.map((w) => {
-                      const isPending = w.status === 'Pending';
-                      const isProcessing = w.status === 'Processing';
-                      const isCompleted = w.status === 'Completed';
-                      const isFailed = w.status === 'Failed';
-                      return (
-                        <tr key={w.id} className="hover:bg-neutral-50/80 transition-colors">
-                          <td className="px-4 py-3">
-                            <span className="font-bold text-fg block">{w.studentName || 'Học viên'}</span>
-                            <span className="text-[11px] text-fg-muted font-mono block">{w.studentEmail}</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="font-semibold text-fg block">{w.bankName}</span>
-                            <span className="text-[11px] font-mono text-fg-muted block">
-                              STK: {w.accountNumber} ({w.accountHolderName})
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-right font-bold font-mono text-danger-strong tabular-nums whitespace-nowrap">
-                            -{formatCurrency(w.amount)}
-                          </td>
-                          <td className="px-4 py-3 font-mono text-fg-secondary whitespace-nowrap">
-                            {formatDateTime(w.requestedAt)}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <Badge
-                              variant={isCompleted ? 'success' : isFailed ? 'danger' : isProcessing ? 'holding' : 'warning'}
+              <LedgerTable
+                caption="Danh sách yêu cầu rút tiền của học viên về tài khoản ngân hàng"
+                columns={WITHDRAWAL_COLUMNS}
+                minWidth={800}
+              >
+                {withdrawals.map((w) => {
+                  const isPending = w.status === 'Pending';
+                  const isProcessing = w.status === 'Processing';
+                  const isCompleted = w.status === 'Completed';
+                  const isFailed = w.status === 'Failed';
+                  return (
+                    <tr key={w.id} className="hover:bg-neutral-50/80 transition-colors">
+                      <td className={CELL}>
+                        <span className="font-bold text-fg block">{w.studentName || 'Học viên'}</span>
+                        <span className="text-[11px] text-fg-muted font-mono block">{w.studentEmail}</span>
+                      </td>
+                      <td className={CELL}>
+                        <span className="font-semibold text-fg block">{w.bankName}</span>
+                        <span className="text-[11px] font-mono text-fg-muted block">
+                          STK: {w.accountNumber} ({w.accountHolderName})
+                        </span>
+                      </td>
+                      <td className={CELL_RIGHT}>
+                        <SignedAmount amount={w.amount} direction="Debit" />
+                      </td>
+                      <td className={CELL_MUTED}>{formatDateTime(w.requestedAt)}</td>
+                      <td className={`${CELL} whitespace-nowrap`}>
+                        {/* Nhãn rút tiền khác nhãn trong `StateBadge` domain
+                            `withdrawal` ("Chờ xử lý" ≠ "Chờ duyệt") nên giữ
+                            chuỗi tại chỗ; màu vẫn theo token ngữ nghĩa. */}
+                        <Badge
+                          variant={isCompleted ? 'success' : isFailed ? 'danger' : 'holding'}
+                          size="sm"
+                        >
+                          {isCompleted ? 'Đã hoàn tất' : isFailed ? 'Thất bại (hoàn lại)' : isProcessing ? 'Đang chuyển' : 'Chờ xử lý'}
+                        </Badge>
+                      </td>
+                      <td className={`${CELL_RIGHT} whitespace-nowrap`}>
+                        {isPending && (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => handleProcessWithdrawal(w.id)}
+                          >
+                            Bắt đầu xử lý
+                          </Button>
+                        )}
+                        {isProcessing && (
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="success"
                               size="sm"
+                              onClick={() => handleCompleteWithdrawal(w.id)}
                             >
-                              {isCompleted ? 'Đã hoàn tất' : isFailed ? 'Thất bại (hoàn lại)' : isProcessing ? 'Đang chuyển' : 'Chờ xử lý'}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3 text-right whitespace-nowrap">
-                            {isPending && (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => handleProcessWithdrawal(w.id)}
-                              >
-                                Bắt đầu xử lý
-                              </Button>
-                            )}
-                            {isProcessing && (
-                              <div className="flex items-center justify-end gap-2">
-                                <Button
-                                  variant="success"
-                                  size="sm"
-                                  onClick={() => handleCompleteWithdrawal(w.id)}
-                                >
-                                  Hoàn tất
-                                </Button>
-                                <Button
-                                  variant="danger"
-                                  size="sm"
-                                  onClick={() => setFailModalData(w)}
-                                >
-                                  Báo lỗi / Hủy
-                                </Button>
-                              </div>
-                            )}
-                            {(isCompleted || isFailed) && (
-                              <span className="text-[11px] text-fg-muted italic">
-                                {w.failureReason || 'Đã kết thúc'}
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                              Hoàn tất
+                            </Button>
+                            <Button
+                              variant="danger-outline"
+                              size="sm"
+                              onClick={() => setFailModalData(w)}
+                            >
+                              Báo lỗi / Hủy
+                            </Button>
+                          </div>
+                        )}
+                        {(isCompleted || isFailed) && (
+                          <span className="text-[11px] text-fg-muted italic">
+                            {w.failureReason || 'Đã kết thúc'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </LedgerTable>
             )}
           </Card>
         )}
@@ -508,7 +502,7 @@ export default function AdminStudentWallets() {
         {activeTab === 'adjust' && (
           <Card padding="lg" className="max-w-xl mx-auto space-y-4 border border-border shadow-brand-sm">
             <CardHeader
-              title="Điều chỉnh số dư sổ cái học viên (Manual Ledger Adjustment)"
+              title="Điều chỉnh số dư học viên"
               icon={<Icon name="tune" size="sm" className="text-brand-primary-600" />}
             />
             <p className="text-caption text-fg-muted">
@@ -516,9 +510,10 @@ export default function AdminStudentWallets() {
             </p>
 
             <form onSubmit={handleAdjustWallet} className="space-y-4 pt-2">
-              <Field label="Mã Ví Học Viên (StudentWalletId - GUID)">
+              <Field label="Mã định danh ví học viên" htmlFor="adjust-wallet-id">
                 <Input
-                  placeholder="Ví dụ: 3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  id="adjust-wallet-id"
+                  placeholder="Nhập mã ví học viên (UUID)..."
                   value={adjustWalletId}
                   onChange={(e) => setAdjustWalletId(e.target.value)}
                   required
@@ -526,8 +521,9 @@ export default function AdminStudentWallets() {
               </Field>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Loại điều chỉnh">
+                <Field label="Loại điều chỉnh" htmlFor="adjust-direction">
                   <select
+                    id="adjust-direction"
                     value={adjustDirection}
                     onChange={(e) => setAdjustDirection(e.target.value)}
                     className="w-full h-10 rounded-brand-md border border-border bg-surface px-3 text-caption text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600"
@@ -537,8 +533,9 @@ export default function AdminStudentWallets() {
                   </select>
                 </Field>
 
-                <Field label="Số tiền điều chỉnh (VND)">
+                <Field label="Số tiền điều chỉnh (VND)" htmlFor="adjust-amount">
                   <Input
+                    id="adjust-amount"
                     type="number"
                     placeholder="Ví dụ: 100000"
                     value={adjustAmount}
@@ -550,8 +547,9 @@ export default function AdminStudentWallets() {
                 </Field>
               </div>
 
-              <Field label="Lý do điều chỉnh (Bắt buộc)">
+              <Field label="Lý do điều chỉnh (Bắt buộc)" htmlFor="adjust-reason">
                 <Input
+                  id="adjust-reason"
                   placeholder="Ví dụ: Đền bù gián đoạn hệ thống theo quyết định #123"
                   value={adjustReason}
                   onChange={(e) => setAdjustReason(e.target.value)}
@@ -574,8 +572,8 @@ export default function AdminStudentWallets() {
 
       {/* CONFIRM TOP-UP MODAL */}
       {confirmModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
-          <div className="w-full max-w-md bg-surface rounded-brand-lg border border-border shadow-brand-xl p-5 space-y-4 animate-scale-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-navy-950/50 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-surface rounded-brand-lg border border-border shadow-brand-xl p-5 space-y-4 animate-fadeIn">
             <div className="flex items-center gap-2 text-success-strong font-bold">
               <Icon name="check_circle" size="sm" />
               <span>Xác nhận đã nhận tiền nạp</span>
@@ -583,8 +581,9 @@ export default function AdminStudentWallets() {
             <p className="text-caption text-fg leading-relaxed">
               Bạn xác nhận đã nhận được khoản chuyển <strong>{formatCurrency(confirmModalData.amount)}</strong> từ học viên <strong>{confirmModalData.studentName}</strong> (Cú pháp: <code>{confirmModalData.transferReference}</code>)?
             </p>
-            <Field label="Ghi chú đối soát (Tùy chọn)">
+            <Field label="Ghi chú đối soát (Tùy chọn)" htmlFor="adjust-note">
               <Input
+                id="adjust-note"
                 placeholder="Ví dụ: Khớp giao dịch VCB 10:30 ngày 22/09"
                 value={adminNoteInput}
                 onChange={(e) => setAdminNoteInput(e.target.value)}
@@ -604,8 +603,8 @@ export default function AdminStudentWallets() {
 
       {/* REJECT TOP-UP MODAL */}
       {rejectModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
-          <div className="w-full max-w-md bg-surface rounded-brand-lg border border-border shadow-brand-xl p-5 space-y-4 animate-scale-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-navy-950/50 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-surface rounded-brand-lg border border-border shadow-brand-xl p-5 space-y-4 animate-fadeIn">
             <div className="flex items-center gap-2 text-danger-strong font-bold">
               <Icon name="cancel" size="sm" />
               <span>Từ chối yêu cầu nạp tiền</span>
@@ -613,8 +612,9 @@ export default function AdminStudentWallets() {
             <p className="text-caption text-fg leading-relaxed">
               Từ chối yêu cầu nạp tiền <strong>{formatCurrency(rejectModalData.amount)}</strong> (Ref: <code>{rejectModalData.transferReference}</code>). Vui lòng cung cấp lý do để gửi thông báo cho học viên.
             </p>
-            <Field label="Lý do từ chối (Bắt buộc)">
+            <Field label="Lý do từ chối (Bắt buộc)" htmlFor="reject-reason">
               <Input
+                id="reject-reason"
                 placeholder="Ví dụ: Không tìm thấy giao dịch ngân hàng khớp cú pháp sau 24h"
                 value={rejectionReasonInput}
                 onChange={(e) => setRejectionReasonInput(e.target.value)}
@@ -635,8 +635,8 @@ export default function AdminStudentWallets() {
 
       {/* FAIL WITHDRAWAL MODAL */}
       {failModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
-          <div className="w-full max-w-md bg-surface rounded-brand-lg border border-border shadow-brand-xl p-5 space-y-4 animate-scale-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-navy-950/50 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-surface rounded-brand-lg border border-border shadow-brand-xl p-5 space-y-4 animate-fadeIn">
             <div className="flex items-center gap-2 text-danger-strong font-bold">
               <Icon name="error" size="sm" />
               <span>Báo lỗi rút tiền & Hoàn trả ví</span>
@@ -644,8 +644,9 @@ export default function AdminStudentWallets() {
             <p className="text-caption text-fg leading-relaxed">
               Lệnh rút <strong>{formatCurrency(failModalData.amount)}</strong> sẽ chuyển sang trạng thái Thất bại. Số tiền đang tạm giữ sẽ được <strong>tự động hoàn trả 100% về số dư khả dụng</strong> của học viên.
             </p>
-            <Field label="Lý do thất bại (Bắt buộc)">
+            <Field label="Lý do thất bại (Bắt buộc)" htmlFor="fail-reason">
               <Input
+                id="fail-reason"
                 placeholder="Ví dụ: Số tài khoản thụ hưởng không tồn tại hoặc sai tên chủ thẻ"
                 value={failReasonInput}
                 onChange={(e) => setFailReasonInput(e.target.value)}

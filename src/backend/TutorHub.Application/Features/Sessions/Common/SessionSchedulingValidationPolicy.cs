@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
-using TutorHub.Application.Features.Availability.Common;
-using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Sessions.Common;
@@ -27,32 +25,6 @@ public static class SessionSchedulingValidationPolicy
         if (duration != TimeSpan.FromMinutes(expectedDurationMinutes))
         {
             throw new BadRequestException($"Session duration must be exactly {expectedDurationMinutes} minutes according to the purchased service package.");
-        }
-    }
-
-    public static void ValidateTutorAvailability(DateTime startAt, DateTime endAt, IEnumerable<AvailabilitySlot> availabilitySlots)
-    {
-        var startLocal = TimeZoneInfo.ConvertTimeFromUtc(startAt, AvailabilityMutationPolicy.CanonicalTimeZone);
-        var endLocal = TimeZoneInfo.ConvertTimeFromUtc(endAt, AvailabilityMutationPolicy.CanonicalTimeZone);
-
-        if (startLocal.Date != endLocal.Date)
-        {
-            throw new BadRequestException("Sessions crossing midnight are not supported.");
-        }
-
-        var dayOfWeek = startLocal.DayOfWeek;
-        var startLocalTime = TimeOnly.FromDateTime(startLocal);
-        var endLocalTime = TimeOnly.FromDateTime(endLocal);
-
-        var isWithinAvailability = availabilitySlots.Any(s =>
-            s.IsActive &&
-            s.DayOfWeek == dayOfWeek &&
-            startLocalTime >= s.StartTime &&
-            endLocalTime <= s.EndTime);
-
-        if (!isWithinAvailability)
-        {
-            throw new BadRequestException("The requested session time falls outside of the tutor's weekly availability schedule.");
         }
     }
 

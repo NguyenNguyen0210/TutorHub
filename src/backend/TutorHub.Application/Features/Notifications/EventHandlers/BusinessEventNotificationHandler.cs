@@ -22,8 +22,8 @@ public class BusinessEventNotificationHandler :
     INotificationHandler<SessionScheduledEvent>,
     INotificationHandler<SessionRescheduledEvent>,
     INotificationHandler<SessionCancelledEvent>,
-    INotificationHandler<AttendanceVerificationRequiredEvent>,
-    INotificationHandler<AttendanceConflictDetectedEvent>,
+    INotificationHandler<GracePeriodStartedEvent>,
+    INotificationHandler<SessionIssueReportedEvent>,
     INotificationHandler<SessionCompletedEvent>,
     INotificationHandler<EarningCreatedEvent>,
     INotificationHandler<WithdrawalRequestedEvent>,
@@ -270,20 +270,20 @@ public class BusinessEventNotificationHandler :
         await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
     }
 
-    public async Task Handle(AttendanceVerificationRequiredEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(GracePeriodStartedEvent notification, CancellationToken cancellationToken)
     {
         var recipients = new[]
         {
             (
                 UserId: notification.StudentUserId,
-                Title: "Attendance Verification Required",
-                Message: "Please verify your attendance for the completed session before the window closes.",
+                Title: "Session Grace Period Started",
+                Message: "Your session has ended. You have 12 hours to report any issues before payout is automatically released.",
                 DeepLink: NotificationRouteRegistry.Session(notification.SessionId)
             ),
             (
                 UserId: notification.TutorUserId,
-                Title: "Attendance Verification Required",
-                Message: "Please verify your attendance for the completed session before the window closes.",
+                Title: "Session Completed — Payout Pending",
+                Message: "Your session has ended. Payout will be automatically released after the 12-hour grace period if no issues are reported.",
                 DeepLink: NotificationRouteRegistry.Session(notification.SessionId)
             )
         };
@@ -291,20 +291,20 @@ public class BusinessEventNotificationHandler :
         await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
     }
 
-    public async Task Handle(AttendanceConflictDetectedEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(SessionIssueReportedEvent notification, CancellationToken cancellationToken)
     {
         var recipients = new[]
         {
             (
                 UserId: notification.StudentUserId,
-                Title: "Attendance Conflict Flagged",
-                Message: $"Attendance conflict flagged (Student: {notification.StudentStatus}, Tutor: {notification.TutorStatus}). Please review or contact support.",
+                Title: "Issue Report Submitted",
+                Message: $"You reported an issue for your session: {notification.Reason}. Payout has been frozen pending review.",
                 DeepLink: NotificationRouteRegistry.Session(notification.SessionId)
             ),
             (
                 UserId: notification.TutorUserId,
-                Title: "Attendance Conflict Flagged",
-                Message: $"Attendance conflict flagged (Student: {notification.StudentStatus}, Tutor: {notification.TutorStatus}). Please review or contact support.",
+                Title: "Issue Reported by Student",
+                Message: $"The student reported an issue for your session: {notification.Reason}. Payout has been temporarily held for review.",
                 DeepLink: NotificationRouteRegistry.Session(notification.SessionId)
             )
         };

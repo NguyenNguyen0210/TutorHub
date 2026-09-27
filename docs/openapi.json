@@ -1,4 +1,4 @@
-{
+﻿{
   "openapi": "3.0.1",
   "info": {
     "title": "TutorHub API",
@@ -3025,6 +3025,166 @@
         }
       }
     },
+    "/api/v1/admin/users/{id}/unban": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Unban a banned user account with audit logging (Admin only).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Admin.Users.DTOs.UnbanUserRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Admin.Users.DTOs.UnbanUserRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Admin.Users.DTOs.UnbanUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Admin.Users.DTOs.AdminUserSummaryDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Admin.Users.DTOs.AdminUserSummaryDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Admin.Users.DTOs.AdminUserSummaryDto]"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/transactions": {
       "get": {
         "tags": [
@@ -4540,6 +4700,671 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.PlatformSettings.DTOs.PlatformRevenueAnalyticsDto]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/student-wallets/top-ups": {
+      "get": {
+        "tags": [
+          "AdminStudentWallet"
+        ],
+        "summary": "Get paginated list of student top-up requests (Admin only).",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/TutorHub.Domain.Enums.TopUpRequestStatus"
+            }
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/student-wallets/top-ups/{id}/confirm": {
+      "post": {
+        "tags": [
+          "AdminStudentWallet"
+        ],
+        "summary": "Confirm student top-up request and credit wallet balance atomically (Admin only).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.AdminConfirmTopUpApiRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.AdminConfirmTopUpApiRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.AdminConfirmTopUpApiRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/student-wallets/top-ups/{id}/reject": {
+      "post": {
+        "tags": [
+          "AdminStudentWallet"
+        ],
+        "summary": "Reject student top-up request with reason (Admin only).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.AdminRejectTopUpApiRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.AdminRejectTopUpApiRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.AdminRejectTopUpApiRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/student-wallets/withdrawals": {
+      "get": {
+        "tags": [
+          "AdminStudentWallet"
+        ],
+        "summary": "Get paginated list of student withdrawal requests (Admin only).",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/TutorHub.Domain.Enums.WithdrawalStatus"
+            }
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/student-wallets/withdrawals/{id}/process": {
+      "post": {
+        "tags": [
+          "AdminStudentWallet"
+        ],
+        "summary": "Mark pending student withdrawal as processing (Admin only).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/student-wallets/withdrawals/{id}/complete": {
+      "post": {
+        "tags": [
+          "AdminStudentWallet"
+        ],
+        "summary": "Complete student withdrawal and finalize debit (Admin only).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/student-wallets/withdrawals/{id}/fail": {
+      "post": {
+        "tags": [
+          "AdminStudentWallet"
+        ],
+        "summary": "Fail student withdrawal and release reserved balance back to available (Admin only).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.AdminFailWithdrawalApiRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.AdminFailWithdrawalApiRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.AdminFailWithdrawalApiRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/student-wallets/adjust": {
+      "post": {
+        "tags": [
+          "AdminStudentWallet"
+        ],
+        "summary": "Admin financial adjustment on student wallet (credit/debit with reason and audit trail).",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.AdminAdjustWalletApiRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.AdminAdjustWalletApiRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.AdminAdjustWalletApiRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletDto]"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
                 }
               }
             }
@@ -7388,7 +8213,7 @@
         "tags": [
           "Disputes"
         ],
-        "summary": "Upload supporting evidence for an active dispute.",
+        "summary": "Upload supporting evidence file (multipart/form-data) for an active dispute with binary signature validation.",
         "parameters": [
           {
             "name": "id",
@@ -7402,19 +8227,20 @@
         ],
         "requestBody": {
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Api.Controllers.UploadEvidenceRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TutorHub.Api.Controllers.UploadEvidenceRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/TutorHub.Api.Controllers.UploadEvidenceRequest"
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "file": {
+                  "style": "form"
+                }
               }
             }
           }
@@ -7436,6 +8262,26 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Disputes.DTOs.DisputeEvidenceDto]"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
                 }
               }
             }
@@ -8908,6 +9754,127 @@
         }
       }
     },
+    "/api/v1/payments/{bookingId}/wallet": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Pay for an active booking holding directly using Student Wallet balance (Student only).",
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Payments.PayFromWallet.PayBookingFromWalletResultDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Payments.PayFromWallet.PayBookingFromWalletResultDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Payments.PayFromWallet.PayBookingFromWalletResultDto]"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/payments/vnpay/return": {
       "get": {
         "tags": [
@@ -9757,6 +10724,178 @@
         }
       }
     },
+    "/api/v1/services": {
+      "get": {
+        "tags": [
+          "Services"
+        ],
+        "summary": "Get published learning services with multi-dimensional filtering, searching and pagination (Public).",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "subjectId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "teachingMode",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/TutorHub.Domain.Enums.TeachingMode"
+            }
+          },
+          {
+            "name": "minPrice",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "maxPrice",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "minRating",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 12
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.Services.DTOs.PublicServiceListItemDto]]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.Services.DTOs.PublicServiceListItemDto]]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.Services.DTOs.PublicServiceListItemDto]]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/services/{id}": {
+      "get": {
+        "tags": [
+          "Services"
+        ],
+        "summary": "Get published service detail by ID with curriculum, tutor info, reviews and FAQs (Public).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Services.DTOs.ServiceDetailDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Services.DTOs.ServiceDetailDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Services.DTOs.ServiceDetailDto]"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/sessions/{id}/schedule": {
       "post": {
         "tags": [
@@ -9810,6 +10949,155 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Bookings.DTOs.SessionDto]"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/schedule-batch": {
+      "post": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Tutor bulk-schedules unscheduled sessions atomically.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.DTOs.ScheduleSessionsBatchRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.DTOs.ScheduleSessionsBatchRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.DTOs.ScheduleSessionsBatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Collections.Generic.List`1[TutorHub.Application.Features.Bookings.DTOs.SessionDto]]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Collections.Generic.List`1[TutorHub.Application.Features.Bookings.DTOs.SessionDto]]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Collections.Generic.List`1[TutorHub.Application.Features.Bookings.DTOs.SessionDto]]"
                 }
               }
             }
@@ -10273,584 +11561,6 @@
         }
       }
     },
-    "/api/v1/sessions/{id}/reschedule-requests": {
-      "post": {
-        "tags": [
-          "Sessions"
-        ],
-        "summary": "Propose a reschedule for an agreed scheduled session (Tutor only - FR-SESSION-004).\r\nDoes not mutate the session schedule until accepted by the Student.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.DTOs.ProposeRescheduleRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.DTOs.ProposeRescheduleRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.DTOs.ProposeRescheduleRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Sessions.Reschedule.DTOs.SessionRescheduleRequestDto]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Sessions.Reschedule.DTOs.SessionRescheduleRequestDto]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Sessions.Reschedule.DTOs.SessionRescheduleRequestDto]"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "Sessions"
-        ],
-        "summary": "Get reschedule proposal history for a session (Student or Tutor participant).",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Collections.Generic.List`1[TutorHub.Application.Features.Sessions.Reschedule.DTOs.SessionRescheduleRequestDto]]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Collections.Generic.List`1[TutorHub.Application.Features.Sessions.Reschedule.DTOs.SessionRescheduleRequestDto]]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Collections.Generic.List`1[TutorHub.Application.Features.Sessions.Reschedule.DTOs.SessionRescheduleRequestDto]]"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/sessions/{id}/reschedule-requests/{requestId}/accept": {
-      "post": {
-        "tags": [
-          "Sessions"
-        ],
-        "summary": "Accept a pending reschedule proposal (Student only - FR-SESSION-005).\r\nAtomically updates session schedule, emits outbox event, and records permanent audit log.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "requestId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Bookings.DTOs.SessionDto]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Bookings.DTOs.SessionDto]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Bookings.DTOs.SessionDto]"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/sessions/{id}/reschedule-requests/{requestId}/reject": {
-      "post": {
-        "tags": [
-          "Sessions"
-        ],
-        "summary": "Reject a pending reschedule proposal (Student only - FR-SESSION-005).\r\nMarks the proposal as rejected while leaving the session schedule untouched.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "requestId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.DTOs.RejectRescheduleRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.DTOs.RejectRescheduleRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.DTOs.RejectRescheduleRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Sessions.Reschedule.DTOs.SessionRescheduleRequestDto]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Sessions.Reschedule.DTOs.SessionRescheduleRequestDto]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Sessions.Reschedule.DTOs.SessionRescheduleRequestDto]"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/sessions/{id}/cancel": {
       "post": {
         "tags": [
@@ -11270,6 +11980,669 @@
         }
       }
     },
+    "/api/v1/students/me/wallet": {
+      "get": {
+        "tags": [
+          "StudentWallet"
+        ],
+        "summary": "Get student wallet balance and overview.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletDto]"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/me/wallet/statement": {
+      "get": {
+        "tags": [
+          "StudentWallet"
+        ],
+        "summary": "Get paginated transaction ledger statement for student wallet.",
+        "parameters": [
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletTransactionDto]]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletTransactionDto]]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletTransactionDto]]"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/me/wallet/top-up": {
+      "post": {
+        "tags": [
+          "StudentWallet"
+        ],
+        "summary": "Initiate an automated wallet top-up via VNPay Sandbox (generates hosted payment URL).",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentTopUpApiRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentTopUpApiRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentTopUpApiRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.VnPayTopUpRedirectDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.VnPayTopUpRedirectDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.VnPayTopUpRedirectDto]"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "StudentWallet"
+        ],
+        "summary": "Get student's top-up request history.",
+        "parameters": [
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]]"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/me/wallet/top-up/vnpay": {
+      "post": {
+        "tags": [
+          "StudentWallet"
+        ],
+        "summary": "Initiate an automated wallet top-up via VNPay Sandbox (generates hosted payment URL).",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentTopUpApiRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentTopUpApiRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentTopUpApiRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.VnPayTopUpRedirectDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.VnPayTopUpRedirectDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.VnPayTopUpRedirectDto]"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/me/wallet/withdrawals": {
+      "post": {
+        "tags": [
+          "StudentWallet"
+        ],
+        "summary": "Request a withdrawal from student wallet to a bank account.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalApiRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalApiRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalApiRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "StudentWallet"
+        ],
+        "summary": "Get student's withdrawal history.",
+        "parameters": [
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]]"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/subjects": {
       "get": {
         "tags": [
@@ -11537,6 +12910,14 @@
         "summary": "Search and filter verified tutors with pagination (Public).",
         "parameters": [
           {
+            "name": "categoryId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
             "name": "subjectId",
             "in": "query",
             "schema": {
@@ -11587,6 +12968,50 @@
             "in": "query",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "degreeLevel",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "university",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "certification",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "minExperience",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "maxExperience",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
             }
           },
           {
@@ -11666,103 +13091,6 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Tutors.DTOs.TutorProfileDto]"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/tutors/{id}/availability": {
-      "get": {
-        "tags": [
-          "Tutors"
-        ],
-        "summary": "Get dynamic availability schedule of a tutor by ID across a specific date range (Public).\r\nCalculates open time ranges by subtracting active bookings.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "fromDate",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          },
-          {
-            "name": "toDate",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Availability.DTOs.TutorAvailabilityDto]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Availability.DTOs.TutorAvailabilityDto]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Availability.DTOs.TutorAvailabilityDto]"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
                 }
               }
             }
@@ -12421,393 +13749,6 @@
         }
       }
     },
-    "/api/v1/tutors/me/availability-slots": {
-      "get": {
-        "tags": [
-          "Tutors"
-        ],
-        "summary": "Get weekly availability slots of the authenticated tutor (Tutor only).",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Collections.Generic.List`1[TutorHub.Application.Features.Availability.DTOs.AvailabilitySlotDto]]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Collections.Generic.List`1[TutorHub.Application.Features.Availability.DTOs.AvailabilitySlotDto]]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Collections.Generic.List`1[TutorHub.Application.Features.Availability.DTOs.AvailabilitySlotDto]]"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Tutors"
-        ],
-        "summary": "Create a new weekly availability slot for the authenticated tutor (Tutor only).",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Availability.DTOs.CreateAvailabilitySlotRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Availability.DTOs.CreateAvailabilitySlotRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Availability.DTOs.CreateAvailabilitySlotRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Availability.DTOs.AvailabilitySlotDto]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Availability.DTOs.AvailabilitySlotDto]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Availability.DTOs.AvailabilitySlotDto]"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/tutors/me/availability-slots/{id}": {
-      "delete": {
-        "tags": [
-          "Tutors"
-        ],
-        "summary": "Delete a weekly availability slot by ID for the authenticated tutor (Tutor only).",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Boolean]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Boolean]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Boolean]"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/tutors/me/availability-schedule": {
-      "put": {
-        "tags": [
-          "Tutors"
-        ],
-        "summary": "Atomically synchronize the tutor's entire weekly recurring availability schedule (Tutor only - INV-AVAIL-006).\r\nFails fast with 409 Conflict if any future scheduled session would be left uncovered.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Availability.DTOs.SetWeeklyScheduleRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Availability.DTOs.SetWeeklyScheduleRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Availability.DTOs.SetWeeklyScheduleRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Collections.Generic.List`1[TutorHub.Application.Features.Availability.DTOs.AvailabilitySlotDto]]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Collections.Generic.List`1[TutorHub.Application.Features.Availability.DTOs.AvailabilitySlotDto]]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Collections.Generic.List`1[TutorHub.Application.Features.Availability.DTOs.AvailabilitySlotDto]]"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/tutors/me/services": {
       "post": {
         "tags": [
@@ -13360,6 +14301,208 @@
           "Tutors"
         ],
         "summary": "Unpublish an active service to hide it from the public marketplace (Tutor only).",
+        "parameters": [
+          {
+            "name": "serviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Tutors.Services.DTOs.ServiceDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Tutors.Services.DTOs.ServiceDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Tutors.Services.DTOs.ServiceDto]"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tutors/me/services/{serviceId}/pause": {
+      "post": {
+        "tags": [
+          "Tutors"
+        ],
+        "summary": "Pause a published service to temporarily hide it from the public marketplace (Tutor only).\r\nA paused service can be resumed or unpublished.",
+        "parameters": [
+          {
+            "name": "serviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Tutors.Services.DTOs.ServiceDto]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Tutors.Services.DTOs.ServiceDto]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Tutors.Services.DTOs.ServiceDto]"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorHub.Application.Common.Models.ApiResponse`1[System.Object]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tutors/me/services/{serviceId}/resume": {
+      "post": {
+        "tags": [
+          "Tutors"
+        ],
+        "summary": "Resume a paused service to make it publicly discoverable on the marketplace again (Tutor only).",
         "parameters": [
           {
             "name": "serviceId",
@@ -14357,18 +15500,6 @@
   },
   "components": {
     "schemas": {
-      "System.DayOfWeek": {
-        "enum": [
-          "Sunday",
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday",
-          "Saturday"
-        ],
-        "type": "string"
-      },
       "TutorHub.Api.Controllers.AdminResolveDisputeRequest": {
         "type": "object",
         "properties": {
@@ -14575,28 +15706,6 @@
         },
         "additionalProperties": false
       },
-      "TutorHub.Api.Controllers.UploadEvidenceRequest": {
-        "type": "object",
-        "properties": {
-          "fileName": {
-            "type": "string",
-            "nullable": true
-          },
-          "fileUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "contentType": {
-            "type": "string",
-            "nullable": true
-          },
-          "fileSizeBytes": {
-            "type": "integer",
-            "format": "int64"
-          }
-        },
-        "additionalProperties": false
-      },
       "TutorHub.Api.Controllers.UpsertPlatformSettingRequest": {
         "type": "object",
         "properties": {
@@ -14677,7 +15786,7 @@
         },
         "additionalProperties": false
       },
-      "TutorHub.Application.Common.Models.ApiResponse`1[System.Collections.Generic.List`1[TutorHub.Application.Features.Availability.DTOs.AvailabilitySlotDto]]": {
+      "TutorHub.Application.Common.Models.ApiResponse`1[System.Collections.Generic.List`1[TutorHub.Application.Features.Bookings.DTOs.SessionDto]]": {
         "type": "object",
         "properties": {
           "success": {
@@ -14690,7 +15799,7 @@
           "data": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TutorHub.Application.Features.Availability.DTOs.AvailabilitySlotDto"
+              "$ref": "#/components/schemas/TutorHub.Application.Features.Bookings.DTOs.SessionDto"
             },
             "nullable": true
           },
@@ -14796,41 +15905,6 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.DTOs.SessionCalendarDto"
-            },
-            "nullable": true
-          },
-          "errors": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          },
-          "traceId": {
-            "type": "string",
-            "nullable": true
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Common.Models.ApiResponse`1[System.Collections.Generic.List`1[TutorHub.Application.Features.Sessions.Reschedule.DTOs.SessionRescheduleRequestDto]]": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.Reschedule.DTOs.SessionRescheduleRequestDto"
             },
             "nullable": true
           },
@@ -15423,6 +16497,130 @@
         },
         "additionalProperties": false
       },
+      "TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.Services.DTOs.PublicServiceListItemDto]]": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.Services.DTOs.PublicServiceListItemDto]"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletTransactionDto]]": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletTransactionDto]"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]]": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]]": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.Subjects.DTOs.AdminSubjectDto]]": {
         "type": "object",
         "properties": {
@@ -15931,68 +17129,6 @@
           },
           "data": {
             "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.DTOs.RegisterResponseDto"
-          },
-          "errors": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          },
-          "traceId": {
-            "type": "string",
-            "nullable": true
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Availability.DTOs.AvailabilitySlotDto]": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "data": {
-            "$ref": "#/components/schemas/TutorHub.Application.Features.Availability.DTOs.AvailabilitySlotDto"
-          },
-          "errors": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          },
-          "traceId": {
-            "type": "string",
-            "nullable": true
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Availability.DTOs.TutorAvailabilityDto]": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "data": {
-            "$ref": "#/components/schemas/TutorHub.Application.Features.Availability.DTOs.TutorAvailabilityDto"
           },
           "errors": {
             "type": "array",
@@ -16601,6 +17737,37 @@
         },
         "additionalProperties": false
       },
+      "TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Payments.PayFromWallet.PayBookingFromWalletResultDto]": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/TutorHub.Application.Features.Payments.PayFromWallet.PayBookingFromWalletResultDto"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.PlatformSettings.DTOs.PlatformRevenueAnalyticsDto]": {
         "type": "object",
         "properties": {
@@ -16725,7 +17892,7 @@
         },
         "additionalProperties": false
       },
-      "TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Sessions.Reschedule.DTOs.SessionRescheduleRequestDto]": {
+      "TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.Services.DTOs.ServiceDetailDto]": {
         "type": "object",
         "properties": {
           "success": {
@@ -16736,7 +17903,131 @@
             "nullable": true
           },
           "data": {
-            "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.Reschedule.DTOs.SessionRescheduleRequestDto"
+            "$ref": "#/components/schemas/TutorHub.Application.Features.Services.DTOs.ServiceDetailDto"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletDto]": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletDto"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Common.Models.ApiResponse`1[TutorHub.Application.Features.StudentWallets.DTOs.VnPayTopUpRedirectDto]": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.VnPayTopUpRedirectDto"
           },
           "errors": {
             "type": "array",
@@ -17484,6 +18775,158 @@
         },
         "additionalProperties": false
       },
+      "TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.Services.DTOs.PublicServiceListItemDto]": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorHub.Application.Features.Services.DTOs.PublicServiceListItemDto"
+            },
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPreviousPage": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNextPage": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletTransactionDto]": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletTransactionDto"
+            },
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPreviousPage": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNextPage": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto]": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto"
+            },
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPreviousPage": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNextPage": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto]": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto"
+            },
+            "nullable": true
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPreviousPage": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNextPage": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
       "TutorHub.Application.Common.Models.PagedResult`1[TutorHub.Application.Features.Subjects.DTOs.AdminSubjectDto]": {
         "type": "object",
         "properties": {
@@ -18198,6 +19641,10 @@
             "type": "string",
             "nullable": true
           },
+          "userPhone": {
+            "type": "string",
+            "nullable": true
+          },
           "userAvatarUrl": {
             "type": "string",
             "nullable": true
@@ -18211,6 +19658,30 @@
             "nullable": true
           },
           "education": {
+            "type": "string",
+            "nullable": true
+          },
+          "university": {
+            "type": "string",
+            "nullable": true
+          },
+          "major": {
+            "type": "string",
+            "nullable": true
+          },
+          "degreeLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "certifications": {
+            "type": "string",
+            "nullable": true
+          },
+          "subject": {
+            "type": "string",
+            "nullable": true
+          },
+          "subjectSub": {
             "type": "string",
             "nullable": true
           },
@@ -18234,6 +19705,18 @@
           "longitude": {
             "type": "number",
             "format": "double",
+            "nullable": true
+          },
+          "methodology": {
+            "type": "string",
+            "nullable": true
+          },
+          "achievements": {
+            "type": "string",
+            "nullable": true
+          },
+          "documentsJson": {
+            "type": "string",
             "nullable": true
           },
           "rejectionReason": {
@@ -18276,6 +19759,10 @@
             "type": "string",
             "nullable": true
           },
+          "userPhone": {
+            "type": "string",
+            "nullable": true
+          },
           "userAvatarUrl": {
             "type": "string",
             "nullable": true
@@ -18294,6 +19781,62 @@
             "nullable": true
           },
           "rejectionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "education": {
+            "type": "string",
+            "nullable": true
+          },
+          "university": {
+            "type": "string",
+            "nullable": true
+          },
+          "major": {
+            "type": "string",
+            "nullable": true
+          },
+          "degreeLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "certifications": {
+            "type": "string",
+            "nullable": true
+          },
+          "subject": {
+            "type": "string",
+            "nullable": true
+          },
+          "subjectSub": {
+            "type": "string",
+            "nullable": true
+          },
+          "experienceYears": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "teachingMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "methodology": {
+            "type": "string",
+            "nullable": true
+          },
+          "achievements": {
+            "type": "string",
+            "nullable": true
+          },
+          "documentsJson": {
             "type": "string",
             "nullable": true
           }
@@ -18601,6 +20144,16 @@
         "additionalProperties": false
       },
       "TutorHub.Application.Features.Admin.Users.DTOs.SuspendUserRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Admin.Users.DTOs.UnbanUserRequest": {
         "type": "object",
         "properties": {
           "reason": {
@@ -18949,6 +20502,10 @@
           "role": {
             "type": "string",
             "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -18984,154 +20541,10 @@
             "type": "string",
             "format": "uuid",
             "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Availability.DTOs.AvailabilitySlotDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
           },
-          "dayOfWeek": {
-            "$ref": "#/components/schemas/System.DayOfWeek"
-          },
-          "dayOfWeekName": {
-            "type": "string",
-            "nullable": true
-          },
-          "startTime": {
-            "type": "string",
-            "format": "time"
-          },
-          "endTime": {
-            "type": "string",
-            "format": "time"
-          },
-          "isActive": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Availability.DTOs.CreateAvailabilitySlotRequest": {
-        "type": "object",
-        "properties": {
-          "dayOfWeek": {
-            "$ref": "#/components/schemas/System.DayOfWeek"
-          },
-          "startTime": {
-            "type": "string",
-            "format": "time"
-          },
-          "endTime": {
-            "type": "string",
-            "format": "time"
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Availability.DTOs.DailyAvailabilityDto": {
-        "type": "object",
-        "properties": {
-          "date": {
-            "type": "string",
-            "format": "date"
-          },
-          "dayOfWeek": {
-            "$ref": "#/components/schemas/System.DayOfWeek"
-          },
-          "dayOfWeekName": {
-            "type": "string",
-            "nullable": true
-          },
-          "hasAvailableSlots": {
-            "type": "boolean"
-          },
-          "availableSlots": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TutorHub.Application.Features.Availability.DTOs.TimeRangeDto"
-            },
-            "nullable": true
-          },
-          "bookedSlots": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TutorHub.Application.Features.Availability.DTOs.TimeRangeDto"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Availability.DTOs.SetWeeklyScheduleRequest": {
-        "type": "object",
-        "properties": {
-          "schedule": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TutorHub.Application.Features.Availability.DTOs.WeeklyScheduleItemDto"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Availability.DTOs.TimeRangeDto": {
-        "type": "object",
-        "properties": {
-          "startTime": {
-            "type": "string",
-            "format": "time"
-          },
-          "endTime": {
-            "type": "string",
-            "format": "time"
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Availability.DTOs.TutorAvailabilityDto": {
-        "type": "object",
-        "properties": {
-          "tutorProfileId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fromDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "toDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "days": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TutorHub.Application.Features.Availability.DTOs.DailyAvailabilityDto"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Availability.DTOs.WeeklyScheduleItemDto": {
-        "type": "object",
-        "properties": {
-          "dayOfWeek": {
-            "$ref": "#/components/schemas/System.DayOfWeek"
-          },
-          "startTime": {
-            "type": "string",
-            "format": "time"
-          },
-          "endTime": {
-            "type": "string",
-            "format": "time"
+          "absentStrikes": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -19400,6 +20813,14 @@
               "$ref": "#/components/schemas/TutorHub.Application.Features.Bookings.DTOs.SessionDto"
             },
             "nullable": true
+          },
+          "platformFeeRate": {
+            "type": "number",
+            "format": "double"
+          },
+          "feePolicyVersion": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -19465,6 +20886,14 @@
           "attendanceVerificationDueAt": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          },
+          "tutorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "subjectName": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -20435,6 +21864,32 @@
         },
         "additionalProperties": false
       },
+      "TutorHub.Application.Features.Payments.PayFromWallet.PayBookingFromWalletResultDto": {
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amountPaid": {
+            "type": "number",
+            "format": "double"
+          },
+          "remainingBalance": {
+            "type": "number",
+            "format": "double"
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "TutorHub.Application.Features.PlatformSettings.DTOs.PlatformDisputeMetricsDto": {
         "type": "object",
         "properties": {
@@ -20865,35 +22320,381 @@
         },
         "additionalProperties": false
       },
+      "TutorHub.Application.Features.Services.DTOs.CurriculumItemDto": {
+        "type": "object",
+        "properties": {
+          "sessionIndex": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "keyTopics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Services.DTOs.FaqItemDto": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "nullable": true
+          },
+          "answer": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Services.DTOs.PublicServiceListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "learningScope": {
+            "type": "string",
+            "nullable": true
+          },
+          "expectedOutcome": {
+            "type": "string",
+            "nullable": true
+          },
+          "subjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subjectName": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryName": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalSessions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sessionDurationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "teachingMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasTrialLesson": {
+            "type": "boolean"
+          },
+          "tutorProfileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tutorUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tutorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "tutorAvatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "tutorRating": {
+            "type": "number",
+            "format": "double"
+          },
+          "tutorTotalReviews": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalStudents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Services.DTOs.ServiceDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "coverImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "trialLessonUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "learningScope": {
+            "type": "string",
+            "nullable": true
+          },
+          "expectedOutcome": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetAudience": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "prerequisites": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "totalSessions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sessionDurationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "pricePerSession": {
+            "type": "number",
+            "format": "double"
+          },
+          "teachingMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/TutorHub.Application.Features.Services.DTOs.ServiceSubjectDto"
+          },
+          "tutor": {
+            "$ref": "#/components/schemas/TutorHub.Application.Features.Services.DTOs.ServiceTutorSnapshotDto"
+          },
+          "curriculum": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorHub.Application.Features.Services.DTOs.CurriculumItemDto"
+            },
+            "nullable": true
+          },
+          "faqs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorHub.Application.Features.Services.DTOs.FaqItemDto"
+            },
+            "nullable": true
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/TutorHub.Application.Features.Services.DTOs.ServiceMetricsDto"
+          },
+          "recentReviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorHub.Application.Features.Services.DTOs.ServiceReviewItemDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Services.DTOs.ServiceMetricsDto": {
+        "type": "object",
+        "properties": {
+          "enrolledCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "completedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "satisfactionRate": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Services.DTOs.ServiceReviewItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "studentAvatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "rating": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tutorReply": {
+            "type": "string",
+            "nullable": true
+          },
+          "tutorRepliedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Services.DTOs.ServiceSubjectDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Services.DTOs.ServiceTutorSnapshotDto": {
+        "type": "object",
+        "properties": {
+          "tutorProfileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fullName": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "education": {
+            "type": "string",
+            "nullable": true
+          },
+          "experienceYears": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "ratingAvg": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalReviews": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalStudents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isVerified": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "TutorHub.Application.Features.Sessions.DTOs.CancelSessionRequest": {
-        "type": "object",
-        "properties": {
-          "reason": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Sessions.DTOs.ProposeRescheduleRequest": {
-        "type": "object",
-        "properties": {
-          "proposedStartAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "proposedEndAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "reason": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Sessions.DTOs.RejectRescheduleRequest": {
         "type": "object",
         "properties": {
           "reason": {
@@ -20976,52 +22777,362 @@
         },
         "additionalProperties": false
       },
-      "TutorHub.Application.Features.Sessions.Reschedule.DTOs.SessionRescheduleRequestDto": {
+      "TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.DTOs.ScheduleSessionsBatchRequest": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.DTOs.SessionScheduleItemDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.DTOs.SessionScheduleItemDto": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.StudentWallets.DTOs.AdminAdjustWalletApiRequest": {
+        "type": "object",
+        "properties": {
+          "studentWalletId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/TutorHub.Domain.Enums.FinancialDirection"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "referenceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.StudentWallets.DTOs.AdminConfirmTopUpApiRequest": {
+        "type": "object",
+        "properties": {
+          "adminNote": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.StudentWallets.DTOs.AdminFailWithdrawalApiRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.StudentWallets.DTOs.AdminRejectTopUpApiRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.StudentWallets.DTOs.StudentTopUpApiRequest": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletDto": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string",
             "format": "uuid"
           },
-          "sessionId": {
+          "studentProfileId": {
             "type": "string",
             "format": "uuid"
           },
-          "proposerUserId": {
-            "type": "string",
-            "format": "uuid"
+          "availableBalance": {
+            "type": "number",
+            "format": "double"
           },
-          "recipientUserId": {
-            "type": "string",
-            "format": "uuid"
+          "reservedBalance": {
+            "type": "number",
+            "format": "double"
           },
-          "proposedStartAt": {
+          "totalBalance": {
+            "type": "number",
+            "format": "double"
+          },
+          "updatedAt": {
             "type": "string",
             "format": "date-time"
-          },
-          "proposedEndAt": {
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.StudentWallets.DTOs.StudentWalletTransactionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
             "type": "string",
-            "format": "date-time"
+            "format": "uuid"
           },
-          "reason": {
+          "studentWalletId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TutorHub.Domain.Enums.StudentWalletTransactionType"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/TutorHub.Domain.Enums.FinancialDirection"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "balanceBefore": {
+            "type": "number",
+            "format": "double"
+          },
+          "balanceAfter": {
+            "type": "number",
+            "format": "double"
+          },
+          "referenceType": {
             "type": "string",
             "nullable": true
           },
-          "status": {
-            "$ref": "#/components/schemas/TutorHub.Domain.Enums.RescheduleRequestStatus"
+          "referenceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
           },
-          "rejectionReason": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
             "type": "string",
             "nullable": true
           },
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalApiRequest": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
           },
-          "respondedAt": {
+          "bankName": {
+            "type": "string",
+            "nullable": true
+          },
+          "bankCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountHolderName": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studentWalletId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TutorHub.Domain.Enums.WithdrawalStatus"
+          },
+          "bankName": {
+            "type": "string",
+            "nullable": true
+          },
+          "bankCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountHolderName": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "processedAt": {
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "failureReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "studentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "studentEmail": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.StudentWallets.DTOs.TopUpRequestDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "studentWalletId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "transferReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/TutorHub.Domain.Enums.TopUpRequestStatus"
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "processedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "rejectionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "adminNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "bankName": {
+            "type": "string",
+            "nullable": true
+          },
+          "bankAccountNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "bankAccountName": {
+            "type": "string",
+            "nullable": true
+          },
+          "studentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "studentEmail": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.StudentWallets.DTOs.VnPayTopUpRedirectDto": {
+        "type": "object",
+        "properties": {
+          "topUpRequestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "paymentUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "merchantReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "expireAt": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -21228,6 +23339,30 @@
             "type": "string",
             "nullable": true
           },
+          "university": {
+            "type": "string",
+            "nullable": true
+          },
+          "major": {
+            "type": "string",
+            "nullable": true
+          },
+          "degreeLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "certifications": {
+            "type": "string",
+            "nullable": true
+          },
+          "subject": {
+            "type": "string",
+            "nullable": true
+          },
+          "subjectSub": {
+            "type": "string",
+            "nullable": true
+          },
           "experienceYears": {
             "type": "integer",
             "format": "int32"
@@ -21248,6 +23383,18 @@
           "longitude": {
             "type": "number",
             "format": "double",
+            "nullable": true
+          },
+          "methodology": {
+            "type": "string",
+            "nullable": true
+          },
+          "achievements": {
+            "type": "string",
+            "nullable": true
+          },
+          "documentsJson": {
+            "type": "string",
             "nullable": true
           },
           "rejectionReason": {
@@ -21526,6 +23673,26 @@
           },
           "isVerified": {
             "type": "boolean"
+          },
+          "university": {
+            "type": "string",
+            "nullable": true
+          },
+          "major": {
+            "type": "string",
+            "nullable": true
+          },
+          "degreeLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "certifications": {
+            "type": "string",
+            "nullable": true
+          },
+          "achievements": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -21607,6 +23774,17 @@
             "type": "string",
             "nullable": true
           },
+          "shortDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
           "learningScope": {
             "type": "string",
             "nullable": true
@@ -21632,6 +23810,82 @@
             "nullable": true
           },
           "trialLessonUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "coverImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "curriculum": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorHub.Application.Features.Tutors.Services.DTOs.CurriculumItemInput"
+            },
+            "nullable": true
+          },
+          "targetAudience": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "prerequisites": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "faqs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorHub.Application.Features.Tutors.Services.DTOs.FaqInput"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Tutors.Services.DTOs.CurriculumItemInput": {
+        "type": "object",
+        "properties": {
+          "sessionIndex": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "keyTopics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Tutors.Services.DTOs.FaqInput": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "nullable": true
+          },
+          "answer": {
             "type": "string",
             "nullable": true
           }
@@ -21669,6 +23923,17 @@
             "type": "string",
             "nullable": true
           },
+          "shortDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
           "learningScope": {
             "type": "string",
             "nullable": true
@@ -21697,9 +23962,26 @@
             "type": "string",
             "nullable": true
           },
+          "coverImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
           "status": {
             "type": "string",
             "nullable": true
+          },
+          "studentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "averageRating": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "reviewCount": {
+            "type": "integer",
+            "format": "int32"
           },
           "createdAt": {
             "type": "string",
@@ -21708,6 +23990,34 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          },
+          "curriculum": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorHub.Application.Features.Services.DTOs.CurriculumItemDto"
+            },
+            "nullable": true
+          },
+          "targetAudience": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "prerequisites": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "faqs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorHub.Application.Features.Services.DTOs.FaqItemDto"
+            },
             "nullable": true
           }
         },
@@ -21761,6 +24071,17 @@
             "type": "string",
             "nullable": true
           },
+          "shortDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
           "learningScope": {
             "type": "string",
             "nullable": true
@@ -21790,6 +24111,38 @@
           },
           "trialLessonUrl": {
             "type": "string",
+            "nullable": true
+          },
+          "coverImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "curriculum": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorHub.Application.Features.Tutors.Services.DTOs.CurriculumItemInput"
+            },
+            "nullable": true
+          },
+          "targetAudience": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "prerequisites": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "faqs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorHub.Application.Features.Tutors.Services.DTOs.FaqInput"
+            },
             "nullable": true
           }
         },
@@ -21982,7 +24335,7 @@
             "nullable": true
           },
           "type": {
-            "$ref": "#/components/schemas/TutorHub.Domain.Enums.WalletTransactionType"
+            "$ref": "#/components/schemas/TutorHub.Domain.Enums.TutorWalletTransactionType"
           },
           "amount": {
             "type": "number",
@@ -22176,6 +24529,13 @@
         ],
         "type": "string"
       },
+      "TutorHub.Domain.Enums.FinancialDirection": {
+        "enum": [
+          "Credit",
+          "Debit"
+        ],
+        "type": "string"
+      },
       "TutorHub.Domain.Enums.FinancialHoldStatus": {
         "enum": [
           "None",
@@ -22219,18 +24579,11 @@
         ],
         "type": "string"
       },
-      "TutorHub.Domain.Enums.RescheduleRequestStatus": {
-        "enum": [
-          "Pending",
-          "Accepted",
-          "Rejected"
-        ],
-        "type": "string"
-      },
       "TutorHub.Domain.Enums.ServiceStatus": {
         "enum": [
           "Draft",
           "Published",
+          "Paused",
           "Unpublished"
         ],
         "type": "string"
@@ -22244,11 +24597,31 @@
         ],
         "type": "string"
       },
+      "TutorHub.Domain.Enums.StudentWalletTransactionType": {
+        "enum": [
+          "TopUpCredit",
+          "CoursePaymentDebit",
+          "RefundCredit",
+          "WithdrawalDebit",
+          "WithdrawalReversalCredit",
+          "AdjustmentCredit",
+          "AdjustmentDebit"
+        ],
+        "type": "string"
+      },
       "TutorHub.Domain.Enums.TeachingMode": {
         "enum": [
           "Online",
           "Offline",
           "Both"
+        ],
+        "type": "string"
+      },
+      "TutorHub.Domain.Enums.TopUpRequestStatus": {
+        "enum": [
+          "Pending",
+          "Confirmed",
+          "Rejected"
         ],
         "type": "string"
       },
@@ -22268,6 +24641,7 @@
           "UserConduct",
           "ReviewViolation",
           "ProfileViolation",
+          "ServiceViolation",
           "General"
         ],
         "type": "string"
@@ -22280,15 +24654,7 @@
         ],
         "type": "string"
       },
-      "TutorHub.Domain.Enums.UserRole": {
-        "enum": [
-          "Student",
-          "Tutor",
-          "Admin"
-        ],
-        "type": "string"
-      },
-      "TutorHub.Domain.Enums.WalletTransactionType": {
+      "TutorHub.Domain.Enums.TutorWalletTransactionType": {
         "enum": [
           "SessionPayoutCredit",
           "WithdrawalDebit",
@@ -22296,6 +24662,14 @@
           "DisputeHoldReservationDebit",
           "DisputeHoldReleaseCredit",
           "DisputeRecoveryDebit"
+        ],
+        "type": "string"
+      },
+      "TutorHub.Domain.Enums.UserRole": {
+        "enum": [
+          "Student",
+          "Tutor",
+          "Admin"
         ],
         "type": "string"
       },
