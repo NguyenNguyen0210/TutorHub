@@ -43,6 +43,7 @@ import WorkspaceLayout from '../layouts/WorkspaceLayout';
 // Auth & Onboarding Screens
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
+import OAuthCallback from '../pages/auth/OAuthCallback';
 import TutorApplication from '../pages/tutor/TutorApplication';
 
 // Discovery Screens
@@ -134,6 +135,7 @@ export default function AppRoutes() {
       <Route path="/auth/login" element={<GuestGuard><Login /></GuestGuard>} />
       <Route path="/login" element={<Navigate to="/auth/login" replace />} />
       <Route path="/auth/register" element={<GuestGuard><Register /></GuestGuard>} />
+      <Route path="/auth/oauth/callback" element={<GuestGuard><OAuthCallback /></GuestGuard>} />
       <Route path="/register" element={<Navigate to="/auth/register" replace />} />
 
       {/* 3. Student Routes (auth + Student role) */}
