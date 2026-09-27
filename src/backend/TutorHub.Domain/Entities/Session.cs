@@ -31,141 +31,117 @@ public class Session
     public DateTime? CompletedAt { get; private set; }
     public DateTime? CancelledAt { get; private set; }
 
-    // --- Dual Attendance Verification & Verification Window (Sprint 7) ---
-    public DateTime? AttendanceVerificationOpenedAt { get; private set; }
-    public DateTime? AttendanceVerificationDueAt { get; private set; }
-    public AttendanceStatus? StudentAttendance { get; private set; }
-    public DateTime? StudentAttendanceSubmittedAt { get; private set; }
-    public AttendanceStatus? TutorAttendance { get; private set; }
-    public DateTime? TutorAttendanceSubmittedAt { get; private set; }
-    public bool HasAttendanceConflict { get; private set; } = false;
+    // --- 12-Hour Grace Period (Auto-Payout) ---
+    public DateTime? GracePeriodStartedAt { get; private set; }
+    public DateTime? GracePeriodEndsAt { get; private set; }
+    public bool HasIssueReport { get; private set; } = false;
+    public string? IssueReportReason { get; private set; }
+    public string? IssueReportDescription { get; private set; }
+    public DateTime? IssueReportedAt { get; private set; }
+    public Guid? IssueReportedByUserId { get; private set; }
 
     // --- Payout linkage (used for idempotency by Application layer) ---
-    // Application layer uses this to verify payout has not been done.
-    // NOTE: there is intentionally NO Transaction navigation here. A session
-    // owns many transactions (payout + refunds/reversals); a 1:1 nav made EF
-    // sever earlier dependents when a second one was added (P0 HOTFIX).
     public bool IsPayoutReleased { get; private set; } = false;
 
-    // --- Dispute resolution override fields (DEC-S8-004) ---
+    // --- Admin resolution fields ---
     public string? ResolutionNotes { get; private set; }
     public string? ResolutionSource { get; private set; }
     public Guid? ResolvedByAdminId { get; private set; }
-    public DateTime? AttendanceVerifiedAt { get; private set; }
 
     // =======================================================
     // Domain Methods
     // =======================================================
 
     /// <summary>
-    /// Opens the attendance verification window (DEC-S7-014). Atomic domain transition.
-    /// Only succeeds if window has not been opened yet and session has ended.
+    /// Starts the 12-hour grace period after a session ends.
+    /// Transitions: Scheduled → AwaitingPayout.
     /// </summary>
-    public bool TryOpenAttendanceVerificationWindow(DateTime now, TimeSpan windowDuration)
+    public bool TryStartGracePeriod(DateTime now, TimeSpan graceDuration)
     {
         if (Status != SessionStatus.Scheduled)
             return false;
         if (!EndAt.HasValue || EndAt.Value > now)
             return false;
-        if (AttendanceVerificationOpenedAt.HasValue)
-            return false; // Already opened
+        if (GracePeriodStartedAt.HasValue)
+            return false; // Already started
 
-        AttendanceVerificationOpenedAt = now;
-        AttendanceVerificationDueAt = now.Add(windowDuration);
+        Status = SessionStatus.AwaitingPayout;
+        GracePeriodStartedAt = now;
+        GracePeriodEndsAt = now.Add(graceDuration);
         UpdatedAt = now;
         return true;
     }
 
     /// <summary>
-    /// Records attendance outcome submitted by the Student participant.
-    /// Only allowed when session is Scheduled and has ended (EndAt <= now).
+    /// Student reports an issue during grace period. Freezes auto-payout.
     /// </summary>
-    public void SubmitStudentAttendance(AttendanceStatus outcome, DateTime now)
+    public void ReportIssue(Guid studentUserId, string reason, string description, DateTime now)
     {
-        if (Status != SessionStatus.Scheduled)
+        if (Status != SessionStatus.AwaitingPayout)
         {
             throw new InvalidOperationException(
-                $"Cannot submit attendance for a session in '{Status}' status.");
+                $"Cannot report issue for a session in '{Status}' status. Session must be in AwaitingPayout.");
         }
 
-        if (EndAt.HasValue && EndAt.Value > now)
+        if (HasIssueReport)
         {
-            throw new InvalidOperationException(
-                "Cannot submit attendance before the session has ended.");
+            throw new InvalidOperationException("An issue has already been reported for this session.");
         }
 
-        StudentAttendance = outcome;
-        StudentAttendanceSubmittedAt = now;
+        HasIssueReport = true;
+        IssueReportReason = reason;
+        IssueReportDescription = description;
+        IssueReportedAt = now;
+        IssueReportedByUserId = studentUserId;
         UpdatedAt = now;
-        EvaluateAttendanceResolution();
     }
 
     /// <summary>
-    /// Records attendance outcome submitted by the Tutor participant.
-    /// Only allowed when session is Scheduled and has ended (EndAt <= now).
+    /// Auto-completes the session when grace period expires with no issue report.
+    /// Sets IsPayoutReleased = true.
     /// </summary>
-    public void SubmitTutorAttendance(AttendanceStatus outcome, DateTime now)
+    public void AutoComplete(DateTime now)
     {
-        if (Status != SessionStatus.Scheduled)
+        if (Status != SessionStatus.AwaitingPayout)
         {
             throw new InvalidOperationException(
-                $"Cannot submit attendance for a session in '{Status}' status.");
+                $"Cannot auto-complete a session in '{Status}' status.");
         }
 
-        if (EndAt.HasValue && EndAt.Value > now)
+        if (HasIssueReport)
         {
             throw new InvalidOperationException(
-                "Cannot submit attendance before the session has ended.");
+                "Cannot auto-complete a session with an active issue report.");
         }
 
-        TutorAttendance = outcome;
-        TutorAttendanceSubmittedAt = now;
+        if (IsPayoutReleased)
+        {
+            throw new InvalidOperationException(
+                "Payout for this session has already been released.");
+        }
+
+        Status = SessionStatus.Completed;
+        IsPayoutReleased = true;
+        CompletedAt = now;
         UpdatedAt = now;
-        EvaluateAttendanceResolution();
-    }
-
-    private void EvaluateAttendanceResolution()
-    {
-        if (StudentAttendance.HasValue && TutorAttendance.HasValue)
-        {
-            if (StudentAttendance == AttendanceStatus.Attended && TutorAttendance == AttendanceStatus.Attended)
-            {
-                HasAttendanceConflict = false;
-            }
-            else
-            {
-                // INTENTIONAL (FR-ATT-005, DEC-RM10): Any combination other than Attended+Attended
-                // (including Both Absent) is flagged as a conflict. Even though both agree they did
-                // not attend, tutor earnings cannot be released and automatic cancellation without
-                // human review risks unintended contract disruption. It must proceed to resolution.
-                HasAttendanceConflict = true;
-            }
-        }
-    }
-
-    public void FlagAttendanceConflict()
-    {
-        HasAttendanceConflict = true;
-        UpdatedAt = DateTime.UtcNow;
     }
 
     /// <summary>
     /// Sets or updates the schedule for this Session.
     /// Valid from Unscheduled or Scheduled status.
-    /// Throws if already Completed or Cancelled.
     /// </summary>
     public void Schedule(DateTime startAt, DateTime endAt)
     {
-        if (Status == SessionStatus.Completed)
+        if (Status == SessionStatus.Completed || Status == SessionStatus.AwaitingPayout)
         {
             throw new InvalidOperationException(
-                "Cannot reschedule a completed session.");
+                $"Cannot schedule a session in '{Status}' status.");
         }
 
         if (Status == SessionStatus.Cancelled)
         {
             throw new InvalidOperationException(
-                "Cannot reschedule a cancelled session.");
+                "Cannot schedule a cancelled session.");
         }
 
         if (endAt <= startAt)
@@ -181,7 +157,7 @@ public class Session
     }
 
     /// <summary>
-    /// Mutates the schedule of an already Scheduled session following counterparty acceptance (INV-RESCHED-002).
+    /// Mutates the schedule of an already Scheduled session.
     /// </summary>
     public void Reschedule(DateTime newStartAt, DateTime newEndAt, DateTime now)
     {
@@ -203,45 +179,20 @@ public class Session
     }
 
     /// <summary>
-    /// Marks the session as completed and flags payout as released.
-    /// Can only be called once. Throws if not Scheduled or already processed.
+    /// Admin resolution for disputed sessions.
     /// </summary>
-    public void Complete()
+    public void CompleteByAdmin(Guid adminId, string resolutionNotes, string resolutionSource, DateTime now, bool releasePayout = false)
     {
-        if (Status != SessionStatus.Scheduled)
+        if (Status != SessionStatus.AwaitingPayout && Status != SessionStatus.Scheduled)
         {
             throw new InvalidOperationException(
-                $"Cannot complete a session in '{Status}' status. Session must be Scheduled.");
-        }
-
-        if (IsPayoutReleased)
-        {
-            throw new InvalidOperationException(
-                "Payout for this session has already been released.");
-        }
-
-        Status = SessionStatus.Completed;
-        IsPayoutReleased = true;
-        CompletedAt = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    /// <summary>
-    /// Exceptional admin resolution for attendance disputes (DEC-S8-004).
-    /// </summary>
-    public void ResolveAttendanceByAdmin(Guid adminId, string resolutionNotes, string resolutionSource, DateTime now, bool releasePayout = false)
-    {
-        if (Status != SessionStatus.Scheduled)
-        {
-            throw new InvalidOperationException(
-                $"Only Scheduled sessions can be resolved by admin. Current status: '{Status}'.");
+                $"Only AwaitingPayout or Scheduled sessions can be resolved by admin. Current status: '{Status}'.");
         }
 
         ResolvedByAdminId = adminId;
         ResolutionNotes = resolutionNotes;
         ResolutionSource = resolutionSource;
-        AttendanceVerifiedAt = now;
-        HasAttendanceConflict = false;
+        HasIssueReport = false;
         Status = SessionStatus.Completed;
         CompletedAt = now;
         UpdatedAt = now;
@@ -252,10 +203,7 @@ public class Session
     }
 
     /// <summary>
-    /// Cancels a single session on participant request (F-19 gate, no finance).
-    /// Valid from Unscheduled, or from Scheduled whose start time is still in the future.
-    /// Escrow is untouched: the session's EarningAmount stays held until the
-    /// enrollment completes or is cancelled, when the existing pro-rata formula absorbs it.
+    /// Cancels a single session on participant request.
     /// </summary>
     public void CancelSingle(string reason, DateTime now)
     {
@@ -272,6 +220,11 @@ public class Session
         if (Status == SessionStatus.Cancelled)
         {
             throw new InvalidOperationException("Session is already cancelled.");
+        }
+
+        if (Status == SessionStatus.AwaitingPayout)
+        {
+            throw new InvalidOperationException("Cannot cancel a session that is awaiting payout. Use issue report instead.");
         }
 
         if (Status == SessionStatus.Scheduled && StartAt.HasValue && StartAt.Value <= now)
@@ -294,7 +247,6 @@ public class Session
 
     /// <summary>
     /// Cancels the session. Called by Enrollment.Cancel() for bulk cancellation.
-    /// Only valid from Unscheduled or Scheduled.
     /// </summary>
     public void CancelFromEnrollment()
     {
