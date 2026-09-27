@@ -167,8 +167,13 @@ public class AttendanceVerificationJob : BackgroundService
             }
         }
 
+        // Phases 1 & 2 use a separate DbContext scope so that any dirty entities
+        // from rolled-back orphan recovery iterations cannot leak into these saves.
+        using var verificationScope = _scopeFactory.CreateScope();
+        var verificationContext = verificationScope.ServiceProvider.GetRequiredService<IAppDbContext>();
+
         // 1. Open verification window for ended sessions (DEC-S7-021, INV-EVENT-014)
-        var endedSessions = await dbContext.Sessions
+        var endedSessions = await verificationContext.Sessions
             .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
             .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
             .Where(s => s.Status == SessionStatus.Scheduled &&
@@ -185,7 +190,7 @@ public class AttendanceVerificationJob : BackgroundService
                 var tutorUserId = session.Enrollment?.TutorProfile?.UserId ?? Guid.Empty;
 
                 // Enqueue AttendanceVerificationRequiredEvent in same DB transaction (DEC-S7-014)
-                dbContext.AddOutboxMessage(new AttendanceVerificationRequiredEvent(
+                verificationContext.AddOutboxMessage(new AttendanceVerificationRequiredEvent(
                     session.Id,
                     session.EnrollmentId,
                     studentUserId,
@@ -198,11 +203,11 @@ public class AttendanceVerificationJob : BackgroundService
 
         if (endedSessions.Count > 0)
         {
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await verificationContext.SaveChangesAsync(cancellationToken);
         }
 
         // 2. Timeout unverified / incomplete sessions to PendingResolution (PRD §14, DEC-S7-021)
-        var expiredSessions = await dbContext.Sessions
+        var expiredSessions = await verificationContext.Sessions
             .Where(s => s.Status == SessionStatus.Scheduled &&
                         s.AttendanceVerificationDueAt.HasValue &&
                         s.AttendanceVerificationDueAt.Value <= now &&
@@ -219,7 +224,7 @@ public class AttendanceVerificationJob : BackgroundService
 
         if (expiredSessions.Count > 0)
         {
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await verificationContext.SaveChangesAsync(cancellationToken);
         }
 
         return count;
