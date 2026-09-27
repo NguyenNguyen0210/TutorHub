@@ -51,8 +51,8 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
 
         var respondentUserId = userId == studentUserId ? tutorUserId : studentUserId;
 
-        // Session status check: can only dispute Scheduled or Completed sessions
-        if (session.Status == SessionStatus.Unscheduled || session.Status == SessionStatus.Cancelled)
+        // Session status check: can only dispute AwaitingPayout or Completed sessions
+        if (session.Status == SessionStatus.Unscheduled || session.Status == SessionStatus.Cancelled || session.Status == SessionStatus.Scheduled)
         {
             throw new BadRequestException($"Cannot dispute a session in '{session.Status}' status.");
         }
@@ -106,7 +106,6 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
             // Money is in pending escrow; lock attendance release.
             // HeldBalance on wallet is NOT incremented (INV-DISP-006).
             dispute.SetFinancialHold(session.EarningAmount, FinancialHoldType.EscrowHold, FinancialHoldStatus.Active, now);
-            session.FlagAttendanceConflict();
         }
         else
         {
