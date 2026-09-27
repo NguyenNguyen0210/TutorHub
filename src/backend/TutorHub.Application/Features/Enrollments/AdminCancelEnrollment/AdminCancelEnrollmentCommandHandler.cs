@@ -88,6 +88,7 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
 
         // 3. Domain state transition and refund calculation (DEC-C7-REFUND-001)
         var now = _clock.UtcNow;
+        var oldStatus = enrollment.Status.ToString();
         var refundAmount = enrollment.Cancel(request.Reason, CancelledBy.Admin);
 
         // 4. Financial Escrow Adjustment & Refund Record (DEC-C7-FINANCE-003).
@@ -162,7 +163,7 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
                 entityName: "Enrollment",
                 entityId: enrollment.Id.ToString(),
                 userId: userId,
-                oldValues: new { status = "Active" },
+                oldValues: new { status = oldStatus },
                 newValues: new { status = "Cancelled", reason = request.Reason, refundAmount },
                 cancellationToken: cancellationToken);
 
