@@ -13,7 +13,7 @@ using TutorHub.Application.Features.Sessions.CancelSession;
 using TutorHub.Application.Features.Sessions.ScheduleSession;
 using TutorHub.Application.Features.Sessions.ScheduleSessionsBatch;
 using TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.DTOs;
-using TutorHub.Application.Features.Sessions.SubmitAttendance;
+using TutorHub.Application.Features.Sessions.ReportSessionIssue;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Api.Controllers;
@@ -82,30 +82,17 @@ public class SessionsController : ControllerBase
         return Ok(ApiResponse<List<SessionDto>>.SuccessResult(result, "Sessions scheduled successfully."));
     }
 
-    /// <summary>
-    /// Dual attendance verification (Student or Tutor participant).
-    /// Matching attendance automatically completes session and releases progressive escrow payout.
-    /// </summary>
     [Authorize]
-    [HttpPost("{id:guid}/attendance")]
+    [HttpPost("{id:guid}/report-issue")]
     [ProducesResponseType(typeof(ApiResponse<SessionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> SubmitAttendance(
-        [FromRoute] Guid id,
-        [FromBody] SubmitAttendanceRequest request,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> ReportSessionIssue(Guid id, [FromBody] ReportSessionIssueRequest request)
     {
-        var command = new SubmitAttendanceCommand(
-            SessionId: id,
-            Outcome: request.Outcome
-        );
-
-        var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<SessionDto>.SuccessResult(result, "Attendance verification submitted successfully."));
+        var result = await _sender.Send(new ReportSessionIssueCommand(id, request.Reason, request.Description));
+        return Ok(ApiResponse<SessionDto>.SuccessResult(result, "Issue reported successfully. Payout has been frozen pending admin review."));
     }
 
     /// <summary>
@@ -230,4 +217,6 @@ public class SessionsController : ControllerBase
     public record CreateLearningRecordRequest(
         string Content
     );
+
+    public record ReportSessionIssueRequest(string Reason, string Description);
 }
