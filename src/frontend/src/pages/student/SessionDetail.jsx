@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import sessionService from '@/services/session.service';
-import AttendanceCard from '@/components/feedback/AttendanceCard';
+import GracePeriodCard from '@/components/feedback/GracePeriodCard';
 import { formatDateTime } from '@/utils/formatters';
 import Money from '@/components/ui/Money';
 import { useAuthStore } from '@/store/authStore';
@@ -22,7 +22,7 @@ import dayjs from 'dayjs';
  * SessionDetail — `/student/sessions/:id` và `/tutor/sessions/:id` (cùng component,
  * phân nhánh theo `isTutor`).
  *
- * Thứ tự khối (SPEC §5.5): identity → hạn chót đối soát → đối soát 2 chiều →
+ * Thứ tự khối (SPEC §5.5): identity → hạn chót báo cáo sự cố → cửa sổ bảo vệ 12 giờ →
  * nhật ký buổi học → thanh action ở chân trang. Hành động không còn chen giữa
  * header và khối đối soát — khối quan trọng nhất phải nằm ngay dưới hạn chót.
  *
@@ -99,11 +99,10 @@ export default function SessionDetail() {
     loadSessionData();
   }, [loadSessionData]);
 
-  // Handle Attendance submission from AttendanceCard
-  const handleAttendanceSubmitted = async (outcome) => {
-    const updated = await sessionService.submitAttendance(id, outcome);
+  // Handle Issue Report from GracePeriodCard
+  const handleIssueReported = async (reason, description) => {
+    const updated = await sessionService.reportSessionIssue(id, reason, description);
     setSession(updated);
-    toast.success('Đã cập nhật trạng thái điểm danh buổi học.');
   };
 
   // Handle Learning Record creation (Tutor only)
@@ -142,9 +141,9 @@ export default function SessionDetail() {
       return;
     }
 
-    const minNotice = dayjs().add(24, 'hour');
+    const minNotice = dayjs().add(2, 'hour');
     if (startDateTime.isBefore(minNotice)) {
-      toast.error('Lịch mới phải được xếp trước giờ bắt đầu ít nhất 24 giờ.');
+      toast.error('Lịch mới phải được xếp trước giờ bắt đầu ít nhất 2 giờ.');
       return;
     }
 
@@ -336,28 +335,28 @@ export default function SessionDetail() {
       )}
 
       {/* 2 · Deadline banner — hạn chót phải thấy TRƯỚC khi học viên bắt đầu thao tác */}
-      {session.attendanceVerificationDueAt && !isCancelled && !isCompleted && (
+      {session.gracePeriodEndsAt && !isCancelled && !isCompleted && (
         <Callout
           variant="holding"
-          title="Cửa sổ đối soát điểm danh 24h"
+          title="Cửa sổ bảo vệ 12 giờ"
           icon={<Icon name="timer" size="md" />}
         >
-          Hạn chót:{' '}
+          Hạn chót báo cáo sự cố:{' '}
           <strong className="font-mono tabular-nums">
-            {formatDateTime(session.attendanceVerificationDueAt)}
+            {formatDateTime(session.gracePeriodEndsAt)}
           </strong>{' '}
-          — Đối soát 2 chiều giữa học viên và gia sư.
+          — Nếu không có báo cáo, tiền sẽ tự động chuyển cho gia sư.
         </Callout>
       )}
 
       {/* Hai số cứng của buổi học: tiền và thời lượng. Số là nhân vật chính. */}
       <LedgerStrip figures={ledgerFigures} columns={2} />
 
-      {/* 3 · Attendance 2-way Verification — khối quan trọng nhất của màn */}
+      {/* 3 · Cửa sổ bảo vệ 12 giờ — khối quan trọng nhất của màn */}
       {!isCancelled && (
-        <AttendanceCard
+        <GracePeriodCard
           session={session}
-          onAttendanceSubmitted={handleAttendanceSubmitted}
+          onIssueReported={handleIssueReported}
           isTutor={isTutor}
         />
       )}
@@ -488,7 +487,7 @@ export default function SessionDetail() {
 
             <form onSubmit={handleDirectReschedule} className="p-6 pt-5 space-y-4 text-caption">
               <div className="p-3 bg-holding-subtle rounded-brand-md border border-holding/30 text-xs text-holding-strong">
-                <strong>Quy định đổi lịch:</strong> Lịch học mới phải cách thời điểm hiện tại ít nhất 24 giờ. Lịch học sẽ được cập nhật trực tiếp trên hệ thống ngay sau khi lưu.
+                <strong>Quy định đổi lịch:</strong> Lịch học mới phải cách thời điểm hiện tại ít nhất 2 giờ. Lịch học sẽ được cập nhật trực tiếp trên hệ thống ngay sau khi lưu.
               </div>
 
               <Field label="Ngày học mới" htmlFor="reschedule-date" required>
@@ -496,7 +495,7 @@ export default function SessionDetail() {
                   id="reschedule-date"
                   type="date"
                   value={rescheduleDate}
-                  min={dayjs().add(1, 'day').format('YYYY-MM-DD')}
+                  min={dayjs().format('YYYY-MM-DD')}
                   onChange={(e) => setRescheduleDate(e.target.value)}
                   required
                 />
