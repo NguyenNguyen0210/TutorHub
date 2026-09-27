@@ -3,6 +3,7 @@
  *
  * Verified payloads:
  * - GET  /conversations                     → CursorPagedResult<ConversationDto>
+ * - POST /conversations                      → ConversationDto (body { targetUserId })
  * - GET  /conversations/{id}/messages       → CursorPagedResult<MessageDto>
  * - POST /conversations/{id}/messages       → MessageDto (body { content, attachmentKey... })
  * - PUT  /conversations/{id}/read           → số message đã đọc
@@ -114,6 +115,15 @@ export const chatService = {
 
   /** PUT /conversations/{id}/read → số message đã đánh dấu đã đọc */
   markConversationAsRead: (conversationId) => api.put(`/conversations/${conversationId}/read`),
+
+  /**
+   * POST /conversations → ConversationDto
+   * Get or create a 1-to-1 conversation with the target user.
+   */
+  async getOrCreateConversation(targetUserId) {
+    const res = await api.post('/conversations', { targetUserId });
+    return normalizeConversation(res);
+  },
 };
 
 export default chatService;
