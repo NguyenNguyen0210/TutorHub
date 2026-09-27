@@ -249,7 +249,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                     now));
             }
 
-            session.ResolveAttendanceByAdmin(userId, request.AdminNotes, "DisputeAdminResolution", now, releasePayout: tutorGrossRelease > 0);
+            session.CompleteByAdmin(userId, request.AdminNotes, "DisputeAdminResolution", now, releasePayout: tutorGrossRelease > 0);
             dispute.ResolveByAdmin(userId, request.Decision, request.AdminNotes, now, affectsFinancial: true);
             dispute.ReleaseFinancialHold(userId, now);
         }
