@@ -32,7 +32,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
 
         if (emailExists)
         {
-            throw new ConflictException($"User with email '{request.Email}' already exists.");
+            throw new ConflictException("An account with this email already exists.");
         }
 
         var userId = Guid.NewGuid();
