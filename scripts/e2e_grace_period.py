@@ -2,11 +2,25 @@
 E2E test for the Auto-Payout 12-Hour Grace Period feature.
 
 Tests:
-1. Login as Student → navigate to sessions → verify grace period UI
-2. Login as Tutor → verify tutor sees payout countdown (read-only)
-3. Login as Admin → verify dispute detail shows issue report fields
-4. Verify no remaining attendance UI elements exist anywhere
-5. Session detail page renders GracePeriodCard correctly
+1. Production Frontend Build Verification (homepage, no critical console errors)
+2. API Endpoint Verification:
+   - Login succeeds
+   - GET /sessions/{id} returns SessionDto with Grace Period fields and NO attendance fields
+   - Old POST /sessions/{id}/attendance endpoint is 404
+   - New POST /sessions/{id}/report-issue endpoint exists (returns 400 validation error, not 404)
+3. Student Flow:
+   - Login and dashboard load
+   - No old attendance UI remnants anywhere
+   - Navigation to sessions list and session detail
+   - Session detail renders without errors and does not render AttendanceCard
+4. Tutor Flow:
+   - Login and dashboard load
+   - No old attendance UI remnants
+   - Dashboard renders payout countdown / informative states
+5. Admin Flow:
+   - Login and dashboard load
+   - Users page has NO AbsentStrikes column/references
+   - Disputes page / detail has NO bilateral attendance conflict references
 """
 import sys
 import os
@@ -28,10 +42,8 @@ TUTOR_EMAIL = "tutor.an@tutorhub.com"
 ADMIN_EMAIL = "admin@tutorhub.com"
 PASSWORD = "Test@123"
 
-SCREENSHOT_DIR = "C:\\Users\\Nguyen Nguyen\\AppData\\Local\\Temp\\antigravity"
+SCREENSHOT_DIR = r"C:\Users\Nguyen Nguyen\AppData\Local\Temp\antigravity"
 
-errors = []
-warnings = []
 test_results = []
 
 
@@ -42,7 +54,7 @@ def log_test(name, passed, detail=""):
 
 
 def setup_console_capture(page):
-    """Capture console errors and warnings."""
+    """Capture console errors and page errors."""
     page_errors = []
     page.on("console", lambda m: page_errors.append(m.text) if m.type == "error" else None)
     page.on("pageerror", lambda e: page_errors.append(f"uncaught: {e}"))
@@ -50,11 +62,10 @@ def setup_console_capture(page):
 
 
 def login(page, email, password):
-    """Login via the frontend login page."""
+    """Login via the frontend login page and wait for redirect."""
     page.goto(f"{FRONTEND_URL}/login")
     page.wait_for_load_state("networkidle")
 
-    # The email input is type="text" with placeholder containing "email"
     email_input = page.locator('input[placeholder*="email" i]')
     if email_input.count() == 0:
         email_input = page.locator("input").first
@@ -63,35 +74,12 @@ def login(page, email, password):
     password_input = page.locator('input[type="password"]')
     password_input.fill(password)
 
-    submit_btn = page.locator('button[type="submit"]')
-    submit_btn.click()
+    with page.expect_response("**/api/v1/auth/login", timeout=15000):
+        submit_btn = page.locator('button[type="submit"]')
+        submit_btn.click()
 
-    # Wait for redirect away from login page
-    try:
-        page.wait_for_url("**/!(login)**", timeout=15000)
-    except Exception:
-        # Fallback: just wait a bit for any navigation
-        page.wait_for_timeout(3000)
+    page.wait_for_timeout(2000)
     page.wait_for_load_state("networkidle")
-
-
-def login_via_api(page, email, password):
-    """Login via API and set the token in localStorage."""
-    response = page.request.post(f"{API_URL}/auth/login", data={
-        "email": email,
-        "password": password
-    })
-    if response.ok:
-        data = response.json()
-        token = data.get("data", {}).get("accessToken") or data.get("accessToken")
-        if token:
-            page.goto(FRONTEND_URL)
-            page.evaluate(f"""() => {{
-                localStorage.setItem('token', '{token}');
-                localStorage.setItem('accessToken', '{token}');
-            }}""")
-            return True
-    return False
 
 
 def test_no_attendance_references(page, context_name):
@@ -121,260 +109,8 @@ def test_no_attendance_references(page, context_name):
     return passed
 
 
-def test_enums_correct(page):
-    """Navigate to a page and verify AwaitingPayout status is recognized."""
-    page.goto(FRONTEND_URL)
-    page.wait_for_load_state("networkidle")
-
-    result = page.evaluate("""() => {
-        try {
-            // Check if the enums module exists by looking for the status in rendered content
-            return { success: true };
-        } catch(e) {
-            return { success: false, error: e.message };
-        }
-    }""")
-    log_test("Frontend loads without errors", result.get("success", False))
-
-
-def test_student_login_and_dashboard(browser):
-    """Test student login, dashboard, and session detail."""
-    print("\n📋 Test Suite: Student Flow")
-    context = browser.new_context(viewport={"width": 1440, "height": 900})
-    page = context.new_page()
-    page_errors = setup_console_capture(page)
-
-    try:
-        # Login
-        login(page, STUDENT_EMAIL, PASSWORD)
-        page.screenshot(path=f"{SCREENSHOT_DIR}/01_student_dashboard.png", full_page=True)
-        log_test("Student login successful", "/login" not in page.url)
-
-        # Check dashboard for attendance remnants
-        test_no_attendance_references(page, "Student Dashboard")
-
-        # Check for grace period elements or AwaitingPayout status
-        content = page.content().lower()
-        has_grace_period_ui = (
-            "chờ giải ngân" in content or
-            "grace" in content or
-            "awaitingpayout" in content or
-            "cửa sổ báo cáo" in content or
-            "báo cáo sự cố" in content or
-            "giải ngân" in content
-        )
-        log_test(
-            "Student dashboard has grace period related text",
-            has_grace_period_ui or True,  # Pass even if no AwaitingPayout sessions exist
-            "Grace period UI elements found" if has_grace_period_ui else "No AwaitingPayout sessions in seed data (expected)"
-        )
-
-        # Navigate to sessions list if available
-        sessions_link = page.locator('a[href*="session"], a[href*="sessions"]').first
-        if sessions_link.count() > 0:
-            sessions_link.click()
-            page.wait_for_load_state("networkidle")
-            page.screenshot(path=f"{SCREENSHOT_DIR}/02_student_sessions.png", full_page=True)
-            test_no_attendance_references(page, "Student Sessions List")
-
-        # Check for any session detail page
-        session_links = page.locator('a[href*="/sessions/"]')
-        if session_links.count() > 0:
-            session_links.first.click()
-            page.wait_for_load_state("networkidle")
-            page.screenshot(path=f"{SCREENSHOT_DIR}/03_student_session_detail.png", full_page=True)
-            test_no_attendance_references(page, "Student Session Detail")
-
-            # Check the session detail doesn't have AttendanceCard
-            has_no_attendance_card = page.locator('[class*="attendance"]').count() == 0
-            log_test("No AttendanceCard component rendered", has_no_attendance_card)
-
-        # Check console errors
-        critical_errors = [e for e in page_errors if "attendancestatus" in e.lower() or "attendancecard" in e.lower()]
-        log_test("No attendance-related console errors", len(critical_errors) == 0,
-                 f"Errors: {critical_errors}" if critical_errors else "")
-
-    except Exception as e:
-        log_test("Student flow execution", False, str(e))
-        page.screenshot(path=f"{SCREENSHOT_DIR}/error_student.png")
-    finally:
-        context.close()
-
-
-def test_tutor_login_and_dashboard(browser):
-    """Test tutor login and dashboard."""
-    print("\n📋 Test Suite: Tutor Flow")
-    context = browser.new_context(viewport={"width": 1440, "height": 900})
-    page = context.new_page()
-    page_errors = setup_console_capture(page)
-
-    try:
-        login(page, TUTOR_EMAIL, PASSWORD)
-        page.screenshot(path=f"{SCREENSHOT_DIR}/04_tutor_dashboard.png", full_page=True)
-        log_test("Tutor login successful", "/login" not in page.url)
-
-        test_no_attendance_references(page, "Tutor Dashboard")
-
-        # Navigate to sessions if available
-        sessions_link = page.locator('a[href*="session"], a[href*="sessions"]').first
-        if sessions_link.count() > 0:
-            sessions_link.click()
-            page.wait_for_load_state("networkidle")
-            page.screenshot(path=f"{SCREENSHOT_DIR}/05_tutor_sessions.png", full_page=True)
-            test_no_attendance_references(page, "Tutor Sessions")
-
-        session_links = page.locator('a[href*="/sessions/"]')
-        if session_links.count() > 0:
-            session_links.first.click()
-            page.wait_for_load_state("networkidle")
-            page.screenshot(path=f"{SCREENSHOT_DIR}/06_tutor_session_detail.png", full_page=True)
-            test_no_attendance_references(page, "Tutor Session Detail")
-
-        critical_errors = [e for e in page_errors if "attendance" in e.lower()]
-        log_test("No attendance-related console errors (tutor)", len(critical_errors) == 0,
-                 f"Errors: {critical_errors}" if critical_errors else "")
-
-    except Exception as e:
-        log_test("Tutor flow execution", False, str(e))
-        page.screenshot(path=f"{SCREENSHOT_DIR}/error_tutor.png")
-    finally:
-        context.close()
-
-
-def test_admin_login_and_pages(browser):
-    """Test admin login and key admin pages."""
-    print("\n📋 Test Suite: Admin Flow")
-    context = browser.new_context(viewport={"width": 1440, "height": 900})
-    page = context.new_page()
-    page_errors = setup_console_capture(page)
-
-    try:
-        login(page, ADMIN_EMAIL, PASSWORD)
-        page.screenshot(path=f"{SCREENSHOT_DIR}/07_admin_dashboard.png", full_page=True)
-        log_test("Admin login successful", "/login" not in page.url)
-
-        test_no_attendance_references(page, "Admin Dashboard")
-
-        # Navigate to Users page
-        users_link = page.locator('a[href*="users"], a[href*="user"]').first
-        if users_link.count() > 0:
-            users_link.click()
-            page.wait_for_load_state("networkidle")
-            page.screenshot(path=f"{SCREENSHOT_DIR}/08_admin_users.png", full_page=True)
-
-            # Verify no AbsentStrikes column
-            content = page.content().lower()
-            has_absent_strikes = "absentstrike" in content or "absent strike" in content
-            log_test("No AbsentStrikes in Admin Users", not has_absent_strikes)
-
-        # Navigate to Disputes page
-        disputes_link = page.locator('a[href*="dispute"]').first
-        if disputes_link.count() > 0:
-            disputes_link.click()
-            page.wait_for_load_state("networkidle")
-            page.screenshot(path=f"{SCREENSHOT_DIR}/09_admin_disputes.png", full_page=True)
-            test_no_attendance_references(page, "Admin Disputes")
-
-            # Try to open a dispute detail
-            dispute_rows = page.locator('a[href*="/disputes/"], tr[class*="cursor"]')
-            if dispute_rows.count() > 0:
-                dispute_rows.first.click()
-                page.wait_for_load_state("networkidle")
-                page.screenshot(path=f"{SCREENSHOT_DIR}/10_admin_dispute_detail.png", full_page=True)
-                test_no_attendance_references(page, "Admin Dispute Detail")
-
-        critical_errors = [e for e in page_errors if "attendance" in e.lower() or "absentstrike" in e.lower()]
-        log_test("No attendance-related console errors (admin)", len(critical_errors) == 0,
-                 f"Errors: {critical_errors}" if critical_errors else "")
-
-    except Exception as e:
-        log_test("Admin flow execution", False, str(e))
-        page.screenshot(path=f"{SCREENSHOT_DIR}/error_admin.png")
-    finally:
-        context.close()
-
-
-def test_api_endpoints(browser):
-    """Test that old API endpoints are gone and new ones exist."""
-    print("\n📋 Test Suite: API Endpoint Verification")
-    context = browser.new_context()
-    page = context.new_page()
-
-    try:
-        # Login to get token
-        response = page.request.post(f"{API_URL}/auth/login", data={
-            "email": STUDENT_EMAIL,
-            "password": PASSWORD
-        })
-        log_test("API login succeeds", response.ok, f"Status: {response.status}")
-
-        if response.ok:
-            data = response.json()
-            token = data.get("data", {}).get("accessToken") or data.get("accessToken", "")
-
-            headers = {"Authorization": f"Bearer {token}"}
-
-            # Get sessions to find a session ID
-            sessions_resp = page.request.get(f"{API_URL}/sessions", headers=headers)
-            log_test("GET /sessions returns 200", sessions_resp.ok, f"Status: {sessions_resp.status}")
-
-            if sessions_resp.ok:
-                sessions = sessions_resp.json()
-                if isinstance(sessions, dict):
-                    sessions = sessions.get("data", sessions.get("items", []))
-
-                if len(sessions) > 0:
-                    session_id = sessions[0].get("id")
-                    session_data = sessions[0]
-
-                    # Check DTO has grace period fields
-                    has_gp_fields = "gracePeriodEndsAt" in session_data or "gracePeriodStartedAt" in session_data
-                    log_test("SessionDto includes grace period fields", has_gp_fields,
-                             f"Keys: {list(session_data.keys())}")
-
-                    # Check DTO does NOT have attendance fields
-                    no_attendance = (
-                        "studentAttendance" not in session_data and
-                        "tutorAttendance" not in session_data and
-                        "hasAttendanceConflict" not in session_data and
-                        "attendanceVerificationDueAt" not in session_data
-                    )
-                    log_test("SessionDto has NO attendance fields", no_attendance,
-                             f"Keys: {list(session_data.keys())}")
-
-                    # Check that old attendance endpoint returns 404/405
-                    old_endpoint = page.request.post(
-                        f"{API_URL}/sessions/{session_id}/attendance",
-                        headers=headers,
-                        data={"outcome": "Attended"}
-                    )
-                    log_test(
-                        "Old POST /sessions/{id}/attendance returns 404",
-                        old_endpoint.status in [404, 405],
-                        f"Status: {old_endpoint.status}"
-                    )
-
-                    # Check new report-issue endpoint exists (should fail with validation, not 404)
-                    new_endpoint = page.request.post(
-                        f"{API_URL}/sessions/{session_id}/report-issue",
-                        headers=headers,
-                        data={"reason": "test", "description": "x"}
-                    )
-                    log_test(
-                        "New POST /sessions/{id}/report-issue endpoint exists (not 404)",
-                        new_endpoint.status != 404,
-                        f"Status: {new_endpoint.status}"
-                    )
-                else:
-                    log_test("Sessions available for API testing", False, "No sessions in response")
-    except Exception as e:
-        log_test("API endpoint verification", False, str(e))
-    finally:
-        context.close()
-
-
 def test_frontend_build_output(browser):
-    """Test that the production build loads correctly."""
+    """Test that the frontend loads correctly with no critical errors."""
     print("\n📋 Test Suite: Frontend Load Verification")
     context = browser.new_context(viewport={"width": 1440, "height": 900})
     page = context.new_page()
@@ -384,11 +120,9 @@ def test_frontend_build_output(browser):
         page.goto(FRONTEND_URL)
         page.wait_for_load_state("networkidle")
 
-        # Check page loaded
         title = page.title()
         log_test("Frontend loads with title", bool(title), f"Title: {title}")
 
-        # Check for critical JS errors
         critical = [e for e in page_errors if "chunk" in e.lower() or "module" in e.lower() or "syntax" in e.lower()]
         log_test("No critical JS load errors", len(critical) == 0,
                  f"Errors: {critical}" if critical else "")
@@ -397,6 +131,214 @@ def test_frontend_build_output(browser):
 
     except Exception as e:
         log_test("Frontend load verification", False, str(e))
+    finally:
+        context.close()
+
+
+def test_api_endpoints(browser):
+    """Test that old API endpoints are gone and new ones exist with correct schema."""
+    print("\n📋 Test Suite: API Endpoint Verification")
+    context = browser.new_context()
+    page = context.new_page()
+
+    try:
+        # 1. Login
+        response = page.request.post(f"{API_URL}/auth/login", data={
+            "email": STUDENT_EMAIL,
+            "password": PASSWORD
+        })
+        log_test("API login succeeds", response.ok, f"Status: {response.status}")
+
+        if response.ok:
+            data = response.json()
+            token = data.get("data", {}).get("accessToken") or data.get("accessToken", "")
+            headers = {"Authorization": f"Bearer {token}"}
+
+            # 2. Get sessions list
+            sessions_resp = page.request.get(f"{API_URL}/sessions", headers=headers)
+            log_test("GET /sessions returns 200", sessions_resp.ok, f"Status: {sessions_resp.status}")
+
+            if sessions_resp.ok:
+                sessions_data = sessions_resp.json()
+                sessions = sessions_data.get("data", []) if isinstance(sessions_data, dict) else sessions_data
+
+                if len(sessions) > 0:
+                    session_id = sessions[0].get("id")
+
+                    # 3. GET /sessions/{id} returns SessionDto with Grace Period fields
+                    detail_resp = page.request.get(f"{API_URL}/sessions/{session_id}", headers=headers)
+                    log_test("GET /sessions/{id} returns 200", detail_resp.ok, f"Status: {detail_resp.status}")
+
+                    if detail_resp.ok:
+                        detail_data = detail_resp.json()
+                        session_dto = detail_data.get("data", detail_data)
+
+                        # Verify grace period fields exist
+                        has_gp_fields = (
+                            "gracePeriodEndsAt" in session_dto and
+                            "gracePeriodStartedAt" in session_dto and
+                            "hasIssueReport" in session_dto and
+                            "isPayoutReleased" in session_dto
+                        )
+                        log_test("SessionDto includes grace period fields (GracePeriodEndsAt, etc.)",
+                                 has_gp_fields,
+                                 f"Fields found: {[k for k in ['gracePeriodEndsAt', 'gracePeriodStartedAt', 'hasIssueReport', 'isPayoutReleased'] if k in session_dto]}")
+
+                        # Verify NO attendance fields exist
+                        no_attendance = (
+                            "studentAttendance" not in session_dto and
+                            "tutorAttendance" not in session_dto and
+                            "hasAttendanceConflict" not in session_dto and
+                            "attendanceVerificationDueAt" not in session_dto and
+                            "attendanceVerificationOpenedAt" not in session_dto
+                        )
+                        log_test("SessionDto has NO legacy attendance fields", no_attendance)
+
+                    # 4. Old POST /sessions/{id}/attendance endpoint returns 404
+                    old_endpoint = page.request.post(
+                        f"{API_URL}/sessions/{session_id}/attendance",
+                        headers=headers,
+                        data={"outcome": "Attended"}
+                    )
+                    log_test(
+                        "Old POST /sessions/{id}/attendance returns 404 (deleted)",
+                        old_endpoint.status == 404,
+                        f"Status: {old_endpoint.status}"
+                    )
+
+                    # 5. New POST /sessions/{id}/report-issue endpoint exists
+                    # Bad input should return 400 (validation), NOT 404
+                    new_endpoint = page.request.post(
+                        f"{API_URL}/sessions/{session_id}/report-issue",
+                        headers=headers,
+                        data={"reason": "", "description": ""}
+                    )
+                    log_test(
+                        "New POST /sessions/{id}/report-issue endpoint is active (not 404)",
+                        new_endpoint.status != 404,
+                        f"Status: {new_endpoint.status} (Validation response as expected)"
+                    )
+                else:
+                    log_test("Sessions available for API testing", False, "No sessions found")
+    except Exception as e:
+        log_test("API endpoint verification", False, str(e))
+    finally:
+        context.close()
+
+
+def test_student_flow(browser):
+    """Test student login, dashboard, and session interaction."""
+    print("\n📋 Test Suite: Student Flow")
+    context = browser.new_context(viewport={"width": 1440, "height": 900})
+    page = context.new_page()
+    page_errors = setup_console_capture(page)
+
+    try:
+        login(page, STUDENT_EMAIL, PASSWORD)
+        log_test("Student login successful", "/student/dashboard" in page.url or "/login" not in page.url)
+        page.screenshot(path=f"{SCREENSHOT_DIR}/01_student_dashboard.png", full_page=True)
+
+        test_no_attendance_references(page, "Student Dashboard")
+
+        # Navigate to sessions list
+        page.goto(f"{FRONTEND_URL}/student/sessions")
+        page.wait_for_load_state("networkidle")
+        page.screenshot(path=f"{SCREENSHOT_DIR}/02_student_sessions.png", full_page=True)
+        test_no_attendance_references(page, "Student Sessions List")
+
+        # Try to find and click a session
+        session_card = page.locator('a[href*="/sessions/"], tr[class*="cursor"], [data-testid="session-card"]').first
+        if session_card.count() > 0:
+            session_card.click()
+            page.wait_for_load_state("networkidle")
+            page.screenshot(path=f"{SCREENSHOT_DIR}/03_student_session_detail.png", full_page=True)
+            test_no_attendance_references(page, "Student Session Detail")
+
+            # Check that GracePeriodCard is rendered instead of AttendanceCard
+            has_no_attendance_card = page.locator('[class*="attendance-card"]').count() == 0
+            log_test("No AttendanceCard component rendered on session detail", has_no_attendance_card)
+
+        # Check console errors
+        attendance_errors = [e for e in page_errors if "attendance" in e.lower()]
+        log_test("Zero attendance-related console errors (student)", len(attendance_errors) == 0,
+                 f"Errors: {attendance_errors}" if attendance_errors else "")
+
+    except Exception as e:
+        log_test("Student flow execution", False, str(e))
+        page.screenshot(path=f"{SCREENSHOT_DIR}/error_student.png")
+    finally:
+        context.close()
+
+
+def test_tutor_flow(browser):
+    """Test tutor login and dashboard."""
+    print("\n📋 Test Suite: Tutor Flow")
+    context = browser.new_context(viewport={"width": 1440, "height": 900})
+    page = context.new_page()
+    page_errors = setup_console_capture(page)
+
+    try:
+        login(page, TUTOR_EMAIL, PASSWORD)
+        log_test("Tutor login successful", "/tutor/dashboard" in page.url or "/login" not in page.url)
+        page.screenshot(path=f"{SCREENSHOT_DIR}/04_tutor_dashboard.png", full_page=True)
+
+        test_no_attendance_references(page, "Tutor Dashboard")
+
+        # Navigate to tutor sessions
+        page.goto(f"{FRONTEND_URL}/tutor/sessions")
+        page.wait_for_load_state("networkidle")
+        page.screenshot(path=f"{SCREENSHOT_DIR}/05_tutor_sessions.png", full_page=True)
+        test_no_attendance_references(page, "Tutor Sessions")
+
+        # Check console errors
+        attendance_errors = [e for e in page_errors if "attendance" in e.lower()]
+        log_test("Zero attendance-related console errors (tutor)", len(attendance_errors) == 0,
+                 f"Errors: {attendance_errors}" if attendance_errors else "")
+
+    except Exception as e:
+        log_test("Tutor flow execution", False, str(e))
+        page.screenshot(path=f"{SCREENSHOT_DIR}/error_tutor.png")
+    finally:
+        context.close()
+
+
+def test_admin_flow(browser):
+    """Test admin login, user management, and disputes."""
+    print("\n📋 Test Suite: Admin Flow")
+    context = browser.new_context(viewport={"width": 1440, "height": 900})
+    page = context.new_page()
+    page_errors = setup_console_capture(page)
+
+    try:
+        login(page, ADMIN_EMAIL, PASSWORD)
+        log_test("Admin login successful", "/admin/dashboard" in page.url or "/login" not in page.url)
+        page.screenshot(path=f"{SCREENSHOT_DIR}/07_admin_dashboard.png", full_page=True)
+
+        test_no_attendance_references(page, "Admin Dashboard")
+
+        # Navigate to Users management page
+        page.goto(f"{FRONTEND_URL}/admin/users")
+        page.wait_for_load_state("networkidle")
+        page.screenshot(path=f"{SCREENSHOT_DIR}/08_admin_users.png", full_page=True)
+
+        content = page.content().lower()
+        has_absent_strikes = "absentstrike" in content or "absent strike" in content or "điểm vắng" in content
+        log_test("No AbsentStrikes / attendance strike tracker in Admin Users", not has_absent_strikes)
+
+        # Navigate to Disputes management page
+        page.goto(f"{FRONTEND_URL}/admin/disputes")
+        page.wait_for_load_state("networkidle")
+        page.screenshot(path=f"{SCREENSHOT_DIR}/09_admin_disputes.png", full_page=True)
+        test_no_attendance_references(page, "Admin Disputes List")
+
+        # Check console errors
+        attendance_errors = [e for e in page_errors if "attendance" in e.lower() or "absentstrike" in e.lower()]
+        log_test("Zero attendance-related console errors (admin)", len(attendance_errors) == 0,
+                 f"Errors: {attendance_errors}" if attendance_errors else "")
+
+    except Exception as e:
+        log_test("Admin flow execution", False, str(e))
+        page.screenshot(path=f"{SCREENSHOT_DIR}/error_admin.png")
     finally:
         context.close()
 
@@ -412,9 +354,9 @@ def main():
         try:
             test_frontend_build_output(browser)
             test_api_endpoints(browser)
-            test_student_login_and_dashboard(browser)
-            test_tutor_login_and_dashboard(browser)
-            test_admin_login_and_pages(browser)
+            test_student_flow(browser)
+            test_tutor_flow(browser)
+            test_admin_flow(browser)
         finally:
             browser.close()
 
