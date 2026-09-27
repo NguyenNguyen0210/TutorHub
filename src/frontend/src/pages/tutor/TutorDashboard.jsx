@@ -23,18 +23,17 @@ import StateBadge from '@/components/ledger/StateBadge';
  * Bảng điều hành gia sư — Operational Ledger (SPEC §4.1).
  *
  * Mirror của Bàn học Học viên nhưng ưu tiên khác: gia sư bán thời gian, nên việc
- * chờ nằm ở tiền hợp đồng đang ký quỹ (buổi chưa xếp lịch, buổi chưa đối soát
- * điểm danh) chứ không phải ở hợp đồng. Action Queue dùng chung component,
+ * chờ nằm ở tiền hợp đồng đang ký quỹ (buổi chưa xếp lịch, buổi chờ giải ngân)
+ * chứ không phải ở hợp đồng. Action Queue dùng chung component,
  * cùng một cách render với vùng Học viên.
  *
  * Nguồn dữ liệu: `GET /sessions` trả về SessionCalendarDto phẳng cho tutor —
  * đã gồm cả buổi `Unscheduled`, nên phần lớn hàng việc chờ chỉ cần MỘT request,
  * không cần gọi `getEnrollmentById` theo từng enrollment như `TutorSchedule`.
  *
- * Lưu ý quan trọng: `SessionCalendarDto` **không có** `attendanceVerificationDueAt`,
- * `tutorAttendance` hay `hasAttendanceConflict` (những field này chỉ nằm ở
- * `GET /sessions/{id}`). Nên các nhánh đối soát/xung đột sẽ không bao giờ chạy nếu
- * chỉ dựa vào danh sách calendar — ta hydrate riêng các buổi đã kết thúc.
+ * Lưu ý quan trọng: `SessionCalendarDto` **không có** `gracePeriodEndsAt`
+ * hay `hasIssueReport` (những field này chỉ nằm ở `GET /sessions/{id}`).
+ * Ta hydrate riêng các buổi có trạng thái AwaitingPayout.
  */
 export default function TutorDashboard() {
   const { user } = useAuthStore();
@@ -62,11 +61,8 @@ export default function TutorDashboard() {
         setApplication(appData);
         setError(null);
 
-        // Chỉ hydrate các buổi đã kết thúc (thường 0–3) để lấy field điểm danh.
-        const ended = new Date();
-        const candidates = calendar.filter(
-          (s) => s.status === 'Scheduled' && s.endAt && new Date(s.endAt) < ended
-        );
+        // Chỉ hydrate các buổi chờ giải ngân (AwaitingPayout) để lấy field gracePeriodEndsAt.
+        const candidates = calendar.filter((s) => s.status === 'AwaitingPayout');
         if (candidates.length === 0) {
           setSessions(calendar);
           return;
@@ -110,14 +106,11 @@ export default function TutorDashboard() {
     [sessions]
   );
 
-  const strikes = user?.absentStrikes ?? 0;
-
   /**
    * Hàng việc chờ — thứ tự ưu tiên (SPEC §4.1):
    *   1. Buổi chưa xếp lịch — tiền hợp đồng đang ký quỹ, học viên đang chờ.
-   *   2. Buổi đã diễn ra trong cửa sổ 24h, chưa xác nhận điểm danh.
-   *   3. Xung đột điểm danh hai bên.
-   *   4. Buổi sắp tới.
+   *   2. Buổi chờ giải ngân tự động — thông tin đếm ngược cho gia sư.
+   *   3. Buổi sắp tới.
    * `ActionQueue` tự sắp xếp tăng dần theo `deadlineAt` — chỉ cần đưa đúng hạn.
    */
   const queue = useMemo(() => {
@@ -153,70 +146,36 @@ export default function TutorDashboard() {
         });
       });
 
-    // (2) Buổi đã diễn ra, cửa sổ đối soát 24h còn mở, gia sư chưa xác nhận.
+    // (2) Buổi chờ giải ngân tự động — thông tin đếm ngược cho gia sư (không cần thao tác)
     sessions
-      .filter(
-        (s) =>
-          s.endAt &&
-          dayjs(s.endAt).isBefore(now) &&
-          s.attendanceVerificationDueAt &&
-          dayjs(s.attendanceVerificationDueAt).isAfter(now) &&
-          s.tutorAttendance !== 'Attended'
-      )
+      .filter((s) => s.status === 'AwaitingPayout')
       .forEach((s) => {
+        const payoutTime = s.gracePeriodEndsAt
+          ? formatDateTime(s.gracePeriodEndsAt, 'HH:mm DD/MM/YYYY')
+          : 'hết thời gian chờ';
         items.push({
-          key: `attendance-${s.id}`,
-          title: `Buổi #${s.sessionNumber}${s.subjectName ? ` · ${s.subjectName}` : ''} cần xác nhận điểm danh`,
-          detail: s.studentName
-            ? `Học viên ${s.studentName}. Cửa sổ 24h đang mở, chưa xác nhận thì tiền buổi dạy chưa được giải ngân.`
-            : 'Cửa sổ 24h đang mở, chưa xác nhận thì tiền buổi dạy chưa được giải ngân.',
+          key: `payout-${s.id}`,
+          title: `Buổi #${s.sessionNumber}${s.subjectName ? ` · ${s.subjectName}` : ''}`,
+          detail: `Tiền sẽ được giải ngân vào ${payoutTime}`,
           priority: 1,
-          deadlineAt: s.attendanceVerificationDueAt,
+          deadlineAt: s.gracePeriodEndsAt ?? undefined,
           icon: 'timer',
-          tone: 'info',
+          tone: 'holding',
           action: (
             <Button
               as={Link}
               to={`/tutor/sessions/${s.id}`}
-              variant="primary"
+              variant="outline"
               size="sm"
               className="whitespace-nowrap"
             >
-              Xác nhận
+              Chi tiết
             </Button>
           ),
         });
       });
 
-    // (3) Xung đột điểm danh — hai bên xác nhận khác nhau, cần mở ra xem.
-    sessions
-      .filter((s) => s.hasAttendanceConflict)
-      .forEach((s) => {
-        items.push({
-          key: `conflict-${s.id}`,
-          title: `Xung đột điểm danh buổi #${s.sessionNumber}${s.subjectName ? ` · ${s.subjectName}` : ''}`,
-          detail: s.studentName
-            ? `Hai bên ghi nhận điểm danh khác nhau với học viên ${s.studentName}.`
-            : 'Hai bên ghi nhận điểm danh khác nhau.',
-          priority: 2,
-          deadlineAt: s.attendanceVerificationDueAt ?? undefined,
-          icon: 'warning',
-          tone: 'danger',
-          action: (
-            <Button
-              as={Link}
-              to={`/tutor/sessions/${s.id}`}
-              variant="danger-outline"
-              size="sm"
-              className="whitespace-nowrap"
-            >
-              Xem
-            </Button>
-          ),
-        });
-      });
-
-    // (4) Buổi sắp tới — giữ cho gia sư nhìn thấy ngay kẻ tiếp theo trong ngày.
+    // (3) Buổi sắp tới — giữ cho gia sư nhìn thấy ngay kẻ tiếp theo trong ngày.
     if (nextSession) {
       items.push({
         key: `next-${nextSession.id}`,
@@ -224,7 +183,7 @@ export default function TutorDashboard() {
           nextSession.subjectName ? ` · ${nextSession.subjectName}` : ''
         } sắp bắt đầu`,
         detail: nextSession.studentName ? `Học viên: ${nextSession.studentName}` : undefined,
-        priority: 3,
+        priority: 2,
         deadlineAt: nextSession.startAt,
         icon: 'calendar_clock',
         tone: 'info',
@@ -243,7 +202,7 @@ export default function TutorDashboard() {
     }
 
     return items;
-  }, [sessions, nextSession, now]);
+  }, [sessions, nextSession]);
 
   /** Sổ buổi dạy — 5 buổi sắp tới gần nhất, sớm nhất lên đầu. */
   const ledgerSessions = useMemo(
@@ -259,7 +218,7 @@ export default function TutorDashboard() {
     return (
       <div className="space-y-6">
         <div className="h-16 bg-neutral-200 rounded-brand-md animate-pulse" />
-        <StatsSkeleton count={4} />
+        <StatsSkeleton count={3} />
       </div>
     );
   }
@@ -434,18 +393,7 @@ export default function TutorDashboard() {
             key: 'available',
             label: 'Thu nhập khả dụng',
             value: <Money value={wallet?.availableBalance || 0} />,
-            hint: 'Đã giải ngân sau đối soát (trừ 10% phí)',
-          },
-          {
-            key: 'discipline',
-            label: 'Chỉ số kỷ luật',
-            value: (
-              <span>
-                {strikes} / 3
-              </span>
-            ),
-            hint: strikes === 0 ? 'Không có vi phạm vắng mặt' : 'Đã ghi nhận vắng mặt',
-            tone: strikes > 0 ? 'danger' : 'default',
+            hint: 'Đã giải ngân vào ví (trừ 10% phí)',
           },
         ]}
       />
