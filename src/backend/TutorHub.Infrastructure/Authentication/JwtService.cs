@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Security;
 using TutorHub.Domain.Entities;
 
@@ -12,10 +13,12 @@ namespace TutorHub.Infrastructure.Authentication;
 public class JwtService : IJwtService
 {
     private readonly JwtOptions _jwtOptions;
+    private readonly IClock _clock;
 
-    public JwtService(IOptions<JwtOptions> jwtOptions)
+    public JwtService(IOptions<JwtOptions> jwtOptions, IClock clock)
     {
         _jwtOptions = jwtOptions.Value;
+        _clock = clock;
     }
 
     public string GenerateAccessToken(User user, Guid? tutorProfileId = null, Guid? studentProfileId = null)
@@ -48,7 +51,7 @@ public class JwtService : IJwtService
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddMinutes(_jwtOptions.AccessTokenExpirationMinutes),
+            Expires = _clock.UtcNow.AddMinutes(_jwtOptions.AccessTokenExpirationMinutes),
             Issuer = _jwtOptions.Issuer,
             Audience = _jwtOptions.Audience,
             SigningCredentials = credentials
