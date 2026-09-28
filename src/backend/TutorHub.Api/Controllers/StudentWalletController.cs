@@ -99,18 +99,9 @@ public class StudentWalletController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> RequestWithdrawal(
-        [FromBody] StudentWithdrawalApiRequest request,
+        [FromBody] StudentRequestWithdrawalCommand command,
         CancellationToken cancellationToken)
     {
-        var command = new StudentRequestWithdrawalCommand(
-            request.Amount,
-            request.BankName,
-            request.BankCode,
-            request.AccountNumber,
-            request.AccountHolderName,
-            request.Note
-        );
-
         var result = await _sender.Send(command, cancellationToken);
         return StatusCode(
             StatusCodes.Status201Created,
