@@ -116,10 +116,7 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
                 transaction.Booking.Status = BookingStatus.Paid;
                 transaction.Booking.ConfirmedAt = now;
 
-                if (transaction.Booking.ServiceId.HasValue)
-                {
-                    await _activationService.ActivateAsync(transaction.Booking, now, cancellationToken);
-                }
+                await _activationService.ActivateAsync(transaction.Booking, now, cancellationToken);
 
                 try
                 {
@@ -179,10 +176,7 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
         {
             booking.ReactivateForPayment(now);
 
-            if (booking.ServiceId.HasValue)
-            {
-                await _activationService.ActivateAsync(booking, now, cancellationToken);
-            }
+            await _activationService.ActivateAsync(booking, now, cancellationToken);
 
             try
             {

@@ -30,7 +30,8 @@ public class DisputesController : ControllerBase
     }
 
     /// <summary>
-    /// File a dispute on a scheduled or completed session.
+    /// File a dispute on a session within its 12-hour grace period (pre-release only).
+    /// A session past grace without a report is deemed accepted and cannot be disputed.
     /// </summary>
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<DisputeDto>), StatusCodes.Status201Created)]

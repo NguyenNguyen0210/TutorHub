@@ -94,8 +94,8 @@ Sessions (Unscheduled → Scheduled trong AvailabilitySlots của Tutor)
 Auto-Payout Grace Period (12 giờ phản hồi — Nếu không có báo cáo sự cố ReportSessionIssue → Tự động giải ngân)
        ↓ (AutoPayoutJob: Quét các buổi AwaitingPayout hết hạn 12h và giải ngân tự động)
 Wallet Payout Release (Giải ngân SessionPayoutCredit cho từng buổi hoàn thành)
-       ↓ (Nếu có khiếu nại / ReportSessionIssue)
-Dispute Engine (Pre-release Escrow hold hoặc Post-release Balance hold)
+       ↓ (Nếu có khiếu nại / ReportSessionIssue trong 12h grace)
+Dispute Engine (pre-release Escrow hold — quá 12h không report = chấp nhận, khỏi kiện)
        ↓ (Admin phân xử bằng công thức cân đối phí sàn bất biến)
 Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + AuditLog)
 ```
@@ -146,14 +146,14 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
 ## 🚫 LUẬT CỨNG BẤT BIẾN [ĐIỀU KHÔNG ĐƯỢC PHÁ]
 
 * ⛔ **1. Không bao giờ tắt `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`:** Mọi commit phải build thành công với **0 Warnings, 0 Errors** trên cả Backend (`dotnet build`) và Frontend (`npm run lint`).
-* ⛔ **2. Mô hình Booking là Package-based (Không quay lại Single-slot Booking):** `Booking` tham chiếu `ServiceId`, hoặc `CustomAgreementId` đi kèm hidden `Service (Unpublished)` snapshot (`DEC-S8-020`). Thanh toán thành công kích hoạt `Enrollment` (qua `Pending → Active`) và sinh $N$ `Session`. Tuyệt đối không tạo booking đơn lẻ ngoài gói dịch vụ.
+* ⛔ **2. Mô hình Booking là Package-based (Service-only):** `Booking` bắt buộc tham chiếu `ServiceId` (required, `DEC-S8-020`). Thanh toán thành công kích hoạt `Enrollment` (qua `Pending → Active`) và sinh $N$ `Session`. Tuyệt đối không tạo booking đơn lẻ ngoài gói dịch vụ. Custom Agreement đã bị xóa hẳn (v1.3).
 * ⛔ **3. Sổ Cái Tài Chính & Audit Log là Append-Only (`INV-LEDGER-006`, `INV-LEDGER-007`):** `AppDbContext.SaveChangesAsync` chặn đứng mọi hành vi `Modified` hoặc `Deleted` đối với `AuditLog` và các giao dịch đã quyết toán (`Transaction.Status == Released || Succeeded`). Mọi điều chỉnh tài chính phải là transaction mới (`StudentRefund`, `PlatformFeeReversal`).
 * ⛔ **4. Cấm Chaining Transaction (`DEC-S8-030`):** Mọi giao dịch điều chỉnh (`StudentRefund`, `PlatformFeeReversal`) phải trỏ trực tiếp về giao dịch giải ngân gốc (`RelatedTransaction.Type == SessionPayoutCredit`), cấm trỏ bắc cầu vào một adjustment khác.
-* ⛔ **5. Bất Biến Rút Tiền Khả Dụng (`DEC-WD-001`, `DEC-S8-001`):** Gia sư chỉ được rút tiền tối đa bằng `WithdrawableBalance = AvailableBalance - HeldBalance`. Không được rút vào phần tiền đang bị giữ do tranh chấp (`HeldBalance`).
-* ⛔ **6. Bất Biến Tranh Chấp Không Giữ Tiền Một Phần (`DEC-S8-028`, `INV-DISP-008`):** Trong tranh chấp sau giải ngân (Post-release), nếu `WithdrawableBalance < MaxTutorRecovery`, hệ thống **phải giữ 0 đồng** (`HeldAmount = 0`) và chuyển Dispute sang trạng thái `RequiresAdminFinancialIntervention`. Tuyệt đối không giữ một phần làm sai lệch hạn mức và phá vỡ tính sở hữu tiền ví.
-* ⛔ **7. Công Thức Cân Đối Phí Sàn Chuẩn (`DEC-S8-025`, `Mandatory Patch B`):**
+* ⛔ **5. Bất Biến Rút Tiền Khả Dụng (`DEC-WD-001`, `DEC-S8-001`):** Gia sư chỉ được rút tiền tối đa bằng `WithdrawableBalance = AvailableBalance - HeldBalance`. Không được rút vào phần tiền đang bị giữ (`HeldBalance`). (v1.4: dispute không còn tạo hold mới; rule giữ nguyên ở tầng ví.)
+* ⛔ **6. ~~Bất Biến Tranh Chấp Không Giữ Tiền Một Phần (`DEC-S8-028`, `INV-DISP-008`)~~ — RETIRED (v1.4):** post-release disputes đã bị xóa nên trường hợp giữ tiền một phần không còn xảy ra. `HeldBalance`/`RequiresAdminFinancialIntervention` chỉ còn ý nghĩa lịch sử.
+* ⛔ **7. Công Thức Cân Đối Phí Sàn Chuẩn (`DEC-S8-025`, `Mandatory Patch B`) — chỉ còn ý nghĩa lịch sử (v1.4):**
   $$\text{StudentRefund} \equiv \text{TutorNetRecovery} + \text{PlatformFeeReversal}$$
-  Thu hồi từ ví gia sư không bao giờ được vượt quá số tiền gia sư thực nhận từ buổi học đó. Phí sàn được hoàn tương ứng theo tỷ lệ snapshot.
+  Pre-release resolve hiện chia trực tiếp `tutorGrossRelease` theo snapshot fee, không clawback. Không tạo `PlatformFeeReversal` mới.
 * ⛔ **8. Vòng Đời Hoàn Tiền Ngoại Vi (`DEC-S8-032`, `INV-REFUND-004`):** Khi Admin phân xử hoàn tiền cho học viên, `StudentRefund` bắt đầu ở trạng thái `Pending`. Chỉ chuyển sang `Succeeded` khi cổng thanh toán xác nhận thành công. Nếu cổng thất bại (`Failed`), nghĩa vụ tài chính nội bộ vẫn giữ nguyên (`SettlementRequired = true`) để Admin xử lý offline, không được rollback tiền ví gia sư.
 * ⛔ **9. Snapshot Phí Sàn Bất Biến (`DEC-S8-020`):** `Enrollment` snapshot cố định `PlatformFeeRate` và `FeePolicyVersion` tại thời điểm tạo. Việc Admin thay đổi phí sàn toàn hệ thống (`PlatformSetting`) chỉ áp dụng cho các hợp đồng tạo mới sau đó, không hồi tố hợp đồng cũ.
 * ⛔ **10. Khóa Tài Nguyên Có Thứ Tự Tránh Deadlock (`DEC-S8-027`):** Mọi nghiệp vụ có tranh chấp và ví phải khóa tài nguyên theo thứ tự: $\text{Dispute} \prec \text{Wallet (FOR UPDATE)} \prec \text{Transaction}$.

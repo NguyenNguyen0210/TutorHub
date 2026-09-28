@@ -1,17 +1,17 @@
 # TutorHub — Product Requirements Document (PRD)
 
-**Version:** 1.2
-**Status:** Final / Business Baseline Frozen (v1.0 baseline + v1.1 & v1.2 implementation deltas below)
+**Version:** 1.4
+**Status:** Final / Business Baseline Frozen (v1.0 baseline + v1.1, v1.2, v1.3 & v1.4 implementation deltas below)
 **Product:** TutorHub
 **Document Type:** Product Requirements Document
 
-## Changelog v1.0 → v1.2 (owner-approved implementation deltas)
+## Changelog v1.0 → v1.4 (owner-approved implementation deltas)
 
 | # | Area | Delta |
 |---|---|---|
-| 1 | Checkout | Booking entity made explicit: `Holding` (15m) → `Pending`; `ServiceId` nullable for CustomAgreement path (hidden `Unpublished` snapshot Service) |
+| 1 | Checkout | Booking entity made explicit: `Holding` (15m) → `Pending`; `ServiceId` nullable for CustomAgreement path (hidden `Unpublished` snapshot Service) — REMOVED v1.3, ServiceId required |
 | 2 | Enrollment | `Pending → Active` activation step made explicit (was implied) |
-| 3 | Custom Agreement | Status machine + `ExpiresAt` + `Booking.CustomAgreementId` linkage documented |
+| 3 | Custom Agreement | Status machine + `ExpiresAt` + `Booking.CustomAgreementId` linkage documented — REMOVED v1.3 |
 | 4 | Trial | Implemented as `Service.TrialLessonUrl` (external URL), no TrialLesson entity |
 | 5 | No-show | Strikes: rolling 30-day window, 2+ strikes + latest < 7 days freezes new bookings; silence never judged |
 | 6 | Dispute | Fast-track template (pre-release, one-sided Attended + > 3d silence + ≥ 1 evidence); filing needs Description ≥ 20 chars; financial resolve needs ≥ 1 evidence |
@@ -19,6 +19,8 @@
 | 8 | Fees | `PlatformFeeRate`/`FeePolicyVersion` snapshot per Enrollment, non-retroactive (FR-OPEN-008 versioning decided) |
 | 9 | Events | 26 core events + `MessageSent` (`RefundFailed`, `PlatformSettingChanged` added) |
 | 10 | Student Wallet | Ví Học Viên (`StudentWallet`): nạp tiền tự động 24/7 qua Cổng thanh toán VNPay, thanh toán khóa học 100% từ ví, hoàn tiền tự động ghi có ngay vào ví, rút tiền tối thiểu 50.000 VNĐ, quản trị Admin đối soát/xử lý rút, bảo vệ sổ cái bất biến `StudentWalletTransaction` |
+| 11 | Custom Agreement removal | Xóa hẳn Custom Agreement (owner decision: không cần thiết). Booking chỉ còn Service-only (`ServiceId` required). Xóa `CustomAgreement` entity, `AgreementsController`, `CustomOfferCreated/Accepted` events. |
+| 12 | 12h-grace dispute rule | Dispute chỉ pre-release trong 12h grace; quá hạn = chấp nhận, khỏi kiện. Xóa post-release `BalanceHold`/`FeeReversal`/`DisputeSettlementCalculator`. |
 
 ---
 
@@ -30,13 +32,12 @@ TutorHub là một marketplace kết nối **Student** với **Tutor**, cho phé
 
 Khác với mô hình "đặt từng buổi học", TutorHub tập trung vào **service/package-based learning**:
 
-> Tutor cung cấp một dịch vụ học tập với phạm vi, giá, số lượng session và điều kiện rõ ràng. Student lựa chọn dịch vụ, thỏa thuận với Tutor nếu cần custom, thanh toán thông qua TutorHub và sau đó tham gia các Session thuộc Enrollment.
+> Tutor cung cấp một dịch vụ học tập với phạm vi, giá, số lượng session và điều kiện rõ ràng. Student lựa chọn dịch vụ, thanh toán thông qua TutorHub và sau đó tham gia các Session thuộc Enrollment.
 
 TutorHub đóng vai trò trung gian đảm bảo:
 
 * Discovery.
 * Communication.
-* Agreement.
 * Payment protection.
 * Session tracking.
 * Attendance verification.
@@ -56,7 +57,6 @@ Student hiện gặp khó khăn trong việc:
 * Hiểu Tutor cung cấp dịch vụ gì.
 * So sánh các lựa chọn.
 * Biết trước phạm vi và chi phí học tập.
-* Trao đổi và custom dịch vụ.
 * Quản lý lịch học.
 * Theo dõi lịch sử học.
 * Đảm bảo quyền lợi khi Tutor không thể tiếp tục.
@@ -86,7 +86,7 @@ TutorHub phải cho phép:
 1. Student discover Tutor và Service.
 2. Student xem Trial Lesson trước khi quyết định.
 3. Student trao đổi với Tutor.
-4. Student mua Standard Service hoặc Custom Agreement.
+4. Student mua Standard Service.
 5. Student thanh toán thông qua platform.
 6. Enrollment được quản lý xuyên suốt lifecycle.
 7. Sessions được tạo và quản lý theo Enrollment.
@@ -113,8 +113,6 @@ Student có thể:
 * View Trial Lesson.
 * Message Tutor.
 * Accept Standard Service.
-* Request/customize service.
-* Accept Custom Agreement.
 * Make payment.
 * Manage Enrollment.
 * View Schedule.
@@ -140,7 +138,6 @@ Tutor có thể sau khi được approve:
 * Provide Trial Lesson.
 * Receive Student inquiries.
 * Message Student.
-* Create Custom Offer.
 * Manage Enrollment.
 * Propose/manage Schedule.
 * Conduct Sessions.
@@ -219,27 +216,10 @@ Mục đích của Trial Lesson là giúp Student đánh giá:
 
 ## 4.3. Decision
 
-Sau khi xem Service/Trial Lesson, Student có hai hướng:
-
-### Standard Service
-
-Student chấp nhận dịch vụ được Tutor đưa ra.
+Sau khi xem Service/Trial Lesson, Student mua Standard Service:
 
 ```text
 View Service
-→ Accept
-→ Pay
-```
-
-### Custom Service
-
-Student muốn thay đổi điều kiện.
-
-```text
-View Service
-→ Message Tutor
-→ Discuss
-→ Custom Agreement
 → Accept
 → Pay
 ```
@@ -296,7 +276,6 @@ Tutor có thể:
 * Receive inquiries.
 * Chat với Student.
 * Answer questions.
-* Create Custom Offer khi Student yêu cầu.
 
 ---
 
@@ -305,7 +284,7 @@ Tutor có thể:
 Sau khi Student accept và payment thành công:
 
 ```text
-Service / CustomAgreement
+Service
 → Booking (Holding 15m → Pending)
 → Enrollment (Pending → Active)
 → N Sessions
@@ -315,7 +294,7 @@ Service / CustomAgreement
 
 - Accept tạo **Booking** `Holding` với `HoldingExpiresAt = now + 15 phút`; quá hạn không pay → Booking hết hiệu lực, không sinh Enrollment.
 - Booking thanh toán xong sang `Pending` (chuẩn duy nhất cho cả mock và VNPay IPN; `Paid` chỉ còn hàng lịch sử).
-- Booking tham chiếu `ServiceId`, hoặc `CustomAgreementId` kèm hidden `Service (Unpublished)` snapshot khi deal custom không gắn Service gốc.
+- Booking bắt buộc tham chiếu `ServiceId` (Service-only, v1.3 xóa Custom Agreement).
 
 Tutor bắt đầu thực hiện Service.
 
@@ -527,6 +506,10 @@ Issue
 - Mở dispute cần `Description` ≥ 20 ký tự; resolve có tiền cần ≥ 1 evidence (bác đơn không tiền được miễn).
 - Fast-track (chỉ escrow pre-release): một bên `Attended` + bên kia im lặng quá 3 ngày sau hạn verify + ≥ 1 evidence → template: tutor-claim giải ngân net, student-claim hoàn full.
 
+### v1.4: 12h-grace rule (owner decision)
+
+- Dispute chỉ tồn tại pre-release trong 12h grace của buổi học. Quá hạn không report = mặc nhiên chấp nhận, tiền tự động về tutor, buổi đã giải ngân không thể khiếu nại. Bỏ toàn bộ post-release balance hold / fee-reversal.
+
 ---
 
 ## 8.5. Refund
@@ -556,24 +539,10 @@ Draft
 
 ---
 
-## 9.2. Custom Agreement
+## 9.2. Custom Agreement — REMOVED (v1.3)
 
-Custom Agreement là commercial agreement riêng giữa Student và Tutor.
-
-Nó được tạo sau quá trình trao đổi và trước Enrollment.
-
-```text
-Chat
-→ Custom Agreement (Proposed, ExpiresAt)
-→ Accept / Reject / Cancel / Expired
-→ Checkout → Booking (Holding) → Payment
-→ Enrollment
-```
-
-### v1.1
-
-- Status machine: `Proposed → Accepted | Rejected | Cancelled | Expired`; checkout chỉ từ `Accepted`, idempotent theo `CustomAgreementId`.
-- Booking custom có thể thiếu `ServiceId` gốc — lúc đó sinh hidden `Service (Unpublished)` snapshot để giữ bất biến package.
+> Đã xóa hẳn theo quyết định owner (không cần thiết).
+> Mọi giao dịch chỉ đi qua Standard Service. Không còn flow Chat → Agreement → Checkout.
 
 ---
 
@@ -997,7 +966,6 @@ Student và Tutor có thể chat để:
 
 * Hỏi về Service.
 * Làm rõ yêu cầu.
-* Discuss Custom Service.
 * Coordinate learning.
 
 ---
@@ -1014,16 +982,9 @@ Chat chỉ là communication layer.
 
 ---
 
-## 14.3. Custom Agreement
+## 14.3. Custom Agreement — REMOVED (v1.3)
 
-Custom Agreement được tạo từ kết quả trao đổi.
-
-```text
-Conversation
-→ Custom Agreement
-→ Acceptance
-→ Payment
-```
+> Đã xóa hẳn. Chat chỉ là communication layer, không sinh agreement.
 
 ---
 
@@ -1089,8 +1050,6 @@ Các event chính gồm:
 
 ### Enrollment
 
-* CustomOfferCreated.
-* CustomOfferAccepted.
 * PaymentSucceeded.
 * EnrollmentActivated.
 * EnrollmentCancelled.
@@ -1431,35 +1390,9 @@ Review
 
 ---
 
-# 18. Custom Service Flow
+# 18. Custom Service Flow — REMOVED (v1.3)
 
-```text
-Student discovers Service
-        ↓
-Trial Lesson / Service Review
-        ↓
-Chat
-        ↓
-Custom Discussion
-        ↓
-Custom Agreement
-        ↓
-Student Accepts
-        ↓
-Payment
-        ↓
-Enrollment
-        ↓
-Sessions
-        ↓
-Attendance
-        ↓
-Earnings
-        ↓
-Completion
-        ↓
-Review
-```
+> Xóa hẳn. Chỉ còn Standard Service Flow (§17).
 
 ---
 
@@ -1673,14 +1606,12 @@ Student tự quyết định:
 * Tutor nào.
 * Service nào.
 * Có accept hay không.
-* Có custom hay không.
 * Có tiếp tục hay cancel theo policy.
 
 Tutor tự quyết định:
 
 * Service cung cấp.
 * Schedule đề xuất.
-* Custom terms.
 * Việc nhận Student.
 
 Admin chỉ can thiệp khi cần governance.
@@ -1699,7 +1630,6 @@ Admin chỉ can thiệp khi cần governance.
 * Service discovery.
 * Trial Lesson.
 * Messaging.
-* Custom Agreement.
 * Payment.
 * Enrollment.
 * Schedule.
@@ -1720,7 +1650,6 @@ Admin chỉ can thiệp khi cần governance.
 * Service.
 * Trial Lesson.
 * Messaging.
-* Custom Offer.
 * Enrollment management.
 * Schedule.
 * Session management.
@@ -1831,7 +1760,7 @@ và cũng không đơn giản là:
 
 TutorHub là:
 
-> **A service-based tutoring marketplace where students discover tutors, purchase learning services, communicate and customize arrangements, learn through structured sessions, verify attendance together, and pay tutors progressively as sessions are successfully delivered.**
+> **A service-based tutoring marketplace where students discover tutors, purchase learning services, learn through structured sessions, verify attendance together, and pay tutors progressively as sessions are successfully delivered.**
 
 Core product loop:
 
@@ -1841,8 +1770,6 @@ DISCOVER
 EVALUATE
    ↓
 COMMUNICATE
-   ↓
-AGREE
    ↓
 PAY
    ↓

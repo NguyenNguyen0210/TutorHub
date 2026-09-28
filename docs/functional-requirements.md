@@ -461,44 +461,27 @@ Admin access SHALL be limited to legitimate operational purposes.
 
 ---
 
-# 10. Custom Agreement
+# 10. Custom Agreement — REMOVED (v1.3)
 
-## FR-AGREE-001 — Create Custom Agreement
+> Custom Agreement đã bị xóa hẳn khỏi sản phẩm theo quyết định owner.
+> Mọi giao dịch chỉ đi qua Standard Service (Service-based, ServiceId bắt buộc).
+> Các FR-AGREE-001 → 004 trước đây được giữ lại dưới dạng lịch sử và KHÔNG còn hiệu lực.
 
-**Actor:** Tutor
+## FR-AGREE-001 — Create Custom Agreement (RETIRED)
 
-System SHALL allow Tutor to create a Custom Agreement following discussion with Student.
+**Actor:** Tutor — RETIRED, không implement.
 
-A Custom Agreement represents a commercial agreement with customized terms.
+## FR-AGREE-002 — Custom Agreement Lifecycle (RETIRED)
 
----
+RETIRED — không còn state machine Proposed/Accepted/Rejected/Cancelled/Expired.
 
-## FR-AGREE-002 — Custom Agreement Lifecycle
+## FR-AGREE-003 — Student Accept Custom Agreement (RETIRED)
 
-The system SHALL support:
+RETIRED.
 
-```text
-Created
-→ Accepted
-→ Payment
-→ Enrollment
-```
+## FR-AGREE-004 — Custom Agreement Before Enrollment (RETIRED)
 
-The exact intermediate status model may be refined during domain design.
-
----
-
-## FR-AGREE-003 — Student Accept Custom Agreement
-
-**Actor:** Student
-
-System SHALL allow Student to review and accept a Custom Agreement.
-
----
-
-## FR-AGREE-004 — Custom Agreement Before Enrollment
-
-System SHALL ensure that a Custom Agreement is accepted before the corresponding customized Enrollment is created.
+RETIRED — Enrollment chỉ được tạo từ Booking có `ServiceId`.
 
 ---
 
@@ -521,7 +504,7 @@ View Service
 ### Business Rule (v1.1: Booking checkout made explicit)
 
 - Accepting a Service creates a **Booking** in `Holding` status with `HoldingExpiresAt = now + 15 minutes`; unpaid Holding bookings expire via background job and never create an Enrollment.
-- A Booking references a `ServiceId`, or a `CustomAgreementId` together with a hidden `Unpublished` Service snapshot (DEC-S8-020). Single-slot bookings outside a package are forbidden.
+- A Booking references a required `ServiceId` (Service-only, Custom Agreement removed v1.3). Single-slot bookings outside a package are forbidden.
 
 ---
 
@@ -1311,7 +1294,9 @@ Every refund SHALL have an associated audit trail.
 
 ## FR-DISPUTE-001 — Create Dispute
 
-Student or Tutor SHALL be able to create a formal Dispute when an issue requires platform resolution.
+Student SHALL be able to create a formal Dispute within the 12-hour grace period of a session (pre-release only).
+
+A session past its grace window without a report is deemed accepted and can no longer be disputed.
 
 Supported dispute categories include:
 
@@ -1321,10 +1306,11 @@ Supported dispute categories include:
 - Financial issue.
 - Service issue.
 
-### Business Rule (v1.1: anti-spam filing)
+### Business Rule (v1.1: anti-spam filing; v1.4: 12h-grace rule)
 
 - `Description` of at least 20 characters is required.
 - Financial resolutions require at least one uploaded evidence before Admin may resolve (dismissal without financial change exempt).
+- Only sessions in `AwaitingPayout` status with an unexpired grace window may be disputed. `Completed` (released) sessions are rejected.
 
 ---
 
@@ -1344,7 +1330,7 @@ Issue
 
 ## FR-DISPUTE-003 — Financial Hold
 
-Where applicable, system SHALL place affected financial amounts on hold while a Dispute is unresolved.
+While a pre-release Dispute is unresolved, the affected session earning stays locked in Pending escrow and is not released to the Tutor. No Tutor Available balance is held (v1.4: post-release balance holds removed — released sessions cannot be disputed).
 
 ---
 
@@ -1373,7 +1359,7 @@ Admin SHALL be able to resolve a Dispute using one of the supported outcomes:
 
 ### Fast-track template (v1.1)
 
-For pre-release escrow only, Admin may fast-track when exactly one side submitted `Attended`, the other stayed silent more than 3 days past the verification due date, and at least one evidence exists. Tutor-claim releases the net payout; student-claim refunds in full. Post-release disputes always use full investigation.
+For pre-release escrow only, Admin may fast-track when exactly one side submitted `Attended`, the other stayed silent more than 3 days past the verification due date, and at least one evidence exists. Tutor-claim releases the net payout; student-claim refunds in full.
 
 ---
 
@@ -1528,7 +1514,7 @@ System SHALL provide asynchronous email notifications for all applicable busines
 ### Delivery Architecture & Policy
 - **Event Coverage:** Email notifications are enabled for 26 domain business events plus critical identity & security operations:
   1. *Marketplace & Applications:* `TutorApplicationSubmitted`, `TutorApplicationApproved`, `TutorApplicationRejected`.
-  2. *Agreements & Payments:* `CustomOfferCreated`, `CustomOfferAccepted`, `PaymentSucceeded`, `EnrollmentActivated`, `EnrollmentCancelled`.
+  2. *Enrollment & Payments:* `PaymentSucceeded`, `EnrollmentActivated`, `EnrollmentCancelled`.
   3. *Sessions & Bilateral Attendance:* `SessionScheduled`, `SessionRescheduled`, `SessionCancelled`, `AttendanceVerificationRequired`, `AttendanceConflictDetected`, `SessionCompleted`, `SessionReminder`, `AttendanceReminder`.
   4. *Financial & Escrow:* `EarningCreated`, `RefundCreated`, `RefundCompleted`, `RefundFailed` (alerting student of administrative offline settlement), `WithdrawalRequested`, `WithdrawalCompleted`, `WithdrawalFailed`.
   5. *Trust, Disputes & Reviews:* `ReviewCreated`, `DisputeCreated`, `DisputeResolved`, `ReportCreated`.
@@ -1624,8 +1610,6 @@ System SHALL support events including:
 
 System SHALL support:
 
-- `CustomOfferCreated`
-- `CustomOfferAccepted`
 - `PaymentSucceeded`
 - `EnrollmentActivated`
 - `EnrollmentCancelled`
@@ -1978,37 +1962,9 @@ Review
 
 ---
 
-# 41. Custom Service End-to-End Flow
+# 41. Custom Service End-to-End Flow — REMOVED (v1.3)
 
-System SHALL support:
-
-```text
-Student discovers Service
-        ↓
-Trial Lesson / Service Review
-        ↓
-Chat
-        ↓
-Custom Discussion
-        ↓
-Custom Agreement
-        ↓
-Student Accepts
-        ↓
-Payment
-        ↓
-Enrollment
-        ↓
-Sessions
-        ↓
-Attendance
-        ↓
-Earnings
-        ↓
-Completion
-        ↓
-Review
-```
+> Đã xóa hẳn. Chỉ còn Standard Service flow.
 
 ---
 
@@ -2146,7 +2102,6 @@ The MVP SHALL support:
 - Service discovery.
 - Trial Lesson.
 - Messaging.
-- Custom Agreement.
 - Payment.
 - Enrollment.
 - Schedule.
@@ -2279,7 +2234,6 @@ PRD xác định tổng Session Allocation phải bằng Enrollment Price và re
 Cần xác định thêm cách xử lý:
 
 - Different Session durations.
-- Custom Agreement.
 - Cancelled Sessions.
 - Partial Enrollment.
 - Refund sau khi một phần earning đã release.
@@ -2410,8 +2364,6 @@ MARKETPLACE
 TRIAL LESSON
      ↓
 MESSAGING
-     ↓
-CUSTOM AGREEMENT
      ↓
 PAYMENT
      ↓

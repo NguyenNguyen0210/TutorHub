@@ -48,9 +48,9 @@ public class ReportSessionIssueCommandHandler : IRequestHandler<ReportSessionIss
             if (session.Status != SessionStatus.AwaitingPayout)
                 throw new BadRequestException($"Cannot report issue for a session in '{session.Status}' status. Session must be in the 12-hour grace period.");
 
-            // Must be within grace period window
+            // Must be within grace period: expiry without a report means acceptance.
             if (session.GracePeriodEndsAt.HasValue && session.GracePeriodEndsAt.Value < now)
-                throw new BadRequestException("The 12-hour grace period has expired. Please contact admin for post-payout disputes.");
+                throw new BadRequestException("The 12-hour grace period has expired. The session is deemed accepted and can no longer be reported.");
 
             // Record the issue report on the session (freezes auto-payout)
             session.ReportIssue(userId, request.Reason, request.Description, now);

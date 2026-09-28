@@ -476,7 +476,9 @@ Access is limited to legitimate operational purposes.
 
 ---
 
-# EPIC 08 — Custom Agreement
+# EPIC 08 — Custom Agreement — REMOVED (v1.3)
+
+> EPIC này đã bị xóa hẳn theo quyết định owner. Các US-AGREE-001 → 003 dưới đây chỉ giữ lại vì mục đích lịch sử, KHÔNG còn hiệu lực.
 
 ## US-AGREE-001 — Create Custom Agreement
 
@@ -1570,11 +1572,15 @@ Every refund records:
 
 ## US-DISPUTE-001 — Create Dispute
 
-**Actor:** Student / Tutor
+**Actor:** Student
 
-> As a Student or Tutor, I want to create a formal Dispute when an issue requires platform intervention, so that the issue can be investigated and resolved.
+> As a Student, I want to create a formal Dispute when an issue requires platform intervention, so that the issue can be investigated and resolved.
 
 **Related FR:** FR-DISPUTE-001
+
+### Acceptance Criteria (v1.4: 12h-grace rule)
+
+- Only sessions in `AwaitingPayout` with an unexpired 12h grace window may be disputed; released sessions are deemed accepted.
 
 ### Acceptance Criteria
 
@@ -1596,6 +1602,10 @@ Supported categories include:
 > As the system, I want to place applicable funds on hold during an unresolved Dispute, so that disputed money is not prematurely released.
 
 **Related FR:** FR-DISPUTE-003
+
+### Acceptance Criteria (v1.4: pre-release escrow only, no balance holds)
+
+- The session earning stays locked in Pending escrow until resolution.
 
 ### Acceptance Criteria
 
@@ -2025,8 +2035,6 @@ TutorApplicationRejected
 ### Supported Events
 
 ```text
-CustomOfferCreated
-CustomOfferAccepted
 PaymentSucceeded
 EnrollmentActivated
 EnrollmentCancelled
@@ -2465,24 +2473,9 @@ Discover
 
 ---
 
-## US-JOURNEY-003 — Purchase Custom Service
+## US-JOURNEY-003 — Purchase Custom Service — REMOVED (v1.3)
 
-**Actor:** Student
-
-> As a Student, I want to discuss and accept customized terms with a Tutor, so that I can purchase a Service that better matches my needs.
-
-### Acceptance Criteria
-
-```text
-Discover
-→ Evaluate
-→ Chat
-→ Custom Discussion
-→ Custom Agreement
-→ Accept
-→ Pay
-→ Enrollment
-```
+> Đã xóa theo quyết định owner. Chỉ còn mua Standard Service (US-JOURNEY-002).
 
 ---
 
@@ -2779,7 +2772,7 @@ Exceptional Flow
 | Marketplace | US-MARKET-001 → 004 |
 | Trial Lesson | US-TRIAL-001 → 002 |
 | Messaging | US-MSG-001 → 005 |
-| Custom Agreement | US-AGREE-001 → 003 |
+| Custom Agreement — REMOVED (v1.3) | US-AGREE-001 → 003 (retired) |
 | Standard Purchase | US-PURCHASE-001 → 002 |
 | Payment | US-PAY-001 → 003 |
 | Enrollment | US-ENR-001 → 004 |
@@ -2827,7 +2820,6 @@ Các User Stories dưới đây **không nên được coi là implementation-re
 ### Session Allocation
 
 - Different Session durations.
-- Custom Agreement allocation.
 - Partial Enrollment.
 - Allocation after cancellation/refund.
 
@@ -2917,13 +2909,9 @@ View Service
    ↓
 View Trial Lesson
    ↓
-┌─────────────────────┐
-│ Standard Service    │
-│         OR          │
-│ Custom Agreement    │
-└─────────────────────┘
-          ↓
-       Payment
+Standard Service
+   ↓
+Payment
           ↓
       Enrollment
           ↓
@@ -2962,8 +2950,6 @@ Publish
 Student Discovery
    ↓
 Messaging
-   ↓
-Custom Agreement (if required)
    ↓
 Enrollment
    ↓

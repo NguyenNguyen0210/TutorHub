@@ -54,47 +54,8 @@ public record TutorApplicationRejectedEvent(
 }
 
 // ==========================================
-// 2. Enrollment & Agreements Events (5)
+// 2. Enrollment Events (3)
 // ==========================================
-public record CustomOfferCreatedEvent(
-    Guid AgreementId,
-    Guid TutorId,
-    Guid StudentId,
-    Guid StudentUserId,
-    Guid TutorUserId,
-    MoneyDto TotalPrice,
-    Guid EventId = default,
-    int EventVersion = 1,
-    DateTime OccurredAt = default
-) : IBusinessEvent
-{
-    public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
-    public string EventType => BusinessEventTypes.CustomOfferCreated;
-    public int EventVersion { get; init; } = EventVersion;
-    public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
-    public string AggregateType => "CustomAgreement";
-    public Guid AggregateId => AgreementId;
-}
-
-public record CustomOfferAcceptedEvent(
-    Guid AgreementId,
-    Guid TutorId,
-    Guid StudentId,
-    Guid StudentUserId,
-    Guid TutorUserId,
-    Guid EventId = default,
-    int EventVersion = 1,
-    DateTime OccurredAt = default
-) : IBusinessEvent
-{
-    public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
-    public string EventType => BusinessEventTypes.CustomOfferAccepted;
-    public int EventVersion { get; init; } = EventVersion;
-    public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
-    public string AggregateType => "CustomAgreement";
-    public Guid AggregateId => AgreementId;
-}
-
 public record PaymentSucceededEvent(
     Guid BookingId,
     Guid StudentUserId,

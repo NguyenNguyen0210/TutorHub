@@ -45,7 +45,7 @@
 * **Xung đột & Bùng lịch:** Tự động hóa giữ chỗ thanh toán 15 phút (Booking Hold), chính sách dời lịch báo trước tối thiểu 2 giờ (`MIN_NOTICE_HOURS = 2`).
 * **Gian lận xác nhận & Chậm trễ giải ngân:** Cơ chế **12-Hour Passive Approval Grace Period** tự động giải ngân thù lao buổi học khi hết hạn chờ mà không phát sinh khiếu nại.
 * **Chiếm dụng vốn & Bất đối xứng quyền lợi:** Hệ thống Ví bảo chứng ký quỹ (Escrow Wallet), Ví học viên (Student Wallet), nạp tiền tự động qua VNPay và đối soát ngân hàng minh bạch.
-* **Tranh chấp khóa học:** Động cơ phân giải tranh chấp 2 cấp (Pre-release Escrow hold và Post-release Withdrawable recovery) bảo vệ quyền lợi hợp pháp của cả hai phía.
+* **Tranh chấp khóa học:** Khiếu nại chỉ tồn tại trong 12 giờ grace trước giải ngân (tiền giữ trong Escrow chờ Admin phân xử); quá hạn không báo cáo = mặc nhiên chấp nhận, khỏi kiện.
 
 ---
 
@@ -118,10 +118,10 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 * **Ví gia sư (Tutor Wallet):** Ký quỹ thù lao theo từng buổi học. Toàn bộ tiền học được giữ an toàn trong Escrow và chỉ giải ngân từng buổi khi hoàn thành.
 * **Ví học viên (Student Wallet):** Nạp tiền tự động 24/7 qua cổng VNPay, thanh toán khóa học nhanh không cần nhập lại thông tin thẻ, nhận tiền hoàn trả tranh chấp tức thì và đặt lệnh rút tiền về tài khoản ngân hàng.
 
-### 6. Động Cơ Phân Giải Tranh Chấp 2 Giai Đoạn (Dispute Arbitration Engine)
-* **Giai đoạn trước giải ngân (Pre-release):** Khiếu nại xảy ra trong thời gian Grace Period $\rightarrow$ Giữ tiền trong Escrow, không chuyển cho gia sư.
-* **Giai đoạn sau giải ngân (Post-release):** Khiếu nại xảy ra sau khi tiền đã vào ví $\rightarrow$ Hệ thống phong tỏa phần số dư tương ứng (`HeldBalance`) trong ví gia sư.
-* Quản trị viên (Admin) xem xét bằng chứng 2 bên và ra quyết định: Hoàn trả 100% học viên, Chia tỷ lệ phần trăm (Partial Split), hoặc Giải ngân toàn bộ cho gia sư kèm hoàn phí nền tảng tương ứng.
+### 6. Động Cơ Phân Giải Tranh Chấp Trong Grace 12 Giờ (Dispute Arbitration Engine)
+* Khiếu nại chỉ tồn tại trước giải ngân (pre-release): trong 12 giờ Grace Period, học viên báo cáo sự cố → tiền giữ trong Escrow, không chuyển cho gia sư, chờ Admin phân xử.
+* Quá 12 giờ không báo cáo = mặc nhiên chấp nhận: hệ thống tự động giải ngân, buổi học không thể khiếu nại nữa (khỏi kiện).
+* Quản trị viên (Admin) xem xét bằng chứng 2 bên và ra quyết định: Hoàn trả 100% học viên, Chia tỷ lệ phần trăm (Partial Split), Giải ngân cho gia sư, hoặc Bác đơn không thay đổi tài chính.
 
 ### 7. Giao Tiếp Thời Gian Thực (SignalR WebSockets)
 * Nhắn tin trực tiếp 1-1 giữa học viên và gia sư (`/hubs/chat`) với lưu vết hội thoại và trạng thái đã đọc.

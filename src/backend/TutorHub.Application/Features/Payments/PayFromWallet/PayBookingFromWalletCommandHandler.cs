@@ -137,10 +137,7 @@ public class PayBookingFromWalletCommandHandler : IRequestHandler<PayBookingFrom
             booking.ConfirmedAt = now;
 
             // 9. Activate Enrollment
-            if (booking.ServiceId.HasValue)
-            {
-                await _activationService.ActivateAsync(booking, now, cancellationToken);
-            }
+            await _activationService.ActivateAsync(booking, now, cancellationToken);
 
             // 10. Add Outbox Business Event for Student Wallet
             _context.AddOutboxMessage(new StudentWalletPaymentSucceededEvent(

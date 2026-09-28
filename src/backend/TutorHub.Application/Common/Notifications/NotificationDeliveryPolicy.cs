@@ -11,9 +11,7 @@ public static class NotificationDeliveryPolicy
         BusinessEventTypes.TutorApplicationApproved,
         BusinessEventTypes.TutorApplicationRejected,
 
-        // 2. Agreements, Custom Offers & Payments
-        BusinessEventTypes.CustomOfferCreated,
-        BusinessEventTypes.CustomOfferAccepted,
+        // 2. Enrollment & Payments
         BusinessEventTypes.PaymentSucceeded,
         BusinessEventTypes.EnrollmentActivated,
         BusinessEventTypes.EnrollmentCancelled,

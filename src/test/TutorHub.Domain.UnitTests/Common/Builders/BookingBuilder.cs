@@ -20,7 +20,7 @@ public class BookingBuilder
     private string? _cancellationReason;
     private readonly List<Transaction> _transactions = new();
 
-    private Guid? _serviceId;
+    private Guid _serviceId = Guid.NewGuid();
     private Service? _service;
     private decimal _totalPrice = 200_000m;
     private int _totalSessions = 1;
@@ -132,6 +132,22 @@ public class BookingBuilder
         var student = _studentProfile ?? new StudentProfileBuilder().Build();
         var tutor = _tutorProfile ?? new TutorProfileBuilder().Build();
         var subject = _subject ?? new SubjectBuilder().Build();
+        var service = _service ?? new Service
+        {
+            Id = _serviceId,
+            TutorProfileId = tutor.Id,
+            TutorProfile = tutor,
+            SubjectId = subject.Id,
+            Subject = subject,
+            Title = "Test Service",
+            Description = "Test Service Description",
+            TotalSessions = _totalSessions,
+            SessionDurationMinutes = _sessionDurationMinutes,
+            Price = _totalPrice,
+            TeachingMode = _teachingMode,
+            Status = ServiceStatus.Published
+        };
+        service.Id = _serviceId;
 
         var booking = new Booking
         {
@@ -151,7 +167,7 @@ public class BookingBuilder
             CancellationReason = _cancellationReason,
             CreatedAt = DefaultCreatedAt,
             ServiceId = _serviceId,
-            Service = _service,
+            Service = service,
             TotalPrice = _totalPrice,
             TotalSessions = _totalSessions,
             SessionDurationMinutes = _sessionDurationMinutes,
