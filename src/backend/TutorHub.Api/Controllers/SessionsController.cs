@@ -12,7 +12,6 @@ using TutorHub.Application.Features.LearningRecords.GetLearningRecord;
 using TutorHub.Application.Features.Sessions.CancelSession;
 using TutorHub.Application.Features.Sessions.ScheduleSession;
 using TutorHub.Application.Features.Sessions.ScheduleSessionsBatch;
-using TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.DTOs;
 using TutorHub.Application.Features.Sessions.ReportSessionIssue;
 using TutorHub.Domain.Enums;
 
@@ -66,18 +65,16 @@ public class SessionsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ScheduleBatch(
-        [FromBody] ScheduleSessionsBatchRequest request,
+        [FromBody] ScheduleSessionsBatchCommand command,
         CancellationToken cancellationToken)
     {
-        if (request.Items is null)
+        if (command.Items is null)
         {
             return BadRequest(ApiResponse<List<SessionDto>>.FailureResult(
                 "Validation failed. One or more validation errors occurred.",
                 "Items is required."));
         }
 
-        var command = new ScheduleSessionsBatchCommand(request.Items
-            .Select(i => new SessionScheduleItem(i.SessionId, i.StartAt, i.EndAt)).ToList());
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<List<SessionDto>>.SuccessResult(result, "Sessions scheduled successfully."));
     }
