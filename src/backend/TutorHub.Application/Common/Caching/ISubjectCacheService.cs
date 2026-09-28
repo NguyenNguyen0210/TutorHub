@@ -23,6 +23,12 @@ public interface ISubjectCacheService
     /// <summary>Bumps the list version and drops the detail entry for one subject.</summary>
     Task InvalidateSubjectAsync(Guid id, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Bumps the list version once and drops the detail entries for many
+    /// subjects (e.g. a category rename/deactivation touches every subject in it).
+    /// </summary>
+    Task InvalidateSubjectsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
+
     /// <summary>Bumps the list version (category changes affect the public list invariant).</summary>
     Task InvalidateSubjectListsAsync(CancellationToken cancellationToken = default);
 }
@@ -50,6 +56,9 @@ public sealed class NoOpSubjectCacheService : ISubjectCacheService
         CancellationToken cancellationToken = default) => factory();
 
     public Task InvalidateSubjectAsync(Guid id, CancellationToken cancellationToken = default) =>
+        Task.CompletedTask;
+
+    public Task InvalidateSubjectsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
 
     public Task InvalidateSubjectListsAsync(CancellationToken cancellationToken = default) =>

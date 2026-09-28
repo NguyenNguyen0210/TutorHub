@@ -39,6 +39,9 @@ public class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategoryComman
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
+            // No subject detail can be stale: deletion is rejected above when
+            // the category still contains subjects. The list bump is kept so
+            // any cached listing mentioning the category name refreshes.
             await _cache.InvalidateSubjectListsAsync(cancellationToken);
         }
         catch (DbUpdateException)

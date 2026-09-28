@@ -4,7 +4,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Events;
+using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Features.Admin.Categories.UpdateCategory;
 using TutorHub.Application.Features.Admin.Subjects.UpdateSubject;
 using TutorHub.Application.Features.PlatformSettings.EventHandlers;
 using TutorHub.Application.Features.Subjects.GetPublicSubjectById;
@@ -74,6 +76,7 @@ public class CacheInvalidationTests
             Category = category,
             IsActive = true
         };
+        category.Subjects.Add(subject);
 
         var contextMock = new Mock<IAppDbContext>();
         contextMock.Setup(c => c.Subjects).Returns(MockDbSetHelper.CreateMockDbSet(new List<Subject> { subject }).Object);
@@ -127,6 +130,45 @@ public class CacheInvalidationTests
         cache.SetCount.Should().Be(setsBeforeUpdate + 3);
         listAfter.Items.Should().ContainSingle(s => s.Name == "Geometry");
         detailAfter.Name.Should().Be("Geometry");
+    }
+
+    [Fact]
+    public async Task UpdateCategory_InvalidatesSubjectDetailCache()
+    {
+        var (contextMock, category, subject) = CreateSubjectContext();
+        var cache = new FakeDistributedCache();
+        var cacheService = new SubjectCacheService(cache, NullLogger<SubjectCacheService>.Instance);
+        var detailHandler = new GetPublicSubjectByIdQueryHandler(contextMock.Object, cacheService);
+
+        var before = await detailHandler.Handle(new GetPublicSubjectByIdQuery(subject.Id), CancellationToken.None);
+        before.CategoryName.Should().Be("Math");
+
+        var updateHandler = new UpdateCategoryCommandHandler(contextMock.Object, cacheService);
+        await updateHandler.Handle(
+            new UpdateCategoryCommand(category.Id, "Physics", IsActive: true),
+            CancellationToken.None);
+
+        var after = await detailHandler.Handle(new GetPublicSubjectByIdQuery(subject.Id), CancellationToken.None);
+        after.CategoryName.Should().Be("Physics");
+    }
+
+    [Fact]
+    public async Task UpdateCategory_WhenDeactivated_CachedDetailBecomesNotFound()
+    {
+        var (contextMock, category, subject) = CreateSubjectContext();
+        var cache = new FakeDistributedCache();
+        var cacheService = new SubjectCacheService(cache, NullLogger<SubjectCacheService>.Instance);
+        var detailHandler = new GetPublicSubjectByIdQueryHandler(contextMock.Object, cacheService);
+
+        await detailHandler.Handle(new GetPublicSubjectByIdQuery(subject.Id), CancellationToken.None);
+
+        var updateHandler = new UpdateCategoryCommandHandler(contextMock.Object, cacheService);
+        await updateHandler.Handle(
+            new UpdateCategoryCommand(category.Id, "Math", IsActive: false),
+            CancellationToken.None);
+
+        var act = () => detailHandler.Handle(new GetPublicSubjectByIdQuery(subject.Id), CancellationToken.None);
+        await act.Should().ThrowAsync<NotFoundException>();
     }
 
     [Fact]

@@ -47,7 +47,10 @@ public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryComman
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
-            await _cache.InvalidateSubjectListsAsync(cancellationToken);
+            // Detail entries embed category state (CategoryName; deactivation
+            // flips detail to 404), so drop them for every subject in this
+            // category — Subjects is already loaded via Include above.
+            await _cache.InvalidateSubjectsAsync(category.Subjects.Select(s => s.Id), cancellationToken);
         }
         catch (DbUpdateException ex)
         {

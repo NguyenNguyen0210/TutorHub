@@ -61,6 +61,15 @@ public class SubjectCacheService : ISubjectCacheService
         await TryRemoveAsync($"subj:{id:D}", cancellationToken);
     }
 
+    public async Task InvalidateSubjectsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        await BumpVersionAsync(cancellationToken);
+        foreach (var id in ids)
+        {
+            await TryRemoveAsync($"subj:{id:D}", cancellationToken);
+        }
+    }
+
     public Task InvalidateSubjectListsAsync(CancellationToken cancellationToken = default) =>
         BumpVersionAsync(cancellationToken);
 
