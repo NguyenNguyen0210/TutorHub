@@ -48,18 +48,9 @@ public class WalletsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CreateWithdrawal(
-        [FromBody] CreateWithdrawalRequest request,
+        [FromBody] CreateWithdrawalCommand command,
         CancellationToken cancellationToken)
     {
-        var command = new CreateWithdrawalCommand(
-            Amount: request.Amount,
-            BankName: request.BankName,
-            BankCode: request.BankCode,
-            AccountNumber: request.AccountNumber,
-            AccountHolderName: request.AccountHolderName,
-            Note: request.Note
-        );
-
         var result = await _sender.Send(command, cancellationToken);
 
         return StatusCode(
@@ -114,16 +105,9 @@ public class WalletsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> UpdatePayoutAccount(
-        [FromBody] UpdatePayoutAccountRequest request,
+        [FromBody] UpdatePayoutAccountCommand command,
         CancellationToken cancellationToken)
     {
-        var command = new UpdatePayoutAccountCommand(
-            BankName: request.BankName,
-            BankCode: request.BankCode,
-            AccountNumber: request.AccountNumber,
-            AccountHolderName: request.AccountHolderName
-        );
-
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<TutorPayoutAccountDto>.SuccessResult(result, "Payout bank account updated successfully."));
