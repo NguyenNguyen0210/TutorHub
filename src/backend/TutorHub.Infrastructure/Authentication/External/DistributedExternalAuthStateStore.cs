@@ -1,9 +1,9 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
+using TutorHub.Application.Common.Security;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Infrastructure.Authentication.External;
@@ -19,6 +19,12 @@ public sealed class DistributedExternalAuthStateStore : IExternalAuthStateStore
     private static readonly string StateKeyPrefix = "external-auth:state:";
     private const int MaxStateAttempts = 3;
 
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
     private readonly IRedisStringCommands _redis;
     private readonly ExternalAuthOptions _options;
 
@@ -33,14 +39,15 @@ public sealed class DistributedExternalAuthStateStore : IExternalAuthStateStore
     public string Create(ExternalAuthProvider provider, string codeVerifier, string? returnUrl, CancellationToken cancellationToken = default)
     {
         var entry = new PendingExternalAuth(provider, codeVerifier, returnUrl);
-        var payload = JsonSerializer.Serialize(entry);
+        var payload = JsonSerializer.Serialize(entry, JsonOptions);
         var expiry = TimeSpan.FromMinutes(Math.Max(1, _options.StateLifetimeMinutes));
 
-        // 256 bits of entropy per attempt; on the astronomically unlikely NX
-        // collision, mint a fresh state rather than overwriting someone else's.
+        // State reuses the PKCE 256-bit random encoding; on the astronomically
+        // unlikely NX collision, mint a fresh state rather than overwriting
+        // someone else's.
         for (var attempt = 0; attempt < MaxStateAttempts; attempt++)
         {
-            var state = Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
+            var state = Pkce.CreateCodeVerifier();
             if (_redis.StringSet(StateKeyPrefix + state, payload, expiry, whenNotExists: true, cancellationToken))
             {
                 return state;
@@ -48,7 +55,7 @@ public sealed class DistributedExternalAuthStateStore : IExternalAuthStateStore
         }
 
         throw new InvalidOperationException(
-            "Failed to mint a unique OAuth state after 3 attempts. Redis may be unhealthy — see RedisHealthCheck.");
+            $"Failed to mint a unique OAuth state after {MaxStateAttempts} attempts. Redis may be unhealthy — see RedisHealthCheck.");
     }
 
     public PendingExternalAuth? Consume(string state, ExternalAuthProvider provider, CancellationToken cancellationToken = default)
@@ -69,7 +76,7 @@ public sealed class DistributedExternalAuthStateStore : IExternalAuthStateStore
         PendingExternalAuth? entry;
         try
         {
-            entry = JsonSerializer.Deserialize<PendingExternalAuth>(payload);
+            entry = JsonSerializer.Deserialize<PendingExternalAuth>(payload, JsonOptions);
         }
         catch (JsonException)
         {
@@ -90,27 +97,4 @@ public sealed class DistributedExternalAuthStateStore : IExternalAuthStateStore
 
         return entry;
     }
-
-    /// <summary>
-    /// RFC 7636 S256: BASE64URL(SHA256(verifier)). Identical to
-    /// <see cref="MemoryExternalAuthStateStore.CreateCodeVerifier"/> — callers
-    /// may use either class.
-    /// </summary>
-    public static string CreateCodeVerifier()
-    {
-        // 32 random bytes -> 43 base64url characters, the RFC 7636 minimum.
-        return Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
-    }
-
-    public static string ComputeCodeChallenge(string codeVerifier)
-    {
-        var hash = SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier));
-        return Base64UrlEncode(hash);
-    }
-
-    private static string Base64UrlEncode(byte[] bytes) =>
-        Convert.ToBase64String(bytes)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
 }

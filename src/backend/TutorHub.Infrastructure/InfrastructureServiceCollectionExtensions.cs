@@ -208,8 +208,8 @@ public static class InfrastructureServiceCollectionExtensions
         // ── WP1 OAuth state: Redis when the OAuth flag is on, memory otherwise ──
         // The distributed store needs IConnectionMultiplexer, which only exists
         // when Redis is Enabled — consistent because the OAuth flag implies
-        // Enabled. A missing multiplexer is a fail-fast startup error, not a
-        // null at runtime.
+        // Enabled. A missing multiplexer fails fast on first resolve (lazy
+        // factory), not as a null at runtime.
         if (redis.Enabled && redis.Features.OAuth)
         {
             services.AddSingleton<IRedisStringCommands>(sp =>

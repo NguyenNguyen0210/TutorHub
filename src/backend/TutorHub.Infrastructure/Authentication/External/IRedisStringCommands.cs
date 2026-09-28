@@ -4,9 +4,10 @@ namespace TutorHub.Infrastructure.Authentication.External;
 
 /// <summary>
 /// Minimal seam over the Redis string commands the OAuth state store needs.
-/// <see cref="IDatabase"/> itself is not unit-testable (concrete type, huge
-/// surface), so the store depends on this two-method interface instead and the
-/// single production implementation below delegates to it.
+/// <see cref="IDatabase"/> is an interface, but a very wide one (dozens of
+/// members with overloads), so faking it by hand is brittle — the store
+/// depends on this two-method seam instead and the single production
+/// implementation below delegates to it.
 /// </summary>
 public interface IRedisStringCommands
 {
@@ -43,5 +44,6 @@ public sealed class StackExchangeRedisStringCommands : IRedisStringCommands
 
     public string? StringGetDelete(string key, CancellationToken cancellationToken = default) =>
         // GETDEL needs redis >= 6.2; the compose image is redis:7-alpine.
+        // StringGetDeleteAsync takes no CancellationToken, so it is dropped here.
         _database.StringGetDeleteAsync(key).GetAwaiter().GetResult();
 }

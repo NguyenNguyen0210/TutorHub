@@ -56,6 +56,49 @@ public class DistributedExternalAuthStateStoreTests
             "a state minted for Google must not complete a Facebook sign-in");
     }
 
+    [Fact]
+    public void Create_UsesConfiguredStateLifetimeAsExpiry()
+    {
+        var redis = new FakeRedisStringCommands();
+        var store = CreateStore(redis, stateLifetimeMinutes: 10);
+
+        store.Create(ExternalAuthProvider.Google, "verifier-abc", null);
+
+        redis.LastExpiry.Should().Be(TimeSpan.FromMinutes(10));
+    }
+
+    [Fact]
+    public void Create_WithZeroStateLifetime_ClampsExpiryToOneMinute()
+    {
+        var redis = new FakeRedisStringCommands();
+        var store = CreateStore(redis, stateLifetimeMinutes: 0);
+
+        store.Create(ExternalAuthProvider.Google, "verifier-abc", null);
+
+        redis.LastExpiry.Should().Be(TimeSpan.FromMinutes(1));
+    }
+
+    [Fact]
+    public void Consume_WithCorruptPayload_ReturnsNull()
+    {
+        var redis = new FakeRedisStringCommands();
+        redis.Seed("bogus-state", "not-json{");
+        var store = CreateStore(redis);
+
+        store.Consume("bogus-state", ExternalAuthProvider.Google).Should().BeNull();
+    }
+
+    [Fact]
+    public void Create_WhenRedisRejectsSets_Throws()
+    {
+        var redis = new FakeRedisStringCommands { FailSets = true };
+        var store = CreateStore(redis);
+
+        Action act = () => store.Create(ExternalAuthProvider.Google, "verifier-abc", null);
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
@@ -73,12 +116,34 @@ public class DistributedExternalAuthStateStoreTests
     /// </summary>
     private sealed class FakeRedisStringCommands : IRedisStringCommands
     {
+        // Mirrors the store's key format so tests can seed entries directly.
+        private const string KeyPrefix = "external-auth:state:";
+
         private readonly Dictionary<string, string> _values = new(StringComparer.Ordinal);
+
+        public TimeSpan LastExpiry { get; private set; }
+
+        public bool FailSets { get; set; }
+
+        public void Seed(string state, string payload)
+        {
+            lock (_values)
+            {
+                _values[KeyPrefix + state] = payload;
+            }
+        }
 
         public bool StringSet(string key, string value, TimeSpan expiry, bool whenNotExists, CancellationToken cancellationToken = default)
         {
             lock (_values)
             {
+                LastExpiry = expiry;
+
+                if (FailSets)
+                {
+                    return false;
+                }
+
                 if (whenNotExists && _values.ContainsKey(key))
                 {
                     return false;
