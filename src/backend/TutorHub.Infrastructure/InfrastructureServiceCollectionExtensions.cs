@@ -204,7 +204,28 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddSingleton<IExternalAuthProvider, GoogleAuthProvider>();
         services.AddSingleton<IExternalAuthProvider, FacebookAuthProvider>();
-        services.AddSingleton<IExternalAuthStateStore, MemoryExternalAuthStateStore>();
+
+        // ── WP1 OAuth state: Redis when the OAuth flag is on, memory otherwise ──
+        // The distributed store needs IConnectionMultiplexer, which only exists
+        // when Redis is Enabled — consistent because the OAuth flag implies
+        // Enabled. A missing multiplexer is a fail-fast startup error, not a
+        // null at runtime.
+        if (redis.Enabled && redis.Features.OAuth)
+        {
+            services.AddSingleton<IRedisStringCommands>(sp =>
+            {
+                var multiplexer = sp.GetService<IConnectionMultiplexer>()
+                    ?? throw new InvalidOperationException(
+                        "Redis:Features:OAuth is true but no IConnectionMultiplexer is registered. " +
+                        "OAuth state requires Redis:Enabled with a connection string.");
+                return new StackExchangeRedisStringCommands(multiplexer.GetDatabase());
+            });
+            services.AddSingleton<IExternalAuthStateStore, DistributedExternalAuthStateStore>();
+        }
+        else
+        {
+            services.AddSingleton<IExternalAuthStateStore, MemoryExternalAuthStateStore>();
+        }
 
         services.AddSignalR();
 
