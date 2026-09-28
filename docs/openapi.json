@@ -1,4 +1,4 @@
-﻿{
+{
   "openapi": "3.0.1",
   "info": {
     "title": "TutorHub API",
@@ -1505,17 +1505,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Categories.DTOs.CreateCategoryRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Admin.Categories.CreateCategory.CreateCategoryCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Categories.DTOs.CreateCategoryRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Admin.Categories.CreateCategory.CreateCategoryCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Categories.DTOs.CreateCategoryRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Admin.Categories.CreateCategory.CreateCategoryCommand"
               }
             }
           }
@@ -1863,17 +1863,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Subjects.DTOs.CreateSubjectRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Admin.Subjects.CreateSubject.CreateSubjectCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Subjects.DTOs.CreateSubjectRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Admin.Subjects.CreateSubject.CreateSubjectCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Subjects.DTOs.CreateSubjectRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Admin.Subjects.CreateSubject.CreateSubjectCommand"
               }
             }
           }
@@ -4399,17 +4399,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Api.Controllers.UpdatePlatformFeeRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.PlatformSettings.Commands.AdminUpdatePlatformFee.AdminUpdatePlatformFeeCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Api.Controllers.UpdatePlatformFeeRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.PlatformSettings.Commands.AdminUpdatePlatformFee.AdminUpdatePlatformFeeCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Api.Controllers.UpdatePlatformFeeRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.PlatformSettings.Commands.AdminUpdatePlatformFee.AdminUpdatePlatformFeeCommand"
               }
             }
           }
@@ -5173,17 +5173,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.AdminAdjustWalletApiRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.Commands.AdminAdjustWallet.AdminAdjustStudentWalletCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.AdminAdjustWalletApiRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.Commands.AdminAdjustWallet.AdminAdjustStudentWalletCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.AdminAdjustWalletApiRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.Commands.AdminAdjustWallet.AdminAdjustStudentWalletCommand"
               }
             }
           }
@@ -5589,17 +5589,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.DTOs.LoginRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.Login.LoginCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.DTOs.LoginRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.Login.LoginCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.DTOs.LoginRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.Login.LoginCommand"
               }
             }
           }
@@ -5658,17 +5658,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.DTOs.RefreshTokenRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.RefreshToken.RefreshTokenCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.DTOs.RefreshTokenRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.RefreshToken.RefreshTokenCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.DTOs.RefreshTokenRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.RefreshToken.RefreshTokenCommand"
               }
             }
           }
@@ -5727,17 +5727,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.DTOs.LogoutRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.Logout.LogoutCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.DTOs.LogoutRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.Logout.LogoutCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.DTOs.LogoutRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.Logout.LogoutCommand"
               }
             }
           }
@@ -5776,17 +5776,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.DTOs.ChangePasswordRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.ChangePassword.ChangePasswordCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.DTOs.ChangePasswordRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.ChangePassword.ChangePasswordCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.DTOs.ChangePasswordRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.ChangePassword.ChangePasswordCommand"
               }
             }
           }
@@ -6111,17 +6111,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Bookings.DTOs.CreateBookingRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Bookings.CreateBooking.CreateBookingCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Bookings.DTOs.CreateBookingRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Bookings.CreateBooking.CreateBookingCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Bookings.DTOs.CreateBookingRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Bookings.CreateBooking.CreateBookingCommand"
               }
             }
           }
@@ -6663,17 +6663,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Api.Controllers.GetOrCreateConversationRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Conversations.GetOrCreateConversation.GetOrCreateConversationCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Api.Controllers.GetOrCreateConversationRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Conversations.GetOrCreateConversation.GetOrCreateConversationCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Api.Controllers.GetOrCreateConversationRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Conversations.GetOrCreateConversation.GetOrCreateConversationCommand"
               }
             }
           }
@@ -7376,17 +7376,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Api.Controllers.CreateDisputeRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Disputes.Commands.CreateDispute.CreateDisputeCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Api.Controllers.CreateDisputeRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Disputes.Commands.CreateDispute.CreateDisputeCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Api.Controllers.CreateDisputeRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Disputes.Commands.CreateDispute.CreateDisputeCommand"
               }
             }
           }
@@ -8034,17 +8034,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Media.DTOs.GenerateUploadUrlRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Media.GenerateUploadUrl.GenerateUploadUrlCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Media.DTOs.GenerateUploadUrlRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Media.GenerateUploadUrl.GenerateUploadUrlCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Media.DTOs.GenerateUploadUrlRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Media.GenerateUploadUrl.GenerateUploadUrlCommand"
               }
             }
           }
@@ -8143,17 +8143,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Media.DTOs.CompleteUploadRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Media.CompleteUpload.CompleteUploadCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Media.DTOs.CompleteUploadRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Media.CompleteUpload.CompleteUploadCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Media.DTOs.CompleteUploadRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Media.CompleteUpload.CompleteUploadCommand"
               }
             }
           }
@@ -10273,17 +10273,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.DTOs.ScheduleSessionsBatchRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.ScheduleSessionsBatchCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.DTOs.ScheduleSessionsBatchRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.ScheduleSessionsBatchCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.DTOs.ScheduleSessionsBatchRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.ScheduleSessionsBatchCommand"
               }
             }
           }
@@ -11642,17 +11642,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalApiRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.Commands.RequestWithdrawal.StudentRequestWithdrawalCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalApiRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.Commands.RequestWithdrawal.StudentRequestWithdrawalCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalApiRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.StudentWallets.Commands.RequestWithdrawal.StudentRequestWithdrawalCommand"
               }
             }
           }
@@ -12836,17 +12836,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Tutors.DTOs.UpdateMySubjectsRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Tutors.UpdateMySubjects.UpdateMySubjectsCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Tutors.DTOs.UpdateMySubjectsRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Tutors.UpdateMySubjects.UpdateMySubjectsCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Tutors.DTOs.UpdateMySubjectsRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Tutors.UpdateMySubjects.UpdateMySubjectsCommand"
               }
             }
           }
@@ -13923,17 +13923,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Users.DTOs.UpdateUserProfileRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Users.UpdateMyProfile.UpdateMyProfileCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Users.DTOs.UpdateUserProfileRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Users.UpdateMyProfile.UpdateMyProfileCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Users.DTOs.UpdateUserProfileRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Users.UpdateMyProfile.UpdateMyProfileCommand"
               }
             }
           }
@@ -14222,17 +14222,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Wallets.DTOs.CreateWithdrawalRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Wallets.CreateWithdrawal.CreateWithdrawalCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Wallets.DTOs.CreateWithdrawalRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Wallets.CreateWithdrawal.CreateWithdrawalCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Wallets.DTOs.CreateWithdrawalRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Wallets.CreateWithdrawal.CreateWithdrawalCommand"
               }
             }
           }
@@ -14494,17 +14494,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Wallets.DTOs.UpdatePayoutAccountRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Wallets.PayoutAccount.UpdatePayoutAccount.UpdatePayoutAccountCommand"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Wallets.DTOs.UpdatePayoutAccountRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Wallets.PayoutAccount.UpdatePayoutAccount.UpdatePayoutAccountCommand"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorHub.Application.Features.Wallets.DTOs.UpdatePayoutAccountRequest"
+                "$ref": "#/components/schemas/TutorHub.Application.Features.Wallets.PayoutAccount.UpdatePayoutAccount.UpdatePayoutAccountCommand"
               }
             }
           }
@@ -14726,23 +14726,6 @@
         },
         "additionalProperties": false
       },
-      "TutorHub.Api.Controllers.CreateDisputeRequest": {
-        "type": "object",
-        "properties": {
-          "sessionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "reason": {
-            "$ref": "#/components/schemas/TutorHub.Domain.Enums.DisputeReason"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "TutorHub.Api.Controllers.Dev.SimulateVnPayIpnRequest": {
         "type": "object",
         "properties": {
@@ -14786,16 +14769,6 @@
             "type": "string",
             "format": "uuid",
             "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Api.Controllers.GetOrCreateConversationRequest": {
-        "type": "object",
-        "properties": {
-          "targetUserId": {
-            "type": "string",
-            "format": "uuid"
           }
         },
         "additionalProperties": false
@@ -14876,20 +14849,6 @@
             "nullable": true
           },
           "description": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Api.Controllers.UpdatePlatformFeeRequest": {
-        "type": "object",
-        "properties": {
-          "newFeeRate": {
-            "type": "number",
-            "format": "double"
-          },
-          "reason": {
             "type": "string",
             "nullable": true
           }
@@ -18418,6 +18377,20 @@
         },
         "additionalProperties": false
       },
+      "TutorHub.Application.Features.Admin.Categories.CreateCategory.CreateCategoryCommand": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "TutorHub.Application.Features.Admin.Dashboard.DTOs.ActionQueueDto": {
         "type": "object",
         "properties": {
@@ -18722,6 +18695,20 @@
           "tutorPhone": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Admin.Subjects.CreateSubject.CreateSubjectCommand": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
           }
         },
         "additionalProperties": false
@@ -19352,6 +19339,20 @@
         },
         "additionalProperties": false
       },
+      "TutorHub.Application.Features.Auth.ChangePassword.ChangePasswordCommand": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "nullable": true
+          },
+          "newPassword": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "TutorHub.Application.Features.Auth.DTOs.AuthResponseDto": {
         "type": "object",
         "properties": {
@@ -19373,20 +19374,6 @@
           },
           "user": {
             "$ref": "#/components/schemas/TutorHub.Application.Features.Auth.DTOs.UserDto"
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Auth.DTOs.ChangePasswordRequest": {
-        "type": "object",
-        "properties": {
-          "currentPassword": {
-            "type": "string",
-            "nullable": true
-          },
-          "newPassword": {
-            "type": "string",
-            "nullable": true
           }
         },
         "additionalProperties": false
@@ -19447,40 +19434,6 @@
           "idProfile": {
             "type": "string",
             "format": "uuid",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Auth.DTOs.LoginRequest": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string",
-            "nullable": true
-          },
-          "password": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Auth.DTOs.LogoutRequest": {
-        "type": "object",
-        "properties": {
-          "refreshToken": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Auth.DTOs.RefreshTokenRequest": {
-        "type": "object",
-        "properties": {
-          "refreshToken": {
-            "type": "string",
             "nullable": true
           }
         },
@@ -19625,6 +19578,50 @@
           },
           "enabled": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Auth.Login.LoginCommand": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Auth.Logout.LogoutCommand": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Auth.RefreshToken.RefreshTokenCommand": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Bookings.CreateBooking.CreateBookingCommand": {
+        "type": "object",
+        "properties": {
+          "serviceId": {
+            "type": "string",
+            "format": "uuid"
           }
         },
         "additionalProperties": false
@@ -19797,16 +19794,6 @@
           "reason": {
             "type": "string",
             "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Bookings.DTOs.CreateBookingRequest": {
-        "type": "object",
-        "properties": {
-          "serviceId": {
-            "type": "string",
-            "format": "uuid"
           }
         },
         "additionalProperties": false
@@ -20053,20 +20040,6 @@
         },
         "additionalProperties": false
       },
-      "TutorHub.Application.Features.Categories.DTOs.CreateCategoryRequest": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "TutorHub.Application.Features.Categories.DTOs.PublicCategoryDto": {
         "type": "object",
         "properties": {
@@ -20272,6 +20245,16 @@
         },
         "additionalProperties": false
       },
+      "TutorHub.Application.Features.Conversations.GetOrCreateConversation.GetOrCreateConversationCommand": {
+        "type": "object",
+        "properties": {
+          "targetUserId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
       "TutorHub.Application.Features.Disputes.Commands.AdminProcessRefundCallback.RefundCallbackResultDto": {
         "type": "object",
         "properties": {
@@ -20290,6 +20273,23 @@
             "nullable": true
           },
           "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Disputes.Commands.CreateDispute.CreateDisputeCommand": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/TutorHub.Domain.Enums.DisputeReason"
+          },
+          "description": {
             "type": "string",
             "nullable": true
           }
@@ -20782,7 +20782,7 @@
         },
         "additionalProperties": false
       },
-      "TutorHub.Application.Features.Media.DTOs.CompleteUploadRequest": {
+      "TutorHub.Application.Features.Media.CompleteUpload.CompleteUploadCommand": {
         "type": "object",
         "properties": {
           "objectKey": {
@@ -20803,28 +20803,6 @@
           },
           "mediaType": {
             "$ref": "#/components/schemas/TutorHub.Domain.Enums.MediaType"
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Media.DTOs.GenerateUploadUrlRequest": {
-        "type": "object",
-        "properties": {
-          "fileName": {
-            "type": "string",
-            "nullable": true
-          },
-          "contentType": {
-            "type": "string",
-            "nullable": true
-          },
-          "mediaType": {
-            "$ref": "#/components/schemas/TutorHub.Domain.Enums.MediaType"
-          },
-          "estimatedFileSize": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
           }
         },
         "additionalProperties": false
@@ -20883,6 +20861,28 @@
           "expiresInMinutes": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Media.GenerateUploadUrl.GenerateUploadUrlCommand": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "contentType": {
+            "type": "string",
+            "nullable": true
+          },
+          "estimatedSize": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "mediaType": {
+            "$ref": "#/components/schemas/TutorHub.Domain.Enums.MediaType"
           }
         },
         "additionalProperties": false
@@ -20984,6 +20984,20 @@
           "paidAt": {
             "type": "string",
             "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.PlatformSettings.Commands.AdminUpdatePlatformFee.AdminUpdatePlatformFeeCommand": {
+        "type": "object",
+        "properties": {
+          "newFeeRate": {
+            "type": "number",
+            "format": "double"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -21866,20 +21880,20 @@
         },
         "additionalProperties": false
       },
-      "TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.DTOs.ScheduleSessionsBatchRequest": {
+      "TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.ScheduleSessionsBatchCommand": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.DTOs.SessionScheduleItemDto"
+              "$ref": "#/components/schemas/TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.SessionScheduleItem"
             },
             "nullable": true
           }
         },
         "additionalProperties": false
       },
-      "TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.DTOs.SessionScheduleItemDto": {
+      "TutorHub.Application.Features.Sessions.ScheduleSessionsBatch.SessionScheduleItem": {
         "type": "object",
         "properties": {
           "sessionId": {
@@ -21897,7 +21911,7 @@
         },
         "additionalProperties": false
       },
-      "TutorHub.Application.Features.StudentWallets.DTOs.AdminAdjustWalletApiRequest": {
+      "TutorHub.Application.Features.StudentWallets.Commands.AdminAdjustWallet.AdminAdjustStudentWalletCommand": {
         "type": "object",
         "properties": {
           "studentWalletId": {
@@ -21918,6 +21932,36 @@
           "referenceId": {
             "type": "string",
             "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.StudentWallets.Commands.RequestWithdrawal.StudentRequestWithdrawalCommand": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "bankName": {
+            "type": "string",
+            "nullable": true
+          },
+          "bankCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountHolderName": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -22042,36 +22086,6 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.StudentWallets.DTOs.StudentWithdrawalApiRequest": {
-        "type": "object",
-        "properties": {
-          "amount": {
-            "type": "number",
-            "format": "double"
-          },
-          "bankName": {
-            "type": "string",
-            "nullable": true
-          },
-          "bankCode": {
-            "type": "string",
-            "nullable": true
-          },
-          "accountNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "accountHolderName": {
-            "type": "string",
-            "nullable": true
-          },
-          "note": {
-            "type": "string",
-            "nullable": true
           }
         },
         "additionalProperties": false
@@ -22255,20 +22269,6 @@
           "bookingsCount": {
             "type": "integer",
             "format": "int32"
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Subjects.DTOs.CreateSubjectRequest": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
-          "categoryId": {
-            "type": "string",
-            "format": "uuid"
           }
         },
         "additionalProperties": false
@@ -22835,19 +22835,6 @@
         },
         "additionalProperties": false
       },
-      "TutorHub.Application.Features.Tutors.DTOs.UpdateMySubjectsRequest": {
-        "type": "object",
-        "properties": {
-          "subjects": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TutorHub.Application.Features.Tutors.DTOs.TutorSubjectItemDto"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "TutorHub.Application.Features.Tutors.Services.DTOs.CreateServiceRequest": {
         "type": "object",
         "properties": {
@@ -23237,6 +23224,19 @@
         },
         "additionalProperties": false
       },
+      "TutorHub.Application.Features.Tutors.UpdateMySubjects.UpdateMySubjectsCommand": {
+        "type": "object",
+        "properties": {
+          "subjects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TutorHub.Application.Features.Tutors.DTOs.TutorSubjectItemDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "TutorHub.Application.Features.Users.DTOs.MyProfileDto": {
         "type": "object",
         "properties": {
@@ -23273,7 +23273,7 @@
         },
         "additionalProperties": false
       },
-      "TutorHub.Application.Features.Users.DTOs.UpdateUserProfileRequest": {
+      "TutorHub.Application.Features.Users.UpdateMyProfile.UpdateMyProfileCommand": {
         "type": "object",
         "properties": {
           "fullName": {
@@ -23291,7 +23291,7 @@
         },
         "additionalProperties": false
       },
-      "TutorHub.Application.Features.Wallets.DTOs.CreateWithdrawalRequest": {
+      "TutorHub.Application.Features.Wallets.CreateWithdrawal.CreateWithdrawalCommand": {
         "type": "object",
         "properties": {
           "amount": {
@@ -23322,28 +23322,6 @@
         "additionalProperties": false
       },
       "TutorHub.Application.Features.Wallets.DTOs.TutorPayoutAccountDto": {
-        "type": "object",
-        "properties": {
-          "bankName": {
-            "type": "string",
-            "nullable": true
-          },
-          "bankCode": {
-            "type": "string",
-            "nullable": true
-          },
-          "accountNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "accountHolderName": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TutorHub.Application.Features.Wallets.DTOs.UpdatePayoutAccountRequest": {
         "type": "object",
         "properties": {
           "bankName": {
@@ -23528,6 +23506,28 @@
             "nullable": true
           },
           "failureReason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TutorHub.Application.Features.Wallets.PayoutAccount.UpdatePayoutAccount.UpdatePayoutAccountCommand": {
+        "type": "object",
+        "properties": {
+          "bankName": {
+            "type": "string",
+            "nullable": true
+          },
+          "bankCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountHolderName": {
             "type": "string",
             "nullable": true
           }
