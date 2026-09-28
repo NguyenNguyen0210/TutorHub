@@ -321,10 +321,9 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CreateCategory(
-        [FromBody] CreateCategoryRequest request,
+        [FromBody] CreateCategoryCommand command,
         CancellationToken cancellationToken)
     {
-        var command = new CreateCategoryCommand(request.Name, request.Description);
         var result = await _sender.Send(command, cancellationToken);
         return StatusCode(StatusCodes.Status201Created, ApiResponse<AdminCategoryDto>.SuccessResult(result, "Category created successfully."));
     }
@@ -392,10 +391,9 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CreateSubject(
-        [FromBody] CreateSubjectRequest request,
+        [FromBody] CreateSubjectCommand command,
         CancellationToken cancellationToken)
     {
-        var command = new CreateSubjectCommand(request.Name, request.CategoryId);
         var result = await _sender.Send(command, cancellationToken);
         return StatusCode(StatusCodes.Status201Created, ApiResponse<AdminSubjectDto>.SuccessResult(result, "Subject created successfully."));
     }
