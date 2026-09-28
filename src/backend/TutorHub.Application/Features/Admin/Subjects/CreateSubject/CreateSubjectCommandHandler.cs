@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Subjects.DTOs;
@@ -10,10 +11,12 @@ namespace TutorHub.Application.Features.Admin.Subjects.CreateSubject;
 public class CreateSubjectCommandHandler : IRequestHandler<CreateSubjectCommand, AdminSubjectDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ISubjectCacheService _cache;
 
-    public CreateSubjectCommandHandler(IAppDbContext context)
+    public CreateSubjectCommandHandler(IAppDbContext context, ISubjectCacheService? cache = null)
     {
         _context = context;
+        _cache = cache ?? NoOpSubjectCacheService.Instance;
     }
 
     public async Task<AdminSubjectDto> Handle(CreateSubjectCommand request, CancellationToken cancellationToken)
@@ -56,6 +59,7 @@ public class CreateSubjectCommandHandler : IRequestHandler<CreateSubjectCommand,
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
+            await _cache.InvalidateSubjectAsync(subject.Id, cancellationToken);
         }
         catch (DbUpdateException ex)
         {

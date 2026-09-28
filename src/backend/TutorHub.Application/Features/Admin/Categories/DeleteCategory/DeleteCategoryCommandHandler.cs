@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 
@@ -8,10 +9,12 @@ namespace TutorHub.Application.Features.Admin.Categories.DeleteCategory;
 public class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategoryCommand, Unit>
 {
     private readonly IAppDbContext _context;
+    private readonly ISubjectCacheService _cache;
 
-    public DeleteCategoryCommandHandler(IAppDbContext context)
+    public DeleteCategoryCommandHandler(IAppDbContext context, ISubjectCacheService? cache = null)
     {
         _context = context;
+        _cache = cache ?? NoOpSubjectCacheService.Instance;
     }
 
     public async Task<Unit> Handle(DeleteCategoryCommand request, CancellationToken cancellationToken)
@@ -36,6 +39,7 @@ public class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategoryComman
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
+            await _cache.InvalidateSubjectListsAsync(cancellationToken);
         }
         catch (DbUpdateException)
         {

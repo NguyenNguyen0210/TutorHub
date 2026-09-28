@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Categories.DTOs;
@@ -9,10 +10,12 @@ namespace TutorHub.Application.Features.Admin.Categories.UpdateCategory;
 public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryCommand, AdminCategoryDto>
 {
     private readonly IAppDbContext _context;
+    private readonly ISubjectCacheService _cache;
 
-    public UpdateCategoryCommandHandler(IAppDbContext context)
+    public UpdateCategoryCommandHandler(IAppDbContext context, ISubjectCacheService? cache = null)
     {
         _context = context;
+        _cache = cache ?? NoOpSubjectCacheService.Instance;
     }
 
     public async Task<AdminCategoryDto> Handle(UpdateCategoryCommand request, CancellationToken cancellationToken)
@@ -44,6 +47,7 @@ public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryComman
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
+            await _cache.InvalidateSubjectListsAsync(cancellationToken);
         }
         catch (DbUpdateException ex)
         {

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using StackExchange.Redis;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Common.Payments;
@@ -17,6 +18,7 @@ using TutorHub.Application.Common.Storage;
 using TutorHub.Infrastructure.Authentication;
 using TutorHub.Infrastructure.Authentication.External;
 using TutorHub.Infrastructure.BackgroundServices;
+using TutorHub.Infrastructure.Caching;
 using TutorHub.Infrastructure.Persistence;
 using TutorHub.Infrastructure.Redis;
 using TutorHub.Infrastructure.Services;
@@ -201,6 +203,21 @@ public static class InfrastructureServiceCollectionExtensions
         }
 
         services.TryAddSingleton(TimeProvider.System);
+
+        // ── WP5 subject/platform-setting cache: Redis when the Cache flag is ──
+        // on, pass-through otherwise (disabled mode behaves byte-identically to
+        // uncached code). IDistributedCache only exists when Redis is Enabled,
+        // so the real services require both flags.
+        if (redis.Enabled && redis.Features.Cache)
+        {
+            services.AddSingleton<ISubjectCacheService, SubjectCacheService>();
+            services.AddSingleton<IPlatformSettingCacheService, PlatformSettingCacheService>();
+        }
+        else
+        {
+            services.AddSingleton<ISubjectCacheService>(_ => NoOpSubjectCacheService.Instance);
+            services.AddSingleton<IPlatformSettingCacheService>(_ => NoOpPlatformSettingCacheService.Instance);
+        }
 
         services.AddSingleton<IExternalAuthProvider, GoogleAuthProvider>();
         services.AddSingleton<IExternalAuthProvider, FacebookAuthProvider>();
