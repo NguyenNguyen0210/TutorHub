@@ -1294,7 +1294,9 @@ Every refund SHALL have an associated audit trail.
 
 ## FR-DISPUTE-001 — Create Dispute
 
-Student or Tutor SHALL be able to create a formal Dispute when an issue requires platform resolution.
+Student SHALL be able to create a formal Dispute within the 12-hour grace period of a session (pre-release only).
+
+A session past its grace window without a report is deemed accepted and can no longer be disputed.
 
 Supported dispute categories include:
 
@@ -1304,10 +1306,11 @@ Supported dispute categories include:
 - Financial issue.
 - Service issue.
 
-### Business Rule (v1.1: anti-spam filing)
+### Business Rule (v1.1: anti-spam filing; v1.4: 12h-grace rule)
 
 - `Description` of at least 20 characters is required.
 - Financial resolutions require at least one uploaded evidence before Admin may resolve (dismissal without financial change exempt).
+- Only sessions in `AwaitingPayout` status with an unexpired grace window may be disputed. `Completed` (released) sessions are rejected.
 
 ---
 
@@ -1327,7 +1330,7 @@ Issue
 
 ## FR-DISPUTE-003 — Financial Hold
 
-Where applicable, system SHALL place affected financial amounts on hold while a Dispute is unresolved.
+While a pre-release Dispute is unresolved, the affected session earning stays locked in Pending escrow and is not released to the Tutor. No Tutor Available balance is held (v1.4: post-release balance holds removed — released sessions cannot be disputed).
 
 ---
 
@@ -1356,7 +1359,7 @@ Admin SHALL be able to resolve a Dispute using one of the supported outcomes:
 
 ### Fast-track template (v1.1)
 
-For pre-release escrow only, Admin may fast-track when exactly one side submitted `Attended`, the other stayed silent more than 3 days past the verification due date, and at least one evidence exists. Tutor-claim releases the net payout; student-claim refunds in full. Post-release disputes always use full investigation.
+For pre-release escrow only, Admin may fast-track when exactly one side submitted `Attended`, the other stayed silent more than 3 days past the verification due date, and at least one evidence exists. Tutor-claim releases the net payout; student-claim refunds in full.
 
 ---
 

@@ -1,11 +1,11 @@
 # TutorHub — Product Requirements Document (PRD)
 
-**Version:** 1.3
-**Status:** Final / Business Baseline Frozen (v1.0 baseline + v1.1, v1.2 & v1.3 implementation deltas below)
+**Version:** 1.4
+**Status:** Final / Business Baseline Frozen (v1.0 baseline + v1.1, v1.2, v1.3 & v1.4 implementation deltas below)
 **Product:** TutorHub
 **Document Type:** Product Requirements Document
 
-## Changelog v1.0 → v1.3 (owner-approved implementation deltas)
+## Changelog v1.0 → v1.4 (owner-approved implementation deltas)
 
 | # | Area | Delta |
 |---|---|---|
@@ -20,6 +20,7 @@
 | 9 | Events | 26 core events + `MessageSent` (`RefundFailed`, `PlatformSettingChanged` added) |
 | 10 | Student Wallet | Ví Học Viên (`StudentWallet`): nạp tiền tự động 24/7 qua Cổng thanh toán VNPay, thanh toán khóa học 100% từ ví, hoàn tiền tự động ghi có ngay vào ví, rút tiền tối thiểu 50.000 VNĐ, quản trị Admin đối soát/xử lý rút, bảo vệ sổ cái bất biến `StudentWalletTransaction` |
 | 11 | Custom Agreement removal | Xóa hẳn Custom Agreement (owner decision: không cần thiết). Booking chỉ còn Service-only (`ServiceId` required). Xóa `CustomAgreement` entity, `AgreementsController`, `CustomOfferCreated/Accepted` events. |
+| 12 | 12h-grace dispute rule | Dispute chỉ pre-release trong 12h grace; quá hạn = chấp nhận, khỏi kiện. Xóa post-release `BalanceHold`/`FeeReversal`/`DisputeSettlementCalculator`. |
 
 ---
 
@@ -504,6 +505,10 @@ Issue
 
 - Mở dispute cần `Description` ≥ 20 ký tự; resolve có tiền cần ≥ 1 evidence (bác đơn không tiền được miễn).
 - Fast-track (chỉ escrow pre-release): một bên `Attended` + bên kia im lặng quá 3 ngày sau hạn verify + ≥ 1 evidence → template: tutor-claim giải ngân net, student-claim hoàn full.
+
+### v1.4: 12h-grace rule (owner decision)
+
+- Dispute chỉ tồn tại pre-release trong 12h grace của buổi học. Quá hạn không report = mặc nhiên chấp nhận, tiền tự động về tutor, buổi đã giải ngân không thể khiếu nại. Bỏ toàn bộ post-release balance hold / fee-reversal.
 
 ---
 

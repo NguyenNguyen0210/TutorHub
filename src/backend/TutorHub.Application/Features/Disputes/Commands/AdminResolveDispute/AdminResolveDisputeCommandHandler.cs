@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
@@ -90,27 +90,11 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             throw new NotFoundException(nameof(Wallet), enrollment.TutorProfileId);
         }
 
-        // Handle Dismissal (no financial consequence)
+        // Handle Dismissal (no financial consequence).
+        // 12h-grace rule: disputes are pre-release only, so there is never a
+        // wallet BalanceHold to unwind here — just close the escrow record.
         if (request.Decision == DisputeResolutionDecision.DismissedNoFinancialChange)
         {
-            if (dispute.HoldType == FinancialHoldType.BalanceHold && dispute.HeldAmount > 0)
-            {
-                tutorWallet.ReleaseHold(dispute.HeldAmount, now);
-                tutorWallet.UpdatedAt = now;
-
-                _context.WalletTransactions.Add(new WalletTransaction
-                {
-                    Id = Guid.NewGuid(),
-                    WalletId = tutorWallet.Id,
-                    DisputeId = dispute.Id,
-                    Type = WalletTransactionType.DisputeHoldReleaseCredit,
-                    Amount = dispute.HeldAmount,
-                    BalanceAfter = tutorWallet.AvailableBalance,
-                    Description = $"Dispute dismissed: hold released for Session #{session.SessionNumber}",
-                    CreatedAt = now
-                });
-            }
-
             dispute.DismissByAdmin(userId, request.AdminNotes, now);
             dispute.ReleaseFinancialHold(userId, now);
 
@@ -129,324 +113,134 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             return MapToDto(dispute, session);
         }
 
-        // Financial Resolution paths
-        if (!session.IsPayoutReleased)
+        // Financial Resolution paths.
+        // 12h-grace rule: only pre-release (Pending escrow) resolution exists.
+        // A released session is deemed accepted and can no longer be disputed.
+        if (session.IsPayoutReleased)
         {
-            // =========================================================================
-            // Stage A: Pre-Release (Pending Escrow) - DEC-S8-003, DEC-S8-025
-            // =========================================================================
-            var gross = session.EarningAmount;
-            // Snapshot rate is authoritative; a legitimate 0% must stay 0%.
-            var feeRate = enrollment.PlatformFeeRate;
-
-            decimal studentRefund = 0m;
-            decimal tutorGrossRelease = 0m;
-
-            switch (request.Decision)
-            {
-                case DisputeResolutionDecision.StudentWinsFullRefund:
-                    studentRefund = gross;
-                    tutorGrossRelease = 0m;
-                    break;
-
-                case DisputeResolutionDecision.StudentWinsPartialRefund:
-                    studentRefund = request.CustomRefundAmount ?? throw new BadRequestException("CustomRefundAmount is required.");
-                    if (studentRefund <= 0 || studentRefund >= gross)
-                        throw new BadRequestException($"Partial refund amount must be between 0 and {gross}.");
-                    tutorGrossRelease = gross - studentRefund;
-                    break;
-
-                case DisputeResolutionDecision.TutorWinsReleaseEarning:
-                    studentRefund = 0m;
-                    tutorGrossRelease = gross;
-                    break;
-            }
-
-            // DEC-S8-025 / money conservation: the pre-release earning still sits in the
-            // tutor wallet's Pending escrow. Remove the session's gross slice before any
-            // split; otherwise a tutor win creates money and a student win strands escrow.
-            if (studentRefund > 0 || tutorGrossRelease > 0)
-            {
-                tutorWallet.DebitPending(gross, now);
-            }
-
-            var (platformFee, tutorNetPayout) = PlatformFeeCalculator.SplitGross(tutorGrossRelease, feeRate);
-
-            // Update tutor wallet if tutor receives earning
-            if (tutorNetPayout > 0)
-            {
-                // F-23: guarded domain math.
-                tutorWallet.CreditAvailable(tutorNetPayout, now);
-
-                _context.WalletTransactions.Add(new WalletTransaction
-                {
-                    Id = Guid.NewGuid(),
-                    WalletId = tutorWallet.Id,
-                    DisputeId = dispute.Id,
-                    Type = WalletTransactionType.SessionPayoutCredit,
-                    Amount = tutorNetPayout,
-                    BalanceAfter = tutorWallet.AvailableBalance,
-                    Description = $"Dispute resolution payout for Session #{session.SessionNumber}",
-                    CreatedAt = now
-                });
-
-                // Record SessionPayoutCredit
-                var payoutTx = Transaction.CreatePayout(
-                    bookingId: enrollment.BookingId,
-                    sessionId: session.Id,
-                    disputeId: dispute.Id,
-                    gross: tutorGrossRelease,
-                    feeRate: feeRate,
-                    feeAmount: platformFee,
-                    netPayout: tutorNetPayout,
-                    paymentGatewayRef: $"DisputeEscrowRelease-{session.Id:N}",
-                    now: now);
-                _context.Transactions.Add(payoutTx);
-            }
-
-            // Record Student Refund if student receives refund (Credited directly to Student Wallet)
-            if (studentRefund > 0)
-            {
-                await _studentWalletService.CreditRefundAsync(
-                    enrollment.StudentProfileId,
-                    studentRefund,
-                    "DisputeResolution",
-                    dispute.Id,
-                    $"Hoàn tiền giải quyết tranh chấp Buổi #{session.SessionNumber}",
-                    now,
-                    cancellationToken);
-
-                var refundTx = Transaction.CreateRefund(
-                    bookingId: enrollment.BookingId,
-                    sessionId: session.Id,
-                    disputeId: dispute.Id,
-                    originalPayout: null,
-                    amount: studentRefund,
-                    paymentGatewayRef: $"DisputeEscrowRefund-{dispute.Id:N}",
-                    description: $"Pre-release escrow refund for Session #{session.SessionNumber}",
-                    now: now);
-                refundTx.Status = TransactionStatus.Succeeded;
-                refundTx.RefundedAt = now;
-                refundTx.SettlementRequired = false;
-                _context.Transactions.Add(refundTx);
-
-                _context.AddOutboxMessage(new RefundCreatedEvent(
-                    enrollment.Id,
-                    enrollment.StudentProfile.UserId,
-                    new MoneyDto(studentRefund),
-                    refundTx.Id,
-                    Guid.NewGuid(),
-                    1,
-                    now));
-
-                _context.AddOutboxMessage(new RefundCompletedEvent(
-                    enrollment.Id,
-                    enrollment.StudentProfile.UserId,
-                    new MoneyDto(studentRefund),
-                    refundTx.Id,
-                    Guid.NewGuid(),
-                    1,
-                    now));
-            }
-
-            session.CompleteByAdmin(userId, request.AdminNotes, "DisputeAdminResolution", now, releasePayout: tutorGrossRelease > 0);
-            dispute.ResolveByAdmin(userId, request.Decision, request.AdminNotes, now, affectsFinancial: true);
-            dispute.ReleaseFinancialHold(userId, now);
+            throw new ConflictException("Payout for this session has already been released and can no longer be disputed.");
         }
-        else
+
+        // =========================================================================
+        // Stage A: Pre-Release (Pending Escrow) - DEC-S8-003, DEC-S8-025
+        // =========================================================================
+        var gross = session.EarningAmount;
+        // Snapshot rate is authoritative; a legitimate 0% must stay 0%.
+        var feeRate = enrollment.PlatformFeeRate;
+
+        decimal studentRefund = 0m;
+        decimal tutorGrossRelease = 0m;
+
+        switch (request.Decision)
         {
-            // =========================================================================
-            // Stage B: Post-Release (Available Balance) - DEC-S8-025, INV-DISP-007
-            // =========================================================================
-            // 3. Lock Original Transaction (Lock Order Level 5 - DEC-S8-027)
-            var originalTx = await _context.Transactions
-                .FromSqlInterpolated($"SELECT * FROM \"Transactions\" WHERE \"SessionId\" = {session.Id} AND \"Type\" = 'SessionPayoutCredit' FOR UPDATE")
-                .FirstOrDefaultAsync(cancellationToken);
+            case DisputeResolutionDecision.StudentWinsFullRefund:
+                studentRefund = gross;
+                tutorGrossRelease = 0m;
+                break;
 
-            if (originalTx == null)
-            {
-                throw new BadRequestException("Original session earning transaction was not found.");
-            }
+            case DisputeResolutionDecision.StudentWinsPartialRefund:
+                studentRefund = request.CustomRefundAmount ?? throw new BadRequestException("CustomRefundAmount is required.");
+                if (studentRefund <= 0 || studentRefund >= gross)
+                    throw new BadRequestException($"Partial refund amount must be between 0 and {gross}.");
+                tutorGrossRelease = gross - studentRefund;
+                break;
 
-            // F-22 service-layer enforcement (mirrors the SaveChangesAsync anti-chain
-            // guard): adjustments must point at the original earning, never at another
-            // adjustment. Fail fast with 409 instead of surfacing InvalidOperation.
-            if (originalTx.Type != TransactionType.SessionPayoutCredit)
-            {
-                throw new ConflictException("Original session earning transaction is not a payout record; chaining adjustments is forbidden.");
-            }
-
-            var originalGross = originalTx.Amount;
-            var originalPlatformFee = originalTx.CommissionAmount;
-            var originalTutorNet = originalTx.PayoutAmount;
-            var appliedRate = originalTx.CommissionRate;
-
-            if (request.Decision == DisputeResolutionDecision.TutorWinsReleaseEarning)
-            {
-                // Unhold funds completely
-                if (dispute.HeldAmount > 0)
-                {
-                    tutorWallet.ReleaseHold(dispute.HeldAmount, now);
-                    tutorWallet.UpdatedAt = now;
-
-                    _context.WalletTransactions.Add(new WalletTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        WalletId = tutorWallet.Id,
-                        DisputeId = dispute.Id,
-                        Type = WalletTransactionType.DisputeHoldReleaseCredit,
-                        Amount = dispute.HeldAmount,
-                        BalanceAfter = tutorWallet.AvailableBalance,
-                        Description = $"Tutor wins dispute: hold released for Session #{session.SessionNumber}",
-                        CreatedAt = now
-                    });
-                }
-
-                dispute.ResolveByAdmin(userId, request.Decision, request.AdminNotes, now, originalTransactionId: originalTx.Id, affectsFinancial: true);
-                dispute.ReleaseFinancialHold(userId, now);
-            }
-            else
-            {
-                // StudentWinsFullRefund or StudentWinsPartialRefund
-                decimal studentRefund = request.Decision == DisputeResolutionDecision.StudentWinsFullRefund
-                    ? originalGross
-                    : (request.CustomRefundAmount ?? throw new BadRequestException("CustomRefundAmount is required."));
-
-                if (studentRefund <= 0 || studentRefund > originalGross)
-                {
-                    throw new BadRequestException($"Refund amount must be between 0 and {originalGross}.");
-                }
-
-                // Canonical Fee & Net Calculation (Mandatory Patch B, DEC-S8-025).
-                // Extracted to the Domain so the conservation identity
-                // StudentRefund ≡ TutorNetRecovery + PlatformFeeReversal is unit-testable.
-                var settlement = DisputeSettlementCalculator.CalculatePostRelease(
-                    studentRefund: studentRefund,
-                    originalGross: originalGross,
-                    originalPlatformFee: originalPlatformFee,
-                    originalTutorNet: originalTutorNet,
-                    appliedRate: appliedRate);
-
-                var tutorNetRecovery = settlement.TutorNetRecovery;
-                var platformFeeReversal = settlement.PlatformFeeReversal;
-
-                // Insufficient reserve guard (DEC-S8-026 / DEC-S8-028 / P1-5).
-                // Must account for holds of OTHER active disputes so this recovery never
-                // cannibalizes funds reserved for other disputes (preserves HeldBalance <= AvailableBalance).
-                var availableExcludingOtherHolds = tutorWallet.AvailableBalance - Math.Max(0m, tutorWallet.HeldBalance - dispute.HeldAmount);
-                if (availableExcludingOtherHolds < tutorNetRecovery)
-                {
-                    dispute.MarkRequiresAdminFinancialIntervention(
-                        $"Tutor available balance excluding other active holds ({availableExcludingOtherHolds:N0} VND) is insufficient for required recovery ({tutorNetRecovery:N0} VND).");
-                    await _auditLogService.LogAsync(
-                        action: "DisputeRequiresFinancialIntervention",
-                        entityName: "Dispute",
-                        entityId: dispute.Id.ToString(),
-                        userId: userId,
-                        oldValues: new { Status = "UnderReview" },
-                        newValues: new { Status = dispute.Status.ToString(), RequiredRecovery = tutorNetRecovery, AvailableBalance = tutorWallet.AvailableBalance },
-                        cancellationToken: cancellationToken);
-                    await _context.SaveChangesAsync(cancellationToken);
-                    await tx.CommitAsync(cancellationToken);
-
-                    return MapToDto(dispute, session);
-                }
-
-                // Deduct from tutor wallet
-                if (dispute.HeldAmount > 0)
-                {
-                    tutorWallet.ReleaseHold(dispute.HeldAmount, now);
-                }
-                tutorWallet.DebitAvailable(tutorNetRecovery, now);
-
-                _context.WalletTransactions.Add(new WalletTransaction
-                {
-                    Id = Guid.NewGuid(),
-                    WalletId = tutorWallet.Id,
-                    DisputeId = dispute.Id,
-                    Type = WalletTransactionType.DisputeRecoveryDebit,
-                    Amount = tutorNetRecovery,
-                    BalanceAfter = tutorWallet.AvailableBalance,
-                    Description = $"Dispute recovery debit for Session #{session.SessionNumber}",
-                    CreatedAt = now
-                });
-
-                // If held amount exceeded recovery (e.g. partial refund), record excess hold unheld
-                if (dispute.HeldAmount > tutorNetRecovery)
-                {
-                    var excessHeld = dispute.HeldAmount - tutorNetRecovery;
-                    _context.WalletTransactions.Add(new WalletTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        WalletId = tutorWallet.Id,
-                        DisputeId = dispute.Id,
-                        Type = WalletTransactionType.DisputeHoldReleaseCredit,
-                        Amount = excessHeld,
-                        BalanceAfter = tutorWallet.AvailableBalance,
-                        Description = $"Excess dispute hold released for Session #{session.SessionNumber}",
-                        CreatedAt = now
-                    });
-                }
-
-                // Credit student wallet directly (INV-STUDENT-WALLET-003)
-                await _studentWalletService.CreditRefundAsync(
-                    enrollment.StudentProfileId,
-                    studentRefund,
-                    "DisputePostReleaseRefund",
-                    dispute.Id,
-                    $"Hoàn tiền tranh chấp sau release Buổi #{session.SessionNumber}",
-                    now,
-                    cancellationToken);
-
-                // Create explicit adjustments (Historical originalTx remains 100% immutable - DEC-S8-030).
-                // F-23: factories re-validate the no-chaining rule (throws ArgumentException).
-                var refundTx = Transaction.CreateRefund(
-                    bookingId: enrollment.BookingId,
-                    sessionId: session.Id,
-                    disputeId: dispute.Id,
-                    originalPayout: originalTx,
-                    amount: studentRefund,
-                    paymentGatewayRef: $"DisputePostReleaseRefund-{dispute.Id:N}",
-                    description: $"Post-release dispute refund for Session #{session.SessionNumber}",
-                    now: now);
-                refundTx.Status = TransactionStatus.Succeeded;
-                refundTx.RefundedAt = now;
-                refundTx.SettlementRequired = false;
-                _context.Transactions.Add(refundTx);
-
-                var feeReversalTx = Transaction.CreateFeeReversal(
-                    bookingId: enrollment.BookingId,
-                    sessionId: session.Id,
-                    disputeId: dispute.Id,
-                    originalPayout: originalTx,
-                    feeRate: appliedRate,
-                    feeReversalAmount: platformFeeReversal,
-                    paymentGatewayRef: $"DisputeFeeReversal-{dispute.Id:N}",
-                    now: now);
-                _context.Transactions.Add(feeReversalTx);
-
-                _context.AddOutboxMessage(new RefundCreatedEvent(
-                    enrollment.Id,
-                    enrollment.StudentProfile.UserId,
-                    new MoneyDto(studentRefund),
-                    refundTx.Id,
-                    Guid.NewGuid(),
-                    1,
-                    now));
-
-                _context.AddOutboxMessage(new RefundCompletedEvent(
-                    enrollment.Id,
-                    enrollment.StudentProfile.UserId,
-                    new MoneyDto(studentRefund),
-                    refundTx.Id,
-                    Guid.NewGuid(),
-                    1,
-                    now));
-
-                dispute.ResolveByAdmin(userId, request.Decision, request.AdminNotes, now, originalTransactionId: originalTx.Id, affectsFinancial: true);
-                dispute.ReleaseFinancialHold(userId, now);
-            }
+            case DisputeResolutionDecision.TutorWinsReleaseEarning:
+                studentRefund = 0m;
+                tutorGrossRelease = gross;
+                break;
         }
+
+        // DEC-S8-025 / money conservation: the pre-release earning still sits in the
+        // tutor wallet's Pending escrow. Remove the session's gross slice before any
+        // split; otherwise a tutor win creates money and a student win strands escrow.
+        if (studentRefund > 0 || tutorGrossRelease > 0)
+        {
+            tutorWallet.DebitPending(gross, now);
+        }
+
+        var (platformFee, tutorNetPayout) = PlatformFeeCalculator.SplitGross(tutorGrossRelease, feeRate);
+
+        // Update tutor wallet if tutor receives earning
+        if (tutorNetPayout > 0)
+        {
+            // F-23: guarded domain math.
+            tutorWallet.CreditAvailable(tutorNetPayout, now);
+
+            _context.WalletTransactions.Add(new WalletTransaction
+            {
+                Id = Guid.NewGuid(),
+                WalletId = tutorWallet.Id,
+                DisputeId = dispute.Id,
+                Type = WalletTransactionType.SessionPayoutCredit,
+                Amount = tutorNetPayout,
+                BalanceAfter = tutorWallet.AvailableBalance,
+                Description = $"Dispute resolution payout for Session #{session.SessionNumber}",
+                CreatedAt = now
+            });
+
+            // Record SessionPayoutCredit
+            var payoutTx = Transaction.CreatePayout(
+                bookingId: enrollment.BookingId,
+                sessionId: session.Id,
+                disputeId: dispute.Id,
+                gross: tutorGrossRelease,
+                feeRate: feeRate,
+                feeAmount: platformFee,
+                netPayout: tutorNetPayout,
+                paymentGatewayRef: $"DisputeEscrowRelease-{session.Id:N}",
+                now: now);
+            _context.Transactions.Add(payoutTx);
+        }
+
+        // Record Student Refund if student receives refund (Credited directly to Student Wallet)
+        if (studentRefund > 0)
+        {
+            await _studentWalletService.CreditRefundAsync(
+                enrollment.StudentProfileId,
+                studentRefund,
+                "DisputeResolution",
+                dispute.Id,
+                $"Hoàn tiền giải quyết tranh chấp Buổi #{session.SessionNumber}",
+                now,
+                cancellationToken);
+
+            var refundTx = Transaction.CreateRefund(
+                bookingId: enrollment.BookingId,
+                sessionId: session.Id,
+                disputeId: dispute.Id,
+                originalPayout: null,
+                amount: studentRefund,
+                paymentGatewayRef: $"DisputeEscrowRefund-{dispute.Id:N}",
+                description: $"Pre-release escrow refund for Session #{session.SessionNumber}",
+                now: now);
+            refundTx.Status = TransactionStatus.Succeeded;
+            refundTx.RefundedAt = now;
+            refundTx.SettlementRequired = false;
+            _context.Transactions.Add(refundTx);
+
+            _context.AddOutboxMessage(new RefundCreatedEvent(
+                enrollment.Id,
+                enrollment.StudentProfile.UserId,
+                new MoneyDto(studentRefund),
+                refundTx.Id,
+                Guid.NewGuid(),
+                1,
+                now));
+
+            _context.AddOutboxMessage(new RefundCompletedEvent(
+                enrollment.Id,
+                enrollment.StudentProfile.UserId,
+                new MoneyDto(studentRefund),
+                refundTx.Id,
+                Guid.NewGuid(),
+                1,
+                now));
+        }
+
+        session.CompleteByAdmin(userId, request.AdminNotes, "DisputeAdminResolution", now, releasePayout: tutorGrossRelease > 0);
+        dispute.ResolveByAdmin(userId, request.Decision, request.AdminNotes, now, affectsFinancial: true);
+        dispute.ReleaseFinancialHold(userId, now);
 
         // Outbox event
         _context.AddOutboxMessage(new DisputeResolvedEvent(

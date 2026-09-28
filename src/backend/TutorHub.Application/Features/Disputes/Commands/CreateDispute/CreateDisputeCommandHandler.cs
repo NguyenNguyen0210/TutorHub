@@ -51,19 +51,30 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
 
         var respondentUserId = userId == studentUserId ? tutorUserId : studentUserId;
 
-        // Session status check: can only dispute AwaitingPayout or Completed sessions
-        if (session.Status == SessionStatus.Unscheduled || session.Status == SessionStatus.Cancelled || session.Status == SessionStatus.Scheduled)
+        // 12h-grace rule (owner decision v1.4): disputes exist ONLY pre-release.
+        // A session past its 12-hour grace window without a report is deemed
+        // accepted and its payout auto-releases; post-payout sessions ("Completed"
+        // or already released) can no longer be disputed ("khỏi kiện").
+        if (session.Status != SessionStatus.AwaitingPayout)
         {
-            throw new BadRequestException($"Cannot dispute a session in '{session.Status}' status.");
+            throw new BadRequestException(
+                $"Cannot dispute a session in '{session.Status}' status. Disputes are only accepted during the 12-hour grace period before payout; a released session is deemed accepted.");
         }
 
-        // A dispute addresses an issue with a delivery, so the session must have
-        // already taken place (EndAt <= now). Future sessions use cancellation or
-        // reschedule instead (FR-DISPUTE-001, PRD §8.4).
-        var now = _clock.UtcNow;
-        if (!session.EndAt.HasValue || session.EndAt.Value > now)
+        if (session.IsPayoutReleased)
         {
-            throw new BadRequestException("Cannot dispute a session that has not yet taken place.");
+            throw new ConflictException("Payout for this session has already been released and can no longer be disputed.");
+        }
+
+        // A dispute addresses an issue with a delivery inside its grace window
+        // (FR-DISPUTE-001, PRD §8.4). AwaitingPayout implies the session already
+        // took place; future sessions use cancellation or reschedule instead.
+        var now = _clock.UtcNow;
+
+        // Grace window still open: expiry without a report means acceptance.
+        if (session.GracePeriodEndsAt.HasValue && session.GracePeriodEndsAt.Value < now)
+        {
+            throw new BadRequestException("The 12-hour grace period has expired. The session is deemed accepted and can no longer be disputed.");
         }
 
         // Active dispute deduplication: only 1 active dispute per session (INV-DISP-001)
@@ -99,73 +110,10 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
             CreatedAt = now
         };
 
-        // Determine Financial Stage & Hold Allocation (DEC-S8-022, DEC-S8-025, DEC-S8-028)
-        if (!session.IsPayoutReleased)
-        {
-            // Stage A: Pre-Release (Pending Escrow)
-            // Money is in pending escrow; lock attendance release.
-            // HeldBalance on wallet is NOT incremented (INV-DISP-006).
-            dispute.SetFinancialHold(session.EarningAmount, FinancialHoldType.EscrowHold, FinancialHoldStatus.Active, now);
-        }
-        else
-        {
-            // Stage B: Post-Release (Available Balance)
-            // Earning has already been credited to tutor's AvailableBalance.
-            var originalTx = await _context.Transactions
-                .FirstOrDefaultAsync(t => t.SessionId == session.Id && t.Type == TransactionType.SessionPayoutCredit, cancellationToken);
-
-            // P1-3: Fallback must be 0 (never gross EarningAmount) if original payout tx is missing
-            var maxTutorRecovery = originalTx?.PayoutAmount ?? 0m;
-
-            // Concurrency-safe atomic wallet lock before reading balances (DEC-S8-028, INV-CONCURRENCY-003)
-            var tutorWallet = await _context.Wallets
-                .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {session.Enrollment.TutorProfileId} FOR UPDATE")
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalTx == null)
-            {
-                dispute.SetFinancialHold(0m, FinancialHoldType.BalanceHold, FinancialHoldStatus.InsufficientFunds, now);
-                dispute.MarkRequiresAdminFinancialIntervention("Original payout transaction not found for session earning recovery.");
-            }
-            else if (tutorWallet != null)
-            {
-                var withdrawableBalance = tutorWallet.AvailableBalance - tutorWallet.HeldBalance;
-
-                if (withdrawableBalance >= maxTutorRecovery)
-                {
-                    // Full BalanceHold allocated atomically (F-23: guarded domain math).
-                    tutorWallet.Hold(maxTutorRecovery, now);
-                    dispute.SetFinancialHold(maxTutorRecovery, FinancialHoldType.BalanceHold, FinancialHoldStatus.Active, now);
-
-                    // Record ledger transaction entry
-                    var holdTx = new WalletTransaction
-                    {
-                        Id = Guid.NewGuid(),
-                        WalletId = tutorWallet.Id,
-                        DisputeId = dispute.Id,
-                        Type = WalletTransactionType.DisputeHoldReservationDebit,
-                        Amount = maxTutorRecovery,
-                        BalanceAfter = tutorWallet.AvailableBalance,
-                        Description = $"Funds held for Dispute on Session #{session.SessionNumber}",
-                        CreatedAt = now
-                    };
-                    _context.WalletTransactions.Add(holdTx);
-                }
-                else
-                {
-                    // Zero partial hold allocated; preserves 0 <= HeldBalance <= AvailableBalance (DEC-S8-028)
-                    dispute.SetFinancialHold(0m, FinancialHoldType.BalanceHold, FinancialHoldStatus.InsufficientFunds, now);
-                    dispute.MarkRequiresAdminFinancialIntervention(
-                        $"Tutor withdrawable balance ({withdrawableBalance:N0} VND) is insufficient for required hold ({maxTutorRecovery:N0} VND).");
-                }
-            }
-            else
-            {
-                // P2-2: Missing else branch handled safely
-                dispute.SetFinancialHold(0m, FinancialHoldType.BalanceHold, FinancialHoldStatus.InsufficientFunds, now);
-                dispute.MarkRequiresAdminFinancialIntervention("Tutor wallet not found for financial hold reservation.");
-            }
-        }
+        // Pre-release only (12h-grace rule): money is still in Pending escrow,
+        // so creating the dispute locks payout release without touching the
+        // tutor's Available balance. HeldBalance on wallet is NOT incremented.
+        dispute.SetFinancialHold(session.EarningAmount, FinancialHoldType.EscrowHold, FinancialHoldStatus.Active, now);
 
         _context.Disputes.Add(dispute);
 

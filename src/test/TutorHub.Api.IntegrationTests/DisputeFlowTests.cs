@@ -12,10 +12,10 @@ using TutorHub.Domain.Enums;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// F-30: attendance payout + post-release dispute settlement on real Postgres —
-/// dual-Attended release, BalanceHold, fee-balance formula
-/// (StudentRefund = TutorNetRecovery + PlatformFeeReversal), and F-04/F-22
+/// F-30: grace-period (pre-release) dispute settlement on real Postgres —
+/// EscrowHold, partial refund from Pending escrow, and F-04/F-22
 /// anti-chaining enforcement inside SaveChangesAsync.
+/// 12h-grace rule: post-release sessions are deemed accepted and cannot be disputed.
 /// </summary>
 public class DisputeFlowTests : IntegrationTestBase
 {
@@ -56,28 +56,19 @@ public class DisputeFlowTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task CompletedSession_ReleasesPayout_ThenPartialRefund_ReconcilesFee()
+    public async Task GracePeriodDispute_PartialRefund_SettlesFromPendingEscrow()
     {
-        // Arrange
+        // Arrange: session is inside its 12h grace window (pre-release, not paid out).
         var (adminId, studentUserId, session) = await SetupPaidSessionAsync();
 
-        await SeedHelper.CompleteAndReleasePayoutAsync(Db, session);
-
-        var payoutTx = await Db.Transactions.AsNoTracking().FirstAsync(t =>
-            t.SessionId == session.Id && t.Type == TransactionType.SessionPayoutCredit);
-        payoutTx.Status.Should().Be(TransactionStatus.Released);
-        payoutTx.Amount.Should().Be(300_000m);
-        payoutTx.CommissionAmount.Should().Be(30_000m);
-        payoutTx.PayoutAmount.Should().Be(270_000m);
-
-        // Act: student disputes post-release, admin grants partial refund of 100k.
+        // Act: student disputes pre-release, admin grants partial refund of 100k on 300k gross.
         SetCurrentUser(studentUserId, UserRole.Student);
         var dispute = await SendAsync(new CreateDisputeCommand(
             SessionId: session.Id,
             Reason: DisputeReason.QualityIssue,
             Description: "The tutor ended the session 20 minutes early, verified by chat log."));
 
-        dispute.HoldType.Should().Be(FinancialHoldType.BalanceHold);
+        dispute.HoldType.Should().Be(FinancialHoldType.EscrowHold);
 
         // Q3: financial resolution requires at least one evidence.
         await SendAsync(new UploadDisputeEvidenceCommand(
@@ -94,28 +85,32 @@ public class DisputeFlowTests : IntegrationTestBase
             CustomRefundAmount: 100_000m,
             AdminNotes: "Partially upheld with chat evidence."));
 
-        // Assert: StudentRefund(100k) = TutorNetRecovery(90k) + PlatformFeeReversal(10k).
+        // Assert: StudentRefund(100k) from Pending escrow; tutor keeps 200k gross
+        // (fee 20k, net 180k). No post-release fee-reversal transaction exists.
         var refund = await Db.Transactions.AsNoTracking().FirstAsync(t =>
             t.SessionId == session.Id && t.Type == TransactionType.StudentRefund);
         refund.Amount.Should().Be(100_000m);
         refund.Status.Should().Be(TransactionStatus.Succeeded);
 
-        var reversal = await Db.Transactions.AsNoTracking().FirstAsync(t =>
+        var reversals = await Db.Transactions.AsNoTracking().CountAsync(t =>
             t.SessionId == session.Id && t.Type == TransactionType.PlatformFeeReversal);
-        reversal.CommissionAmount.Should().Be(10_000m);
+        reversals.Should().Be(0);
 
-        // F-04/F-22 fee-balance formula: refund(100k) = recovery(90k) + fee reversal(10k).
-        // Gross 300k - refund 100k = final gross 200k; final fee 20k; final net 180k;
-        // recovery = 270k - 180k = 90k; reversal = 30k - 20k = 10k.
-        var tutorNetRecovery = payoutTx.PayoutAmount - 180_000m;
-        tutorNetRecovery.Should().Be(90_000m);
-        (tutorNetRecovery + reversal.CommissionAmount).Should().Be(refund.Amount);
+        var payoutTx = await Db.Transactions.AsNoTracking().FirstAsync(t =>
+            t.SessionId == session.Id && t.Type == TransactionType.SessionPayoutCredit);
+        payoutTx.Amount.Should().Be(200_000m);
+        payoutTx.CommissionAmount.Should().Be(20_000m);
+        payoutTx.PayoutAmount.Should().Be(180_000m);
 
         var enrollment = await Db.Enrollments.AsNoTracking().FirstAsync(e => e.BookingId == payoutTx.BookingId);
         var wallet = await Db.Wallets.AsNoTracking().FirstAsync(w => w.TutorProfileId == enrollment.TutorProfileId);
-        // 1,000,000 seeded + 270,000 payout - 90,000 recovery = 1,180,000.
+        // 1,000,000 seeded + 180,000 tutor net = 1,180,000.
         wallet.AvailableBalance.Should().Be(1_180_000m);
         wallet.HeldBalance.Should().Be(0m);
+
+        var completed = await Db.Sessions.AsNoTracking().FirstAsync(s => s.Id == session.Id);
+        completed.Status.Should().Be(SessionStatus.Completed);
+        completed.IsPayoutReleased.Should().BeTrue();
     }
 
     [Fact]

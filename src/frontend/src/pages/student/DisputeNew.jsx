@@ -158,7 +158,9 @@ export default function DisputeNew() {
   const isFutureSession = session?.endAt && dayjs(session.endAt).isAfter(dayjs());
   const isUnscheduled = session?.status === 'Unscheduled';
   const isCancelled = session?.status === 'Cancelled';
-  const cannotDispute = isFutureSession || isUnscheduled || isCancelled;
+  // 12h-grace rule: a released (Completed/payout) session is deemed accepted.
+  const isReleased = session?.status === 'Completed' || session?.isPayoutReleased === true;
+  const cannotDispute = isFutureSession || isUnscheduled || isCancelled || isReleased;
 
   const descriptionLength = description.trim().length;
   const descriptionTooShort = descriptionLength < MIN_DESCRIPTION_LENGTH;
@@ -277,6 +279,11 @@ export default function DisputeNew() {
           {isCancelled && (
             <p className="m-0">
               Buổi học này đã được hủy trước đó và tiền ký quỹ đã được hoàn trả.
+            </p>
+          )}
+          {isReleased && (
+            <p className="m-0">
+              Buổi học đã qua 12 giờ đối soát mà không có báo cáo nên được xem là đã chấp nhận, tiền đã giải ngân cho gia sư và không thể khiếu nại.
             </p>
           )}
           <div className="pt-2">
