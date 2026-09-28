@@ -11,7 +11,6 @@ using TutorHub.Application.Features.Disputes.Commands.CreateDispute;
 using TutorHub.Application.Features.Disputes.Commands.UploadDisputeEvidence;
 using TutorHub.Application.Features.Disputes.DTOs;
 using TutorHub.Application.Features.Disputes.Queries.GetMyDisputes;
-using TutorHub.Domain.Enums;
 
 namespace TutorHub.Api.Controllers;
 
@@ -36,15 +35,9 @@ public class DisputesController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<DisputeDto>), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateDispute(
-        [FromBody] CreateDisputeRequest request,
+        [FromBody] CreateDisputeCommand command,
         CancellationToken cancellationToken)
     {
-        var command = new CreateDisputeCommand(
-            SessionId: request.SessionId,
-            Reason: request.Reason,
-            Description: request.Description
-        );
-
         var result = await _sender.Send(command, cancellationToken);
         return StatusCode(
             StatusCodes.Status201Created,
@@ -139,12 +132,6 @@ public class DisputesController : ControllerBase
         return Ok(ApiResponse<List<DisputeDto>>.SuccessResult(result, "User disputes retrieved successfully."));
     }
 }
-
-public record CreateDisputeRequest(
-    Guid SessionId,
-    DisputeReason Reason,
-    string Description
-);
 
 public record UploadEvidenceRequest(
     string FileName,
