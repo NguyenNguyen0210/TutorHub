@@ -44,10 +44,10 @@ public class ConversationsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetOrCreateConversation(
-        [FromBody] GetOrCreateConversationRequest request,
+        [FromBody] GetOrCreateConversationCommand command,
         CancellationToken cancellationToken)
     {
-        var result = await _sender.Send(new GetOrCreateConversationCommand(request.TargetUserId), cancellationToken);
+        var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<ConversationDto>.SuccessResult(result, "Conversation retrieved successfully."));
     }
 
@@ -240,11 +240,6 @@ public class ConversationsController : ControllerBase
         var result = await _sender.Send(new MarkConversationAsReadCommand(id), cancellationToken);
         return Ok(ApiResponse<int>.SuccessResult(result, $"{result} messages marked as read."));
     }
-}
-
-public class GetOrCreateConversationRequest
-{
-    public Guid TargetUserId { get; set; }
 }
 
 public class SendMessageRequest
