@@ -11,7 +11,7 @@
 
 ### 1.1. Core Product Purpose (From README & CLAUDE.md)
 > **TutorHub** là nền tảng marketplace kết nối **Gia Sư (Tutor)** và **Học Viên (Student)** trực tuyến theo mô hình **Service / Package-based Learning**.  
-> Hệ thống hỗ trợ đặt mua gói dịch vụ (**15 phút checkout hold**), phân rã hợp đồng học tập (**Enrollment**) thành các buổi học (**Sessions**), đối soát điểm danh 2 chiều (**Attendance Verification Window**), giải ngân từng buổi vào ví bảo chứng (**Escrow Wallet**), thanh toán thực tế **VNPay 2.1.0**, Realtime **SignalR**, **Transactional Outbox** (26 sự kiện + MessageSent), công cụ giải quyết tranh chấp 2 giai đoạn (**Dispute Engine**), và sổ cái kiểm toán bất biến (**Central Audit Log**).
+> Hệ thống hỗ trợ đặt mua gói dịch vụ (**15 phút checkout hold**), phân rã hợp đồng học tập (**Enrollment**) thành các buổi học (**Sessions**), đối soát điểm danh 2 chiều (**Attendance Verification Window**), giải ngân từng buổi vào ví bảo chứng (**Escrow Wallet**), thanh toán thực tế **VNPay 2.1.0**, Realtime **SignalR**, **Transactional Outbox** (26 sự kiện + MessageSent), công cụ giải quyết tranh chấp trong grace 12h (**Dispute Engine**), và sổ cái kiểm toán bất biến (**Central Audit Log**).
 
 TutorHub **không phải** là sàn đặt lịch rời rạc từng giờ (single-slot booking), mà là **cỗ máy điều phối hợp đồng học tập trọn gói bảo vệ dòng tiền 2 chiều**.
 
@@ -20,7 +20,7 @@ Toàn bộ hệ thống và giao diện người dùng được tổ chức xoay
 
 ```text
 Service Offering (Tutor tạo gói học: giá, số buổi, thời lượng, trial)
-       ↓ (Student chọn gói tiêu chuẩn hoặc thương lượng Custom Agreement)
+       ↓ (Student chọn gói tiêu chuẩn — Custom Agreement đã xóa v1.3)
 Booking Checkout (Tạm giữ thanh toán 15 phút - HoldingExpiresAt)
        ↓ (VNPay IPN Webhook / Mock Pay)
 Enrollment (Hợp đồng học tập trung tâm - Snapshot PlatformFeeRate & FeePolicyVersion)
@@ -31,7 +31,7 @@ Attendance Verification (Student & Tutor cùng xác nhận 2 chiều: Attended /
        ↓ (AttendanceVerificationJob tự động duyệt hoặc gắn cờ AttendanceConflict)
 Wallet Payout Release (Giải ngân SessionPayoutCredit cho từng buổi hoàn thành)
        ↓ (Nếu có khiếu nại phát sinh)
-Dispute Engine (Pre-release Escrow hold hoặc Post-release Balance hold)
+Dispute Engine (pre-release Escrow hold — quá 12h grace không report = chấp nhận, khỏi kiện, v1.4)
        ↓ (Admin phân xử bằng công thức cân đối phí sàn bất biến)
 Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Central AuditLog)
 ```
@@ -43,7 +43,7 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Centr
 | **Quy chuẩn & Bất biến** | [CLAUDE.md](file:///c:/Users/Nguyen%20Nguyen/OneDrive/Desktop/TutorHub/CLAUDE.md) | 11 luật cứng bất biến (Không phá vỡ Escrow, Append-Only Ledger, Anti-Chaining, v.v.) |
 | **Tài liệu nghiệp vụ** | [docs/prd.md](file:///c:/Users/Nguyen%20Nguyen/OneDrive/Desktop/TutorHub/docs/prd.md) & [docs/functional-requirements.md](file:///c:/Users/Nguyen%20Nguyen/OneDrive/Desktop/TutorHub/docs/functional-requirements.md) | Đặc tả 53 chương chức năng và 12 Epic User Stories |
 | **Dữ liệu mẫu chuẩn** | [src/backend/seedData.sql](file:///c:/Users/Nguyen%20Nguyen/OneDrive/Desktop/TutorHub/src/backend/seedData.sql) | Danh sách 10 Danh mục, 15 Môn học, 15 Gói học, 5 Gia sư, 8 Học viên, 22 Buổi học, 15 Giao dịch ví |
-| **Entities Cốt lõi** | [TutorHub.Domain/Entities/](file:///c:/Users/Nguyen%20Nguyen/OneDrive/Desktop/TutorHub/src/backend/TutorHub.Domain/Entities) | `Booking`, `Enrollment`, `Session`, `Wallet`, `Transaction`, `Dispute`, `CustomAgreement`, `AuditLog` |
+| **Entities Cốt lõi** | [TutorHub.Domain/Entities/](file:///c:/Users/Nguyen%20Nguyen/OneDrive/Desktop/TutorHub/src/backend/TutorHub.Domain/Entities) | `Booking`, `Enrollment`, `Session`, `Wallet`, `Transaction`, `Dispute`, `AuditLog` (Custom Agreement đã xóa v1.3) |
 | **Thuật toán chia tiền** | [EnrollmentSessionAllocator.cs](file:///c:/Users/Nguyen%20Nguyen/OneDrive/Desktop/TutorHub/src/backend/TutorHub.Domain/Services/EnrollmentSessionAllocator.cs) | Phân bổ đều học phí cho $N$ buổi học con (phần dư dồn vào buổi cuối) |
 | **Bảo vệ sổ cái bất biến** | [AppDbContext.cs](file:///c:/Users/Nguyen%20Nguyen/OneDrive/Desktop/TutorHub/src/backend/TutorHub.Infrastructure/Persistence/AppDbContext.cs) | Chặn đứng sửa/xóa giao dịch đã thanh toán và audit log |
 | **Xác thực & Danh tính** | [CurrentUserService.cs](file:///c:/Users/Nguyen%20Nguyen/OneDrive/Desktop/TutorHub/src/backend/TutorHub.Infrastructure/Authentication/CurrentUserService.cs) | Trích xuất UserId, Role, TutorProfileId, StudentProfileId từ JWT Claims |
@@ -152,7 +152,7 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
 | **EnrollmentStatus** | `Pending`<br>`Active`<br>`Completed`<br>`Cancelled` | Chờ kích hoạt<br>Đang học<br>Đã hoàn thành<br>Đã hủy hợp đồng | Amber<br>Indigo (Kèm Progress bar $x/N$ buổi)<br>Emerald (Tự động mở modal Review)<br>Rose (Hiển thị chi tiết hoàn tiền pro-rata) |
 | **SessionStatus** | `Unscheduled`<br>`Scheduled`<br>`Completed`<br>`Cancelled` | Chưa xếp lịch<br>Đã có lịch học<br>Đã học xong & Giải ngân<br>Đã hủy buổi | Slate (`Cần xếp lịch`)<br>Blue (Kèm nút dời lịch & phòng học)<br>Emerald (Kèm nút xem nhật ký học)<br>Slate gạch ngang |
 | **AttendanceStatus** | `Attended`<br>`Absent` | Đã tham gia học<br>Vắng mặt không phép | Emerald Icon Checkmark<br>Rose Icon X-Circle |
-| **CustomAgreementStatus** | `Proposed`<br>`Accepted`<br>`Rejected`<br>`Expired`<br>`Cancelled` | Chờ học viên duyệt<br>Đã đồng ý (Chờ checkout)<br>Đã từ chối<br>Hết hạn ưu đãi<br>Gia sư đã hủy | Amber (Đếm ngược thời gian hết hạn)<br>Emerald (Nút "Thanh toán ngay")<br>Rose<br>Slate xám<br>Slate xám |
+| ~~**CustomAgreementStatus**~~ — REMOVED v1.3 | ~~`Proposed`<br>`Accepted`<br>`Rejected`<br>`Expired`<br>`Cancelled`~~ | — | — |
 | **DisputeReason** | `TutorNoShow`<br>`IncompleteSession`<br>`QualityIssue`<br>`TutorLate`<br>`Other` | Gia sư vắng mặt không báo<br>Buổi học không trọn vẹn<br>Chất lượng không đúng cam kết<br>Gia sư vào lớp muộn<br>Lý do khác | Tag đỏ hiển thị trong chi tiết khiếu nại |
 | **DisputeStatus** | `Open`<br>`UnderReview`<br>`Resolved`<br>`Dismissed`<br>`RequiresAdminFinancialIntervention` | Mới mở (Đang giữ tiền)<br>Admin đang xác minh<br>Đã phân xử xong<br>Bác bỏ khiếu nại<br>Cần can thiệp tài chính | Amber<br>Blue<br>Emerald<br>Slate<br>Rose cảnh báo đặc biệt |
 | **DisputeResolutionDecision** | `StudentWinsFullRefund`<br>`StudentWinsPartialRefund`<br>`TutorWins`<br>`DismissedNoFinancialChange` | Hoàn tiền 100% cho học viên<br>Hoàn tiền một phần<br>Gia sư thắng (Giải ngân tiền)<br>Bác bỏ (Không thay đổi tài chính) | Emerald / Indigo / Slate |
@@ -182,7 +182,7 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
    - Header: Logo TutorHub, Danh mục môn học dropdown, Thanh tìm kiếm nhanh, nút "Trở thành Gia Sư", nút "Đăng nhập", nút "Đăng ký".
    - Footer: Cam kết bảo chứng Escrow, Cổng VNPay, Thông tin hỗ trợ pháp lý, Điều khoản sử dụng.
 2. **Student Dashboard Layout:**
-   - Sidebar trái thu gọn: Dashboard (`/student/dashboard`), Khóa học của tôi (`/student/enrollments`), Đơn giữ chỗ (`/student/bookings`), Thỏa thuận riêng (`/student/agreements`), Khiếu nại (`/student/disputes`), Tin nhắn (`/app/messages`).
+   - Sidebar trái thu gọn: Dashboard (`/student/dashboard`), Khóa học của tôi (`/student/enrollments`), Đơn giữ chỗ (`/student/bookings`), Khiếu nại (`/student/disputes`), Tin nhắn (`/app/messages`).
    - Topbar: Chuông thông báo Realtime với badge số lượng chưa đọc, Avatar học viên.
 3. **Tutor Workspace Layout:**
    - Sidebar chuyên môn: Lớp dạy hôm nay (`/tutor/dashboard`), Quản lý lịch dạy (`/tutor/schedule`), Gói dịch vụ (`/tutor/services`), Học viên (`/tutor/enrollments`), Ví & Thu nhập (`/tutor/wallet`), Yêu cầu rút tiền (`/tutor/wallet/withdraw`).
@@ -224,7 +224,7 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
     - Cam kết: *"10 buổi x 60 phút, kèm tài liệu và bài tập về nhà"*.
     - Giá niêm yết: `2.000.000 ₫` trọn gói (tương đương `200.000 ₫ / buổi`).
     - Nút chính: **"Đặt Mua Gói Học"** $\rightarrow$ Kích hoạt `POST /api/v1/bookings` và chuyển sang màn hình giữ chỗ 15 phút.
-    - Nút phụ: **"Nhắn tin & Thương lượng riêng"** $\rightarrow$ Kích hoạt `POST /api/v1/conversations` và mở khung chat để gia sư tạo `CustomAgreement`.
+    - Nút phụ: **"Nhắn tin hỏi đáp"** $\rightarrow$ Kích hoạt `POST /api/v1/conversations` và mở khung chat để trao đổi về gói học (Custom Agreement đã xóa v1.3).
   - **Quy trình Xếp lịch học linh hoạt:**
     - Khóa học sau khi thanh toán giữ chỗ thành công sẽ được gia sư chủ động xếp thời khóa biểu chi tiết (từng buổi hoặc hàng loạt) với quy tắc báo trước tối thiểu 24 giờ.
   - **Mục Đánh giá từ Học viên:**
@@ -413,8 +413,8 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
 
 #### Màn hình 6.1: Nộp Đơn Khiếu nại Tranh chấp (`/student/disputes/new`)
 - **API sử dụng:** `POST /api/v1/disputes`, `POST /api/v1/media/upload`
-- **Validation & Quy định nghiệp vụ:**
-  - Chọn buổi học có vấn đề (buổi học đã kết thúc).
+- **Validation & Quy định nghiệp vụ (v1.4: chỉ trong 12h grace, pre-release):**
+  - Chọn buổi học có vấn đề (buổi học đang trong 12h grace; buổi đã giải ngân được xem là chấp nhận, không khiếu nại được).
   - Chọn lý do: `TutorNoShow`, `IncompleteSession`, `QualityIssue`, `TutorLate`.
   - Nhập mô tả: Bắt buộc tối thiểu 20 ký tự (ví dụ: *"Em vào phòng học chờ 30 phút nhưng thầy An không vào lớp và không báo trước."*).
   - Đính kèm bằng chứng: Upload ảnh chụp màn hình phòng Google Meet chờ gia sư, log tin nhắn (file whitelist $\le$ 10MB).
@@ -422,13 +422,10 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
 
 #### Màn hình 6.2: Bàn Phân xử Tranh chấp của Admin (`/admin/disputes/:id`)
 - **API sử dụng:** `POST /api/v1/admin/disputes/:id/resolve`, `POST /api/v1/admin/disputes/:id/dismiss`
-- **Bộ Tính toán Cân đối Phí sàn Bất biến (DEC-S8-025 Formula Calculator):**
-  - Thu nhập gốc của gia sư từ buổi học: `NetPayout = 180.000 ₫`, Phí sàn: `PlatformFee = 20.000 ₫`.
-  - Admin nhập số tiền hoàn cho học viên: `StudentRefund` (ví dụ: `200.000 ₫`).
-  - Giao diện tự động phân bổ và khóa cứng công thức:
-    - Thu hồi từ ví gia sư (`TutorNetRecovery`): `180.000 ₫` (Tối đa bằng số tiền gia sư thực nhận, không được phạt âm ví!).
-    - Hoàn trả phí sàn (`PlatformFeeReversal`): `20.000 ₫`.
-    - Kiểm tra bất biến: $180.000 + 20.000 \equiv 200.000\text{ ₫}$ $\rightarrow$ Hợp lệ.
+- **Bộ Tính toán Phân xử Pre-release (v1.4: chỉ escrow, không clawback):**
+  - Học phí buổi học còn trong Pending escrow, ví dụ gross `200.000 ₫`, phí sàn snapshot 10%.
+  - Admin nhập số tiền hoàn cho học viên: `StudentRefund` (ví dụ: `200.000 ₫` hoàn full, hoặc một phần).
+  - Giao diện tự động chia phần còn lại cho gia sư: `tutorGrossRelease = gross - StudentRefund`, net về ví = `tutorGrossRelease - phí`. Không thu hồi từ `Available`, không `PlatformFeeReversal`.
   - Nhập biên bản phân xử của Admin: *"Admin đã kiểm tra log Google Meet, xác nhận buổi học không diễn ra."*
 
 #### Màn hình 6.3: Quản trị Lệnh Rút tiền của Admin (`/admin/withdrawals`)
@@ -475,7 +472,7 @@ Frontend phải sử dụng chính xác các giá trị enum từ domain backend
   - Khung chat:
     - Bong bóng chat phân biệt màu (Người gửi xanh indigo, đối phương xám).
     - Hỗ trợ gửi ảnh, tài liệu PDF đính kèm.
-    - **Thẻ Đề xuất Custom Agreement trong Chat:** Gia sư có nút "Tạo thỏa thuận riêng" ngay trong khung chat; khi tạo xong, một card tương tác xuất hiện trong dòng tin nhắn: *"Thỏa thuận Toán THPT 5 buổi tối - 1.000.000 ₫"*, học viên chỉ cần bấm "Chấp nhận & Mua ngay" là chuyển tới thanh toán.
+    - (Custom Agreement trong chat đã xóa v1.3 — chat chỉ còn trao đổi, không sinh thỏa thuận/thanh toán.)
 
 #### Màn hình 7.2: Trung tâm Thông báo Đa kênh (`/app/notifications`)
 - **API & SignalR:** `GET /api/v1/notifications`, `/hubs/notifications` (`ReceiveNotification`)
@@ -554,7 +551,7 @@ export interface PagedResult<T> {
 | **M2: Marketplace Discovery & Auth** | Trang chủ, danh sách gia sư lọc theo 10 Categories/15 Subjects, trang profile gia sư kèm gói học thật, màn hình đăng nhập/đăng ký với dữ liệu seed. | Người dùng có thể đăng nhập bằng các tài khoản thật, tìm kiếm và xem hồ sơ gia sư. |
 | **M3: Booking 15m Holding & VNPay** | Màn hình giữ chỗ 15 phút, đồng hồ đếm ngược, nút chuyển hướng VNPay Sandbox, trang tiếp nhận `/payment/return` và polling kích hoạt Enrollment. | Hoàn thành luồng đặt mua và thanh toán đơn hàng thật qua thẻ test NCB Sandbox. |
 | **M4: Enrollment, Sessions & Attendance** | Trung tâm hợp đồng học tập, danh sách $N$ buổi học con, giao diện xếp lịch, đổi lịch, và thẻ đối soát điểm danh 2 chiều 24h. | Quản lý tiến độ học tập, điểm danh xác nhận 2 bên kích hoạt giải ngân từng buổi. |
-| **M5: Ví Escrow, Custom Agreement & Dispute** | Bảng 4 thẻ tài chính ví gia sư, sao kê ví, tạo lệnh rút tiền, đàm phán hợp đồng riêng, và form nộp khiếu nại tranh chấp. | Vòng đời tài chính hoàn chỉnh cho gia sư và bảo vệ quyền lợi học viên. |
+| **M5: Ví Escrow & Dispute (grace 12h)** | Bảng 4 thẻ tài chính ví gia sư, sao kê ví, tạo lệnh rút tiền và form nộp khiếu nại tranh chấp trong grace. | Vòng đời tài chính hoàn chỉnh cho gia sư và bảo vệ quyền lợi học viên. |
 | **M6: SignalR Realtime & Admin Suite** | Kết nối ChatHub và NotificationHub realtime, hoàn thiện toàn bộ 7 màn hình Admin (Dashboard, Duyệt gia sư, Quản lý tài khoản, Bàn phân xử phí sàn, Sổ cái kiểm toán bất biến). | Hệ thống Frontend hoàn thiện 100% kết nối trơn tru với Backend .NET 8. |
 | **M7: Ví Học Viên (Student Wallet)** | Hệ thống ví học viên (`/student/wallet`): nạp tiền VietQR, thanh toán khóa học 100% từ ví, hoàn tiền tức thì, rút tiền về ngân hàng; và giao diện Admin duyệt nạp/xử lý rút (`/admin/student-wallets`). | Hoàn tất hệ thống quản lý nguồn vốn học tập, sổ cái bất biến học viên và tích hợp thanh toán 1-Click tại Checkout. |
 

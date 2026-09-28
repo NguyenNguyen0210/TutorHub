@@ -45,7 +45,7 @@
 * **Xung đột & Bùng lịch:** Tự động hóa giữ chỗ thanh toán 15 phút (Booking Hold), chính sách dời lịch báo trước tối thiểu 2 giờ (`MIN_NOTICE_HOURS = 2`).
 * **Gian lận xác nhận & Chậm trễ giải ngân:** Cơ chế **12-Hour Passive Approval Grace Period** tự động giải ngân thù lao buổi học khi hết hạn chờ mà không phát sinh khiếu nại.
 * **Chiếm dụng vốn & Bất đối xứng quyền lợi:** Hệ thống Ví bảo chứng ký quỹ (Escrow Wallet), Ví học viên (Student Wallet), nạp tiền tự động qua VNPay và đối soát ngân hàng minh bạch.
-* **Tranh chấp khóa học:** Động cơ phân giải tranh chấp 2 cấp (Pre-release Escrow hold và Post-release Withdrawable recovery) bảo vệ quyền lợi hợp pháp của cả hai phía.
+* **Tranh chấp khóa học:** Khiếu nại chỉ tồn tại trong 12 giờ grace trước giải ngân (tiền giữ trong Escrow chờ Admin phân xử); quá hạn không báo cáo = mặc nhiên chấp nhận, khỏi kiện.
 
 ---
 
