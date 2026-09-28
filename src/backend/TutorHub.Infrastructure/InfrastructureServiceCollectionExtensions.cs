@@ -227,7 +227,32 @@ public static class InfrastructureServiceCollectionExtensions
             services.AddSingleton<IExternalAuthStateStore, MemoryExternalAuthStateStore>();
         }
 
-        services.AddSignalR();
+        var signalR = services.AddSignalR();
+
+        // ── WP2 SignalR backplane: Redis when the SignalR flag is on, local otherwise ──
+        // The (connectionString, Action<RedisOptions>) overload is deliberate: the
+        // backplane owns its connection (opened lazily by the library, never Connect()ed
+        // here), so this block creates no ConnectionMultiplexer of its own — the WP0
+        // singleton above stays the single shared multiplexer for cache/OAuth. The 8.0.11
+        // overloads offer no DI-aware way to hand that multiplexer over (ConnectionFactory
+        // is a Func<TextWriter, Task<IConnectionMultiplexer>> with no service provider),
+        // and a dedicated backplane connection is the documented Microsoft topology.
+        // NOTE: this overload REPLACES the library default Configuration (which already
+        // has AbortOnConnectFail=false) with ConfigurationOptions.Parse output (default
+        // true), so re-assert AbortOnConnectFail=false here: Redis down must never block
+        // boot, and the lifetime manager then connects in the background. Hub group names
+        // are unchanged. Group sends already degrade (try/catch + warn in the
+        // SignalR*NotificationService senders); hub group joins degrade the same way.
+        if (redis.Enabled && redis.Features.SignalR)
+        {
+            signalR.AddStackExchangeRedis(redis.ConnectionString, o =>
+            {
+                // RedisChannel.Literal: the implicit string conversion is obsolete;
+                // the prefix is a fixed namespace, never a pattern.
+                o.Configuration.ChannelPrefix = RedisChannel.Literal("TutorHub");
+                o.Configuration.AbortOnConnectFail = false;
+            });
+        }
 
         // Background Workers
         services.AddHostedService<BookingTimeoutBackgroundService>();
