@@ -476,7 +476,9 @@ Access is limited to legitimate operational purposes.
 
 ---
 
-# EPIC 08 — Custom Agreement
+# EPIC 08 — Custom Agreement — REMOVED (v1.3)
+
+> EPIC này đã bị xóa hẳn theo quyết định owner. Các US-AGREE-001 → 003 dưới đây chỉ giữ lại vì mục đích lịch sử, KHÔNG còn hiệu lực.
 
 ## US-AGREE-001 — Create Custom Agreement
 

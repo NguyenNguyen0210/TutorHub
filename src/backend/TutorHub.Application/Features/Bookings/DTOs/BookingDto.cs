@@ -23,7 +23,7 @@ public record BookingDto(
     string? CancellationReason,
     DateTime CreatedAt,
     TransactionDto? Transaction,
-    Guid? ServiceId = null,
+    Guid ServiceId,
     decimal TotalPrice = 0,
     int TotalSessions = 1,
     int SessionDurationMinutes = 60,

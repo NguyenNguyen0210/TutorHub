@@ -28,9 +28,7 @@ public class OutboxDispatcherJob : BackgroundService
         [BusinessEventTypes.TutorApplicationApproved] = typeof(TutorApplicationApprovedEvent),
         [BusinessEventTypes.TutorApplicationRejected] = typeof(TutorApplicationRejectedEvent),
 
-        // 2. Enrollment & Agreements
-        [BusinessEventTypes.CustomOfferCreated] = typeof(CustomOfferCreatedEvent),
-        [BusinessEventTypes.CustomOfferAccepted] = typeof(CustomOfferAcceptedEvent),
+        // 2. Enrollment
         [BusinessEventTypes.PaymentSucceeded] = typeof(PaymentSucceededEvent),
         [BusinessEventTypes.EnrollmentActivated] = typeof(EnrollmentActivatedEvent),
         [BusinessEventTypes.EnrollmentCancelled] = typeof(EnrollmentCancelledEvent),

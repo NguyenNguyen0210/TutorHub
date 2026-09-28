@@ -41,7 +41,6 @@ public interface IAppDbContext
     DbSet<PlatformSetting> PlatformSettings { get; }
     DbSet<PlatformSettingVersion> PlatformSettingVersions { get; }
     DbSet<AuditLog> AuditLogs { get; }
-    DbSet<CustomAgreement> CustomAgreements { get; }
     DbSet<LearningRecord> LearningRecords { get; }
     DbSet<StudentWallet> StudentWallets { get; }
     DbSet<StudentWalletTransaction> StudentWalletTransactions { get; }

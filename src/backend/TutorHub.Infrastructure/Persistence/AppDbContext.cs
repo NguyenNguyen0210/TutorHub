@@ -45,7 +45,6 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();
     public DbSet<PlatformSettingVersion> PlatformSettingVersions => Set<PlatformSettingVersion>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
-    public DbSet<CustomAgreement> CustomAgreements => Set<CustomAgreement>();
     public DbSet<LearningRecord> LearningRecords => Set<LearningRecord>();
     public DbSet<StudentWallet> StudentWallets => Set<StudentWallet>();
     public DbSet<StudentWalletTransaction> StudentWalletTransactions => Set<StudentWalletTransaction>();

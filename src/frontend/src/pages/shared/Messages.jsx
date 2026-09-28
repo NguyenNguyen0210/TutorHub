@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import chatService, { createChatHubConnection } from '@/services/chat.service';
-import agreementService from '@/services/agreement.service';
 import { useAuthStore } from '@/store/authStore';
 import { formatDateTime, formatRelativeTime } from '@/utils/formatters';
-import Money from '@/components/ui/Money';
 import { useToast } from '@/components/ui/Toast';
 import EmptyState from '@/components/common/EmptyState';
 import Card from '@/components/ui/Card';
@@ -21,13 +18,11 @@ const TYPING_THROTTLE_MS = 2000;
 
 export default function Messages() {
   const toast = useToast();
-  const navigate = useNavigate();
   const { user } = useAuthStore();
   const currentUserId = user?.id || user?.userId;
 
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
-  const [agreements, setAgreements] = useState([]);
   const [messagesList, setMessagesList] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -44,16 +39,10 @@ export default function Messages() {
     async function loadConversations() {
       try {
         setLoading(true);
-        const [res, agrList] = await Promise.allSettled([
-          chatService.getConversations(),
-          agreementService.getMyAgreements(),
-        ]);
+        const res = await chatService.getConversations();
         if (isMounted) {
-          const items = res.status === 'fulfilled' ? res.value?.items || [] : [];
+          const items = res?.items || [];
           setConversations(items);
-          if (agrList.status === 'fulfilled') {
-            setAgreements(Array.isArray(agrList.value) ? agrList.value : []);
-          }
           if (items.length > 0) {
             setActiveConversationId(items[0].id);
           }
@@ -149,9 +138,6 @@ export default function Messages() {
   }, [activeConversationId]);
 
   const activeConv = conversations.find((c) => c.id === activeConversationId);
-  const activeAgreement = activeConv
-    ? agreements.find((a) => a.conversationId === activeConv.id) || null
-    : null;
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -299,69 +285,6 @@ export default function Messages() {
                 </span>
               </div>
             </div>
-
-            {/* Thỏa thuận ghim ngay dưới header, KHÔNG nằm trong dòng tin nhắn.
-                Đặt sau `messagesList.map` (bản cũ) nó nằm chung khung, chung căn
-                phải-trái, chung cỡ chữ với bubble nên trông y hệt tin nhắn của đối
-                phương — nhưng đây là panel hợp đồng cần ký/thanh toán, không phải
-                lời thoại. Ghim ở đầu vùng đọc để tách bạch hai loại nội dung. */}
-            {activeAgreement && (
-              <Card
-                padding="sm"
-                className="m-4 mb-0 shrink-0 border-brand-primary-200 space-y-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-brand-primary-600">
-                      <Icon name="description" size="sm" className="w-3 h-3" />
-                      Thỏa thuận đào tạo
-                    </span>
-                    <h3 className="text-caption font-bold text-fg m-0 mt-1">
-                      {activeAgreement.title || 'Hợp đồng học tập tùy chỉnh'}
-                    </h3>
-                  </div>
-                  <Badge variant="primary" size="sm" className="shrink-0">
-                    {activeAgreement.status}
-                  </Badge>
-                </div>
-                <p className="text-caption text-fg-secondary leading-relaxed m-0">
-                  {activeAgreement.description ||
-                    'Thỏa thuận đào tạo riêng giữa Gia sư và Học viên.'}
-                </p>
-                <div className="flex items-center justify-between gap-3 pt-2 border-t border-border text-caption">
-                  <div>
-                    <span className="font-bold text-success-strong text-body-reg block">
-                      <Money value={activeAgreement.totalPrice || 0} />
-                    </span>
-                    <span className="text-[10px] text-fg-muted">
-                      {activeAgreement.totalSessions} buổi (
-                      {activeAgreement.sessionDurationMinutes || 60}p/buổi)
-                    </span>
-                  </div>
-                  {activeAgreement.bookingId ? (
-                    // Tiền đi ra khỏi ví → `primary`, không phải `success` (xanh = đã chốt
-                    // thành công). Cùng lý do đã sửa nút rút tiền ở vùng Tutor.
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() =>
-                        navigate(`/student/bookings/${activeAgreement.bookingId}/checkout`)
-                      }
-                    >
-                      Thanh toán giữ chỗ
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => navigate('/student/dashboard')}
-                    >
-                      Xem khóa học
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            )}
 
             <div
               aria-live="polite"

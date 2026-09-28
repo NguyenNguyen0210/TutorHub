@@ -10,7 +10,6 @@ public static class NotificationRouteRegistry
     public static string AdminTutorApplication(Guid applicationId) => $"/admin/tutor-applications/{applicationId}";
     public static string TutorProfileMine() => "/tutor/profile";
     public static string TutorApplicationMine() => "/tutor/application";
-    public static string Agreement(Guid agreementId) => $"/agreements/{agreementId}";
     public static string Enrollment(Guid enrollmentId) => $"/enrollments/{enrollmentId}";
     public static string Session(Guid sessionId) => $"/sessions/{sessionId}";
     public static string WalletTransaction(Guid transactionId) => $"/wallet/transactions/{transactionId}";

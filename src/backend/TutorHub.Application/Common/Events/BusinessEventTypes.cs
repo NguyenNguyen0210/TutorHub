@@ -7,9 +7,7 @@ public static class BusinessEventTypes
     public const string TutorApplicationApproved = "TutorApplicationApproved";
     public const string TutorApplicationRejected = "TutorApplicationRejected";
 
-    // 2. Enrollment & Agreements (5 events)
-    public const string CustomOfferCreated = "CustomOfferCreated";
-    public const string CustomOfferAccepted = "CustomOfferAccepted";
+    // 2. Enrollment (3 events)
     public const string PaymentSucceeded = "PaymentSucceeded";
     public const string EnrollmentActivated = "EnrollmentActivated";
     public const string EnrollmentCancelled = "EnrollmentCancelled";

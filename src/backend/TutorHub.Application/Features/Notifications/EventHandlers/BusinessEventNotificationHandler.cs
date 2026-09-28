@@ -14,8 +14,6 @@ public class BusinessEventNotificationHandler :
     INotificationHandler<TutorApplicationSubmittedEvent>,
     INotificationHandler<TutorApplicationApprovedEvent>,
     INotificationHandler<TutorApplicationRejectedEvent>,
-    INotificationHandler<CustomOfferCreatedEvent>,
-    INotificationHandler<CustomOfferAcceptedEvent>,
     INotificationHandler<PaymentSucceededEvent>,
     INotificationHandler<EnrollmentActivatedEvent>,
     INotificationHandler<EnrollmentCancelledEvent>,
@@ -114,36 +112,6 @@ public class BusinessEventNotificationHandler :
                 Title: "Tutor Application Update",
                 Message: $"Your tutor application was not approved. Reason: {notification.Reason}",
                 DeepLink: NotificationRouteRegistry.TutorApplicationMine()
-            )
-        };
-
-        await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
-    }
-
-    public async Task Handle(CustomOfferCreatedEvent notification, CancellationToken cancellationToken)
-    {
-        var recipients = new[]
-        {
-            (
-                UserId: notification.StudentUserId,
-                Title: "New Custom Agreement Offer",
-                Message: $"You received a custom tutoring offer for {notification.TotalPrice.Amount:N0} VND.",
-                DeepLink: NotificationRouteRegistry.Agreement(notification.AgreementId)
-            )
-        };
-
-        await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
-    }
-
-    public async Task Handle(CustomOfferAcceptedEvent notification, CancellationToken cancellationToken)
-    {
-        var recipients = new[]
-        {
-            (
-                UserId: notification.TutorUserId,
-                Title: "Custom Agreement Accepted",
-                Message: "The student has accepted your custom tutoring offer.",
-                DeepLink: NotificationRouteRegistry.Agreement(notification.AgreementId)
             )
         };
 

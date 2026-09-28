@@ -30,7 +30,7 @@ public class EnrollmentActivationService : IEnrollmentActivationService
 
     public async Task<Enrollment> ActivateAsync(Booking booking, DateTime now, CancellationToken cancellationToken)
     {
-        if (!booking.ServiceId.HasValue)
+        if (booking.ServiceId == Guid.Empty)
         {
             throw new InvalidOperationException("Booking is missing ServiceId commercial reference.");
         }
@@ -66,7 +66,7 @@ public class EnrollmentActivationService : IEnrollmentActivationService
             BookingId = booking.Id,
             StudentProfileId = booking.StudentProfileId,
             TutorProfileId = booking.TutorProfileId,
-            ServiceId = booking.ServiceId.Value,
+            ServiceId = booking.ServiceId,
             SubjectId = booking.SubjectId,
             TotalPrice = booking.TotalPrice,
             TotalSessions = booking.TotalSessions,
