@@ -34,16 +34,9 @@ public class MediaController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GeneratePresignedUploadUrl(
-        [FromBody] GenerateUploadUrlRequest request,
+        [FromBody] GenerateUploadUrlCommand command,
         CancellationToken cancellationToken = default)
     {
-        var command = new GenerateUploadUrlCommand(
-            FileName: request.FileName,
-            ContentType: request.ContentType,
-            EstimatedSize: request.EstimatedFileSize,
-            MediaType: request.MediaType
-        );
-
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<UploadUrlDto>.SuccessResult(result, "Presigned upload URL generated successfully."));
     }
@@ -58,17 +51,9 @@ public class MediaController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CompleteUpload(
-        [FromBody] CompleteUploadRequest request,
+        [FromBody] CompleteUploadCommand command,
         CancellationToken cancellationToken = default)
     {
-        var command = new CompleteUploadCommand(
-            ObjectKey: request.ObjectKey,
-            OriginalFileName: request.OriginalFileName,
-            ContentType: request.ContentType,
-            FileSize: request.FileSize,
-            MediaType: request.MediaType
-        );
-
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<MediaDto>.SuccessResult(result, "Upload confirmed and media metadata registered successfully."));
     }
