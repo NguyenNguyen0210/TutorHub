@@ -16,6 +16,7 @@ using TutorHub.Api.HealthChecks;
 using TutorHub.Application;
 using TutorHub.Infrastructure;
 using TutorHub.Infrastructure.Authentication;
+using TutorHub.Infrastructure.HealthChecks;
 using TutorHub.Infrastructure.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -188,7 +189,8 @@ builder.Services.AddSwaggerGen(c =>
 // liveness only asks whether the process answers.
 builder.Services.AddHealthChecks()
     .AddCheck<DatabaseHealthCheck>("database")
-    .AddCheck<PlatformFeeSettingHealthCheck>("platform-fee-setting");
+    .AddCheck<PlatformFeeSettingHealthCheck>("platform-fee-setting")
+    .AddCheck<RedisHealthCheck>("redis");
 
 // P0-E2: the frontend is served from its own origin, so preflight must succeed.
 // Credentials flow with the request, hence explicit origins instead of a wildcard.

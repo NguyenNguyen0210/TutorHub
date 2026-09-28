@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using StackExchange.Redis;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Common.Payments;
@@ -17,6 +18,7 @@ using TutorHub.Infrastructure.Authentication;
 using TutorHub.Infrastructure.Authentication.External;
 using TutorHub.Infrastructure.BackgroundServices;
 using TutorHub.Infrastructure.Persistence;
+using TutorHub.Infrastructure.Redis;
 using TutorHub.Infrastructure.Services;
 using TutorHub.Infrastructure.Services.Email;
 using TutorHub.Infrastructure.Services.Storage;
@@ -149,6 +151,55 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddHttpClient(nameof(FacebookAuthProvider));
 
         services.AddMemoryCache();
+
+        // ── WP0 Redis (optional, disabled by default) ─────────────────────────
+        // ConnectionStrings:Redis wins; Redis:ConnectionString is the fallback so
+        // both `ConnectionStrings__Redis` (compose) and `Redis__ConnectionString`
+        // bind. No ValidateOnStart on purpose: Enabled=false with an empty
+        // connection string must still boot (memory/DB fallback). Enabled=true
+        // with no connection string is a startup failure instead.
+        var redis = new RedisOptions();
+        configuration.GetSection(RedisOptions.SectionName).Bind(redis);
+        var redisConnectionString = configuration.GetConnectionString("Redis");
+        if (!string.IsNullOrWhiteSpace(redisConnectionString))
+        {
+            redis.ConnectionString = redisConnectionString;
+        }
+
+        services.AddOptions<RedisOptions>()
+            .Configure(o =>
+            {
+                configuration.GetSection(RedisOptions.SectionName).Bind(o);
+                var connectionString = configuration.GetConnectionString("Redis");
+                if (!string.IsNullOrWhiteSpace(connectionString))
+                {
+                    o.ConnectionString = connectionString;
+                }
+            });
+
+        if (redis.Enabled)
+        {
+            if (string.IsNullOrWhiteSpace(redis.ConnectionString))
+            {
+                throw new InvalidOperationException(
+                    "Redis:Enabled is true but no Redis connection string is configured. " +
+                    "Set ConnectionStrings:Redis (ConnectionStrings__Redis) or Redis:ConnectionString.");
+            }
+
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redis.ConnectionString;
+                options.InstanceName = redis.InstanceName;
+            });
+
+            services.AddSingleton<IConnectionMultiplexer>(_ =>
+            {
+                var multiplexerOptions = ConfigurationOptions.Parse(redis.ConnectionString);
+                multiplexerOptions.AbortOnConnectFail = false;
+                return ConnectionMultiplexer.Connect(multiplexerOptions);
+            });
+        }
+
         services.TryAddSingleton(TimeProvider.System);
 
         services.AddSingleton<IExternalAuthProvider, GoogleAuthProvider>();

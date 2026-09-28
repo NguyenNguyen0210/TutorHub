@@ -23,6 +23,18 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    container_name: tutorhub-redis
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   api:
     build:
       context: ./src/backend
@@ -32,6 +44,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       ASPNETCORE_URLS: http://+:8080
       # Defaults to Production (fail-fast on missing configuration). Set Development
@@ -39,6 +53,11 @@ services:
       # Development CORS defaults. Has no effect on `dotnet run`.
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-tutorhub};Username=${POSTGRES_USER:-tutorhub};Password=${POSTGRES_PASSWORD:-tutorhub}
+      # WP0: shared Redis for OAuth state, SignalR backplane, cache, cron locks.
+      # Disabled by default; the API boots and serves without redis running.
+      ConnectionStrings__Redis: ${ConnectionStrings__Redis:-redis:6379}
+      Redis__Enabled: ${Redis__Enabled:-false}
+      Redis__InstanceName: ${Redis__InstanceName:-tutorhub:}
       # A fresh pgdata volume has no schema, and nothing else applies migrations.
       # Gated flag, off by default everywhere except this container.
       Database__MigrateOnStartup: "true"
@@ -117,3 +136,4 @@ services:
 
 volumes:
   pgdata:
+  redisdata:
