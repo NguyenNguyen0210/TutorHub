@@ -241,7 +241,7 @@ git add src/backend/TutorHub.Infrastructure/Distributed/RedisDistributedLock.cs 
 git commit -m "feat(cron): redis distributed lock for background jobs"
 ```
 
-### Task 6: E2E 2-replica + kill-redis + docs — ✅ DONE_WITH_CONCERNS (commit 21b7403)
+### Task 6: E2E 2-replica + kill-redis + docs — ✅ DONE_WITH_CONCERNS (commit 286dda4)
 
 **Files:**
 - Modify: `docker-compose.yml` (profile scale api x2 cho test), `docs/redis-scaleout-spec.md`, `README.md`
