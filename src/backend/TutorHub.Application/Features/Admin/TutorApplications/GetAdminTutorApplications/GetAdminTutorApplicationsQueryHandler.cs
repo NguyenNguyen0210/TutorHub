@@ -33,13 +33,14 @@ public class GetAdminTutorApplicationsQueryHandler
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = VietnameseSearch.NormalizeTerm(request.Search);
+            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Search)) + "%";
             query = query.Where(a =>
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.User.FullName)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.User.Email)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
-                (a.User.Phone != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.User.Phone)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%")) ||
-                (a.Subject != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.Subject)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%")) ||
-                (a.University != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.University)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%")));
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.User.FullName)!.ToLower(), pattern, @"\") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.User.Email)!.ToLower(), pattern, @"\") ||
+                (a.User.Phone != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.User.Phone)!.ToLower(), pattern, @"\")) ||
+                (a.Subject != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.Subject)!.ToLower(), pattern, @"\")) ||
+                (a.University != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.University)!.ToLower(), pattern, @"\")));
         }
 
         query = query.OrderByDescending(a => a.SubmittedAt).ThenByDescending(a => a.Id);

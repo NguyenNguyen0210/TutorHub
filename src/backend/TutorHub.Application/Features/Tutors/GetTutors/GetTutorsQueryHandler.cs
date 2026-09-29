@@ -83,55 +83,60 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
         // Filter by Degree Level from Approved Application
         if (!string.IsNullOrWhiteSpace(request.DegreeLevel))
         {
-            var degree = VietnameseSearch.NormalizeTerm(request.DegreeLevel);
+            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.DegreeLevel)) + "%";
             query = query.Where(t => t.User.TutorApplications.Any(a =>
                 a.Status == TutorApplicationStatus.Approved &&
-                ((a.DegreeLevel != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.DegreeLevel)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(degree)! + "%")) ||
-                  EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Education)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(degree)! + "%"))));
+                ((a.DegreeLevel != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.DegreeLevel)!.ToLower(), pattern, @"\")) ||
+                  EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Education)!.ToLower(), pattern, @"\"))));
         }
 
         // Filter by University from Approved Application
         if (!string.IsNullOrWhiteSpace(request.University))
         {
-            var uni = VietnameseSearch.NormalizeTerm(request.University);
+            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.University)) + "%";
             query = query.Where(t => t.User.TutorApplications.Any(a =>
                 a.Status == TutorApplicationStatus.Approved &&
-                ((a.University != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.University)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(uni)! + "%")) ||
-                  EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Education)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(uni)! + "%"))));
+                ((a.University != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.University)!.ToLower(), pattern, @"\")) ||
+                  EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Education)!.ToLower(), pattern, @"\"))));
         }
 
         // Filter by Certification from Approved Application
         if (!string.IsNullOrWhiteSpace(request.Certification))
         {
-            var cert = VietnameseSearch.NormalizeTerm(request.Certification);
+            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Certification)) + "%";
             query = query.Where(t => t.User.TutorApplications.Any(a =>
                 a.Status == TutorApplicationStatus.Approved &&
-                ((a.Certifications != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.Certifications)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(cert)! + "%")) ||
-                  EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Bio)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(cert)! + "%") ||
-                  EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Education)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(cert)! + "%"))));
+                ((a.Certifications != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.Certifications)!.ToLower(), pattern, @"\")) ||
+                  EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Bio)!.ToLower(), pattern, @"\") ||
+                  EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Education)!.ToLower(), pattern, @"\"))));
         }
 
         // Filter by City / Address
         if (!string.IsNullOrWhiteSpace(request.City))
         {
-            var city = VietnameseSearch.NormalizeTerm(request.City);
+            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.City)) + "%";
             query = query.Where(t =>
-                (t.Address != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Address)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(city)! + "%")) ||
-                t.User.TutorApplications.Any(a => a.Status == TutorApplicationStatus.Approved && a.Address != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.Address)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(city)! + "%")));
+                (t.Address != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Address)!.ToLower(), pattern, @"\")) ||
+                t.User.TutorApplications.Any(a => a.Status == TutorApplicationStatus.Approved && a.Address != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.Address)!.ToLower(), pattern, @"\")));
         }
 
         // Search by keyword (tutor full name, service title, subject name, or category name)
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = VietnameseSearch.NormalizeTerm(request.Search);
+            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Search)) + "%";
             query = query.Where(t =>
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.User.FullName)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.User.FullName)!.ToLower(), pattern, @"\") ||
                 t.Services.Any(s => s.Status == ServiceStatus.Published && (
-                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Title)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
-                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Subject.Name)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%"))) ||
+                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Title)!.ToLower(), pattern, @"\") ||
+                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Subject.Name)!.ToLower(), pattern, @"\"))) ||
                 t.TutorSubjects.Any(ts => ts.IsActive && (
-                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(ts.Subject.Name)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
-                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(ts.Subject.Category.Name)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%"))));
+                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(ts.Subject.Name)!.ToLower(), pattern, @"\") ||
+                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(ts.Subject.Category.Name)!.ToLower(), pattern, @"\"))));
         }
 
         // Sorting (deterministic: business key first, Id tiebreaker last per repo convention)

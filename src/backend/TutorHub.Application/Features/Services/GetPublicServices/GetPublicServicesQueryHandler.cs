@@ -69,13 +69,14 @@ public class GetPublicServicesQueryHandler : IRequestHandler<GetPublicServicesQu
         // trigram GIN indexes cover Title/Description/Subject/Category/Tutor name)
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var term = VietnameseSearch.NormalizeTerm(request.Search);
+            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Search)) + "%";
             query = query.Where(s =>
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Title)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(term)! + "%") ||
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Description)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(term)! + "%") ||
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Subject.Name)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(term)! + "%") ||
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Subject.Category.Name)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(term)! + "%") ||
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.TutorProfile.User.FullName)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(term)! + "%"));
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Title)!.ToLower(), pattern, @"\") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Description)!.ToLower(), pattern, @"\") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Subject.Name)!.ToLower(), pattern, @"\") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Subject.Category.Name)!.ToLower(), pattern, @"\") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.TutorProfile.User.FullName)!.ToLower(), pattern, @"\"));
         }
 
         // Sorting

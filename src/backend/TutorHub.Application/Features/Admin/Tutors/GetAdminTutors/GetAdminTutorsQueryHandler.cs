@@ -36,10 +36,11 @@ public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, P
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = VietnameseSearch.NormalizeTerm(request.Search);
+            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Search)) + "%";
             query = query.Where(t =>
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.User.FullName)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.User.Email)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%"));
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.User.FullName)!.ToLower(), pattern, @"\") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.User.Email)!.ToLower(), pattern, @"\"));
         }
 
         query = query.OrderByDescending(t => t.User.CreatedAt);

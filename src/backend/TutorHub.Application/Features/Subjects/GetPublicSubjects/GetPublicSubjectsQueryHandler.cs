@@ -36,10 +36,11 @@ public class GetPublicSubjectsQueryHandler : IRequestHandler<GetPublicSubjectsQu
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var term = VietnameseSearch.NormalizeTerm(request.Search);
+            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Search)) + "%";
             query = query.Where(s => EF.Functions.Like(
                 VietnameseSearch.UnaccentImmutable(s.Name)!.ToLower(),
-                "%" + VietnameseSearch.UnaccentImmutable(term)! + "%"));
+                pattern, @"\"));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

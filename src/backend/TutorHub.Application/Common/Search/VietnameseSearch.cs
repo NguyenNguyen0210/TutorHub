@@ -50,4 +50,13 @@ public static class VietnameseSearch
     /// </summary>
     public static string NormalizeTerm(string? term)
         => UnaccentImmutable(term?.Trim().ToLowerInvariant()) ?? string.Empty;
+
+    /// <summary>
+    /// Escapes LIKE wildcards in an already-normalized term so user input
+    /// like "100%" or "a_b" matches literally. Client-side only: callers
+    /// build the "%...%" pattern outside the LINQ expression and pass it
+    /// as a parameter with escape '\\' — never call this inside a query.
+    /// </summary>
+    public static string EscapeLikePattern(string value)
+        => value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 }

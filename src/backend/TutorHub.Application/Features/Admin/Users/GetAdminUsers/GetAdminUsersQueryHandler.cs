@@ -24,11 +24,12 @@ public class GetAdminUsersQueryHandler : IRequestHandler<GetAdminUsersQuery, Pag
         // 1. Search Filter (FullName, Email, Phone — accent-insensitive)
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = VietnameseSearch.NormalizeTerm(request.Search);
+            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Search)) + "%";
             query = query.Where(u =>
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(u.FullName)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(u.Email)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
-                (u.Phone != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(u.Phone)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%")));
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(u.FullName)!.ToLower(), pattern, @"\") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(u.Email)!.ToLower(), pattern, @"\") ||
+                (u.Phone != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(u.Phone)!.ToLower(), pattern, @"\")));
         }
 
         // 2. Role Filter

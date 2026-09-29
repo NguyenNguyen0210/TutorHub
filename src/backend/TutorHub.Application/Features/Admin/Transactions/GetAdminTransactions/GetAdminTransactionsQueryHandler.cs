@@ -23,12 +23,13 @@ public class GetAdminTransactionsQueryHandler : IRequestHandler<GetAdminTransact
         // 1. Search filter (accent-insensitive; trigram GIN on user/subject/ref columns)
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = VietnameseSearch.NormalizeTerm(request.Search);
+            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Search)) + "%";
             query = query.Where(t =>
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Booking.StudentProfile.User.FullName)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Booking.TutorProfile.User.FullName)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Booking.Subject.Name)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
-                (t.PaymentGatewayRef != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.PaymentGatewayRef)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%")));
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Booking.StudentProfile.User.FullName)!.ToLower(), pattern, @"\") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Booking.TutorProfile.User.FullName)!.ToLower(), pattern, @"\") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Booking.Subject.Name)!.ToLower(), pattern, @"\") ||
+                (t.PaymentGatewayRef != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.PaymentGatewayRef)!.ToLower(), pattern, @"\")));
         }
 
         // 2. Status filter
