@@ -75,6 +75,12 @@ services:
       ConnectionStrings__Redis: ${ConnectionStrings__Redis:-redis:6379}
       Redis__Enabled: ${Redis__Enabled:-false}
       Redis__InstanceName: ${Redis__InstanceName:-tutorhub:}
+      Redis__Features__OAuth: ${Redis__Features__OAuth:-true}
+      Redis__Features__SignalR: ${Redis__Features__SignalR:-true}
+      Redis__Features__Cache: ${Redis__Features__Cache:-true}
+      Redis__Features__CronLock: ${Redis__Features__CronLock:-true}
+      Redis__Features__RateLimit: ${Redis__Features__RateLimit:-true}
+      Redis__Features__RevokeCheck: ${Redis__Features__RevokeCheck:-true}
       # A fresh pgdata volume has no schema, and nothing else applies migrations.
       # Gated flag, off by default everywhere except this container.
       Database__MigrateOnStartup: "true"
