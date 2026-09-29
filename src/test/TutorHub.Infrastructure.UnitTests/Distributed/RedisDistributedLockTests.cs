@@ -44,6 +44,23 @@ public class RedisDistributedLockTests
     }
 
     [Fact]
+    public async Task Release_WithWrongToken_KeepsLock()
+    {
+        var commands = new FakeRedisLockCommands();
+        var worker1 = CreateLock(commands);
+        var worker2 = CreateLock(commands);
+
+        (await worker1.AcquireAsync("cron:test", "worker-1", TimeSpan.FromSeconds(30))).Should().BeTrue();
+
+        await worker1.ReleaseAsync("cron:test", "wrong-token");
+
+        (await worker2.AcquireAsync("cron:test", "worker-2", TimeSpan.FromSeconds(30))).Should().BeFalse("a release with the wrong token must not free the lock");
+    }
+
+    // NOTE: TTL-expiry self-free is not pinned here — the fake has no clock
+    // control, so it would need a real delay. Skipped deliberately.
+
+    [Fact]
     public async Task DifferentKey_Independent()
     {
         var commands = new FakeRedisLockCommands();

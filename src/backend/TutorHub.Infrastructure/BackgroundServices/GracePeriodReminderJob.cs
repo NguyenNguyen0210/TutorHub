@@ -67,7 +67,8 @@ public class GracePeriodReminderJob : BackgroundService
             {
                 if (acquired)
                 {
-                    await _distributedLock.ReleaseAsync(LockKey, _workerId, CancellationToken.None);
+                    try { await _distributedLock.ReleaseAsync(LockKey, _workerId, CancellationToken.None); }
+                    catch (Exception ex) { _logger.LogWarning(ex, "Failed to release cron lock {LockKey}; it will expire via TTL.", LockKey); }
                 }
             }
         }
