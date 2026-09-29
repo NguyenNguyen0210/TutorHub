@@ -42,7 +42,7 @@ services:
   # no depends_on here on purpose: it must boot and serve with Seq down (the
   # Serilog Seq sink batches in the background and never blocks requests).
   seq:
-    image: datalust/seq:latest
+    image: datalust/seq:2024.3
     container_name: tutorhub-seq
     restart: unless-stopped
     environment:

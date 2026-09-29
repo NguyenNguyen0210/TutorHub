@@ -63,7 +63,8 @@ builder.Configuration.AddEnvironmentVariables();
 // added only when Seq:ServerUrl is set, so the API boots and serves with Seq
 // down (the Seq sink batches in the background and never blocks requests).
 // Levels/enrichment come from the Serilog config section first; the code
-// below only guarantees the same fallbacks when the section is absent.
+// below unconditionally re-states the same defaults — keep in sync with the
+// Serilog section in appsettings.json.
 builder.Host.UseSerilog((context, loggerConfig) =>
 {
     loggerConfig
