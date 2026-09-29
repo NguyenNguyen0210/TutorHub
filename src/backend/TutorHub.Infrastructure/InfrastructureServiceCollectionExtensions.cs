@@ -307,13 +307,18 @@ public static class InfrastructureServiceCollectionExtensions
             });
         }
 
-        // Background Workers
-        services.AddHostedService<BookingTimeoutBackgroundService>();
-        services.AddHostedService<OutboxDispatcherJob>();
-        services.AddHostedService<EmailDeliveryJob>();
-        services.AddHostedService<SessionReminderJob>();
-        services.AddHostedService<GracePeriodReminderJob>();
-        services.AddHostedService<AutoPayoutJob>();
+        // Phase 3 WP8: standalone TutorHub.Worker owns the jobs while API
+        // replicas scale job-free. Default true keeps single-host behavior unchanged.
+        if (configuration.GetValue("BackgroundJobs:Enabled", true))
+        {
+            // Background Workers
+            services.AddHostedService<BookingTimeoutBackgroundService>();
+            services.AddHostedService<OutboxDispatcherJob>();
+            services.AddHostedService<EmailDeliveryJob>();
+            services.AddHostedService<SessionReminderJob>();
+            services.AddHostedService<GracePeriodReminderJob>();
+            services.AddHostedService<AutoPayoutJob>();
+        }
 
         return services;
     }

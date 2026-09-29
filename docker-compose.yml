@@ -120,6 +120,9 @@ services:
       # Empty = console-only logging; safe default, Seq down never blocks boot.
       Seq__ServerUrl: ${Seq__ServerUrl:-http://seq}
       Seq__ApiKey: ${Seq__ApiKey:-}
+      # Phase 3 WP8: single host runs the 6 background jobs by default.
+      # Set false when the dedicated `worker` service below owns them.
+      BackgroundJobs__Enabled: ${BackgroundJobs__Enabled:-true}
     ports:
       - "8080:8080"
     healthcheck:
@@ -127,6 +130,62 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  # Phase 3 WP8: dedicated job host. Opt-in only (`docker compose --profile
+  # worker up`) so the default `up` keeps today's behavior (api runs the jobs).
+  # Scale-out pairing: BackgroundJobs__Enabled=false on api + this service on.
+  worker:
+    build:
+      context: ./src/backend
+      dockerfile: TutorHub.Worker/Dockerfile
+    container_name: tutorhub-worker
+    restart: unless-stopped
+    profiles: ["worker"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DOTNET_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-tutorhub};Username=${POSTGRES_USER:-tutorhub};Password=${POSTGRES_PASSWORD:-tutorhub}
+      ConnectionStrings__Redis: ${ConnectionStrings__Redis:-redis:6379}
+      Redis__Enabled: ${Redis__Enabled:-false}
+      Redis__InstanceName: ${Redis__InstanceName:-tutorhub:}
+      Redis__Features__OAuth: ${Redis__Features__OAuth:-true}
+      Redis__Features__SignalR: ${Redis__Features__SignalR:-true}
+      Redis__Features__Cache: ${Redis__Features__Cache:-true}
+      Redis__Features__CronLock: ${Redis__Features__CronLock:-true}
+      Redis__Features__RateLimit: ${Redis__Features__RateLimit:-true}
+      Redis__Features__RevokeCheck: ${Redis__Features__RevokeCheck:-true}
+      # The api service migrates; the worker never does.
+      Database__MigrateOnStartup: "false"
+      BackgroundJobs__Enabled: "true"
+      Jwt__Secret: ${Jwt__Secret}
+      Jwt__Issuer: ${Jwt__Issuer:-TutorHubAPI}
+      Jwt__Audience: ${Jwt__Audience:-TutorHubClient}
+      Jwt__AccessTokenExpirationMinutes: 15
+      Jwt__RefreshTokenExpirationDays: 7
+      RefreshToken__Pepper: ${RefreshToken__Pepper}
+      VnPay__TmnCode: ${VnPay__TmnCode:-TUTORHUB}
+      VnPay__HashSecret: ${VnPay__HashSecret}
+      VnPay__BaseUrl: ${VnPay__BaseUrl:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      VnPay__ReturnUrl: ${VnPay__ReturnUrl:-http://localhost:8080/api/v1/payments/vnpay/return}
+      CloudflareR2__AccountId: ${CloudflareR2__AccountId}
+      CloudflareR2__BucketName: ${CloudflareR2__BucketName:-tutorhub-media}
+      CloudflareR2__AccessKeyId: ${CloudflareR2__AccessKeyId}
+      CloudflareR2__SecretAccessKey: ${CloudflareR2__SecretAccessKey}
+      Ses__Region: ${Ses__Region}
+      Ses__FromAddress: ${Ses__FromAddress}
+      Ses__FromDisplayName: ${Ses__FromDisplayName:-TutorHub}
+      Ses__ConfigurationSetName: ${Ses__ConfigurationSetName:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      ExternalAuth__RedirectUri: ${ExternalAuth__RedirectUri:-http://localhost:5173/auth/oauth/callback}
+      ExternalAuth__Google__ClientId: ${ExternalAuth__Google__ClientId}
+      ExternalAuth__Google__ClientSecret: ${ExternalAuth__Google__ClientSecret}
+      Seq__ServerUrl: ${Seq__ServerUrl:-http://seq}
+      Seq__ApiKey: ${Seq__ApiKey:-}
 
   # One-shot loader. Waits for the api service to create the schema, then loads
   # src/backend/seedData.sql ONLY while the database is still empty — so a repeat

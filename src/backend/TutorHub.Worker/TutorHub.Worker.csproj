@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <ItemGroup>
+    <ProjectReference Include="..\TutorHub.Application\TutorHub.Application.csproj" />
+    <ProjectReference Include="..\TutorHub.Infrastructure\TutorHub.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Same Serilog versions as TutorHub.Api (kept in sync). -->
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+    <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageReference Include="Serilog.Formatting.Compact" Version="2.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="5.0.0" />
+    <PackageReference Include="Serilog.Sinks.Seq" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- AddSignalR (registered inside AddInfrastructure) needs the shared
+         framework at runtime for IHubContext push via the Redis backplane. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>
