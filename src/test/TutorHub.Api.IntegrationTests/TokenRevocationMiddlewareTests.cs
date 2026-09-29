@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using TutorHub.Api.Middlewares;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Infrastructure.Redis;
 
 namespace TutorHub.Api.IntegrationTests;
@@ -111,6 +112,34 @@ public class TokenRevocationMiddlewareTests
     }
 
     [Fact]
+    public async Task DatabaseDown_Returns401_WithUnavailableEnvelope_FailClosed()
+    {
+        var context = NewContext(Guid.NewGuid(), ver: "0", cache: new FakeDistributedCache(), reader: new ThrowingTokenVersionReader());
+        var nextCalled = false;
+
+        await CreateMiddleware(() => nextCalled = true).InvokeAsync(context);
+
+        nextCalled.Should().BeFalse("a dead database must never let an auth request through");
+        var envelope = ReadEnvelope(context);
+        envelope.Status.Should().Be(StatusCodes.Status401Unauthorized);
+        envelope.Message.Should().Be("Authentication service unavailable.");
+    }
+
+    [Fact]
+    public async Task MissingServices_Returns401_WithUnavailableEnvelope_FailClosed()
+    {
+        var context = NewContext(Guid.NewGuid(), ver: "0", cache: null, reader: null);
+        var nextCalled = false;
+
+        await CreateMiddleware(() => nextCalled = true).InvokeAsync(context);
+
+        nextCalled.Should().BeFalse("a misconfigured pipeline must fail closed, not crash or pass through");
+        var envelope = ReadEnvelope(context);
+        envelope.Status.Should().Be(StatusCodes.Status401Unauthorized);
+        envelope.Message.Should().Be("Authentication service unavailable.");
+    }
+
+    [Fact]
     public async Task UnauthenticatedRequest_SkipsCheck()
     {
         var context = NewContext(Guid.NewGuid(), ver: null, authenticated: false, cache: new ThrowingDistributedCache(), reader: new StubTokenVersionReader(null));
@@ -147,7 +176,7 @@ public class TokenRevocationMiddlewareTests
         ReadEnvelope(context).Message.Should().Be("Session has been revoked. Please sign in again.");
     }
 
-    private static string TokenVersionCacheKey(Guid userId) => $"auth:ver:{userId}";
+    private static string TokenVersionCacheKey(Guid userId) => TokenVersionDefaults.CacheKeyFor(userId);
 
     private static TokenRevocationMiddleware CreateMiddleware(Action onNext, bool enabled = true, bool revokeCheck = true)
     {
@@ -282,5 +311,11 @@ public class TokenRevocationMiddlewareTests
             Calls++;
             return Task.FromResult(_version);
         }
+    }
+
+    private sealed class ThrowingTokenVersionReader : ITokenVersionReader
+    {
+        public Task<int?> GetTokenVersionAsync(Guid userId, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("database down");
     }
 }
