@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
+using TutorHub.Application.Common.Search;
 using TutorHub.Application.Features.Admin.TutorApplications.DTOs;
 using TutorHub.Application.Features.Tutors.DTOs;
 using TutorHub.Domain.Enums;
@@ -35,10 +36,10 @@ public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, P
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = request.Search.Trim().ToLower();
+            var search = VietnameseSearch.NormalizeTerm(request.Search);
             query = query.Where(t =>
-                t.User.FullName.ToLower().Contains(search) ||
-                t.User.Email.ToLower().Contains(search));
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.User.FullName)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.User.Email)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%"));
         }
 
         query = query.OrderByDescending(t => t.User.CreatedAt);

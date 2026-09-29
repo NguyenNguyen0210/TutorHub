@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
+using TutorHub.Application.Common.Search;
 using TutorHub.Application.Features.Subjects.DTOs;
 
 namespace TutorHub.Application.Features.Admin.Subjects.GetAdminSubjects;
@@ -35,8 +36,10 @@ public class GetAdminSubjectsQueryHandler : IRequestHandler<GetAdminSubjectsQuer
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = request.Search.Trim().ToLower();
-            query = query.Where(s => s.Name.ToLower().Contains(search) || s.Category.Name.ToLower().Contains(search));
+            var search = VietnameseSearch.NormalizeTerm(request.Search);
+            query = query.Where(s =>
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Name)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Category.Name)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%"));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

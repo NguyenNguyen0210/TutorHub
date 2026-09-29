@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
+using TutorHub.Application.Common.Search;
 using TutorHub.Application.Features.Admin.TutorApplications.DTOs;
 using TutorHub.Domain.Enums;
 
@@ -32,13 +33,13 @@ public class GetAdminTutorApplicationsQueryHandler
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = request.Search.Trim().ToLower();
+            var search = VietnameseSearch.NormalizeTerm(request.Search);
             query = query.Where(a =>
-                a.User.FullName.ToLower().Contains(search) ||
-                a.User.Email.ToLower().Contains(search) ||
-                (a.User.Phone != null && a.User.Phone.Contains(search)) ||
-                (a.Subject != null && a.Subject.ToLower().Contains(search)) ||
-                (a.University != null && a.University.ToLower().Contains(search)));
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.User.FullName)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.User.Email)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
+                (a.User.Phone != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.User.Phone)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%")) ||
+                (a.Subject != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.Subject)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%")) ||
+                (a.University != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.University)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%")));
         }
 
         query = query.OrderByDescending(a => a.SubmittedAt).ThenByDescending(a => a.Id);

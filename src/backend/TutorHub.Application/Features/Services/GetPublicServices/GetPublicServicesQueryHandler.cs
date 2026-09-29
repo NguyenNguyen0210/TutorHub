@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
+using TutorHub.Application.Common.Search;
 using TutorHub.Application.Features.Services.DTOs;
 using TutorHub.Domain.Enums;
 
@@ -64,16 +65,17 @@ public class GetPublicServicesQueryHandler : IRequestHandler<GetPublicServicesQu
             query = query.Where(s => s.TutorProfile.RatingAvg >= request.MinRating.Value);
         }
 
-        // Filter by Search Keyword
+        // Filter by Search Keyword (accent-insensitive via unaccent_immutable + LIKE;
+        // trigram GIN indexes cover Title/Description/Subject/Category/Tutor name)
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var term = request.Search.Trim().ToLower();
+            var term = VietnameseSearch.NormalizeTerm(request.Search);
             query = query.Where(s =>
-                s.Title.ToLower().Contains(term) ||
-                s.Description.ToLower().Contains(term) ||
-                s.Subject.Name.ToLower().Contains(term) ||
-                s.Subject.Category.Name.ToLower().Contains(term) ||
-                s.TutorProfile.User.FullName.ToLower().Contains(term));
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Title)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(term)! + "%") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Description)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(term)! + "%") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Subject.Name)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(term)! + "%") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Subject.Category.Name)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(term)! + "%") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.TutorProfile.User.FullName)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(term)! + "%"));
         }
 
         // Sorting

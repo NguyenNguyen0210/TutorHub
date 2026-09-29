@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
+using TutorHub.Application.Common.Search;
 using TutorHub.Application.Features.Tutors.DTOs;
 using TutorHub.Domain.Enums;
 
@@ -82,55 +83,55 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
         // Filter by Degree Level from Approved Application
         if (!string.IsNullOrWhiteSpace(request.DegreeLevel))
         {
-            var degree = request.DegreeLevel.Trim().ToLower();
+            var degree = VietnameseSearch.NormalizeTerm(request.DegreeLevel);
             query = query.Where(t => t.User.TutorApplications.Any(a =>
                 a.Status == TutorApplicationStatus.Approved &&
-                ((a.DegreeLevel != null && a.DegreeLevel.ToLower().Contains(degree)) ||
-                 t.Education.ToLower().Contains(degree))));
+                ((a.DegreeLevel != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.DegreeLevel)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(degree)! + "%")) ||
+                  EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Education)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(degree)! + "%"))));
         }
 
         // Filter by University from Approved Application
         if (!string.IsNullOrWhiteSpace(request.University))
         {
-            var uni = request.University.Trim().ToLower();
+            var uni = VietnameseSearch.NormalizeTerm(request.University);
             query = query.Where(t => t.User.TutorApplications.Any(a =>
                 a.Status == TutorApplicationStatus.Approved &&
-                ((a.University != null && a.University.ToLower().Contains(uni)) ||
-                 t.Education.ToLower().Contains(uni))));
+                ((a.University != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.University)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(uni)! + "%")) ||
+                  EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Education)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(uni)! + "%"))));
         }
 
         // Filter by Certification from Approved Application
         if (!string.IsNullOrWhiteSpace(request.Certification))
         {
-            var cert = request.Certification.Trim().ToLower();
+            var cert = VietnameseSearch.NormalizeTerm(request.Certification);
             query = query.Where(t => t.User.TutorApplications.Any(a =>
                 a.Status == TutorApplicationStatus.Approved &&
-                ((a.Certifications != null && a.Certifications.ToLower().Contains(cert)) ||
-                 t.Bio.ToLower().Contains(cert) ||
-                 t.Education.ToLower().Contains(cert))));
+                ((a.Certifications != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.Certifications)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(cert)! + "%")) ||
+                  EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Bio)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(cert)! + "%") ||
+                  EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Education)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(cert)! + "%"))));
         }
 
         // Filter by City / Address
         if (!string.IsNullOrWhiteSpace(request.City))
         {
-            var city = request.City.Trim().ToLower();
+            var city = VietnameseSearch.NormalizeTerm(request.City);
             query = query.Where(t =>
-                (t.Address != null && t.Address.ToLower().Contains(city)) ||
-                t.User.TutorApplications.Any(a => a.Status == TutorApplicationStatus.Approved && a.Address != null && a.Address.ToLower().Contains(city)));
+                (t.Address != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Address)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(city)! + "%")) ||
+                t.User.TutorApplications.Any(a => a.Status == TutorApplicationStatus.Approved && a.Address != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.Address)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(city)! + "%")));
         }
 
         // Search by keyword (tutor full name, service title, subject name, or category name)
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = request.Search.Trim().ToLower();
+            var search = VietnameseSearch.NormalizeTerm(request.Search);
             query = query.Where(t =>
-                t.User.FullName.ToLower().Contains(search) ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.User.FullName)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
                 t.Services.Any(s => s.Status == ServiceStatus.Published && (
-                    s.Title.ToLower().Contains(search) ||
-                    s.Subject.Name.ToLower().Contains(search))) ||
+                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Title)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
+                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Subject.Name)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%"))) ||
                 t.TutorSubjects.Any(ts => ts.IsActive && (
-                    ts.Subject.Name.ToLower().Contains(search) ||
-                    ts.Subject.Category.Name.ToLower().Contains(search))));
+                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(ts.Subject.Name)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
+                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(ts.Subject.Category.Name)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%"))));
         }
 
         // Sorting (deterministic: business key first, Id tiebreaker last per repo convention)

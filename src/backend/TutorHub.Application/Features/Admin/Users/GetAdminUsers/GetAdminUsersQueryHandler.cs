@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
+using TutorHub.Application.Common.Search;
 using TutorHub.Application.Features.Admin.Users.DTOs;
 using TutorHub.Domain.Enums;
 
@@ -20,14 +21,14 @@ public class GetAdminUsersQueryHandler : IRequestHandler<GetAdminUsersQuery, Pag
     {
         var query = _context.Users.AsNoTracking();
 
-        // 1. Search Filter (FullName, Email, Phone)
+        // 1. Search Filter (FullName, Email, Phone — accent-insensitive)
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = request.Search.Trim().ToLower();
+            var search = VietnameseSearch.NormalizeTerm(request.Search);
             query = query.Where(u =>
-                u.FullName.ToLower().Contains(search) ||
-                u.Email.ToLower().Contains(search) ||
-                (u.Phone != null && u.Phone.ToLower().Contains(search)));
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(u.FullName)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(u.Email)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
+                (u.Phone != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(u.Phone)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%")));
         }
 
         // 2. Role Filter

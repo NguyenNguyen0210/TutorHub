@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
+using TutorHub.Application.Common.Search;
 using TutorHub.Application.Features.Admin.Transactions.DTOs;
 
 namespace TutorHub.Application.Features.Admin.Transactions.GetAdminTransactions;
@@ -19,15 +20,15 @@ public class GetAdminTransactionsQueryHandler : IRequestHandler<GetAdminTransact
     {
         var query = _context.Transactions.AsNoTracking();
 
-        // 1. Search filter
+        // 1. Search filter (accent-insensitive; trigram GIN on user/subject/ref columns)
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = request.Search.Trim().ToLower();
+            var search = VietnameseSearch.NormalizeTerm(request.Search);
             query = query.Where(t =>
-                t.Booking.StudentProfile.User.FullName.ToLower().Contains(search) ||
-                t.Booking.TutorProfile.User.FullName.ToLower().Contains(search) ||
-                t.Booking.Subject.Name.ToLower().Contains(search) ||
-                (t.PaymentGatewayRef != null && t.PaymentGatewayRef.ToLower().Contains(search)));
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Booking.StudentProfile.User.FullName)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Booking.TutorProfile.User.FullName)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Booking.Subject.Name)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%") ||
+                (t.PaymentGatewayRef != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.PaymentGatewayRef)!.ToLower(), "%" + VietnameseSearch.UnaccentImmutable(search)! + "%")));
         }
 
         // 2. Status filter

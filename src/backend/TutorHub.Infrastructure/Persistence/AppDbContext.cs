@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Search;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 
@@ -210,5 +211,11 @@ public class AppDbContext : DbContext, IAppDbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+        // Maps VietnameseSearch.UnaccentImmutable to public.unaccent_immutable(text)
+        // (EnableVietnameseSearch migration). Search predicates using it translate to
+        // lower(unaccent_immutable(col)) LIKE ..., matching the GIN trigram indexes.
+        modelBuilder.HasDbFunction(typeof(VietnameseSearch).GetMethod(nameof(VietnameseSearch.UnaccentImmutable))!)
+            .HasName("unaccent_immutable");
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
+using TutorHub.Application.Common.Search;
 using TutorHub.Application.Features.Subjects.DTOs;
 
 namespace TutorHub.Application.Features.Subjects.GetPublicSubjects;
@@ -35,8 +36,10 @@ public class GetPublicSubjectsQueryHandler : IRequestHandler<GetPublicSubjectsQu
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = request.Search.Trim().ToLower();
-            query = query.Where(s => s.Name.ToLower().Contains(search));
+            var term = VietnameseSearch.NormalizeTerm(request.Search);
+            query = query.Where(s => EF.Functions.Like(
+                VietnameseSearch.UnaccentImmutable(s.Name)!.ToLower(),
+                "%" + VietnameseSearch.UnaccentImmutable(term)! + "%"));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
