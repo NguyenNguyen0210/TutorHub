@@ -22,6 +22,7 @@ public sealed class RedisOptions
 
 public sealed class RedisFeatureFlags
 {
+    // GĐ1 (Phase 1) flags: OAuth state, SignalR backplane, cache, cron locks.
     public bool OAuth { get; set; } = true;
 
     public bool SignalR { get; set; } = true;
@@ -29,4 +30,11 @@ public sealed class RedisFeatureFlags
     public bool Cache { get; set; } = true;
 
     public bool CronLock { get; set; } = true;
+
+    // GĐ2 (Phase 2) flags: distributed fixed-window rate limiting (fail-open)
+    // and per-user JWT revocation checks (fail-closed). Each flag falls back
+    // to the pre-Redis behavior when off.
+    public bool RateLimit { get; set; } = true;
+
+    public bool RevokeCheck { get; set; } = true;
 }
