@@ -113,11 +113,14 @@ backplane), WP5 (cache Subjects/settings), WP4 (cron lock) đã merge trên nhá
   `SignalRFlagOn_*` (backplane wiring + `ChannelPrefix=TutorHub`,
   `AbortOnConnectFail=false`), `CacheInvalidationTests` (8 tests). Live 2-node
   SignalR cross-node + kill-redis degrade đã được chứng minh ở các task trước.
-- Kill-redis tương đương được chốt bằng unit test: cache outage fallback DB
-  (`CacheOutage_*`), OAuth fail-closed (`Create_WhenRedisRejectsSets_Throws`),
-  lock outage → skip kỳ (không lấy lock thì không chạy), health
-  `RedisHealthCheck` trả `Degraded` (không bao giờ `Unhealthy` để tránh restart
-  oan), HTTP vẫn 200.
+- Kill-redis tương đương được chốt một phần bằng unit test: cache outage fallback DB
+  (`CacheOutage_*`), OAuth fail-closed ở mức store (`Create_WhenRedisRejectsSets_Throws`).
+  Hạn chế đã biết: OAuth callback (và start khi mất kết nối thật) hiện trả 500 envelope —
+  vẫn fail-closed (không cấp token) nhưng mù, cần follow-up map `RedisException` → 409/503
+  với thông điệp rõ ràng. Lock outage → skip kỳ và `RedisHealthCheck` trả `Degraded`
+  (không bao giờ `Unhealthy` để tránh restart oan) chỉ đúng theo kiểm tra code, chưa có
+  unit test chốt. HTTP 200 chỉ đúng cho các đường non-OAuth (cache fallback, cron skip,
+  health Degraded).
 - Gates: `dotnet build TutorHub.sln` 0 warning 0 error; unit suites
   Infrastructure 40 + Application 415 + Domain 208 = 663 passed, 0 failed.
   `Api.IntegrationTests --filter "RateLimiting|HealthEndpoint"` NOT-RUN:

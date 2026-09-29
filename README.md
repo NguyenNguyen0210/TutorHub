@@ -275,7 +275,7 @@ ConnectionStrings__Redis=redis:6379
 ```
 
 * **Cờ tính năng** `Redis:Features:{OAuth,SignalR,Cache,CronLock}` (mặc định `true`): tắt cờ nào = replica về đúng code memory/DB cũ của phần đó, không cần sửa code hay redeploy bản khác.
-* **Redis chết lúc chạy:** API vẫn phục vụ (HTTP 200); OAuth fail-closed — không cấp token khi Redis chết, start trả 409 với thông điệp rõ ràng; cache đọc thẳng DB; cron bỏ qua kỳ + log; `/health` báo `Degraded` ở check `redis` (không restart oan).
+* **Redis chết lúc chạy:** các đường non-OAuth vẫn phục vụ (HTTP 200) — cache đọc thẳng DB, cron bỏ qua kỳ + log, `/health` báo `Degraded` ở check `redis` (không restart oan). OAuth vẫn fail-closed (không cấp token) nhưng mù: callback (và start khi mất kết nối thật) trả 500 envelope thay vì 409/503 rõ ràng — cần follow-up map `RedisException` → 409/503 với thông điệp rõ ràng.
 
 Chi tiết: `docs/redis-scaleout-spec.md`.
 

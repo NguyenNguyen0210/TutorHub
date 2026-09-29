@@ -241,7 +241,7 @@ git add src/backend/TutorHub.Infrastructure/Distributed/RedisDistributedLock.cs 
 git commit -m "feat(cron): redis distributed lock for background jobs"
 ```
 
-### Task 6: E2E 2-replica + kill-redis + docs — ✅ DONE (commit 3d40598)
+### Task 6: E2E 2-replica + kill-redis + docs — ✅ DONE_WITH_CONCERNS (commit 21b7403)
 
 **Files:**
 - Modify: `docker-compose.yml` (profile scale api x2 cho test), `docs/redis-scaleout-spec.md`, `README.md`
@@ -249,18 +249,18 @@ git commit -m "feat(cron): redis distributed lock for background jobs"
 - [ ] **Step 1: Ma trận 2-replica**
 
 Run: `docker compose up --build -d` với api scale 2 + redis.
-Expected: OAuth start node A → callback node B pass; ws cross-node pass; 2 node cùng tick cron → `OutboxMessages` không trùng `EventId`; `GET /health` healthy.
+Expected: OAuth start node A → callback node B pass; ws cross-node pass; 2 node cùng tick cron → `OutboxMessages` không trùng `EventId`; `GET /health` healthy. (Thực tế: ma trận live CHƯA chạy — docker daemon off; chỉ chốt tương đương bằng unit test, xem spec §6.)
 
 - [ ] **Step 2: Ma trận kill-redis**
 
 Run: `docker stop tutorhub-redis` khi api đang chạy.
-Expected: API vẫn phục vụ; OAuth từ chối rõ ràng (fail-closed, không 500 mù); cache fallback DB; cron skip + log; `/health` Degraded redis, db vẫn healthy.
+Thực tế (live CHƯA chạy — docker off; chưa đạt toàn phần): non-OAuth vẫn phục vụ (HTTP 200); OAuth fail-closed nhưng mù — callback (và start khi mất kết nối thật) trả 500 envelope, cần follow-up map `RedisException` → 409/503; cache fallback DB; cron skip + log; `/health` Degraded redis, db vẫn healthy. Xem spec §6.
 
-- [ ] **Step 3: Full test + commit**
+- [x] **Step 3: Full test + commit**
 
 Run: `dotnet build src/backend/TutorHub.sln` → 0 error.
 Run: `dotnet test src/test/TutorHub.Infrastructure.UnitTests src/test/TutorHub.Application.UnitTests src/test/TutorHub.Domain.UnitTests -v` → PASS.
-Run: `dotnet test src/test/TutorHub.Api.IntegrationTests --filter "RateLimiting|HealthEndpoint" -v` → PASS.
+Run: `dotnet test src/test/TutorHub.Api.IntegrationTests --filter "RateLimiting|HealthEndpoint" -v` → PASS (thực tế NOT-RUN: cần Postgres `127.0.0.1:5433` — xem spec §6).
 
 ```bash
 git add docker-compose.yml docs/redis-scaleout-spec.md README.md docs/plans/2026-09-28-redis-phase1-ready-to-scale.md
