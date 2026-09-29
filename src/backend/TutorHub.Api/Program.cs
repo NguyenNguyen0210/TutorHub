@@ -14,6 +14,7 @@ using StackExchange.Redis;
 using TutorHub.Api.Configuration;
 using TutorHub.Api.Exceptions;
 using TutorHub.Api.HealthChecks;
+using TutorHub.Api.Middlewares;
 using TutorHub.Api.RateLimiting;
 using TutorHub.Application;
 using TutorHub.Infrastructure;
@@ -240,6 +241,11 @@ if (redisRateLimit.Enabled && redisRateLimit.Features.RateLimit)
     builder.Services.AddSingleton<RedisRateLimitService>();
 }
 
+// WP6: per-user token-version reader for the revocation middleware. Always
+// registered (the database always exists); the middleware itself only runs
+// when Redis is enabled with the RevokeCheck flag.
+builder.Services.AddScoped<ITokenVersionReader, EfTokenVersionReader>();
+
 // P0-D2: honour X-Forwarded-* ONLY when explicitly deployed behind a proxy. Enabling
 // this unconditionally lets any client spoof its address and evade the per-IP limiter.
 if (builder.Configuration.GetValue<bool>("ReverseProxy:Enabled"))
@@ -336,6 +342,15 @@ else
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// WP6: instant JWT revocation via per-user TokenVersion (PO 2026-09-29
+// overrides F-08). Only when Redis is enabled with the RevokeCheck flag;
+// otherwise authenticated requests flow exactly as before (the middleware
+// additionally no-ops on flag-off for defense in depth).
+if (redisRateLimit.Enabled && redisRateLimit.Features.RevokeCheck)
+{
+    app.UseMiddleware<TokenRevocationMiddleware>();
+}
 
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");

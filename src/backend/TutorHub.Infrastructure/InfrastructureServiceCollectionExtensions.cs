@@ -220,6 +220,20 @@ public static class InfrastructureServiceCollectionExtensions
             services.AddSingleton<IPlatformSettingCacheService>(_ => NoOpPlatformSettingCacheService.Instance);
         }
 
+        // ── WP6 token-version eviction: Redis when the RevokeCheck flag is ──
+        // on, no-op otherwise (disabled mode has no revocation middleware, so
+        // nothing reads the cache and eviction is unnecessary).
+        // IDistributedCache only exists when Redis is Enabled, so the real
+        // service requires both flags.
+        if (redis.Enabled && redis.Features.RevokeCheck)
+        {
+            services.AddSingleton<ITokenVersionCache, DistributedTokenVersionCache>();
+        }
+        else
+        {
+            services.AddSingleton<ITokenVersionCache>(_ => NoOpTokenVersionCache.Instance);
+        }
+
         services.AddSingleton<IExternalAuthProvider, GoogleAuthProvider>();
         services.AddSingleton<IExternalAuthProvider, FacebookAuthProvider>();
 

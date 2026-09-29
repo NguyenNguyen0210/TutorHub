@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > **TutorHub** là nền tảng marketplace kết nối Gia Sư (Tutor) và Học Viên (Student) trực tuyến theo mô hình **Service / Package-based Learning**.  
 > Hệ thống hỗ trợ đặt mua gói dịch vụ (15 phút checkout hold), phân rã hợp đồng học tập (**Enrollment**) thành các buổi học (**Sessions**), cơ chế giải ngân tự động 12 giờ (**Auto-Payout Grace Period**), giải ngân từng buổi vào ví bảo chứng (**Escrow Wallet**), thanh toán thực tế **VNPay 2.1.0**, Realtime **SignalR**, **Transactional Outbox** (26 sự kiện + MessageSent), công cụ giải quyết tranh chấp 2 giai đoạn (**Dispute Engine**), và sổ cái kiểm toán bất biến (**Central Audit Log**).
 >
-> **Auth policy (F-08, owner-accepted):** Suspended/Banned được chặn ở login/refresh; access token đang bay được tôn trọng tới hết hạn (tối đa 15 phút).
+> **Auth policy (PO 2026-09-29, overrides F-08):** Ban/Suspend/ChangePassword bump per-user `TokenVersion` → in-flight access tokens revoked instantly (`token.ver < cachedVer` → 401 fail-closed via Redis `auth:ver:{userId}`, TTL 16m); refresh tokens revoked as before. Unban/reactivate do NOT bump.
 
 ---
 
