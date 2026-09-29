@@ -73,10 +73,10 @@ public class RedisRateLimitServiceTests
 
         for (var i = 0; i < 300; i++)
         {
-            (await service.CheckAsync("global", "1.2.3.4")).Allowed.Should().BeTrue();
+            (await service.CheckAsync(RedisRateLimitService.GlobalPolicyName, "1.2.3.4")).Allowed.Should().BeTrue();
         }
 
-        var rejected = await service.CheckAsync("global", "1.2.3.4");
+        var rejected = await service.CheckAsync(RedisRateLimitService.GlobalPolicyName, "1.2.3.4");
         rejected.Allowed.Should().BeFalse("the global budget is 300 per minute");
         rejected.RetryAfterSeconds.Should().BeInRange(1, 60);
     }
@@ -147,6 +147,7 @@ public class RedisRateLimitServiceTests
         var decision = await service.CheckAsync(RateLimitingPolicies.AuthStrict, "1.2.3.4");
 
         decision.Allowed.Should().BeTrue("a dead Redis must never block traffic");
+        decision.RetryAfterSeconds.Should().Be(0, "fail-open carries no window to retry after");
     }
 
     /// <summary>

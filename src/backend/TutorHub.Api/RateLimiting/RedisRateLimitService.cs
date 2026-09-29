@@ -11,10 +11,11 @@ public sealed record RateLimitDecision(bool Allowed, int RetryAfterSeconds);
 /// <summary>
 /// WP3: distributed fixed-window rate limiting over Redis. Each
 /// (policy, client IP, minute bucket) has one counter key incremented by an
-/// atomic Lua script, so every API node counts together. Permit budgets match
-/// the in-memory limiter in <see cref="RateLimitingSetup"/> exactly
-/// (auth-strict=10, payment=60, everything else=300). A dead Redis fails open:
-/// the request is allowed and a warning is logged, never thrown.
+/// atomic Lua script, so every API node counts together. Permit budgets are
+/// single-sourced from <see cref="RateLimitingPolicies"/> (shared with the
+/// in-memory limiter), so the two backends can never drift apart. A dead
+/// Redis fails open: the request is allowed and a warning is logged, never
+/// thrown.
 /// </summary>
 public sealed class RedisRateLimitService
 {
@@ -48,6 +49,8 @@ public sealed class RedisRateLimitService
         var permitLimit = PermitLimitFor(policy);
         var epochSeconds = _time.GetUtcNow().ToUnixTimeSeconds();
         var bucket = epochSeconds / WindowSeconds;
+        // Single-tenant Redis is assumed (same as the GĐ1 OAuth/cron keys), so
+        // RedisOptions.InstanceName is intentionally not applied to the prefix.
         var key = $"ratelimit:{policy}:{clientIp}:{bucket}";
 
         try
@@ -70,14 +73,14 @@ public sealed class RedisRateLimitService
     {
         if (string.Equals(policy, RateLimitingPolicies.AuthStrict, StringComparison.Ordinal))
         {
-            return 10;
+            return RateLimitingPolicies.AuthPermitLimit;
         }
 
         if (string.Equals(policy, RateLimitingPolicies.Payment, StringComparison.Ordinal))
         {
-            return 60;
+            return RateLimitingPolicies.PaymentPermitLimit;
         }
 
-        return 300;
+        return RateLimitingPolicies.GlobalPermitLimit;
     }
 }

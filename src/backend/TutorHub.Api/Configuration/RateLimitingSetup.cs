@@ -13,6 +13,17 @@ public static class RateLimitingPolicies
 
     /// <summary>Gateway callbacks (IPN / return): generous but still bounded.</summary>
     public const string Payment = "payment";
+
+    /// <summary>
+    /// Per-minute budgets, single-sourced here so the in-memory limiter
+    /// (<see cref="RateLimitingSetup"/>) and the Redis limiter
+    /// (WP3 fixed window) can never drift apart.
+    /// </summary>
+    public const int AuthPermitLimit = 10;
+
+    public const int PaymentPermitLimit = 60;
+
+    public const int GlobalPermitLimit = 300;
 }
 
 /// <summary>
@@ -25,9 +36,6 @@ public static class RateLimitingPolicies
 /// </summary>
 public static class RateLimitingSetup
 {
-    private const int AuthPermitLimit = 10;
-    private const int PaymentPermitLimit = 60;
-    private const int GlobalPermitLimit = 300;
     private static readonly TimeSpan Window = TimeSpan.FromMinutes(1);
 
     public static IServiceCollection AddTutorHubRateLimiting(this IServiceCollection services)
@@ -37,14 +45,14 @@ public static class RateLimitingSetup
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
             options.AddPolicy(RateLimitingPolicies.AuthStrict, httpContext =>
-                FixedWindow(httpContext, AuthPermitLimit));
+                FixedWindow(httpContext, RateLimitingPolicies.AuthPermitLimit));
 
             options.AddPolicy(RateLimitingPolicies.Payment, httpContext =>
-                FixedWindow(httpContext, PaymentPermitLimit));
+                FixedWindow(httpContext, RateLimitingPolicies.PaymentPermitLimit));
 
             // Fallback so every endpoint is bounded, even ones without an attribute.
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(
-                httpContext => FixedWindow(httpContext, GlobalPermitLimit));
+                httpContext => FixedWindow(httpContext, RateLimitingPolicies.GlobalPermitLimit));
 
             options.OnRejected = async (context, cancellationToken) =>
             {

@@ -231,7 +231,10 @@ if (redisRateLimit.Enabled && redisRateLimit.Features.RateLimit)
 {
     builder.Services.AddSingleton<IRedisRateLimitCommands>(sp =>
     {
-        var multiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
+        var multiplexer = sp.GetService<IConnectionMultiplexer>()
+            ?? throw new InvalidOperationException(
+                "Redis:Features:RateLimit is true but no IConnectionMultiplexer is registered. " +
+                "Distributed rate limiting requires Redis:Enabled with a connection string.");
         return new StackExchangeRedisRateLimitCommands(multiplexer.GetDatabase());
     });
     builder.Services.AddSingleton<RedisRateLimitService>();
