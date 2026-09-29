@@ -125,3 +125,48 @@ backplane), WP5 (cache Subjects/settings), WP4 (cron lock) đã merge trên nhá
   Infrastructure 40 + Application 415 + Domain 208 = 663 passed, 0 failed.
   `Api.IntegrationTests --filter "RateLimiting|HealthEndpoint"` NOT-RUN:
   cần Postgres `127.0.0.1:5433`, kết nối bị từ chối (không có docker/PG local).
+
+## 7. Nghiệm thu Phase 2 (2026-09-29, Task 4)
+
+WP3 (rate-limit Redis), WP6 (revoke JWT per-user `ver`), WP7 (Serilog + Seq)
+đã merge trên nhánh `feature/redis-phase2-ratelimit-auth-observability`
+(Tasks 1–3: `d062970`+`b637b19`, `911e082`+`e1c5d53`, `b2e59e0`+`81f6b62`;
+Task 4: commit docs này).
+
+- Ma trận kill-redis live (docker, 2 replica) KHÔNG chạy: môi trường verify
+  không có docker daemon, Postgres, hay live Redis (kế thừa từ GĐ1+GĐ2).
+  Ngữ nghĩa outage được chốt ở mức seam gần nhất, không cần mạng:
+  - Rate-limit Redis chết → fail-open: request cho qua + `LogWarning`
+    (`RedisRateLimitServiceTests.RedisDown_FailOpen_AllowsRequest`,
+    `RedisRateLimitMiddlewareTests.RedisDown_FailOpen_CallsNext` — cho qua tới
+    handler, envelope 429 giữ nguyên khi Redis sống).
+  - Revoke-check Redis/DB chết → fail-closed: 401 rõ ràng
+    `"Authentication service unavailable."`
+    (`TokenRevocationMiddlewareTests.RedisDown_*`,
+    `DatabaseDown_*`, `MissingServices_*` — không bao giờ cho qua, không throw mù).
+  - `RedisHealthCheck` không bao giờ `Unhealthy`: disabled → `Healthy`,
+    enabled thiếu multiplexer → `Degraded` (`RedisHealthCheckTests`, 2 tests mới,
+    trả nợ ghi chú "chưa có unit test chốt" ở §6).
+- Chi phí by-design (chưa đo p95 live, không có staging Redis):
+  1 Lua eval (`INCR+EXPIRE`) mỗi request qua `RedisRateLimitMiddleware`;
+  1 Redis `GET` mỗi authenticated request qua `TokenRevocationMiddleware`
+  (+ 1 indexed DB read khi cache miss, cache lại 16p = 15p access + 60s skew).
+  Đo p95 trước/sau là follow-up staging, không chặn nghiệm thu.
+- Hạn chế đã biết (còn đúng sau Phase 2): OAuth callback/start khi Redis mất
+  kết nối thật vẫn trả 500 envelope — vẫn fail-closed (không cấp token) nhưng
+  mù. `TokenRevocationMiddleware` không đổi đường này: nó bỏ qua request chưa
+  authenticate (đã pin bởi `UnauthenticatedRequest_SkipsCheck`), OAuth callback
+  chưa có JWT nên đi thẳng vào MediatR → store ném `RedisException` → handler
+  chung. Follow-up giữ nguyên từ §6: map `RedisException` → 409/503 với thông
+  điệp rõ ràng.
+- Gates (chạy thật trong sandbox này): `dotnet build TutorHub.sln` 0 warning
+  0 error; unit suites Domain 210 + Infrastructure 44 (gồm 2 health mới) +
+  Application 415 = 669 passed, 0 failed; integration subset không cần DB
+  53 passed, 0 failed (filter: `RedisRateLimitServiceTests`,
+  `RedisRateLimitMiddlewareTests`, `TokenRevocationMiddlewareTests`,
+  `SerilogCorrelationTests`, `RedisEnabledRateLimitingTests`, `CorsOriginsTests`,
+  `StartupSecretGuardTests`, `DevelopmentOnlyEndpointsTests`).
+  DB-backed tests (`RateLimitingTests` 2 mode, revoke p95, `HealthEndpointTests`)
+  NOT-RUN: `IntegrationTestBase` gọi `EnsureDatabase()` → Npgsql từ chối kết nối
+  (`Host=localhost;Port=5433`, không có Postgres/docker trong sandbox) — đã
+  probe 1 case để xác nhận lỗi môi trường, không sửa test.
