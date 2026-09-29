@@ -131,7 +131,7 @@ Middleware bọc `using (LogContext.PushProperty("CorrelationId", correlationId)
 git commit -m "feat(logging): serilog with seq sink and correlation enrichment"
 ```
 
-### Task 4: E2E + docs close-out — ✅ DONE (test `RedisHealthCheckTests` + spec §7 + README + commit docs này)
+### Task 4: E2E + docs close-out — ✅ DONE (commit bdb4705; spec APPROVED)
 
 **Files:** `docker-compose` scale test, `docs/redis-scaleout-spec.md` (WP3/WP6/WP7 nghiệm thu), `README.md`
 
