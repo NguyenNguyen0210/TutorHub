@@ -35,7 +35,8 @@
 4. [Ngăn Xếp Công Nghệ (Technology Stack)](#-ngăn-xếp-công-nghệ-technology-stack)
 5. [Cấu Trúc Thư Mục Repository](#-cấu-trúc-thư-mục-repository)
 6. [Hướng Dẫn Cài Đặt & Khởi Chạy](#-hướng-dẫn-cài-đặt--khởi-chạy)
-7. [Kiểm Thử Tự Động (Automated Testing)](#-kiểm-thử-tự-động-automated-testing)
+7. [Mở Rộng Quy Mô (Scale-Out với Redis)](#-mở-rộng-quy-mô-scale-out-với-redis)
+8. [Kiểm Thử Tự Động (Automated Testing)](#-kiểm-thử-tự-động-automated-testing)
 
 ---
 
@@ -259,6 +260,24 @@ npm install
 npm run dev
 ```
 * **Web App URL:** `http://localhost:5173`
+
+---
+
+## 🔀 Mở Rộng Quy Mô (Scale-Out với Redis)
+
+* **1 replica:** không cần Redis. Mặc định `Redis:Enabled=false`, API boot và phục vụ bình thường.
+* **≥2 replica:** bắt buộc 1 Redis chung (`redis:7-alpine` đã có sẵn trong `docker-compose.yml`):
+
+```bash
+# .env
+Redis__Enabled=true
+ConnectionStrings__Redis=redis:6379
+```
+
+* **Cờ tính năng** `Redis:Features:{OAuth,SignalR,Cache,CronLock}` (mặc định `true`): tắt cờ nào = replica về đúng code memory/DB cũ của phần đó, không cần sửa code hay redeploy bản khác.
+* **Redis chết lúc chạy:** API vẫn phục vụ (HTTP 200); OAuth fail-closed — không cấp token khi Redis chết, start trả 409 với thông điệp rõ ràng; cache đọc thẳng DB; cron bỏ qua kỳ + log; `/health` báo `Degraded` ở check `redis` (không restart oan).
+
+Chi tiết: `docs/redis-scaleout-spec.md`.
 
 ---
 

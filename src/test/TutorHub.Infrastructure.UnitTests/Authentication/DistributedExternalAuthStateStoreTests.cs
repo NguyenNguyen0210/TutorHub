@@ -47,6 +47,23 @@ public class DistributedExternalAuthStateStoreTests
     }
 
     [Fact]
+    public void Create_OnNodeA_Consume_OnNodeB_SucceedsOnce()
+    {
+        // E2E Task 6 (no live redis available): two store instances over one
+        // shared backend stand in for two API replicas over one shared Redis.
+        var sharedRedis = new FakeRedisStringCommands();
+        var nodeA = CreateStore(sharedRedis);
+        var nodeB = CreateStore(sharedRedis);
+
+        var state = nodeA.Create(ExternalAuthProvider.Google, "verifier-abc", null);
+
+        nodeB.Consume(state, ExternalAuthProvider.Google).Should().NotBeNull(
+            "state minted on node A must be consumable on node B");
+        nodeA.Consume(state, ExternalAuthProvider.Google).Should().BeNull(
+            "state stays single-use across nodes");
+    }
+
+    [Fact]
     public void Consume_WithWrongProvider_ReturnsNull()
     {
         var store = CreateStore();
