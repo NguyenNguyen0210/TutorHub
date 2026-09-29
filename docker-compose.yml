@@ -35,6 +35,23 @@ services:
       timeout: 5s
       retries: 10
 
+  # WP7: centralized log UI + ingestion for dev/staging. The container listens
+  # on port 80 internally (host browsers use localhost:5341); the api reaches
+  # it as http://seq below. Production uses Seq Cloud or a later Loki setup —
+  # the API only does console JSON when Seq__ServerUrl is empty. The api has
+  # no depends_on here on purpose: it must boot and serve with Seq down (the
+  # Serilog Seq sink batches in the background and never blocks requests).
+  seq:
+    image: datalust/seq:latest
+    container_name: tutorhub-seq
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+    ports:
+      - "5341:80"
+    volumes:
+      - seqdata:/data
+
   api:
     build:
       context: ./src/backend
@@ -92,6 +109,11 @@ services:
       ExternalAuth__RedirectUri: ${ExternalAuth__RedirectUri:-http://localhost:5173/auth/oauth/callback}
       ExternalAuth__Google__ClientId: ${ExternalAuth__Google__ClientId}
       ExternalAuth__Google__ClientSecret: ${ExternalAuth__Google__ClientSecret}
+      # WP7: Serilog Seq sink. The seq service above listens on container port
+      # 80, so the in-network URL is http://seq (browsers use localhost:5341).
+      # Empty = console-only logging; safe default, Seq down never blocks boot.
+      Seq__ServerUrl: ${Seq__ServerUrl:-http://seq}
+      Seq__ApiKey: ${Seq__ApiKey:-}
     ports:
       - "8080:8080"
     healthcheck:
@@ -137,3 +159,4 @@ services:
 volumes:
   pgdata:
   redisdata:
+  seqdata:

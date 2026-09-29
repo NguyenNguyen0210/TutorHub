@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
 using StackExchange.Redis;
 using TutorHub.Api.Configuration;
 using TutorHub.Api.Exceptions;
@@ -57,6 +58,36 @@ if (builder.Environment.IsDevelopment())
 }
 
 builder.Configuration.AddEnvironmentVariables();
+
+// WP7: structured logging. Console (compact JSON) always; the Seq sink is
+// added only when Seq:ServerUrl is set, so the API boots and serves with Seq
+// down (the Seq sink batches in the background and never blocks requests).
+// Levels/enrichment come from the Serilog config section first; the code
+// below only guarantees the same fallbacks when the section is absent.
+builder.Host.UseSerilog((context, loggerConfig) =>
+{
+    loggerConfig
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .Enrich.WithMachineName()
+        .Enrich.WithEnvironmentName()
+        .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
+        .MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Warning);
+
+    var seqUrl = context.Configuration["Seq:ServerUrl"];
+    if (!string.IsNullOrWhiteSpace(seqUrl))
+    {
+        var seqApiKey = context.Configuration["Seq:ApiKey"];
+        if (string.IsNullOrWhiteSpace(seqApiKey))
+        {
+            loggerConfig.WriteTo.Seq(seqUrl);
+        }
+        else
+        {
+            loggerConfig.WriteTo.Seq(seqUrl, apiKey: seqApiKey);
+        }
+    }
+});
 
 // F-25 hardening: refuse to start while a secret still holds a template value.
 StartupSecretGuard.ValidateNoPlaceholderSecrets(builder.Configuration);
@@ -312,6 +343,13 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<TutorHub.Api.Middlewares.CorrelationIdMiddleware>();
+
+// WP7: one request log per call, enriched with the CorrelationId above (this
+// runs inside its LogContext scope). Health probes are excluded so
+// orchestrator polling stays out of Seq.
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase),
+    branch => branch.UseSerilogRequestLogging());
 
 if (app.Environment.IsDevelopment())
 {
