@@ -2,8 +2,8 @@ using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using TutorHub.Application;
 using TutorHub.Infrastructure.BackgroundServices;
+using TutorHub.Infrastructure.Configuration;
 
 namespace TutorHub.Infrastructure.UnitTests.BackgroundJobs;
 
@@ -44,11 +44,8 @@ public class WorkerBootTests
 
         builder.Configuration.AddInMemoryCollection(settings);
 
-        // Same composition as TutorHub.Worker/Program.cs (which, like the Api,
-        // registers the accessor itself — it lives outside AddInfrastructure).
-        builder.Services.AddHttpContextAccessor();
-        builder.Services.AddApplication();
-        builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
+        // The real Worker composition (same method TutorHub.Worker/Program.cs calls).
+        builder.Services.AddWorkerComposition(builder.Configuration, builder.Environment);
 
         return builder.Build();
     }
@@ -71,6 +68,36 @@ public class WorkerBootTests
         using var host = BuildWorkerHost(flagValue: "false");
 
         host.Should().NotBeNull();
-        HostedJobImplementations(host).Should().NotIntersectWith(JobTypes);
+        HostedJobImplementations(host).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void WorkerAppSettings_TrimmedFile_ParsesAndHostBuilds()
+    {
+        // M1: the trimmed TutorHub.Worker/appsettings.json must still boot the
+        // host through the real composition (empty values are fine — nothing
+        // connects or validates until Start).
+        var workerSettings = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+            "backend", "TutorHub.Worker", "appsettings.json"));
+
+        File.Exists(workerSettings).Should().BeTrue("the Worker appsettings.json ships with the repo");
+
+        var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+        {
+            EnvironmentName = Environments.Development,
+        });
+        builder.Configuration.AddJsonFile(workerSettings, optional: false, reloadOnChange: false);
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:DefaultConnection"] =
+                "Host=localhost;Port=5432;Database=tutorhub;Username=tutorhub;Password=123456",
+        });
+
+        builder.Services.AddWorkerComposition(builder.Configuration, builder.Environment);
+        using var host = builder.Build();
+
+        host.Should().NotBeNull();
+        HostedJobImplementations(host).Should().BeEquivalentTo(JobTypes);
     }
 }

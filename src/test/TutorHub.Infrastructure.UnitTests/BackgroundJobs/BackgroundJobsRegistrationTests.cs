@@ -76,7 +76,7 @@ public class BackgroundJobsRegistrationTests
     {
         var services = BuildServices(flagValue: "false");
 
-        RegisteredJobImplementations(services).Should().NotIntersectWith(JobTypes);
+        RegisteredJobImplementations(services).Should().BeEmpty();
     }
 
     private sealed class StubHostEnvironment : IHostEnvironment

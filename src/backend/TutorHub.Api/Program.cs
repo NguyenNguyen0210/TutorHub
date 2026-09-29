@@ -20,6 +20,7 @@ using TutorHub.Api.RateLimiting;
 using TutorHub.Application;
 using TutorHub.Infrastructure;
 using TutorHub.Infrastructure.Authentication;
+using TutorHub.Infrastructure.Configuration;
 using TutorHub.Infrastructure.HealthChecks;
 using TutorHub.Infrastructure.Hubs;
 using TutorHub.Infrastructure.Redis;

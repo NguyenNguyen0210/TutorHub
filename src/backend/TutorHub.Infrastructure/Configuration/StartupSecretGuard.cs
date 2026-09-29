@@ -1,4 +1,6 @@
-namespace TutorHub.Api.Configuration;
+using Microsoft.Extensions.Configuration;
+
+namespace TutorHub.Infrastructure.Configuration;
 
 /// <summary>
 /// F-25 hardening: refuse to start when a secret still holds a template value.
@@ -7,6 +9,9 @@ namespace TutorHub.Api.Configuration;
 /// <c>ValidateOnStart()</c>. This guard catches the other, more dangerous case: a
 /// value copied from <c>.env.example</c> (or the old hard-coded docker-compose
 /// default) that is long enough to satisfy length validation but is not a secret.
+///
+/// Lives here (not in the Api) so both hosts — <c>TutorHub.Api</c> and
+/// <c>TutorHub.Worker</c> — enforce the identical check.
 /// </summary>
 public static class StartupSecretGuard
 {
