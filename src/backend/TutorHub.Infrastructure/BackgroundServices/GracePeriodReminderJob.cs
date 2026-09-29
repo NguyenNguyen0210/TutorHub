@@ -6,23 +6,31 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Notifications;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
+using TutorHub.Infrastructure.Distributed;
 
 namespace TutorHub.Infrastructure.BackgroundServices;
 
 public class GracePeriodReminderJob : BackgroundService
 {
+    public const string LockKey = "cron:grace-reminder";
+    public static readonly TimeSpan LockTtl = TimeSpan.FromMinutes(4);
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<GracePeriodReminderJob> _logger;
     private readonly IClock _clock;
+    private readonly IRedisDistributedLock _distributedLock;
+    private readonly string _workerId = Guid.NewGuid().ToString("N");
 
     public GracePeriodReminderJob(
         IServiceScopeFactory scopeFactory,
         ILogger<GracePeriodReminderJob> logger,
-        IClock clock)
+        IClock clock,
+        IRedisDistributedLock distributedLock)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
         _clock = clock;
+        _distributedLock = distributedLock;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -31,9 +39,19 @@ public class GracePeriodReminderJob : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            var acquired = false;
             try
             {
-                await SendGracePeriodRemindersAsync(stoppingToken);
+                acquired = await _distributedLock.AcquireAsync(LockKey, _workerId, LockTtl, stoppingToken);
+                if (!acquired)
+                {
+                    _logger.LogDebug("Skipping grace-reminder tick on worker {WorkerId}: lock {LockKey} held by another node.", _workerId, LockKey);
+                }
+                else
+                {
+                    await SendGracePeriodRemindersAsync(stoppingToken);
+                }
+
                 await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -44,6 +62,13 @@ public class GracePeriodReminderJob : BackgroundService
             {
                 _logger.LogError(ex, "Error executing GracePeriodReminderJob loop");
                 await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+            }
+            finally
+            {
+                if (acquired)
+                {
+                    await _distributedLock.ReleaseAsync(LockKey, _workerId, CancellationToken.None);
+                }
             }
         }
 

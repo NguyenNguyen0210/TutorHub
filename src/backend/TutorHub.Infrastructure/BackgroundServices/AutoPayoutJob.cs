@@ -8,23 +8,31 @@ using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 using TutorHub.Domain.Services;
+using TutorHub.Infrastructure.Distributed;
 
 namespace TutorHub.Infrastructure.BackgroundServices;
 
 public class AutoPayoutJob : BackgroundService
 {
+    public const string LockKey = "cron:auto-payout";
+    public static readonly TimeSpan LockTtl = TimeSpan.FromSeconds(90);
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<AutoPayoutJob> _logger;
     private readonly IClock _clock;
+    private readonly IRedisDistributedLock _distributedLock;
+    private readonly string _workerId = Guid.NewGuid().ToString("N");
 
     public AutoPayoutJob(
         IServiceScopeFactory scopeFactory,
         ILogger<AutoPayoutJob> logger,
-        IClock clock)
+        IClock clock,
+        IRedisDistributedLock distributedLock)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
         _clock = clock;
+        _distributedLock = distributedLock;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -33,9 +41,19 @@ public class AutoPayoutJob : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            var acquired = false;
             try
             {
-                await ProcessAutoPayoutAsync(stoppingToken);
+                acquired = await _distributedLock.AcquireAsync(LockKey, _workerId, LockTtl, stoppingToken);
+                if (!acquired)
+                {
+                    _logger.LogDebug("Skipping auto-payout tick on worker {WorkerId}: lock {LockKey} held by another node.", _workerId, LockKey);
+                }
+                else
+                {
+                    await ProcessAutoPayoutAsync(stoppingToken);
+                }
+
                 await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -46,6 +64,13 @@ public class AutoPayoutJob : BackgroundService
             {
                 _logger.LogError(ex, "Error executing AutoPayoutJob loop");
                 await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+            }
+            finally
+            {
+                if (acquired)
+                {
+                    await _distributedLock.ReleaseAsync(LockKey, _workerId, CancellationToken.None);
+                }
             }
         }
 

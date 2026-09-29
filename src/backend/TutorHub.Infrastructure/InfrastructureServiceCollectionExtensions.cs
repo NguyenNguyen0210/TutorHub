@@ -19,6 +19,7 @@ using TutorHub.Infrastructure.Authentication;
 using TutorHub.Infrastructure.Authentication.External;
 using TutorHub.Infrastructure.BackgroundServices;
 using TutorHub.Infrastructure.Caching;
+using TutorHub.Infrastructure.Distributed;
 using TutorHub.Infrastructure.Persistence;
 using TutorHub.Infrastructure.Redis;
 using TutorHub.Infrastructure.Services;
@@ -242,6 +243,27 @@ public static class InfrastructureServiceCollectionExtensions
         else
         {
             services.AddSingleton<IExternalAuthStateStore, MemoryExternalAuthStateStore>();
+        }
+
+        // ── WP4 cron lock: Redis when the CronLock flag is on, no-op otherwise ──
+        // The lock seam needs IConnectionMultiplexer, which only exists when
+        // Redis is Enabled — consistent because the CronLock flag implies
+        // Enabled. Disabled mode runs every tick locally (original behavior).
+        if (redis.Enabled && redis.Features.CronLock)
+        {
+            services.AddSingleton<IRedisLockCommands>(sp =>
+            {
+                var multiplexer = sp.GetService<IConnectionMultiplexer>()
+                    ?? throw new InvalidOperationException(
+                        "Redis:Features:CronLock is true but no IConnectionMultiplexer is registered. " +
+                        "Cron locks require Redis:Enabled with a connection string.");
+                return new StackExchangeRedisLockCommands(multiplexer.GetDatabase());
+            });
+            services.AddSingleton<IRedisDistributedLock, RedisDistributedLock>();
+        }
+        else
+        {
+            services.AddSingleton<IRedisDistributedLock>(_ => NoOpRedisDistributedLock.Instance);
         }
 
         var signalR = services.AddSignalR();
