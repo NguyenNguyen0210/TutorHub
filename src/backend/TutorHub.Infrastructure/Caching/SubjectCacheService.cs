@@ -21,6 +21,9 @@ public class SubjectCacheService : ISubjectCacheService
 {
     private static readonly TimeSpan ListTtl = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan DetailTtl = TimeSpan.FromMinutes(10);
+
+    // Must outlive ListTtl: if the version key expired while list entries
+    // survived, lists would resurrect under version 0 after an invalidation.
     private static readonly TimeSpan VersionTtl = TimeSpan.FromDays(1);
     private const string VersionKey = "subj:ver";
 
@@ -31,6 +34,10 @@ public class SubjectCacheService : ISubjectCacheService
 
     private readonly IDistributedCache _cache;
     private readonly ILogger<SubjectCacheService> _logger;
+
+    // Best-effort duplicate suppression, not a correctness lock: entries are
+    // removed after use (a waiter holding a removed reference still works, and
+    // a lost race only causes a duplicate factory run, never stale data).
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
 
     public SubjectCacheService(IDistributedCache cache, ILogger<SubjectCacheService> logger)
@@ -75,12 +82,16 @@ public class SubjectCacheService : ISubjectCacheService
 
     private static string FilterHash(GetPublicSubjectsQuery query)
     {
+        // Normalized exactly like the handler clamps them, so equivalent
+        // requests share one entry instead of wasting one per raw value.
+        var pageNumber = query.PageNumber < 1 ? 1 : query.PageNumber;
+        var pageSize = query.PageSize < 1 ? 20 : (query.PageSize > 50 ? 50 : query.PageSize);
         var filter = string.Join(
             "|",
             query.CategoryId?.ToString("D") ?? "-",
             query.Search?.Trim().ToLowerInvariant() ?? "-",
-            query.PageNumber,
-            query.PageSize);
+            pageNumber,
+            pageSize);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(filter)));
     }
 
@@ -130,7 +141,7 @@ public class SubjectCacheService : ISubjectCacheService
             var raw = await _cache.GetStringAsync(VersionKey, cancellationToken);
             return long.TryParse(raw, out var version) ? version : 0;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogDebug(ex, "Subject list version read failed; treating as version 0.");
             return 0;
@@ -139,6 +150,9 @@ public class SubjectCacheService : ISubjectCacheService
 
     private async Task BumpVersionAsync(CancellationToken cancellationToken)
     {
+        // Read-modify-write is not atomic, but a lost bump is safe: any
+        // increase invalidates every list key, so concurrent bumps just
+        // skip a version number.
         try
         {
             var version = await GetVersionAsync(cancellationToken);
@@ -148,7 +162,7 @@ public class SubjectCacheService : ISubjectCacheService
                 new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = VersionTtl },
                 cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Subject list version bump failed; stale lists expire via TTL.");
         }
@@ -161,7 +175,7 @@ public class SubjectCacheService : ISubjectCacheService
             var raw = await _cache.GetStringAsync(key, cancellationToken);
             return raw is null ? null : JsonSerializer.Deserialize<T>(raw, JsonOptions);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogDebug(ex, "Subject cache read failed for {CacheKey}; falling back to database.", key);
             return null;
@@ -178,7 +192,7 @@ public class SubjectCacheService : ISubjectCacheService
                 new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl },
                 cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Subject cache write failed for {CacheKey}.", key);
         }
@@ -190,7 +204,7 @@ public class SubjectCacheService : ISubjectCacheService
         {
             await _cache.RemoveAsync(key, cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Subject cache remove failed for {CacheKey}.", key);
         }

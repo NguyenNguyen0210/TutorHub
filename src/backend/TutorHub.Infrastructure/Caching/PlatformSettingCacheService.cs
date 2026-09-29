@@ -75,7 +75,7 @@ public class PlatformSettingCacheService : IPlatformSettingCacheService
         {
             await _cache.RemoveAsync(CacheKey(key), cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Platform setting cache remove failed for {SettingKey}.", key);
         }
@@ -90,7 +90,7 @@ public class PlatformSettingCacheService : IPlatformSettingCacheService
             var raw = await _cache.GetStringAsync(cacheKey, cancellationToken);
             return raw is null ? null : JsonSerializer.Deserialize<PlatformSettingSnapshot>(raw, JsonOptions);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogDebug(ex, "Platform setting cache read failed for {CacheKey}; falling back to database.", cacheKey);
             return null;
@@ -107,7 +107,7 @@ public class PlatformSettingCacheService : IPlatformSettingCacheService
                 new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = SettingTtl },
                 cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Platform setting cache write failed for {CacheKey}.", cacheKey);
         }

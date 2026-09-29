@@ -59,7 +59,7 @@ public class CreateSubjectCommandHandler : IRequestHandler<CreateSubjectCommand,
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
-            await _cache.InvalidateSubjectAsync(subject.Id, cancellationToken);
+            await _cache.InvalidateSubjectListsAsync(cancellationToken);
         }
         catch (DbUpdateException ex)
         {

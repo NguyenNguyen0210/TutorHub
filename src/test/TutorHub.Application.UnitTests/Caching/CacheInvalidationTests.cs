@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -8,11 +9,13 @@ using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Admin.Categories.UpdateCategory;
 using TutorHub.Application.Features.Admin.Subjects.UpdateSubject;
+using TutorHub.Application.Features.Enrollments.Common;
 using TutorHub.Application.Features.PlatformSettings.EventHandlers;
 using TutorHub.Application.Features.Subjects.GetPublicSubjectById;
 using TutorHub.Application.Features.Subjects.GetPublicSubjects;
 using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
+using TutorHub.Domain.UnitTests.Common.Builders;
 using TutorHub.Infrastructure.Caching;
 
 namespace TutorHub.Application.UnitTests.Caching;
@@ -24,10 +27,21 @@ public class CacheInvalidationTests
 {
     private sealed class FakeDistributedCache : IDistributedCache
     {
-        public readonly Dictionary<string, byte[]> Store = new();
+        public readonly ConcurrentDictionary<string, byte[]> Store = new();
         public int SetCount;
 
-        public byte[]? Get(string key) => Store.TryGetValue(key, out var value) ? value : null;
+        /// <summary>When true, reads return corrupt bytes instead of stored values.</summary>
+        public bool ReturnGarbage { get; set; }
+
+        public byte[]? Get(string key)
+        {
+            if (ReturnGarbage)
+            {
+                return new byte[] { 0xFF, 0x00, 0x7B };
+            }
+
+            return Store.TryGetValue(key, out var value) ? value : null;
+        }
 
         public Task<byte[]?> GetAsync(string key, CancellationToken token = default) =>
             Task.FromResult(Get(key));
@@ -39,18 +53,18 @@ public class CacheInvalidationTests
         public Task RefreshAsync(string key, CancellationToken token = default) =>
             Task.CompletedTask;
 
-        public void Remove(string key) => Store.Remove(key);
+        public void Remove(string key) => Store.TryRemove(key, out _);
 
         public Task RemoveAsync(string key, CancellationToken token = default)
         {
-            Store.Remove(key);
+            Store.TryRemove(key, out _);
             return Task.CompletedTask;
         }
 
         public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
         {
             Store[key] = value;
-            SetCount++;
+            Interlocked.Increment(ref SetCount);
         }
 
         public Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
@@ -58,6 +72,27 @@ public class CacheInvalidationTests
             Set(key, value, options);
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class ThrowingDistributedCache : IDistributedCache
+    {
+        private static Exception Outage() => new InvalidOperationException("redis down");
+
+        public byte[]? Get(string key) => throw Outage();
+
+        public Task<byte[]?> GetAsync(string key, CancellationToken token = default) => throw Outage();
+
+        public void Refresh(string key) => throw Outage();
+
+        public Task RefreshAsync(string key, CancellationToken token = default) => throw Outage();
+
+        public void Remove(string key) => throw Outage();
+
+        public Task RemoveAsync(string key, CancellationToken token = default) => throw Outage();
+
+        public void Set(string key, byte[] value, DistributedCacheEntryOptions options) => throw Outage();
+
+        public Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default) => throw Outage();
     }
 
     private static (Mock<IAppDbContext> Context, Category Category, Subject Subject) CreateSubjectContext()
@@ -169,6 +204,67 @@ public class CacheInvalidationTests
 
         var act = () => detailHandler.Handle(new GetPublicSubjectByIdQuery(subject.Id), CancellationToken.None);
         await act.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
+    public async Task CacheOutage_GetPublicSubjects_FallsBackToDatabase()
+    {
+        var (contextMock, _, _) = CreateSubjectContext();
+        var cacheService = new SubjectCacheService(new ThrowingDistributedCache(), NullLogger<SubjectCacheService>.Instance);
+        var handler = new GetPublicSubjectsQueryHandler(contextMock.Object, cacheService);
+
+        var result = await handler.Handle(new GetPublicSubjectsQuery(PageNumber: 1, PageSize: 20), CancellationToken.None);
+
+        result.Items.Should().ContainSingle(s => s.Name == "Algebra");
+    }
+
+    [Fact]
+    public async Task CorruptCacheEntry_GetPublicSubjects_FallsBackToDatabase()
+    {
+        var (contextMock, _, _) = CreateSubjectContext();
+        var cache = new FakeDistributedCache { ReturnGarbage = true };
+        var cacheService = new SubjectCacheService(cache, NullLogger<SubjectCacheService>.Instance);
+        var handler = new GetPublicSubjectsQueryHandler(contextMock.Object, cacheService);
+
+        var result = await handler.Handle(new GetPublicSubjectsQuery(PageNumber: 1, PageSize: 20), CancellationToken.None);
+
+        result.Items.Should().ContainSingle(s => s.Name == "Algebra");
+    }
+
+    [Fact]
+    public async Task CacheOutage_EnrollmentActivation_SnapshotsFeeFromDatabase()
+    {
+        var platformSettings = new List<PlatformSetting>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Key = "PlatformFeeRate",
+                Value = "0.1200",
+                Description = "test",
+                CurrentVersion = 5
+            }
+        };
+        var contextMock = new Mock<IAppDbContext>();
+        contextMock.Setup(c => c.PlatformSettings).Returns(MockDbSetHelper.CreateMockDbSet(platformSettings).Object);
+        contextMock.Setup(c => c.Wallets).Returns(MockDbSetHelper.CreateMockDbSet(new List<Wallet>()).Object);
+        contextMock.Setup(c => c.Enrollments).Returns(MockDbSetHelper.CreateMockDbSet(new List<Enrollment>()).Object);
+        contextMock.Setup(c => c.OutboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(new List<OutboxMessage>()).Object);
+
+        var cacheService = new PlatformSettingCacheService(new ThrowingDistributedCache(), NullLogger<PlatformSettingCacheService>.Instance);
+        var sut = new EnrollmentActivationService(contextMock.Object, cacheService);
+        var booking = new BookingBuilder()
+            .WithServiceId(Guid.NewGuid())
+            .WithSnapshot(300_000m, 3)
+            .Build();
+
+        var enrollment = await sut.ActivateAsync(
+            booking,
+            new DateTime(2030, 2, 1, 9, 0, 0, DateTimeKind.Utc),
+            CancellationToken.None);
+
+        enrollment.PlatformFeeRate.Should().Be(0.12m);
+        enrollment.FeePolicyVersion.Should().Be(5);
     }
 
     [Fact]
