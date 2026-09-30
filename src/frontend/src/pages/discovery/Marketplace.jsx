@@ -31,6 +31,10 @@ const SORT_OPTIONS = [
   { value: 'exp_desc', label: 'Nhiều kinh nghiệm nhất' },
 ];
 
+const MAX_PRICE = 5000000;
+const QUICK_PRICE_CAP = 1000000;
+const QUICK_RATING = 4.8;
+
 export default function Marketplace() {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -38,7 +42,7 @@ export default function Marketplace() {
   const [searchKeyword, setSearchKeyword] = useState(searchParams.get('q') || '');
   const [debouncedKeyword, setDebouncedKeyword] = useState(searchParams.get('q') || '');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [priceRange, setPriceRange] = useState(5000000);
+  const [priceRange, setPriceRange] = useState(MAX_PRICE);
   const [teachingMode, setTeachingMode] = useState('All');
   const [city, setCity] = useState('All');
   const [degreeLevel, setDegreeLevel] = useState('All');
@@ -117,7 +121,7 @@ export default function Marketplace() {
           categoryId: selectedCategory || null,
           search: debouncedKeyword.trim() || null,
           minPrice: null,
-          maxPrice: priceRange < 5000000 ? priceRange : null,
+          maxPrice: priceRange < MAX_PRICE ? priceRange : null,
           teachingMode: teachingMode !== 'All' ? teachingMode : null,
           city: city !== 'All' ? city : null,
           degreeLevel: degreeLevel !== 'All' ? degreeLevel : null,
@@ -180,7 +184,7 @@ export default function Marketplace() {
     setSearchKeyword('');
     setDebouncedKeyword('');
     setSelectedCategory('');
-    setPriceRange(5000000);
+    setPriceRange(MAX_PRICE);
     setTeachingMode('All');
     setCity('All');
     setDegreeLevel('All');
@@ -211,8 +215,8 @@ export default function Marketplace() {
     if (city !== 'All') {
       list.push({ key: 'city', label: `Khu vực: ${city}`, clear: () => setCity('All') });
     }
-    if (priceRange < 5000000) {
-      list.push({ key: 'price', label: `Học phí ≤ ${formatVND(priceRange)}`, clear: () => setPriceRange(5000000) });
+    if (priceRange < MAX_PRICE) {
+      list.push({ key: 'price', label: `Học phí ≤ ${formatVND(priceRange)}`, clear: () => setPriceRange(MAX_PRICE) });
     }
     if (minRating !== null) {
       list.push({ key: 'rating', label: `Đánh giá: ≥ ${minRating}★`, clear: () => setMinRating(null) });
@@ -288,7 +292,7 @@ export default function Marketplace() {
                 setPriceRange(val);
                 setPageNumber(1);
               }}
-              maxPrice={5000000}
+              maxPrice={MAX_PRICE}
               teachingMode={teachingMode}
               onTeachingModeChange={(mode) => {
                 setTeachingMode(mode);
@@ -416,14 +420,14 @@ export default function Marketplace() {
               </button>
               <button
                 type="button"
-                aria-pressed={priceRange <= 1000000}
+                aria-pressed={priceRange <= QUICK_PRICE_CAP}
                 onClick={() => {
-                  setPriceRange(priceRange <= 1000000 ? 5000000 : 1000000);
+                  setPriceRange(priceRange <= QUICK_PRICE_CAP ? MAX_PRICE : QUICK_PRICE_CAP);
                   setPageNumber(1);
                 }}
                 className={cn(
                   'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer',
-                  priceRange <= 1000000
+                  priceRange <= QUICK_PRICE_CAP
                     ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
                     : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
                 )}
@@ -433,14 +437,14 @@ export default function Marketplace() {
               </button>
               <button
                 type="button"
-                aria-pressed={minRating === 4.8}
+                aria-pressed={minRating === QUICK_RATING}
                 onClick={() => {
-                  setMinRating(minRating === 4.8 ? null : 4.8);
+                  setMinRating(minRating === QUICK_RATING ? null : QUICK_RATING);
                   setPageNumber(1);
                 }}
                 className={cn(
                   'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer',
-                  minRating === 4.8
+                  minRating === QUICK_RATING
                     ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
                     : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
                 )}

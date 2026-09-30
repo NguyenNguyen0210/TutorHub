@@ -75,7 +75,6 @@ export default function FilterSidebar({
     price: false,
     mode: false,
     rating: false,
-    experience: false,
   });
 
   const [uniSearch, setUniSearch] = useState('');

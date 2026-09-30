@@ -21,6 +21,10 @@ const SORT_OPTIONS = [
   { value: 'sessions_desc', label: 'Nhiều buổi học nhất' },
 ];
 
+const MAX_PRICE = 10000000;
+const QUICK_PRICE_CAP = 1000000;
+const QUICK_RATING = 4.8;
+
 export default function ServicesMarketplace() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -31,7 +35,7 @@ export default function ServicesMarketplace() {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoryId') || '');
   const [selectedSubject, setSelectedSubject] = useState(searchParams.get('subjectId') || '');
   const [teachingMode, setTeachingMode] = useState('All');
-  const [priceRange, setPriceRange] = useState(10000000);
+  const [priceRange, setPriceRange] = useState(MAX_PRICE);
   const [minRating, setMinRating] = useState(null);
   const [sortBy, setSortBy] = useState('priority');
   const [pageNumber, setPageNumber] = useState(1);
@@ -91,7 +95,7 @@ export default function ServicesMarketplace() {
           categoryId: selectedCategory || null,
           subjectId: selectedSubject || null,
           teachingMode,
-          maxPrice: priceRange < 10000000 ? priceRange : null,
+          maxPrice: priceRange < MAX_PRICE ? priceRange : null,
           minRating,
           search: debouncedKeyword,
           sortBy: apiSortBy,
@@ -140,7 +144,7 @@ export default function ServicesMarketplace() {
     setSelectedCategory('');
     setSelectedSubject('');
     setTeachingMode('All');
-    setPriceRange(10000000);
+    setPriceRange(MAX_PRICE);
     setMinRating(null);
     setSortBy('priority');
     setPageNumber(1);
@@ -189,11 +193,11 @@ export default function ServicesMarketplace() {
         clear: () => setTeachingMode('All'),
       });
     }
-    if (priceRange < 10000000) {
+    if (priceRange < MAX_PRICE) {
       list.push({
         key: 'price',
         label: `Học phí ≤ ${formatVND(priceRange)}`,
-        clear: () => setPriceRange(10000000),
+        clear: () => setPriceRange(MAX_PRICE),
       });
     }
     if (minRating !== null) {
@@ -375,13 +379,13 @@ export default function ServicesMarketplace() {
               </button>
               <button
                 type="button"
-                aria-pressed={priceRange <= 1000000}
+                aria-pressed={priceRange <= QUICK_PRICE_CAP}
                 onClick={() => {
-                  setPriceRange(priceRange <= 1000000 ? 10000000 : 1000000);
+                  setPriceRange(priceRange <= QUICK_PRICE_CAP ? MAX_PRICE : QUICK_PRICE_CAP);
                   setPageNumber(1);
                 }}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer ${
-                  priceRange <= 1000000
+                  priceRange <= QUICK_PRICE_CAP
                     ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
                     : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
                 }`}
@@ -391,13 +395,13 @@ export default function ServicesMarketplace() {
               </button>
               <button
                 type="button"
-                aria-pressed={minRating === 4.8}
+                aria-pressed={minRating === QUICK_RATING}
                 onClick={() => {
-                  setMinRating(minRating === 4.8 ? null : 4.8);
+                  setMinRating(minRating === QUICK_RATING ? null : QUICK_RATING);
                   setPageNumber(1);
                 }}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer ${
-                  minRating === 4.8
+                  minRating === QUICK_RATING
                     ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
                     : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
                 }`}
