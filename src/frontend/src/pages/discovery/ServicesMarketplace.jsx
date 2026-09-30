@@ -244,7 +244,7 @@ export default function ServicesMarketplace() {
           setPageNumber(1);
         }}
         onTagClick={handleTagClick}
-        sampleServices={services.slice(0, 3)}
+        sampleServices={services}
       />
 
       {/* 2. Main Discovery Container: 2 Columns */}

@@ -100,7 +100,7 @@ export default function ServiceHeroSection({
             {/* Popular Tags */}
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[12.5px]">
               <span className="font-semibold text-neutral-500">Phổ biến:</span>
-              {popularTags.map((tag) => (
+              {(popularTags ?? []).map((tag) => (
                 <button
                   key={tag}
                   type="button"
@@ -117,10 +117,10 @@ export default function ServiceHeroSection({
           {showSamples && (
             <div className="lg:col-span-5">
               <div className="w-full max-w-[460px] mx-auto lg:ml-auto space-y-2.5">
-                <p className="text-[11.5px] font-bold uppercase tracking-wider text-neutral-500">
+                <h2 className="text-[11.5px] font-bold uppercase tracking-wider text-neutral-500">
                   Gói học nổi bật
-                </p>
-                {visibleSamples.map((service) => {
+                </h2>
+                {visibleSamples.map((service, index) => {
                   const totalSessions = Number(service.totalSessions) || 0;
                   const sessionDuration = Number(service.sessionDurationMinutes) || 0;
                   const price = Number(service.price) || 0;
@@ -132,7 +132,7 @@ export default function ServiceHeroSection({
                         : null;
                   return (
                     <Link
-                      key={service.id}
+                      key={service.id ?? service.title ?? index}
                       to={`/services/${service.id}`}
                       className="group flex items-center justify-between gap-3 bg-surface rounded-2xl border border-neutral-200/90 shadow-sm hover:shadow-brand-md hover:border-brand-primary-600/40 transition-all p-3.5"
                     >
@@ -188,5 +188,15 @@ ServiceHeroSection.propTypes = {
   onSearchSubmit: PropTypes.func.isRequired,
   popularTags: PropTypes.arrayOf(PropTypes.string),
   onTagClick: PropTypes.func.isRequired,
-  sampleServices: PropTypes.arrayOf(PropTypes.object),
+  sampleServices: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string,
+      title: PropTypes.string,
+      subjectName: PropTypes.string,
+      categoryName: PropTypes.string,
+      totalSessions: PropTypes.number,
+      sessionDurationMinutes: PropTypes.number,
+      price: PropTypes.number,
+    }),
+  ),
 };
