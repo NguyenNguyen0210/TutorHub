@@ -118,3 +118,5 @@ test-results/
 __pycache__/
 *.py[cod]
 *.class
+
+.worktrees/
