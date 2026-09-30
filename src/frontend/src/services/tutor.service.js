@@ -164,7 +164,7 @@ export const tutorService = {
   /**
    * GET /tutors → PagedResult<TutorSummaryDto>
    */
-  async getTutors(filters = {}) {
+  async getTutors(filters = {}, options = {}) {
     const {
       categoryId = null,
       subjectId = null,
@@ -200,14 +200,14 @@ export const tutorService = {
     if (search && search.trim()) params.search = search.trim();
     if (sortBy) params.sortBy = sortBy;
 
-    const res = await api.get('/tutors', { params });
+    const res = await api.get('/tutors', { params, signal: options.signal });
     return normalizePaged(res, normalizeTutorSummary);
   },
 
   /**
    * GET /services → PagedResult<PublicServiceListItemDto>
    */
-  async getPublicServices(filters = {}) {
+  async getPublicServices(filters = {}, options = {}) {
     const {
       categoryId = null,
       subjectId = null,
@@ -231,7 +231,7 @@ export const tutorService = {
     if (search && search.trim()) params.search = search.trim();
     if (sortBy) params.sortBy = sortBy;
 
-    const res = await api.get('/services', { params });
+    const res = await api.get('/services', { params, signal: options.signal });
     return normalizePaged(res, normalizePublicServiceItem);
   },
 

@@ -3,7 +3,7 @@ import { API_BASE_URL } from '../config/constants';
 import { useAuthStore } from '../store/authStore';
 
 // Tạo hàm sinh UUID v4 đơn giản cho X-Correlation-ID
-function generateCorrelationId() {
+export function generateCorrelationId() {
   return 'corr-' + 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0;
     const v = c === 'x' ? r : (r & 0x3) | 0x8;

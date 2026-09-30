@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
+import { ApiError, generateCorrelationId } from '@/services/api';
 import { CardSkeleton } from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
@@ -34,6 +35,8 @@ const SORT_OPTIONS = [
 const MAX_PRICE = 5000000;
 const QUICK_PRICE_CAP = 1000000;
 const QUICK_RATING = 4.8;
+// Timeout tải danh sách: quá hạn tự abort và chuyển error (không treo vô hạn).
+const REQUEST_TIMEOUT_MS = 10000;
 
 export default function Marketplace() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -60,6 +63,9 @@ export default function Marketplace() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Tăng mỗi lần bấm "Thử Lại" để kích hoạt refetch kể cả khi đang ở trang 1.
+  const [retryKey, setRetryKey] = useState(0);
+  const handleRetry = () => setRetryKey((k) => k + 1);
 
   // Debounce search keyword
   useEffect(() => {
@@ -88,8 +94,12 @@ export default function Marketplace() {
     };
   }, []);
 
-  // Query Tutors directly from Backend API with real parameters
+  // Query Tutors directly from Backend API with real parameters.
+  // Timeout 10s: quá hạn abort request và chuyển error (không treo vô hạn).
+  // Cleanup abort + clearTimeout nên không setState sau unmount.
   useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     let cancelled = false;
 
     async function loadTutors() {
@@ -117,44 +127,70 @@ export default function Marketplace() {
             ? 5
             : null;
 
-        const response = await tutorService.getTutors({
-          categoryId: selectedCategory || null,
-          search: debouncedKeyword.trim() || null,
-          minPrice: null,
-          maxPrice: priceRange < MAX_PRICE ? priceRange : null,
-          teachingMode: teachingMode !== 'All' ? teachingMode : null,
-          city: city !== 'All' ? city : null,
-          degreeLevel: degreeLevel !== 'All' ? degreeLevel : null,
-          university: university !== 'All' ? university : null,
-          certification: certification !== 'All' ? certification : null,
-          minRating: minRating || null,
-          minExperience: minExp,
-          maxExperience: maxExp,
-          sortBy: apiSortBy,
-          pageNumber,
-          pageSize,
-        });
+        const response = await tutorService.getTutors(
+          {
+            categoryId: selectedCategory || null,
+            search: debouncedKeyword.trim() || null,
+            minPrice: null,
+            maxPrice: priceRange < MAX_PRICE ? priceRange : null,
+            teachingMode: teachingMode !== 'All' ? teachingMode : null,
+            city: city !== 'All' ? city : null,
+            degreeLevel: degreeLevel !== 'All' ? degreeLevel : null,
+            university: university !== 'All' ? university : null,
+            certification: certification !== 'All' ? certification : null,
+            minRating: minRating || null,
+            minExperience: minExp,
+            maxExperience: maxExp,
+            sortBy: apiSortBy,
+            pageNumber,
+            pageSize,
+          },
+          { signal: controller.signal }
+        );
 
-        if (cancelled) return;
+        if (cancelled || controller.signal.aborted) return;
+        clearTimeout(timeoutId);
 
         let items = Array.isArray(response?.items) ? response.items : [];
 
         setTutors(items);
         setTotalCount(response?.totalCount ?? items.length);
+        setLoading(false);
       } catch (err) {
         if (cancelled) return;
-        console.error('[Marketplace] Lỗi truy vấn tutors:', err);
+        clearTimeout(timeoutId);
+        if (controller.signal.aborted) {
+          const correlationId = generateCorrelationId();
+          const timeoutErr = new ApiError(
+            'Yêu cầu quá thời gian (10 giây). Vui lòng kiểm tra kết nối mạng và bấm Thử Lại.',
+            { status: 0, kind: 'network', traceId: correlationId }
+          );
+          console.error('[Marketplace] Timeout tải tutors (10s):', {
+            correlationId,
+            error: err,
+          });
+          setTutors([]);
+          setTotalCount(0);
+          setError(timeoutErr);
+          setLoading(false);
+          return;
+        }
+        console.error('[Marketplace] Lỗi truy vấn tutors:', {
+          correlationId: err?.traceId ?? null,
+          error: err,
+        });
         setTutors([]);
         setTotalCount(0);
         setError(err);
-      } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
     }
 
     loadTutors();
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
+      controller.abort();
     };
   }, [
     debouncedKeyword,
@@ -169,6 +205,7 @@ export default function Marketplace() {
     experienceRange,
     sortBy,
     pageNumber,
+    retryKey,
   ]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -456,26 +493,22 @@ export default function Marketplace() {
 
             {/* Content States */}
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
-                {Array.from({ length: 6 }).map((_, idx) => (
-                  <CardSkeleton key={idx} />
-                ))}
-              </div>
+              <CardSkeleton count={6} className="gap-4 sm:gap-5" />
             ) : error ? (
               <ErrorState
+                error={error}
                 title="Không thể tải danh sách gia sư"
-                message="Không thể kết nối tới máy chủ backend. Vui lòng kiểm tra kết nối API và thử lại."
-                onRetry={() => setPageNumber(1)}
+                onRetry={handleRetry}
+                backPath="/"
+                backLabel="Về trang chủ"
               />
             ) : tutors.length === 0 ? (
               <EmptyState
                 icon="person_search"
                 title="Không tìm thấy gia sư phù hợp"
-                message="Hãy thử điều chỉnh lại mức học phí, chọn danh mục khác hoặc xóa bớt bộ lọc để tìm kiếm rộng hơn."
-                action={{
-                  label: 'Xóa toàn bộ bộ lọc',
-                  onClick: handleResetFilters,
-                }}
+                description="Bộ lọc hiện tại quá hẹp. Hãy thử nới khoảng học phí, chọn danh mục khác, hoặc gỡ bớt từng bộ lọc bên dưới để tìm kiếm rộng hơn."
+                filters={activeFilters}
+                onClearAll={handleResetFilters}
               />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
+import { ApiError, generateCorrelationId } from '@/services/api';
 import ServiceHeroSection from '@/components/discovery/ServiceHeroSection';
 import ServiceFilterSidebar from '@/components/discovery/ServiceFilterSidebar';
 import ServiceCard from '@/components/discovery/ServiceCard';
@@ -24,6 +25,8 @@ const SORT_OPTIONS = [
 const MAX_PRICE = 10000000;
 const QUICK_PRICE_CAP = 1000000;
 const QUICK_RATING = 4.8;
+// Timeout tải danh sách: quá hạn tự abort và chuyển error (không treo vô hạn).
+const REQUEST_TIMEOUT_MS = 10000;
 
 export default function ServicesMarketplace() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -48,6 +51,9 @@ export default function ServicesMarketplace() {
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Tăng mỗi lần bấm "Thử Lại" để kích hoạt refetch kể cả khi filter không đổi.
+  const [retryKey, setRetryKey] = useState(0);
+  const handleRetry = () => setRetryKey((k) => k + 1);
 
   // Debounce search keyword
   useEffect(() => {
@@ -80,8 +86,12 @@ export default function ServicesMarketplace() {
     };
   }, []);
 
-  // Fetch Services from Backend API with Active Filters
+  // Fetch Services from Backend API with Active Filters.
+  // Timeout 10s: quá hạn abort request và chuyển error (không treo vô hạn).
+  // Cleanup abort + clearTimeout nên không setState sau unmount.
   useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     let cancelled = false;
 
     async function loadServices() {
@@ -91,31 +101,49 @@ export default function ServicesMarketplace() {
 
         const apiSortBy = sortBy === 'priority' ? null : sortBy;
 
-        const result = await tutorService.getPublicServices({
-          categoryId: selectedCategory || null,
-          subjectId: selectedSubject || null,
-          teachingMode,
-          maxPrice: priceRange < MAX_PRICE ? priceRange : null,
-          minRating,
-          search: debouncedKeyword,
-          sortBy: apiSortBy,
-          pageNumber,
-          pageSize,
-        });
+        const result = await tutorService.getPublicServices(
+          {
+            categoryId: selectedCategory || null,
+            subjectId: selectedSubject || null,
+            teachingMode,
+            maxPrice: priceRange < MAX_PRICE ? priceRange : null,
+            minRating,
+            search: debouncedKeyword,
+            sortBy: apiSortBy,
+            pageNumber,
+            pageSize,
+          },
+          { signal: controller.signal }
+        );
 
-        if (!cancelled) {
-          setServices(result.items || []);
-          setTotalCount(result.totalCount || 0);
-        }
+        if (cancelled || controller.signal.aborted) return;
+        clearTimeout(timeoutId);
+        setServices(result.items || []);
+        setTotalCount(result.totalCount || 0);
+        setLoading(false);
       } catch (err) {
-        if (!cancelled) {
-          console.error('[ServicesMarketplace] Lỗi truy vấn dịch vụ học tập:', err);
-          setError(err);
-        }
-      } finally {
-        if (!cancelled) {
+        if (cancelled) return;
+        clearTimeout(timeoutId);
+        if (controller.signal.aborted) {
+          const correlationId = generateCorrelationId();
+          const timeoutErr = new ApiError(
+            'Yêu cầu quá thời gian (10 giây). Vui lòng kiểm tra kết nối mạng và bấm Thử Lại.',
+            { status: 0, kind: 'network', traceId: correlationId }
+          );
+          console.error('[ServicesMarketplace] Timeout tải dịch vụ (10s):', {
+            correlationId,
+            error: err,
+          });
+          setError(timeoutErr);
           setLoading(false);
+          return;
         }
+        console.error('[ServicesMarketplace] Lỗi truy vấn dịch vụ học tập:', {
+          correlationId: err?.traceId ?? null,
+          error: err,
+        });
+        setError(err);
+        setLoading(false);
       }
     }
 
@@ -123,6 +151,8 @@ export default function ServicesMarketplace() {
 
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
+      controller.abort();
     };
   }, [
     selectedCategory,
@@ -133,6 +163,7 @@ export default function ServicesMarketplace() {
     debouncedKeyword,
     sortBy,
     pageNumber,
+    retryKey,
   ]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -416,27 +447,23 @@ export default function ServicesMarketplace() {
               <ErrorState
                 error={error}
                 title="Không thể tải danh sách dịch vụ học tập"
-                onRetry={handleResetFilters}
+                onRetry={handleRetry}
+                backPath="/"
+                backLabel="Về trang chủ"
               />
             )}
 
             {/* Loading Skeletons */}
-            {loading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {Array.from({ length: 6 }).map((_, idx) => (
-                  <CardSkeleton key={idx} />
-                ))}
-              </div>
-            )}
+            {loading && <CardSkeleton count={6} className="gap-5" />}
 
             {/* Empty State */}
             {!loading && !error && services.length === 0 && (
               <EmptyState
                 icon="search_off"
                 title="Không tìm thấy dịch vụ học tập phù hợp"
-                description="Hãy thử nới lỏng các tiêu chí lọc, đổi khoảng giá hoặc tìm kiếm với từ khóa khác."
-                actionLabel="Xóa tất cả bộ lọc"
-                onAction={handleResetFilters}
+                description="Bộ lọc hiện tại quá hẹp. Hãy thử nới khoảng giá, đổi danh mục/môn học, tìm từ khóa khác, hoặc gỡ bớt từng bộ lọc bên dưới."
+                filters={activeFilters}
+                onClearAll={handleResetFilters}
               />
             )}
 
