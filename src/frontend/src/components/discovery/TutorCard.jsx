@@ -6,7 +6,7 @@ import Avatar from '@/components/ui/Avatar';
 import Button, { IconButton } from '@/components/ui/Button';
 import Money from '@/components/ui/Money';
 
-export default function TutorCard({ tutor }) {
+export default function TutorCard({ tutor = {} }) {
   const [isFavorite, setIsFavorite] = useState(false);
 
   const {
@@ -17,6 +17,8 @@ export default function TutorCard({ tutor }) {
     subjects = [],
     isVerified = false,
   } = tutor;
+
+  const displayName = (fullName || '').trim() || 'Gia sư';
 
   // Map real backend fields safely
   const rating = Number(tutor.ratingAvg ?? tutor.rating ?? 0);
@@ -45,14 +47,14 @@ export default function TutorCard({ tutor }) {
   }
 
   return (
-    <div className="group relative flex flex-col justify-between bg-surface rounded-2xl border border-neutral-200/90 shadow-sm hover:shadow-brand-md hover:border-brand-primary-600/40 transition-all duration-200 overflow-hidden">
+    <article className="group relative flex flex-col justify-between bg-surface rounded-2xl border border-neutral-200/90 shadow-sm hover:shadow-brand-md hover:border-brand-primary-600/40 transition-all duration-200 overflow-hidden">
       <div className="p-4 flex-1 flex flex-col justify-between space-y-3.5">
         <div className="space-y-2.5">
           {/* Hàng 1: avatar thật + tên + tick xác thực + chip môn chính */}
           <div className="flex items-center gap-2.5">
             <Avatar
               src={avatarUrl}
-              name={fullName}
+              name={displayName}
               size="md"
               className="w-12 h-12 ring-1 ring-neutral-200/80"
             />
@@ -61,9 +63,9 @@ export default function TutorCard({ tutor }) {
                 <Link
                   to={`/tutors/${id}`}
                   className="text-[15px] font-bold text-neutral-900 hover:text-brand-primary-600 transition-colors truncate"
-                  title={fullName}
+                  title={displayName}
                 >
-                  {fullName}
+                  {displayName}
                 </Link>
                 {isVerified && (
                   <span
@@ -71,6 +73,7 @@ export default function TutorCard({ tutor }) {
                     title="Gia sư đã được xác thực"
                   >
                     <Icon name="verified" size="xs" filled className="text-success w-4 h-4" />
+                    <span className="sr-only">Gia sư đã được xác thực</span>
                   </span>
                 )}
               </div>
@@ -152,13 +155,13 @@ export default function TutorCard({ tutor }) {
           />
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
 TutorCard.propTypes = {
   tutor: PropTypes.shape({
-    id: PropTypes.string.isRequired,
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
     fullName: PropTypes.string,
     avatarUrl: PropTypes.string,
     ratingAvg: PropTypes.number,

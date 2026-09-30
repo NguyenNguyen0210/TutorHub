@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
 import { CardSkeleton } from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
@@ -33,7 +33,6 @@ const SORT_OPTIONS = [
 
 export default function Marketplace() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   // Filter States
   const [searchKeyword, setSearchKeyword] = useState(searchParams.get('q') || '');
@@ -250,10 +249,6 @@ export default function Marketplace() {
     window.scrollTo({ top: 380, behavior: 'smooth' });
   };
 
-  const handleMessageClick = (tutor) => {
-    navigate(`/app/messages?tutorId=${tutor.id}`);
-  };
-
   return (
     <div className="w-full flex-1 bg-canvas pb-12">
       {/* 1. Hero Section */}
@@ -428,7 +423,6 @@ export default function Marketplace() {
                   <TutorCard
                     key={tutor.id}
                     tutor={tutor}
-                    onMessageClick={handleMessageClick}
                   />
                 ))}
               </div>
