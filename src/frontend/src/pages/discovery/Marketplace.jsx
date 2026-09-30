@@ -163,7 +163,7 @@ export default function Marketplace() {
           const correlationId = generateCorrelationId();
           const timeoutErr = new ApiError(
             'Yêu cầu quá thời gian (10 giây). Vui lòng kiểm tra kết nối mạng và bấm Thử Lại.',
-            { status: 0, kind: 'network', traceId: correlationId }
+            { status: 0, kind: 'network' }
           );
           console.error('[Marketplace] Timeout tải tutors (10s):', {
             correlationId,
@@ -387,6 +387,7 @@ export default function Marketplace() {
                     <button
                       type="button"
                       onClick={af.clear}
+                      aria-label={`Xóa bộ lọc ${af.label}`}
                       className="hover:text-danger transition-colors font-bold text-[14px] leading-none cursor-pointer -mr-0.5 ml-0.5"
                       title="Gỡ bộ lọc này"
                     >
@@ -498,6 +499,7 @@ export default function Marketplace() {
               <ErrorState
                 error={error}
                 title="Không thể tải danh sách gia sư"
+                message={error.message}
                 onRetry={handleRetry}
                 backPath="/"
                 backLabel="Về trang chủ"

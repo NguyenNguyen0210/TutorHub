@@ -128,7 +128,7 @@ export default function ServicesMarketplace() {
           const correlationId = generateCorrelationId();
           const timeoutErr = new ApiError(
             'Yêu cầu quá thời gian (10 giây). Vui lòng kiểm tra kết nối mạng và bấm Thử Lại.',
-            { status: 0, kind: 'network', traceId: correlationId }
+            { status: 0, kind: 'network' }
           );
           console.error('[ServicesMarketplace] Timeout tải dịch vụ (10s):', {
             correlationId,
@@ -336,6 +336,7 @@ export default function ServicesMarketplace() {
                     <button
                       type="button"
                       onClick={af.clear}
+                      aria-label={`Xóa bộ lọc ${af.label}`}
                       className="hover:text-danger transition-colors font-bold text-[14px] leading-none cursor-pointer -mr-0.5 ml-0.5"
                       title="Gỡ bộ lọc này"
                     >
@@ -447,6 +448,7 @@ export default function ServicesMarketplace() {
               <ErrorState
                 error={error}
                 title="Không thể tải danh sách dịch vụ học tập"
+                message={error.message}
                 onRetry={handleRetry}
                 backPath="/"
                 backLabel="Về trang chủ"

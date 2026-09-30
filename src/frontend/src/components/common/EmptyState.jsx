@@ -79,7 +79,7 @@ export default function EmptyState({
         </div>
       )}
 
-      {onClearAll && (
+      {onClearAll && hasFilterActions && (
         <div className="pt-1">
           <button
             type="button"
