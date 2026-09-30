@@ -36,9 +36,9 @@ export default function ServiceFilterSidebar({
   const [openSections, setOpenSections] = useState({
     category: true,
     subject: true,
-    mode: true,
-    price: true,
-    rating: true,
+    mode: false,
+    price: false,
+    rating: false,
   });
 
   const toggleSection = (section) => {
@@ -66,6 +66,8 @@ export default function ServiceFilterSidebar({
           <button
             type="button"
             onClick={() => toggleSection('category')}
+            aria-expanded={openSections.category}
+            aria-controls="service-filter-section-category"
             className="w-full flex items-center justify-between text-[13px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
@@ -82,7 +84,7 @@ export default function ServiceFilterSidebar({
           </button>
 
           {openSections.category && (
-            <div className="pt-0.5 space-y-1">
+            <div id="service-filter-section-category" className="pt-0.5 space-y-1">
               <label
                 className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors cursor-pointer ${
                   !selectedCategoryId ? 'bg-brand-primary-50 text-brand-primary-600 font-bold' : 'text-neutral-700 hover:bg-neutral-50'
@@ -133,6 +135,8 @@ export default function ServiceFilterSidebar({
             <button
               type="button"
               onClick={() => toggleSection('subject')}
+              aria-expanded={openSections.subject}
+              aria-controls="service-filter-section-subject"
               className="w-full flex items-center justify-between text-[13px] font-bold text-neutral-900 group cursor-pointer"
             >
               <span className="flex items-center gap-1.5">
@@ -149,7 +153,7 @@ export default function ServiceFilterSidebar({
             </button>
 
             {openSections.subject && (
-              <div className="pt-0.5 space-y-1 max-h-[220px] overflow-y-auto pr-0.5">
+              <div id="service-filter-section-subject" className="pt-0.5 space-y-1 max-h-[220px] overflow-y-auto pr-0.5">
                 <label
                   className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors cursor-pointer ${
                     !selectedSubjectId ? 'bg-brand-primary-50 text-brand-primary-600 font-bold' : 'text-neutral-700 hover:bg-neutral-50'
@@ -194,6 +198,8 @@ export default function ServiceFilterSidebar({
           <button
             type="button"
             onClick={() => toggleSection('mode')}
+            aria-expanded={openSections.mode}
+            aria-controls="service-filter-section-mode"
             className="w-full flex items-center justify-between text-[13px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
@@ -210,7 +216,7 @@ export default function ServiceFilterSidebar({
           </button>
 
           {openSections.mode && (
-            <div className="pt-0.5 space-y-1">
+            <div id="service-filter-section-mode" className="pt-0.5 space-y-1">
               {TEACHING_MODES.map((m) => (
                 <label
                   key={m.value}
@@ -239,6 +245,8 @@ export default function ServiceFilterSidebar({
           <button
             type="button"
             onClick={() => toggleSection('price')}
+            aria-expanded={openSections.price}
+            aria-controls="service-filter-section-price"
             className="w-full flex items-center justify-between text-[13px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
@@ -255,7 +263,7 @@ export default function ServiceFilterSidebar({
           </button>
 
           {openSections.price && (
-            <div className="pt-0.5 space-y-2.5">
+            <div id="service-filter-section-price" className="pt-0.5 space-y-2.5">
               <div className="flex items-center justify-between text-[12px]">
                 <span className="text-neutral-500 font-medium">Học phí tối đa:</span>
                 <span className="font-extrabold text-brand-primary-600">{formatVND(priceRange)}</span>
@@ -285,6 +293,8 @@ export default function ServiceFilterSidebar({
           <button
             type="button"
             onClick={() => toggleSection('rating')}
+            aria-expanded={openSections.rating}
+            aria-controls="service-filter-section-rating"
             className="w-full flex items-center justify-between text-[13px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
@@ -301,7 +311,7 @@ export default function ServiceFilterSidebar({
           </button>
 
           {openSections.rating && (
-            <div className="pt-0.5 space-y-1">
+            <div id="service-filter-section-rating" className="pt-0.5 space-y-1">
               {RATING_OPTIONS.map((opt) => (
                 <label
                   key={String(opt.value)}

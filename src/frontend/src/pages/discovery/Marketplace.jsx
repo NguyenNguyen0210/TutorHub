@@ -359,7 +359,7 @@ export default function Marketplace() {
                   className="text-[12px] font-semibold text-neutral-500 hover:text-danger-strong transition-colors ml-auto cursor-pointer flex items-center gap-1"
                 >
                   <Icon name="close" size="xs" className="w-3.5 h-3.5" />
-                  <span>Xóa tất cả</span>
+                  <span>Xóa bộ lọc</span>
                 </button>
               </div>
             )}
@@ -392,6 +392,62 @@ export default function Marketplace() {
                   </Select>
                 </div>
               </div>
+            </div>
+
+            {/* Quick filter chips — two-way synced with sidebar */}
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Bộ lọc nhanh">
+              <span className="text-[12.5px] font-semibold text-neutral-500">Lọc nhanh:</span>
+              <button
+                type="button"
+                aria-pressed={teachingMode === 'Online'}
+                onClick={() => {
+                  setTeachingMode(teachingMode === 'Online' ? 'All' : 'Online');
+                  setPageNumber(1);
+                }}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer',
+                  teachingMode === 'Online'
+                    ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
+                    : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
+                )}
+              >
+                <Icon name="devices" size="xs" className="w-3.5 h-3.5" />
+                <span>Online</span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={priceRange <= 1000000}
+                onClick={() => {
+                  setPriceRange(priceRange <= 1000000 ? 5000000 : 1000000);
+                  setPageNumber(1);
+                }}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer',
+                  priceRange <= 1000000
+                    ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
+                    : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
+                )}
+              >
+                <Icon name="payments" size="xs" className="w-3.5 h-3.5" />
+                <span>Dưới 1 triệu</span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={minRating === 4.8}
+                onClick={() => {
+                  setMinRating(minRating === 4.8 ? null : 4.8);
+                  setPageNumber(1);
+                }}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer',
+                  minRating === 4.8
+                    ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
+                    : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
+                )}
+              >
+                <Icon name="star" size="xs" className="w-3.5 h-3.5" />
+                <span>4.8+ xuất sắc</span>
+              </button>
             </div>
 
             {/* Content States */}
