@@ -157,6 +157,8 @@ export default function ServicesMarketplace() {
             correlationId,
             error: err,
           });
+          setServices([]);
+          setTotalCount(0);
           setError(timeoutErr);
           setLoading(false);
           return;
@@ -165,6 +167,8 @@ export default function ServicesMarketplace() {
           correlationId: err?.traceId ?? null,
           error: err,
         });
+        setServices([]);
+        setTotalCount(0);
         setError(err);
         setLoading(false);
       }
@@ -212,6 +216,12 @@ export default function ServicesMarketplace() {
     setPageNumber(1);
   };
 
+  // Xóa 1 chip lọc + quay về trang 1 (tránh kẹt trang sâu sau khi nới lọc).
+  const clearAndResetPage = (fn) => () => {
+    fn();
+    setPageNumber(1);
+  };
+
   // Active filters list for chips bar
   const activeFilters = useMemo(() => {
     const list = [];
@@ -220,10 +230,10 @@ export default function ServicesMarketplace() {
       list.push({
         key: 'category',
         label: `Danh mục: ${catObj?.name || 'Đã chọn'}`,
-        clear: () => {
+        clear: clearAndResetPage(() => {
           setSelectedCategory('');
           setSelectedSubject('');
-        },
+        }),
       });
     }
     if (selectedSubject) {
@@ -231,7 +241,7 @@ export default function ServicesMarketplace() {
       list.push({
         key: 'subject',
         label: `Môn: ${subObj?.name || 'Đã chọn'}`,
-        clear: () => setSelectedSubject(''),
+        clear: clearAndResetPage(() => setSelectedSubject('')),
       });
     }
     if (teachingMode !== 'All') {
@@ -244,32 +254,32 @@ export default function ServicesMarketplace() {
       list.push({
         key: 'mode',
         label: `Hình thức: ${modeLabel}`,
-        clear: () => setTeachingMode('All'),
+        clear: clearAndResetPage(() => setTeachingMode('All')),
       });
     }
     if (priceRange < MAX_PRICE) {
       list.push({
         key: 'price',
         label: `Học phí ≤ ${formatVND(priceRange)}`,
-        clear: () => setPriceRange(MAX_PRICE),
+        clear: clearAndResetPage(() => setPriceRange(MAX_PRICE)),
       });
     }
     if (minRating !== null) {
       list.push({
         key: 'rating',
         label: `Đánh giá: ≥ ${minRating}★`,
-        clear: () => setMinRating(null),
+        clear: clearAndResetPage(() => setMinRating(null)),
       });
     }
     if (searchKeyword.trim()) {
       list.push({
         key: 'search',
         label: `"${searchKeyword.trim()}"`,
-        clear: () => {
+        clear: clearAndResetPage(() => {
           setSearchKeyword('');
           setDebouncedKeyword('');
           setSearchParams({});
-        },
+        }),
       });
     }
     return list;

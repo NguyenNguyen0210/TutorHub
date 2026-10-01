@@ -257,51 +257,57 @@ export default function Marketplace() {
     setSearchParams({});
   };
 
+  // Xóa 1 chip lọc + quay về trang 1 (tránh kẹt trang sâu sau khi nới lọc).
+  const clearAndResetPage = (fn) => () => {
+    fn();
+    setPageNumber(1);
+  };
+
   const activeFilters = useMemo(() => {
     const list = [];
     if (degreeLevel !== 'All') {
-      list.push({ key: 'degree', label: `Học vị: ${degreeLevel}`, clear: () => setDegreeLevel('All') });
+      list.push({ key: 'degree', label: `Học vị: ${degreeLevel}`, clear: clearAndResetPage(() => setDegreeLevel('All')) });
     }
     if (university !== 'All') {
-      list.push({ key: 'uni', label: `Trường: ${university}`, clear: () => setUniversity('All') });
+      list.push({ key: 'uni', label: `Trường: ${university}`, clear: clearAndResetPage(() => setUniversity('All')) });
     }
     if (certification !== 'All') {
-      list.push({ key: 'cert', label: `Chứng chỉ: ${certification}`, clear: () => setCertification('All') });
+      list.push({ key: 'cert', label: `Chứng chỉ: ${certification}`, clear: clearAndResetPage(() => setCertification('All')) });
     }
     if (teachingMode !== 'All') {
       const modeLabel = teachingMode === 'InPerson' ? 'Tại nhà' : (teachingMode === 'Both' ? 'Cả hai' : teachingMode);
-      list.push({ key: 'mode', label: `Hình thức: ${modeLabel}`, clear: () => setTeachingMode('All') });
+      list.push({ key: 'mode', label: `Hình thức: ${modeLabel}`, clear: clearAndResetPage(() => setTeachingMode('All')) });
     }
     if (city !== 'All') {
-      list.push({ key: 'city', label: `Khu vực: ${city}`, clear: () => setCity('All') });
+      list.push({ key: 'city', label: `Khu vực: ${city}`, clear: clearAndResetPage(() => setCity('All')) });
     }
     if (priceRange < MAX_PRICE) {
-      list.push({ key: 'price', label: `Học phí ≤ ${formatVND(priceRange)}`, clear: () => setPriceRange(MAX_PRICE) });
+      list.push({ key: 'price', label: `Học phí ≤ ${formatVND(priceRange)}`, clear: clearAndResetPage(() => setPriceRange(MAX_PRICE)) });
     }
     if (minRating !== null) {
-      list.push({ key: 'rating', label: `Đánh giá: ≥ ${minRating}★`, clear: () => setMinRating(null) });
+      list.push({ key: 'rating', label: `Đánh giá: ≥ ${minRating}★`, clear: clearAndResetPage(() => setMinRating(null)) });
     }
     if (experienceRange !== 'All') {
       const expLabel = experienceRange === '<1' ? '< 1 năm' : `${experienceRange} năm`;
-      list.push({ key: 'exp', label: `Kinh nghiệm: ${expLabel}`, clear: () => setExperienceRange('All') });
+      list.push({ key: 'exp', label: `Kinh nghiệm: ${expLabel}`, clear: clearAndResetPage(() => setExperienceRange('All')) });
     }
     if (selectedCategory) {
       const catObj = categories.find((c) => c.id === selectedCategory);
       list.push({
         key: 'category',
         label: `Danh mục: ${catObj?.name || 'Đã chọn'}`,
-        clear: () => setSelectedCategory(''),
+        clear: clearAndResetPage(() => setSelectedCategory('')),
       });
     }
     if (searchKeyword.trim()) {
       list.push({
         key: 'search',
         label: `"${searchKeyword.trim()}"`,
-        clear: () => {
+        clear: clearAndResetPage(() => {
           setSearchKeyword('');
           setDebouncedKeyword('');
           setSearchParams({});
-        },
+        }),
       });
     }
     return list;
