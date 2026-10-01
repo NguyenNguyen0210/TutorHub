@@ -14,6 +14,7 @@ import HeroSection from '@/components/discovery/HeroSection';
 import CategoryFilterBar from '@/components/discovery/CategoryFilterBar';
 import FilterSidebar from '@/components/discovery/FilterSidebar';
 import TutorCard from '@/components/discovery/TutorCard';
+import { Drawer } from '@/components/ui/Avatar';
 
 const POPULAR_SEARCH_TAGS = [
   'Toán THPT',
@@ -66,6 +67,17 @@ export default function Marketplace() {
   // Tăng mỗi lần bấm "Thử Lại" để kích hoạt refetch kể cả khi đang ở trang 1.
   const [retryKey, setRetryKey] = useState(0);
   const handleRetry = () => setRetryKey((k) => k + 1);
+  // Drawer bộ lọc mobile (< lg): sidebar chỉ mount một nơi để không trùng id label.
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [isMobileFilters, setIsMobileFilters] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023.98px)').matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023.98px)');
+    const onChange = (e) => setIsMobileFilters(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   // Debounce search keyword
   useEffect(() => {
@@ -290,6 +302,54 @@ export default function Marketplace() {
     window.scrollTo({ top: 380, behavior: 'smooth' });
   };
 
+  // Sidebar dùng chung cho cột trái desktop và drawer mobile (chỉ mount một nơi).
+  const filterSidebar = (
+    <FilterSidebar
+      priceRange={priceRange}
+      onPriceRangeChange={(val) => {
+        setPriceRange(val);
+        setPageNumber(1);
+      }}
+      maxPrice={MAX_PRICE}
+      teachingMode={teachingMode}
+      onTeachingModeChange={(mode) => {
+        setTeachingMode(mode);
+        setPageNumber(1);
+      }}
+      city={city}
+      onCityChange={(c) => {
+        setCity(c);
+        setPageNumber(1);
+      }}
+      degreeLevel={degreeLevel}
+      onDegreeLevelChange={(deg) => {
+        setDegreeLevel(deg);
+        setPageNumber(1);
+      }}
+      university={university}
+      onUniversityChange={(uni) => {
+        setUniversity(uni);
+        setPageNumber(1);
+      }}
+      certification={certification}
+      onCertificationChange={(cert) => {
+        setCertification(cert);
+        setPageNumber(1);
+      }}
+      minRating={minRating}
+      onMinRatingChange={(r) => {
+        setMinRating(r);
+        setPageNumber(1);
+      }}
+      experienceRange={experienceRange}
+      onExperienceRangeChange={(exp) => {
+        setExperienceRange(exp);
+        setPageNumber(1);
+      }}
+      onResetFilters={handleResetFilters}
+    />
+  );
+
   return (
     <div className="w-full flex-1 bg-canvas pb-12">
       {/* 1. Hero Section */}
@@ -321,56 +381,37 @@ export default function Marketplace() {
       {/* 3. Main Discovery Workspace */}
       <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
         <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-7 items-start">
-          {/* Left Column: Filter Sidebar */}
-          <div className="w-full lg:sticky lg:top-[88px] z-20">
-            <FilterSidebar
-              priceRange={priceRange}
-              onPriceRangeChange={(val) => {
-                setPriceRange(val);
-                setPageNumber(1);
-              }}
-              maxPrice={MAX_PRICE}
-              teachingMode={teachingMode}
-              onTeachingModeChange={(mode) => {
-                setTeachingMode(mode);
-                setPageNumber(1);
-              }}
-              city={city}
-              onCityChange={(c) => {
-                setCity(c);
-                setPageNumber(1);
-              }}
-              degreeLevel={degreeLevel}
-              onDegreeLevelChange={(deg) => {
-                setDegreeLevel(deg);
-                setPageNumber(1);
-              }}
-              university={university}
-              onUniversityChange={(uni) => {
-                setUniversity(uni);
-                setPageNumber(1);
-              }}
-              certification={certification}
-              onCertificationChange={(cert) => {
-                setCertification(cert);
-                setPageNumber(1);
-              }}
-              minRating={minRating}
-              onMinRatingChange={(r) => {
-                setMinRating(r);
-                setPageNumber(1);
-              }}
-              experienceRange={experienceRange}
-              onExperienceRangeChange={(exp) => {
-                setExperienceRange(exp);
-                setPageNumber(1);
-              }}
-              onResetFilters={handleResetFilters}
-            />
-          </div>
+          {/* Left Column: Filter Sidebar (desktop; mobile dùng drawer) */}
+          {!isMobileFilters && (
+            <div className="w-full lg:sticky lg:top-[88px] z-20">
+              {filterSidebar}
+            </div>
+          )}
 
           {/* Right Column: Listings & Filters */}
           <div className="flex-1 min-w-0 space-y-4">
+            {/* Mobile filter trigger: mở drawer từ trái, badge đếm filter active */}
+            <div className="lg:hidden">
+              <button
+                type="button"
+                onClick={() => setFilterOpen(true)}
+                aria-haspopup="dialog"
+                className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-brand-md border border-border bg-surface text-body-reg font-semibold text-fg shadow-sm active:scale-[0.98] transition-all"
+              >
+                <Icon name="tune" size="sm" className="text-brand-primary-600" />
+                <span>Bộ lọc</span>
+                {activeFilters.length > 0 && (
+                  <span
+                    role="status"
+                    aria-label={`${activeFilters.length} bộ lọc đang áp dụng`}
+                    className="min-w-[22px] h-[22px] px-1 rounded-full bg-brand-primary-600 text-white text-[11px] font-bold inline-flex items-center justify-center"
+                  >
+                    {activeFilters.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
             {/* Active Filters Bar */}
             {activeFilters.length > 0 && (
               <div className="flex flex-wrap items-center gap-2 p-3 bg-brand-primary-50/70 border border-brand-primary-100/90 rounded-[14px] shadow-sm">
@@ -388,7 +429,7 @@ export default function Marketplace() {
                       type="button"
                       onClick={af.clear}
                       aria-label={`Xóa bộ lọc ${af.label}`}
-                      className="hover:text-danger transition-colors font-bold text-[14px] leading-none cursor-pointer -mr-0.5 ml-0.5"
+                      className="hover:text-danger transition-colors font-bold text-[14px] leading-none cursor-pointer ml-0.5 -mr-3 -my-3 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600"
                       title="Gỡ bộ lọc này"
                     >
                       ×
@@ -398,7 +439,7 @@ export default function Marketplace() {
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className="text-[12px] font-semibold text-neutral-500 hover:text-danger-strong transition-colors ml-auto cursor-pointer flex items-center gap-1"
+                  className="text-[12px] font-semibold text-neutral-500 hover:text-danger-strong transition-colors ml-auto cursor-pointer flex items-center gap-1 min-h-[44px] px-2"
                 >
                   <Icon name="close" size="xs" className="w-3.5 h-3.5" />
                   <span>Xóa bộ lọc</span>
@@ -424,7 +465,7 @@ export default function Marketplace() {
                       setSortBy(e.target.value);
                       setPageNumber(1);
                     }}
-                    className="!py-1.5 !text-[13px] font-medium bg-surface border-neutral-200/80"
+                    className="!py-1.5 min-h-[44px] !text-[13px] font-medium bg-surface border-neutral-200/80"
                   >
                     {SORT_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -447,7 +488,7 @@ export default function Marketplace() {
                   setPageNumber(1);
                 }}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer',
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer',
                   teachingMode === 'Online'
                     ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
                     : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
@@ -464,7 +505,7 @@ export default function Marketplace() {
                   setPageNumber(1);
                 }}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer',
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer',
                   priceRange <= QUICK_PRICE_CAP
                     ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
                     : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
@@ -481,7 +522,7 @@ export default function Marketplace() {
                   setPageNumber(1);
                 }}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer',
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer',
                   minRating === QUICK_RATING
                     ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
                     : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
@@ -536,6 +577,36 @@ export default function Marketplace() {
             )}
           </div>
         </div>
+
+        {/* Mobile filter drawer: trượt từ trái, Áp dụng đóng, Xóa reset */}
+        <Drawer
+          open={filterOpen}
+          onClose={() => setFilterOpen(false)}
+          side="left"
+          title="Bộ lọc tìm kiếm"
+          widthClass="w-[320px]"
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="flex-1 inline-flex items-center justify-center h-11 px-4 rounded-brand-md border border-border bg-surface text-body-reg font-semibold text-fg-secondary active:scale-[0.98] transition-all"
+              >
+                Xóa
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterOpen(false)}
+                className="flex-1 inline-flex items-center justify-center h-11 px-4 rounded-brand-md bg-brand-primary-600 text-white text-body-reg font-semibold shadow-sm active:scale-[0.98] transition-all"
+              >
+                Áp dụng
+                {activeFilters.length > 0 ? ` (${activeFilters.length})` : ''}
+              </button>
+            </>
+          }
+        >
+          {filterSidebar}
+        </Drawer>
       </main>
     </div>
   );

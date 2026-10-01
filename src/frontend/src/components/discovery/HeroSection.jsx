@@ -36,7 +36,7 @@ export default function HeroSection({
               e.preventDefault();
               onSearchSubmit(searchKeyword);
             }}
-            className="relative w-full max-w-[580px] mx-auto h-[52px] flex items-center text-left bg-surface p-1.5 rounded-full border border-neutral-200/90 shadow-brand-sm hover:shadow-brand-md focus-within:ring-2 focus-within:ring-brand-primary-600/20 focus-within:border-brand-primary-600 transition-all"
+            className="relative w-full max-w-[580px] mx-auto h-14 flex items-center text-left bg-surface p-1.5 rounded-full border border-neutral-200/90 shadow-brand-sm hover:shadow-brand-md focus-within:ring-2 focus-within:ring-brand-primary-600/20 focus-within:border-brand-primary-600 transition-all"
             role="search"
             aria-label="Tìm kiếm gia sư"
           >
@@ -69,7 +69,7 @@ export default function HeroSection({
 
             <button
               type="submit"
-              className="h-[40px] px-3.5 sm:px-5 rounded-full bg-brand-primary-600 hover:bg-brand-primary-700 active:scale-[0.98] text-white text-[13px] sm:text-[14px] font-semibold flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer shadow-sm min-w-[105px] sm:min-w-[128px]"
+              className="h-11 px-3.5 sm:px-5 rounded-full bg-brand-primary-600 hover:bg-brand-primary-700 active:scale-[0.98] text-white text-[13px] sm:text-[14px] font-semibold flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer shadow-sm min-w-[105px] sm:min-w-[128px]"
             >
               <span>Tìm gia sư</span>
               <Icon name="arrow_forward" size="xs" />

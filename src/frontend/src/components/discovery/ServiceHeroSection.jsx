@@ -55,7 +55,7 @@ export default function ServiceHeroSection({
                 e.preventDefault();
                 onSearchSubmit(searchKeyword);
               }}
-              className="relative w-full max-w-[560px] h-[48px] flex items-center bg-surface p-1 rounded-full border border-neutral-200/90 shadow-brand-sm hover:shadow-brand-md focus-within:ring-2 focus-within:ring-brand-primary-600/20 focus-within:border-brand-primary-600 transition-all"
+              className="relative w-full max-w-[560px] h-14 flex items-center bg-surface p-1 rounded-full border border-neutral-200/90 shadow-brand-sm hover:shadow-brand-md focus-within:ring-2 focus-within:ring-brand-primary-600/20 focus-within:border-brand-primary-600 transition-all"
               role="search"
               aria-label="Tìm kiếm dịch vụ học tập"
             >
@@ -90,7 +90,7 @@ export default function ServiceHeroSection({
                 type="submit"
                 variant="primary"
                 size="md"
-                className="!rounded-full px-4 h-[38px] text-[13px] font-semibold shrink-0 gap-1.5 shadow-sm"
+                className="!rounded-full px-4 h-11 text-[13px] font-semibold shrink-0 gap-1.5 shadow-sm"
               >
                 <span>Tìm dịch vụ</span>
                 <Icon name="arrow_forward" size="xs" />

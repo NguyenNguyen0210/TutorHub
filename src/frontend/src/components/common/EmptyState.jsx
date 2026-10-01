@@ -55,7 +55,7 @@ export default function EmptyState({
                   onClick={filter.clear}
                   aria-label={`Xóa bộ lọc ${filter.label}`}
                   title="Gỡ bộ lọc này"
-                  className="hover:text-danger transition-colors font-bold text-[14px] leading-none cursor-pointer -mr-0.5 ml-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 focus-visible:ring-offset-2 rounded-full"
+                  className="hover:text-danger transition-colors font-bold text-[14px] leading-none cursor-pointer ml-0.5 -mr-3 -my-3 min-w-[44px] min-h-[44px] inline-flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 focus-visible:ring-offset-2 rounded-full"
                 >
                   <Icon name="close" size="xs" className="w-3.5 h-3.5" />
                 </button>
@@ -84,7 +84,7 @@ export default function EmptyState({
           <button
             type="button"
             onClick={onClearAll}
-            className="text-[12px] font-semibold text-fg-secondary hover:text-danger-strong transition-colors cursor-pointer underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 focus-visible:ring-offset-2 rounded-sm"
+            className="text-[12px] font-semibold text-fg-secondary hover:text-danger-strong transition-colors cursor-pointer underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 focus-visible:ring-offset-2 rounded-sm min-h-[44px] px-3 inline-flex items-center justify-center"
           >
             {clearAllLabel}
           </button>

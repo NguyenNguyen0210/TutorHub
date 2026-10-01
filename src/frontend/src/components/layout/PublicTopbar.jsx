@@ -249,7 +249,7 @@ export default function PublicTopbar() {
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? 'Đóng menu' : 'Mở menu'}
             aria-expanded={mobileOpen}
-            className="md:hidden w-9 h-9 rounded-brand-md hover:bg-neutral-100 flex items-center justify-center text-fg-secondary transition-colors"
+            className="md:hidden w-11 h-11 rounded-brand-md hover:bg-neutral-100 flex items-center justify-center text-fg-secondary transition-colors"
           >
             <Icon name={mobileOpen ? 'close' : 'menu'} size="md" />
           </button>

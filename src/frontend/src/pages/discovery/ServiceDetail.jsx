@@ -398,7 +398,7 @@ export default function ServiceDetail() {
           size="md"
           loading={bookingLoading}
           onClick={handleBookNow}
-          className="!rounded-xl px-5 py-2.5 text-sm font-bold shadow-brand-sm"
+          className="!rounded-xl px-5 py-2.5 min-h-[44px] text-sm font-bold shadow-brand-sm"
         >
           <span>Đăng ký học</span>
           <Icon name="arrow_forward" size="xs" className="w-3.5 h-3.5" />
