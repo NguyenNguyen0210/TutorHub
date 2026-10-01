@@ -70,14 +70,25 @@ export default function Marketplace() {
   // Drawer bộ lọc mobile (< lg): sidebar chỉ mount một nơi để không trùng id label.
   const [filterOpen, setFilterOpen] = useState(false);
   const [isMobileFilters, setIsMobileFilters] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023.98px)').matches
+    () =>
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(max-width: 1023.98px)').matches
   );
   useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
     const mq = window.matchMedia('(max-width: 1023.98px)');
     const onChange = (e) => setIsMobileFilters(e.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    }
+    mq.addListener(onChange);
+    return () => mq.removeListener(onChange);
   }, []);
+  useEffect(() => {
+    if (!isMobileFilters) setFilterOpen(false);
+  }, [isMobileFilters]);
 
   // Debounce search keyword
   useEffect(() => {
@@ -580,7 +591,7 @@ export default function Marketplace() {
 
         {/* Mobile filter drawer: trượt từ trái, Áp dụng đóng, Xóa reset */}
         <Drawer
-          open={filterOpen}
+          open={filterOpen && isMobileFilters}
           onClose={() => setFilterOpen(false)}
           side="left"
           title="Bộ lọc tìm kiếm"

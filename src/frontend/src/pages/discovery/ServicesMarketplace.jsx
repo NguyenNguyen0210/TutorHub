@@ -58,14 +58,25 @@ export default function ServicesMarketplace() {
   // Drawer bộ lọc mobile (< lg): sidebar chỉ mount một nơi để không trùng id label.
   const [filterOpen, setFilterOpen] = useState(false);
   const [isMobileFilters, setIsMobileFilters] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023.98px)').matches
+    () =>
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(max-width: 1023.98px)').matches
   );
   useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
     const mq = window.matchMedia('(max-width: 1023.98px)');
     const onChange = (e) => setIsMobileFilters(e.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    }
+    mq.addListener(onChange);
+    return () => mq.removeListener(onChange);
   }, []);
+  useEffect(() => {
+    if (!isMobileFilters) setFilterOpen(false);
+  }, [isMobileFilters]);
 
   // Debounce search keyword
   useEffect(() => {
@@ -419,7 +430,7 @@ export default function ServicesMarketplace() {
                       setSortBy(e.target.value);
                       setPageNumber(1);
                     }}
-                    className="!h-9 min-h-[44px] !py-1 text-[13px] font-medium bg-surface border border-neutral-200/90 rounded-lg shadow-sm hover:border-brand-primary-600/50 focus:border-brand-primary-600 focus:ring-2 focus:ring-brand-primary-600/15 cursor-pointer"
+                    className="min-h-[44px] !py-1 text-[13px] font-medium bg-surface border border-neutral-200/90 rounded-lg shadow-sm hover:border-brand-primary-600/50 focus:border-brand-primary-600 focus:ring-2 focus:ring-brand-primary-600/15 cursor-pointer"
                   >
                     {SORT_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -545,7 +556,7 @@ export default function ServicesMarketplace() {
 
         {/* Mobile filter drawer: trượt từ trái, Áp dụng đóng, Xóa reset */}
         <Drawer
-          open={filterOpen}
+          open={filterOpen && isMobileFilters}
           onClose={() => setFilterOpen(false)}
           side="left"
           title="Bộ lọc tìm kiếm"
