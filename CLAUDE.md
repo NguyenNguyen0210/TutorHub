@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 * **Backend Runtime & Framework:** .NET 8.0 SDK (`LangVersion = 12.0`), ASP.NET Core Web API (.NET 8)
 * **Database & ORM:** PostgreSQL 16 (`Npgsql.EntityFrameworkCore.PostgreSQL 8.0.11`), EF Core 8.0.11
-* **Backend Patterns & Libraries:** Clean Architecture + CQRS + Vertical Slice Architecture, MediatR 12.4.1, FluentValidation 11.11.0, BCrypt.Net-Next 4.0.3, System.IdentityModel.Tokens.Jwt 8.0.1, Swashbuckle.AspNetCore 6.6.2, AWSSDK.S3 3.7.400 (Cloudflare R2), AWSSDK.SimpleEmail 3.7.400 (Amazon SES)
+* **Backend Patterns & Libraries:** Clean Architecture + CQRS + Vertical Slice Architecture, MediatR 12.4.1, FluentValidation 11.11.0, BCrypt.Net-Next 4.0.3, System.IdentityModel.Tokens.Jwt 8.0.1, Swashbuckle.AspNetCore 6.6.2, AWSSDK.S3 3.7.400 (Cloudflare R2), MailKit 4.18.1 (SMTP Email)
 * **Realtime & Messaging:** ASP.NET Core SignalR (`/hubs/chat`, `/hubs/notifications`), Transactional Outbox Pattern
 * **Frontend:** React 18.3.1 (Pure JavaScript `.jsx`), Vite 5.4.3, Tailwind CSS 3.4.11, Lucide React, Zustand 4.5.5, TanStack React Query 5.56.2, Axios, Dayjs
 * **DevOps:** Docker, Docker Compose

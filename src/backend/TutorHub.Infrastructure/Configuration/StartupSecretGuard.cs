@@ -35,8 +35,7 @@ public static class StartupSecretGuard
         "CloudflareR2:SecretAccessKey",
         // A copied .env.example value would let anyone sign in as anyone against the
         // real provider app, so these are guarded exactly like the other secrets.
-        "ExternalAuth:Google:ClientSecret",
-        "ExternalAuth:Facebook:ClientSecret"
+        "ExternalAuth:Google:ClientSecret"
     };
 
     public static void ValidateNoPlaceholderSecrets(IConfiguration configuration)

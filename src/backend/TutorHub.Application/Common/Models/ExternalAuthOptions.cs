@@ -31,7 +31,6 @@ public class ExternalAuthOptions
     public const string SectionName = ExternalAuthProviderOptions.SectionName;
 
     public ExternalAuthProviderOptions Google { get; set; } = new();
-    public ExternalAuthProviderOptions Facebook { get; set; } = new();
 
     /// <summary>
     /// Where the provider sends the browser back to. This is the FRONTEND URL

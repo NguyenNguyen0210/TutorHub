@@ -69,8 +69,8 @@ public class DistributedExternalAuthStateStoreTests
         var store = CreateStore();
         var state = store.Create(ExternalAuthProvider.Google, "verifier-abc", null);
 
-        store.Consume(state, ExternalAuthProvider.Facebook).Should().BeNull(
-            "a state minted for Google must not complete a Facebook sign-in");
+        store.Consume(state, (ExternalAuthProvider)999).Should().BeNull(
+            "a state minted for Google must not complete a different provider sign-in");
     }
 
     [Fact]

@@ -43,10 +43,24 @@ export function toApiError(error) {
   const response = error?.response;
   const payload = response?.data;
   const status = response?.status ?? 0;
+  const errorsList = Array.isArray(payload?.errors) ? payload.errors : [];
 
-  return new ApiError(payload?.message || error?.message || 'Đã có lỗi xảy ra', {
+  let msg = payload?.message || error?.message || 'Đã có lỗi xảy ra';
+
+  const isGeneric =
+    !msg ||
+    msg.includes('A business conflict or duplicate resource was detected') ||
+    msg.includes('Validation failed') ||
+    msg.includes('The requested resource could not be found') ||
+    msg.includes('Request failed with status code');
+
+  if (isGeneric && errorsList.length > 0 && typeof errorsList[0] === 'string') {
+    msg = errorsList[0];
+  }
+
+  return new ApiError(msg, {
     status,
-    errors: Array.isArray(payload?.errors) ? payload.errors : [],
+    errors: errorsList,
     traceId: payload?.traceId ?? response?.headers?.['x-correlation-id'] ?? null,
     kind: kindForStatus(status),
   });
@@ -102,10 +116,15 @@ api.interceptors.response.use(
         // Caller nhận thẳng payload; KHÔNG đọc thêm `.data` ở tầng service/page.
         return resData.data;
       }
+      const errorsList = Array.isArray(resData.errors) ? resData.errors : [];
+      let msg = resData.message || 'Lỗi xử lý nghiệp vụ';
+      if ((!msg || msg.includes('Validation failed') || msg.includes('A business conflict')) && errorsList.length > 0) {
+        msg = errorsList[0];
+      }
       return Promise.reject(
-        new ApiError(resData.message || 'Lỗi xử lý nghiệp vụ', {
+        new ApiError(msg, {
           status: response.status,
-          errors: Array.isArray(resData.errors) ? resData.errors : [],
+          errors: errorsList,
           traceId: resData.traceId ?? null,
           kind: 'business',
         })

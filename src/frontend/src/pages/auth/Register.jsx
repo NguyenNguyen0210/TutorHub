@@ -44,27 +44,6 @@ function GoogleSvg() {
   );
 }
 
-function FacebookSvg() {
-  return (
-    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="12" fill="#1877F2" />
-      <path
-        fill="currentColor"
-        className="text-white"
-        d="M15.12 12.75l.48-3.15h-3.03V7.55c0-.86.42-1.7 1.77-1.7h1.37V3.17s-1.24-.21-2.43-.21c-2.48 0-4.09 1.5-4.09 4.22v2.42H6.43v3.15h2.79V20.8c.56.09 1.13.13 1.71.13.58 0 1.15-.04 1.71-.13v-8.05h2.48z"
-      />
-    </svg>
-  );
-}
-
-function AppleSvg() {
-  return (
-    <svg className="w-4 h-4 shrink-0 text-fg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.62-.75 1.04-1.8 1.01-2.87-.96.04-2.1.64-2.77 1.42-.58.68-1.1 1.76-.96 2.81 1.06.08 2.11-.57 2.72-1.36z" />
-    </svg>
-  );
-}
-
 export default function Register() {
   const toast = useToast();
   const navigate = useNavigate();
@@ -78,15 +57,11 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [googleEnabled, setGoogleEnabled] = useState(false);
-  const [facebookEnabled, setFacebookEnabled] = useState(false);
-  const [appleEnabled, setAppleEnabled] = useState(false);
   const [socialLoading, setSocialLoading] = useState(false);
 
   // Truy vấn dữ liệu gia sư thật từ Database (PostgreSQL)
   const [tutorStats, setTutorStats] = useState({
-    totalCount: 55,
+    totalCount: 0,
     topTutors: [],
     loading: true,
   });
@@ -98,7 +73,7 @@ export default function Register() {
       .then((res) => {
         if (!isMounted) return;
         const items = res?.items || res?.data?.items || [];
-        const count = res?.totalCount ?? res?.data?.totalCount ?? 55;
+        const count = res?.totalCount ?? res?.data?.totalCount ?? 0;
         setTutorStats({
           totalCount: count,
           topTutors: items,
@@ -112,43 +87,56 @@ export default function Register() {
         }
       });
 
-    let cancelled = false;
-    externalAuthService.getProviders()
-      .then(({ providers }) => {
-        if (cancelled) return;
-        const names = providers.map((p) => String(p).toLowerCase());
-        if (names.includes('google')) setGoogleEnabled(true);
-        if (names.includes('facebook')) setFacebookEnabled(true);
-        if (names.includes('apple')) setAppleEnabled(true);
-      })
-      .catch((err) => {
-        console.warn('[Register] Không tải được OAuth providers:', err);
-      });
-
     return () => {
       isMounted = false;
-      cancelled = true;
     };
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!fullName || !email || !password) {
-      setErrorMsg('Vui lòng điền đầy đủ các thông tin bắt buộc.');
+
+    if (!fullName || !fullName.trim()) {
+      toast.error('Vui lòng nhập họ và tên của bạn.');
       return;
     }
+
+    if (!email || !email.trim()) {
+      toast.error('Vui lòng nhập địa chỉ email.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      toast.error('Địa chỉ email không hợp lệ (VD: example@gmail.com).');
+      return;
+    }
+
+    if (phoneNumber && phoneNumber.trim()) {
+      const cleanPhone = phoneNumber.trim().replace(/[\s\-.]/g, '');
+      const vnPhoneRegex = /^(0|\+84|84)(3|5|7|8|9)[0-9]{8}$/;
+      if (!vnPhoneRegex.test(cleanPhone)) {
+        toast.error('Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại di động gồm 10 chữ số (VD: 0912345678).');
+        return;
+      }
+    }
+
+    if (!password) {
+      toast.error('Vui lòng nhập mật khẩu.');
+      return;
+    }
+
     if (password.length < 8) {
-      setErrorMsg('Mật khẩu cần tối thiểu 8 ký tự.');
+      toast.error('Mật khẩu cần tối thiểu 8 ký tự.');
       return;
     }
+
     if (!agreeTerms) {
-      setErrorMsg('Vui lòng đồng ý với Điều khoản sử dụng và Chính sách bảo mật.');
+      toast.error('Vui lòng đồng ý với Điều khoản sử dụng và Chính sách bảo mật.');
       return;
     }
 
     try {
       setLoading(true);
-      setErrorMsg('');
       await registerWithCredentials(email, password, fullName, phoneNumber, selectedRole);
 
       toast.success(`Đăng ký thành công! Chào mừng ${fullName} gia nhập TutorHub.`);
@@ -159,7 +147,16 @@ export default function Register() {
         navigate('/student/dashboard', { replace: true });
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.');
+      const specificError = err.errors?.[0] || err.message;
+      let displayError = 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.';
+      if (specificError?.includes('already exists') || specificError?.includes('đã được')) {
+        displayError = 'Email này đã được đăng ký tài khoản. Vui lòng sử dụng email khác hoặc đăng nhập.';
+      } else if (specificError?.includes('conflict') || specificError?.includes('duplicate')) {
+        displayError = 'Thông tin đăng ký bị trùng lặp hoặc đã tồn tại trên hệ thống.';
+      } else if (specificError) {
+        displayError = specificError;
+      }
+      toast.error(displayError);
     } finally {
       setLoading(false);
     }
@@ -171,7 +168,12 @@ export default function Register() {
       const { authorizeUrl } = await externalAuthService.startGoogleLogin();
       window.location.href = authorizeUrl;
     } catch (err) {
-      toast.error(err?.message || 'Không khởi tạo được đăng nhập Google.');
+      const msg = err?.message || '';
+      if (msg.includes('not configured') || msg.includes('client id')) {
+        toast.error('Tính năng đăng ký qua Google chưa được cấu hình Client ID / Secret trong file .env.');
+      } else {
+        toast.error(msg || 'Không khởi tạo được đăng ký Google.');
+      }
     } finally {
       setSocialLoading(false);
     }
@@ -270,39 +272,57 @@ export default function Register() {
                 </p>
               </div>
 
-              {/* Floating Badge 2: Bottom Left - Dynamic PostgreSQL Query (55+ Gia sư chất lượng & Avatars) */}
+              {/* Floating Badge 2: Bottom Left - Dynamic PostgreSQL Query */}
               <Link
                 to="/"
                 className="absolute bottom-4 sm:bottom-6 left-2 sm:left-3 bg-white/95 backdrop-blur-md p-2 sm:p-2.5 sm:px-3.5 rounded-xl sm:rounded-2xl shadow-brand-md border border-white/80 flex items-center gap-2 sm:gap-3 z-20 group hover:shadow-brand-lg transition-all animate-float cursor-pointer"
                 style={{ animationDuration: '4.5s', animationDelay: '0.8s' }}
                 title="Khám phá danh sách gia sư chất lượng"
               >
-                {/* Real Database Tutor Avatars */}
-                <div className="flex -space-x-2 overflow-hidden py-0.5 pl-0.5">
-                  {tutorStats.topTutors.length > 0 ? (
-                    tutorStats.topTutors.slice(0, 3).map((tutor, idx) => (
-                      <Avatar
-              key={tutor.id || idx}
-              src={tutor.avatarUrl}
-              name={tutor.fullName}
-              size="sm"
-              title={tutor.fullName}
-              className="inline-block h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-white shrink-0"
-            />
-                    ))
-                  ) : (
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-primary-100 text-brand-primary-600 font-bold text-xs flex items-center justify-center">
-                      55+
+                {tutorStats.loading ? (
+                  <>
+                    <div className="flex -space-x-2 overflow-hidden py-0.5 pl-0.5">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-neutral-200 animate-pulse ring-2 ring-white shrink-0" />
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-neutral-200 animate-pulse ring-2 ring-white shrink-0" />
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-neutral-200 animate-pulse ring-2 ring-white shrink-0" />
                     </div>
-                  )}
-                </div>
+                    <div className="leading-tight text-left pr-0.5 space-y-1">
+                      <div className="h-3 w-24 bg-neutral-200 rounded animate-pulse" />
+                      <div className="h-2.5 w-32 bg-neutral-100 rounded animate-pulse" />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Real Database Tutor Avatars */}
+                    <div className="flex -space-x-2 overflow-hidden py-0.5 pl-0.5">
+                      {tutorStats.topTutors.length > 0 ? (
+                        tutorStats.topTutors.slice(0, 3).map((tutor, idx) => (
+                          <Avatar
+                            key={tutor.id || idx}
+                            src={tutor.avatarUrl}
+                            name={tutor.fullName}
+                            size="sm"
+                            title={tutor.fullName}
+                            className="inline-block h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-white shrink-0"
+                          />
+                        ))
+                      ) : (
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-primary-100 text-brand-primary-600 flex items-center justify-center shrink-0">
+                          <GraduationCap className="w-4 h-4" />
+                        </div>
+                      )}
+                    </div>
 
-                <div className="leading-tight text-left pr-0.5">
-                  <p className="text-[12px] sm:text-[13px] font-bold text-fg group-hover:text-brand-primary-600 transition-colors">
-                    {tutorStats.totalCount > 0 ? `${tutorStats.totalCount}+ gia sư chất lượng` : '55+ gia sư chất lượng'}
-                  </p>
-                  <p className="text-[10px] sm:text-[10.5px] text-neutral-500 mt-0.5">Sẵn sàng đồng hành cùng bạn</p>
-                </div>
+                    <div className="leading-tight text-left pr-0.5">
+                      <p className="text-[12px] sm:text-[13px] font-bold text-fg group-hover:text-brand-primary-600 transition-colors">
+                        {tutorStats.totalCount > 0
+                          ? `${tutorStats.totalCount}+ gia sư chất lượng`
+                          : 'Đội ngũ gia sư chất lượng'}
+                      </p>
+                      <p className="text-[10px] sm:text-[10.5px] text-neutral-500 mt-0.5">Sẵn sàng đồng hành cùng bạn</p>
+                    </div>
+                  </>
+                )}
 
                 <span className="w-5 h-5 rounded-full bg-neutral-100 text-fg-muted flex items-center justify-center group-hover:bg-brand-primary-50 group-hover:text-brand-primary-600 transition-colors shrink-0">
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -401,18 +421,8 @@ export default function Register() {
                 </div>
               </div>
 
-              {/* Error Callout */}
-              {errorMsg && (
-                <div
-                  role="alert"
-                  className="mt-3 p-2.5 rounded-xl bg-danger-subtle border-danger/20 text-danger-strong text-[12px] flex items-center gap-2 animate-fadeIn"
-                >
-                  <span className="font-medium">{errorMsg}</span>
-                </div>
-              )}
-
               {/* Registration Form */}
-              <form onSubmit={handleSubmit} className="mt-3.5 text-left space-y-2.5">
+              <form noValidate onSubmit={handleSubmit} className="mt-3.5 text-left space-y-2.5">
                 {/* 1. Họ và tên */}
                 <div>
                   <label htmlFor="reg-fullname" className="block text-[13px] font-bold text-fg mb-1">
@@ -425,6 +435,7 @@ export default function Register() {
                       type="text"
                       required
                       autoComplete="name"
+                      aria-label="Họ và tên"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Nhập họ và tên của bạn"
@@ -445,6 +456,7 @@ export default function Register() {
                       type="email"
                       required
                       autoComplete="email"
+                      aria-label="Địa chỉ email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Nhập email của bạn"
@@ -464,9 +476,10 @@ export default function Register() {
                       id="reg-phone"
                       type="tel"
                       autoComplete="tel"
+                      aria-label="Số điện thoại"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="Nhập số điện thoại của bạn"
+                      placeholder="VD: 0912345678 (không bắt buộc)"
                       className="w-full h-full text-[14px] text-fg placeholder:text-fg-muted bg-transparent outline-none"
                     />
                   </div>
@@ -484,6 +497,7 @@ export default function Register() {
                       type={showPassword ? 'text' : 'password'}
                       required
                       autoComplete="new-password"
+                      aria-label="Mật khẩu"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Tạo mật khẩu (ít nhất 8 ký tự)"
@@ -506,6 +520,7 @@ export default function Register() {
                     <input
                       type="checkbox"
                       checked={agreeTerms}
+                      aria-label="Đồng ý với điều khoản sử dụng và chính sách bảo mật"
                       onChange={(e) => setAgreeTerms(e.target.checked)}
                       className="w-4 h-4 rounded text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer shrink-0"
                     />
@@ -542,7 +557,7 @@ export default function Register() {
                 </div>
               </form>
 
-              {/* 7. Social Divider */}
+              {/* 7. Social Login (Google) */}
               <div className="relative flex items-center justify-center mt-3.5">
                 <div className="border-t border-border w-full" />
                 <span className="absolute bg-white px-2.5 text-[11.5px] text-fg-muted">
@@ -550,43 +565,16 @@ export default function Register() {
                 </span>
               </div>
 
-              {/* 8. Social Buttons */}
-              <div className="flex flex-wrap gap-2.5 justify-center mt-3">
-                {googleEnabled && (
+              <div className="mt-3">
                 <button
                   type="button"
                   onClick={() => handleSocialRegister('Google')}
                   disabled={socialLoading}
-                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
+                  className="w-full flex items-center justify-center gap-2 h-11 px-4 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
                 >
                   <GoogleSvg />
                   <span>Google</span>
                 </button>
-                )}
-
-                {facebookEnabled && (
-                <button
-                  type="button"
-                  onClick={() => handleSocialRegister('Facebook')}
-                  disabled={socialLoading}
-                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
-                >
-                  <FacebookSvg />
-                  <span>Facebook</span>
-                </button>
-                )}
-
-                {appleEnabled && (
-                <button
-                  type="button"
-                  onClick={() => handleSocialRegister('Apple')}
-                  disabled={socialLoading}
-                  className="flex items-center justify-center gap-2 h-11 px-2 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
-                >
-                  <AppleSvg />
-                  <span>Apple</span>
-                </button>
-                )}
               </div>
 
               {/* 9. Bottom Login Link */}

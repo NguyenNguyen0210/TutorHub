@@ -5,7 +5,7 @@ namespace TutorHub.Application.Common.Exceptions;
 public class ConflictException : AppException
 {
     public ConflictException(string error)
-        : base("A business conflict or duplicate resource was detected.", HttpStatusCode.Conflict, new List<string> { error })
+        : base(error, HttpStatusCode.Conflict, new List<string> { error })
     {
     }
 

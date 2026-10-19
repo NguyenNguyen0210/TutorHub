@@ -144,7 +144,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 | **Realtime Engine** | ASP.NET Core SignalR | WebSockets Hubs cho Trò chuyện và Thông báo |
 | **Payment Gateway** | VNPay SDK (HMAC-SHA512) | Thanh toán trực tuyến, IPN Webhook, Đối soát giao dịch |
 | **Object Storage** | AWS S3 SDK / Cloudflare R2 | Lưu trữ tài liệu, ảnh đại diện, chứng chỉ gia sư qua Presigned URL |
-| **Email Service** | Amazon Simple Email Service (SES) | Gửi email giao dịch, xác nhận lịch học và thông báo bảo mật |
+| **Email Service** | MailKit 4 (SMTP) | Gửi email giao dịch, chào mừng đăng ký và thông báo bảo mật |
 | **Frontend Framework** | React 18.3, Vite 5.4 | Client SPA, Fast HMR, Rollup Production Bundler |
 | **Styling & Components** | TailwindCSS 3.4, Ant Design 5.20 | Giao diện doanh nghiệp, thiết kế thích ứng (Responsive UI) |
 | **State Management** | Zustand 4.5, TanStack Query 5 | Global Client State & Server Cache Synchronization |

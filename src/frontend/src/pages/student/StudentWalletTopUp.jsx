@@ -72,10 +72,6 @@ export default function StudentWalletTopUp() {
         <h1 className="text-headline-page text-fg tracking-tight">
           Nạp tiền vào ví
         </h1>
-        <p className="text-body-reg text-fg-secondary mt-1">
-          Thanh toán qua cổng VNPay Sandbox 24/7. Số dư khả dụng cập nhật ngay sau khi
-          xác nhận.
-        </p>
       </div>
 
       <Card padding="lg" className="space-y-5">
@@ -123,27 +119,10 @@ export default function StudentWalletTopUp() {
           />
         </Field>
 
-        <div className="p-3.5 rounded-brand-md bg-neutral-50 border border-border text-caption space-y-2">
-          <div className="flex items-center gap-1.5 text-fg font-semibold">
-            <Icon name="credit_card" size="xs" className="text-brand-primary-600" />
-            <span>Cổng thanh toán trực tuyến VNPay Sandbox (24/7)</span>
-          </div>
-          <ul className="list-disc list-inside text-fg-muted text-[11px] space-y-1">
-            <li>Hệ thống chuyển hướng bạn sang cổng VNPay Sandbox để nhập thông tin thẻ test.</li>
-            <li>Sau khi xác nhận OTP, số dư khả dụng sẽ được tự động cộng vào ví ngay lập tức.</li>
-            <li>Hỗ trợ thẻ ATM nội địa (NCB test) và ứng dụng ngân hàng quét mã VNPay.</li>
-            <li>Số tiền nạp tối thiểu là 10.000 ₫.</li>
-          </ul>
-        </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-border">
-          <p className="text-caption text-fg-secondary m-0">
-            Số tiền nạp:{' '}
-            <strong className={belowMinimum ? 'text-danger-strong' : 'text-fg'}>
-              {formatCurrency(finalAmount || 0)}
-            </strong>
-          </p>
-          <div className="flex items-center gap-2.5">
+
+          <div className="flex items-center gap-2.5 ml-auto">
             <Button as={Link} to="/student/wallet" variant="outline" size="md">
               Hủy bỏ
             </Button>

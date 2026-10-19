@@ -1909,7 +1909,7 @@ Admin can take applicable actions:
   - Applications & agreements: tutor application status updates, custom offer events.
   - Disputes & trust: dispute opened, resolved, new reviews.
 - Emails are queued asynchronously via transactional outbox (`EmailDelivery`) and retried with exponential backoff.
-- In Development / Personal-first mode, emails are logged to the console for review without live SES.
+- In Development / Personal-first mode, emails are logged to the console for review without live SMTP credentials.
 
 ---
 

@@ -65,7 +65,7 @@ export default function FilterSidebar({
   onMinRatingChange,
   experienceRange,
   onExperienceRangeChange,
-  onResetFilters,
+  _onResetFilters,
   className,
 }) {
   const [openSections, setOpenSections] = useState({

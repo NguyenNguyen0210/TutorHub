@@ -1092,7 +1092,7 @@ MVP:
 * Email (Asynchronous delivery qua `NotificationDeliveryPolicy` và background service `EmailDeliveryJob`).
   * Hỗ trợ 26 sự kiện domain cốt lõi (Session, Attendance, Escrow, Refund, Withdrawal, Dispute) và các sự kiện bảo mật danh tính (`AccountVerification`, `PasswordChanged`).
   * Môi trường cá nhân / Development: `LogOnlyEmailSender` ghi log chi tiết vào console.
-  * Môi trường Production: `SesEmailSender` tích hợp Amazon SES.
+  * Môi trường Production: `MailKitEmailSender` tích hợp MailKit SMTP (Gmail, custom SMTP).
 
 Không yêu cầu SMS.
 

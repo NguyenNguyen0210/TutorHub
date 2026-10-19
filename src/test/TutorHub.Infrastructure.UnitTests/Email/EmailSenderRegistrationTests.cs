@@ -1,4 +1,3 @@
-using Amazon.SimpleEmail;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,14 +11,14 @@ using Xunit;
 namespace TutorHub.Infrastructure.UnitTests.Email;
 
 /// <summary>
-/// P0-E1: picking the email transport is a startup decision, not a runtime one.
-/// Development may run without SES (log-only, loudly); every other environment
-/// must configure a verified sender or the application refuses to start, so
+/// Picking the email transport is a startup decision, not a runtime one.
+/// Development may run without SMTP (log-only fallback); every other environment
+/// must configure SMTP or the application refuses to start, so
 /// production can never silently drop notification email.
 /// </summary>
 public class EmailSenderRegistrationTests
 {
-    private static ServiceProvider BuildProvider(string environmentName, string? fromAddress)
+    private static ServiceProvider BuildProvider(string environmentName, string? host, string? fromAddress)
     {
         var settings = new Dictionary<string, string?>
         {
@@ -27,11 +26,12 @@ public class EmailSenderRegistrationTests
                 "Host=localhost;Port=5432;Database=tutorhub;Username=tutorhub;Password=123456"
         };
 
-        if (fromAddress is not null)
+        if (host is not null && fromAddress is not null)
         {
-            settings["Ses:FromAddress"] = fromAddress;
-            settings["Ses:Region"] = "ap-southeast-1";
-            settings["Ses:FromDisplayName"] = "TutorHub";
+            settings["Smtp:Host"] = host;
+            settings["Smtp:Port"] = "587";
+            settings["Smtp:FromAddress"] = fromAddress;
+            settings["Smtp:FromDisplayName"] = "TutorHub";
         }
 
         var configuration = new ConfigurationBuilder()
@@ -50,7 +50,7 @@ public class EmailSenderRegistrationTests
     [Fact]
     public void WithoutSenderInDevelopment_RegistersLogOnlySender()
     {
-        using var provider = BuildProvider(Environments.Development, fromAddress: null);
+        using var provider = BuildProvider(Environments.Development, host: null, fromAddress: null);
         using var scope = provider.CreateScope();
 
         scope.ServiceProvider.GetRequiredService<IEmailSender>()
@@ -58,25 +58,22 @@ public class EmailSenderRegistrationTests
     }
 
     [Fact]
-    public void WithSender_RegistersSesSenderAndClient()
+    public void WithSender_RegistersMailKitEmailSender()
     {
-        using var provider = BuildProvider(Environments.Production, fromAddress: "noreply@tutorhub.test");
+        using var provider = BuildProvider(Environments.Production, host: "smtp.example.com", fromAddress: "noreply@tutorhub.test");
         using var scope = provider.CreateScope();
 
         scope.ServiceProvider.GetRequiredService<IEmailSender>()
-            .Should().BeOfType<SesEmailSender>();
-
-        scope.ServiceProvider.GetRequiredService<IAmazonSimpleEmailService>()
-            .Should().BeOfType<AmazonSimpleEmailServiceClient>();
+            .Should().BeOfType<MailKitEmailSender>();
     }
 
     [Fact]
     public void WithoutSenderOutsideDevelopment_RefusesToStart()
     {
-        Action act = () => BuildProvider(Environments.Production, fromAddress: null);
+        Action act = () => BuildProvider(Environments.Production, host: null, fromAddress: null);
 
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*Ses:FromAddress*");
+            .WithMessage("*Smtp:Host*");
     }
 
     private sealed class StubHostEnvironment : IHostEnvironment

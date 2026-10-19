@@ -27,6 +27,8 @@ services:
     image: redis:7-alpine
     container_name: tutorhub-redis
     restart: unless-stopped
+    ports:
+      - "6379:6379"
     volumes:
       - redisdata:/data
     healthcheck:
@@ -72,7 +74,7 @@ services:
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-tutorhub};Username=${POSTGRES_USER:-tutorhub};Password=${POSTGRES_PASSWORD:-tutorhub}
       # WP0: shared Redis for OAuth state, SignalR backplane, cache, cron locks.
       # Disabled by default; the API boots and serves without redis running.
-      ConnectionStrings__Redis: ${ConnectionStrings__Redis:-redis:6379}
+      ConnectionStrings__Redis: redis:6379
       Redis__Enabled: ${Redis__Enabled:-false}
       Redis__InstanceName: ${Redis__InstanceName:-tutorhub:}
       Redis__Features__OAuth: ${Redis__Features__OAuth:-true}
@@ -99,16 +101,16 @@ services:
       CloudflareR2__BucketName: ${CloudflareR2__BucketName:-tutorhub-media}
       CloudflareR2__AccessKeyId: ${CloudflareR2__AccessKeyId}
       CloudflareR2__SecretAccessKey: ${CloudflareR2__SecretAccessKey}
-      # Amazon SES (P0-E1). Outside Development an unset sender address stops startup
+      # SMTP Email settings via MailKit. Outside Development an unset host or sender stops startup
       # instead of silently logging email away; in Development the container falls back
-      # to the log-only sender. Credentials follow the standard AWS chain: these two
-      # variables, or an instance role.
-      Ses__Region: ${Ses__Region}
-      Ses__FromAddress: ${Ses__FromAddress}
-      Ses__FromDisplayName: ${Ses__FromDisplayName:-TutorHub}
-      Ses__ConfigurationSetName: ${Ses__ConfigurationSetName:-}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      # to the log-only sender.
+      Smtp__Host: ${Smtp__Host:-}
+      Smtp__Port: ${Smtp__Port:-587}
+      Smtp__UseSsl: ${Smtp__UseSsl:-false}
+      Smtp__UserName: ${Smtp__UserName:-}
+      Smtp__Password: ${Smtp__Password:-}
+      Smtp__FromAddress: ${Smtp__FromAddress:-}
+      Smtp__FromDisplayName: ${Smtp__FromDisplayName:-TutorHub}
       # Browser origins allowed to call the API (P0-E2). Comma-separated for more
       # than one; the container is not Development, so an empty list stops startup.
       Cors__AllowedOrigins: ${Cors__AllowedOrigins}
@@ -149,7 +151,7 @@ services:
     environment:
       DOTNET_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-tutorhub};Username=${POSTGRES_USER:-tutorhub};Password=${POSTGRES_PASSWORD:-tutorhub}
-      ConnectionStrings__Redis: ${ConnectionStrings__Redis:-redis:6379}
+      ConnectionStrings__Redis: redis:6379
       Redis__Enabled: ${Redis__Enabled:-false}
       Redis__InstanceName: ${Redis__InstanceName:-tutorhub:}
       Redis__Features__OAuth: ${Redis__Features__OAuth:-true}
@@ -175,12 +177,13 @@ services:
       CloudflareR2__BucketName: ${CloudflareR2__BucketName:-tutorhub-media}
       CloudflareR2__AccessKeyId: ${CloudflareR2__AccessKeyId}
       CloudflareR2__SecretAccessKey: ${CloudflareR2__SecretAccessKey}
-      Ses__Region: ${Ses__Region}
-      Ses__FromAddress: ${Ses__FromAddress}
-      Ses__FromDisplayName: ${Ses__FromDisplayName:-TutorHub}
-      Ses__ConfigurationSetName: ${Ses__ConfigurationSetName:-}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      Smtp__Host: ${Smtp__Host:-}
+      Smtp__Port: ${Smtp__Port:-587}
+      Smtp__UseSsl: ${Smtp__UseSsl:-false}
+      Smtp__UserName: ${Smtp__UserName:-}
+      Smtp__Password: ${Smtp__Password:-}
+      Smtp__FromAddress: ${Smtp__FromAddress:-}
+      Smtp__FromDisplayName: ${Smtp__FromDisplayName:-TutorHub}
       ExternalAuth__RedirectUri: ${ExternalAuth__RedirectUri:-http://localhost:5173/auth/oauth/callback}
       ExternalAuth__Google__ClientId: ${ExternalAuth__Google__ClientId}
       ExternalAuth__Google__ClientSecret: ${ExternalAuth__Google__ClientSecret}
@@ -201,6 +204,7 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD:-tutorhub}
       PGUSER: ${POSTGRES_USER:-tutorhub}
       PGDATABASE: ${POSTGRES_DB:-tutorhub}
+      PGCLIENTENCODING: UTF8
     volumes:
       - ./src/backend/seedData.sql:/seed/seedData.sql:ro
     entrypoint: ["/bin/sh", "-c"]
@@ -208,17 +212,16 @@ services:
       - |
         set -e
         echo "[seed] waiting for database migrations to complete..."
-        until psql -h postgres -tAc "select to_regclass('public.\"__EFMigrationsHistory\"')" 2>/dev/null | grep -q __EFMigrationsHistory && \
-              psql -h postgres -tAc "select count(*) from \"__EFMigrationsHistory\" where \"MigrationId\" = '20260914142220_AddAccountLockout'" 2>/dev/null | grep -q 1; do
+        until psql -h postgres -tAc "select to_regclass('public.\"PlatformSettings\"')" 2>/dev/null | grep -q PlatformSettings; do
           sleep 2
         done
-        count=$$(psql -h postgres -tAc 'select count(*) from "Users"')
+        count=$$(psql -h postgres -tAc 'select count(*) from "PlatformSettings"')
         if [ "$$count" = "0" ]; then
-          echo "[seed] database is empty -> loading seedData.sql"
+          echo "[seed] platform data is empty -> loading seedData.sql"
           psql -h postgres -v ON_ERROR_STOP=1 -q -f /seed/seedData.sql
           echo "[seed] seedData.sql loaded successfully"
         else
-          echo "[seed] skipped: $$count user(s) already present"
+          echo "[seed] skipped: platform data already present"
         fi
 
 volumes:

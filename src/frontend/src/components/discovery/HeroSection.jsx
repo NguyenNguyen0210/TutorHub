@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import Avatar from '@/components/ui/Avatar';
 import Icon from '@/components/ui/Icon';
 import Input from '@/components/ui/Input';
 
@@ -9,15 +8,11 @@ export default function HeroSection({
   setSearchKeyword,
   onSearchSubmit,
   popularTags = [],
-  onTagClick,
-  totalCount = 55,
-  topTutors = [],
+  onTagClick
 }) {
-  const visibleTutors = Array.isArray(topTutors) ? topTutors.slice(0, 5) : [];
-  const showProof = totalCount > 0 || visibleTutors.length > 0;
 
   return (
-    <section className="bg-canvas border-b border-border py-7 sm:py-8 lg:py-10">
+    <section className="relative py-7 sm:py-8 lg:py-10 bg-brand-primary-50 border-b border-brand-primary-100">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto text-center space-y-4 sm:space-y-5">
           <h1 className="text-[32px] sm:text-[42px] lg:text-[48px] font-bold text-neutral-900 leading-[1.12] tracking-tight">
@@ -84,7 +79,7 @@ export default function HeroSection({
                 key={tag}
                 type="button"
                 onClick={() => onTagClick(tag)}
-                className="px-3 py-1 rounded-full bg-white/80 border border-neutral-200/60 text-neutral-600 hover:text-neutral-900 hover:bg-white text-[12px] font-medium transition-colors cursor-pointer"
+                className="px-3 py-1 rounded-full bg-white/90 hover:bg-white text-neutral-700 hover:text-brand-primary-600 border border-neutral-200/80 hover:border-brand-primary-600/40 shadow-sm text-[12px] font-medium transition-all cursor-pointer"
               >
                 {tag}
               </button>
@@ -92,38 +87,7 @@ export default function HeroSection({
           </div>
 
           {/* Real tutor proof: overlapping avatars + real count from props */}
-          {showProof && (
-            <div className="flex items-center justify-center gap-2.5 pt-1">
-              {visibleTutors.length > 0 ? (
-                <div className="flex -space-x-2">
-                  {visibleTutors.map((tutor, idx) => (
-                    <Avatar
-                      key={tutor.id || idx}
-                      src={tutor.avatarUrl}
-                      name={tutor.fullName}
-                      size="sm"
-                      title={tutor.fullName}
-                      className="ring-2 ring-surface"
-                    />
-                  ))}
-                </div>
-              ) : (
-                <span className="text-brand-primary-600">
-                  <Icon name="verified" size="sm" />
-                </span>
-              )}
-              <p className="text-[13px] text-neutral-600">
-                {totalCount > 0 ? (
-                  <>
-                    <strong className="font-bold text-neutral-900">{`${totalCount}+ gia sư`}</strong>
-                    {' đã xác thực'}
-                  </>
-                ) : (
-                  'Gia sư đã xác thực'
-                )}
-              </p>
-            </div>
-          )}
+         
         </div>
       </div>
     </section>
@@ -136,6 +100,4 @@ HeroSection.propTypes = {
   onSearchSubmit: PropTypes.func.isRequired,
   popularTags: PropTypes.arrayOf(PropTypes.string),
   onTagClick: PropTypes.func.isRequired,
-  totalCount: PropTypes.number,
-  topTutors: PropTypes.arrayOf(PropTypes.object),
 };

@@ -6,6 +6,5 @@ namespace TutorHub.Domain.Enums;
 /// </summary>
 public enum ExternalAuthProvider
 {
-    Google = 0,
-    Facebook = 1
+    Google = 0
 }

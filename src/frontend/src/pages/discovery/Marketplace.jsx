@@ -381,8 +381,6 @@ export default function Marketplace() {
         }}
         popularTags={POPULAR_SEARCH_TAGS}
         onTagClick={handleTagClick}
-        totalCount={totalCount}
-        topTutors={tutors.slice(0, 3)}
       />
 
       {/* 2. Category Navigation Bar */}

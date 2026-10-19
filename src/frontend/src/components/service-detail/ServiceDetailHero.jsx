@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import Avatar from '@/components/ui/Avatar';
-import Badge from '@/components/ui/Badge';
 import Icon from '@/components/ui/Icon';
-import Button from '@/components/ui/Button';
 
 export default function ServiceDetailHero({ service }) {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);

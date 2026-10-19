@@ -54,6 +54,7 @@ public class JwtService : IJwtService
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
+            NotBefore = _clock.UtcNow,
             Expires = _clock.UtcNow.AddMinutes(_jwtOptions.AccessTokenExpirationMinutes),
             Issuer = _jwtOptions.Issuer,
             Audience = _jwtOptions.Audience,

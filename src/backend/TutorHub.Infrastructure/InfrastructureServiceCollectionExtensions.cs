@@ -1,7 +1,6 @@
 using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
-using Amazon.SimpleEmail;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -107,24 +106,19 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IObjectStorageService, CloudflareR2ObjectStorageService>();
         services.AddScoped<IFileStorage, LocalFileStorage>();
 
-        // P0-E1: production email runs on Amazon SES. A deployment opts in by
-        // configuring a verified sender; Development may run without one (log-only,
-        // loudly), but anywhere else a missing sender is a startup failure rather
-        // than silently dropping every notification email.
-        if (!string.IsNullOrWhiteSpace(configuration["Ses:FromAddress"]))
+        // Email delivery via MailKit (SMTP). A deployment opts in by configuring
+        // Smtp:Host and Smtp:FromAddress; Development may run without one (log-only fallback),
+        // but anywhere else a missing SMTP configuration is a startup failure rather than
+        // silently dropping notification emails.
+        if (!string.IsNullOrWhiteSpace(configuration["Smtp:Host"]) &&
+            !string.IsNullOrWhiteSpace(configuration["Smtp:FromAddress"]))
         {
-            services.AddOptions<SesOptions>()
-                .BindConfiguration(SesOptions.SectionName)
+            services.AddOptions<SmtpOptions>()
+                .BindConfiguration(SmtpOptions.SectionName)
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
 
-            services.AddSingleton<IAmazonSimpleEmailService>(sp =>
-            {
-                var sesOptions = sp.GetRequiredService<IOptions<SesOptions>>().Value;
-                return new AmazonSimpleEmailServiceClient(RegionEndpoint.GetBySystemName(sesOptions.Region));
-            });
-
-            services.AddScoped<IEmailSender, SesEmailSender>();
+            services.AddScoped<IEmailSender, MailKitEmailSender>();
         }
         else if (environment.IsDevelopment())
         {
@@ -133,7 +127,7 @@ public static class InfrastructureServiceCollectionExtensions
         else
         {
             throw new InvalidOperationException(
-                "Ses:FromAddress must be configured outside Development: notification email is a " +
+                "Smtp:Host and Smtp:FromAddress must be configured outside Development: notification email is a " +
                 "product requirement, and a log-only sender would drop it without a trace.");
         }
 
@@ -141,7 +135,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IChatNotificationService, SignalRChatNotificationService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
 
-        // ── External sign-in (Google / Facebook) ──────────────────────────────
+        // ── External sign-in (Google) ──────────────────────────────────────────
         // Deliberately NOT ValidateOnStart: an API with no OAuth credentials must
         // still boot and serve password login. A missing provider is a feature that
         // is switched off (its button is hidden), not a misconfigured deployment.
@@ -151,7 +145,6 @@ public static class InfrastructureServiceCollectionExtensions
         // Each provider gets its own named HttpClient so sockets are pooled per host
         // and one provider's slowness cannot starve the other's.
         services.AddHttpClient(nameof(GoogleAuthProvider));
-        services.AddHttpClient(nameof(FacebookAuthProvider));
 
         services.AddMemoryCache();
 
@@ -235,7 +228,6 @@ public static class InfrastructureServiceCollectionExtensions
         }
 
         services.AddSingleton<IExternalAuthProvider, GoogleAuthProvider>();
-        services.AddSingleton<IExternalAuthProvider, FacebookAuthProvider>();
 
         // ── WP1 OAuth state: Redis when the OAuth flag is on, memory otherwise ──
         // The distributed store needs IConnectionMultiplexer, which only exists

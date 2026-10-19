@@ -32,7 +32,21 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
 
         if (emailExists)
         {
-            throw new ConflictException("An account with this email already exists.");
+            throw new ConflictException("Email này đã được đăng ký tài khoản. Vui lòng sử dụng email khác hoặc đăng nhập.");
+        }
+
+        string? cleanPhone = null;
+        if (!string.IsNullOrWhiteSpace(request.Phone))
+        {
+            cleanPhone = request.Phone.Trim().Replace(" ", "").Replace("-", "").Replace(".", "");
+            if (cleanPhone.StartsWith("+84"))
+            {
+                cleanPhone = "0" + cleanPhone.Substring(3);
+            }
+            else if (cleanPhone.StartsWith("84") && cleanPhone.Length == 11)
+            {
+                cleanPhone = "0" + cleanPhone.Substring(2);
+            }
         }
 
         var userId = Guid.NewGuid();
@@ -42,7 +56,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
             Email = request.Email.Trim(),
             PasswordHash = _passwordHasher.HashPassword(request.Password),
             FullName = request.FullName.Trim(),
-            Phone = request.Phone?.Trim(),
+            Phone = cleanPhone,
             Role = request.Role,
             Status = AccountStatus.Active,
             CreatedAt = _clock.UtcNow
@@ -63,14 +77,14 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
 
         _context.Users.Add(user);
 
-        // Dispatched account verification & welcome notification + email delivery
+        // Dispatched welcome notification + email delivery
         var welcomeNotif = new Notification
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
-            Title = "Chào mừng bạn đến với TutorHub — Xác thực tài khoản",
+            Title = "Chào mừng bạn đến với TutorHub — Đăng ký tài khoản thành công",
             Message = $"Xin chào {user.FullName}! Tài khoản của bạn đã được khởi tạo thành công trên TutorHub với vai trò {user.Role}. Hãy đăng nhập để hoàn tất hồ sơ và trải nghiệm các khóa học chất lượng cao.",
-            Type = "AccountVerification",
+            Type = "Welcome",
             DeepLink = "/auth/login",
             IsCritical = true,
             DeduplicationKey = $"account:welcome:{user.Id}",
@@ -85,7 +99,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
             Notification = welcomeNotif,
             UserId = user.Id,
             ToEmail = user.Email,
-            Subject = "Chào mừng bạn đến với TutorHub — Xác thực tài khoản",
+            Subject = "Chào mừng bạn đến với TutorHub — Đăng ký tài khoản thành công",
             Body = $@"Kính gửi {user.FullName},
 
 Chào mừng bạn đã gia nhập nền tảng học tập trực tuyến TutorHub!

@@ -1523,7 +1523,7 @@ System SHALL provide asynchronous email notifications for all applicable busines
 - **Hosted Worker Delivery (`EmailDeliveryJob`):** A background hosted service periodically claims batches of pending/expired email deliveries using lease-locking (`LockedUntil`, `LockedBy`), executes delivery through `IEmailSender`, handles exponential backoff retries (up to 5 attempts), and transitions status to `Sent` or `Failed`.
 - **Dual Transport Sender:**
   - *Development / Personal-first mode:* Handled by `LogOnlyEmailSender`, logging full recipient, subject, idempotency key, and body to the console for inspection without external cloud credentials.
-  - *Production mode:* Handled by `SesEmailSender` integrating with Amazon Simple Email Service (SES).
+  - *Production mode:* Handled by `MailKitEmailSender` integrating with MailKit SMTP (Gmail, custom SMTP, etc.).
 
 ---
 
