@@ -88,8 +88,6 @@ services:
       ExternalAuth__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
       ExternalAuth__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
 
-      ReverseProxy__Enabled: ${REVERSE_PROXY_ENABLED:-true}
-      ReverseProxy__KnownProxies__0: ${REVERSE_PROXY_KNOWN_PROXY:-}
     ports:
       - "${API_PORT:-8080}:8080"
     healthcheck:

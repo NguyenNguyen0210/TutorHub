@@ -5,7 +5,7 @@ using System.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.HttpOverrides;
+
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -279,28 +279,6 @@ if (redisRateLimit.Enabled && redisRateLimit.Features.RateLimit)
 // when Redis is enabled with the RevokeCheck flag.
 builder.Services.AddScoped<ITokenVersionReader, EfTokenVersionReader>();
 
-// P0-D2: honour X-Forwarded-* ONLY when explicitly deployed behind a proxy. Enabling
-// this unconditionally lets any client spoof its address and evade the per-IP limiter.
-if (builder.Configuration.GetValue<bool>("ReverseProxy:Enabled"))
-{
-    builder.Services.Configure<ForwardedHeadersOptions>(options =>
-    {
-        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-
-        var knownProxies = builder.Configuration.GetSection("ReverseProxy:KnownProxies").Get<string[]>();
-        if (knownProxies is { Length: > 0 })
-        {
-            options.KnownProxies.Clear();
-            foreach (var proxy in knownProxies)
-            {
-                if (IPAddress.TryParse(proxy, out var parsedProxy))
-                {
-                    options.KnownProxies.Add(parsedProxy);
-                }
-            }
-        }
-    });
-}
 
 var app = builder.Build();
 
@@ -314,12 +292,6 @@ if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
     var migrationDb = migrationScope.ServiceProvider
         .GetRequiredService<TutorHub.Infrastructure.Persistence.AppDbContext>();
     await migrationDb.Database.MigrateAsync();
-}
-
-// P0-D2: must run before anything that reads Connection.RemoteIpAddress.
-if (app.Configuration.GetValue<bool>("ReverseProxy:Enabled"))
-{
-    app.UseForwardedHeaders();
 }
 
 // F-25 / P0-E3: readiness, kept on the path docker-compose already probes. A failing

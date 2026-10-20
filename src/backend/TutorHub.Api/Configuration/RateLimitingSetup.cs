@@ -91,7 +91,6 @@ public static class RateLimitingSetup
 
     /// <summary>
     /// The partition key. RemoteIpAddress is only trustworthy when
-    /// <c>ReverseProxy:Enabled</c> is on and the proxy is trusted — otherwise every
     /// client shares the proxy's address, which is fail-closed (all throttled together)
     /// rather than fail-open.
     /// </summary>
