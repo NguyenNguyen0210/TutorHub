@@ -1,6 +1,7 @@
 using System.Net;
 using FluentAssertions;
 using Moq;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Security;
@@ -17,6 +18,7 @@ public class ChangePasswordCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
     private readonly Mock<IPasswordHasher> _passwordHasherMock = new();
+    private readonly Mock<ITokenVersionCache> _tokenVersionCacheMock = new();
     private readonly StubCurrentUserService _currentUser = new();
     private readonly ChangePasswordCommandHandler _handler;
 
@@ -26,7 +28,8 @@ public class ChangePasswordCommandHandlerTests
             _contextMock.Object,
             StubClock.Instance,
             _passwordHasherMock.Object,
-            _currentUser);
+            _currentUser,
+            _tokenVersionCacheMock.Object);
     }
 
     [Fact]
@@ -53,7 +56,10 @@ public class ChangePasswordCommandHandlerTests
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
         _contextMock.Setup(c => c.RefreshTokens).Returns(MockDbSetHelper.CreateMockDbSet(tokensList).Object);
-        _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        var versionAtSave = -1;
+        _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => versionAtSave = user.TokenVersion)
+            .ReturnsAsync(1);
 
         _passwordHasherMock
             .Setup(h => h.VerifyPassword(oldPassword, user.PasswordHash))
@@ -76,6 +82,14 @@ public class ChangePasswordCommandHandlerTests
 
         // Verify side effect: active refresh tokens must be revoked
         activeToken.RevokedAt.Should().NotBeNull();
+
+        // WP6: access tokens die instantly — the version bump must be persisted
+        // in the same transaction, and the cached version must be evicted after.
+        versionAtSave.Should().Be(1, "the bump must happen before SaveChanges");
+        user.TokenVersion.Should().Be(1);
+        _tokenVersionCacheMock.Verify(
+            c => c.EvictAsync(user.Id, It.IsAny<CancellationToken>()),
+            Times.Once);
 
         _passwordHasherMock.Verify(h => h.HashPassword(newPassword), Times.Once);
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);

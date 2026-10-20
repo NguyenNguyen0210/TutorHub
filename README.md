@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <b>Hệ thống EdTech Marketplace định hướng dịch vụ (Service & Package-Based Learning), ứng dụng kiến trúc Clean Architecture, CQRS, cơ chế ký quỹ bảo chứng Escrow, giải ngân tự động 12 giờ (Grace Period) và phân giải tranh chấp tài chính 2 giai đoạn.</b>
+  <b>Hệ thống EdTech Marketplace định hướng dịch vụ (Service & Package-Based Learning), ứng dụng kiến trúc Clean Architecture, CQRS, cơ chế ký quỹ bảo chứng Escrow, giải ngân tự động 12 giờ (Grace Period) và phân giải tranh chấp tài chính pre-release trong cửa sổ grace.</b>
 </p>
 
 <p align="center">
@@ -35,7 +35,8 @@
 4. [Ngăn Xếp Công Nghệ (Technology Stack)](#-ngăn-xếp-công-nghệ-technology-stack)
 5. [Cấu Trúc Thư Mục Repository](#-cấu-trúc-thư-mục-repository)
 6. [Hướng Dẫn Cài Đặt & Khởi Chạy](#-hướng-dẫn-cài-đặt--khởi-chạy)
-7. [Kiểm Thử Tự Động (Automated Testing)](#-kiểm-thử-tự-động-automated-testing)
+7. [Mở Rộng Quy Mô (Scale-Out với Redis)](#-mở-rộng-quy-mô-scale-out-với-redis)
+8. [Kiểm Thử Tự Động (Automated Testing)](#-kiểm-thử-tự-động-automated-testing)
 
 ---
 
@@ -99,17 +100,17 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 * Vòng đời dịch vụ linh hoạt: `Draft` (Bản nháp), `Published` (Đang mở bán), `Paused` (Tạm ngưng nhận học viên mới nhưng vẫn phục vụ học viên đang học), `Unpublished` (Đóng gói).
 
 ### 2. Đặt Lịch & Giữ Chỗ Thanh Toán 15 Phút (Booking TTL Hold)
-* Khi học viên tiến hành đặt lịch, hệ thống tạo khóa giữ chỗ 15 phút (`PendingPayment`).
+* Khi học viên tiến hành đặt lịch, hệ thống tạo Booking ở trạng thái `Holding` (khóa giữ chỗ 15 phút); thanh toán thành công chuyển sang `Paid`, hết hạn chuyển `Expired`.
 * Tích hợp thanh toán trực tuyến kép: Cổng thanh toán quốc gia **VNPay** (thẻ ATM, QR Code, thẻ quốc tế) và **Ví học viên nội bộ**.
 * Tự động giải phóng trạng thái khi học viên hủy hoặc hết thời gian 15 phút.
 
 ### 3. Quy Chế Dời Lịch Tối Thiểu 2 Giờ (2-Hour Notice Policy)
-* Cả học viên và gia sư được phép dời lịch học sang khung giờ khác, với điều kiện bắt buộc: **Thời điểm dời lịch phải cách giờ bắt đầu buổi học tối thiểu 2 giờ** (`SessionSchedulePolicy.MinRescheduleNoticeHours = 2`).
+* **Gia sư** xếp/dời lịch trực tiếp; học viên không tự chọn slot. Cả hai bên có thể hủy một buổi `Unscheduled` hoặc `Scheduled` tương lai; hủy buổi `Scheduled` phải cách thời điểm bắt đầu tối thiểu **2 giờ** (`SessionSchedulePolicy`, cấu hình `Scheduling:MinimumNoticeHours`, default 2).
 * Ngăn chặn hành vi bùng lịch sát giờ, bảo vệ kế hoạch làm việc của cả hai bên.
 
 ### 4. Cơ Chế Giải Ngân Tự Động 12 Giờ (12-Hour Passive Approval Grace Period)
 * Thay thế quy trình xác nhận chấm công 2 đầu phức tạp bằng cơ chế thụ động thông minh:
-  * Sau khi buổi học kết thúc (`SessionStatus.Completed`), kích hoạt cửa sổ chờ 12 giờ (`GracePeriodExpiresAt = CompletedAt + 12h`).
+  * Khi buổi học kết thúc (`EndAt <= now`), `AutoPayoutJob` chuyển Session sang `AwaitingPayout` và mở cửa sổ chờ 12 giờ (`GracePeriodEndsAt = now + 12h`); payout chưa được giải ngân trong thời gian này.
   * Trong 12 giờ này, học viên có quyền báo cáo sự cố hoặc mở khiếu nại tranh chấp nếu buổi học có vấn đề.
   * Nếu học viên báo cáo sự cố, lệnh giải ngân bị đóng băng ngay lập tức, chuyển sang trạng thái tranh chấp.
   * Nếu không phát sinh sự cố, khi đồng hồ điểm hết 12 giờ, hệ thống sẽ tự động giải ngân thù lao buổi học vào Ví gia sư.
@@ -143,7 +144,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 | **Realtime Engine** | ASP.NET Core SignalR | WebSockets Hubs cho Trò chuyện và Thông báo |
 | **Payment Gateway** | VNPay SDK (HMAC-SHA512) | Thanh toán trực tuyến, IPN Webhook, Đối soát giao dịch |
 | **Object Storage** | AWS S3 SDK / Cloudflare R2 | Lưu trữ tài liệu, ảnh đại diện, chứng chỉ gia sư qua Presigned URL |
-| **Email Service** | Amazon Simple Email Service (SES) | Gửi email giao dịch, xác nhận lịch học và thông báo bảo mật |
+| **Email Service** | MailKit 4 (SMTP) | Gửi email giao dịch, chào mừng đăng ký và thông báo bảo mật |
 | **Frontend Framework** | React 18.3, Vite 5.4 | Client SPA, Fast HMR, Rollup Production Bundler |
 | **Styling & Components** | TailwindCSS 3.4, Ant Design 5.20 | Giao diện doanh nghiệp, thiết kế thích ứng (Responsive UI) |
 | **State Management** | Zustand 4.5, TanStack Query 5 | Global Client State & Server Cache Synchronization |
@@ -185,8 +186,7 @@ TutorHub/
 │
 ├── docs/                                     # Toàn bộ tài liệu phân tích, kiến trúc & thiết kế
 │   ├── openapi.json                          # Đặc tả OpenAPI v3
-│   ├── prd.md                                # Product Requirements Document
-│   └── plans/                                # Các tài liệu kế hoạch kỹ thuật & giải pháp
+│   └── prd.md                                # Product Requirements Document
 │
 ├── scripts/                                  # Kịch bản kiểm thử & vận hành tự động
 │   ├── e2e_grace_period.py                   # Bộ test E2E Playwright kiểm thử luồng 12h Auto-Payout
@@ -259,6 +259,34 @@ npm install
 npm run dev
 ```
 * **Web App URL:** `http://localhost:5173`
+
+---
+
+## 🔀 Mở Rộng Quy Mô (Scale-Out với Redis)
+
+* **1 replica:** không cần Redis. Mặc định `Redis:Enabled=false`, API boot và phục vụ bình thường.
+* **≥2 replica:** bắt buộc 1 Redis chung (`redis:7-alpine` đã có sẵn trong `docker-compose.yml`):
+
+```bash
+# .env
+Redis__Enabled=true
+ConnectionStrings__Redis=redis:6379
+```
+
+* **Cờ tính năng** `Redis:Features:{OAuth,SignalR,Cache,CronLock,RateLimit,RevokeCheck}` (mặc định `true`): tắt cờ nào = replica về đúng code memory/DB cũ của phần đó, không cần sửa code hay redeploy bản khác.
+* **Redis chết lúc chạy:** các đường non-OAuth vẫn phục vụ (HTTP 200) — cache đọc thẳng DB, cron bỏ qua kỳ + log, rate-limit cho qua + `LogWarning` (fail-open), `/health` báo `Degraded` ở check `redis` (không bao giờ `Unhealthy`, không restart oan). Revoke-check fail-closed: request có auth trả 401 `"Authentication service unavailable."` thay vì cho qua. OAuth vẫn fail-closed (không cấp token) nhưng mù: callback (và start khi mất kết nối thật) trả 500 envelope thay vì 409/503 rõ ràng — cần follow-up map `RedisException` → 409/503 với thông điệp rõ ràng.
+* **Rate-limit phân tán (WP3):** Lua `INCR+EXPIRE` key `ratelimit:{policy}:{ip}:{bucket}`, giữ nguyên ngưỡng `10/60/300 per 1m` + envelope 429 và header `Retry-After` cũ. Chi phí: 1 Lua eval/request.
+* **Revoke JWT tức thì (WP6):** claim `ver` = `User.TokenVersion`, Redis key `auth:ver:{userId}` TTL 16p; `token.ver < cachedVer` → 401 `"Session has been revoked. Please sign in again."`. Bump khi ban/suspend/đổi pass. Chi phí: 1 Redis `GET`/authenticated request (+1 DB read khi cache miss).
+* **Worker riêng (WP8):** mặc định api tự chạy 6 background job (`BackgroundJobs:Enabled=true`). Khi chạy ≥2 replica api, tách job sang host chuyên để không double-run:
+  ```bash
+  # .env: api thôi chạy job
+  BackgroundJobs__Enabled=false
+  # worker là opt-in (profile), tự mang BackgroundJobs__Enabled=true + Database__MigrateOnStartup=false
+  docker compose --profile worker up -d --build
+  ```
+  Mặc định `docker compose up` không đổi hành vi (api chạy job, worker không lên). Cron lock Redis là lưới an toàn thứ hai khi ai đó quên flag.
+* **Tìm kiếm tiếng Việt (WP9):** `unaccent` (wrapper immutable `unaccent_immutable`) + trigram `pg_trgm` với GIN index trên `Services(Title, Description)`, `Subjects(Name)`, `Users(FullName, Email)`… — `toan` ra `toán`, `nguyen` ra `Nguyễn`, giữ nguyên sort/paging cũ. `EXPLAIN` xác nhận dùng index + timing trước/sau là follow-up staging (sandbox nghiệm thu không có PG nên chưa đo).
+* **Log tập trung (WP7):** Serilog JSON console + Seq sink (chỉ khi `Seq:ServerUrl` khác rỗng; Seq chết không chặn boot), enrich `CorrelationId`, bỏ ồn `/health*`, cấm log secret/PII. Dev/staging: service `seq` trong compose (`:5341`).
 
 ---
 

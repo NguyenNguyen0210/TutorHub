@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
-using TutorHub.Api.Configuration;
+using TutorHub.Infrastructure.Configuration;
 using Xunit;
 
 namespace TutorHub.Api.IntegrationTests;

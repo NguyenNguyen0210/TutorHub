@@ -38,6 +38,30 @@ export default [
       'react-hooks/exhaustive-deps': 'warn',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       ...a11yWarnings,
+      'jsx-a11y/label-has-for': 'off',
+      'jsx-a11y/label-has-associated-control': [
+        'warn',
+        {
+          assert: 'either',
+          depth: 3,
+        },
+      ],
+      'jsx-a11y/control-has-associated-label': [
+        'warn',
+        {
+          ignoreElements: [
+            'audio',
+            'canvas',
+            'embed',
+            'input',
+            'textarea',
+            'tr',
+            'th',
+            'td',
+            'video',
+          ],
+        },
+      ],
     },
   },
 ];

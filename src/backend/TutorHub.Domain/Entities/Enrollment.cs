@@ -138,7 +138,7 @@ public class Enrollment
     /// Calculates refundable amount based on unearned sessions.
     /// Returns the RefundAmount to be processed by the Application layer.
     /// </summary>
-    public decimal Cancel(string reason, CancelledBy? cancelledBy = null)
+    public decimal Cancel(string reason, CancelledBy? cancelledBy = null, DateTime? now = null)
     {
         if (Status != EnrollmentStatus.Active && Status != EnrollmentStatus.Pending)
         {
@@ -146,8 +146,10 @@ public class Enrollment
                 $"Cannot cancel an enrollment in '{Status}' status.");
         }
 
+        var effectiveNow = now ?? DateTime.UtcNow;
+
         Status = EnrollmentStatus.Cancelled;
-        CancelledAt = DateTime.UtcNow;
+        CancelledAt = effectiveNow;
         CancellationReason = reason;
         CancelledBy = cancelledBy;
 
@@ -158,7 +160,7 @@ public class Enrollment
 
         foreach (var session in newlyCancelledSessions)
         {
-            session.CancelFromEnrollment();
+            session.CancelFromEnrollment(effectiveNow);
         }
 
         // Refund matches exactly the unearned, unrefunded sessions' escrow allocations

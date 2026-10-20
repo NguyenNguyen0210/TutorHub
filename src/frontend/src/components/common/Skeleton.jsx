@@ -3,22 +3,34 @@ import { cn } from '@/lib/cn';
 
 const BAR = 'bg-neutral-200 rounded animate-pulse';
 
-export function CardSkeleton({ count = 1, className }) {
+export function CardSkeleton({ count = 1, className, label = 'Đang tải danh sách...' }) {
   return (
-    <div className={cn('grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6', className)}>
+    <div
+      role="status"
+      aria-label={label}
+      className={cn('grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6', className)}
+    >
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="rounded-brand-lg bg-surface border border-border p-6 space-y-4">
+        <div
+          key={i}
+          aria-hidden="true"
+          className="rounded-brand-lg bg-surface border border-border p-6 space-y-4"
+        >
+          {/* Hàng 1: avatar tròn + tên + chip — khớp TutorCard/ServiceCard */}
           <div className="flex items-center gap-4">
-            <div className={cn(BAR, 'w-16 h-16 rounded-brand-md')} />
+            <div className={cn(BAR, 'w-12 h-12 rounded-full shrink-0')} />
             <div className="space-y-2 flex-1">
               <div className={cn(BAR, 'h-4 w-3/4')} />
-              <div className={cn(BAR, 'h-3 w-1/2')} />
+              <div className={cn(BAR, 'h-3 w-1/3')} />
             </div>
           </div>
+          {/* Hàng 2–3: 3 gạch nội dung — rating + 2 dòng meta */}
           <div className="space-y-2 pt-2">
+            <div className={cn(BAR, 'h-3 w-1/2')} />
             <div className={cn(BAR, 'h-3 w-full')} />
             <div className={cn(BAR, 'h-3 w-5/6')} />
           </div>
+          {/* Hàng 4: footer CTA — giá + nút hành động */}
           <div className="flex items-center justify-between pt-4 border-t border-border">
             <div className={cn(BAR, 'h-4 w-24')} />
             <div className={cn(BAR, 'h-8 w-24 rounded-brand-md')} />

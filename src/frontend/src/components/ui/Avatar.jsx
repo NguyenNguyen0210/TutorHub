@@ -134,16 +134,58 @@ export function Menu({ trigger, items = [], align = 'right', className }) {
 
 /**
  * Drawer — panel trượt từ cạnh màn hình, dùng cho mobile nav và bộ lọc.
+ * A11y: Escape đóng, focus trap Tab, aria-modal, khóa scroll body khi mở.
  */
-export function Drawer({ open, onClose, side = 'left', title, widthClass = 'w-80', children }) {
+const DRAWER_FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+export function Drawer({ open, onClose, side = 'left', title, widthClass = 'w-80', footer, children }) {
+  const panelRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+  const handleClose = () => {
+    onCloseRef.current?.();
+  };
+
   useEffect(() => {
     if (!open) return undefined;
+    const previouslyFocused =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onCloseRef.current?.();
+        return;
+      }
+      if (e.key !== 'Tab' || !panelRef.current) return;
+      const focusables = panelRef.current.querySelectorAll(DRAWER_FOCUSABLE_SELECTOR);
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const timer = setTimeout(() => {
+      const first = panelRef.current?.querySelector(DRAWER_FOCUSABLE_SELECTOR);
+      if (first) first.focus();
+      else panelRef.current?.focus();
+    }, 0);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+      clearTimeout(timer);
+      if (previouslyFocused && document.contains(previouslyFocused)) previouslyFocused.focus();
+    };
+  }, [open]);
 
   if (!open) return null;
 
@@ -153,14 +195,16 @@ export function Drawer({ open, onClose, side = 'left', title, widthClass = 'w-80
         type="button"
         aria-label="Đóng bảng điều hướng"
         className="absolute inset-0 bg-brand-navy-950/50 backdrop-blur-sm cursor-default"
-        onClick={onClose}
+        onClick={handleClose}
       />
       <aside
+        ref={panelRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={title || 'Bảng điều hướng'}
         className={cn(
-          'absolute top-0 bottom-0 bg-surface shadow-brand-xl flex flex-col max-w-[85vw]',
+          'absolute top-0 bottom-0 bg-surface shadow-brand-xl flex flex-col max-w-[85vw] focus-visible:outline-none',
           widthClass,
           side === 'left' ? 'left-0' : 'right-0'
         )}
@@ -169,14 +213,19 @@ export function Drawer({ open, onClose, side = 'left', title, widthClass = 'w-80
           <h2 className="text-headline-3 text-fg truncate">{title}</h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Đóng"
-            className="w-9 h-9 rounded-brand-md flex items-center justify-center text-fg-muted hover:bg-neutral-100 transition-colors"
+            className="w-11 h-11 rounded-brand-md flex items-center justify-center text-fg-muted hover:bg-neutral-100 transition-colors shrink-0"
           >
             <Icon name="close" size="md" />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-5">{children}</div>
+        {footer && (
+          <div className="px-5 py-4 border-t border-border flex items-center gap-2.5 shrink-0 bg-surface">
+            {footer}
+          </div>
+        )}
       </aside>
     </div>,
     document.body

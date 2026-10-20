@@ -5,18 +5,25 @@ using System.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.HttpOverrides;
+
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
+using StackExchange.Redis;
 using TutorHub.Api.Configuration;
 using TutorHub.Api.Exceptions;
 using TutorHub.Api.HealthChecks;
+using TutorHub.Api.Middlewares;
+using TutorHub.Api.RateLimiting;
 using TutorHub.Application;
 using TutorHub.Infrastructure;
 using TutorHub.Infrastructure.Authentication;
+using TutorHub.Infrastructure.Configuration;
+using TutorHub.Infrastructure.HealthChecks;
 using TutorHub.Infrastructure.Hubs;
+using TutorHub.Infrastructure.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,6 +59,37 @@ if (builder.Environment.IsDevelopment())
 }
 
 builder.Configuration.AddEnvironmentVariables();
+
+// WP7: structured logging. Console (compact JSON) always; the Seq sink is
+// added only when Seq:ServerUrl is set, so the API boots and serves with Seq
+// down (the Seq sink batches in the background and never blocks requests).
+// Levels/enrichment come from the Serilog config section first; the code
+// below unconditionally re-states the same defaults — keep in sync with the
+// Serilog section in appsettings.json.
+builder.Host.UseSerilog((context, loggerConfig) =>
+{
+    loggerConfig
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .Enrich.WithMachineName()
+        .Enrich.WithEnvironmentName()
+        .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
+        .MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Warning);
+
+    var seqUrl = context.Configuration["Seq:ServerUrl"];
+    if (!string.IsNullOrWhiteSpace(seqUrl))
+    {
+        var seqApiKey = context.Configuration["Seq:ApiKey"];
+        if (string.IsNullOrWhiteSpace(seqApiKey))
+        {
+            loggerConfig.WriteTo.Seq(seqUrl);
+        }
+        else
+        {
+            loggerConfig.WriteTo.Seq(seqUrl, apiKey: seqApiKey);
+        }
+    }
+});
 
 // F-25 hardening: refuse to start while a secret still holds a template value.
 StartupSecretGuard.ValidateNoPlaceholderSecrets(builder.Configuration);
@@ -188,7 +226,8 @@ builder.Services.AddSwaggerGen(c =>
 // liveness only asks whether the process answers.
 builder.Services.AddHealthChecks()
     .AddCheck<DatabaseHealthCheck>("database")
-    .AddCheck<PlatformFeeSettingHealthCheck>("platform-fee-setting");
+    .AddCheck<PlatformFeeSettingHealthCheck>("platform-fee-setting")
+    .AddCheck<RedisHealthCheck>("redis");
 
 // P0-E2: the frontend is served from its own origin, so preflight must succeed.
 // Credentials flow with the request, hence explicit origins instead of a wildcard.
@@ -207,28 +246,39 @@ builder.Services.AddCors(options =>
 // P0-D2: per-IP throttling for credential and payment endpoints.
 builder.Services.AddTutorHubRateLimiting();
 
-// P0-D2: honour X-Forwarded-* ONLY when explicitly deployed behind a proxy. Enabling
-// this unconditionally lets any client spoof its address and evade the per-IP limiter.
-if (builder.Configuration.GetValue<bool>("ReverseProxy:Enabled"))
+// WP3: distributed fixed-window limiter over Redis when the RateLimit flag is
+// on; the in-memory limiter above stays registered as the fallback. The
+// IConnectionMultiplexer this seam needs only exists when Redis is Enabled —
+// consistent because the RateLimit flag implies Enabled. A missing
+// multiplexer fails fast on first resolve (lazy factory), not as a null at
+// runtime. RedisOptions binding mirrors the Infrastructure registration
+// (ConnectionStrings:Redis wins over Redis:ConnectionString).
+var redisRateLimit = new RedisOptions();
+builder.Configuration.GetSection(RedisOptions.SectionName).Bind(redisRateLimit);
+var redisRateLimitConnectionString = builder.Configuration.GetConnectionString("Redis");
+if (!string.IsNullOrWhiteSpace(redisRateLimitConnectionString))
 {
-    builder.Services.Configure<ForwardedHeadersOptions>(options =>
-    {
-        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-
-        var knownProxies = builder.Configuration.GetSection("ReverseProxy:KnownProxies").Get<string[]>();
-        if (knownProxies is { Length: > 0 })
-        {
-            options.KnownProxies.Clear();
-            foreach (var proxy in knownProxies)
-            {
-                if (IPAddress.TryParse(proxy, out var parsedProxy))
-                {
-                    options.KnownProxies.Add(parsedProxy);
-                }
-            }
-        }
-    });
+    redisRateLimit.ConnectionString = redisRateLimitConnectionString;
 }
+
+if (redisRateLimit.Enabled && redisRateLimit.Features.RateLimit)
+{
+    builder.Services.AddSingleton<IRedisRateLimitCommands>(sp =>
+    {
+        var multiplexer = sp.GetService<IConnectionMultiplexer>()
+            ?? throw new InvalidOperationException(
+                "Redis:Features:RateLimit is true but no IConnectionMultiplexer is registered. " +
+                "Distributed rate limiting requires Redis:Enabled with a connection string.");
+        return new StackExchangeRedisRateLimitCommands(multiplexer.GetDatabase());
+    });
+    builder.Services.AddSingleton<RedisRateLimitService>();
+}
+
+// WP6: per-user token-version reader for the revocation middleware. Always
+// registered (the database always exists); the middleware itself only runs
+// when Redis is enabled with the RevokeCheck flag.
+builder.Services.AddScoped<ITokenVersionReader, EfTokenVersionReader>();
+
 
 var app = builder.Build();
 
@@ -242,12 +292,6 @@ if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
     var migrationDb = migrationScope.ServiceProvider
         .GetRequiredService<TutorHub.Infrastructure.Persistence.AppDbContext>();
     await migrationDb.Database.MigrateAsync();
-}
-
-// P0-D2: must run before anything that reads Connection.RemoteIpAddress.
-if (app.Configuration.GetValue<bool>("ReverseProxy:Enabled"))
-{
-    app.UseForwardedHeaders();
 }
 
 // F-25 / P0-E3: readiness, kept on the path docker-compose already probes. A failing
@@ -274,6 +318,13 @@ if (!app.Environment.IsDevelopment())
 
 app.UseMiddleware<TutorHub.Api.Middlewares.CorrelationIdMiddleware>();
 
+// WP7: one request log per call, enriched with the CorrelationId above (this
+// runs inside its LogContext scope). Health probes are excluded so
+// orchestrator polling stays out of Seq.
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase),
+    branch => branch.UseSerilogRequestLogging());
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -289,11 +340,29 @@ app.UseRouting();
 app.UseCors();
 
 // P0-D2: throttle before authentication so credential stuffing is limited even for
-// requests that never present a valid token.
-app.UseRateLimiter();
+// requests that never present a valid token. WP3: Redis-backed fixed window when
+// the RateLimit flag is on (every node shares one budget), otherwise the
+// in-memory limiter above.
+if (redisRateLimit.Enabled && redisRateLimit.Features.RateLimit)
+{
+    app.UseMiddleware<RedisRateLimitMiddleware>();
+}
+else
+{
+    app.UseRateLimiter();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// WP6: instant JWT revocation via per-user TokenVersion (PO 2026-09-29
+// overrides F-08). Only when Redis is enabled with the RevokeCheck flag;
+// otherwise authenticated requests flow exactly as before (the middleware
+// additionally no-ops on flag-off for defense in depth).
+if (redisRateLimit.Enabled && redisRateLimit.Features.RevokeCheck)
+{
+    app.UseMiddleware<TokenRevocationMiddleware>();
+}
 
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Admin.Users.BanUser;
@@ -15,12 +16,13 @@ public class BanUserCommandHandlerTests
 {
     private readonly Mock<IAppDbContext> _contextMock = new();
     private readonly Mock<IAuditLogService> _auditLogServiceMock = new();
+    private readonly Mock<ITokenVersionCache> _tokenVersionCacheMock = new();
     private readonly StubCurrentUserService _currentUser = new();
     private readonly BanUserCommandHandler _handler;
 
     public BanUserCommandHandlerTests()
     {
-        _handler = new BanUserCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object, _currentUser);
+        _handler = new BanUserCommandHandler(_contextMock.Object, StubClock.Instance, _auditLogServiceMock.Object, _currentUser, _tokenVersionCacheMock.Object);
     }
 
     [Theory]
@@ -50,7 +52,10 @@ public class BanUserCommandHandlerTests
 
         _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(usersList).Object);
         _contextMock.Setup(c => c.RefreshTokens).Returns(MockDbSetHelper.CreateMockDbSet(tokensList).Object);
-        _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        var versionAtSave = -1;
+        _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => versionAtSave = targetUser.TokenVersion)
+            .ReturnsAsync(1);
 
         var command = new BanUserCommand(targetUser.Id, "Severe fraud violations");
 
@@ -64,6 +69,14 @@ public class BanUserCommandHandlerTests
 
         // Token revocation
         activeToken.RevokedAt.Should().NotBeNull();
+
+        // WP6: access tokens die instantly — the version bump must be persisted
+        // in the same transaction, and the cached version must be evicted after.
+        versionAtSave.Should().Be(1, "the bump must happen before SaveChanges");
+        targetUser.TokenVersion.Should().Be(1);
+        _tokenVersionCacheMock.Verify(
+            c => c.EvictAsync(targetUser.Id, It.IsAny<CancellationToken>()),
+            Times.Once);
 
         // Central Audit Trail check
         _auditLogServiceMock.Verify(a => a.LogAsync(

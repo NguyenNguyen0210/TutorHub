@@ -65,17 +65,16 @@ export default function FilterSidebar({
   onMinRatingChange,
   experienceRange,
   onExperienceRangeChange,
-  onResetFilters,
+  _onResetFilters,
   className,
 }) {
   const [openSections, setOpenSections] = useState({
     degree: true,
     university: true,
     cert: false,
-    price: true,
-    mode: true,
+    price: false,
+    mode: false,
     rating: false,
-    experience: false,
   });
 
   const [uniSearch, setUniSearch] = useState('');
@@ -108,6 +107,8 @@ export default function FilterSidebar({
           <button
             type="button"
             onClick={() => toggleSection('degree')}
+            aria-expanded={openSections.degree}
+            aria-controls="filter-section-degree"
             className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
@@ -125,7 +126,7 @@ export default function FilterSidebar({
           </button>
 
           {openSections.degree && (
-            <div className="space-y-1.5 pt-1 text-[13px]">
+            <div id="filter-section-degree" className="space-y-1.5 pt-1 text-[13px]">
               {DEGREE_OPTIONS.map((item) => {
                 const isSelected = degreeLevel === item.id;
                 return (
@@ -162,6 +163,8 @@ export default function FilterSidebar({
           <button
             type="button"
             onClick={() => toggleSection('university')}
+            aria-expanded={openSections.university}
+            aria-controls="filter-section-university"
             className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
@@ -179,7 +182,7 @@ export default function FilterSidebar({
           </button>
 
           {openSections.university && (
-            <div className="space-y-2 pt-1 text-[13px]">
+            <div id="filter-section-university" className="space-y-2 pt-1 text-[13px]">
               {/* Quick search university */}
               <div className="relative">
                 <input
@@ -235,6 +238,8 @@ export default function FilterSidebar({
           <button
             type="button"
             onClick={() => toggleSection('cert')}
+            aria-expanded={openSections.cert}
+            aria-controls="filter-section-cert"
             className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
@@ -252,7 +257,7 @@ export default function FilterSidebar({
           </button>
 
           {openSections.cert && (
-            <div className="space-y-1 pt-1 text-[13px]">
+            <div id="filter-section-cert" className="space-y-1 pt-1 text-[13px]">
               {CERTIFICATION_OPTIONS.map((item) => {
                 const isSelected = certification === item.id;
                 return (
@@ -285,6 +290,8 @@ export default function FilterSidebar({
           <button
             type="button"
             onClick={() => toggleSection('mode')}
+            aria-expanded={openSections.mode}
+            aria-controls="filter-section-mode"
             className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
@@ -302,7 +309,7 @@ export default function FilterSidebar({
           </button>
 
           {openSections.mode && (
-            <div className="space-y-2 pt-1 text-[13px]">
+            <div id="filter-section-mode" className="space-y-2 pt-1 text-[13px]">
               <div className="grid grid-cols-2 gap-1.5">
                 {[
                   { id: 'All', label: 'Tất cả' },
@@ -361,6 +368,8 @@ export default function FilterSidebar({
           <button
             type="button"
             onClick={() => toggleSection('price')}
+            aria-expanded={openSections.price}
+            aria-controls="filter-section-price"
             className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
@@ -378,7 +387,7 @@ export default function FilterSidebar({
           </button>
 
           {openSections.price && (
-            <div className="space-y-3 pt-1">
+            <div id="filter-section-price" className="space-y-3 pt-1">
               <div className="flex justify-between items-center text-[12.5px] font-semibold">
                 <span className="text-neutral-400 font-mono">0đ</span>
                 <span className="text-brand-primary-600 font-bold font-mono text-[13px]">
@@ -428,6 +437,8 @@ export default function FilterSidebar({
           <button
             type="button"
             onClick={() => toggleSection('rating')}
+            aria-expanded={openSections.rating}
+            aria-controls="filter-section-rating"
             className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
@@ -445,7 +456,7 @@ export default function FilterSidebar({
           </button>
 
           {openSections.rating && (
-            <div className="space-y-3 pt-1 text-[13px]">
+            <div id="filter-section-rating" className="space-y-3 pt-1 text-[13px]">
               <div>
                 <p className="text-[11.5px] font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">
                   Đánh giá sao:

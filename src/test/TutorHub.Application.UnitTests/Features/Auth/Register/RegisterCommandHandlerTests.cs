@@ -168,11 +168,11 @@ public class RegisterCommandHandlerTests
 
         // Assert
         result.Should().NotBeNull();
-        notificationsList.Should().ContainSingle(n => n.Type == "AccountVerification" && n.UserId == result.UserId);
+        notificationsList.Should().ContainSingle(n => n.Type == "Welcome" && n.UserId == result.UserId);
         emailDeliveriesList.Should().ContainSingle(e => e.ToEmail == "welcome@example.com" && e.UserId == result.UserId);
 
         var email = emailDeliveriesList.Single();
-        email.Subject.Should().Contain("Xác thực tài khoản");
+        email.Subject.Should().Contain("Đăng ký tài khoản thành công");
         email.Body.Should().Contain("Nguyen Van D");
         email.Status.Should().Be(EmailDeliveryStatus.Pending);
     }

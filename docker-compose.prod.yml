@@ -1,0 +1,110 @@
+# Production compose for TutorHub backend + data services.
+# Usage:
+#   cp .env.production.example .env.production
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+name: tutorhub-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tutorhub-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-tutorhub}
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-tutorhub}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    container_name: tutorhub-redis-prod
+    restart: always
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}", "--appendonly", "yes"]
+    volumes:
+      - redisdata_prod:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  api:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    container_name: tutorhub-api-prod
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      AllowedHosts: ${ALLOWED_HOSTS:?ALLOWED_HOSTS is required}
+      Database__MigrateOnStartup: "true"
+
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-tutorhub};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD}"
+      Redis__Enabled: "true"
+      Redis__InstanceName: "${REDIS_INSTANCE_NAME:-tutorhub:}"
+
+      Jwt__Secret: ${JWT_SECRET:?JWT_SECRET is required}
+      Jwt__Issuer: ${JWT_ISSUER:-TutorHubAPI}
+      Jwt__Audience: ${JWT_AUDIENCE:-TutorHubClient}
+
+      VnPay__TmnCode: ${VNPAY_TMNCODE:?VNPAY_TMNCODE is required}
+      VnPay__HashSecret: ${VNPAY_HASHSECRET:?VNPAY_HASHSECRET is required}
+      VnPay__BaseUrl: ${VNPAY_BASEURL:-https://pay.vnpay.vn/vpcpay.html}
+      VnPay__ReturnUrl: ${VNPAY_RETURNURL:?VNPAY_RETURNURL is required}
+
+      CloudflareR2__AccountId: ${R2_ACCOUNT_ID:?R2_ACCOUNT_ID is required}
+      CloudflareR2__BucketName: ${R2_BUCKET_NAME:?R2_BUCKET_NAME is required}
+      CloudflareR2__AccessKeyId: ${R2_ACCESS_KEY_ID:?R2_ACCESS_KEY_ID is required}
+      CloudflareR2__SecretAccessKey: ${R2_SECRET_ACCESS_KEY:?R2_SECRET_ACCESS_KEY is required}
+
+      Cors__AllowedOrigins__0: ${CORS_ORIGIN:?CORS_ORIGIN is required}
+
+      Smtp__Host: ${SMTP_HOST:-}
+      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__UseSsl: ${SMTP_USESSL:-true}
+      Smtp__UserName: ${SMTP_USERNAME:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__FromAddress: ${SMTP_FROM_ADDRESS:?SMTP_FROM_ADDRESS is required}
+      Smtp__FromDisplayName: ${SMTP_FROM_DISPLAY_NAME:-TutorHub}
+
+      ExternalAuth__RedirectUri: ${EXTERNAL_AUTH_REDIRECTURI:-}
+      ExternalAuth__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      ExternalAuth__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+
+    ports:
+      - "${API_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+      - public
+
+volumes:
+  pgdata_prod:
+  redisdata_prod:
+
+networks:
+  internal:
+    driver: bridge
+  public:
+    driver: bridge

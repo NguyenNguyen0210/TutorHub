@@ -107,7 +107,7 @@ export function Pagination({ page, totalPages, onChange, onPageChange, className
         aria-label="Trang trước"
         disabled={page <= 1}
         onClick={() => handleChange?.(page - 1)}
-        className="w-9 h-9 rounded-brand-md border border-border flex items-center justify-center text-fg-secondary hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="w-11 h-11 sm:w-9 sm:h-9 rounded-brand-md border border-border flex items-center justify-center text-fg-secondary hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         <Icon name="chevron_left" size="sm" />
       </button>
@@ -124,7 +124,7 @@ export function Pagination({ page, totalPages, onChange, onPageChange, className
               aria-current={p === page ? 'page' : undefined}
               onClick={() => handleChange?.(p)}
               className={cn(
-                'w-9 h-9 rounded-brand-md text-body-reg font-semibold transition-colors',
+                'w-11 h-11 sm:w-9 sm:h-9 rounded-brand-md text-body-reg font-semibold transition-colors',
                 p === page
                   ? 'bg-brand-primary-600 text-white'
                   : 'border border-border text-fg-secondary hover:bg-neutral-50'
@@ -141,7 +141,7 @@ export function Pagination({ page, totalPages, onChange, onPageChange, className
         aria-label="Trang sau"
         disabled={page >= totalPages}
         onClick={() => handleChange?.(page + 1)}
-        className="w-9 h-9 rounded-brand-md border border-border flex items-center justify-center text-fg-secondary hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="w-11 h-11 sm:w-9 sm:h-9 rounded-brand-md border border-border flex items-center justify-center text-fg-secondary hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         <Icon name="chevron_right" size="sm" />
       </button>

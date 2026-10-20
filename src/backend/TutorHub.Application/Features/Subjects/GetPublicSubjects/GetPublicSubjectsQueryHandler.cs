@@ -1,7 +1,9 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
+using TutorHub.Application.Common.Search;
 using TutorHub.Application.Features.Subjects.DTOs;
 
 namespace TutorHub.Application.Features.Subjects.GetPublicSubjects;
@@ -9,13 +11,18 @@ namespace TutorHub.Application.Features.Subjects.GetPublicSubjects;
 public class GetPublicSubjectsQueryHandler : IRequestHandler<GetPublicSubjectsQuery, PagedResult<PublicSubjectDto>>
 {
     private readonly IAppDbContext _context;
+    private readonly ISubjectCacheService _cache;
 
-    public GetPublicSubjectsQueryHandler(IAppDbContext context)
+    public GetPublicSubjectsQueryHandler(IAppDbContext context, ISubjectCacheService? cache = null)
     {
         _context = context;
+        _cache = cache ?? NoOpSubjectCacheService.Instance;
     }
 
-    public async Task<PagedResult<PublicSubjectDto>> Handle(GetPublicSubjectsQuery request, CancellationToken cancellationToken)
+    public Task<PagedResult<PublicSubjectDto>> Handle(GetPublicSubjectsQuery request, CancellationToken cancellationToken) =>
+        _cache.GetPublicSubjectsAsync(request, () => QueryAsync(request, cancellationToken), cancellationToken);
+
+    private async Task<PagedResult<PublicSubjectDto>> QueryAsync(GetPublicSubjectsQuery request, CancellationToken cancellationToken)
     {
         // Public Invariant: Subject must be active AND Category must be active
         var query = _context.Subjects
@@ -29,8 +36,11 @@ public class GetPublicSubjectsQueryHandler : IRequestHandler<GetPublicSubjectsQu
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = request.Search.Trim().ToLower();
-            query = query.Where(s => s.Name.ToLower().Contains(search));
+            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Search)) + "%";
+            query = query.Where(s => EF.Functions.Like(
+                VietnameseSearch.UnaccentImmutable(s.Name)!.ToLower(),
+                pattern, @"\"));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

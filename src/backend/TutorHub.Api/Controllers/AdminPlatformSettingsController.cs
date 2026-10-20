@@ -39,22 +39,16 @@ public class AdminPlatformSettingsController : ControllerBase
     [HttpPut("platform-settings/fee-rate")]
     [ProducesResponseType(typeof(ApiResponse<PlatformSettingDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdatePlatformFeeRate(
-        [FromBody] UpdatePlatformFeeRequest request,
+        [FromBody] AdminUpdatePlatformFeeCommand command,
         CancellationToken cancellationToken)
     {
-        var command = new AdminUpdatePlatformFeeCommand(
-            NewFeeRate: request.NewFeeRate,
-            Reason: request.Reason
-        );
-
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<PlatformSettingDto>.SuccessResult(result, "Platform fee rate updated successfully."));
     }
 
     /// <summary>
     /// Admin: Upsert a generic versioned platform policy (F-17 plumbing).
-    /// Allowed keys: VerificationWindowHours, ReviewWindowDays, CancellationPolicy,
-    /// RefundRules, WithdrawalRules. Values stay opaque until D-01..D-08 decide semantics.
+    /// Allowed key: ReviewWindowDays. Values stay opaque until D-01..D-08 decide semantics.
     /// </summary>
     [HttpPut("platform-settings/{key}")]
     [ProducesResponseType(typeof(ApiResponse<PlatformSettingDto>), StatusCodes.Status200OK)]
@@ -87,11 +81,6 @@ public class AdminPlatformSettingsController : ControllerBase
         return Ok(ApiResponse<PlatformRevenueAnalyticsDto>.SuccessResult(result, "Platform revenue analytics retrieved successfully."));
     }
 }
-
-public record UpdatePlatformFeeRequest(
-    decimal NewFeeRate,
-    string Reason
-);
 
 public record UpsertPlatformSettingRequest(
     string Value,

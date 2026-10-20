@@ -32,13 +32,9 @@ public class BookingsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CreateBooking(
-        [FromBody] CreateBookingRequest request,
+        [FromBody] CreateBookingCommand command,
         CancellationToken cancellationToken)
     {
-        var command = new CreateBookingCommand(
-            ServiceId: request.ServiceId
-        );
-
         var result = await _sender.Send(command, cancellationToken);
 
         return StatusCode(

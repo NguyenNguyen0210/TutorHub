@@ -89,7 +89,7 @@ export default function CategoryFilterBar({
               setDropdownOpen(false);
             }}
             className={cn(
-              'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13.5px] font-medium shrink-0 transition-all cursor-pointer whitespace-nowrap',
+              'flex items-center gap-2 px-3.5 py-1.5 min-h-[44px] rounded-lg text-[13.5px] font-medium shrink-0 transition-all cursor-pointer whitespace-nowrap',
               !selectedCategoryId
                 ? 'bg-brand-primary-600 text-white shadow-sm font-semibold'
                 : 'bg-transparent text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
@@ -113,7 +113,7 @@ export default function CategoryFilterBar({
                   setDropdownOpen(false);
                 }}
                 className={cn(
-                  'flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13.5px] font-medium shrink-0 transition-all cursor-pointer whitespace-nowrap',
+                  'flex items-center gap-2 px-3.5 py-1.5 min-h-[44px] rounded-lg text-[13.5px] font-medium shrink-0 transition-all cursor-pointer whitespace-nowrap',
                   isActive
                     ? 'bg-brand-primary-600 text-white shadow-sm font-semibold'
                     : 'bg-transparent text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
@@ -132,7 +132,7 @@ export default function CategoryFilterBar({
                 type="button"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13.5px] font-medium transition-all cursor-pointer whitespace-nowrap',
+                  'flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-lg text-[13.5px] font-medium transition-all cursor-pointer whitespace-nowrap',
                   activeOtherCategory
                     ? 'bg-brand-primary-600 text-white shadow-sm font-semibold'
                     : 'bg-transparent text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'

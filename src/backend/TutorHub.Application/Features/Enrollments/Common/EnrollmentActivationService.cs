@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Settings;
@@ -22,10 +23,12 @@ public interface IEnrollmentActivationService
 public class EnrollmentActivationService : IEnrollmentActivationService
 {
     private readonly IAppDbContext _context;
+    private readonly IPlatformSettingCacheService _cache;
 
-    public EnrollmentActivationService(IAppDbContext context)
+    public EnrollmentActivationService(IAppDbContext context, IPlatformSettingCacheService? cache = null)
     {
         _context = context;
+        _cache = cache ?? NoOpPlatformSettingCacheService.Instance;
     }
 
     public async Task<Enrollment> ActivateAsync(Booking booking, DateTime now, CancellationToken cancellationToken)
@@ -39,9 +42,12 @@ public class EnrollmentActivationService : IEnrollmentActivationService
         // NO FALLBACK: a missing or malformed setting must fail loudly instead of
         // silently snapshotting a guessed rate. Parsing is invariant-culture so a
         // machine whose culture uses '.' as a group separator cannot corrupt it.
-        var feeSetting = await _context.PlatformSettings
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Key == PlatformSettingKeys.PlatformFeeRate, cancellationToken);
+        // The snapshot (value + version) is cached briefly; failures are never
+        // cached, and a cache outage falls back to the database.
+        var feeSetting = await _cache.GetSettingAsync(
+            PlatformSettingKeys.PlatformFeeRate,
+            ct => QueryFeeSettingAsync(ct),
+            cancellationToken);
 
         if (feeSetting == null)
         {
@@ -128,5 +134,16 @@ public class EnrollmentActivationService : IEnrollmentActivationService
             booking.TutorProfile.UserId));
 
         return enrollment;
+    }
+
+    private async Task<PlatformSettingSnapshot?> QueryFeeSettingAsync(CancellationToken cancellationToken)
+    {
+        var setting = await _context.PlatformSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Key == PlatformSettingKeys.PlatformFeeRate, cancellationToken);
+
+        return setting is null
+            ? null
+            : new PlatformSettingSnapshot(setting.Key, setting.Value, setting.CurrentVersion);
     }
 }

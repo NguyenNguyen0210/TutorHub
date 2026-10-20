@@ -150,17 +150,9 @@ public class AdminStudentWalletController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AdjustWallet(
-        [FromBody] AdminAdjustWalletApiRequest request,
+        [FromBody] AdminAdjustStudentWalletCommand command,
         CancellationToken cancellationToken)
     {
-        var command = new AdminAdjustStudentWalletCommand(
-            request.StudentWalletId,
-            request.Amount,
-            request.Direction,
-            request.Reason,
-            request.ReferenceId
-        );
-
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<StudentWalletDto>.SuccessResult(result, "Student wallet balance adjusted successfully."));
     }

@@ -62,7 +62,13 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
 
         // 3. Domain Logic: Cancel sessions and compute refund (INV-REFUND-001)
         var now = _clock.UtcNow;
-        var refundAmount = enrollment.Cancel(request.Reason, CancelledBy.Tutor);
+
+        if (enrollment.Sessions.Any(s => s.Status == SessionStatus.AwaitingPayout))
+        {
+            throw new ConflictException("Cannot cancel enrollment while sessions are in the 12-hour grace period. Resolve or wait for those sessions first.");
+        }
+
+        var refundAmount = enrollment.Cancel(request.Reason, CancelledBy.Tutor, now);
 
         // 4. Financial Escrow Adjustment & Refund Record. Lock the tutor wallet
         // row so concurrent payouts/cancellations cannot race the escrow debit.

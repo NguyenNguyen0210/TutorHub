@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 
@@ -11,15 +12,18 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
     private readonly IClock _clock;
     private readonly IPasswordHasher _passwordHasher;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ITokenVersionCache _tokenVersionCache;
 
     public ChangePasswordCommandHandler(
         IAppDbContext context, IClock clock,
-        IPasswordHasher passwordHasher, ICurrentUserService currentUserService)
+        IPasswordHasher passwordHasher, ICurrentUserService currentUserService,
+        ITokenVersionCache tokenVersionCache)
     {
         _context = context;
         _clock = clock;
         _passwordHasher = passwordHasher;
         _currentUserService = currentUserService;
+        _tokenVersionCache = tokenVersionCache;
     }
 
     public async Task<bool> Handle(ChangePasswordCommand request, CancellationToken cancellationToken)
@@ -40,6 +44,10 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
         }
 
         user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
+
+        // WP6: kill all other in-flight access tokens instantly. Bumped BEFORE
+        // save so the new version persists in the same transaction as the hash.
+        user.BumpTokenVersion();
 
         // Security best practice: Revoke all active refresh tokens when password changes
         var activeTokens = await _context.RefreshTokens
@@ -93,6 +101,11 @@ Trung tâm An toàn & Bảo mật TutorHub",
         _context.EmailDeliveries?.Add(securityEmail);
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // WP6: drop the cached version so the next request re-reads the bumped
+        // one from the database. Best-effort (the cache contract never throws).
+        await _tokenVersionCache.EvictAsync(user.Id, cancellationToken);
+
         return true;
     }
 }

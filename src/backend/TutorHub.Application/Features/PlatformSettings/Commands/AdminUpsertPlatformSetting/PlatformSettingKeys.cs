@@ -14,30 +14,16 @@ public static class PlatformSettingKeys
     /// </summary>
     public const string PlatformFeeRate = "PlatformFeeRate";
 
-    public const string VerificationWindowHours = "VerificationWindowHours";
     public const string ReviewWindowDays = "ReviewWindowDays";
-    public const string CancellationPolicy = "CancellationPolicy";
-    public const string RefundRules = "RefundRules";
-    public const string WithdrawalRules = "WithdrawalRules";
 
     public static readonly string[] All =
     {
-        VerificationWindowHours,
-        ReviewWindowDays,
-        CancellationPolicy,
-        RefundRules,
-        WithdrawalRules
+        ReviewWindowDays
     };
 
     public static readonly Dictionary<string, string> Defaults = new()
     {
-        // 12h grace period / VerificationWindowHours.
-        [VerificationWindowHours] = "24",
         // 30d matches review eligibility window in CreateEnrollmentReview today.
-        [ReviewWindowDays] = "30",
-        // Opaque JSON placeholders; semantics pending D-01/D-03/D-08.
-        [CancellationPolicy] = "{}",
-        [RefundRules] = "{}",
-        [WithdrawalRules] = "{}"
+        [ReviewWindowDays] = "30"
     };
 }

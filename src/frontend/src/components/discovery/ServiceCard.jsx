@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
@@ -56,7 +56,6 @@ const THEME_BY_CATEGORY = {
 };
 
 export default function ServiceCard({ service }) {
-  const navigate = useNavigate();
   const [isFavorite, setIsFavorite] = useState(false);
 
   const theme = THEME_BY_CATEGORY[service.categoryName] || THEME_BY_CATEGORY.default;

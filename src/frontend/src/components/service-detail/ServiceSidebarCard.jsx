@@ -11,7 +11,7 @@ import bookingService from '@/services/booking.service';
 export default function ServiceSidebarCard({ service, onBookNow }) {
   const navigate = useNavigate();
   const toast = useToast();
-  const { isAuthenticated, role, user } = useAuthStore();
+  const { isAuthenticated, role } = useAuthStore();
   const [bookingLoading, setBookingLoading] = useState(false);
 
   const tutor = service.tutor || {};

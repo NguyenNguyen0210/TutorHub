@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import Money from '@/components/ui/Money';
 
 export default function ServiceHeroSection({
   searchKeyword,
@@ -18,13 +19,17 @@ export default function ServiceHeroSection({
     'Kỹ năng mềm',
   ],
   onTagClick,
+  sampleServices = [],
 }) {
+  const visibleSamples = Array.isArray(sampleServices) ? sampleServices.slice(0, 3) : [];
+  const showSamples = visibleSamples.length > 0;
+
   return (
     <section className="relative py-6 sm:py-8 lg:py-9 bg-brand-primary-50 border-b border-brand-primary-100">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">
           {/* Left Column: Breadcrumb, Headline, Search, Popular Tags */}
-          <div className="lg:col-span-7 space-y-3 sm:space-y-3.5">
+          <div className={`${showSamples ? 'lg:col-span-7' : 'lg:col-span-12 max-w-3xl'} space-y-3 sm:space-y-3.5`}>
             {/* Breadcrumb */}
             <nav className="flex items-center gap-1.5 text-[12px] font-medium text-neutral-500" aria-label="Breadcrumb">
               <Link to="/" className="text-neutral-500 hover:text-brand-primary-600 transition-colors">
@@ -35,13 +40,13 @@ export default function ServiceHeroSection({
             </nav>
 
             <h1 className="text-[28px] sm:text-[36px] lg:text-[40px] font-bold text-neutral-900 leading-[1.18] tracking-tight">
-              Dịch vụ học tập đa dạng <br />
-              cho <span className="text-brand-primary-600">mọi mục tiêu</span>
+              Gói học trọn gói, <br />
+              <span className="text-brand-primary-600">giá minh bạch</span>
             </h1>
 
             <p className="text-[13.5px] sm:text-[14.5px] text-neutral-600 max-w-xl leading-relaxed">
-              Khám phá các gói học gia sư, chương trình luyện thi theo lộ trình và nhiều
-              dịch vụ học tập chất lượng từ đội ngũ gia sư hàng đầu trên TutorHub.
+              Mỗi gói ghi rõ số buổi, giá mỗi buổi và học phí trọn gói —
+              kèm buổi học thử để bạn yên tâm bắt đầu.
             </p>
 
             {/* Floating Search Bar */}
@@ -50,7 +55,7 @@ export default function ServiceHeroSection({
                 e.preventDefault();
                 onSearchSubmit(searchKeyword);
               }}
-              className="relative w-full max-w-[560px] h-[48px] flex items-center bg-surface p-1 rounded-full border border-neutral-200/90 shadow-brand-sm hover:shadow-brand-md focus-within:ring-2 focus-within:ring-brand-primary-600/20 focus-within:border-brand-primary-600 transition-all"
+              className="relative w-full max-w-[560px] h-14 flex items-center bg-surface p-1 rounded-full border border-neutral-200/90 shadow-brand-sm hover:shadow-brand-md focus-within:ring-2 focus-within:ring-brand-primary-600/20 focus-within:border-brand-primary-600 transition-all"
               role="search"
               aria-label="Tìm kiếm dịch vụ học tập"
             >
@@ -85,7 +90,7 @@ export default function ServiceHeroSection({
                 type="submit"
                 variant="primary"
                 size="md"
-                className="!rounded-full px-4 h-[38px] text-[13px] font-semibold shrink-0 gap-1.5 shadow-sm"
+                className="!rounded-full px-4 h-11 text-[13px] font-semibold shrink-0 gap-1.5 shadow-sm"
               >
                 <span>Tìm dịch vụ</span>
                 <Icon name="arrow_forward" size="xs" />
@@ -95,7 +100,7 @@ export default function ServiceHeroSection({
             {/* Popular Tags */}
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[12.5px]">
               <span className="font-semibold text-neutral-500">Phổ biến:</span>
-              {popularTags.map((tag) => (
+              {(popularTags ?? []).map((tag) => (
                 <button
                   key={tag}
                   type="button"
@@ -108,63 +113,69 @@ export default function ServiceHeroSection({
             </div>
           </div>
 
-          {/* Right Column: Visual Graphic Banner with Student & Floating Benefit Badges */}
-          <div className="lg:col-span-5 relative flex items-center justify-center lg:justify-end">
-            <div className="relative w-full max-w-[460px] flex items-center justify-center pt-2 pb-1 select-none">
-              {/* Soft ambient backlight */}
-              <div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] bg-brand-primary-200/40 rounded-full blur-3xl -z-10 pointer-events-none"
-                aria-hidden="true"
-              />
-
-              {/* Floating person cutout, same as main hero (/register & /login) */}
-              <img
-                src="/images/transparent-student-clean.png"
-                alt="Học viên TutorHub học tập hiệu quả cùng gia sư"
-                className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-sm"
-                loading="eager"
-              />
-
-              {/* Floating Benefit Badge 1: Top Right - Gói học chất lượng */}
-              <div className="absolute top-4 right-0 sm:right-1 bg-white/95 backdrop-blur-md p-2.5 px-3 rounded-2xl shadow-md border border-white/80 flex items-center gap-2 animate-float z-20">
-                <div className="w-7 h-7 rounded-xl bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center shrink-0">
-                  <Icon name="school" size="sm" />
-                </div>
-                <div>
-                  <p className="text-[11.5px] font-bold text-fg leading-tight">Gói học chất lượng</p>
-                  <p className="text-[10px] text-neutral-500 font-medium">Được kiểm duyệt kỹ lưỡng</p>
-                </div>
-              </div>
-
-              {/* Floating Benefit Badge 2: Middle Right - Đa dạng cấp độ */}
-              <div
-                className="absolute top-1/2 -right-2 sm:-right-4 transform -translate-y-1/2 bg-white/95 backdrop-blur-md p-2.5 px-3 rounded-2xl shadow-md border border-white/80 flex items-center gap-2 animate-float z-20"
-                style={{ animationDelay: '1.2s' }}
-              >
-                <div className="w-7 h-7 rounded-xl bg-success-subtle text-success-strong flex items-center justify-center shrink-0">
-                  <Icon name="trending_up" size="sm" />
-                </div>
-                <div>
-                  <p className="text-[11.5px] font-bold text-fg leading-tight">Đa dạng cấp độ</p>
-                  <p className="text-[10px] text-neutral-500 font-medium">Phù hợp mọi mục tiêu</p>
-                </div>
-              </div>
-
-              {/* Floating Benefit Badge 3: Bottom Left - Học linh hoạt */}
-              <div
-                className="absolute bottom-2 left-0 sm:left-1 bg-white/95 backdrop-blur-md p-2.5 px-3 rounded-2xl shadow-md border border-white/80 flex items-center gap-2 animate-float z-20"
-                style={{ animationDelay: '0.6s' }}
-              >
-                <div className="w-7 h-7 rounded-xl bg-brand-secondary-50 text-brand-secondary-600 flex items-center justify-center shrink-0">
-                  <Icon name="groups" size="sm" />
-                </div>
-                <div>
-                  <p className="text-[11.5px] font-bold text-fg leading-tight">Học linh hoạt</p>
-                  <p className="text-[10px] text-neutral-500 font-medium">Online hoặc tại nhà</p>
-                </div>
+          {/* Right Column: Real package mini-cards — hidden when no data */}
+          {showSamples && (
+            <div className="lg:col-span-5">
+              <div className="w-full max-w-[460px] mx-auto lg:ml-auto space-y-2.5">
+                <h2 className="text-[11.5px] font-bold uppercase tracking-wider text-neutral-500">
+                  Gói học nổi bật
+                </h2>
+                {visibleSamples.map((service, index) => {
+                  const totalSessions = Number(service.totalSessions) || 0;
+                  const sessionDuration = Number(service.sessionDurationMinutes) || 0;
+                  const price = Number(service.price) || 0;
+                  const sessionLabel =
+                    totalSessions > 0 && sessionDuration > 0
+                      ? `${totalSessions} buổi · ${sessionDuration} phút/buổi`
+                      : totalSessions > 0
+                        ? `${totalSessions} buổi`
+                        : null;
+                  return (
+                    <Link
+                      key={service.id ?? service.title ?? index}
+                      to={`/services/${service.id}`}
+                      className="group flex items-center justify-between gap-3 bg-surface rounded-2xl border border-neutral-200/90 shadow-sm hover:shadow-brand-md hover:border-brand-primary-600/40 transition-all p-3.5"
+                    >
+                      <div className="min-w-0 space-y-1">
+                        <span className="inline-block px-2 py-0.5 rounded-md text-[10.5px] font-bold tracking-wide uppercase line-clamp-1 bg-brand-primary-100/70 text-brand-primary-700">
+                          {service.subjectName || service.categoryName || 'Gói học'}
+                        </span>
+                        <p
+                          title={service.title}
+                          className="text-[13.5px] font-bold text-neutral-900 group-hover:text-brand-primary-600 transition-colors line-clamp-1 leading-snug"
+                        >
+                          {service.title}
+                        </p>
+                        {sessionLabel && (
+                          <p className="flex items-center gap-1 text-[12px] text-neutral-500 font-medium">
+                            <Icon name="schedule" size="xs" className="text-brand-primary-600" />
+                            <span>{sessionLabel}</span>
+                          </p>
+                        )}
+                      </div>
+                      <div className="shrink-0 text-right space-y-0.5">
+                        {price > 0 && (
+                          <>
+                            <span className="text-[10.5px] text-neutral-500 font-medium block">
+                              Trọn gói
+                            </span>
+                            <Money
+                              value={price}
+                              className="text-[15px] font-extrabold text-brand-primary-600"
+                            />
+                          </>
+                        )}
+                        <span className="flex items-center justify-end gap-0.5 text-[12px] font-semibold text-neutral-400 group-hover:text-brand-primary-600 transition-colors">
+                          <span>Xem gói</span>
+                          <Icon name="arrow_forward" size="xs" />
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </section>
@@ -177,4 +188,15 @@ ServiceHeroSection.propTypes = {
   onSearchSubmit: PropTypes.func.isRequired,
   popularTags: PropTypes.arrayOf(PropTypes.string),
   onTagClick: PropTypes.func.isRequired,
+  sampleServices: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string,
+      title: PropTypes.string,
+      subjectName: PropTypes.string,
+      categoryName: PropTypes.string,
+      totalSessions: PropTypes.number,
+      sessionDurationMinutes: PropTypes.number,
+      price: PropTypes.number,
+    }),
+  ),
 };

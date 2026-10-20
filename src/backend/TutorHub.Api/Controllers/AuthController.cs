@@ -56,9 +56,8 @@ public class AuthController : ControllerBase
     [EnableRateLimiting(RateLimitingPolicies.AuthStrict)]
     [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Login([FromBody] LoginCommand command, CancellationToken cancellationToken)
     {
-        var command = new LoginCommand(request.Email, request.Password);
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<AuthResponseDto>.SuccessResult(result, "Logged in successfully."));
@@ -71,9 +70,8 @@ public class AuthController : ControllerBase
     [EnableRateLimiting(RateLimitingPolicies.AuthStrict)]
     [ProducesResponseType(typeof(ApiResponse<RefreshTokenResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenCommand command, CancellationToken cancellationToken)
     {
-        var command = new RefreshTokenCommand(request.RefreshToken);
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<RefreshTokenResponseDto>.SuccessResult(result, "Tokens refreshed successfully."));
@@ -84,9 +82,8 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpPost("logout")]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Logout([FromBody] LogoutRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Logout([FromBody] LogoutCommand command, CancellationToken cancellationToken)
     {
-        var command = new LogoutCommand(request.RefreshToken);
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<bool>.SuccessResult(result, "Logged out successfully."));
@@ -100,9 +97,8 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordCommand command, CancellationToken cancellationToken)
     {
-        var command = new ChangePasswordCommand(request.CurrentPassword, request.NewPassword);
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<bool>.SuccessResult(result, "Password changed successfully."));

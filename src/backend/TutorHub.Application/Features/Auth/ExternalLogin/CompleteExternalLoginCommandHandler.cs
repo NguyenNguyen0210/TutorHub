@@ -250,10 +250,8 @@ public class CompleteExternalLoginCommandHandler
         return user;
     }
 
-    private (string ClientId, string ClientSecret) ResolveCredentials(IExternalAuthProvider provider) =>
-        provider.Provider == ExternalAuthProvider.Facebook
-            ? (_options.Facebook.ClientId, _options.Facebook.ClientSecret)
-            : (_options.Google.ClientId, _options.Google.ClientSecret);
+    private (string ClientId, string ClientSecret) ResolveCredentials(IExternalAuthProvider _) =>
+        (_options.Google.ClientId, _options.Google.ClientSecret);
 
     private static string FirstNonEmpty(string? preferred, string fallback) =>
         string.IsNullOrWhiteSpace(preferred) ? fallback : preferred.Trim();

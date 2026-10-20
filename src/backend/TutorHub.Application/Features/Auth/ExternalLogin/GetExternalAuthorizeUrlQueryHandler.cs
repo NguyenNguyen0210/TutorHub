@@ -67,9 +67,7 @@ public class GetExternalAuthorizeUrlQueryHandler
             throw new BadRequestException("External sign-in is missing its redirect URI configuration.");
         }
 
-        var clientId = provider.Provider == ExternalAuthProvider.Facebook
-            ? _options.Facebook.ClientId
-            : _options.Google.ClientId;
+        var clientId = _options.Google.ClientId;
 
         var codeVerifier = Pkce.CreateCodeVerifier();
         var codeChallenge = Pkce.ComputeCodeChallenge(codeVerifier);

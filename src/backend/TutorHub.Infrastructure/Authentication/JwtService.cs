@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Security;
 using TutorHub.Domain.Entities;
@@ -35,7 +36,9 @@ public class JwtService : IJwtService
             new(JwtRegisteredClaimNames.Name, user.FullName),
             new(ClaimTypes.Name, user.FullName),
             new(ClaimTypes.Role, user.Role.ToString()),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            // WP6: per-user token version for instant revocation (PO 2026-09-29).
+            new(TokenVersionDefaults.VersionClaimType, user.TokenVersion.ToString())
         };
 
         if (tutorProfileId.HasValue)
@@ -51,6 +54,7 @@ public class JwtService : IJwtService
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
+            NotBefore = _clock.UtcNow,
             Expires = _clock.UtcNow.AddMinutes(_jwtOptions.AccessTokenExpirationMinutes),
             Issuer = _jwtOptions.Issuer,
             Audience = _jwtOptions.Audience,

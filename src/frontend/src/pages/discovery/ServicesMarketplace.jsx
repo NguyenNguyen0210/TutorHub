@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
+import { ApiError, generateCorrelationId } from '@/services/api';
 import ServiceHeroSection from '@/components/discovery/ServiceHeroSection';
 import ServiceFilterSidebar from '@/components/discovery/ServiceFilterSidebar';
 import ServiceCard from '@/components/discovery/ServiceCard';
@@ -11,6 +12,7 @@ import { Select } from '@/components/ui/Input';
 import { Pagination } from '@/components/ui/Table';
 import Icon from '@/components/ui/Icon';
 import { formatVND } from '@/utils/formatters';
+import { Drawer } from '@/components/ui/Avatar';
 
 const SORT_OPTIONS = [
   { value: 'priority', label: 'Phù hợp nhất' },
@@ -20,6 +22,12 @@ const SORT_OPTIONS = [
   { value: 'newest', label: 'Mới nhất' },
   { value: 'sessions_desc', label: 'Nhiều buổi học nhất' },
 ];
+
+const MAX_PRICE = 10000000;
+const QUICK_PRICE_CAP = 1000000;
+const QUICK_RATING = 4.8;
+// Timeout tải danh sách: quá hạn tự abort và chuyển error (không treo vô hạn).
+const REQUEST_TIMEOUT_MS = 10000;
 
 export default function ServicesMarketplace() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -31,7 +39,7 @@ export default function ServicesMarketplace() {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoryId') || '');
   const [selectedSubject, setSelectedSubject] = useState(searchParams.get('subjectId') || '');
   const [teachingMode, setTeachingMode] = useState('All');
-  const [priceRange, setPriceRange] = useState(10000000);
+  const [priceRange, setPriceRange] = useState(MAX_PRICE);
   const [minRating, setMinRating] = useState(null);
   const [sortBy, setSortBy] = useState('priority');
   const [pageNumber, setPageNumber] = useState(1);
@@ -44,6 +52,31 @@ export default function ServicesMarketplace() {
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Tăng mỗi lần bấm "Thử Lại" để kích hoạt refetch kể cả khi filter không đổi.
+  const [retryKey, setRetryKey] = useState(0);
+  const handleRetry = () => setRetryKey((k) => k + 1);
+  // Drawer bộ lọc mobile (< lg): sidebar chỉ mount một nơi để không trùng id label.
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [isMobileFilters, setIsMobileFilters] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(max-width: 1023.98px)').matches
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mq = window.matchMedia('(max-width: 1023.98px)');
+    const onChange = (e) => setIsMobileFilters(e.matches);
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    }
+    mq.addListener(onChange);
+    return () => mq.removeListener(onChange);
+  }, []);
+  useEffect(() => {
+    if (!isMobileFilters) setFilterOpen(false);
+  }, [isMobileFilters]);
 
   // Debounce search keyword
   useEffect(() => {
@@ -76,8 +109,12 @@ export default function ServicesMarketplace() {
     };
   }, []);
 
-  // Fetch Services from Backend API with Active Filters
+  // Fetch Services from Backend API with Active Filters.
+  // Timeout 10s: quá hạn abort request và chuyển error (không treo vô hạn).
+  // Cleanup abort + clearTimeout nên không setState sau unmount.
   useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     let cancelled = false;
 
     async function loadServices() {
@@ -87,31 +124,53 @@ export default function ServicesMarketplace() {
 
         const apiSortBy = sortBy === 'priority' ? null : sortBy;
 
-        const result = await tutorService.getPublicServices({
-          categoryId: selectedCategory || null,
-          subjectId: selectedSubject || null,
-          teachingMode,
-          maxPrice: priceRange < 10000000 ? priceRange : null,
-          minRating,
-          search: debouncedKeyword,
-          sortBy: apiSortBy,
-          pageNumber,
-          pageSize,
-        });
+        const result = await tutorService.getPublicServices(
+          {
+            categoryId: selectedCategory || null,
+            subjectId: selectedSubject || null,
+            teachingMode,
+            maxPrice: priceRange < MAX_PRICE ? priceRange : null,
+            minRating,
+            search: debouncedKeyword,
+            sortBy: apiSortBy,
+            pageNumber,
+            pageSize,
+          },
+          { signal: controller.signal }
+        );
 
-        if (!cancelled) {
-          setServices(result.items || []);
-          setTotalCount(result.totalCount || 0);
-        }
+        if (cancelled || controller.signal.aborted) return;
+        clearTimeout(timeoutId);
+        setServices(result.items || []);
+        setTotalCount(result.totalCount || 0);
+        setLoading(false);
       } catch (err) {
-        if (!cancelled) {
-          console.error('[ServicesMarketplace] Lỗi truy vấn dịch vụ học tập:', err);
-          setError(err);
-        }
-      } finally {
-        if (!cancelled) {
+        if (cancelled) return;
+        clearTimeout(timeoutId);
+        if (controller.signal.aborted) {
+          const correlationId = generateCorrelationId();
+          const timeoutErr = new ApiError(
+            'Yêu cầu quá thời gian (10 giây). Vui lòng kiểm tra kết nối mạng và bấm Thử Lại.',
+            { status: 0, kind: 'network' }
+          );
+          console.error('[ServicesMarketplace] Timeout tải dịch vụ (10s):', {
+            correlationId,
+            error: err,
+          });
+          setServices([]);
+          setTotalCount(0);
+          setError(timeoutErr);
           setLoading(false);
+          return;
         }
+        console.error('[ServicesMarketplace] Lỗi truy vấn dịch vụ học tập:', {
+          correlationId: err?.traceId ?? null,
+          error: err,
+        });
+        setServices([]);
+        setTotalCount(0);
+        setError(err);
+        setLoading(false);
       }
     }
 
@@ -119,6 +178,8 @@ export default function ServicesMarketplace() {
 
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
+      controller.abort();
     };
   }, [
     selectedCategory,
@@ -129,6 +190,7 @@ export default function ServicesMarketplace() {
     debouncedKeyword,
     sortBy,
     pageNumber,
+    retryKey,
   ]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -140,7 +202,7 @@ export default function ServicesMarketplace() {
     setSelectedCategory('');
     setSelectedSubject('');
     setTeachingMode('All');
-    setPriceRange(10000000);
+    setPriceRange(MAX_PRICE);
     setMinRating(null);
     setSortBy('priority');
     setPageNumber(1);
@@ -154,6 +216,12 @@ export default function ServicesMarketplace() {
     setPageNumber(1);
   };
 
+  // Xóa 1 chip lọc + quay về trang 1 (tránh kẹt trang sâu sau khi nới lọc).
+  const clearAndResetPage = (fn) => () => {
+    fn();
+    setPageNumber(1);
+  };
+
   // Active filters list for chips bar
   const activeFilters = useMemo(() => {
     const list = [];
@@ -162,10 +230,10 @@ export default function ServicesMarketplace() {
       list.push({
         key: 'category',
         label: `Danh mục: ${catObj?.name || 'Đã chọn'}`,
-        clear: () => {
+        clear: clearAndResetPage(() => {
           setSelectedCategory('');
           setSelectedSubject('');
-        },
+        }),
       });
     }
     if (selectedSubject) {
@@ -173,7 +241,7 @@ export default function ServicesMarketplace() {
       list.push({
         key: 'subject',
         label: `Môn: ${subObj?.name || 'Đã chọn'}`,
-        clear: () => setSelectedSubject(''),
+        clear: clearAndResetPage(() => setSelectedSubject('')),
       });
     }
     if (teachingMode !== 'All') {
@@ -186,32 +254,32 @@ export default function ServicesMarketplace() {
       list.push({
         key: 'mode',
         label: `Hình thức: ${modeLabel}`,
-        clear: () => setTeachingMode('All'),
+        clear: clearAndResetPage(() => setTeachingMode('All')),
       });
     }
-    if (priceRange < 10000000) {
+    if (priceRange < MAX_PRICE) {
       list.push({
         key: 'price',
         label: `Học phí ≤ ${formatVND(priceRange)}`,
-        clear: () => setPriceRange(10000000),
+        clear: clearAndResetPage(() => setPriceRange(MAX_PRICE)),
       });
     }
     if (minRating !== null) {
       list.push({
         key: 'rating',
         label: `Đánh giá: ≥ ${minRating}★`,
-        clear: () => setMinRating(null),
+        clear: clearAndResetPage(() => setMinRating(null)),
       });
     }
     if (searchKeyword.trim()) {
       list.push({
         key: 'search',
         label: `"${searchKeyword.trim()}"`,
-        clear: () => {
+        clear: clearAndResetPage(() => {
           setSearchKeyword('');
           setDebouncedKeyword('');
           setSearchParams({});
-        },
+        }),
       });
     }
     return list;
@@ -233,6 +301,39 @@ export default function ServicesMarketplace() {
     window.scrollTo({ top: 380, behavior: 'smooth' });
   };
 
+  // Sidebar dùng chung cho cột trái desktop và drawer mobile (chỉ mount một nơi).
+  const filterSidebar = (
+    <ServiceFilterSidebar
+      categories={categories}
+      subjects={subjects}
+      selectedCategoryId={selectedCategory}
+      onSelectCategory={(id) => {
+        setSelectedCategory(id);
+        setPageNumber(1);
+      }}
+      selectedSubjectId={selectedSubject}
+      onSelectSubject={(id) => {
+        setSelectedSubject(id);
+        setPageNumber(1);
+      }}
+      teachingMode={teachingMode}
+      onTeachingModeChange={(mode) => {
+        setTeachingMode(mode);
+        setPageNumber(1);
+      }}
+      priceRange={priceRange}
+      onPriceRangeChange={(val) => {
+        setPriceRange(val);
+        setPageNumber(1);
+      }}
+      minRating={minRating}
+      onMinRatingChange={(r) => {
+        setMinRating(r);
+        setPageNumber(1);
+      }}
+    />
+  );
+
   return (
     <div className="w-full flex-1 bg-canvas pb-16">
       {/* 1. Hero Section */}
@@ -244,46 +345,43 @@ export default function ServicesMarketplace() {
           setPageNumber(1);
         }}
         onTagClick={handleTagClick}
+        sampleServices={services}
       />
 
       {/* 2. Main Discovery Container: 2 Columns */}
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
         <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-7 items-start">
-          {/* Left Column: Filter Sidebar */}
-          <div className="w-full shrink-0">
-            <ServiceFilterSidebar
-              categories={categories}
-              subjects={subjects}
-              selectedCategoryId={selectedCategory}
-              onSelectCategory={(id) => {
-                setSelectedCategory(id);
-                setPageNumber(1);
-              }}
-              selectedSubjectId={selectedSubject}
-              onSelectSubject={(id) => {
-                setSelectedSubject(id);
-                setPageNumber(1);
-              }}
-              teachingMode={teachingMode}
-              onTeachingModeChange={(mode) => {
-                setTeachingMode(mode);
-                setPageNumber(1);
-              }}
-              priceRange={priceRange}
-              onPriceRangeChange={(val) => {
-                setPriceRange(val);
-                setPageNumber(1);
-              }}
-              minRating={minRating}
-              onMinRatingChange={(r) => {
-                setMinRating(r);
-                setPageNumber(1);
-              }}
-            />
-          </div>
+          {/* Left Column: Filter Sidebar (desktop; mobile dùng drawer) */}
+          {!isMobileFilters && (
+            <div className="w-full shrink-0">
+              {filterSidebar}
+            </div>
+          )}
 
           {/* Right Column: Active Chips + Count Toolbar + Grid */}
           <div className="flex-1 min-w-0 space-y-5">
+            {/* Mobile filter trigger: mở drawer từ trái, badge đếm filter active */}
+            <div className="lg:hidden">
+              <button
+                type="button"
+                onClick={() => setFilterOpen(true)}
+                aria-haspopup="dialog"
+                className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-brand-md border border-border bg-surface text-body-reg font-semibold text-fg shadow-sm active:scale-[0.98] transition-all"
+              >
+                <Icon name="tune" size="sm" className="text-brand-primary-600" />
+                <span>Bộ lọc</span>
+                {activeFilters.length > 0 && (
+                  <span
+                    role="status"
+                    aria-label={`${activeFilters.length} bộ lọc đang áp dụng`}
+                    className="min-w-[22px] h-[22px] px-1 rounded-full bg-brand-primary-600 text-white text-[11px] font-bold inline-flex items-center justify-center"
+                  >
+                    {activeFilters.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
             {/* Active Filters Bar */}
             {activeFilters.length > 0 && (
               <div className="flex flex-wrap items-center gap-2 p-3 bg-brand-primary-50/70 border border-brand-primary-100/90 rounded-[14px] shadow-sm">
@@ -300,7 +398,8 @@ export default function ServicesMarketplace() {
                     <button
                       type="button"
                       onClick={af.clear}
-                      className="hover:text-danger transition-colors font-bold text-[14px] leading-none cursor-pointer -mr-0.5 ml-0.5"
+                      aria-label={`Xóa bộ lọc ${af.label}`}
+                      className="hover:text-danger transition-colors font-bold text-[14px] leading-none cursor-pointer ml-0.5 -mr-3 -my-3 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600"
                       title="Gỡ bộ lọc này"
                     >
                       ×
@@ -310,10 +409,10 @@ export default function ServicesMarketplace() {
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className="text-[12px] font-semibold text-neutral-500 hover:text-danger-strong transition-colors ml-auto cursor-pointer flex items-center gap-1"
+                  className="text-[12px] font-semibold text-neutral-500 hover:text-danger-strong transition-colors ml-auto cursor-pointer flex items-center gap-1 min-h-[44px] px-2"
                 >
                   <Icon name="close" size="xs" className="w-3.5 h-3.5" />
-                  <span>Xóa tất cả</span>
+                  <span>Xóa bộ lọc</span>
                 </button>
               </div>
             )}
@@ -341,7 +440,7 @@ export default function ServicesMarketplace() {
                       setSortBy(e.target.value);
                       setPageNumber(1);
                     }}
-                    className="!h-9 !py-1 text-[13px] font-medium bg-surface border border-neutral-200/90 rounded-lg shadow-sm hover:border-brand-primary-600/50 focus:border-brand-primary-600 focus:ring-2 focus:ring-brand-primary-600/15 cursor-pointer"
+                    className="min-h-[44px] !py-1 text-[13px] font-medium bg-surface border border-neutral-200/90 rounded-lg shadow-sm hover:border-brand-primary-600/50 focus:border-brand-primary-600 focus:ring-2 focus:ring-brand-primary-600/15 cursor-pointer"
                   >
                     {SORT_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -353,32 +452,82 @@ export default function ServicesMarketplace() {
               </div>
             </div>
 
+            {/* Quick filter chips — two-way synced with sidebar */}
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Bộ lọc nhanh">
+              <span className="text-[12.5px] font-semibold text-neutral-500">Lọc nhanh:</span>
+              <button
+                type="button"
+                aria-pressed={teachingMode === 'Online'}
+                onClick={() => {
+                  setTeachingMode(teachingMode === 'Online' ? 'All' : 'Online');
+                  setPageNumber(1);
+                }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer ${
+                  teachingMode === 'Online'
+                    ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
+                    : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
+                }`}
+              >
+                <Icon name="devices" size="xs" className="w-3.5 h-3.5" />
+                <span>Online</span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={priceRange <= QUICK_PRICE_CAP}
+                onClick={() => {
+                  setPriceRange(priceRange <= QUICK_PRICE_CAP ? MAX_PRICE : QUICK_PRICE_CAP);
+                  setPageNumber(1);
+                }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer ${
+                  priceRange <= QUICK_PRICE_CAP
+                    ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
+                    : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
+                }`}
+              >
+                <Icon name="payments" size="xs" className="w-3.5 h-3.5" />
+                <span>Dưới 1 triệu</span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={minRating === QUICK_RATING}
+                onClick={() => {
+                  setMinRating(minRating === QUICK_RATING ? null : QUICK_RATING);
+                  setPageNumber(1);
+                }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer ${
+                  minRating === QUICK_RATING
+                    ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
+                    : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
+                }`}
+              >
+                <Icon name="star" size="xs" className="w-3.5 h-3.5" />
+                <span>4.8+ xuất sắc</span>
+              </button>
+            </div>
+
             {/* Error State */}
             {error && !loading && (
               <ErrorState
                 error={error}
                 title="Không thể tải danh sách dịch vụ học tập"
-                onRetry={handleResetFilters}
+                message={error.message}
+                onRetry={handleRetry}
+                backPath="/"
+                backLabel="Về trang chủ"
               />
             )}
 
             {/* Loading Skeletons */}
-            {loading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {Array.from({ length: 6 }).map((_, idx) => (
-                  <CardSkeleton key={idx} />
-                ))}
-              </div>
-            )}
+            {loading && <CardSkeleton count={6} className="gap-5" />}
 
             {/* Empty State */}
             {!loading && !error && services.length === 0 && (
               <EmptyState
                 icon="search_off"
                 title="Không tìm thấy dịch vụ học tập phù hợp"
-                description="Hãy thử nới lỏng các tiêu chí lọc, đổi khoảng giá hoặc tìm kiếm với từ khóa khác."
-                actionLabel="Xóa tất cả bộ lọc"
-                onAction={handleResetFilters}
+                description="Bộ lọc hiện tại quá hẹp. Hãy thử nới khoảng giá, đổi danh mục/môn học, tìm từ khóa khác, hoặc gỡ bớt từng bộ lọc bên dưới."
+                filters={activeFilters}
+                onClearAll={handleResetFilters}
               />
             )}
 
@@ -404,7 +553,7 @@ export default function ServicesMarketplace() {
                 {totalPages > 1 && (
                   <div className="pt-8 flex justify-center">
                     <Pagination
-                      pageNumber={pageNumber}
+                      page={pageNumber}
                       totalPages={totalPages}
                       onPageChange={handlePageChange}
                     />
@@ -414,6 +563,36 @@ export default function ServicesMarketplace() {
             )}
           </div>
         </div>
+
+        {/* Mobile filter drawer: trượt từ trái, Áp dụng đóng, Xóa reset */}
+        <Drawer
+          open={filterOpen && isMobileFilters}
+          onClose={() => setFilterOpen(false)}
+          side="left"
+          title="Bộ lọc tìm kiếm"
+          widthClass="w-[320px]"
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="flex-1 inline-flex items-center justify-center h-11 px-4 rounded-brand-md border border-border bg-surface text-body-reg font-semibold text-fg-secondary active:scale-[0.98] transition-all"
+              >
+                Xóa
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterOpen(false)}
+                className="flex-1 inline-flex items-center justify-center h-11 px-4 rounded-brand-md bg-brand-primary-600 text-white text-body-reg font-semibold shadow-sm active:scale-[0.98] transition-all"
+              >
+                Áp dụng
+                {activeFilters.length > 0 ? ` (${activeFilters.length})` : ''}
+              </button>
+            </>
+          }
+        >
+          {filterSidebar}
+        </Drawer>
       </div>
     </div>
   );

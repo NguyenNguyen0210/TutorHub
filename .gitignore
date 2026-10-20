@@ -102,9 +102,7 @@ Desktop.ini
 # =====================
 .commandcode/
 .kombai/
-docs/project-guide.md
 design.md
-docs/frontend-specification.md
 .playwright-mcp/
 playwright-report/
 test-results/
@@ -118,3 +116,9 @@ test-results/
 __pycache__/
 *.py[cod]
 *.class
+
+.worktrees/
+
+docs/
+
+!.env.production.example

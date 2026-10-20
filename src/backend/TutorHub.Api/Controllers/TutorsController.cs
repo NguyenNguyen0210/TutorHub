@@ -261,10 +261,9 @@ public class TutorsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateMySubjects(
-        [FromBody] UpdateMySubjectsRequest request,
+        [FromBody] UpdateMySubjectsCommand command,
         CancellationToken cancellationToken)
     {
-        var command = new UpdateMySubjectsCommand(request.Subjects);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<List<TutorSubjectDto>>.SuccessResult(result, "Tutor subjects updated successfully."));
     }

@@ -17,6 +17,7 @@ const VARIANT = {
  * API: const toast = useToast(); toast.success('...'), toast.error('...'), toast.info/warning.
  * Lưu ý bất biến: chỉ gọi toast SAU khi promise resolve (không báo thành công trước).
  */
+
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const idRef = useRef(0);

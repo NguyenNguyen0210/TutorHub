@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
+using TutorHub.Application.Common.Search;
 using TutorHub.Application.Features.Categories.DTOs;
 
 namespace TutorHub.Application.Features.Admin.Categories.GetAdminCategories;
@@ -28,8 +29,11 @@ public class GetAdminCategoriesQueryHandler : IRequestHandler<GetAdminCategories
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = request.Search.Trim().ToLower();
-            query = query.Where(c => c.Name.ToLower().Contains(search));
+            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Search)) + "%";
+            query = query.Where(c => EF.Functions.Like(
+                VietnameseSearch.UnaccentImmutable(c.Name)!.ToLower(),
+                pattern, @"\"));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

@@ -56,7 +56,12 @@ export default function ErrorState({
   }
 
   const displayTitle = title || defaultTitle;
-  const displayMessage = message || defaultMessage;
+  const isNetwork = kind === 'network' || status === 0;
+  const trimmedMessage = typeof message === 'string' ? message.trim() : message;
+  const isRawNetworkError =
+    typeof trimmedMessage === 'string' && trimmedMessage.toLowerCase() === 'network error';
+  const displayMessage =
+    isNetwork && (!trimmedMessage || isRawNetworkError) ? defaultMessage : message || defaultMessage;
   const errorDetails =
     Array.isArray(error?.errors) && error.errors.length > 0 ? error.errors : null;
   const traceId = error?.traceId || null;

@@ -44,15 +44,9 @@ public class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateMyProfile(
-        [FromBody] UpdateUserProfileRequest request,
+        [FromBody] UpdateMyProfileCommand command,
         CancellationToken cancellationToken)
     {
-        var command = new UpdateMyProfileCommand(
-            FullName: request.FullName,
-            Phone: request.Phone,
-            AvatarUrl: request.AvatarUrl
-        );
-
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<MyProfileDto>.SuccessResult(result, "Profile updated successfully."));

@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Admin.Users.DTOs;
@@ -14,17 +15,20 @@ public class SuspendUserCommandHandler : IRequestHandler<SuspendUserCommand, Adm
     private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ITokenVersionCache _tokenVersionCache;
 
     public SuspendUserCommandHandler(
         IAppDbContext context,
         IClock clock,
         IAuditLogService auditLogService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ITokenVersionCache tokenVersionCache)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
         _currentUserService = currentUserService;
+        _tokenVersionCache = tokenVersionCache;
     }
 
     public async Task<AdminUserSummaryDto> Handle(SuspendUserCommand request, CancellationToken cancellationToken)
@@ -71,6 +75,10 @@ public class SuspendUserCommandHandler : IRequestHandler<SuspendUserCommand, Adm
             throw new ConflictException(ex.Message);
         }
 
+        // WP6: kill all in-flight access tokens instantly. Bumped BEFORE save
+        // so the new version persists in the same transaction as the suspension.
+        user.BumpTokenVersion();
+
         // 5. Active Refresh Tokens Revocation (Side-effect)
         var nowUtc = _clock.UtcNow;
         var activeTokens = await _context.RefreshTokens
@@ -93,6 +101,10 @@ public class SuspendUserCommandHandler : IRequestHandler<SuspendUserCommand, Adm
             cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // WP6: drop the cached version so the next request re-reads the bumped
+        // one from the database. Best-effort (the cache contract never throws).
+        await _tokenVersionCache.EvictAsync(user.Id, cancellationToken);
 
         var latestAppStatus = user.TutorApplications
             .OrderBy(a => a.Status == TutorApplicationStatus.Approved ? 0 : a.Status == TutorApplicationStatus.Pending ? 1 : 2)

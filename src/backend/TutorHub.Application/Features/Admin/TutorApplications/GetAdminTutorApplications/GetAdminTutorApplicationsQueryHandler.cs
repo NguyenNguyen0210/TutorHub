@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
+using TutorHub.Application.Common.Search;
 using TutorHub.Application.Features.Admin.TutorApplications.DTOs;
 using TutorHub.Domain.Enums;
 
@@ -32,13 +33,14 @@ public class GetAdminTutorApplicationsQueryHandler
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = request.Search.Trim().ToLower();
+            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Search)) + "%";
             query = query.Where(a =>
-                a.User.FullName.ToLower().Contains(search) ||
-                a.User.Email.ToLower().Contains(search) ||
-                (a.User.Phone != null && a.User.Phone.Contains(search)) ||
-                (a.Subject != null && a.Subject.ToLower().Contains(search)) ||
-                (a.University != null && a.University.ToLower().Contains(search)));
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.User.FullName)!.ToLower(), pattern, @"\") ||
+                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.User.Email)!.ToLower(), pattern, @"\") ||
+                (a.User.Phone != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.User.Phone)!.ToLower(), pattern, @"\")) ||
+                (a.Subject != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.Subject)!.ToLower(), pattern, @"\")) ||
+                (a.University != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.University)!.ToLower(), pattern, @"\")));
         }
 
         query = query.OrderByDescending(a => a.SubmittedAt).ThenByDescending(a => a.Id);

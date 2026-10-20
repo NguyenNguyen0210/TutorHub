@@ -86,6 +86,8 @@ export default function ServiceSyllabus({ curriculum, totalSessions, sessionDura
               <button
                 type="button"
                 onClick={() => toggleSession(index)}
+                aria-expanded={isOpen}
+                aria-label={`Buổi ${formattedNum}: ${item.title}`}
                 className="w-full px-5 py-4 flex items-center justify-between gap-4 text-left transition-colors"
               >
                 <div className="flex items-center gap-3.5 min-w-0">
