@@ -89,7 +89,13 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
         // 3. Domain state transition and refund calculation (DEC-C7-REFUND-001)
         var now = _clock.UtcNow;
         var oldStatus = enrollment.Status.ToString();
-        var refundAmount = enrollment.Cancel(request.Reason, CancelledBy.Admin);
+
+        if (enrollment.Sessions.Any(s => s.Status == SessionStatus.AwaitingPayout))
+        {
+            throw new ConflictException("Cannot cancel enrollment while sessions are in the 12-hour grace period. Resolve or wait for those sessions first.");
+        }
+
+        var refundAmount = enrollment.Cancel(request.Reason, CancelledBy.Admin, now);
 
         // 4. Financial Escrow Adjustment & Refund Record (DEC-C7-FINANCE-003).
         // Lock the tutor wallet row so concurrent payouts/cancellations cannot

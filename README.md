@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <b>Hệ thống EdTech Marketplace định hướng dịch vụ (Service & Package-Based Learning), ứng dụng kiến trúc Clean Architecture, CQRS, cơ chế ký quỹ bảo chứng Escrow, giải ngân tự động 12 giờ (Grace Period) và phân giải tranh chấp tài chính 2 giai đoạn.</b>
+  <b>Hệ thống EdTech Marketplace định hướng dịch vụ (Service & Package-Based Learning), ứng dụng kiến trúc Clean Architecture, CQRS, cơ chế ký quỹ bảo chứng Escrow, giải ngân tự động 12 giờ (Grace Period) và phân giải tranh chấp tài chính pre-release trong cửa sổ grace.</b>
 </p>
 
 <p align="center">
@@ -100,17 +100,17 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 * Vòng đời dịch vụ linh hoạt: `Draft` (Bản nháp), `Published` (Đang mở bán), `Paused` (Tạm ngưng nhận học viên mới nhưng vẫn phục vụ học viên đang học), `Unpublished` (Đóng gói).
 
 ### 2. Đặt Lịch & Giữ Chỗ Thanh Toán 15 Phút (Booking TTL Hold)
-* Khi học viên tiến hành đặt lịch, hệ thống tạo khóa giữ chỗ 15 phút (`PendingPayment`).
+* Khi học viên tiến hành đặt lịch, hệ thống tạo Booking ở trạng thái `Holding` (khóa giữ chỗ 15 phút); thanh toán thành công chuyển sang `Paid`, hết hạn chuyển `Expired`.
 * Tích hợp thanh toán trực tuyến kép: Cổng thanh toán quốc gia **VNPay** (thẻ ATM, QR Code, thẻ quốc tế) và **Ví học viên nội bộ**.
 * Tự động giải phóng trạng thái khi học viên hủy hoặc hết thời gian 15 phút.
 
 ### 3. Quy Chế Dời Lịch Tối Thiểu 2 Giờ (2-Hour Notice Policy)
-* Cả học viên và gia sư được phép dời lịch học sang khung giờ khác, với điều kiện bắt buộc: **Thời điểm dời lịch phải cách giờ bắt đầu buổi học tối thiểu 2 giờ** (`SessionSchedulePolicy.MinRescheduleNoticeHours = 2`).
+* **Gia sư** xếp/dời lịch trực tiếp; học viên không tự chọn slot. Cả hai bên có thể hủy một buổi `Unscheduled` hoặc `Scheduled` tương lai; hủy buổi `Scheduled` phải cách thời điểm bắt đầu tối thiểu **2 giờ** (`SessionSchedulePolicy`, cấu hình `Scheduling:MinimumNoticeHours`, default 2).
 * Ngăn chặn hành vi bùng lịch sát giờ, bảo vệ kế hoạch làm việc của cả hai bên.
 
 ### 4. Cơ Chế Giải Ngân Tự Động 12 Giờ (12-Hour Passive Approval Grace Period)
 * Thay thế quy trình xác nhận chấm công 2 đầu phức tạp bằng cơ chế thụ động thông minh:
-  * Sau khi buổi học kết thúc (`SessionStatus.Completed`), kích hoạt cửa sổ chờ 12 giờ (`GracePeriodExpiresAt = CompletedAt + 12h`).
+  * Khi buổi học kết thúc (`EndAt <= now`), `AutoPayoutJob` chuyển Session sang `AwaitingPayout` và mở cửa sổ chờ 12 giờ (`GracePeriodEndsAt = now + 12h`); payout chưa được giải ngân trong thời gian này.
   * Trong 12 giờ này, học viên có quyền báo cáo sự cố hoặc mở khiếu nại tranh chấp nếu buổi học có vấn đề.
   * Nếu học viên báo cáo sự cố, lệnh giải ngân bị đóng băng ngay lập tức, chuyển sang trạng thái tranh chấp.
   * Nếu không phát sinh sự cố, khi đồng hồ điểm hết 12 giờ, hệ thống sẽ tự động giải ngân thù lao buổi học vào Ví gia sư.
@@ -186,8 +186,7 @@ TutorHub/
 │
 ├── docs/                                     # Toàn bộ tài liệu phân tích, kiến trúc & thiết kế
 │   ├── openapi.json                          # Đặc tả OpenAPI v3
-│   ├── prd.md                                # Product Requirements Document
-│   └── plans/                                # Các tài liệu kế hoạch kỹ thuật & giải pháp
+│   └── prd.md                                # Product Requirements Document
 │
 ├── scripts/                                  # Kịch bản kiểm thử & vận hành tự động
 │   ├── e2e_grace_period.py                   # Bộ test E2E Playwright kiểm thử luồng 12h Auto-Payout
@@ -288,8 +287,6 @@ ConnectionStrings__Redis=redis:6379
   Mặc định `docker compose up` không đổi hành vi (api chạy job, worker không lên). Cron lock Redis là lưới an toàn thứ hai khi ai đó quên flag.
 * **Tìm kiếm tiếng Việt (WP9):** `unaccent` (wrapper immutable `unaccent_immutable`) + trigram `pg_trgm` với GIN index trên `Services(Title, Description)`, `Subjects(Name)`, `Users(FullName, Email)`… — `toan` ra `toán`, `nguyen` ra `Nguyễn`, giữ nguyên sort/paging cũ. `EXPLAIN` xác nhận dùng index + timing trước/sau là follow-up staging (sandbox nghiệm thu không có PG nên chưa đo).
 * **Log tập trung (WP7):** Serilog JSON console + Seq sink (chỉ khi `Seq:ServerUrl` khác rỗng; Seq chết không chặn boot), enrich `CorrelationId`, bỏ ồn `/health*`, cấm log secret/PII. Dev/staging: service `seq` trong compose (`:5341`).
-
-Chi tiết: `docs/redis-scaleout-spec.md`.
 
 ---
 

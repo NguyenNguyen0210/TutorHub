@@ -48,8 +48,7 @@ public class AdminPlatformSettingsController : ControllerBase
 
     /// <summary>
     /// Admin: Upsert a generic versioned platform policy (F-17 plumbing).
-    /// Allowed keys: VerificationWindowHours, ReviewWindowDays, CancellationPolicy,
-    /// RefundRules, WithdrawalRules. Values stay opaque until D-01..D-08 decide semantics.
+    /// Allowed key: ReviewWindowDays. Values stay opaque until D-01..D-08 decide semantics.
     /// </summary>
     [HttpPut("platform-settings/{key}")]
     [ProducesResponseType(typeof(ApiResponse<PlatformSettingDto>), StatusCodes.Status200OK)]

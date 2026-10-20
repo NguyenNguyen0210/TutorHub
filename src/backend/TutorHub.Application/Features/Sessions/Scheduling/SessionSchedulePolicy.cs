@@ -21,6 +21,13 @@ public sealed class SessionSchedulePolicy
 
     public void RequireSchedulable(DateTime startAt, DateTime endAt) => RequireSchedulable(startAt, endAt, "scheduled");
 
+    /// <summary>
+    /// Cancellation uses the same minimum-notice window as scheduling so a
+    /// session cannot be cancelled immediately before it starts.
+    /// </summary>
+    public void RequireMinimumNotice(DateTime startAt, DateTime endAt, string operation = "cancelled") =>
+        RequireSchedulable(startAt, endAt, operation);
+
     public void RequireSchedulable(DateTime startAt, DateTime endAt, string operation)
     {
         if (endAt <= startAt) throw new BadRequestException("End time must be after start time.");

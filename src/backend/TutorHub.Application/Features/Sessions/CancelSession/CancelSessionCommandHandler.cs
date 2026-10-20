@@ -100,7 +100,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
         if (oldStatus == SessionStatus.Scheduled &&
             session.StartAt is { } startAt && session.EndAt is { } endAt)
         {
-            policy.RequireSchedulable(startAt, endAt, "cancelled");
+            policy.RequireMinimumNotice(startAt, endAt, "cancelled");
         }
 
         // 4. Re-evaluate the contract lifecycle: the last unresolved Session may

@@ -25,7 +25,7 @@ import StateBadge from '@/components/ledger/StateBadge';
  *    đó truyền element + prop `action` không tồn tại nên CTA bị bỏ rơi.
  *  - Icon `clock` / `user` / `checkCircle` không có trong `iconMap.js`, âm thầm
  *    fallback về CircleHelp.
- *  - Cả hai luồng xếp lịch đều thiếu kiểm tra 24h, chỉ dựa vào thuộc tính `min`
+ *  - Cả hai luồng xếp lịch đều thiếu kiểm tra thời gian báo trước tối thiểu, chỉ dựa vào thuộc tính `min`
  *    của `datetime-local` (bypass được). Bất biến này giờ kiểm ở client.
  */
 export default function TutorSchedule() {
@@ -142,7 +142,7 @@ export default function TutorSchedule() {
       return;
     }
 
-    // B-7: bất biến báo trước 24h, kiểm ở client thay vì trông backend từ chối.
+    // B-7: bất biến báo trước tối thiểu 2h, kiểm ở client thay vì trông backend từ chối.
     const noticeError = assertMinNotice(new Date(localVal));
     if (noticeError) {
       toast.error(noticeError);
@@ -191,7 +191,7 @@ export default function TutorSchedule() {
       return;
     }
 
-    // B-7: kiểm 24h cho toàn bộ lô, không chỉ buổi đầu.
+    // B-7: kiểm thời gian báo trước tối thiểu 2h cho toàn bộ lô, không chỉ buổi đầu.
     const offending = items.find((i) => assertMinNotice(i.startAt));
     if (offending) {
       toast.error(assertMinNotice(offending.startAt));

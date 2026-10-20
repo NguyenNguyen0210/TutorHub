@@ -21,7 +21,7 @@ import MobileBookingBar from '@/components/tutor/profile/MobileBookingBar';
 import { SECTION_IDS } from '@/components/tutor/profile/sectionNav';
 
 /**
- * Hồ sơ gia sư công khai — hướng Editorial Portfolio (SPEC docs/tutor-profile-spec.md).
+ * Hồ sơ gia sư công khai — hướng Editorial Portfolio.
  *
  * Nguồn dữ liệu:
  * - GET /tutors/{id}         → TutorProfileDto (kèm `subjects` + `services`)

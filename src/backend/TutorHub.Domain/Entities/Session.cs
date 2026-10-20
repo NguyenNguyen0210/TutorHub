@@ -97,6 +97,32 @@ public class Session
     }
 
     /// <summary>
+    /// Clears an invalid issue report after an admin dismisses the dispute.
+    /// The session stays in AwaitingPayout so the normal 12h auto-payout flow
+    /// can release the tutor's earning.
+    /// </summary>
+    public void ClearIssueReport(DateTime now)
+    {
+        if (Status != SessionStatus.AwaitingPayout)
+        {
+            throw new InvalidOperationException(
+                $"Cannot clear an issue report for a session in '{Status}' status. Session must be in AwaitingPayout.");
+        }
+
+        if (!HasIssueReport)
+        {
+            throw new InvalidOperationException("Session does not have an active issue report.");
+        }
+
+        HasIssueReport = false;
+        IssueReportReason = null;
+        IssueReportDescription = null;
+        IssueReportedAt = null;
+        IssueReportedByUserId = null;
+        UpdatedAt = now;
+    }
+
+    /// <summary>
     /// Auto-completes the session when grace period expires with no issue report.
     /// Sets IsPayoutReleased = true.
     /// </summary>
@@ -272,7 +298,7 @@ public class Session
     /// <summary>
     /// Cancels the session. Called by Enrollment.Cancel() for bulk cancellation.
     /// </summary>
-    public void CancelFromEnrollment()
+    public void CancelFromEnrollment(DateTime? now = null)
     {
         if (Status == SessionStatus.Completed)
         {
@@ -285,8 +311,9 @@ public class Session
             return; // idempotent for bulk cancel
         }
 
+        var effectiveNow = now ?? DateTime.UtcNow;
         Status = SessionStatus.Cancelled;
-        CancelledAt = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
+        CancelledAt = effectiveNow;
+        UpdatedAt = effectiveNow;
     }
 }

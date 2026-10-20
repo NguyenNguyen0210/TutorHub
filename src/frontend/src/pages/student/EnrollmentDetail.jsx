@@ -47,7 +47,7 @@ const SESSION_COLUMNS = [
  * không map lại chuỗi status ở đây.
  *
  * `holding` không có trong bảng này vì `SESSION_STATUS_META` không có trạng thái
- * holding — trạng thái "chờ điểm danh 24h" là hạn chót, do badge ở `getStatusBadge`
+ * holding — trạng thái chờ grace period 12h, do badge ở `getStatusBadge`
  * mang, không phải màu của enum buổi học.
  */
 const TONE_CLASS = {

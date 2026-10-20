@@ -92,11 +92,21 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
 
         // Handle Dismissal (no financial consequence).
         // 12h-grace rule: disputes are pre-release only, so there is never a
-        // wallet BalanceHold to unwind here — just close the escrow record.
+        // wallet BalanceHold to unwind here. The issue report is cleared so the
+        // normal auto-payout flow can release the tutor's earning.
         if (request.Decision == DisputeResolutionDecision.DismissedNoFinancialChange)
         {
+            session.ClearIssueReport(now);
+
             dispute.DismissByAdmin(userId, request.AdminNotes, now);
             dispute.ReleaseFinancialHold(userId, now);
+
+            _context.AddOutboxMessage(new DisputeResolvedEvent(
+                dispute.Id,
+                enrollment.Id,
+                enrollment.StudentProfile.UserId,
+                enrollment.TutorProfile.UserId,
+                request.Decision.ToString()));
 
             await _auditLogService.LogAsync(
                 action: "DisputeResolved",
@@ -239,6 +249,8 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
         }
 
         session.CompleteByAdmin(userId, request.AdminNotes, "DisputeAdminResolution", now, releasePayout: tutorGrossRelease > 0);
+        enrollment.EvaluateCompletion();
+
         dispute.ResolveByAdmin(userId, request.Decision, request.AdminNotes, now, affectsFinancial: true);
         dispute.ReleaseFinancialHold(userId, now);
 
