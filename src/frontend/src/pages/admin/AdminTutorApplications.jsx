@@ -101,6 +101,9 @@ export default function AdminTutorApplications() {
         }
       } catch (err) {
         console.warn('Could not load backend applications:', err.message);
+        if (isMounted) {
+          toast.error(err?.message || 'Không thể tải danh sách đơn đăng ký gia sư. Vui lòng thử lại.');
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
