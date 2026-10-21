@@ -5,7 +5,7 @@ using TutorHub.Application.Common.Interfaces;
 namespace TutorHub.Api.HealthChecks;
 
 /// <summary>
-/// P0-E3: readiness for PostgreSQL. The check opens its own scope because health
+/// readiness for PostgreSQL. The check opens its own scope because health
 /// checks are resolved from the root provider while the DbContext is scoped.
 /// </summary>
 public class DatabaseHealthCheck : IHealthCheck

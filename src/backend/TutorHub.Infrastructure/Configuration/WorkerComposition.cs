@@ -6,7 +6,7 @@ using TutorHub.Application;
 namespace TutorHub.Infrastructure.Configuration;
 
 /// <summary>
-/// Phase 3 WP8: the shared job-host composition. Called by
+/// Worker scale-out: the shared job-host composition. Called by
 /// <c>TutorHub.Worker/Program.cs</c> and invoked directly by
 /// <c>WorkerBootTests</c>, so the test exercises the real composition
 /// instead of a copy of it.

@@ -111,7 +111,7 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
         }
 
         // Concurrency-safe stateful balance verification (DEC-WD-001, DEC-S8-001).
-        // F-23: guarded domain math maps to 400 via the catch below.
+        // guarded domain math maps to 400 via the catch below.
         try
         {
             // Deduct available balance immediately (DEC-WD-007)
@@ -169,7 +169,7 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
         await _context.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
 
-        // F-24: outbox-only delivery. OutboxDispatcherJob is the single
+        // outbox-only delivery. OutboxDispatcherJob is the single
         // delivery path; no direct in-process publish (duplicate EventIds).
 
         return new WithdrawalDto(

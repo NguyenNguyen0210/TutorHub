@@ -25,7 +25,7 @@ public class BuilderSanityTests
         booking.TutorProfile.User.Should().NotBeNull();
         booking.TutorProfile.User.Role.Should().Be(UserRole.Tutor);
         booking.Subject.Should().NotBeNull();
-        booking.Transactions.Should().BeEmpty(); // P0 HOTFIX: 1:N, starts empty
+        booking.Transactions.Should().BeEmpty(); // 1:N, starts empty
     }
 
     [Fact]

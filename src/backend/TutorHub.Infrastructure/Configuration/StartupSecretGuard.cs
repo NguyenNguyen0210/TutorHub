@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 namespace TutorHub.Infrastructure.Configuration;
 
 /// <summary>
-/// F-25 hardening: refuse to start when a secret still holds a template value.
+/// Startup security hardening: refuse to start when a secret still holds a template value.
 ///
 /// Empty values are already rejected by the options classes' <c>[Required]</c> +
 /// <c>ValidateOnStart()</c>. This guard catches the other, more dangerous case: a

@@ -12,8 +12,8 @@ using TutorHub.Domain.Enums;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// F-30: grace-period (pre-release) dispute settlement on real Postgres —
-/// EscrowHold, partial refund from Pending escrow, and F-04/F-22
+/// grace-period (pre-release) dispute settlement on real Postgres —
+/// EscrowHold, partial refund from Pending escrow, and anti-chaining rule
 /// anti-chaining enforcement inside SaveChangesAsync.
 /// 12h-grace rule: post-release sessions are deemed accepted and cannot be disputed.
 /// </summary>
@@ -171,7 +171,7 @@ public class DisputeFlowTests : IntegrationTestBase
         Db.Transactions.AddRange(payoutTx, firstRefund);
         await Db.SaveChangesAsync();
 
-        // Act: chain a second adjustment onto the refund (F-04/F-22 violation).
+        // Act: chain a second adjustment onto the refund (anti-chaining violation).
         Db.Transactions.Add(new Transaction
         {
             Id = Guid.NewGuid(),

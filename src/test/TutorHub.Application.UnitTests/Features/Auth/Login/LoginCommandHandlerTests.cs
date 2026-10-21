@@ -78,7 +78,7 @@ public class LoginCommandHandlerTests
         result.User.Email.Should().Be(user.Email);
         result.User.FullName.Should().Be(user.FullName);
 
-        // P0-D1: the raw token goes back to the client; only its hash is persisted.
+        // the raw token goes back to the client; only its hash is persisted.
         refreshTokensList.Should().ContainSingle(t =>
             t.UserId == user.Id && t.TokenHash == "hash:mocked-refresh-token-string");
         refreshTokensList.Should().NotContain(t => t.TokenHash == "mocked-refresh-token-string");
@@ -132,7 +132,7 @@ public class LoginCommandHandlerTests
 
         _jwtServiceMock.Verify(j => j.GenerateAccessToken(It.IsAny<User>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
 
-        // P0-D3: the failed attempt must be persisted before the exception is thrown,
+        // the failed attempt must be persisted before the exception is thrown,
         // otherwise the lockout threshold could never be reached.
         user.AccessFailedCount.Should().Be(1);
         user.LockoutEndAt.Should().BeNull();
@@ -201,7 +201,7 @@ public class LoginCommandHandlerTests
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    // P0-D3 / P0-F3: account lockout through the login handler.
+    // account lockout through the login handler.
     [Fact]
     public async Task Handle_WhenAccountIsLockedOut_ShouldRejectWithoutVerifyingThePassword()
     {
@@ -263,4 +263,4 @@ public class LoginCommandHandlerTests
         user.AccessFailedCount.Should().Be(0);
         user.LockoutEndAt.Should().BeNull();
     }
-}
+}

@@ -10,7 +10,7 @@ using Xunit;
 namespace TutorHub.Application.UnitTests.Features.Enrollments.Common;
 
 /// <summary>
-/// P0-A1: the enrollment platform-fee snapshot (DEC-S8-020) must come from the
+/// the enrollment platform-fee snapshot (DEC-S8-020) must come from the
 /// configured PlatformSetting and must NEVER fall back to a guessed rate.
 /// </summary>
 public class EnrollmentActivationServiceTests

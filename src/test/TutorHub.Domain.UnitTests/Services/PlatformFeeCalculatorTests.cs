@@ -5,7 +5,7 @@ using Xunit;
 namespace TutorHub.Domain.UnitTests.Services;
 
 /// <summary>
-/// P0-A2/F1: the gross → (platform fee, tutor net) split is the single rounding
+/// the gross → (platform fee, tutor net) split is the single rounding
 /// authority for every payout path. It must round half away from zero to 2 decimals
 /// and never lose or invent money.
 /// </summary>

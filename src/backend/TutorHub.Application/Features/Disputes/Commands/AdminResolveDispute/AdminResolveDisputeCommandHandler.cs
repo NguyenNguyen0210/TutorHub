@@ -174,7 +174,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
         // Update tutor wallet if tutor receives earning
         if (tutorNetPayout > 0)
         {
-            // F-23: guarded domain math.
+            // guarded domain math.
             tutorWallet.CreditAvailable(tutorNetPayout, now);
 
             _context.WalletTransactions.Add(new WalletTransaction

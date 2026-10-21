@@ -1,7 +1,7 @@
 namespace TutorHub.Application.Features.PlatformSettings.Commands.AdminUpsertPlatformSetting;
 
 /// <summary>
-/// F-17 plumbing keys. Defaults mirror current code behavior; policy values
+/// Generic platform setting keys. Defaults mirror current code behavior; policy values
 /// themselves are decided under D-01..D-08 and must not be invented here.
 /// </summary>
 public static class PlatformSettingKeys

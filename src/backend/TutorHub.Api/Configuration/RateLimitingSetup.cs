@@ -5,7 +5,7 @@ using TutorHub.Application.Common.Models;
 
 namespace TutorHub.Api.Configuration;
 
-/// <summary>P0-D2 policy names, referenced by <c>[EnableRateLimiting]</c> attributes.</summary>
+/// <summary>Rate limiting policy names, referenced by <c>[EnableRateLimiting]</c> attributes.</summary>
 public static class RateLimitingPolicies
 {
     /// <summary>Credential endpoints: strict, per client IP.</summary>
@@ -17,7 +17,7 @@ public static class RateLimitingPolicies
     /// <summary>
     /// Per-minute budgets, single-sourced here so the in-memory limiter
     /// (<see cref="RateLimitingSetup"/>) and the Redis limiter
-    /// (WP3 fixed window) can never drift apart.
+    /// (fixed window) can never drift apart.
     /// </summary>
     public const int AuthPermitLimit = 10;
 
@@ -27,7 +27,7 @@ public static class RateLimitingPolicies
 }
 
 /// <summary>
-/// P0-D2: request throttling for the unauthenticated, abuse-prone endpoints
+/// request throttling for the unauthenticated, abuse-prone endpoints
 /// (login/register/refresh and the VNPay callbacks).
 ///
 /// Partitioning uses in-memory fixed windows, which is intentional for the

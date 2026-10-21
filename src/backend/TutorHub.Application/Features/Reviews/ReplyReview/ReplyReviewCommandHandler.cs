@@ -48,7 +48,7 @@ public class ReplyReviewCommandHandler : IRequestHandler<ReplyReviewCommand, Rev
         await _context.SaveChangesAsync(cancellationToken);
 
         var studentUser = review.Enrollment.StudentProfile.User;
-        // F-23 (Đợt 4): centralized mapping.
+        // centralized mapping.
         return ReviewMapper.ToDto(
             review,
             review.Enrollment.TutorProfileId,

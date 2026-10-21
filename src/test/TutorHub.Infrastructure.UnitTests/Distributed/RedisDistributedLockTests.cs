@@ -4,7 +4,7 @@ using TutorHub.Infrastructure.Distributed;
 namespace TutorHub.Infrastructure.UnitTests.Distributed;
 
 /// <summary>
-/// WP4: at most one cron node may hold a lock key at a time (mutual
+/// at most one cron node may hold a lock key at a time (mutual
 /// exclusion via SET NX PX), a release frees the key for re-acquire, and
 /// different keys do not interfere. The real <see cref="RedisDistributedLock"/>
 /// runs over an in-memory <see cref="IRedisLockCommands"/> stand-in so no live

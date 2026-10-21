@@ -9,7 +9,7 @@ using TutorHub.Api.RateLimiting;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// WP3: the Redis middleware resolves the policy from endpoint metadata
+/// the Redis middleware resolves the policy from endpoint metadata
 /// (missing attribute means the global budget), passes allowed requests
 /// through, and rejects over-limit ones with the exact 429 envelope the
 /// in-memory limiter returns. Runs on <see cref="DefaultHttpContext"/> so no

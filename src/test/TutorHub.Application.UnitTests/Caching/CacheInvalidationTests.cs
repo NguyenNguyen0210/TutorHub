@@ -21,7 +21,7 @@ using TutorHub.Infrastructure.Caching;
 namespace TutorHub.Application.UnitTests.Caching;
 
 /// <summary>
-/// WP5: subjects + platform-setting read-through cache with invalidation.
+/// subjects + platform-setting read-through cache with invalidation.
 /// </summary>
 public class CacheInvalidationTests
 {

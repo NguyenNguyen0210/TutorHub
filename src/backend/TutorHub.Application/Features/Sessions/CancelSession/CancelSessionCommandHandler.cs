@@ -68,7 +68,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
             throw new ForbiddenException("You do not have permission to cancel this session.");
         }
 
-        // 2. Enrollment must be Active (F-19 gate, no finance: a Pending
+        // 2. Enrollment must be Active (no finance: a Pending
         // enrollment has nothing scheduled yet; use enrollment cancel instead).
         if (enrollment.Status != EnrollmentStatus.Active)
         {
@@ -195,7 +195,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
             throw;
         }
 
-        // F-23 (Đợt 4): centralized mapping.
+        // centralized mapping.
         return SessionMapper.ToDto(session);
     }
 }

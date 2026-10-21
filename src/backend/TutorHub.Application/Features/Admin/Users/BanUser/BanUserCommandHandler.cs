@@ -74,7 +74,7 @@ public class BanUserCommandHandler : IRequestHandler<BanUserCommand, AdminUserSu
             throw new ConflictException(ex.Message);
         }
 
-        // WP6: kill all in-flight access tokens instantly. Bumped BEFORE save
+        // kill all in-flight access tokens instantly. Bumped BEFORE save
         // so the new version persists in the same transaction as the ban.
         user.BumpTokenVersion();
 
@@ -102,7 +102,7 @@ public class BanUserCommandHandler : IRequestHandler<BanUserCommand, AdminUserSu
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        // WP6: drop the cached version so the next request re-reads the bumped
+        // drop the cached version so the next request re-reads the bumped
         // one from the database. Best-effort (the cache contract never throws).
         await _tokenVersionCache.EvictAsync(user.Id, cancellationToken);
 

@@ -8,7 +8,7 @@ using Xunit;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// P0-E2: the API allows credentialed cross-origin calls, so the origin list must
+/// the API allows credentialed cross-origin calls, so the origin list must
 /// be explicit (never a wildcard) and must exist outside Development, where an
 /// empty policy would leave the deployed frontend unable to call the API at all.
 /// </summary>
@@ -110,7 +110,7 @@ public class CorsOriginsTests
     public void Resolve_TrimsOriginsAndDropsBlanks()
     {
         var config = BuildConfig(
-            ("Cors:AllowedOrigins:0", "  https://app.tutorhub.test  "),
+            ("Cors:AllowedOrigins:0", "  https://app.tutorhub.test "),
             ("Cors:AllowedOrigins:1", ""),
             ("Cors:AllowedOrigins:2", "https://admin.tutorhub.test"));
 

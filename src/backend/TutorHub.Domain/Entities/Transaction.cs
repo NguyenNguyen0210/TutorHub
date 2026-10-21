@@ -43,7 +43,7 @@ public class Transaction
 
     public DateTime? RefundedAt { get; set; }
 
-    // F-23: explicit factories so every ledger row is created with the
+    // explicit factories so every ledger row is created with the
     // correct Type/Status/refs. Chaining stays forbidden (DEC-S8-030):
     // adjustments must reference the original payout (validated again in
     // AdminResolveDispute + AppDbContext.SaveChangesAsync).

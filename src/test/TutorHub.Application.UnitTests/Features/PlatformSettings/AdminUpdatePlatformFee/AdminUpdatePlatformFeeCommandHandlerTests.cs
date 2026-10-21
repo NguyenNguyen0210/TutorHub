@@ -109,7 +109,7 @@ public class AdminUpdatePlatformFeeCommandHandlerTests
     [Fact]
     public async Task Handle_WhenFeeRateChanges_WritesAuditLog()
     {
-        // P0-A4: CLAUDE.md convention #6 requires admin platform-configuration
+        // CLAUDE.md convention #6 requires admin platform-configuration
         // changes to land in the central audit log.
         var adminId = Guid.NewGuid();
         _currentUser.Set(adminId, UserRole.Admin);

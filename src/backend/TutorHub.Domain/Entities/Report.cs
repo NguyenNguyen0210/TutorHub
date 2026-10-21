@@ -33,7 +33,7 @@ public class Report
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ResolvedAt { get; private set; }
 
-    // F-23: lifecycle transitions live here, not scattered in handlers.
+    // lifecycle transitions live here, not scattered in handlers.
 
     public static Report Create(
         Guid reporterUserId,

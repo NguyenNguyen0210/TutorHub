@@ -4,7 +4,7 @@ using TutorHub.Application.Common.Interfaces;
 namespace TutorHub.Infrastructure.Services;
 
 /// <summary>
-/// F-25: Development fallback — logs instead of sending, used only when
+/// Development fallback — logs instead of sending, used only when
 /// SMTP is not configured. Any other environment refuses to start without a real
 /// sender (see InfrastructureServiceCollectionExtensions), so this type can never
 /// be the production transport by accident.

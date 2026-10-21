@@ -26,7 +26,7 @@ public class EnrollmentTests
             TeachingMode = TeachingMode.Online
         };
 
-        // Assert (F-15: Pending → Active → Completed / Cancelled)
+        // Assert (Pending → Active → Completed / Cancelled)
         enrollment.Status.Should().Be(EnrollmentStatus.Pending);
         enrollment.CompletedSessions.Should().Be(0);
         enrollment.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(2));
@@ -38,7 +38,7 @@ public class EnrollmentTests
     [Fact]
     public void Activate_FromPending_TransitionsToActive()
     {
-        // Arrange: raw enrollment without helper auto-activation (F-15: default Pending).
+        // Arrange: raw enrollment without helper auto-activation (default Pending).
         var enrollment = CreateRawEnrollment(totalPrice: 1_000_000m, totalSessions: 3);
         enrollment.Status.Should().Be(EnrollmentStatus.Pending);
 
@@ -419,7 +419,7 @@ public class EnrollmentTests
         s4.Status.Should().Be(SessionStatus.Cancelled);
     }
 
-    // Raw enrollment in default Pending state (F-15), without auto-activation.
+    // Raw enrollment in default Pending state, without auto-activation.
     private static Enrollment CreateRawEnrollment(decimal totalPrice, int totalSessions)
     {
         var enrollmentId = Guid.NewGuid();
@@ -457,7 +457,7 @@ public class EnrollmentTests
     {
         var enrollment = CreateRawEnrollment(totalPrice, totalSessions);
 
-        // F-15: tests exercise the Active lifecycle, so activate after creation.
+        // tests exercise the Active lifecycle, so activate after creation.
         enrollment.Activate();
 
         return enrollment;

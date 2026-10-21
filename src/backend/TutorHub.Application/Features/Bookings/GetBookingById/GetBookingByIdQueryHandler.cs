@@ -47,7 +47,7 @@ public class GetBookingByIdQueryHandler : IRequestHandler<GetBookingByIdQuery, B
             throw new ForbiddenException("You do not have permission to view this booking.");
         }
 
-        // F-23 (Đợt 4): centralized mapping.
+        // centralized mapping.
         return BookingMapper.ToDto(booking, BookingMapper.ToTransactionDto(paymentTx));
     }
 }

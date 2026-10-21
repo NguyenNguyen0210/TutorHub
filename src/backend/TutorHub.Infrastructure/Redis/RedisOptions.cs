@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace TutorHub.Infrastructure.Redis;
 
-// WP0: single shared Redis for OAuth state, SignalR backplane, cache and cron
+// single shared Redis for OAuth state, SignalR backplane, cache and cron
 // locks. Disabled by default so the API boots and serves with no redis running.
 // ConnectionStrings:Redis wins; Redis:ConnectionString is the fallback (see the
 // registration in InfrastructureServiceCollectionExtensions).

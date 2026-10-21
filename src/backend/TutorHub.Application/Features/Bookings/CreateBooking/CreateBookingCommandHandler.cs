@@ -116,7 +116,7 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync(cancellationToken);
 
-        // F-23 (Đợt 4): centralized mapping (attach loaded navs first).
+        // centralized mapping (attach loaded navs first).
         booking.StudentProfile = student;
         booking.TutorProfile = service.TutorProfile;
         booking.Subject = service.Subject;

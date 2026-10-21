@@ -58,7 +58,7 @@ public class AdminModerateReviewCommandHandler : IRequestHandler<AdminModerateRe
 
         if (tutorProfile != null)
         {
-            // F-23: denormalized stats owned by the domain.
+            // denormalized stats owned by the domain.
             tutorProfile.ApplyReview(remainingRatings);
         }
 
@@ -75,7 +75,7 @@ public class AdminModerateReviewCommandHandler : IRequestHandler<AdminModerateRe
         await _context.SaveChangesAsync(cancellationToken);
 
         var studentUser = review.Enrollment.StudentProfile.User;
-        // F-23 (Đợt 4): centralized mapping.
+        // centralized mapping.
         return ReviewMapper.ToDto(
             review,
             review.Enrollment.TutorProfileId,

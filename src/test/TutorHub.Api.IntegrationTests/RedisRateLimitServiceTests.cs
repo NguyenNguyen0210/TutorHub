@@ -6,7 +6,7 @@ using TutorHub.Api.Configuration;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// WP3: the distributed fixed-window limiter counts atomically on Redis
+/// the distributed fixed-window limiter counts atomically on Redis
 /// (Lua INCR+EXPIRE behind <see cref="IRedisRateLimitCommands"/>), keeps the
 /// GĐ1 permit budgets per policy, and fails open when Redis is down. The real
 /// <see cref="RedisRateLimitService"/> runs over an in-memory

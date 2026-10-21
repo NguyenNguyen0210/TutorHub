@@ -70,7 +70,7 @@ public class BanUserCommandHandlerTests
         // Token revocation
         activeToken.RevokedAt.Should().NotBeNull();
 
-        // WP6: access tokens die instantly — the version bump must be persisted
+        // access tokens die instantly — the version bump must be persisted
         // in the same transaction, and the cached version must be evicted after.
         versionAtSave.Should().Be(1, "the bump must happen before SaveChanges");
         targetUser.TokenVersion.Should().Be(1);

@@ -5,7 +5,7 @@ using TutorHub.Application.Common.Caching;
 namespace TutorHub.Infrastructure.Caching;
 
 /// <summary>
-/// WP6: evicts the cached per-user token version over
+/// evicts the cached per-user token version over
 /// <see cref="IDistributedCache"/> after a bump. Best-effort by contract:
 /// any cache error is swallowed (debug log) because a missed eviction only
 /// delays revocation until the short entry expires, and a Redis outage fails

@@ -8,7 +8,7 @@ using TutorHub.Domain.Enums;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// P0-C2 / P0-F2: the financial ledger is defended at the DATABASE level, not only in
+/// the financial ledger is defended at the DATABASE level, not only in
 /// the EF change tracker. These tests issue raw SQL precisely because the second layer
 /// exists for the writes EF never sees: hand-written SQL, manual fixes, and ON DELETE
 /// CASCADE.

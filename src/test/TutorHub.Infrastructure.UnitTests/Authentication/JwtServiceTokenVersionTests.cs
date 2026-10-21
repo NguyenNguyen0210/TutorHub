@@ -8,7 +8,7 @@ using TutorHub.Infrastructure.Authentication;
 namespace TutorHub.Infrastructure.UnitTests.Authentication;
 
 /// <summary>
-/// WP6: every access token carries the per-user <c>ver</c> claim so the
+/// every access token carries the per-user <c>ver</c> claim so the
 /// revocation middleware can compare it against the cached version.
 /// </summary>
 public class JwtServiceTokenVersionTests

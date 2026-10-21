@@ -3,7 +3,7 @@ using TutorHub.Domain.Entities;
 namespace TutorHub.Application.Features.Bookings.DTOs;
 
 /// <summary>
-/// F-23 (Đợt 4): single mapping point for Booking → BookingDto/BookingSummaryDto.
+/// single mapping point for Booking → BookingDto/BookingSummaryDto.
 /// The payment transaction and nested enrollment vary per use case, so they
 /// are passed in explicitly (resolved via GetPaymentTransactionAsync).
 /// </summary>

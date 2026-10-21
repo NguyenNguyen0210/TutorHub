@@ -21,7 +21,7 @@ public class NotificationHub : Hub<INotificationClient>
         var currentUserId = GetCurrentUserId();
         if (currentUserId.HasValue)
         {
-            // WP2 local-degrade: the user_ group join rides the Redis backplane when
+            // the user_ group join rides the Redis backplane when
             // it is on. A Redis outage must not fail the handshake (no 500), so a
             // transport failure is logged and the connection stays usable locally.
             // Group name is unchanged.

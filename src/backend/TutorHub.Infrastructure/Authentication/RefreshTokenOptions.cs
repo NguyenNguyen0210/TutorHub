@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace TutorHub.Infrastructure.Authentication;
 
 /// <summary>
-/// P0-D1: server-side pepper used to hash refresh tokens before they are stored.
+/// server-side pepper used to hash refresh tokens before they are stored.
 /// Kept out of the database so a database-only leak cannot be verified offline.
 /// </summary>
 public class RefreshTokenOptions

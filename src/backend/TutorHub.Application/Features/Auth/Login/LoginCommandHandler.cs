@@ -49,7 +49,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
 
         var now = _clock.UtcNow;
 
-        // P0-D3: a locked account is rejected with the same generic message as a wrong
+        // a locked account is rejected with the same generic message as a wrong
         // password, so the response cannot be used to enumerate accounts.
         if (user != null && user.IsLockedOut(now))
         {
@@ -80,7 +80,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
             throw new UnauthorizedException("Your account has been banned.");
         }
 
-        // Successful authentication clears the brute-force counters (P0-D3). It is
+        // Successful authentication clears the brute-force counters. It is
         // persisted by the same SaveChangesAsync that stores the new refresh token.
         if (user.AccessFailedCount > 0 || user.LockoutEndAt.HasValue)
         {

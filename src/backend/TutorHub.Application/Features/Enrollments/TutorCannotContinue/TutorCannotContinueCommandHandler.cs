@@ -162,7 +162,7 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
             throw;
         }
 
-        // F-23 (Đợt 4): centralized mapping.
+        // centralized mapping.
         return EnrollmentMapper.ToDto(enrollment, enrollment.Subject.Name);
     }
 }

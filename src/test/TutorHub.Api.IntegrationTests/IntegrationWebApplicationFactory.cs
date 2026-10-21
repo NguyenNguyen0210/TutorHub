@@ -11,7 +11,7 @@ using TutorHub.Infrastructure.Persistence;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// F-30: integration harness against the developer's local Postgres container
+/// integration harness against the developer's local Postgres container
 /// (no Testcontainers by owner decision). Uses a dedicated database so the
 /// dev seed data stays untouched. Background jobs are removed: tests assert
 /// synchronously committed state, and jobs would otherwise race them.
@@ -104,7 +104,7 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
             {
                 context.Database.Migrate();
 
-                // P0-A1: enrollment activation no longer falls back to a guessed fee,
+                // enrollment activation no longer falls back to a guessed fee,
                 // so the platform fee setting is a hard prerequisite — exactly as in
                 // production. Seed it once; tests that exercise fee changes create
                 // their own versions on top.

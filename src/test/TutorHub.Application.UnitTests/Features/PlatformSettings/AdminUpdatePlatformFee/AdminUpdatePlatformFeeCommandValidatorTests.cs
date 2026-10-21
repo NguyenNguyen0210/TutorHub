@@ -5,7 +5,7 @@ using Xunit;
 namespace TutorHub.Application.UnitTests.Features.PlatformSettings.AdminUpdatePlatformFee;
 
 /// <summary>
-/// P0-A2: the fee rate is snapshotted into Enrollment (numeric(5,4)) and copied to
+/// the fee rate is snapshotted into Enrollment (numeric(5,4)) and copied to
 /// Transaction.CommissionRate. Rejecting more than 4 decimal places at the edge keeps
 /// Postgres from silently rounding the value the DEC-S8-025 identity is derived from.
 /// </summary>

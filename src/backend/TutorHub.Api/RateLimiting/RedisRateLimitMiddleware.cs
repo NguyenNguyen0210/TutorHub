@@ -5,7 +5,7 @@ using TutorHub.Application.Common.Models;
 namespace TutorHub.Api.RateLimiting;
 
 /// <summary>
-/// WP3: Redis-backed replacement for the in-memory rate limiter. Reads the
+/// Redis-backed replacement for the in-memory rate limiter. Reads the
 /// <see cref="EnableRateLimitingAttribute"/> policy from endpoint metadata
 /// (no attribute means the global policy, matching GlobalLimiter semantics)
 /// and counts through <see cref="RedisRateLimitService"/> so every node

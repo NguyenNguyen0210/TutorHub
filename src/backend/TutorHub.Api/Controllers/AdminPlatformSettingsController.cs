@@ -47,7 +47,7 @@ public class AdminPlatformSettingsController : ControllerBase
     }
 
     /// <summary>
-    /// Admin: Upsert a generic versioned platform policy (F-17 plumbing).
+    /// Admin: Upsert a generic versioned platform policy.
     /// Allowed key: ReviewWindowDays. Values stay opaque until D-01..D-08 decide semantics.
     /// </summary>
     [HttpPut("platform-settings/{key}")]

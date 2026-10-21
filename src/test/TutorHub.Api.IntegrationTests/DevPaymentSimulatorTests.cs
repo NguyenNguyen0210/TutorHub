@@ -11,7 +11,7 @@ using Xunit;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// P0 dev-tooling: the simulator must be a faithful stand-in for a live VNPay IPN.
+/// Development tool: the simulator must be a faithful stand-in for a live VNPay IPN.
 ///
 /// VNPay calls the IPN from its own servers, so a local machine can never complete a
 /// checkout; the simulator exists to close that gap for frontend work. These tests pin

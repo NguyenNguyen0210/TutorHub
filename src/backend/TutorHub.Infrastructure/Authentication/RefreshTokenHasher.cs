@@ -6,7 +6,7 @@ using TutorHub.Application.Common.Security;
 namespace TutorHub.Infrastructure.Authentication;
 
 /// <summary>
-/// P0-D1: stores refresh tokens as HMAC-SHA256(pepper, rawToken) in lowercase hex.
+/// stores refresh tokens as HMAC-SHA256(pepper, rawToken) in lowercase hex.
 ///
 /// A fast keyed hash is the correct tool here. Unlike a password, the raw token is
 /// 64 bytes of CSPRNG output (see <c>JwtService.GenerateRefreshToken</c>), so there

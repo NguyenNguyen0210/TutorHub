@@ -23,7 +23,7 @@ public class CorrelationIdMiddleware
         context.TraceIdentifier = correlationId!;
         context.Response.Headers[CorrelationIdHeader] = correlationId!;
 
-        // WP7: every log emitted downstream (console + Seq) carries this id.
+        // every log emitted downstream (console + Seq) carries this id.
         using (LogContext.PushProperty("CorrelationId", correlationId.ToString()))
         {
             await _next(context);

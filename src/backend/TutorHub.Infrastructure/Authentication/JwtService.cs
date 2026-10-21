@@ -37,7 +37,7 @@ public class JwtService : IJwtService
             new(ClaimTypes.Name, user.FullName),
             new(ClaimTypes.Role, user.Role.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            // WP6: per-user token version for instant revocation (PO 2026-09-29).
+            // per-user token version for instant revocation (PO 2026-09-29).
             new(TokenVersionDefaults.VersionClaimType, user.TokenVersion.ToString())
         };
 

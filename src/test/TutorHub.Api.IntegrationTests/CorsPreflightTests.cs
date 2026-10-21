@@ -5,7 +5,7 @@ using Xunit;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// P0-E2: the CORS policy lives in the middleware pipeline, so it must be proven
+/// the CORS policy lives in the middleware pipeline, so it must be proven
 /// over HTTP — resolving the origin list correctly is not enough.
 ///
 /// The test host runs in Development, which defaults to the local Vite origins,

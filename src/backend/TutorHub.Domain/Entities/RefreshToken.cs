@@ -7,7 +7,7 @@ public class RefreshToken
     public Guid UserId { get; set; }
     public User User { get; set; } = default!;
 
-    // P0-D1: only the HMAC-SHA256 hash of the opaque token is stored. The raw token
+    // only the HMAC-SHA256 hash of the opaque token is stored. The raw token
     // is returned to the client once and never persisted.
     public string TokenHash { get; set; } = default!;
     public DateTime ExpiresAt { get; set; }

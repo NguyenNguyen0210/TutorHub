@@ -29,7 +29,7 @@ using TutorHub.Infrastructure.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// F-25: .env loader is Development-only and never overrides real environment
+// .env loader is Development-only and never overrides real environment
 // variables (container/CI secrets always win).
 if (builder.Environment.IsDevelopment())
 {
@@ -62,7 +62,7 @@ if (builder.Environment.IsDevelopment())
 
 builder.Configuration.AddEnvironmentVariables();
 
-// WP7: structured logging. Console (compact JSON) always; the Seq sink is
+// structured logging. Console (compact JSON) always; the Seq sink is
 // added only when Seq:ServerUrl is set, so the API boots and serves with Seq
 // down (the Seq sink batches in the background and never blocks requests).
 // Levels/enrichment come from the Serilog config section first; the code
@@ -105,7 +105,7 @@ builder.Host.UseSerilog((context, loggerConfig) =>
     }
 });
 
-// F-25 hardening: refuse to start while a secret still holds a template value.
+// Startup security hardening: refuse to start while a secret still holds a template value.
 StartupSecretGuard.ValidateNoPlaceholderSecrets(builder.Configuration);
 
 // Add Layers
@@ -119,7 +119,7 @@ builder.Services.AddProblemDetails();
 
 // Controllers with Global String Enum Converter
 builder.Services.AddControllers()
-    // P0 dev-tooling: swap in a discovery provider that drops IDevelopmentOnlyEndpoint
+    // Development tooling: swap in a discovery provider that drops IDevelopmentOnlyEndpoint
     // controllers outside Development. The default provider has to be removed as well,
     // otherwise it would still discover them.
     .ConfigureApplicationPartManager(manager =>
@@ -152,7 +152,7 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
     .Configure<IOptions<JwtOptions>>((options, jwtOptions) =>
     {
         var jwt = jwtOptions.Value;
-        // F-25: HTTPS metadata only skippable in Development (local HTTP).
+        // HTTPS metadata only skippable in Development (local HTTP).
         options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.SaveToken = true;
         options.TokenValidationParameters = new TokenValidationParameters
@@ -235,7 +235,7 @@ builder.Services.AddSwaggerGen(c =>
     }
 });
 
-// P0-E3: readiness = the instance can actually serve traffic (database reachable and
+// readiness = the instance can actually serve traffic (database reachable and
 // the platform fee setting every payment activation snapshots is configured), while
 // liveness only asks whether the process answers.
 builder.Services.AddHealthChecks()
@@ -243,7 +243,7 @@ builder.Services.AddHealthChecks()
     .AddCheck<PlatformFeeSettingHealthCheck>("platform-fee-setting")
     .AddCheck<RedisHealthCheck>("redis");
 
-// P0-E2: the frontend is served from its own origin, so preflight must succeed.
+// the frontend is served from its own origin, so preflight must succeed.
 // Credentials flow with the request, hence explicit origins instead of a wildcard.
 var allowedOrigins = CorsOrigins.Resolve(builder.Configuration, builder.Environment);
 
@@ -257,10 +257,10 @@ builder.Services.AddCors(options =>
         .WithExposedHeaders("X-Correlation-ID"));
 });
 
-// P0-D2: per-IP throttling for credential and payment endpoints.
+// per-IP throttling for credential and payment endpoints.
 builder.Services.AddTutorHubRateLimiting();
 
-// WP3: distributed fixed-window limiter over Redis when the RateLimit flag is
+// distributed fixed-window limiter over Redis when the RateLimit flag is
 // on; the in-memory limiter above stays registered as the fallback. The
 // IConnectionMultiplexer this seam needs only exists when Redis is Enabled —
 // consistent because the RateLimit flag implies Enabled. A missing
@@ -303,14 +303,14 @@ if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
     await migrationDb.Database.MigrateAsync();
 }
 
-// F-25 / P0-E3: readiness, kept on the path docker-compose already probes. A failing
+// readiness, kept on the path docker-compose already probes. A failing
 // dependency answers 503, which `curl -f` reports as unhealthy.
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = HealthCheckResponseWriter.WriteAsync
 });
 
-// P0-E3: liveness runs no dependency checks on purpose — a database outage must not
+// liveness runs no dependency checks on purpose — a database outage must not
 // make an orchestrator restart a process that is otherwise fine.
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
@@ -327,7 +327,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseMiddleware<TutorHub.Api.Middlewares.CorrelationIdMiddleware>();
 
-// WP7: one request log per call, enriched with the CorrelationId above (this
+// one request log per call, enriched with the CorrelationId above (this
 // runs inside its LogContext scope). Health probes are excluded so
 // orchestrator polling stays out of Seq.
 app.UseWhen(
@@ -372,12 +372,12 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
-// P0-E2: before the rate limiter, so a browser preflight (which carries no
+// before the rate limiter, so a browser preflight (which carries no
 // credentials) never consumes the caller's credential budget.
 app.UseCors();
 
-// P0-D2: throttle before authentication so credential stuffing is limited even for
-// requests that never present a valid token. WP3: Redis-backed fixed window when
+// throttle before authentication so credential stuffing is limited even for
+// requests that never present a valid token. Redis-backed fixed window when
 // the RateLimit flag is on (every node shares one budget), otherwise the
 // in-memory limiter above.
 if (redisRateLimit.Enabled && redisRateLimit.Features.RateLimit)

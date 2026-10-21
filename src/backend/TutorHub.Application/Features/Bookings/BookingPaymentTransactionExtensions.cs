@@ -6,7 +6,7 @@ using TutorHub.Domain.Enums;
 namespace TutorHub.Application.Features.Bookings;
 
 /// <summary>
-/// P0 HOTFIX helper: a booking owns many transactions (payment + payouts +
+/// a booking owns many transactions (payment + payouts +
 /// refunds), so the single "payment transaction" is resolved explicitly by
 /// (BookingId, BookingPayment) instead of a 1:1 navigation.
 /// </summary>

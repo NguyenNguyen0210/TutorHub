@@ -52,7 +52,7 @@ public class AdminUpsertPlatformSettingCommandHandler : IRequestHandler<AdminUps
                 Id = Guid.NewGuid(),
                 Key = request.Key,
                 Value = request.Value.Trim(),
-                Description = $"Generic platform policy (F-17 plumbing; semantics pending product decision).",
+                Description = $"Generic platform policy (semantics pending product decision).",
                 CurrentVersion = 1,
                 LastUpdatedByAdminId = userId,
                 UpdatedAt = now

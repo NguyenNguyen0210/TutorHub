@@ -7,7 +7,7 @@ using TutorHub.Application.Features.PlatformSettings.Commands.AdminUpsertPlatfor
 namespace TutorHub.Api.HealthChecks;
 
 /// <summary>
-/// P0-A5 / P0-E3: a deployable instance must know the platform fee rate before it
+/// a deployable instance must know the platform fee rate before it
 /// accepts money — enrollment activation snapshots it with no fallback, so a missing
 /// or malformed setting means every successful payment would fail to activate.
 ///

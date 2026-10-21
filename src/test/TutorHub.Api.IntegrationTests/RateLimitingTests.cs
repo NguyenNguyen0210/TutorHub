@@ -7,7 +7,7 @@ using Xunit;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// P0-D2: the credential endpoints must actually be throttled, and the rejection must
+/// the credential endpoints must actually be throttled, and the rejection must
 /// keep the documented ApiResponse envelope so clients can parse it like any other error.
 ///
 /// This is deliberately an HTTP-level test: rate limiting lives in the middleware

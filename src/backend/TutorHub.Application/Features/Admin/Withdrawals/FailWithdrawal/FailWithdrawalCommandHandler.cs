@@ -116,7 +116,7 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
         await _context.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
 
-        // F-24: outbox-only delivery (OutboxDispatcherJob). No direct publish.
+        // outbox-only delivery (OutboxDispatcherJob). No direct publish.
 
         return new WithdrawalDto(
             Id: withdrawal.Id,

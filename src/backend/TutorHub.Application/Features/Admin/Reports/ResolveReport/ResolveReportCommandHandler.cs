@@ -198,7 +198,7 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
             }
         }
 
-        // 4. Mark Report Resolved (F-23: domain transition).
+        // 4. Mark Report Resolved (domain transition).
         try
         {
             report.Resolve(request.Decision, request.Resolution, userId, now);

@@ -44,7 +44,7 @@ public class Enrollment
     // --- Progress (mutable, tracks completion) ---
     public int CompletedSessions { get; private set; } = 0;
 
-    // --- Lifecycle (F-15: Pending → Active → Completed / Cancelled) ---
+    // --- Lifecycle (Pending → Active → Completed / Cancelled) ---
     public EnrollmentStatus Status { get; private set; } = EnrollmentStatus.Pending;
 
     // --- Timestamps ---
@@ -65,7 +65,7 @@ public class Enrollment
     // =======================================================
 
     /// <summary>
-    /// Activates a Pending enrollment after payment escrow is recorded (F-15).
+    /// Activates a Pending enrollment after payment escrow is recorded.
     /// Only valid from Pending.
     /// </summary>
     public void Activate()

@@ -48,20 +48,20 @@ public static class InfrastructureServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        // Auth token lifetimes (F-06): same "Jwt" section, consumed by
+        // Auth token lifetimes: same "Jwt" section, consumed by
         // Login/RefreshToken handlers so persisted expiries match signing.
         services.AddOptions<AuthTokenLifetimeOptions>()
             .BindConfiguration(AuthTokenLifetimeOptions.SectionName)
             .ValidateOnStart();
 
-        // Refresh token hashing pepper (P0-D1). Required: tokens are stored hashed,
+        // Refresh token hashing pepper. Required: tokens are stored hashed,
         // and the pepper must never live in the database alongside them.
         services.AddOptions<RefreshTokenOptions>()
             .BindConfiguration(RefreshTokenOptions.SectionName)
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        // Account lockout thresholds (P0-D3).
+        // Account lockout thresholds.
         services.AddOptions<AuthLockoutOptions>()
             .BindConfiguration(AuthLockoutOptions.SectionName)
             .ValidateDataAnnotations()
@@ -148,7 +148,7 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddMemoryCache();
 
-        // ── WP0 Redis (optional, disabled by default) ─────────────────────────
+        // ── Redis (optional, disabled by default) ─────────────────────────
         // ConnectionStrings:Redis wins; Redis:ConnectionString is the fallback so
         // both `ConnectionStrings__Redis` (compose) and `Redis__ConnectionString`
         // bind. No ValidateOnStart on purpose: Enabled=false with an empty
@@ -198,7 +198,7 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.TryAddSingleton(TimeProvider.System);
 
-        // ── WP5 subject/platform-setting cache: Redis when the Cache flag is ──
+        // ── Subject/platform-setting cache: Redis when the Cache flag is ──
         // on, pass-through otherwise (disabled mode behaves byte-identically to
         // uncached code). IDistributedCache only exists when Redis is Enabled,
         // so the real services require both flags.
@@ -213,7 +213,7 @@ public static class InfrastructureServiceCollectionExtensions
             services.AddSingleton<IPlatformSettingCacheService>(_ => NoOpPlatformSettingCacheService.Instance);
         }
 
-        // ── WP6 token-version eviction: Redis when the RevokeCheck flag is ──
+        // ── Token-version eviction: Redis when the RevokeCheck flag is ──
         // on, no-op otherwise (disabled mode has no revocation middleware, so
         // nothing reads the cache and eviction is unnecessary).
         // IDistributedCache only exists when Redis is Enabled, so the real
@@ -229,7 +229,7 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddSingleton<IExternalAuthProvider, GoogleAuthProvider>();
 
-        // ── WP1 OAuth state: Redis when the OAuth flag is on, memory otherwise ──
+        // ── OAuth state: Redis when the OAuth flag is on, memory otherwise ──
         // The distributed store needs IConnectionMultiplexer, which only exists
         // when Redis is Enabled — consistent because the OAuth flag implies
         // Enabled. A missing multiplexer fails fast on first resolve (lazy
@@ -251,7 +251,7 @@ public static class InfrastructureServiceCollectionExtensions
             services.AddSingleton<IExternalAuthStateStore, MemoryExternalAuthStateStore>();
         }
 
-        // ── WP4 cron lock: Redis when the CronLock flag is on, no-op otherwise ──
+        // ── Cron lock: Redis when the CronLock flag is on, no-op otherwise ──
         // The lock seam needs IConnectionMultiplexer, which only exists when
         // Redis is Enabled — consistent because the CronLock flag implies
         // Enabled. Disabled mode runs every tick locally (original behavior).
@@ -274,10 +274,10 @@ public static class InfrastructureServiceCollectionExtensions
 
         var signalR = services.AddSignalR();
 
-        // ── WP2 SignalR backplane: Redis when the SignalR flag is on, local otherwise ──
+        // ── SignalR backplane: Redis when the SignalR flag is on, local otherwise ──
         // The (connectionString, Action<RedisOptions>) overload is deliberate: the
         // backplane owns its connection (opened lazily by the library, never Connect()ed
-        // here), so this block creates no ConnectionMultiplexer of its own — the WP0
+        // here), so this block creates no ConnectionMultiplexer of its own — the shared Redis block above
         // singleton above stays the single shared multiplexer for cache/OAuth. The 8.0.11
         // overloads offer no DI-aware way to hand that multiplexer over (ConnectionFactory
         // is a Func<TextWriter, Task<IConnectionMultiplexer>> with no service provider),
@@ -299,7 +299,7 @@ public static class InfrastructureServiceCollectionExtensions
             });
         }
 
-        // Phase 3 WP8: standalone TutorHub.Worker owns the jobs while API
+        // Worker scale-out: standalone TutorHub.Worker owns the jobs while API
         // replicas scale job-free. Default true keeps single-host behavior unchanged.
         if (configuration.GetValue("BackgroundJobs:Enabled", true))
         {

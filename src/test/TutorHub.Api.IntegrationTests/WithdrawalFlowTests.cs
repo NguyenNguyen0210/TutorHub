@@ -9,8 +9,8 @@ using TutorHub.Domain.Enums;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// F-30: withdrawal lifecycle on real Postgres — withdrawable enforcement,
-/// row-level locking path, and F-24 outbox-only delivery (exactly one
+/// withdrawal lifecycle on real Postgres — withdrawable enforcement,
+/// row-level locking path, and outbox-only delivery (exactly one
 /// WithdrawalRequestedEvent outbox row per withdrawal).
 /// </summary>
 public class WithdrawalFlowTests : IntegrationTestBase
@@ -48,7 +48,7 @@ public class WithdrawalFlowTests : IntegrationTestBase
         ledger.Should().ContainSingle()
             .Which.Type.Should().Be(WalletTransactionType.WithdrawalDebit);
 
-        // F-24: exactly one outbox event — no duplicate direct publish.
+        // exactly one outbox event — no duplicate direct publish.
         var outboxCount = await Db.OutboxMessages
             .AsNoTracking()
             .CountAsync(m => m.AggregateId == result.Id);

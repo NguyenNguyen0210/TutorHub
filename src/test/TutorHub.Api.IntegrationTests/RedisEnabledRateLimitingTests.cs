@@ -11,7 +11,7 @@ using TutorHub.Api.RateLimiting;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// WP3 enabled-mode: with <c>Redis:Enabled=true</c> plus the RateLimit flag,
+/// with <c>Redis:Enabled=true</c> plus the RateLimit flag,
 /// the pipeline uses <see cref="RedisRateLimitMiddleware"/> instead of the
 /// in-memory limiter. The production Redis seam is replaced by an in-memory
 /// stand-in, so no live Redis is needed; <c>/health/live</c> runs zero health

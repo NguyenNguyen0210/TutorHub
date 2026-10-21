@@ -4,7 +4,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 namespace TutorHub.Api.HealthChecks;
 
 /// <summary>
-/// P0-E3: compact, operator-facing JSON for probe consumers.
+/// compact, operator-facing JSON for probe consumers.
 ///
 /// Deliberately NOT the <c>ApiResponse</c> envelope: this endpoint is consumed by
 /// container orchestrators and `curl -f` (which read the status code), and by a

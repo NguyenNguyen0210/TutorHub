@@ -47,7 +47,7 @@ public class Booking
     public DateTime CreatedAt { get; set; }
 
     // Relationships
-    // P0 HOTFIX: a booking owns MANY transactions (initial payment + per-session
+    // a booking owns MANY transactions (initial payment + per-session
     // payouts + refunds/reversals). The previous 1:1 mapping + unique index made
     // the 2nd payout of any package fail and corrupted tracking via orphan deletion.
     public Enrollment? Enrollment { get; set; }

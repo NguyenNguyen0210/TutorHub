@@ -8,7 +8,7 @@ public class Review
     public Guid EnrollmentId { get; set; }
     public Enrollment Enrollment { get; set; } = default!;
 
-    // --- Content (F-23: set once via Create) ---
+    // --- Content (set once via Create) ---
     public int Rating { get; private set; }
 
     public string? Comment { get; private set; }

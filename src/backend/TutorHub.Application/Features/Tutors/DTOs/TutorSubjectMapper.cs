@@ -3,7 +3,7 @@ using TutorHub.Domain.Entities;
 namespace TutorHub.Application.Features.Tutors.DTOs;
 
 /// <summary>
-/// F-23 (Đợt 4): single mapping point for TutorSubject → TutorSubjectDto.
+/// single mapping point for TutorSubject → TutorSubjectDto.
 /// </summary>
 public static class TutorSubjectMapper
 {

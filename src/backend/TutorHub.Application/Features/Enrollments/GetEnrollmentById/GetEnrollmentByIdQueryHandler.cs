@@ -45,7 +45,7 @@ public class GetEnrollmentByIdQueryHandler : IRequestHandler<GetEnrollmentByIdQu
             throw new ForbiddenException("You do not have permission to view this enrollment.");
         }
 
-        // F-23 (Đợt 4): centralized mapping.
+        // centralized mapping.
         return EnrollmentMapper.ToDto(enrollment, enrollment.Subject.Name);
     }
 }

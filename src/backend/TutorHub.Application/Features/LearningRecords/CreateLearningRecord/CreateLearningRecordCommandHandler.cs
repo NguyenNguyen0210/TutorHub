@@ -32,7 +32,7 @@ public class CreateLearningRecordCommandHandler : IRequestHandler<CreateLearning
             throw new NotFoundException("Session", request.SessionId);
         }
 
-        // F-14: tutor-write only, Completed sessions only, write-once. No earning gate.
+        // tutor-write only, Completed sessions only, write-once. No earning gate.
         if (session.Enrollment.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("Only the session tutor can write the learning record.");

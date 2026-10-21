@@ -9,7 +9,7 @@ namespace TutorHub.Api.RateLimiting;
 public sealed record RateLimitDecision(bool Allowed, int RetryAfterSeconds);
 
 /// <summary>
-/// WP3: distributed fixed-window rate limiting over Redis. Each
+/// distributed fixed-window rate limiting over Redis. Each
 /// (policy, client IP, minute bucket) has one counter key incremented by an
 /// atomic Lua script, so every API node counts together. Permit budgets are
 /// single-sourced from <see cref="RateLimitingPolicies"/> (shared with the
@@ -61,7 +61,7 @@ public sealed class RedisRateLimitService
         }
         catch (RedisException ex)
         {
-            // Fail-open by design (SPEC §WP3): throttling must never take the
+            // Fail-open by design (by design): throttling must never take the
             // API down when Redis does. Cancellation still propagates — only
             // Redis failures are swallowed here.
             _logger.LogWarning(ex, "Redis rate-limit check failed for policy {Policy}; allowing the request.", policy);

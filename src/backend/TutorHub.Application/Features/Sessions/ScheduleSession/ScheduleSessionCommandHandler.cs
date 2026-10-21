@@ -146,7 +146,7 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
             throw;
         }
 
-        // F-23 (Đợt 4): centralized mapping.
+        // centralized mapping.
         return SessionMapper.ToDto(session);
     }
 }

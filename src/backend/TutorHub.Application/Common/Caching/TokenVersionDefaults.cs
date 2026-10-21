@@ -1,7 +1,7 @@
 namespace TutorHub.Application.Common.Caching;
 
 /// <summary>
-/// Single source of truth for the WP6 per-user JWT revocation scheme:
+/// Configuration defaults for per-user JWT revocation:
 /// the <c>ver</c> claim minted into every access token, the Redis key it is
 /// compared against, and how long a cached version lives (one access-token
 /// lifetime plus skew, so a stale entry can never outlive the tokens it gates).

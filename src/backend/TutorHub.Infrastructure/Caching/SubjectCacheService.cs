@@ -12,7 +12,7 @@ using TutorHub.Application.Features.Subjects.GetPublicSubjects;
 namespace TutorHub.Infrastructure.Caching;
 
 /// <summary>
-/// WP5 read-through cache for public subject reads over <see cref="IDistributedCache"/>.
+/// Read-through cache for public subject reads over <see cref="IDistributedCache"/>.
 /// List keys embed a version counter (<c>subj:ver</c>, bumped on CUD) so
 /// invalidation never needs a key scan. Every cache failure falls back to the
 /// database (fail-open); a lost invalidation is bounded by the entry TTL.

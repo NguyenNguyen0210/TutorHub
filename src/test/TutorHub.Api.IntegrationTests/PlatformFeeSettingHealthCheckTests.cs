@@ -12,7 +12,7 @@ using Xunit;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// P0-A5 / P0-E3: readiness must fail while the platform fee setting is missing or
+/// readiness must fail while the platform fee setting is missing or
 /// malformed, because enrollment activation snapshots it with no fallback — every
 /// successful payment would otherwise fail to activate.
 ///
@@ -101,7 +101,7 @@ public class PlatformFeeSettingHealthCheckTests
                 Id = Guid.NewGuid(),
                 Key = "PlatformFeeRate",
                 Value = feeValue,
-                Description = "P0-E3 readiness probe fixture.",
+                Description = "Readiness probe fixture.",
                 CurrentVersion = 1,
                 UpdatedAt = DateTime.UtcNow
             });

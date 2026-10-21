@@ -7,7 +7,7 @@ using TutorHub.Application.Common.Caching;
 namespace TutorHub.Infrastructure.Caching;
 
 /// <summary>
-/// WP5 read-through cache for platform settings over <see cref="IDistributedCache"/>.
+/// Read-through cache for platform settings over <see cref="IDistributedCache"/>.
 /// Fail-open: any cache error falls back to the database, and failures are
 /// never cached.
 /// </summary>

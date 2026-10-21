@@ -83,7 +83,7 @@ public class ChangePasswordCommandHandlerTests
         // Verify side effect: active refresh tokens must be revoked
         activeToken.RevokedAt.Should().NotBeNull();
 
-        // WP6: access tokens die instantly — the version bump must be persisted
+        // access tokens die instantly — the version bump must be persisted
         // in the same transaction, and the cached version must be evicted after.
         versionAtSave.Should().Be(1, "the bump must happen before SaveChanges");
         user.TokenVersion.Should().Be(1);

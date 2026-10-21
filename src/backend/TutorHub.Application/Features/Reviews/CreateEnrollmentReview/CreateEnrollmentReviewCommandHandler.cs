@@ -82,7 +82,7 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
         Review review;
         try
         {
-            // F-23: validated construction lives in the domain (also enforces 1-5 range).
+            // validated construction lives in the domain (also enforces 1-5 range).
             review = Review.Create(enrollment.Id, request.Rating, request.Comment);
         }
         catch (ArgumentException ex)
@@ -108,7 +108,7 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
 
         if (tutorProfile != null)
         {
-            // F-23: denormalized stats owned by the domain.
+            // denormalized stats owned by the domain.
             tutorProfile.ApplyReview(allRatings);
         }
 
@@ -136,7 +136,7 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
         }
 
         var studentUser = enrollment.StudentProfile.User;
-        // F-23 (Đợt 4): centralized mapping.
+        // centralized mapping.
         return ReviewMapper.ToDto(
             review,
             enrollment.TutorProfileId,

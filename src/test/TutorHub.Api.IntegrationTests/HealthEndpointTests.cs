@@ -6,7 +6,7 @@ using Xunit;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// P0-E3: /health is the readiness probe docker-compose already uses, so it must
+/// /health is the readiness probe docker-compose already uses, so it must
 /// report every dependency the instance needs to serve traffic, and /health/live
 /// must stay free of dependency checks so a database outage cannot make an
 /// orchestrator restart a healthy process.

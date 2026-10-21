@@ -25,7 +25,7 @@ public record SimulatedPaymentDto(
     Guid? EnrollmentId);
 
 /// <summary>
-/// P0 dev-tooling: a local stand-in for the VNPay server-to-server IPN.
+/// Development tool: a local stand-in for the VNPay server-to-server IPN.
 ///
 /// Locally VNPay cannot reach the API (the IPN is an outbound call from VNPay to a
 /// public URL) and the browser Return URL is deliberately read-only, so without this

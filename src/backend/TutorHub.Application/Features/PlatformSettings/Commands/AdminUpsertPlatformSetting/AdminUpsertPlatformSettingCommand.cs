@@ -4,7 +4,7 @@ using TutorHub.Application.Features.PlatformSettings.DTOs;
 namespace TutorHub.Application.Features.PlatformSettings.Commands.AdminUpsertPlatformSetting;
 
 /// <summary>
-/// Generic versioned setting upsert (F-17 plumbing).
+/// Generic versioned setting upsert.
 /// Allowed keys are whitelisted; values stay opaque strings so policy
 /// semantics (D-01..D-08) can be decided later without schema changes.
 /// </summary>

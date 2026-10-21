@@ -42,7 +42,7 @@ public class TutorProfileBuilder
 
     public TutorProfileBuilder WithRatings(decimal ratingAvg, int totalReviews)
     {
-        // F-23: stats are domain-owned; rebuild a rating set that reproduces
+        // stats are domain-owned; rebuild a rating set that reproduces
         // the requested average as closely as integers allow.
         _ratings.Clear();
         var rounded = Math.Max(1, Math.Min(5, (int)Math.Round(ratingAvg)));

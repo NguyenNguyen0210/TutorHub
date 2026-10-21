@@ -17,7 +17,7 @@ public interface IRedisLockCommands
     Task CompareDeleteAsync(string key, string expectedValue, CancellationToken cancellationToken = default);
 }
 
-/// <summary>WP4 Redis cron lock over <see cref="IRedisLockCommands"/>.</summary>
+/// <summary>Redis cron lock over <see cref="IRedisLockCommands"/>.</summary>
 public sealed class RedisDistributedLock : IRedisDistributedLock
 {
     private readonly IRedisLockCommands _commands;

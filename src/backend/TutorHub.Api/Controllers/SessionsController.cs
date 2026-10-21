@@ -166,7 +166,7 @@ public class SessionsController : ControllerBase
     }
 
     /// <summary>
-    /// Write the learning record for a completed session (Tutor only, F-14, write-once).
+    /// Write the learning record for a completed session (Tutor only, write-once).
     /// </summary>
     [Authorize(Roles = "Tutor")]
     [HttpPost("{id:guid}/learning-record")]

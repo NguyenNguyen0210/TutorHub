@@ -66,7 +66,7 @@ public class ReportReviewCommandHandler : IRequestHandler<ReportReviewCommand, R
         Report report;
         try
         {
-            // F-23: validated construction lives in the domain.
+            // validated construction lives in the domain.
             report = Report.Create(
                 reporterUserId: userId,
                 reportType: TrustReportType.ReviewViolation,

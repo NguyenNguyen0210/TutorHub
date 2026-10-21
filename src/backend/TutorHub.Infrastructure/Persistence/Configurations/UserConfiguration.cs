@@ -45,12 +45,12 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.CreatedAt)
             .IsRequired();
 
-        // P0-D3: brute-force lockout counters.
+        // brute-force lockout counters.
         builder.Property(u => u.AccessFailedCount)
             .IsRequired()
             .HasDefaultValue(0);
 
-        // WP6: per-user JWT version for instant revocation (PO 2026-09-29).
+        // per-user JWT version for instant revocation (PO 2026-09-29).
         builder.Property(u => u.TokenVersion)
             .IsRequired()
             .HasDefaultValue(0);

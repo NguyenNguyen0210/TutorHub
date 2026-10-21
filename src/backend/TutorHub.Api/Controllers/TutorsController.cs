@@ -167,7 +167,7 @@ public class TutorsController : ControllerBase
     }
 
     /// <summary>
-    /// Resubmit a tutor application after rejection (Tutor only, F-18).
+    /// Resubmit a tutor application after rejection (Tutor only).
     /// Creates a new Pending application; blocked while Pending or Approved.
     /// </summary>
     [Authorize(Roles = "Tutor")]

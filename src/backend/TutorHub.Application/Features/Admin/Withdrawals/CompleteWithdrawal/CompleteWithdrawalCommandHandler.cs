@@ -74,7 +74,7 @@ public class CompleteWithdrawalCommandHandler : IRequestHandler<CompleteWithdraw
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        // F-24: outbox-only delivery (OutboxDispatcherJob). No direct publish.
+        // outbox-only delivery (OutboxDispatcherJob). No direct publish.
 
         return new WithdrawalDto(
             Id: withdrawal.Id,
