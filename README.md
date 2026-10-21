@@ -184,16 +184,13 @@ TutorHub/
 │       ├── TutorHub.Infrastructure.UnitTests/# 21 tests: VNPay HMAC, Password Hasher, S3 options
 │       └── TutorHub.Api.IntegrationTests/    # 67 tests: Tích hợp cơ sở dữ liệu thật, API contract, Ledgers
 │
-├── docs/                                     # Toàn bộ tài liệu phân tích, kiến trúc & thiết kế
-│   ├── openapi.json                          # Đặc tả OpenAPI v3
-│   └── prd.md                                # Product Requirements Document
-│
 ├── scripts/                                  # Kịch bản kiểm thử & vận hành tự động
-│   ├── e2e_grace_period.py                   # Bộ test E2E Playwright kiểm thử luồng 12h Auto-Payout
-│   └── collect_ui_audit.py                   # Script tự động audit tràn màn hình mobile (Responsive)
+│   └── e2e_grace_period.py                   # Bộ test E2E Playwright kiểm thử luồng 12h Auto-Payout
 │
-├── docker-compose.yml                        # File triển khai cụm Container
-├── .env.example                              # File mẫu cấu hình biến môi trường
+├── docker-compose.yml                        # Cấu hình cụm Docker Container phát triển (Dev)
+├── docker-compose.prod.yml                   # Cấu hình cụm Docker Container Production
+├── .env.example                              # File mẫu cấu hình biến môi trường Development
+├── .env.production.example                   # File mẫu cấu hình biến môi trường Production
 └── README.md                                 # Tài liệu dự án
 ```
 

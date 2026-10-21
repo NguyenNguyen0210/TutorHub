@@ -63,6 +63,7 @@ services:
       Jwt__Secret: ${JWT_SECRET:?JWT_SECRET is required}
       Jwt__Issuer: ${JWT_ISSUER:-TutorHubAPI}
       Jwt__Audience: ${JWT_AUDIENCE:-TutorHubClient}
+      RefreshToken__Pepper: ${REFRESH_TOKEN_PEPPER:?REFRESH_TOKEN_PEPPER is required}
 
       VnPay__TmnCode: ${VNPAY_TMNCODE:?VNPAY_TMNCODE is required}
       VnPay__HashSecret: ${VNPAY_HASHSECRET:?VNPAY_HASHSECRET is required}
