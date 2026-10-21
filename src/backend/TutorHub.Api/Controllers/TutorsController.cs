@@ -6,6 +6,7 @@ using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Reviews.DTOs;
 using TutorHub.Application.Features.Reviews.GetTutorReviews;
 using TutorHub.Application.Features.Tutors.DTOs;
+using TutorHub.Application.Features.Tutors.GetTutorBusySlots;
 using TutorHub.Application.Features.Tutors.GetMyProfile;
 using TutorHub.Application.Features.Tutors.GetMyTutorApplication;
 using TutorHub.Application.Features.Tutors.GetTutorById;
@@ -114,6 +115,23 @@ public class TutorsController : ControllerBase
         var query = new GetTutorReviewsQuery(id, pageNumber, pageSize);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<TutorPublicReviewDto>>.SuccessResult(result, "Tutor reviews retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Get anonymized busy schedule slots for a tutor (Public).
+    /// </summary>
+    [HttpGet("{id:guid}/busy-slots")]
+    [ProducesResponseType(typeof(ApiResponse<List<TutorBusySlotDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetTutorBusySlots(
+        [FromRoute] Guid id,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetTutorBusySlotsQuery(id, from, to);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<List<TutorBusySlotDto>>.SuccessResult(result, "Tutor busy slots retrieved successfully."));
     }
 
     /// <summary>

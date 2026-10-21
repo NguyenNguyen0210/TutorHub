@@ -257,6 +257,12 @@ export const tutorService = {
     return [];
   },
 
+  /** GET /tutors/{id}/busy-slots → TutorBusySlotDto[] */
+  async getTutorBusySlots(id, params = {}) {
+    const res = await api.get(`/tutors/${id}/busy-slots`, { params });
+    return Array.isArray(res) ? res : [];
+  },
+
   /** GET /tutors/me/services → ServiceDto[] (Tutor workspace) */
   async getMyServices() {
     const res = await api.get('/tutors/me/services');
