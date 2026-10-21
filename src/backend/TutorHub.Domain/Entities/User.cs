@@ -22,15 +22,9 @@ public class User
     public DateTime CreatedAt { get; set; }
 
     // Brute-force lockout. Counted per ACCOUNT rather than per IP so a
-    // distributed credential-stuffing attempt cannot sidestep the IP rate limiter.
+    // distributed credential-stuffing attempt cannot sidestep account security.
     public int AccessFailedCount { get; set; }
     public DateTime? LockoutEndAt { get; set; }
-
-    // per-user JWT version for instant access-token revocation
-    // Every access token carries this
-    // value in its "ver" claim; Ban/Suspend/ChangePassword bump it so all
-    // previously issued tokens fail the revocation check on next use.
-    public int TokenVersion { get; private set; }
 
     // Profiles
     public TutorProfile? TutorProfile { get; set; }
@@ -100,14 +94,6 @@ public class User
     /// password checks. Once the window passes the account is usable again.
     /// </summary>
     public bool IsLockedOut(DateTime now) => LockoutEndAt.HasValue && LockoutEndAt.Value > now;
-
-    /// <summary>
-    /// Invalidates every previously issued access token: the next token minted
-    /// carries the bumped version while all older tokens fail the revocation
-    /// check. Must be called before SaveChanges so the bump persists in the
-    /// same transaction as the status/password change that caused it.
-    /// </summary>
-    public void BumpTokenVersion() => TokenVersion++;
 
     /// <summary>
     /// Records one failed password check. On reaching

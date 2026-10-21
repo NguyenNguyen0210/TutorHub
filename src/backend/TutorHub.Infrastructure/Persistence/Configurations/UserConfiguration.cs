@@ -50,11 +50,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasDefaultValue(0);
 
-        // per-user JWT version for instant revocation (PO 2026-09-29).
-        builder.Property(u => u.TokenVersion)
-            .IsRequired()
-            .HasDefaultValue(0);
-
         builder.ToTable(t =>
         {
             t.HasCheckConstraint("CK_User_NonNegativeFailedLogins", "\"AccessFailedCount\" >= 0");
