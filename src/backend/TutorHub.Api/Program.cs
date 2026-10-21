@@ -256,8 +256,6 @@ builder.Services.AddCors(options =>
         .WithExposedHeaders("X-Correlation-ID"));
 });
 
-// per-IP throttling for credential and payment endpoints.
-builder.Services.AddTutorHubRateLimiting();
 
 
 var app = builder.Build();
@@ -343,13 +341,8 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
-// before the rate limiter, so a browser preflight (which carries no
-// credentials) never consumes the caller's credential budget.
 app.UseCors();
 
-// Throttle before authentication so credential stuffing is limited even for
-// requests that never present a valid token.
-app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

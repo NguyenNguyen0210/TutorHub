@@ -64,7 +64,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 ┌────────────────────────────────────────────────────────────────────────┐
 │                           TutorHub.Api                                 │
 │  Thin REST Controllers ── JWT / Refresh Middleware ── SignalR Hubs     │
-│  Rate Limiting ── StartupSecretGuard ── Global Error Handling          │
+│  StartupSecretGuard ── Global Error Handling ── Correlation Tracking   │
 └───────────────────┬────────────────────────────────┬───────────────────┘
                     │                                │
                     ▼                                ▼
