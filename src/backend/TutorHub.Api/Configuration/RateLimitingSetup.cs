@@ -15,9 +15,7 @@ public static class RateLimitingPolicies
     public const string Payment = "payment";
 
     /// <summary>
-    /// Per-minute budgets, single-sourced here so the in-memory limiter
-    /// (<see cref="RateLimitingSetup"/>) and the Redis limiter
-    /// (fixed window) can never drift apart.
+    /// Per-minute budgets for endpoint rate limiting policies.
     /// </summary>
     public const int AuthPermitLimit = 10;
 

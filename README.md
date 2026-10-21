@@ -270,9 +270,8 @@ Redis__Enabled=true
 ConnectionStrings__Redis=redis:6379
 ```
 
-* **Cờ tính năng** `Redis:Features:{OAuth,SignalR,Cache,CronLock,RateLimit}` (mặc định `true`): tắt cờ nào = replica về đúng code memory/DB cũ của phần đó, không cần sửa code hay redeploy bản khác.
-* **Redis chết lúc chạy:** các đường non-OAuth vẫn phục vụ (HTTP 200) — cache đọc thẳng DB, cron bỏ qua kỳ + log, rate-limit cho qua + `LogWarning` (fail-open), `/health` báo `Degraded` ở check `redis` (không bao giờ `Unhealthy`, không restart oan). OAuth vẫn fail-closed (không cấp token) nhưng mù: callback (và start khi mất kết nối thật) trả 500 envelope thay vì 409/503 rõ ràng — cần follow-up map `RedisException` → 409/503 với thông điệp rõ ràng.
-* **Rate-limit phân tán:** Lua `INCR+EXPIRE` key `ratelimit:{policy}:{ip}:{bucket}`, giữ nguyên ngưỡng `10/60/300 per 1m` + envelope 429 và header `Retry-After` cũ. Chi phí: 1 Lua eval/request.
+* **Cờ tính năng** `Redis:Features:{OAuth,SignalR,Cache,CronLock}` (mặc định `true`): tắt cờ nào = replica về đúng code memory/DB cũ của phần đó, không cần sửa code hay redeploy bản khác.
+* **Redis chết lúc chạy:** các đường non-OAuth vẫn phục vụ (HTTP 200) — cache đọc thẳng DB, cron bỏ qua kỳ + log, `/health` báo `Degraded` ở check `redis` (không bao giờ `Unhealthy`, không restart oan). OAuth vẫn fail-closed (không cấp token) nhưng mù: callback (và start khi mất kết nối thật) trả 500 envelope thay vì 409/503 rõ ràng — cần follow-up map `RedisException` → 409/503 với thông điệp rõ ràng.
 * **Worker riêng:** mặc định api tự chạy 6 background job (`BackgroundJobs:Enabled=true`). Khi chạy ≥2 replica api, tách job sang host chuyên để không double-run:
   ```bash
   # .env: api thôi chạy job

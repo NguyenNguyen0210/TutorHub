@@ -18,7 +18,6 @@ using TutorHub.Api.Configuration;
 using TutorHub.Api.Exceptions;
 using TutorHub.Api.HealthChecks;
 using TutorHub.Api.Middlewares;
-using TutorHub.Api.RateLimiting;
 using TutorHub.Application;
 using TutorHub.Infrastructure;
 using TutorHub.Infrastructure.Authentication;
@@ -260,34 +259,6 @@ builder.Services.AddCors(options =>
 // per-IP throttling for credential and payment endpoints.
 builder.Services.AddTutorHubRateLimiting();
 
-// distributed fixed-window limiter over Redis when the RateLimit flag is
-// on; the in-memory limiter above stays registered as the fallback. The
-// IConnectionMultiplexer this seam needs only exists when Redis is Enabled —
-// consistent because the RateLimit flag implies Enabled. A missing
-// multiplexer fails fast on first resolve (lazy factory), not as a null at
-// runtime. RedisOptions binding mirrors the Infrastructure registration
-// (ConnectionStrings:Redis wins over Redis:ConnectionString).
-var redisRateLimit = new RedisOptions();
-builder.Configuration.GetSection(RedisOptions.SectionName).Bind(redisRateLimit);
-var redisRateLimitConnectionString = builder.Configuration.GetConnectionString("Redis");
-if (!string.IsNullOrWhiteSpace(redisRateLimitConnectionString))
-{
-    redisRateLimit.ConnectionString = redisRateLimitConnectionString;
-}
-
-if (redisRateLimit.Enabled && redisRateLimit.Features.RateLimit)
-{
-    builder.Services.AddSingleton<IRedisRateLimitCommands>(sp =>
-    {
-        var multiplexer = sp.GetService<IConnectionMultiplexer>()
-            ?? throw new InvalidOperationException(
-                "Redis:Features:RateLimit is true but no IConnectionMultiplexer is registered. " +
-                "Distributed rate limiting requires Redis:Enabled with a connection string.");
-        return new StackExchangeRedisRateLimitCommands(multiplexer.GetDatabase());
-    });
-    builder.Services.AddSingleton<RedisRateLimitService>();
-}
-
 
 var app = builder.Build();
 
@@ -376,18 +347,9 @@ app.UseRouting();
 // credentials) never consumes the caller's credential budget.
 app.UseCors();
 
-// throttle before authentication so credential stuffing is limited even for
-// requests that never present a valid token. Redis-backed fixed window when
-// the RateLimit flag is on (every node shares one budget), otherwise the
-// in-memory limiter above.
-if (redisRateLimit.Enabled && redisRateLimit.Features.RateLimit)
-{
-    app.UseMiddleware<RedisRateLimitMiddleware>();
-}
-else
-{
-    app.UseRateLimiter();
-}
+// Throttle before authentication so credential stuffing is limited even for
+// requests that never present a valid token.
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
