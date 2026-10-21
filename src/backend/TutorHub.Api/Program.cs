@@ -288,11 +288,6 @@ if (redisRateLimit.Enabled && redisRateLimit.Features.RateLimit)
     builder.Services.AddSingleton<RedisRateLimitService>();
 }
 
-// WP6: per-user token-version reader for the revocation middleware. Always
-// registered (the database always exists); the middleware itself only runs
-// when Redis is enabled with the RevokeCheck flag.
-builder.Services.AddScoped<ITokenVersionReader, EfTokenVersionReader>();
-
 
 var app = builder.Build();
 
@@ -397,14 +392,6 @@ else
 app.UseAuthentication();
 app.UseAuthorization();
 
-// WP6: instant JWT revocation via per-user TokenVersion (PO 2026-09-29
-// overrides F-08). Only when Redis is enabled with the RevokeCheck flag;
-// otherwise authenticated requests flow exactly as before (the middleware
-// additionally no-ops on flag-off for defense in depth).
-if (redisRateLimit.Enabled && redisRateLimit.Features.RevokeCheck)
-{
-    app.UseMiddleware<TokenRevocationMiddleware>();
-}
 
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
