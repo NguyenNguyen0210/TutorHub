@@ -11,6 +11,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Serilog.Formatting.Compact;
+using Serilog.Sinks.SystemConsole.Themes;
 using StackExchange.Redis;
 using TutorHub.Api.Configuration;
 using TutorHub.Api.Exceptions;
@@ -75,6 +77,18 @@ builder.Host.UseSerilog((context, loggerConfig) =>
         .Enrich.WithEnvironmentName()
         .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
         .MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Warning);
+
+    // Console sink: Human-readable ANSI colored in Development, Compact JSON in Production/Containers
+    if (context.HostingEnvironment.IsDevelopment())
+    {
+        loggerConfig.WriteTo.Console(
+            theme: AnsiConsoleTheme.Code,
+            outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{CorrelationId}] {Message:lj}{NewLine}{Exception}");
+    }
+    else
+    {
+        loggerConfig.WriteTo.Console(new RenderedCompactJsonFormatter());
+    }
 
     var seqUrl = context.Configuration["Seq:ServerUrl"];
     if (!string.IsNullOrWhiteSpace(seqUrl))
@@ -323,7 +337,35 @@ app.UseMiddleware<TutorHub.Api.Middlewares.CorrelationIdMiddleware>();
 // orchestrator polling stays out of Seq.
 app.UseWhen(
     context => !context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase),
-    branch => branch.UseSerilogRequestLogging());
+    branch => branch.UseSerilogRequestLogging(options =>
+    {
+        options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+        options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+        {
+            var correlationId = httpContext.TraceIdentifier;
+            if (!string.IsNullOrWhiteSpace(correlationId))
+            {
+                diagnosticContext.Set("CorrelationId", correlationId);
+            }
+
+            var user = httpContext.User;
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                    ?? user.FindFirst("sub")?.Value;
+                var role = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    diagnosticContext.Set("UserId", userId);
+                }
+                if (!string.IsNullOrEmpty(role))
+                {
+                    diagnosticContext.Set("UserRole", role);
+                }
+            }
+        };
+    }));
 
 if (app.Environment.IsDevelopment())
 {
