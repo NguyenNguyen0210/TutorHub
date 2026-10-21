@@ -12,6 +12,7 @@ import {
   EyeOff,
   ArrowRight,
   ChevronRight,
+  AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import Avatar from '@/components/ui/Avatar';
@@ -55,11 +56,12 @@ export default function Register() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [agreeTerms, setAgreeTerms] = useState(true);
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(false);
 
-  // Truy vấn dữ liệu gia sư thật từ Database (PostgreSQL)
+  // Truy vấn danh sách gia sư cho card minh họa
   const [tutorStats, setTutorStats] = useState({
     totalCount: 0,
     topTutors: [],
@@ -67,13 +69,15 @@ export default function Register() {
   });
 
   useEffect(() => {
-    let isMounted = true;
+    const controller = new AbortController();
+
     api
-      .get('/tutors?pageSize=3')
+      .get('/tutors?pageSize=3', { signal: controller.signal })
       .then((res) => {
-        if (!isMounted) return;
-        const items = res?.items || res?.data?.items || [];
-        const count = res?.totalCount ?? res?.data?.totalCount ?? 0;
+        const pagedData = res?.data ?? res;
+        const items = Array.isArray(pagedData?.items) ? pagedData.items : [];
+        const count = typeof pagedData?.totalCount === 'number' ? pagedData.totalCount : items.length;
+
         setTutorStats({
           totalCount: count,
           topTutors: items,
@@ -81,65 +85,124 @@ export default function Register() {
         });
       })
       .catch((err) => {
-        console.warn('Lỗi kết nối API gia sư cho trang đăng ký:', err);
-        if (isMounted) {
-          setTutorStats((prev) => ({ ...prev, loading: false }));
+        // Bỏ qua lỗi do hủy request khi component unmount
+        if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
+          return;
         }
+        console.warn('Lỗi kết nối API gia sư cho trang đăng ký:', err);
+        setTutorStats((prev) => ({ ...prev, loading: false }));
       });
 
     return () => {
-      isMounted = false;
+      controller.abort();
     };
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Xóa lỗi inline của trường khi người dùng nhập liệu lại
+  const clearFieldError = (field) => {
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
+    }
+  };
 
-    if (!fullName || !fullName.trim()) {
-      toast.error('Vui lòng nhập họ và tên của bạn.');
-      return;
+  // Điều hướng bằng bàn phím cho Radio Group vai trò (WAI-ARIA Radio Group Pattern)
+  const handleRoleKeyDown = (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedRole((prev) => (prev === 'Student' ? 'Tutor' : 'Student'));
+    }
+  };
+
+  // Chuẩn hóa và xác thực dữ liệu đầu vào
+  const validateForm = () => {
+    const errors = {};
+    const normalizedName = fullName.trim();
+    const normalizedEmail = email.trim();
+    const rawPhone = phoneNumber.trim().replace(/[\s\-.]/g, '');
+
+    if (!normalizedName) {
+      errors.fullName = 'Vui lòng nhập họ và tên của bạn.';
     }
 
-    if (!email || !email.trim()) {
-      toast.error('Vui lòng nhập địa chỉ email.');
-      return;
+    if (!normalizedEmail) {
+      errors.email = 'Vui lòng nhập địa chỉ email.';
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(normalizedEmail)) {
+        errors.email = 'Địa chỉ email không hợp lệ (VD: example@gmail.com).';
+      }
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      toast.error('Địa chỉ email không hợp lệ (VD: example@gmail.com).');
-      return;
-    }
-
-    if (phoneNumber && phoneNumber.trim()) {
-      const cleanPhone = phoneNumber.trim().replace(/[\s\-.]/g, '');
+    let normalizedPhone = '';
+    if (rawPhone) {
       const vnPhoneRegex = /^(0|\+84|84)(3|5|7|8|9)[0-9]{8}$/;
-      if (!vnPhoneRegex.test(cleanPhone)) {
-        toast.error('Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại di động gồm 10 chữ số (VD: 0912345678).');
-        return;
+      if (!vnPhoneRegex.test(rawPhone)) {
+        errors.phoneNumber = 'Số điện thoại không hợp lệ (VD: 0912345678).';
+      } else {
+        if (rawPhone.startsWith('+84')) {
+          normalizedPhone = '0' + rawPhone.slice(3);
+        } else if (rawPhone.startsWith('84') && rawPhone.length === 11) {
+          normalizedPhone = '0' + rawPhone.slice(2);
+        } else {
+          normalizedPhone = rawPhone;
+        }
       }
     }
 
     if (!password) {
-      toast.error('Vui lòng nhập mật khẩu.');
-      return;
-    }
-
-    if (password.length < 8) {
-      toast.error('Mật khẩu cần tối thiểu 8 ký tự.');
-      return;
+      errors.password = 'Vui lòng nhập mật khẩu.';
+    } else if (password.length < 8) {
+      errors.password = 'Mật khẩu cần tối thiểu 8 ký tự.';
     }
 
     if (!agreeTerms) {
-      toast.error('Vui lòng đồng ý với Điều khoản sử dụng và Chính sách bảo mật.');
+      errors.agreeTerms = 'Vui lòng đồng ý với Điều khoản sử dụng và Chính sách bảo mật.';
+    }
+
+    setFieldErrors(errors);
+
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors,
+      normalizedName,
+      normalizedEmail,
+      normalizedPhone,
+    };
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Guard: ngăn gửi yêu cầu trùng lặp khi đang xử lý
+    if (loading || socialLoading) return;
+
+    const { isValid, errors, normalizedName, normalizedEmail, normalizedPhone } = validateForm();
+
+    if (!isValid) {
+      const firstErrorMessage = Object.values(errors)[0];
+      if (firstErrorMessage) {
+        toast.error(firstErrorMessage);
+      }
       return;
     }
 
     try {
       setLoading(true);
-      await registerWithCredentials(email, password, fullName, phoneNumber, selectedRole);
 
-      toast.success(`Đăng ký thành công! Chào mừng ${fullName} gia nhập TutorHub.`);
+      // Gửi dữ liệu đã được trim và chuẩn hóa đồng nhất
+      await registerWithCredentials(
+        normalizedEmail,
+        password,
+        normalizedName,
+        normalizedPhone,
+        selectedRole
+      );
+
+      toast.success(`Đăng ký thành công! Chào mừng ${normalizedName} gia nhập TutorHub.`);
 
       if (selectedRole === 'Tutor') {
         navigate('/tutor/application', { replace: true });
@@ -147,15 +210,58 @@ export default function Register() {
         navigate('/student/dashboard', { replace: true });
       }
     } catch (err) {
-      const specificError = err.errors?.[0] || err.message;
-      let displayError = 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.';
-      if (specificError?.includes('already exists') || specificError?.includes('đã được')) {
+      console.error('Đăng ký tài khoản thất bại:', err);
+
+      let displayError = 'Đăng ký không thành công. Vui lòng kiểm tra lại thông tin và thử lại.';
+      const specificError = err?.errors?.[0] || err?.message;
+
+      // 1. Ánh xạ lỗi từ Backend (FluentValidation hoặc Conflict 409) vào đúng ô input trên form
+      const backendFieldErrors = {};
+      const allErrors = Array.isArray(err?.errors) && err.errors.length > 0
+        ? err.errors
+        : (typeof specificError === 'string' ? [specificError] : []);
+
+      if (err?.status === 409 || err?.kind === 'conflict') {
         displayError = 'Email này đã được đăng ký tài khoản. Vui lòng sử dụng email khác hoặc đăng nhập.';
-      } else if (specificError?.includes('conflict') || specificError?.includes('duplicate')) {
-        displayError = 'Thông tin đăng ký bị trùng lặp hoặc đã tồn tại trên hệ thống.';
-      } else if (specificError) {
-        displayError = specificError;
+        backendFieldErrors.email = 'Email này đã được đăng ký tài khoản.';
       }
+
+      allErrors.forEach((errorMsg) => {
+        if (typeof errorMsg !== 'string') return;
+        const lower = errorMsg.toLowerCase();
+
+        if (lower.includes('email') || lower.includes('already exists') || lower.includes('đã được') || lower.includes('duplicate')) {
+          backendFieldErrors.email = (lower.includes('already exists') || lower.includes('đã được') || lower.includes('duplicate'))
+            ? 'Email này đã được đăng ký tài khoản.'
+            : errorMsg;
+          if (lower.includes('already exists') || lower.includes('đã được') || lower.includes('duplicate')) {
+            displayError = 'Email này đã được đăng ký tài khoản. Vui lòng sử dụng email khác hoặc đăng nhập.';
+          }
+        } else if (lower.includes('phone') || lower.includes('thoại')) {
+          backendFieldErrors.phoneNumber = errorMsg;
+        } else if (lower.includes('password') || lower.includes('mật khẩu')) {
+          backendFieldErrors.password = errorMsg;
+        } else if (lower.includes('fullname') || lower.includes('full name') || lower.includes('họ và tên') || lower.includes('name is required')) {
+          backendFieldErrors.fullName = errorMsg;
+        }
+      });
+
+      if (Object.keys(backendFieldErrors).length > 0) {
+        setFieldErrors((prev) => ({ ...prev, ...backendFieldErrors }));
+      }
+
+      // 2. Xác định thông báo thân thiện hiển thị trên Toast
+      if (displayError === 'Đăng ký không thành công. Vui lòng kiểm tra lại thông tin và thử lại.' && typeof specificError === 'string') {
+        if (
+          !specificError.includes('Exception') &&
+          !specificError.includes('at ') &&
+          !specificError.includes('System.') &&
+          specificError.length < 150
+        ) {
+          displayError = specificError;
+        }
+      }
+
       toast.error(displayError);
     } finally {
       setLoading(false);
@@ -163,16 +269,19 @@ export default function Register() {
   };
 
   const handleSocialRegister = async (_provider) => {
+    if (loading || socialLoading) return;
+
     try {
       setSocialLoading(true);
       const { authorizeUrl } = await externalAuthService.startGoogleLogin();
       window.location.href = authorizeUrl;
     } catch (err) {
+      console.error('Khởi tạo đăng ký qua Google thất bại:', err);
       const msg = err?.message || '';
       if (msg.includes('not configured') || msg.includes('client id')) {
-        toast.error('Tính năng đăng ký qua Google chưa được cấu hình Client ID / Secret trong file .env.');
+        toast.error('Tính năng đăng ký qua Google chưa được cấu hình Client ID / Secret trong hệ thống.');
       } else {
-        toast.error(msg || 'Không khởi tạo được đăng ký Google.');
+        toast.error('Không thể khởi tạo đăng nhập Google vào lúc này. Vui lòng thử lại sau.');
       }
     } finally {
       setSocialLoading(false);
@@ -181,7 +290,7 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex flex-col bg-canvas text-fg selection:bg-brand-primary-100 selection:text-brand-primary-800">
-      {/* Minimal Focused Auth Header */}
+      {/* Focused Auth Header */}
       <AuthHeader mode="register" />
 
       {/* Main Content Area */}
@@ -189,23 +298,23 @@ export default function Register() {
         <div className="w-full grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-8 lg:gap-12 items-center">
           {/* Left Column: Marketing Message, Pillars & Illustration */}
           <section className="flex flex-col justify-center">
-            {/* 1. Tag Pill */}
+            {/* Tag Pill */}
             <div className="inline-flex items-center px-3 py-1 rounded-full bg-brand-primary-50 text-brand-primary-600 text-[11px] sm:text-[11.5px] font-bold uppercase tracking-wider mb-3.5 border border-brand-primary-100/60 w-fit">
               HỌC TỐT HƠN MỖI NGÀY
             </div>
 
-            {/* 2. Headline */}
+            {/* Headline */}
             <h1 className="text-[36px] sm:text-[42px] font-bold text-fg leading-[1.14] tracking-[-1px]">
               Bắt đầu hành trình <br />
               <span className="text-brand-primary-600">học tập tốt hơn</span>
             </h1>
 
-            {/* 3. Description */}
+            {/* Description */}
             <p className="mt-3 text-[14px] sm:text-[14.5px] text-neutral-500 max-w-lg leading-relaxed">
               Tạo tài khoản TutorHub để kết nối với những gia sư chất lượng, khám phá khoá học phù hợp và chạm tới mục tiêu của bạn.
             </p>
 
-            {/* 4. 3 Benefits Row */}
+            {/* 3 Pillars Row */}
             <div className="mt-5 flex flex-wrap sm:flex-nowrap items-center gap-4 sm:gap-6">
               {/* Benefit 1 */}
               <div className="flex items-center gap-2.5">
@@ -241,9 +350,8 @@ export default function Register() {
               </div>
             </div>
 
-            {/* 5. Illustration with DYNAMIC Live Floating Badges (100% borderless, seamless organic shape) */}
+            {/* Illustration with Dynamic Live Floating Badges */}
             <div className="relative mt-4 max-w-[520px] w-full select-none">
-              {/* Clean Transparent Illustration without any rectangular borders */}
               <img
                 src="/images/transparent-student-clean.png"
                 alt="TutorHub Student Illustration"
@@ -251,9 +359,9 @@ export default function Register() {
                 loading="eager"
               />
 
-              {/* Floating Badge 1: Top Right - Hơn 10.000+ học viên */}
+              {/* Floating Badge 1: Top Right - Thông điệp giá trị trung thực */}
               <div
-                className="absolute top-4 sm:top-5 right-2 sm:right-3 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-[16px] sm:rounded-[18px] shadow-brand-md border border-white/80 max-w-[140px] sm:max-w-[155px] text-left z-20 animate-float"
+                className="absolute top-4 sm:top-5 right-2 sm:right-3 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-[16px] sm:rounded-[18px] shadow-brand-md border border-white/80 max-w-[145px] sm:max-w-[160px] text-left z-20 animate-float"
                 style={{ animationDuration: '5s' }}
               >
                 <div className="flex items-center justify-between mb-1">
@@ -265,10 +373,10 @@ export default function Register() {
                   </div>
                 </div>
                 <p className="text-[12px] sm:text-[13px] font-bold text-fg leading-tight mt-1">
-                  Hơn 10.000+
+                  Học tập hiệu quả
                 </p>
                 <p className="text-[9.5px] sm:text-[10.5px] text-neutral-500 leading-snug mt-0.5">
-                  học viên đã tìm được gia sư phù hợp
+                  Kết nối gia sư phù hợp với mục tiêu của bạn
                 </p>
               </div>
 
@@ -344,17 +452,23 @@ export default function Register() {
                 </p>
               </div>
 
-              {/* Role Selector: 2 Cards Side-by-Side (Matching mockup 100%) */}
+              {/* Role Selector: 2 Cards with WAI-ARIA keyboard navigation */}
               <div className="mt-4 text-left">
-                <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Chọn loại tài khoản">
+                <div
+                  className="grid grid-cols-2 gap-3"
+                  role="radiogroup"
+                  aria-label="Chọn loại tài khoản"
+                  onKeyDown={handleRoleKeyDown}
+                >
                   {/* Option 1: Tôi là học viên */}
                   <button
                     type="button"
                     role="radio"
                     aria-checked={selectedRole === 'Student'}
+                    tabIndex={selectedRole === 'Student' ? 0 : -1}
                     onClick={() => setSelectedRole('Student')}
                     className={cn(
-                      'p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5',
+                      'p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600',
                       selectedRole === 'Student'
                         ? 'border-2 border-brand-primary-600 bg-brand-primary-50'
                         : 'border-border bg-white hover:border-neutral-300'
@@ -388,9 +502,10 @@ export default function Register() {
                     type="button"
                     role="radio"
                     aria-checked={selectedRole === 'Tutor'}
+                    tabIndex={selectedRole === 'Tutor' ? 0 : -1}
                     onClick={() => setSelectedRole('Tutor')}
                     className={cn(
-                      'p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5',
+                      'p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600',
                       selectedRole === 'Tutor'
                         ? 'border-2 border-brand-primary-600 bg-brand-primary-50'
                         : 'border-border bg-white hover:border-neutral-300'
@@ -426,9 +541,16 @@ export default function Register() {
                 {/* 1. Họ và tên */}
                 <div>
                   <label htmlFor="reg-fullname" className="block text-[13px] font-bold text-fg mb-1">
-                    Họ và tên
+                    Họ và tên <span className="text-error" aria-hidden="true">*</span>
                   </label>
-                  <div className="relative flex items-center h-12 bg-white border border-border rounded-[12px] px-3.5 focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10 transition-all">
+                  <div
+                    className={cn(
+                      'relative flex items-center h-12 bg-white border rounded-[12px] px-3.5 transition-all',
+                      fieldErrors.fullName
+                        ? 'border-error ring-1 ring-error/20 focus-within:border-error focus-within:ring-error/20'
+                        : 'border-border focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10'
+                    )}
+                  >
                     <User className="w-4 h-4 text-fg-muted shrink-0 mr-2.5 pointer-events-none" />
                     <input
                       id="reg-fullname"
@@ -436,20 +558,38 @@ export default function Register() {
                       required
                       autoComplete="name"
                       aria-label="Họ và tên"
+                      aria-invalid={Boolean(fieldErrors.fullName)}
+                      aria-describedby={fieldErrors.fullName ? 'fullname-error' : undefined}
                       value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
+                      onChange={(e) => {
+                        setFullName(e.target.value);
+                        clearFieldError('fullName');
+                      }}
                       placeholder="Nhập họ và tên của bạn"
                       className="w-full h-full text-[14px] text-fg placeholder:text-fg-muted bg-transparent outline-none"
                     />
                   </div>
+                  {fieldErrors.fullName && (
+                    <p id="fullname-error" className="mt-1 text-[11.5px] text-error font-medium flex items-center gap-1" role="alert">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{fieldErrors.fullName}</span>
+                    </p>
+                  )}
                 </div>
 
                 {/* 2. Email */}
                 <div>
                   <label htmlFor="reg-email" className="block text-[13px] font-bold text-fg mb-1">
-                    Email
+                    Email <span className="text-error" aria-hidden="true">*</span>
                   </label>
-                  <div className="relative flex items-center h-12 bg-white border border-border rounded-[12px] px-3.5 focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10 transition-all">
+                  <div
+                    className={cn(
+                      'relative flex items-center h-12 bg-white border rounded-[12px] px-3.5 transition-all',
+                      fieldErrors.email
+                        ? 'border-error ring-1 ring-error/20 focus-within:border-error focus-within:ring-error/20'
+                        : 'border-border focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10'
+                    )}
+                  >
                     <Mail className="w-4 h-4 text-fg-muted shrink-0 mr-2.5 pointer-events-none" />
                     <input
                       id="reg-email"
@@ -457,12 +597,23 @@ export default function Register() {
                       required
                       autoComplete="email"
                       aria-label="Địa chỉ email"
+                      aria-invalid={Boolean(fieldErrors.email)}
+                      aria-describedby={fieldErrors.email ? 'email-error' : undefined}
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        clearFieldError('email');
+                      }}
                       placeholder="Nhập email của bạn"
                       className="w-full h-full text-[14px] text-fg placeholder:text-fg-muted bg-transparent outline-none"
                     />
                   </div>
+                  {fieldErrors.email && (
+                    <p id="email-error" className="mt-1 text-[11.5px] text-error font-medium flex items-center gap-1" role="alert">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{fieldErrors.email}</span>
+                    </p>
+                  )}
                 </div>
 
                 {/* 3. Số điện thoại */}
@@ -470,27 +621,52 @@ export default function Register() {
                   <label htmlFor="reg-phone" className="block text-[13px] font-bold text-fg mb-1">
                     Số điện thoại
                   </label>
-                  <div className="relative flex items-center h-12 bg-white border border-border rounded-[12px] px-3.5 focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10 transition-all">
+                  <div
+                    className={cn(
+                      'relative flex items-center h-12 bg-white border rounded-[12px] px-3.5 transition-all',
+                      fieldErrors.phoneNumber
+                        ? 'border-error ring-1 ring-error/20 focus-within:border-error focus-within:ring-error/20'
+                        : 'border-border focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10'
+                    )}
+                  >
                     <Phone className="w-4 h-4 text-fg-muted shrink-0 mr-2.5 pointer-events-none" />
                     <input
                       id="reg-phone"
                       type="tel"
                       autoComplete="tel"
                       aria-label="Số điện thoại"
+                      aria-invalid={Boolean(fieldErrors.phoneNumber)}
+                      aria-describedby={fieldErrors.phoneNumber ? 'phone-error' : undefined}
                       value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      onChange={(e) => {
+                        setPhoneNumber(e.target.value);
+                        clearFieldError('phoneNumber');
+                      }}
                       placeholder="VD: 0912345678 (không bắt buộc)"
                       className="w-full h-full text-[14px] text-fg placeholder:text-fg-muted bg-transparent outline-none"
                     />
                   </div>
+                  {fieldErrors.phoneNumber && (
+                    <p id="phone-error" className="mt-1 text-[11.5px] text-error font-medium flex items-center gap-1" role="alert">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{fieldErrors.phoneNumber}</span>
+                    </p>
+                  )}
                 </div>
 
                 {/* 4. Mật khẩu */}
                 <div>
                   <label htmlFor="reg-password" className="block text-[13px] font-bold text-fg mb-1">
-                    Mật khẩu
+                    Mật khẩu <span className="text-error" aria-hidden="true">*</span>
                   </label>
-                  <div className="relative flex items-center h-12 bg-white border border-border rounded-[12px] px-3.5 focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10 transition-all">
+                  <div
+                    className={cn(
+                      'relative flex items-center h-12 bg-white border rounded-[12px] px-3.5 transition-all',
+                      fieldErrors.password
+                        ? 'border-error ring-1 ring-error/20 focus-within:border-error focus-within:ring-error/20'
+                        : 'border-border focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10'
+                    )}
+                  >
                     <Lock className="w-4 h-4 text-fg-muted shrink-0 mr-2.5 pointer-events-none" />
                     <input
                       id="reg-password"
@@ -498,8 +674,13 @@ export default function Register() {
                       required
                       autoComplete="new-password"
                       aria-label="Mật khẩu"
+                      aria-invalid={Boolean(fieldErrors.password)}
+                      aria-describedby={fieldErrors.password ? 'password-error' : undefined}
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        clearFieldError('password');
+                      }}
                       placeholder="Tạo mật khẩu (ít nhất 8 ký tự)"
                       className="w-full h-full pr-8 text-[14px] text-fg placeholder:text-fg-muted bg-transparent outline-none"
                     />
@@ -512,19 +693,30 @@ export default function Register() {
                       {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                     </button>
                   </div>
+                  {fieldErrors.password && (
+                    <p id="password-error" className="mt-1 text-[11.5px] text-error font-medium flex items-center gap-1" role="alert">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{fieldErrors.password}</span>
+                    </p>
+                  )}
                 </div>
 
-                {/* 5. Checkbox Điều khoản: exact wording matching mockup */}
+                {/* 5. Checkbox Điều khoản: mặc định false, tự xuống dòng tự nhiên không bị cắt cụt */}
                 <div className="pt-1">
-                  <label className="flex items-center gap-2 cursor-pointer select-none text-[12px] text-fg-secondary">
+                  <label className="flex items-start gap-2.5 cursor-pointer select-none text-[12px] text-fg-secondary">
                     <input
                       type="checkbox"
                       checked={agreeTerms}
                       aria-label="Đồng ý với điều khoản sử dụng và chính sách bảo mật"
-                      onChange={(e) => setAgreeTerms(e.target.checked)}
-                      className="w-4 h-4 rounded text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer shrink-0"
+                      aria-invalid={Boolean(fieldErrors.agreeTerms)}
+                      aria-describedby={fieldErrors.agreeTerms ? 'terms-error' : undefined}
+                      onChange={(e) => {
+                        setAgreeTerms(e.target.checked);
+                        clearFieldError('agreeTerms');
+                      }}
+                      className="w-4 h-4 mt-0.5 rounded text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer shrink-0"
                     />
-                    <span className="truncate sm:whitespace-normal">
+                    <span className="leading-relaxed">
                       Tôi đồng ý với{' '}
                       <Link to="/terms" className="text-brand-primary-600 font-medium hover:underline">
                         Điều khoản sử dụng
@@ -536,13 +728,19 @@ export default function Register() {
                       của TutorHub.
                     </span>
                   </label>
+                  {fieldErrors.agreeTerms && (
+                    <p id="terms-error" className="mt-1.5 text-[11.5px] text-error font-medium flex items-center gap-1 pl-6" role="alert">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{fieldErrors.agreeTerms}</span>
+                    </p>
+                  )}
                 </div>
 
-                {/* 6. Primary CTA Button: Tạo tài khoản -> */}
+                {/* 6. Primary CTA Button */}
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || socialLoading}
                     className="w-full h-12 rounded-[12px] bg-brand-primary-600 hover:bg-brand-primary-700 active:bg-brand-primary-800 disabled:opacity-60 text-white font-semibold text-[15px] shadow-sm flex items-center justify-center gap-2 transition-colors cursor-pointer select-none"
                   >
                     {loading ? (
@@ -569,15 +767,21 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={() => handleSocialRegister('Google')}
-                  disabled={socialLoading}
+                  disabled={loading || socialLoading}
                   className="w-full flex items-center justify-center gap-2 h-11 px-4 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
                 >
-                  <GoogleSvg />
-                  <span>Google</span>
+                  {socialLoading ? (
+                    <span className="w-4 h-4 border-2 border-neutral-400/30 border-t-neutral-600 rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <GoogleSvg />
+                      <span>Google</span>
+                    </>
+                  )}
                 </button>
               </div>
 
-              {/* 9. Bottom Login Link */}
+              {/* Bottom Login Link */}
               <p className="text-[13px] text-fg-secondary text-center mt-3.5">
                 Đã có tài khoản?{' '}
                 <Link to="/auth/login" className="text-brand-primary-600 font-bold hover:underline ml-1">
