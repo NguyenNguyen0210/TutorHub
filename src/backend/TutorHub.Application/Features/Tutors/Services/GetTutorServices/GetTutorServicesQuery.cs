@@ -5,4 +5,4 @@ namespace TutorHub.Application.Features.Tutors.Services.GetTutorServices;
 
 public record GetTutorServicesQuery(
     Guid TutorProfileId
-) : IRequest<List<ServiceSummaryDto>>;
+) : IRequest<IReadOnlyList<ServiceSummaryDto>>;

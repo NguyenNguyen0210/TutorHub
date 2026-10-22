@@ -6,7 +6,7 @@ using TutorHub.Application.Features.Tutors.Services.DTOs;
 
 namespace TutorHub.Application.Features.Tutors.Services.GetMyServices;
 
-public class GetMyServicesQueryHandler : IRequestHandler<GetMyServicesQuery, List<ServiceDto>>
+public class GetMyServicesQueryHandler : IRequestHandler<GetMyServicesQuery, IReadOnlyList<ServiceDto>>
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
@@ -17,7 +17,7 @@ public class GetMyServicesQueryHandler : IRequestHandler<GetMyServicesQuery, Lis
         _currentUserService = currentUserService;
     }
 
-    public async Task<List<ServiceDto>> Handle(GetMyServicesQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ServiceDto>> Handle(GetMyServicesQuery request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
 

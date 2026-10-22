@@ -6,5 +6,5 @@ public record PublicCategoryDto(
     Guid Id,
     string Name,
     string? Description,
-    List<PublicSubjectDto> Subjects
+    IReadOnlyList<PublicSubjectDto> Subjects
 );

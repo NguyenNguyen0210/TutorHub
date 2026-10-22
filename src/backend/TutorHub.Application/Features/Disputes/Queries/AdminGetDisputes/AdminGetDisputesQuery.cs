@@ -12,7 +12,7 @@ public record AdminGetDisputesQuery(
 
 public class AdminDisputeListResponseDto
 {
-    public List<DisputeDto> Items { get; set; } = new();
+    public IReadOnlyList<DisputeDto> Items { get; set; } = Array.Empty<DisputeDto>();
     public int TotalCount { get; set; }
     public int PageNumber { get; set; }
     public int PageSize { get; set; }

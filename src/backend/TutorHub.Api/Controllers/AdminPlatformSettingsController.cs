@@ -26,11 +26,11 @@ public class AdminPlatformSettingsController : ControllerBase
     /// Admin: List platform settings with version history.
     /// </summary>
     [HttpGet("platform-settings")]
-    [ProducesResponseType(typeof(ApiResponse<List<PlatformSettingDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PlatformSettingDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPlatformSettings(CancellationToken cancellationToken)
     {
         var result = await _sender.Send(new AdminGetPlatformSettingsQuery(), cancellationToken);
-        return Ok(ApiResponse<List<PlatformSettingDto>>.SuccessResult(result, "Platform settings retrieved successfully."));
+        return Ok(ApiResponse<IReadOnlyList<PlatformSettingDto>>.SuccessResult(result, "Platform settings retrieved successfully."));
     }
 
     /// <summary>

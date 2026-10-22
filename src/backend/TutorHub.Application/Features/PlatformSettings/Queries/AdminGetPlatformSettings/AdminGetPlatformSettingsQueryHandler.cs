@@ -5,7 +5,7 @@ using TutorHub.Application.Features.PlatformSettings.DTOs;
 
 namespace TutorHub.Application.Features.PlatformSettings.Queries.AdminGetPlatformSettings;
 
-public class AdminGetPlatformSettingsQueryHandler : IRequestHandler<AdminGetPlatformSettingsQuery, List<PlatformSettingDto>>
+public class AdminGetPlatformSettingsQueryHandler : IRequestHandler<AdminGetPlatformSettingsQuery, IReadOnlyList<PlatformSettingDto>>
 {
     private readonly IAppDbContext _context;
 
@@ -14,7 +14,7 @@ public class AdminGetPlatformSettingsQueryHandler : IRequestHandler<AdminGetPlat
         _context = context;
     }
 
-    public async Task<List<PlatformSettingDto>> Handle(AdminGetPlatformSettingsQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<PlatformSettingDto>> Handle(AdminGetPlatformSettingsQuery request, CancellationToken cancellationToken)
     {
         var settings = await _context.PlatformSettings
             .AsNoTracking()

@@ -7,5 +7,5 @@ public record GetTutorBusySlotsQuery(
     Guid TutorProfileId,
     DateTime? From = null,
     DateTime? To = null
-) : IRequest<List<TutorBusySlotDto>>;
+) : IRequest<IReadOnlyList<TutorBusySlotDto>>;
 

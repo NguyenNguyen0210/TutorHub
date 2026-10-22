@@ -7,7 +7,7 @@ using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Tutors.GetTutorBusySlots;
 
-public class GetTutorBusySlotsQueryHandler : IRequestHandler<GetTutorBusySlotsQuery, List<TutorBusySlotDto>>
+public class GetTutorBusySlotsQueryHandler : IRequestHandler<GetTutorBusySlotsQuery, IReadOnlyList<TutorBusySlotDto>>
 {
     private const int DefaultRangeDays = 14;
     private const int MaxRangeDays = 30;
@@ -21,7 +21,7 @@ public class GetTutorBusySlotsQueryHandler : IRequestHandler<GetTutorBusySlotsQu
         _clock = clock;
     }
 
-    public async Task<List<TutorBusySlotDto>> Handle(GetTutorBusySlotsQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<TutorBusySlotDto>> Handle(GetTutorBusySlotsQuery request, CancellationToken cancellationToken)
     {
         var tutor = await _context.TutorProfiles
             .AsNoTracking()

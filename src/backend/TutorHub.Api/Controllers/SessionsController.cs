@@ -58,7 +58,7 @@ public class SessionsController : ControllerBase
     /// <summary>Tutor bulk-schedules unscheduled sessions atomically.</summary>
     [Authorize(Roles = "Tutor")]
     [HttpPost("schedule-batch")]
-    [ProducesResponseType(typeof(ApiResponse<List<SessionDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<SessionDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
@@ -70,13 +70,13 @@ public class SessionsController : ControllerBase
     {
         if (command.Items is null)
         {
-            return BadRequest(ApiResponse<List<SessionDto>>.FailureResult(
+            return BadRequest(ApiResponse<IReadOnlyList<SessionDto>>.FailureResult(
                 "Validation failed. One or more validation errors occurred.",
                 "Items is required."));
         }
 
         var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<List<SessionDto>>.SuccessResult(result, "Sessions scheduled successfully."));
+        return Ok(ApiResponse<IReadOnlyList<SessionDto>>.SuccessResult(result, "Sessions scheduled successfully."));
     }
 
     [Authorize]
@@ -97,7 +97,7 @@ public class SessionsController : ControllerBase
     /// </summary>
     [Authorize]
     [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<List<SessionCalendarDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<SessionCalendarDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMySessions(
@@ -113,7 +113,7 @@ public class SessionsController : ControllerBase
         );
 
         var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<List<SessionCalendarDto>>.SuccessResult(result, "Sessions calendar retrieved successfully."));
+        return Ok(ApiResponse<IReadOnlyList<SessionCalendarDto>>.SuccessResult(result, "Sessions calendar retrieved successfully."));
     }
 
     /// <summary>

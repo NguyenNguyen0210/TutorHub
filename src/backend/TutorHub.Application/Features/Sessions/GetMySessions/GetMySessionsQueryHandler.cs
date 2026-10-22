@@ -7,7 +7,7 @@ using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Sessions.GetMySessions;
 
-public class GetMySessionsQueryHandler : IRequestHandler<GetMySessionsQuery, List<SessionCalendarDto>>
+public class GetMySessionsQueryHandler : IRequestHandler<GetMySessionsQuery, IReadOnlyList<SessionCalendarDto>>
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
@@ -18,7 +18,7 @@ public class GetMySessionsQueryHandler : IRequestHandler<GetMySessionsQuery, Lis
         _currentUserService = currentUserService;
     }
 
-    public async Task<List<SessionCalendarDto>> Handle(GetMySessionsQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<SessionCalendarDto>> Handle(GetMySessionsQuery request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
         var role = _currentUserService.Role;

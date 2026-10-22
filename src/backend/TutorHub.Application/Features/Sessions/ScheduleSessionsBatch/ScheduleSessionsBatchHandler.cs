@@ -11,7 +11,7 @@ using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Sessions.ScheduleSessionsBatch;
 
-public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatchCommand, List<SessionDto>>
+public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatchCommand, IReadOnlyList<SessionDto>>
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
@@ -30,7 +30,7 @@ public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatc
         _clock = clock;
     }
 
-    public async Task<List<SessionDto>> Handle(ScheduleSessionsBatchCommand request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<SessionDto>> Handle(ScheduleSessionsBatchCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
         var policy = new SessionSchedulePolicy(_configuration, _clock);

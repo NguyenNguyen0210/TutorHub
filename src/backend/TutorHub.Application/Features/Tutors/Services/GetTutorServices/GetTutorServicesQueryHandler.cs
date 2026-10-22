@@ -7,7 +7,7 @@ using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Tutors.Services.GetTutorServices;
 
-public class GetTutorServicesQueryHandler : IRequestHandler<GetTutorServicesQuery, List<ServiceSummaryDto>>
+public class GetTutorServicesQueryHandler : IRequestHandler<GetTutorServicesQuery, IReadOnlyList<ServiceSummaryDto>>
 {
     private readonly IAppDbContext _context;
 
@@ -16,7 +16,7 @@ public class GetTutorServicesQueryHandler : IRequestHandler<GetTutorServicesQuer
         _context = context;
     }
 
-    public async Task<List<ServiceSummaryDto>> Handle(GetTutorServicesQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ServiceSummaryDto>> Handle(GetTutorServicesQuery request, CancellationToken cancellationToken)
     {
         var tutor = await _context.TutorProfiles
             .AsNoTracking()

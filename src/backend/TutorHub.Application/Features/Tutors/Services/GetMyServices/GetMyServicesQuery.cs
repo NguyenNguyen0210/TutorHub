@@ -6,4 +6,4 @@ namespace TutorHub.Application.Features.Tutors.Services.GetMyServices;
 
 public record GetMyServicesQuery(
     ServiceStatus? Status = null
-) : IRequest<List<ServiceDto>>;
+) : IRequest<IReadOnlyList<ServiceDto>>;

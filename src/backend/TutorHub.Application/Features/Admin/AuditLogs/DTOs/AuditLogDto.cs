@@ -18,7 +18,7 @@ public class AuditLogDto
 
 public class AdminAuditLogListResponseDto
 {
-    public List<AuditLogDto> Items { get; set; } = new();
+    public IReadOnlyList<AuditLogDto> Items { get; set; } = Array.Empty<AuditLogDto>();
     public int TotalCount { get; set; }
     public int PageNumber { get; set; }
     public int PageSize { get; set; }

@@ -5,4 +5,4 @@ namespace TutorHub.Application.Features.Tutors.UpdateMySubjects;
 
 public record UpdateMySubjectsCommand(
     List<TutorSubjectItemDto> Subjects
-) : IRequest<List<TutorSubjectDto>>;
+) : IRequest<IReadOnlyList<TutorSubjectDto>>;
