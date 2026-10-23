@@ -259,7 +259,7 @@ export default function AdminDisputeDetail() {
               Quy chuẩn phán quyết trọng tài & Bảo toàn sổ cái
             </span>
             <p className="text-fg-secondary text-[12px] m-0">
-              Chế độ giải ngân: <strong>{isPayoutReleased ? 'Sau giải ngân (Post-Release Hold)' : 'Bảo chứng ký quỹ (Pre-Release Escrow Hold)'}</strong>. Phí sàn cố định tại hợp đồng: <strong>{(platformFeeRate * 100).toFixed(0)}%</strong> (FeePolicy v{enrollment?.feePolicyVersion || 1}).
+              Chế độ giải ngân: <strong>{isPayoutReleased ? 'Sau giải ngân (Post-Release Hold)' : 'Bảo chứng ký quỹ (Pre-Release Escrow Hold)'}</strong>. Phí sàn cố định tại hợp đồng: <strong>{(platformFeeRate * 100).toFixed(0)}%</strong>.
             </p>
           </div>
         </div>

@@ -1,9 +1,10 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
-using TutorHub.Application.Features.PlatformSettings.Commands.AdminUpsertPlatformSetting;
 using TutorHub.Application.Features.Reviews.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
@@ -16,12 +17,18 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IOptions<ReviewOptions>? _reviewOptions;
 
-    public CreateEnrollmentReviewCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
+    public CreateEnrollmentReviewCommandHandler(
+        IAppDbContext context,
+        IClock clock,
+        ICurrentUserService currentUserService,
+        IOptions<ReviewOptions>? reviewOptions = null)
     {
         _context = context;
         _clock = clock;
         _currentUserService = currentUserService;
+        _reviewOptions = reviewOptions;
     }
 
     public async Task<ReviewDto> Handle(CreateEnrollmentReviewCommand request, CancellationToken cancellationToken)
@@ -53,17 +60,10 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
         var now = _clock.UtcNow;
 
         // 3. Review Window Guard (FR-CONFIG-006 / DEC-REV-008): Read platform setting with 30d fallback
-        var reviewWindowDays = DefaultReviewWindowDays;
-        if (_context.PlatformSettings != null)
-        {
-            var setting = await _context.PlatformSettings
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Key == PlatformSettingKeys.ReviewWindowDays, cancellationToken);
-            if (setting != null && int.TryParse(setting.Value, out var configuredDays) && configuredDays > 0)
-            {
-                reviewWindowDays = configuredDays;
-            }
-        }
+        var configuredDays = _reviewOptions?.Value?.WindowDays;
+        var reviewWindowDays = configuredDays.HasValue && configuredDays.Value > 0
+            ? configuredDays.Value
+            : DefaultReviewWindowDays;
 
         if (enrollment.CompletedAt.HasValue && now > enrollment.CompletedAt.Value.AddDays(reviewWindowDays))
         {

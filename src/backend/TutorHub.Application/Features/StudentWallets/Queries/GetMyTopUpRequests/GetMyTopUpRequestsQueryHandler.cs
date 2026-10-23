@@ -1,5 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
@@ -12,11 +14,16 @@ public class GetMyTopUpRequestsQueryHandler
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IOptions<BankTransferOptions>? _bankTransferOptions;
 
-    public GetMyTopUpRequestsQueryHandler(IAppDbContext context, ICurrentUserService currentUserService)
+    public GetMyTopUpRequestsQueryHandler(
+        IAppDbContext context,
+        ICurrentUserService currentUserService,
+        IOptions<BankTransferOptions>? bankTransferOptions = null)
     {
         _context = context;
         _currentUserService = currentUserService;
+        _bankTransferOptions = bankTransferOptions;
     }
 
     public async Task<PagedResult<TopUpRequestDto>> Handle(
@@ -51,16 +58,9 @@ public class GetMyTopUpRequestsQueryHandler
             );
         }
 
-        var bankNameSetting = await _context.PlatformSettings.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Key == "PlatformBankName", cancellationToken);
-        var bankAccountNoSetting = await _context.PlatformSettings.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Key == "PlatformBankAccountNo", cancellationToken);
-        var bankAccountNameSetting = await _context.PlatformSettings.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Key == "PlatformBankAccountName", cancellationToken);
-
-        var bankName = bankNameSetting?.Value ?? "Vietcombank";
-        var bankAccountNo = bankAccountNoSetting?.Value ?? "1029384756";
-        var bankAccountName = bankAccountNameSetting?.Value ?? "TUTORHUB JSC";
+        var bankName = _bankTransferOptions?.Value?.BankName ?? "Vietcombank";
+        var bankAccountNo = _bankTransferOptions?.Value?.AccountNumber ?? "1029384756";
+        var bankAccountName = _bankTransferOptions?.Value?.AccountName ?? "TUTORHUB JSC";
 
         var query = _context.TopUpRequests
             .AsNoTracking()

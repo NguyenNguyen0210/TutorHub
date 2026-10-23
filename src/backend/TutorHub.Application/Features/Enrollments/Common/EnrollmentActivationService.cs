@@ -1,9 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using TutorHub.Application.Common.Caching;
+using Microsoft.Extensions.Options;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Settings;
-using TutorHub.Application.Features.PlatformSettings.Commands.AdminUpsertPlatformSetting;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Services;
 
@@ -23,12 +22,12 @@ public interface IEnrollmentActivationService
 public class EnrollmentActivationService : IEnrollmentActivationService
 {
     private readonly IAppDbContext _context;
-    private readonly IPlatformSettingCacheService _cache;
+    private readonly PlatformFeeOptions _feeOptions;
 
-    public EnrollmentActivationService(IAppDbContext context, IPlatformSettingCacheService? cache = null)
+    public EnrollmentActivationService(IAppDbContext context, IOptions<PlatformFeeOptions> feeOptions)
     {
         _context = context;
-        _cache = cache ?? NoOpPlatformSettingCacheService.Instance;
+        _feeOptions = feeOptions.Value;
     }
 
     public async Task<Enrollment> ActivateAsync(Booking booking, DateTime now, CancellationToken cancellationToken)
@@ -38,33 +37,21 @@ public class EnrollmentActivationService : IEnrollmentActivationService
             throw new InvalidOperationException("Booking is missing ServiceId commercial reference.");
         }
 
-        // Snapshot fee from PlatformSetting (DEC-S8-020, non-retroactive).
+        // Snapshot fee from PlatformFeeOptions (DEC-S8-020, non-retroactive).
         // NO FALLBACK: a missing or malformed setting must fail loudly instead of
-        // silently snapshotting a guessed rate. Parsing is invariant-culture so a
-        // machine whose culture uses '.' as a group separator cannot corrupt it.
-        // The snapshot (value + version) is cached briefly; failures are never
-        // cached, and a cache outage falls back to the database.
-        var feeSetting = await _cache.GetSettingAsync(
-            PlatformSettingKeys.PlatformFeeRate,
-            ct => QueryFeeSettingAsync(ct),
-            cancellationToken);
-
-        if (feeSetting == null)
+        // silently snapshotting a guessed rate.
+        if (!_feeOptions.Rate.HasValue)
         {
             throw new InvalidOperationException(
-                $"Platform setting '{PlatformSettingKeys.PlatformFeeRate}' is missing, so the enrollment " +
-                "platform fee cannot be snapshotted (DEC-S8-020). Configure it via " +
-                "PUT /api/v1/admin/platform-settings/fee-rate before accepting payments.");
+                "Platform fee rate configuration 'PlatformFeeRate' is missing. Configure it in .env or appsettings.json before accepting payments.");
         }
 
-        if (!PlatformFeeRateSetting.TryParse(feeSetting.Value, out var feeRate))
+        var feeRate = _feeOptions.Rate.Value;
+        if (feeRate < 0m || feeRate >= 1m)
         {
             throw new InvalidOperationException(
-                $"Platform setting '{PlatformSettingKeys.PlatformFeeRate}' has invalid value " +
-                $"'{feeSetting.Value}'. Expected an invariant-culture decimal in [0,1).");
+                $"Platform fee rate configuration 'PlatformFeeRate' has invalid value '{feeRate}'. Expected an invariant-culture decimal in [0,1).");
         }
-
-        var feeVersion = feeSetting.CurrentVersion;
 
         var enrollment = new Enrollment
         {
@@ -79,7 +66,6 @@ public class EnrollmentActivationService : IEnrollmentActivationService
             SessionDurationMinutes = booking.SessionDurationMinutes,
             TeachingMode = booking.TeachingMode,
             PlatformFeeRate = feeRate,
-            FeePolicyVersion = feeVersion,
             CreatedAt = now
         };
 
@@ -134,16 +120,5 @@ public class EnrollmentActivationService : IEnrollmentActivationService
             booking.TutorProfile.UserId));
 
         return enrollment;
-    }
-
-    private async Task<PlatformSettingSnapshot?> QueryFeeSettingAsync(CancellationToken cancellationToken)
-    {
-        var setting = await _context.PlatformSettings
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Key == PlatformSettingKeys.PlatformFeeRate, cancellationToken);
-
-        return setting is null
-            ? null
-            : new PlatformSettingSnapshot(setting.Key, setting.Value, setting.CurrentVersion);
     }
 }

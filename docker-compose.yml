@@ -208,10 +208,10 @@ services:
       - |
         set -e
         echo "[seed] waiting for database migrations to complete..."
-        until psql -h postgres -tAc "select to_regclass('public.\"PlatformSettings\"')" 2>/dev/null | grep -q PlatformSettings; do
+        until psql -h postgres -tAc "select to_regclass('public.\"Users\"')" 2>/dev/null | grep -q Users; do
           sleep 2
         done
-        count=$$(psql -h postgres -tAc 'select count(*) from "PlatformSettings"')
+        count=$$(psql -h postgres -tAc 'select count(*) from "Users"')
         if [ "$$count" = "0" ]; then
           echo "[seed] platform data is empty -> loading seedData.sql"
           psql -h postgres -v ON_ERROR_STOP=1 -q -f /seed/seedData.sql

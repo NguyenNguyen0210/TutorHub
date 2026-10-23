@@ -1,4 +1,5 @@
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Sessions.Scheduling;
@@ -11,7 +12,7 @@ public class SessionSchedulePolicyTests
     [Fact]
     public void RequireNotice_RejectsStartInsideNoticeWindow()
     {
-        var policy = new SessionSchedulePolicy(ConfigWithNoticeHours(24), FixedClock(Utc(2026, 9, 26, 10, 0)));
+        var policy = new SessionSchedulePolicy(OptionsWithNoticeHours(24), FixedClock(Utc(2026, 9, 26, 10, 0)));
         var ex = Assert.Throws<BadRequestException>(() =>
             policy.RequireSchedulable(Utc(2026, 9, 27, 9, 0), Utc(2026, 9, 27, 10, 0)));
         Assert.Contains(ex.Errors, e => e.Contains("24"));
@@ -20,7 +21,7 @@ public class SessionSchedulePolicyTests
     [Fact]
     public void RequireSchedulable_AcceptsStartBeyondNoticeWindow()
     {
-        var policy = new SessionSchedulePolicy(ConfigWithNoticeHours(24), FixedClock(Utc(2026, 9, 26, 10, 0)));
+        var policy = new SessionSchedulePolicy(OptionsWithNoticeHours(24), FixedClock(Utc(2026, 9, 26, 10, 0)));
 
         // Exactly on the boundary (start == now + 24h) is allowed; beyond is allowed.
         policy.RequireSchedulable(Utc(2026, 9, 27, 10, 0), Utc(2026, 9, 27, 11, 0));
@@ -34,7 +35,7 @@ public class SessionSchedulePolicyTests
         int sY, int sM, int sD, int sH, int sMin,
         int eY, int eM, int eD, int eH, int eMin)
     {
-        var policy = new SessionSchedulePolicy(ConfigWithNoticeHours(0), FixedClock(Utc(2026, 9, 26, 10, 0)));
+        var policy = new SessionSchedulePolicy(OptionsWithNoticeHours(0), FixedClock(Utc(2026, 9, 26, 10, 0)));
 
         Assert.Throws<BadRequestException>(() =>
             policy.RequireSchedulable(Utc(sY, sM, sD, sH, sMin), Utc(eY, eM, eD, eH, eMin)));
@@ -46,7 +47,7 @@ public class SessionSchedulePolicyTests
     [InlineData("abc")] // non-numeric
     public void RequireSchedulable_FallsBackToDefault2h_WhenConfigMissingOrNegative(string? rawValue)
     {
-        var policy = new SessionSchedulePolicy(ConfigWithRawValue(rawValue), FixedClock(Utc(2026, 9, 26, 10, 0)));
+        var policy = new SessionSchedulePolicy(OptionsWithRawValue(rawValue), FixedClock(Utc(2026, 9, 26, 10, 0)));
 
         var ex = Assert.Throws<BadRequestException>(() =>
             policy.RequireSchedulable(Utc(2026, 9, 26, 11, 0), Utc(2026, 9, 26, 12, 0)));
@@ -56,7 +57,7 @@ public class SessionSchedulePolicyTests
     [Fact]
     public void RequireNoOverlap_DetectsClashWithSameTutorScheduledSession()
     {
-        var policy = new SessionSchedulePolicy(ConfigWithNoticeHours(24), FixedClock(Utc(2026, 9, 26, 10, 0)));
+        var policy = new SessionSchedulePolicy(OptionsWithNoticeHours(24), FixedClock(Utc(2026, 9, 26, 10, 0)));
         var tutorId = Guid.NewGuid();
         var existing = new[]
         {
@@ -70,7 +71,7 @@ public class SessionSchedulePolicyTests
     [Fact]
     public void RequireNoOverlap_PassesWhenTimesDoNotOverlap()
     {
-        var policy = new SessionSchedulePolicy(ConfigWithNoticeHours(24), FixedClock(Utc(2026, 9, 26, 10, 0)));
+        var policy = new SessionSchedulePolicy(OptionsWithNoticeHours(24), FixedClock(Utc(2026, 9, 26, 10, 0)));
         var tutorId = Guid.NewGuid();
         var existing = new[]
         {
@@ -85,7 +86,7 @@ public class SessionSchedulePolicyTests
     [Fact]
     public void RequireNoOverlap_IgnoresSessionsOfOtherTutors()
     {
-        var policy = new SessionSchedulePolicy(ConfigWithNoticeHours(24), FixedClock(Utc(2026, 9, 26, 10, 0)));
+        var policy = new SessionSchedulePolicy(OptionsWithNoticeHours(24), FixedClock(Utc(2026, 9, 26, 10, 0)));
         var existing = new[]
         {
             (Guid.NewGuid(), Utc(2026, 9, 28, 10, 0), (DateTime?)Utc(2026, 9, 28, 11, 0), nameof(SessionStatus.Scheduled)),
@@ -100,7 +101,7 @@ public class SessionSchedulePolicyTests
     [InlineData(nameof(SessionStatus.Cancelled))]
     public void RequireNoOverlap_IgnoresNonScheduledSessions(string status)
     {
-        var policy = new SessionSchedulePolicy(ConfigWithNoticeHours(24), FixedClock(Utc(2026, 9, 26, 10, 0)));
+        var policy = new SessionSchedulePolicy(OptionsWithNoticeHours(24), FixedClock(Utc(2026, 9, 26, 10, 0)));
         var tutorId = Guid.NewGuid();
         var existing = new[]
         {
@@ -110,15 +111,15 @@ public class SessionSchedulePolicyTests
         policy.RequireNoOverlap(tutorId, Utc(2026, 9, 28, 10, 30), Utc(2026, 9, 28, 11, 30), existing);
     }
 
-    private static IConfiguration ConfigWithNoticeHours(int hours) =>
-        ConfigWithRawValue(hours.ToString());
+    private static IOptions<SchedulingOptions> OptionsWithNoticeHours(int hours) =>
+        Options.Create(new SchedulingOptions { MinimumNoticeHours = hours });
 
-    private static IConfiguration ConfigWithRawValue(string? rawValue)
+    private static IOptions<SchedulingOptions>? OptionsWithRawValue(string? rawValue)
     {
-        var values = rawValue is null
-            ? new Dictionary<string, string?>()
-            : new Dictionary<string, string?> { ["Scheduling:MinimumNoticeHours"] = rawValue };
-        return new ConfigurationBuilder().AddInMemoryCollection(values).Build();
+        if (rawValue is null) return null;
+        if (int.TryParse(rawValue, out var hours))
+            return Options.Create(new SchedulingOptions { MinimumNoticeHours = hours });
+        return Options.Create(new SchedulingOptions { MinimumNoticeHours = -1 });
     }
 
     private static IClock FixedClock(DateTime now) => new FixedClockStub(now);

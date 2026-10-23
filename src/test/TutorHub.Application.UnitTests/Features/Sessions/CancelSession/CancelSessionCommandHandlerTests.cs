@@ -1,7 +1,8 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using TutorHub.Application.Common.Settings;
 using Moq;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -18,7 +19,7 @@ public class CancelSessionCommandHandlerTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly StubCurrentUserService _currentUserService = new();
-    private readonly IConfiguration _configuration = new ConfigurationBuilder().Build();
+    private readonly IOptions<SchedulingOptions> _schedulingOptions = Options.Create(new SchedulingOptions());
     private readonly Mock<IAuditLogService> _auditLogService = new();
     private readonly Mock<IStudentWalletService> _studentWalletService = new();
     private readonly StubClock _clock;
@@ -38,7 +39,7 @@ public class CancelSessionCommandHandlerTests : IDisposable
 
     private CancelSessionCommandHandler CreateHandler() =>
         new(_context, _clock, _auditLogService.Object, _currentUserService,
-            _studentWalletService.Object, _configuration);
+            _studentWalletService.Object, _schedulingOptions);
 
     private async Task<(Session session, User studentUser, User tutorUser)> SeedAggregateAsync(
         DateTime? scheduledStart = null)

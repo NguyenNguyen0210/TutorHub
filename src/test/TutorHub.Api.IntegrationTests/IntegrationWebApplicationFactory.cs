@@ -5,16 +5,16 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Npgsql;
-using TutorHub.Domain.Entities;
 using TutorHub.Infrastructure.Persistence;
 
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// integration harness against the developer's local Postgres container
+/// Integration harness against the developer's local Postgres container
 /// (no Testcontainers by owner decision). Uses a dedicated database so the
 /// dev seed data stays untouched. Background jobs are removed: tests assert
 /// synchronously committed state, and jobs would otherwise race them.
+/// </summary>
 public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
 {
     private static readonly string Port = Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5433";
@@ -37,7 +37,8 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:DefaultConnection"] = IntegrationConnectionString
+                ["ConnectionStrings:DefaultConnection"] = IntegrationConnectionString,
+                ["PlatformFeeRate"] = "0.10"
             });
         });
 
@@ -103,25 +104,6 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
             using (var context = new AppDbContext(options))
             {
                 context.Database.Migrate();
-
-                // enrollment activation no longer falls back to a guessed fee,
-                // so the platform fee setting is a hard prerequisite — exactly as in
-                // production. Seed it once; tests that exercise fee changes create
-                // their own versions on top.
-                if (!context.PlatformSettings.Any(s => s.Key == "PlatformFeeRate"))
-                {
-                    context.PlatformSettings.Add(new PlatformSetting
-                    {
-                        Id = Guid.NewGuid(),
-                        Key = "PlatformFeeRate",
-                        Value = "0.10",
-                        Description = "Platform commission rate snapshot source (DEC-S8-020).",
-                        CurrentVersion = 1,
-                        UpdatedAt = DateTime.UtcNow
-                    });
-
-                    context.SaveChanges();
-                }
             }
 
             _initialized = true;

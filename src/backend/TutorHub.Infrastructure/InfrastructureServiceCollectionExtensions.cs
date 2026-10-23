@@ -1,3 +1,4 @@
+using TutorHub.Application.Common.Settings;
 using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
@@ -66,6 +67,91 @@ public static class InfrastructureServiceCollectionExtensions
             .BindConfiguration(AuthLockoutOptions.SectionName)
             .ValidateDataAnnotations()
             .ValidateOnStart();
+
+        // Platform Fee Options Pattern Configuration (DEC-S8-020)
+        services.AddOptions<PlatformFeeOptions>()
+            .BindConfiguration(PlatformFeeOptions.SectionName)
+            .Configure<IConfiguration>((options, config) =>
+            {
+                var raw = config["PlatformFee:Rate"] ?? config["PlatformFeeRate"];
+                if (raw != null)
+                {
+                    if (string.IsNullOrWhiteSpace(raw))
+                    {
+                        options.Rate = null;
+                    }
+                    else if (decimal.TryParse(raw, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var parsed))
+                    {
+                        options.Rate = parsed;
+                    }
+                    else
+                    {
+                        options.Rate = -1m;
+                    }
+                }
+            })
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        // Scheduling Options Pattern Configuration
+        services.AddOptions<SchedulingOptions>()
+            .BindConfiguration(SchedulingOptions.SectionName)
+            .Configure<IConfiguration>((options, config) =>
+            {
+                var raw = config["Scheduling:MinimumNoticeHours"] ?? config["MinimumNoticeHours"];
+                if (int.TryParse(raw, out var parsed) && parsed >= 0)
+                {
+                    options.MinimumNoticeHours = parsed;
+                }
+            })
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        // Review Options Pattern Configuration
+        services.AddOptions<ReviewOptions>()
+            .BindConfiguration(ReviewOptions.SectionName)
+            .Configure<IConfiguration>((options, config) =>
+            {
+                var raw = config["Review:WindowDays"] ?? config["ReviewWindowDays"];
+                if (int.TryParse(raw, out var parsed) && parsed > 0)
+                {
+                    options.WindowDays = parsed;
+                }
+            })
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        // Withdrawal Options Pattern Configuration
+        services.AddOptions<WithdrawalOptions>()
+            .BindConfiguration(WithdrawalOptions.SectionName)
+            .Configure<IConfiguration>((options, config) =>
+            {
+                var raw = config["Withdrawal:MinAmount"] ?? config["MinWithdrawalAmount"];
+                if (decimal.TryParse(raw, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var parsed) && parsed > 0)
+                {
+                    options.MinAmount = parsed;
+                }
+            })
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        // Bank Transfer Options Pattern Configuration
+        services.AddOptions<BankTransferOptions>()
+            .BindConfiguration(BankTransferOptions.SectionName)
+            .Configure<IConfiguration>((options, config) =>
+            {
+                var name = config["BankTransfer:BankName"] ?? config["PlatformBankName"];
+                if (!string.IsNullOrWhiteSpace(name)) options.BankName = name;
+
+                var accNo = config["BankTransfer:AccountNumber"] ?? config["PlatformBankAccountNo"];
+                if (!string.IsNullOrWhiteSpace(accNo)) options.AccountNumber = accNo;
+
+                var accName = config["BankTransfer:AccountName"] ?? config["PlatformBankAccountName"];
+                if (!string.IsNullOrWhiteSpace(accName)) options.AccountName = accName;
+            })
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
 
         // Authentication & Security Services
         services.AddSingleton<IClock, SystemClock>();
@@ -205,12 +291,10 @@ public static class InfrastructureServiceCollectionExtensions
         if (redis.Enabled && redis.Features.Cache)
         {
             services.AddSingleton<ISubjectCacheService, SubjectCacheService>();
-            services.AddSingleton<IPlatformSettingCacheService, PlatformSettingCacheService>();
         }
         else
         {
             services.AddSingleton<ISubjectCacheService>(_ => NoOpSubjectCacheService.Instance);
-            services.AddSingleton<IPlatformSettingCacheService>(_ => NoOpPlatformSettingCacheService.Instance);
         }
 
         services.AddSingleton<IExternalAuthProvider, GoogleAuthProvider>();

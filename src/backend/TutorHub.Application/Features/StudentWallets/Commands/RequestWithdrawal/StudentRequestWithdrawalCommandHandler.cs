@@ -1,5 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -14,12 +16,18 @@ public class StudentRequestWithdrawalCommandHandler : IRequestHandler<StudentReq
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
     private readonly IClock _clock;
+    private readonly IOptions<WithdrawalOptions>? _withdrawalOptions;
 
-    public StudentRequestWithdrawalCommandHandler(IAppDbContext context, ICurrentUserService currentUserService, IClock clock)
+    public StudentRequestWithdrawalCommandHandler(
+        IAppDbContext context,
+        ICurrentUserService currentUserService,
+        IClock clock,
+        IOptions<WithdrawalOptions>? withdrawalOptions = null)
     {
         _context = context;
         _currentUserService = currentUserService;
         _clock = clock;
+        _withdrawalOptions = withdrawalOptions;
     }
 
     public async Task<StudentWithdrawalDto> Handle(StudentRequestWithdrawalCommand request, CancellationToken cancellationToken)
@@ -47,14 +55,8 @@ public class StudentRequestWithdrawalCommandHandler : IRequestHandler<StudentReq
             }
 
             // Enforce minimum withdrawal amount (defaults to 50,000 VND)
-            var minSetting = await _context.PlatformSettings.AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Key == "MinWithdrawalAmount", cancellationToken);
-
-            decimal minAmount = 50_000m;
-            if (minSetting != null && decimal.TryParse(minSetting.Value, out var parsedMin) && parsedMin > 0)
-            {
-                minAmount = parsedMin;
-            }
+            var configuredMin = _withdrawalOptions?.Value?.MinAmount;
+            decimal minAmount = configuredMin.HasValue && configuredMin.Value > 0 ? configuredMin.Value : 50_000m;
 
             if (request.Amount < minAmount)
             {

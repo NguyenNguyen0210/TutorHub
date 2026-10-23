@@ -130,8 +130,7 @@ public class AdminGetDisputeInvestigationQueryHandler : IRequestHandler<AdminGet
                 TotalAmount = enrollment.TotalPrice,
                 TotalSessions = enrollment.TotalSessions,
                 CompletedSessions = enrollment.CompletedSessions,
-                PlatformFeeRate = enrollment.PlatformFeeRate,
-                FeePolicyVersion = enrollment.FeePolicyVersion
+                PlatformFeeRate = enrollment.PlatformFeeRate
             },
             ConversationSnippet = messages,
             FinancialSummary = new FinancialInvestigationDto

@@ -87,7 +87,7 @@ Service Offering (Tutor tạo gói học: giá, số buổi, thời lượng, tr
        ↓ (Student chọn gói)
 Booking Checkout (Tạm giữ thanh toán 15 phút - Holding)
        ↓ (VNPay IPN / Dev Simulator)
-Enrollment (Hợp đồng học tập trung tâm - Snapshot PlatformFeeRate & FeePolicyVersion)
+Enrollment (Hợp đồng học tập trung tâm - Snapshot PlatformFeeRate)
        ↓ (EnrollmentSessionAllocator tự động sinh N Sessions)
 Sessions (Unscheduled → Scheduled trong AvailabilitySlots của Tutor)
        ↓ (Học xong: Kích hoạt Grace Period 12 giờ — Session chuyển sang AwaitingPayout)
@@ -101,7 +101,7 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
 ```
 
 ### 2. Codebase Structure
-* `src/backend/TutorHub.Domain/`: **Domain Cốt Lõi Độc Lập**. Entities (`User`, `TutorProfile`, `StudentProfile`, `Service`, `Booking`, `Enrollment`, `Session`, `Wallet`, `StudentWallet`, `StudentWalletTransaction`, `StudentWithdrawal`, `TopUpRequest`, `Transaction`, `Dispute`, `PlatformSetting`, `AuditLog`), Enums, Allocators (`EnrollmentSessionAllocator`), và Domain Invariants. Tuyệt đối không phụ thuộc vào hạ tầng hay UI.
+* `src/backend/TutorHub.Domain/`: **Domain Cốt Lõi Độc Lập**. Entities (`User`, `TutorProfile`, `StudentProfile`, `Service`, `Booking`, `Enrollment`, `Session`, `Wallet`, `StudentWallet`, `StudentWalletTransaction`, `StudentWithdrawal`, `TopUpRequest`, `Transaction`, `Dispute`, `AuditLog`), Enums, Allocators (`EnrollmentSessionAllocator`), và Domain Invariants. Tuyệt đối không phụ thuộc vào hạ tầng hay UI.
 * `src/backend/TutorHub.Application/`: **Nghiệp Vụ Ứng Dụng (Vertical Slice / CQRS)**. Chia theo feature (`Features/{Module}/{FeatureName}/`). Chứa `Command/Query`, `Validator`, `Handler`, `DTOs`, Business Events, và Abstractions (`IAppDbContext`, `IAuditLogService`, `IStudentWalletService`, `IPaymentGateway`, `IObjectStorageService`, `IJwtService`).
 * `src/backend/TutorHub.Infrastructure/`: **Hạ Tầng Kỹ Thuật**. `AppDbContext` (interceptor bảo vệ sổ cái bất biến), 6 Background Jobs (`BookingTimeoutBackgroundService`, `OutboxDispatcherJob`, `EmailDeliveryJob`, `SessionReminderJob`, `GracePeriodReminderJob`, `AutoPayoutJob`), VNPay SHA512, Cloudflare R2, và SignalR hubs (`/hubs/chat`, `/hubs/notifications`).
 * `src/backend/TutorHub.Api/`: **Giao Tiếp Ngoại Vi (Thin Controllers)**. Controller chỉ dispatch MediatR, Middlewares (`CorrelationIdMiddleware`, `GlobalExceptionHandler`).

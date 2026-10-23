@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -18,7 +19,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
     private readonly IAuditLogService _auditLogService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IStudentWalletService _studentWalletService;
-    private readonly IConfiguration _configuration;
+    private readonly IOptions<SchedulingOptions>? _schedulingOptions;
 
     public CancelSessionCommandHandler(
         IAppDbContext context,
@@ -26,20 +27,20 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
         IAuditLogService auditLogService,
         ICurrentUserService currentUserService,
         IStudentWalletService studentWalletService,
-        IConfiguration configuration)
+        IOptions<SchedulingOptions>? schedulingOptions = null)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
         _currentUserService = currentUserService;
         _studentWalletService = studentWalletService;
-        _configuration = configuration;
+        _schedulingOptions = schedulingOptions;
     }
 
     public async Task<SessionDto> Handle(CancelSessionCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
-        var policy = new SessionSchedulePolicy(_configuration, _clock);
+        var policy = new SessionSchedulePolicy(_schedulingOptions, _clock);
 
         var session = await _context.Sessions
             .Include(s => s.Enrollment)
