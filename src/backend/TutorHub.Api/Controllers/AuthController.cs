@@ -1,8 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
-using TutorHub.Api.Configuration;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Auth.ChangePassword;
@@ -32,7 +30,6 @@ public class AuthController : ControllerBase
     /// Register a new student or tutor account.
     /// </summary>
     [HttpPost("register")]
-    [EnableRateLimiting(RateLimitingPolicies.AuthStrict)]
     [ProducesResponseType(typeof(ApiResponse<RegisterResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
@@ -53,7 +50,6 @@ public class AuthController : ControllerBase
     /// Log in with email and password.
     /// </summary>
     [HttpPost("login")]
-    [EnableRateLimiting(RateLimitingPolicies.AuthStrict)]
     [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginCommand command, CancellationToken cancellationToken)
@@ -67,7 +63,6 @@ public class AuthController : ControllerBase
     /// Refresh an expired access token using a valid refresh token (Rotation enabled).
     /// </summary>
     [HttpPost("refresh")]
-    [EnableRateLimiting(RateLimitingPolicies.AuthStrict)]
     [ProducesResponseType(typeof(ApiResponse<RefreshTokenResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenCommand command, CancellationToken cancellationToken)
@@ -122,7 +117,6 @@ public class AuthController : ControllerBase
     /// <c>state</c> the callback must echo back.
     /// </summary>
     [HttpGet("oauth/{provider}/start")]
-    [EnableRateLimiting(RateLimitingPolicies.AuthStrict)]
     [ProducesResponseType(typeof(ApiResponse<ExternalAuthorizeUrlDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> StartExternalLogin([FromRoute] string provider, [FromQuery] string? returnUrl, CancellationToken cancellationToken)
@@ -137,7 +131,6 @@ public class AuthController : ControllerBase
     /// or an access log. There is deliberately no GET counterpart.
     /// </summary>
     [HttpPost("oauth/{provider}/callback")]
-    [EnableRateLimiting(RateLimitingPolicies.AuthStrict)]
     [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]

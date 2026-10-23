@@ -21,7 +21,7 @@ public class LogoutCommandHandler : IRequestHandler<LogoutCommand, bool>
 
     public async Task<bool> Handle(LogoutCommand request, CancellationToken cancellationToken)
     {
-        // P0-D1: match on the stored hash, never on the raw token.
+        // match on the stored hash, never on the raw token.
         var presentedTokenHash = _refreshTokenHasher.Hash(request.RefreshToken);
 
         var token = await _context.RefreshTokens

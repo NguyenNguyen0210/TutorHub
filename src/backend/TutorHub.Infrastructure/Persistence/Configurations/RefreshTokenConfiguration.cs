@@ -10,7 +10,7 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
     {
         builder.HasKey(r => r.Id);
 
-        // P0-D1: hex of a 32-byte HMAC digest.
+        // hex of a 32-byte HMAC digest.
         builder.Property(r => r.TokenHash)
             .IsRequired()
             .HasMaxLength(64);

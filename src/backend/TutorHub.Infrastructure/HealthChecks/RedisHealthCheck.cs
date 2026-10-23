@@ -5,7 +5,7 @@ using TutorHub.Infrastructure.Redis;
 
 namespace TutorHub.Infrastructure.HealthChecks;
 
-// WP0: Redis is optional infrastructure, so a dead/unreachable server must never
+// Redis is optional infrastructure, so a dead/unreachable server must never
 // fail readiness into a restart loop — it reports Degraded, never Unhealthy.
 // The multiplexer is only registered when Redis:Enabled, hence the optional
 // constructor parameter (missing service falls back to its default: null).

@@ -6,7 +6,7 @@ using Xunit;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// P0-B4: the startup guard must reject template/placeholder secrets that are long
+/// the startup guard must reject template/placeholder secrets that are long
 /// enough to satisfy the options classes' length validation, while leaving real
 /// values (and absent values) alone.
 /// </summary>

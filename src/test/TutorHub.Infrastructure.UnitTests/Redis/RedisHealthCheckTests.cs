@@ -7,7 +7,7 @@ using TutorHub.Infrastructure.Redis;
 namespace TutorHub.Infrastructure.UnitTests.Redis;
 
 /// <summary>
-/// WP0/WP3: Redis is optional infrastructure, so the health check must never
+/// Redis is optional infrastructure, so the health check must never
 /// report Unhealthy (which would restart a healthy process). Disabled means
 /// Healthy; enabled without a multiplexer (Redis down at boot / DI missing)
 /// means Degraded. Both cases need no multiplexer fake.

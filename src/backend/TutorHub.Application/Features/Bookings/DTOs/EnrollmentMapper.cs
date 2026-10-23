@@ -3,7 +3,7 @@ using TutorHub.Domain.Entities;
 namespace TutorHub.Application.Features.Bookings.DTOs;
 
 /// <summary>
-/// F-23 (Đợt 4): single mapping point for Enrollment → EnrollmentDto.
+/// single mapping point for Enrollment → EnrollmentDto.
 /// </summary>
 public static class EnrollmentMapper
 {
@@ -29,8 +29,7 @@ public static class EnrollmentMapper
             CancelledBy: enrollment.CancelledBy,
             CancellationReason: enrollment.CancellationReason,
             Sessions: SessionMapper.ToOrderedList(enrollment.Sessions),
-            PlatformFeeRate: enrollment.PlatformFeeRate,
-            FeePolicyVersion: enrollment.FeePolicyVersion
+            PlatformFeeRate: enrollment.PlatformFeeRate
         );
     }
 }

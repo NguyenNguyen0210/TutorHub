@@ -129,7 +129,7 @@ public class CreateEnrollmentReviewCommandHandlerTests
             TotalSessions = 1
         };
 
-        // F-15: Active lifecycle required before recording completion.
+        // Active lifecycle required before recording completion.
         enrollment.Activate();
 
         var session = new Session { Id = Guid.NewGuid(), EnrollmentId = enrollment.Id, SessionNumber = 1 };
@@ -175,7 +175,7 @@ public class CreateEnrollmentReviewCommandHandlerTests
             TotalSessions = 1
         };
 
-        // F-15: Active lifecycle required before recording completion.
+        // Active lifecycle required before recording completion.
         enrollment.Activate();
 
         var session = new Session { Id = Guid.NewGuid(), EnrollmentId = enrollment.Id, SessionNumber = 1 };
@@ -214,7 +214,7 @@ public class CreateEnrollmentReviewCommandHandlerTests
             UserId = tutorUser.Id,
             User = tutorUser
         };
-        // F-23: stats owned by domain � seed via ApplyReview (prior 4.0 x1).
+        // stats owned by domain � seed via ApplyReview (prior 4.0 x1).
         tutorProfile.ApplyReview(new List<int> { 4 });
         _tutorProfiles.Add(tutorProfile);
 
@@ -243,7 +243,7 @@ public class CreateEnrollmentReviewCommandHandlerTests
             TotalSessions = 1
         };
 
-        // F-15: Active lifecycle required before recording completion.
+        // Active lifecycle required before recording completion.
         enrollment.Activate();
 
         var session = new Session { Id = Guid.NewGuid(), EnrollmentId = enrollment.Id, SessionNumber = 1 };

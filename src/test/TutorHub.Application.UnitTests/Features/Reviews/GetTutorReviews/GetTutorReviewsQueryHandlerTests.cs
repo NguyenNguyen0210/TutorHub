@@ -51,7 +51,7 @@ public class GetTutorReviewsQueryHandlerTests
         var tutorProfile = new TutorProfile { Id = Guid.NewGuid(), UserId = tutorUser.Id, User = tutorUser };
         _tutorProfiles.Add(tutorProfile);
 
-        // Review 1: Valid (F-23: content via factory).
+        // Review 1: Valid (content via factory).
         var enrollment1 = new Enrollment { Id = Guid.NewGuid(), StudentProfile = studentProfile, TutorProfile = tutorProfile, TutorProfileId = tutorProfile.Id };
         var review1 = Review.Create(enrollment1.Id, 5, "Best teacher ever!");
         review1.Id = Guid.NewGuid();

@@ -204,8 +204,6 @@ public class StudentWalletHandlerTests
             .Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentWallet> { wallet }).Object);
         _contextMock.Setup(c => c.TopUpRequests)
             .Returns(MockDbSetHelper.CreateMockDbSet(new List<TopUpRequest> { topUp }).Object);
-        _contextMock.Setup(c => c.PlatformSettings)
-            .Returns(MockDbSetHelper.CreateMockDbSet(new List<PlatformSetting>()).Object);
 
         _currentUser.Set(studentUserId, UserRole.Student);
 

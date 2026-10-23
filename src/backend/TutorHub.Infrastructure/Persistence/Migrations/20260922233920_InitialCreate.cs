@@ -1802,7 +1802,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 table: "Withdrawals",
                 columns: new[] { "WalletId", "Status" });
 
-            // P0-C2 (INV-LEDGER-006, INV-LEDGER-007): defence in depth for the financial
+            // Defence in depth for the financial
             // ledger. AppDbContext.EnforceLedgerImmutability() already blocks these writes
             // in the change tracker, but nothing at the database level stopped raw SQL or
             // an ON DELETE CASCADE (Booking -> Transactions) from rewriting history.

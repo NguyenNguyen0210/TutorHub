@@ -207,7 +207,7 @@ public class AppDbContextAppendOnlyTests
     [InlineData(SaveEntryPoint.SaveChangesAsyncWithAcceptAllChanges)]
     public async Task EverySaveEntryPoint_BlocksModifyingSettledTransaction(SaveEntryPoint entryPoint)
     {
-        // P0-C1: guarding only the async overload left three doors open.
+        // guarding only the async overload left three doors open.
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
@@ -241,7 +241,7 @@ public class AppDbContextAppendOnlyTests
     [InlineData(SaveEntryPoint.SaveChangesAsyncWithAcceptAllChanges)]
     public async Task EverySaveEntryPoint_BlocksDeletingAuditLog(SaveEntryPoint entryPoint)
     {
-        // P0-C1 / INV-LEDGER-006 on every overload.
+        // Guarding ledger immutability on every overload.
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;

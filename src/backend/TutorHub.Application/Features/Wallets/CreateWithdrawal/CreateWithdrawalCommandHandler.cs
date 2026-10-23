@@ -1,5 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -14,12 +16,18 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IOptions<WithdrawalOptions>? _withdrawalOptions;
 
-    public CreateWithdrawalCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
+    public CreateWithdrawalCommandHandler(
+        IAppDbContext context,
+        IClock clock,
+        ICurrentUserService currentUserService,
+        IOptions<WithdrawalOptions>? withdrawalOptions = null)
     {
         _context = context;
         _clock = clock;
         _currentUserService = currentUserService;
+        _withdrawalOptions = withdrawalOptions;
     }
 
     public async Task<WithdrawalDto> Handle(CreateWithdrawalCommand request, CancellationToken cancellationToken)
@@ -36,16 +44,16 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
 
         if (tutor == null)
         {
-            throw new ForbiddenException("Only registered tutors can create withdrawal requests.");
+            throw new ForbiddenException("Only registered tutors can request a withdrawal.");
         }
 
-        // Account Status Guard (DEC-WD-005)
+        // Validate tutor account status - suspended/banned tutors cannot withdraw funds
         if (tutor.User.Status != AccountStatus.Active)
         {
-            throw new ForbiddenException($"Cannot request withdrawal while account is '{tutor.User.Status}'. Only active accounts are eligible.");
+            throw new ForbiddenException($"Cannot request withdrawal while account is '{tutor.User.Status}'. Please contact support.");
         }
 
-        // Resolve Payout Destination with All-or-Nothing Fallback (DEC-WD-002)
+        // Payout destination resolution (DEC-WD-002): explicit request values take precedence over tutor profile defaults
         string bankName;
         string? bankCode;
         string accountNumber;
@@ -55,27 +63,21 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
             !string.IsNullOrWhiteSpace(request.AccountNumber) &&
             !string.IsNullOrWhiteSpace(request.AccountHolderName))
         {
+            // Explicit payout destination supplied in request
             bankName = request.BankName.Trim();
             bankCode = string.IsNullOrWhiteSpace(request.BankCode) ? null : request.BankCode.Trim().ToUpperInvariant();
             accountNumber = request.AccountNumber.Trim();
             accountHolderName = request.AccountHolderName.Trim().ToUpperInvariant();
         }
-        else if (string.IsNullOrWhiteSpace(request.BankName) &&
-                 string.IsNullOrWhiteSpace(request.AccountNumber) &&
-                 string.IsNullOrWhiteSpace(request.AccountHolderName))
+        else if (!string.IsNullOrWhiteSpace(tutor.BankName) &&
+                 !string.IsNullOrWhiteSpace(tutor.AccountNumber) &&
+                 !string.IsNullOrWhiteSpace(tutor.AccountHolderName))
         {
-            // Fallback to saved profile details
-            if (string.IsNullOrWhiteSpace(tutor.BankName) ||
-                string.IsNullOrWhiteSpace(tutor.AccountNumber) ||
-                string.IsNullOrWhiteSpace(tutor.AccountHolderName))
-            {
-                throw new BadRequestException("No saved payout bank account found. Please provide bank details or configure your payout account.");
-            }
-
-            bankName = tutor.BankName;
-            bankCode = tutor.BankCode;
-            accountNumber = tutor.AccountNumber;
-            accountHolderName = tutor.AccountHolderName;
+            // Fall back to tutor profile payout defaults
+            bankName = tutor.BankName.Trim();
+            bankCode = string.IsNullOrWhiteSpace(tutor.BankCode) ? null : tutor.BankCode.Trim().ToUpperInvariant();
+            accountNumber = tutor.AccountNumber.Trim();
+            accountHolderName = tutor.AccountHolderName.Trim().ToUpperInvariant();
         }
         else
         {
@@ -85,15 +87,8 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
         var now = _clock.UtcNow;
 
         // Enforce minimum withdrawal amount configured on platform (DEC-WD-001)
-        var minWithdrawalSetting = await _context.PlatformSettings
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Key == "MinWithdrawalAmount", cancellationToken);
-
-        decimal minAmount = 50_000m;
-        if (minWithdrawalSetting != null && decimal.TryParse(minWithdrawalSetting.Value, out var parsedMin) && parsedMin > 0)
-        {
-            minAmount = parsedMin;
-        }
+        var configuredMin = _withdrawalOptions?.Value?.MinAmount;
+        decimal minAmount = configuredMin.HasValue && configuredMin.Value > 0 ? configuredMin.Value : 50_000m;
 
         if (request.Amount < minAmount)
         {
@@ -111,7 +106,7 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
         }
 
         // Concurrency-safe stateful balance verification (DEC-WD-001, DEC-S8-001).
-        // F-23: guarded domain math maps to 400 via the catch below.
+        // guarded domain math maps to 400 via the catch below.
         try
         {
             // Deduct available balance immediately (DEC-WD-007)
@@ -169,7 +164,7 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
         await _context.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
 
-        // F-24: outbox-only delivery. OutboxDispatcherJob is the single
+        // outbox-only delivery. OutboxDispatcherJob is the single
         // delivery path; no direct in-process publish (duplicate EventIds).
 
         return new WithdrawalDto(

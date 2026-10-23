@@ -8,10 +8,10 @@ namespace TutorHub.Domain.Entities;
 /// but at most one Pending and at most one Approved application.
 ///
 /// State machine:
-///   (new) → Pending
-///   Pending → Approved  (Admin approves)
-///   Pending → Rejected  (Admin rejects, reason required)
-///   Rejected → (new application created) → Pending
+/// (new) → Pending
+/// Pending → Approved (Admin approves)
+/// Pending → Rejected (Admin rejects, reason required)
+/// Rejected → (new application created) → Pending
 ///
 /// Approved is terminal for this record.
 /// Account suspension uses User.Status, not TutorApplication.

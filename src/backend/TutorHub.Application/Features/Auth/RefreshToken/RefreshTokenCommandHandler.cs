@@ -32,7 +32,7 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
 
     public async Task<RefreshTokenResponseDto> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
     {
-        // P0-D1: the raw token is never stored, so look the row up by its hash.
+        // the raw token is never stored, so look the row up by its hash.
         var presentedTokenHash = _refreshTokenHasher.Hash(request.RefreshToken);
 
         var existingToken = await _context.RefreshTokens

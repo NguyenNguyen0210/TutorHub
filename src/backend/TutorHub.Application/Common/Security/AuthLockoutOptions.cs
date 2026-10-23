@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace TutorHub.Application.Common.Security;
 
 /// <summary>
-/// P0-D3: account lockout thresholds. These are security defaults, not business
+/// account lockout thresholds. These are security defaults, not business
 /// policy — they are bounded so a bad configuration cannot lock every account
 /// forever or disable the protection entirely.
 /// </summary>

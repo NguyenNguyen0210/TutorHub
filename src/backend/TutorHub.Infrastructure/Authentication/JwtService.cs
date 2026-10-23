@@ -4,7 +4,6 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Security;
 using TutorHub.Domain.Entities;
@@ -36,9 +35,7 @@ public class JwtService : IJwtService
             new(JwtRegisteredClaimNames.Name, user.FullName),
             new(ClaimTypes.Name, user.FullName),
             new(ClaimTypes.Role, user.Role.ToString()),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            // WP6: per-user token version for instant revocation (PO 2026-09-29).
-            new(TokenVersionDefaults.VersionClaimType, user.TokenVersion.ToString())
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
         if (tutorProfileId.HasValue)
@@ -76,30 +73,5 @@ public class JwtService : IJwtService
             .Replace("+", "-")
             .Replace("/", "_")
             .TrimEnd('=');
-    }
-
-    public ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
-    {
-        var tokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateAudience = true,
-            ValidAudience = _jwtOptions.Audience,
-            ValidateIssuer = true,
-            ValidIssuer = _jwtOptions.Issuer,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Secret)),
-            ValidateLifetime = false // Do not validate expiration when inspecting expired token
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out var securityToken);
-
-        if (securityToken is not JwtSecurityToken jwtSecurityToken ||
-            !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
-        {
-            throw new SecurityTokenException("Invalid token format or signing algorithm.");
-        }
-
-        return principal;
     }
 }

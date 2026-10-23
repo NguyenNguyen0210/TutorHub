@@ -39,7 +39,7 @@ public class ResubmitTutorApplicationCommandHandler
             throw new BadRequestException(
                 "Only users with the Tutor role can resubmit a Tutor application.");
 
-        // F-18: only a Rejected latest application may start a new Pending cycle.
+        // only a Rejected latest application may start a new Pending cycle.
         var latest = await _context.TutorApplications
             .Where(a => a.UserId == userId)
             .OrderByDescending(a => a.SubmittedAt)

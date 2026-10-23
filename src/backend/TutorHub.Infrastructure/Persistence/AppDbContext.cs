@@ -43,8 +43,6 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<EmailDelivery> EmailDeliveries => Set<EmailDelivery>();
     public DbSet<Dispute> Disputes => Set<Dispute>();
     public DbSet<DisputeEvidence> DisputeEvidences => Set<DisputeEvidence>();
-    public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();
-    public DbSet<PlatformSettingVersion> PlatformSettingVersions => Set<PlatformSettingVersion>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<LearningRecord> LearningRecords => Set<LearningRecord>();
     public DbSet<StudentWallet> StudentWallets => Set<StudentWallet>();

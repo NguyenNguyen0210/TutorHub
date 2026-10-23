@@ -68,7 +68,7 @@ public class RefreshTokenCommandHandlerTests
         result.AccessToken.Should().Be("new-access-token");
         result.RefreshToken.Should().Be("new-refresh-token");
 
-        // Verify side effects: old token revoked, new token added (stored hashed, P0-D1)
+        // Verify side effects: old token revoked, new token added (stored hashed)
         existingToken.RevokedAt.Should().NotBeNull();
         tokensList.Should().ContainSingle(t =>
             t.TokenHash == "hash:new-refresh-token" && t.UserId == user.Id && t.RevokedAt == null);
@@ -255,7 +255,7 @@ public class RefreshTokenCommandHandlerTests
     [Fact]
     public async Task Handle_ShouldNotAuthenticate_WhenARowStoresTheRawTokenInsteadOfItsHash()
     {
-        // P0-D1 adversarial check: a legacy/plaintext row must NOT be usable, because
+        // Adversarial check: a legacy/plaintext row must NOT be usable, because
         // the handler looks up the HMAC hash of the presented token, never the token.
         var user = new UserBuilder().WithRole(UserRole.Student).Build();
         var plaintextRow = new Domain.Entities.RefreshToken

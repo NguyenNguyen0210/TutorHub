@@ -23,12 +23,12 @@ public class TutorProfile
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
 
-    // Denormalized review statistics (F-23: mutated only via ApplyReview).
+    // Denormalized review statistics (mutated only via ApplyReview).
     public decimal RatingAvg { get; private set; } = 0;
     public int TotalReviews { get; private set; } = 0;
 
     /// <summary>
-    /// Recomputes denormalized stats from the full rating set (F-23).
+    /// Recomputes denormalized stats from the full rating set.
     /// </summary>
     public void ApplyReview(IReadOnlyCollection<int> allRatings)
     {

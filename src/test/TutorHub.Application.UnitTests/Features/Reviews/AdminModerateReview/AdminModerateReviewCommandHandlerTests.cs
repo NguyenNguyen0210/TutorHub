@@ -64,7 +64,7 @@ public class AdminModerateReviewCommandHandlerTests
         };
         _enrollments.Add(enrollment);
 
-        // F-23: content set via factory; moderation via domain method.
+        // content set via factory; moderation via domain method.
         var review = Review.Create(enrollment.Id, 1, null);
         review.Id = Guid.NewGuid();
         review.Enrollment = enrollment;
@@ -96,7 +96,7 @@ public class AdminModerateReviewCommandHandlerTests
             UserId = tutorUser.Id,
             User = tutorUser
         };
-        // F-23: stats owned by domain (prior ratings 5 + 1 → avg 3.0 x2).
+        // stats owned by domain (prior ratings 5 + 1 → avg 3.0 x2).
         tutorProfile.ApplyReview(new List<int> { 5, 1 });
         _tutorProfiles.Add(tutorProfile);
 

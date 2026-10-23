@@ -89,7 +89,7 @@ public class CancelBookingCommandHandler : IRequestHandler<CancelBookingCommand,
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        // F-23 (Đợt 4): centralized mapping.
+        // centralized mapping.
         return BookingMapper.ToDto(booking, BookingMapper.ToTransactionDto(paymentTx));
     }
 }

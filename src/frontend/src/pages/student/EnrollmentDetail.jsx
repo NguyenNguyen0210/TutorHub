@@ -354,7 +354,7 @@ export default function EnrollmentDetail() {
             Chi tiết
           </Button>
 
-          {sess.hasIssueReport && (
+          {!isTutor && sess.status === SESSION_STATUS.AWAITING_PAYOUT && !sess.hasIssueReport && (
             <Button
               as={Link}
               to={`/student/disputes/new?sessionId=${sess.id}`}

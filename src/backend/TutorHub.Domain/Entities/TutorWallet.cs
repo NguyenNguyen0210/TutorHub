@@ -21,7 +21,7 @@ public class TutorWallet
 
     public DateTime UpdatedAt { get; set; }
 
-    // F-23: balance mutations go through guarded domain methods so the
+    // balance mutations go through guarded domain methods so the
     // DEC-WD-001 / DEC-S8-001 / DEC-S8-028 invariants live in one place.
     // Handlers own persistence (locks, transactions); this class owns math.
 

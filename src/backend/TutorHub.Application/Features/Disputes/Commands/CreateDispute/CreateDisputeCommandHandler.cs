@@ -115,6 +115,11 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
         // tutor's Available balance. HeldBalance on wallet is NOT incremented.
         dispute.SetFinancialHold(session.EarningAmount, FinancialHoldType.EscrowHold, FinancialHoldStatus.Active, now);
 
+        if (!session.HasIssueReport)
+        {
+            session.ReportIssue(userId, request.Reason.ToString(), request.Description, now);
+        }
+
         _context.Disputes.Add(dispute);
 
         // Outbox event (DEC-S7-001)

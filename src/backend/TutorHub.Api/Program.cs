@@ -11,12 +11,13 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Serilog.Formatting.Compact;
+using Serilog.Sinks.SystemConsole.Themes;
 using StackExchange.Redis;
 using TutorHub.Api.Configuration;
 using TutorHub.Api.Exceptions;
 using TutorHub.Api.HealthChecks;
 using TutorHub.Api.Middlewares;
-using TutorHub.Api.RateLimiting;
 using TutorHub.Application;
 using TutorHub.Infrastructure;
 using TutorHub.Infrastructure.Authentication;
@@ -27,7 +28,7 @@ using TutorHub.Infrastructure.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// F-25: .env loader is Development-only and never overrides real environment
+// .env loader is Development-only and never overrides real environment
 // variables (container/CI secrets always win).
 if (builder.Environment.IsDevelopment())
 {
@@ -60,7 +61,7 @@ if (builder.Environment.IsDevelopment())
 
 builder.Configuration.AddEnvironmentVariables();
 
-// WP7: structured logging. Console (compact JSON) always; the Seq sink is
+// structured logging. Console (compact JSON) always; the Seq sink is
 // added only when Seq:ServerUrl is set, so the API boots and serves with Seq
 // down (the Seq sink batches in the background and never blocks requests).
 // Levels/enrichment come from the Serilog config section first; the code
@@ -75,6 +76,18 @@ builder.Host.UseSerilog((context, loggerConfig) =>
         .Enrich.WithEnvironmentName()
         .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
         .MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Warning);
+
+    // Console sink: Human-readable ANSI colored in Development, Compact JSON in Production/Containers
+    if (context.HostingEnvironment.IsDevelopment())
+    {
+        loggerConfig.WriteTo.Console(
+            theme: AnsiConsoleTheme.Code,
+            outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{CorrelationId}] {Message:lj}{NewLine}{Exception}");
+    }
+    else
+    {
+        loggerConfig.WriteTo.Console(new RenderedCompactJsonFormatter());
+    }
 
     var seqUrl = context.Configuration["Seq:ServerUrl"];
     if (!string.IsNullOrWhiteSpace(seqUrl))
@@ -91,7 +104,7 @@ builder.Host.UseSerilog((context, loggerConfig) =>
     }
 });
 
-// F-25 hardening: refuse to start while a secret still holds a template value.
+// Startup security hardening: refuse to start while a secret still holds a template value.
 StartupSecretGuard.ValidateNoPlaceholderSecrets(builder.Configuration);
 
 // Add Layers
@@ -105,7 +118,7 @@ builder.Services.AddProblemDetails();
 
 // Controllers with Global String Enum Converter
 builder.Services.AddControllers()
-    // P0 dev-tooling: swap in a discovery provider that drops IDevelopmentOnlyEndpoint
+    // Development tooling: swap in a discovery provider that drops IDevelopmentOnlyEndpoint
     // controllers outside Development. The default provider has to be removed as well,
     // otherwise it would still discover them.
     .ConfigureApplicationPartManager(manager =>
@@ -138,7 +151,7 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
     .Configure<IOptions<JwtOptions>>((options, jwtOptions) =>
     {
         var jwt = jwtOptions.Value;
-        // F-25: HTTPS metadata only skippable in Development (local HTTP).
+        // HTTPS metadata only skippable in Development (local HTTP).
         options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.SaveToken = true;
         options.TokenValidationParameters = new TokenValidationParameters
@@ -221,7 +234,7 @@ builder.Services.AddSwaggerGen(c =>
     }
 });
 
-// P0-E3: readiness = the instance can actually serve traffic (database reachable and
+// readiness = the instance can actually serve traffic (database reachable and
 // the platform fee setting every payment activation snapshots is configured), while
 // liveness only asks whether the process answers.
 builder.Services.AddHealthChecks()
@@ -229,7 +242,7 @@ builder.Services.AddHealthChecks()
     .AddCheck<PlatformFeeSettingHealthCheck>("platform-fee-setting")
     .AddCheck<RedisHealthCheck>("redis");
 
-// P0-E2: the frontend is served from its own origin, so preflight must succeed.
+// the frontend is served from its own origin, so preflight must succeed.
 // Credentials flow with the request, hence explicit origins instead of a wildcard.
 var allowedOrigins = CorsOrigins.Resolve(builder.Configuration, builder.Environment);
 
@@ -243,41 +256,6 @@ builder.Services.AddCors(options =>
         .WithExposedHeaders("X-Correlation-ID"));
 });
 
-// P0-D2: per-IP throttling for credential and payment endpoints.
-builder.Services.AddTutorHubRateLimiting();
-
-// WP3: distributed fixed-window limiter over Redis when the RateLimit flag is
-// on; the in-memory limiter above stays registered as the fallback. The
-// IConnectionMultiplexer this seam needs only exists when Redis is Enabled —
-// consistent because the RateLimit flag implies Enabled. A missing
-// multiplexer fails fast on first resolve (lazy factory), not as a null at
-// runtime. RedisOptions binding mirrors the Infrastructure registration
-// (ConnectionStrings:Redis wins over Redis:ConnectionString).
-var redisRateLimit = new RedisOptions();
-builder.Configuration.GetSection(RedisOptions.SectionName).Bind(redisRateLimit);
-var redisRateLimitConnectionString = builder.Configuration.GetConnectionString("Redis");
-if (!string.IsNullOrWhiteSpace(redisRateLimitConnectionString))
-{
-    redisRateLimit.ConnectionString = redisRateLimitConnectionString;
-}
-
-if (redisRateLimit.Enabled && redisRateLimit.Features.RateLimit)
-{
-    builder.Services.AddSingleton<IRedisRateLimitCommands>(sp =>
-    {
-        var multiplexer = sp.GetService<IConnectionMultiplexer>()
-            ?? throw new InvalidOperationException(
-                "Redis:Features:RateLimit is true but no IConnectionMultiplexer is registered. " +
-                "Distributed rate limiting requires Redis:Enabled with a connection string.");
-        return new StackExchangeRedisRateLimitCommands(multiplexer.GetDatabase());
-    });
-    builder.Services.AddSingleton<RedisRateLimitService>();
-}
-
-// WP6: per-user token-version reader for the revocation middleware. Always
-// registered (the database always exists); the middleware itself only runs
-// when Redis is enabled with the RevokeCheck flag.
-builder.Services.AddScoped<ITokenVersionReader, EfTokenVersionReader>();
 
 
 var app = builder.Build();
@@ -294,14 +272,14 @@ if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
     await migrationDb.Database.MigrateAsync();
 }
 
-// F-25 / P0-E3: readiness, kept on the path docker-compose already probes. A failing
+// readiness, kept on the path docker-compose already probes. A failing
 // dependency answers 503, which `curl -f` reports as unhealthy.
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = HealthCheckResponseWriter.WriteAsync
 });
 
-// P0-E3: liveness runs no dependency checks on purpose — a database outage must not
+// liveness runs no dependency checks on purpose — a database outage must not
 // make an orchestrator restart a process that is otherwise fine.
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
@@ -318,12 +296,40 @@ if (!app.Environment.IsDevelopment())
 
 app.UseMiddleware<TutorHub.Api.Middlewares.CorrelationIdMiddleware>();
 
-// WP7: one request log per call, enriched with the CorrelationId above (this
+// one request log per call, enriched with the CorrelationId above (this
 // runs inside its LogContext scope). Health probes are excluded so
 // orchestrator polling stays out of Seq.
 app.UseWhen(
     context => !context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase),
-    branch => branch.UseSerilogRequestLogging());
+    branch => branch.UseSerilogRequestLogging(options =>
+    {
+        options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+        options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+        {
+            var correlationId = httpContext.TraceIdentifier;
+            if (!string.IsNullOrWhiteSpace(correlationId))
+            {
+                diagnosticContext.Set("CorrelationId", correlationId);
+            }
+
+            var user = httpContext.User;
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                    ?? user.FindFirst("sub")?.Value;
+                var role = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    diagnosticContext.Set("UserId", userId);
+                }
+                if (!string.IsNullOrEmpty(role))
+                {
+                    diagnosticContext.Set("UserRole", role);
+                }
+            }
+        };
+    }));
 
 if (app.Environment.IsDevelopment())
 {
@@ -335,34 +341,12 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
-// P0-E2: before the rate limiter, so a browser preflight (which carries no
-// credentials) never consumes the caller's credential budget.
 app.UseCors();
 
-// P0-D2: throttle before authentication so credential stuffing is limited even for
-// requests that never present a valid token. WP3: Redis-backed fixed window when
-// the RateLimit flag is on (every node shares one budget), otherwise the
-// in-memory limiter above.
-if (redisRateLimit.Enabled && redisRateLimit.Features.RateLimit)
-{
-    app.UseMiddleware<RedisRateLimitMiddleware>();
-}
-else
-{
-    app.UseRateLimiter();
-}
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-// WP6: instant JWT revocation via per-user TokenVersion (PO 2026-09-29
-// overrides F-08). Only when Redis is enabled with the RevokeCheck flag;
-// otherwise authenticated requests flow exactly as before (the middleware
-// additionally no-ops on flag-off for defense in depth).
-if (redisRateLimit.Enabled && redisRateLimit.Features.RevokeCheck)
-{
-    app.UseMiddleware<TokenRevocationMiddleware>();
-}
 
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");

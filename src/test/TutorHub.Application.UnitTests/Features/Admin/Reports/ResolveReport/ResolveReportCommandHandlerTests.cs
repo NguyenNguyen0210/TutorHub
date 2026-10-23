@@ -142,7 +142,7 @@ public class ResolveReportCommandHandlerTests
     [Fact]
     public async Task Handle_WhenDecidingRemoveContent_OnReviewReport_ShouldRemoveReview()
     {
-        // F-23: content via factory.
+        // content via factory.
         var review = Review.Create(Guid.NewGuid(), 1, "Extremely offensive words");
         review.Id = Guid.NewGuid();
         _reviews.Add(review);

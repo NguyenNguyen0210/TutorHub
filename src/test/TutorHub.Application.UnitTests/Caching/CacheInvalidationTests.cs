@@ -9,8 +9,6 @@ using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Admin.Categories.UpdateCategory;
 using TutorHub.Application.Features.Admin.Subjects.UpdateSubject;
-using TutorHub.Application.Features.Enrollments.Common;
-using TutorHub.Application.Features.PlatformSettings.EventHandlers;
 using TutorHub.Application.Features.Subjects.GetPublicSubjectById;
 using TutorHub.Application.Features.Subjects.GetPublicSubjects;
 using TutorHub.Application.UnitTests.TestHelpers;
@@ -21,7 +19,7 @@ using TutorHub.Infrastructure.Caching;
 namespace TutorHub.Application.UnitTests.Caching;
 
 /// <summary>
-/// WP5: subjects + platform-setting read-through cache with invalidation.
+/// subjects + platform-setting read-through cache with invalidation.
 /// </summary>
 public class CacheInvalidationTests
 {
@@ -231,77 +229,4 @@ public class CacheInvalidationTests
         result.Items.Should().ContainSingle(s => s.Name == "Algebra");
     }
 
-    [Fact]
-    public async Task CacheOutage_EnrollmentActivation_SnapshotsFeeFromDatabase()
-    {
-        var platformSettings = new List<PlatformSetting>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Key = "PlatformFeeRate",
-                Value = "0.1200",
-                Description = "test",
-                CurrentVersion = 5
-            }
-        };
-        var contextMock = new Mock<IAppDbContext>();
-        contextMock.Setup(c => c.PlatformSettings).Returns(MockDbSetHelper.CreateMockDbSet(platformSettings).Object);
-        contextMock.Setup(c => c.Wallets).Returns(MockDbSetHelper.CreateMockDbSet(new List<Wallet>()).Object);
-        contextMock.Setup(c => c.Enrollments).Returns(MockDbSetHelper.CreateMockDbSet(new List<Enrollment>()).Object);
-        contextMock.Setup(c => c.OutboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(new List<OutboxMessage>()).Object);
-
-        var cacheService = new PlatformSettingCacheService(new ThrowingDistributedCache(), NullLogger<PlatformSettingCacheService>.Instance);
-        var sut = new EnrollmentActivationService(contextMock.Object, cacheService);
-        var booking = new BookingBuilder()
-            .WithServiceId(Guid.NewGuid())
-            .WithSnapshot(300_000m, 3)
-            .Build();
-
-        var enrollment = await sut.ActivateAsync(
-            booking,
-            new DateTime(2030, 2, 1, 9, 0, 0, DateTimeKind.Utc),
-            CancellationToken.None);
-
-        enrollment.PlatformFeeRate.Should().Be(0.12m);
-        enrollment.FeePolicyVersion.Should().Be(5);
-    }
-
-    [Fact]
-    public async Task PlatformSettingChangedEvent_ClearsCachedFeeRate()
-    {
-        var contextMock = new Mock<IAppDbContext>();
-        contextMock.Setup(c => c.PlatformSettings).Returns(MockDbSetHelper.CreateMockDbSet(new List<PlatformSetting>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Key = "PlatformFeeRate",
-                Value = "0.1000",
-                Description = "test",
-                CurrentVersion = 1
-            }
-        }).Object);
-
-        var cache = new FakeDistributedCache();
-        var cacheService = new PlatformSettingCacheService(cache, NullLogger<PlatformSettingCacheService>.Instance);
-        var dbReads = 0;
-        Task<PlatformSettingSnapshot?> Factory(CancellationToken ct)
-        {
-            dbReads++;
-            return Task.FromResult<PlatformSettingSnapshot?>(new PlatformSettingSnapshot("PlatformFeeRate", "0.1000", 1));
-        }
-
-        await cacheService.GetSettingAsync("PlatformFeeRate", Factory);
-        await cacheService.GetSettingAsync("PlatformFeeRate", Factory);
-        dbReads.Should().Be(1);
-
-        var eventHandler = new PlatformSettingChangedEventHandler(cacheService);
-        await eventHandler.Handle(
-            new PlatformSettingChangedEvent("PlatformFeeRate", "0.1000", "0.1200", 2, Guid.NewGuid()),
-            CancellationToken.None);
-
-        await cacheService.GetSettingAsync("PlatformFeeRate", Factory);
-        dbReads.Should().Be(2);
-    }
 }

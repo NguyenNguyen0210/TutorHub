@@ -1,9 +1,10 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Sessions.Common;
 using TutorHub.Application.Features.Sessions.Scheduling;
@@ -15,19 +16,19 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IConfiguration _configuration;
+    private readonly IOptions<SchedulingOptions>? _schedulingOptions;
     private readonly IClock _clock;
 
     public ScheduleSessionCommandHandler(
         IAppDbContext context,
         ICurrentUserService currentUserService,
-        IConfiguration configuration,
-        IClock clock)
+        IClock clock,
+        IOptions<SchedulingOptions>? schedulingOptions = null)
     {
         _context = context;
         _currentUserService = currentUserService;
-        _configuration = configuration;
         _clock = clock;
+        _schedulingOptions = schedulingOptions;
     }
 
     public async Task<SessionDto> Handle(ScheduleSessionCommand request, CancellationToken cancellationToken)
@@ -61,7 +62,7 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
         SessionSchedulingValidationPolicy.ValidateDuration(request.StartAt, request.EndAt, session.Enrollment.SessionDurationMinutes);
 
         // 4. Minimum-notice rule.
-        var policy = new SessionSchedulePolicy(_configuration, _clock);
+        var policy = new SessionSchedulePolicy(_schedulingOptions, _clock);
         policy.RequireSchedulable(request.StartAt, request.EndAt);
 
         var tutorProfileId = session.Enrollment.TutorProfileId;
@@ -146,7 +147,7 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
             throw;
         }
 
-        // F-23 (Đợt 4): centralized mapping.
+        // centralized mapping.
         return SessionMapper.ToDto(session);
     }
 }

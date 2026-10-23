@@ -3,7 +3,7 @@ using TutorHub.Domain.Entities;
 namespace TutorHub.Application.Features.Reviews.DTOs;
 
 /// <summary>
-/// F-23 (Đợt 4): single mapping point for Review → ReviewDto.
+/// single mapping point for Review → ReviewDto.
 /// </summary>
 public static class ReviewMapper
 {

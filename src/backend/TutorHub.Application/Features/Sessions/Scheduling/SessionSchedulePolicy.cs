@@ -1,6 +1,7 @@
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Settings;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Sessions.Scheduling;
@@ -8,14 +9,20 @@ namespace TutorHub.Application.Features.Sessions.Scheduling;
 public sealed class SessionSchedulePolicy
 {
     private const int DefaultMinimumNoticeHours = 2;
-    private const string MinimumNoticeHoursKey = "Scheduling:MinimumNoticeHours";
 
     private readonly int _noticeHours;
     private readonly IClock _clock;
 
-    public SessionSchedulePolicy(IConfiguration configuration, IClock clock)
+    public SessionSchedulePolicy(IOptions<SchedulingOptions>? options, IClock clock)
     {
-        _noticeHours = int.TryParse(configuration[MinimumNoticeHoursKey], out var h) && h >= 0 ? h : DefaultMinimumNoticeHours;
+        var h = options?.Value?.MinimumNoticeHours;
+        _noticeHours = h.HasValue && h.Value >= 0 ? h.Value : DefaultMinimumNoticeHours;
+        _clock = clock;
+    }
+
+    public SessionSchedulePolicy(int noticeHours, IClock clock)
+    {
+        _noticeHours = noticeHours >= 0 ? noticeHours : DefaultMinimumNoticeHours;
         _clock = clock;
     }
 

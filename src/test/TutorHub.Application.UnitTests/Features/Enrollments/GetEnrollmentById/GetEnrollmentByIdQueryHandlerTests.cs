@@ -57,7 +57,7 @@ public class GetEnrollmentByIdQueryHandlerTests
         enrollment.Sessions.Add(session2); // Add in reverse order to test sorting
         enrollment.Sessions.Add(session1);
 
-        // F-15: lifecycle tests run against Active enrollments.
+        // lifecycle tests run against Active enrollments.
         enrollment.Activate();
 
         if (status == EnrollmentStatus.Cancelled)

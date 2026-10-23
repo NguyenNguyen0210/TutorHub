@@ -11,7 +11,7 @@ using SignalRRedisOptions = Microsoft.AspNetCore.SignalR.StackExchangeRedis.Redi
 namespace TutorHub.Infrastructure.UnitTests.Redis;
 
 /// <summary>
-/// WP2: the SignalR Redis backplane is a startup wiring decision. Flag on registers
+/// the SignalR Redis backplane is a startup wiring decision. Flag on registers
 /// the Redis lifetime manager with the TutorHub channel prefix and abortConnect=false
 /// semantics; flag off (or Redis disabled) keeps the default local lifetime manager.
 /// These tests never touch the network: registration is asserted via service

@@ -14,7 +14,7 @@ using TutorHub.Domain.Enums;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// P0-F2: a declined payment must be acknowledged (VNPay retries otherwise) without
+/// a declined payment must be acknowledged (VNPay retries otherwise) without
 /// moving any money — no enrollment, no escrow, and the gateway attempt stays
 /// unsettled so the 15-minute hold can still expire normally.
 /// </summary>

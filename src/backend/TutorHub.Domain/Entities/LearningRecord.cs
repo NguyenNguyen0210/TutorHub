@@ -1,7 +1,7 @@
 namespace TutorHub.Domain.Entities;
 
 /// <summary>
-/// Tutor-written record of a delivered session (F-14, FR-LEARN-001..004).
+/// Tutor-written record of a delivered session (write-once).
 /// Write-once: no edit path. Student read-only. No earning gate —
 /// payout depends solely on the attendance/finance path.
 /// </summary>

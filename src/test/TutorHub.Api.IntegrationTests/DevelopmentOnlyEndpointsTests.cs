@@ -7,7 +7,7 @@ using Xunit;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// P0 dev-tooling: the development payment simulator must be impossible to reach
+/// Development tool: the development payment simulator must be impossible to reach
 /// outside Development. Discovery (not a runtime attribute) is what enforces it, so
 /// this pins that rule directly.
 /// </summary>

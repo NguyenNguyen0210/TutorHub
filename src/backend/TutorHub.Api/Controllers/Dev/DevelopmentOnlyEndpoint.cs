@@ -10,7 +10,7 @@ public interface IDevelopmentOnlyEndpoint
 {
 }
 
-/// <summary>P0 dev-tooling: the single rule deciding whether a controller is exposed.</summary>
+/// <summary>Development tooling: the single rule deciding whether a controller is exposed.</summary>
 public static class DevelopmentOnlyEndpoints
 {
     public static bool IsAvailable(Type controllerType, IHostEnvironment environment)

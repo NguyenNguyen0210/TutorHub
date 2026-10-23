@@ -57,7 +57,7 @@ public class ReplyReviewCommandHandlerTests
             TutorProfileId = tutorProfile.Id
         };
 
-        // F-23: content via factory.
+        // content via factory.
         var review = Review.Create(enrollment.Id, 5, null);
         review.Id = Guid.NewGuid();
         review.Enrollment = enrollment;

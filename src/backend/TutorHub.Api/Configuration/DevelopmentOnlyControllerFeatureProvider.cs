@@ -5,7 +5,7 @@ using TutorHub.Api.Controllers.Dev;
 namespace TutorHub.Api.Configuration;
 
 /// <summary>
-/// P0 dev-tooling: replaces the default <see cref="ControllerFeatureProvider"/> so
+/// Development tool: replaces the default <see cref="ControllerFeatureProvider"/> so
 /// <see cref="IDevelopmentOnlyEndpoint"/> controllers are never discovered outside
 /// Development. Because the type is absent from the application part, the route simply
 /// does not exist (404) — a dev-only tool cannot be reached in production even if a

@@ -6,6 +6,7 @@ using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Reviews.DTOs;
 using TutorHub.Application.Features.Reviews.GetTutorReviews;
 using TutorHub.Application.Features.Tutors.DTOs;
+using TutorHub.Application.Features.Tutors.GetTutorBusySlots;
 using TutorHub.Application.Features.Tutors.GetMyProfile;
 using TutorHub.Application.Features.Tutors.GetMyTutorApplication;
 using TutorHub.Application.Features.Tutors.GetTutorById;
@@ -117,6 +118,23 @@ public class TutorsController : ControllerBase
     }
 
     /// <summary>
+    /// Get anonymized busy schedule slots for a tutor (Public).
+    /// </summary>
+    [HttpGet("{id:guid}/busy-slots")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<TutorBusySlotDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetTutorBusySlots(
+        [FromRoute] Guid id,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetTutorBusySlotsQuery(id, from, to);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<TutorBusySlotDto>>.SuccessResult(result, "Tutor busy slots retrieved successfully."));
+    }
+
+    /// <summary>
     /// Submit a new tutor application for admin review (Tutor only).
     /// </summary>
     [Authorize(Roles = "Tutor")]
@@ -149,7 +167,7 @@ public class TutorsController : ControllerBase
     }
 
     /// <summary>
-    /// Resubmit a tutor application after rejection (Tutor only, F-18).
+    /// Resubmit a tutor application after rejection (Tutor only).
     /// Creates a new Pending application; blocked while Pending or Approved.
     /// </summary>
     [Authorize(Roles = "Tutor")]
@@ -256,7 +274,7 @@ public class TutorsController : ControllerBase
     /// </summary>
     [Authorize(Roles = "Tutor")]
     [HttpPut("me/subjects")]
-    [ProducesResponseType(typeof(ApiResponse<List<TutorSubjectDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<TutorSubjectDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -265,7 +283,7 @@ public class TutorsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<List<TutorSubjectDto>>.SuccessResult(result, "Tutor subjects updated successfully."));
+        return Ok(ApiResponse<IReadOnlyList<TutorSubjectDto>>.SuccessResult(result, "Tutor subjects updated successfully."));
     }
 
     /// <summary>
@@ -315,7 +333,7 @@ public class TutorsController : ControllerBase
     /// </summary>
     [Authorize(Roles = "Tutor")]
     [HttpGet("me/services")]
-    [ProducesResponseType(typeof(ApiResponse<List<ServiceDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ServiceDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMyServices(
         [FromQuery] ServiceStatus? status,
@@ -323,7 +341,7 @@ public class TutorsController : ControllerBase
     {
         var query = new GetMyServicesQuery(status);
         var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<List<ServiceDto>>.SuccessResult(result, "Your service offerings retrieved successfully."));
+        return Ok(ApiResponse<IReadOnlyList<ServiceDto>>.SuccessResult(result, "Your service offerings retrieved successfully."));
     }
 
     /// <summary>
@@ -473,7 +491,7 @@ public class TutorsController : ControllerBase
     /// Get all published service offerings of a specific tutor (Public).
     /// </summary>
     [HttpGet("{id:guid}/services")]
-    [ProducesResponseType(typeof(ApiResponse<List<ServiceSummaryDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ServiceSummaryDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetTutorServices(
         [FromRoute] Guid id,
@@ -481,6 +499,6 @@ public class TutorsController : ControllerBase
     {
         var query = new GetTutorServicesQuery(id);
         var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<List<ServiceSummaryDto>>.SuccessResult(result, "Tutor's published services retrieved successfully."));
+        return Ok(ApiResponse<IReadOnlyList<ServiceSummaryDto>>.SuccessResult(result, "Tutor's published services retrieved successfully."));
     }
 }

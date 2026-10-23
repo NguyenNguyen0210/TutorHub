@@ -125,11 +125,11 @@ public class DisputesController : ControllerBase
     /// Get disputes involving the current user as initiator or respondent.
     /// </summary>
     [HttpGet("my")]
-    [ProducesResponseType(typeof(ApiResponse<List<DisputeDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<DisputeDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMyDisputes(CancellationToken cancellationToken)
     {
         var result = await _sender.Send(new GetMyDisputesQuery(), cancellationToken);
-        return Ok(ApiResponse<List<DisputeDto>>.SuccessResult(result, "User disputes retrieved successfully."));
+        return Ok(ApiResponse<IReadOnlyList<DisputeDto>>.SuccessResult(result, "User disputes retrieved successfully."));
     }
 }
 

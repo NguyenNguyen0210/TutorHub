@@ -478,9 +478,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("FeePolicyVersion")
-                        .HasColumnType("integer");
-
                     b.Property<decimal>("PlatformFeeRate")
                         .HasPrecision(5, 4)
                         .HasColumnType("numeric(5,4)");
@@ -881,82 +878,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_OutboxMessages_Dispatch");
 
                     b.ToTable("OutboxMessages", (string)null);
-                });
-
-            modelBuilder.Entity("TutorHub.Domain.Entities.PlatformSetting", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("CurrentVersion")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid?>("LastUpdatedByAdminId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.ToTable("PlatformSettings");
-                });
-
-            modelBuilder.Entity("TutorHub.Domain.Entities.PlatformSettingVersion", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ChangedByAdminId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("EffectiveFrom")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("PlatformSettingId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<int>("Version")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlatformSettingId", "Version")
-                        .IsUnique();
-
-                    b.ToTable("PlatformSettingVersions");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.RefreshToken", b =>
@@ -2060,11 +1981,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasDefaultValue("Active");
 
-                    b.Property<int>("TokenVersion")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
@@ -2309,17 +2225,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("TutorHub.Domain.Entities.PlatformSettingVersion", b =>
-                {
-                    b.HasOne("TutorHub.Domain.Entities.PlatformSetting", "PlatformSetting")
-                        .WithMany("Versions")
-                        .HasForeignKey("PlatformSettingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PlatformSetting");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.RefreshToken", b =>
@@ -2656,11 +2561,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("Review");
 
                     b.Navigation("Sessions");
-                });
-
-            modelBuilder.Entity("TutorHub.Domain.Entities.PlatformSetting", b =>
-                {
-                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.StudentProfile", b =>

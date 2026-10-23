@@ -51,7 +51,7 @@ public class GetEnrollmentReviewQueryHandler : IRequestHandler<GetEnrollmentRevi
         }
 
         var studentUser = enrollment.StudentProfile.User;
-        // F-23 (Đợt 4): centralized mapping.
+        // centralized mapping.
         return ReviewMapper.ToDto(
             review,
             enrollment.TutorProfileId,

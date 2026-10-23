@@ -1,7 +1,7 @@
 namespace TutorHub.Api.Configuration;
 
 /// <summary>
-/// P0-E2: resolves which browser origins may call the API.
+/// resolves which browser origins may call the API.
 ///
 /// Credentials are allowed (the SPA sends the auth cookie/header), so the origin
 /// list can never be a wildcard. Development falls back to the local frontend
@@ -24,10 +24,10 @@ public static class CorsOrigins
         var section = configuration.GetSection("Cors:AllowedOrigins");
 
         // Two shapes are accepted, because the deployment surfaces differ:
-        //   * array       — JSON array in appsettings, or Cors__AllowedOrigins__0/__1
-        //   * single value — Cors__AllowedOrigins=a,b, which is what docker-compose
-        //                    can pass through from .env (the binder alone does not
-        //                    split a scalar into an array).
+        // * array       — JSON array in appsettings, or Cors__AllowedOrigins__0/__1
+        // * single value — Cors__AllowedOrigins=a,b, which is what docker-compose
+        // can pass through from .env (the binder alone does not
+        // split a scalar into an array).
         var rawValue = section.Value;
         var rawEntries = rawValue is not null
             ? new[] { rawValue }

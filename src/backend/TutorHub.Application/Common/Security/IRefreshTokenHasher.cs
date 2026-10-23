@@ -1,7 +1,7 @@
 namespace TutorHub.Application.Common.Security;
 
 /// <summary>
-/// Hashes opaque refresh tokens for storage (P0-D1).
+/// Hashes opaque refresh tokens for storage.
 ///
 /// A refresh token is a bearer credential: whoever holds it can mint new access
 /// tokens. Only the hash is persisted, so a database leak alone does not hand over

@@ -76,6 +76,9 @@ export default function TutorApplication() {
         }
       } catch (err) {
         console.warn('[TutorApplication] Could not fetch application status:', err.message);
+        if (mounted) {
+          toast.error(err?.message || 'Không thể tải trạng thái hồ sơ gia sư. Vui lòng thử lại sau.');
+        }
       } finally {
         if (mounted) setLoadingApp(false);
       }

@@ -3,7 +3,7 @@ using System.Globalization;
 namespace TutorHub.Application.Common.Settings;
 
 /// <summary>
-/// P0-A1 / P0-E3: the single definition of a *usable* platform fee setting.
+/// the single definition of a *usable* platform fee setting.
 ///
 /// Enrollment activation snapshots this value (DEC-S8-020) and readiness reports it,
 /// so both must agree on what "configured" means: an invariant-culture decimal in

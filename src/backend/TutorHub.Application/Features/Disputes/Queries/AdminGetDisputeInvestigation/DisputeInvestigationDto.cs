@@ -43,7 +43,6 @@ public class EnrollmentInvestigationDto
     public int TotalSessions { get; set; }
     public int CompletedSessions { get; set; }
     public decimal PlatformFeeRate { get; set; }
-    public int FeePolicyVersion { get; set; }
 }
 
 public class InvestigationMessageDto

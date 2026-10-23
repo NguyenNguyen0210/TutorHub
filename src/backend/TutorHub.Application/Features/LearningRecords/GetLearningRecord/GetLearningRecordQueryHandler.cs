@@ -33,7 +33,7 @@ public class GetLearningRecordQueryHandler : IRequestHandler<GetLearningRecordQu
             throw new NotFoundException("Session", request.SessionId);
         }
 
-        // F-14: student, tutor participant or admin read-only.
+        // student, tutor participant or admin read-only.
         if (role != Domain.Enums.UserRole.Admin &&
             session.Enrollment.StudentProfile.UserId != userId &&
             session.Enrollment.TutorProfile.UserId != userId)

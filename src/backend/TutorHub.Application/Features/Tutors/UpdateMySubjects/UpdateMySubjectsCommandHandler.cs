@@ -7,7 +7,7 @@ using TutorHub.Domain.Entities;
 
 namespace TutorHub.Application.Features.Tutors.UpdateMySubjects;
 
-public class UpdateMySubjectsCommandHandler : IRequestHandler<UpdateMySubjectsCommand, List<TutorSubjectDto>>
+public class UpdateMySubjectsCommandHandler : IRequestHandler<UpdateMySubjectsCommand, IReadOnlyList<TutorSubjectDto>>
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
@@ -18,7 +18,7 @@ public class UpdateMySubjectsCommandHandler : IRequestHandler<UpdateMySubjectsCo
         _currentUserService = currentUserService;
     }
 
-    public async Task<List<TutorSubjectDto>> Handle(UpdateMySubjectsCommand request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<TutorSubjectDto>> Handle(UpdateMySubjectsCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
 

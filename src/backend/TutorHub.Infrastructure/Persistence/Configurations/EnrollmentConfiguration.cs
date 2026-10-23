@@ -33,9 +33,6 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
             .HasPrecision(5, 4)
             .IsRequired();
 
-        builder.Property(e => e.FeePolicyVersion)
-            .IsRequired();
-
         builder.Property(e => e.Status)
             .HasConversion<string>()
             .HasMaxLength(50)

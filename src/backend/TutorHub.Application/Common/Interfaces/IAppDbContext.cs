@@ -38,8 +38,6 @@ public interface IAppDbContext
     DbSet<EmailDelivery> EmailDeliveries { get; }
     DbSet<Dispute> Disputes { get; }
     DbSet<DisputeEvidence> DisputeEvidences { get; }
-    DbSet<PlatformSetting> PlatformSettings { get; }
-    DbSet<PlatformSettingVersion> PlatformSettingVersions { get; }
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<LearningRecord> LearningRecords { get; }
     DbSet<StudentWallet> StudentWallets { get; }

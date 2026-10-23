@@ -1,7 +1,7 @@
 namespace TutorHub.Application.Common.Files;
 
 /// <summary>
-/// Single source of truth for upload size/MIME rules (F-11).
+/// Single source of truth for upload size/MIME rules.
 /// Maxima are preserved from the pre-existing per-surface rules; only the
 /// definitions are centralized so the matrix cannot drift again.
 /// </summary>

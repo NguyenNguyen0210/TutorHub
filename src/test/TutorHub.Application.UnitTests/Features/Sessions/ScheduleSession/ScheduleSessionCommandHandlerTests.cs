@@ -1,7 +1,8 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Features.Sessions.ScheduleSession;
 using TutorHub.Application.UnitTests.TestHelpers;
@@ -16,7 +17,7 @@ public class ScheduleSessionCommandHandlerTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly StubCurrentUserService _currentUserService = new();
-    private readonly IConfiguration _configuration = new ConfigurationBuilder().Build();
+    private readonly IOptions<SchedulingOptions> _schedulingOptions = Options.Create(new SchedulingOptions());
     private readonly StubClock _clock;
     private readonly DateTime _fixedNow = new(2026, 9, 26, 10, 0, 0, DateTimeKind.Utc);
 
@@ -33,7 +34,7 @@ public class ScheduleSessionCommandHandlerTests : IDisposable
     public void Dispose() => _context.Dispose();
 
     private ScheduleSessionCommandHandler CreateHandler() =>
-        new(_context, _currentUserService, _configuration, _clock);
+        new(_context, _currentUserService, _clock, _schedulingOptions);
 
     private async Task<(Session session, Enrollment enrollment, User studentUser, User tutorUser)> SeedAggregateAsync(
         DateTime? preScheduleStart = null)

@@ -24,7 +24,7 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .HasMaxLength(50)
             .IsRequired();
 
-        // P0-A2: must match Enrollment.PlatformFeeRate (numeric(5,4)). At (5,2)
+        // must match Enrollment.PlatformFeeRate (numeric(5,4)). At (5,2)
         // Postgres silently rounded 0.1234 -> 0.12, and AdminResolveDispute then
         // re-derived the DEC-S8-025 conservation identity from the truncated rate.
         builder.Property(t => t.CommissionRate)
@@ -49,14 +49,14 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .IsRequired();
 
         // Foreign keys & Relationships
-        // P0 HOTFIX: one booking owns many transactions (payment + payouts +
+        // one booking owns many transactions (payment + payouts +
         // refunds/reversals), so this is 1:N with a plain index — never unique.
         builder.HasOne(t => t.Booking)
             .WithMany(b => b.Transactions)
             .HasForeignKey(t => t.BookingId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // P0 HOTFIX: one session owns many transactions over its life (payout +
+        // one session owns many transactions over its life (payout +
         // refunds/reversals). 1:1 here made EF sever the payout FK when a second
         // transaction for the same session was added. Uniqueness of the single
         // payout is still enforced by the partial unique index below.
@@ -72,7 +72,7 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // P0 HOTFIX: plain (non-unique) index — many transactions share one BookingId.
+        // plain (non-unique) index — many transactions share one BookingId.
         builder.HasIndex(t => t.BookingId);
         builder.HasIndex(t => t.DisputeId);
         builder.HasIndex(t => t.RelatedTransactionId);
@@ -82,7 +82,7 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .IsUnique()
             .HasFilter("\"SessionId\" IS NOT NULL AND \"Type\" = 'SessionPayoutCredit'");
 
-        // F-10: gateway refs are unique per payment attempt (nullable → partial index).
+        // gateway refs are unique per payment attempt (nullable → partial index).
         builder.HasIndex(t => t.PaymentGatewayRef)
             .IsUnique()
             .HasFilter("\"PaymentGatewayRef\" IS NOT NULL");

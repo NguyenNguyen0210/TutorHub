@@ -8,4 +8,4 @@ public record GetMySessionsQuery(
     SessionStatus? Status = null,
     DateTime? FromDate = null,
     DateTime? ToDate = null
-) : IRequest<List<SessionCalendarDto>>;
+) : IRequest<IReadOnlyList<SessionCalendarDto>>;

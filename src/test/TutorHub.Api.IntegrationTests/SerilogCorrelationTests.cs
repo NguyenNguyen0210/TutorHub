@@ -13,7 +13,7 @@ using TutorHub.Api.Middlewares;
 namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
-/// WP7: Serilog boot + correlation enrichment. The middleware log-context
+/// Serilog boot + correlation enrichment. The middleware log-context
 /// assertions run on <see cref="DefaultHttpContext"/> with a local in-memory
 /// Serilog sink (no static logger, no Docker); the boot cases prove the API
 /// serves traffic with Seq disabled and with Seq unreachable (the Seq sink

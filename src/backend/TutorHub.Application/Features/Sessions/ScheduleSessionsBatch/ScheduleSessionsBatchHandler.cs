@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -11,29 +12,29 @@ using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Sessions.ScheduleSessionsBatch;
 
-public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatchCommand, List<SessionDto>>
+public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatchCommand, IReadOnlyList<SessionDto>>
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IConfiguration _configuration;
+    private readonly IOptions<SchedulingOptions>? _schedulingOptions;
     private readonly IClock _clock;
 
     public ScheduleSessionsBatchHandler(
         IAppDbContext context,
         ICurrentUserService currentUserService,
-        IConfiguration configuration,
-        IClock clock)
+        IClock clock,
+        IOptions<SchedulingOptions>? schedulingOptions = null)
     {
         _context = context;
         _currentUserService = currentUserService;
-        _configuration = configuration;
+        _schedulingOptions = schedulingOptions;
         _clock = clock;
     }
 
-    public async Task<List<SessionDto>> Handle(ScheduleSessionsBatchCommand request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<SessionDto>> Handle(ScheduleSessionsBatchCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
-        var policy = new SessionSchedulePolicy(_configuration, _clock);
+        var policy = new SessionSchedulePolicy(_schedulingOptions, _clock);
 
         // Pass 1: load ALL sessions in one query, validate every item before touching state.
         var ids = request.Items.Select(i => i.SessionId).ToList();

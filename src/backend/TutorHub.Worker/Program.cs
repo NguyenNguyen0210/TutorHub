@@ -5,7 +5,7 @@ using TutorHub.Infrastructure.Persistence;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// F-25: .env loader is Development-only and never overrides real environment
+// .env loader is Development-only and never overrides real environment
 // variables (container/CI secrets always win). Mirrors TutorHub.Api/Program.cs.
 if (builder.Environment.IsDevelopment())
 {
@@ -65,7 +65,7 @@ builder.Services.AddSerilog((services, loggerConfig) =>
     }
 });
 
-// F-25 hardening: refuse to start while a secret still holds a template value.
+// Startup security hardening: refuse to start while a secret still holds a template value.
 StartupSecretGuard.ValidateNoPlaceholderSecrets(builder.Configuration);
 
 // Shared job-host composition (same method WorkerBootTests exercises).

@@ -5,7 +5,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 
 /**
- * P0 UI/UX roadmap: accessibility rules start as warn-level until P7 roadmap milestone.
+ * Accessibility rules start as warn-level.
  */
 const a11yRules = jsxA11y.flatConfigs.recommended.rules;
 const a11yWarnings = Object.fromEntries(

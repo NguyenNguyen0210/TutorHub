@@ -8,7 +8,7 @@ using Xunit;
 namespace TutorHub.Infrastructure.UnitTests.Authentication;
 
 /// <summary>
-/// P0-D1 / P0-F3: refresh tokens are stored as HMAC-SHA256(pepper, rawToken) in
+/// refresh tokens are stored as HMAC-SHA256(pepper, rawToken) in
 /// lowercase hex. The algorithm is pinned here on purpose — a keyed hash is what makes
 /// a stolen database useless without the pepper, and plain SHA-256 would silently
 /// remove that property.

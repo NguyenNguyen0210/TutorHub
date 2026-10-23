@@ -5,7 +5,7 @@ using TutorHub.Application.Features.Disputes.DTOs;
 
 namespace TutorHub.Application.Features.Disputes.Queries.GetMyDisputes;
 
-public class GetMyDisputesQueryHandler : IRequestHandler<GetMyDisputesQuery, List<DisputeDto>>
+public class GetMyDisputesQueryHandler : IRequestHandler<GetMyDisputesQuery, IReadOnlyList<DisputeDto>>
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
@@ -16,7 +16,7 @@ public class GetMyDisputesQueryHandler : IRequestHandler<GetMyDisputesQuery, Lis
         _currentUserService = currentUserService;
     }
 
-    public async Task<List<DisputeDto>> Handle(GetMyDisputesQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<DisputeDto>> Handle(GetMyDisputesQuery request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
 

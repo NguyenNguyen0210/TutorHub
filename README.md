@@ -64,7 +64,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 ┌────────────────────────────────────────────────────────────────────────┐
 │                           TutorHub.Api                                 │
 │  Thin REST Controllers ── JWT / Refresh Middleware ── SignalR Hubs     │
-│  Rate Limiting ── StartupSecretGuard ── Global Error Handling          │
+│  StartupSecretGuard ── Global Error Handling ── Correlation Tracking   │
 └───────────────────┬────────────────────────────────┬───────────────────┘
                     │                                │
                     ▼                                ▼
@@ -184,16 +184,13 @@ TutorHub/
 │       ├── TutorHub.Infrastructure.UnitTests/# 21 tests: VNPay HMAC, Password Hasher, S3 options
 │       └── TutorHub.Api.IntegrationTests/    # 67 tests: Tích hợp cơ sở dữ liệu thật, API contract, Ledgers
 │
-├── docs/                                     # Toàn bộ tài liệu phân tích, kiến trúc & thiết kế
-│   ├── openapi.json                          # Đặc tả OpenAPI v3
-│   └── prd.md                                # Product Requirements Document
-│
 ├── scripts/                                  # Kịch bản kiểm thử & vận hành tự động
-│   ├── e2e_grace_period.py                   # Bộ test E2E Playwright kiểm thử luồng 12h Auto-Payout
-│   └── collect_ui_audit.py                   # Script tự động audit tràn màn hình mobile (Responsive)
+│   └── e2e_grace_period.py                   # Bộ test E2E Playwright kiểm thử luồng 12h Auto-Payout
 │
-├── docker-compose.yml                        # File triển khai cụm Container
-├── .env.example                              # File mẫu cấu hình biến môi trường
+├── docker-compose.yml                        # Cấu hình cụm Docker Container phát triển (Dev)
+├── docker-compose.prod.yml                   # Cấu hình cụm Docker Container Production
+├── .env.example                              # File mẫu cấu hình biến môi trường Development
+├── .env.production.example                   # File mẫu cấu hình biến môi trường Production
 └── README.md                                 # Tài liệu dự án
 ```
 
@@ -273,11 +270,9 @@ Redis__Enabled=true
 ConnectionStrings__Redis=redis:6379
 ```
 
-* **Cờ tính năng** `Redis:Features:{OAuth,SignalR,Cache,CronLock,RateLimit,RevokeCheck}` (mặc định `true`): tắt cờ nào = replica về đúng code memory/DB cũ của phần đó, không cần sửa code hay redeploy bản khác.
-* **Redis chết lúc chạy:** các đường non-OAuth vẫn phục vụ (HTTP 200) — cache đọc thẳng DB, cron bỏ qua kỳ + log, rate-limit cho qua + `LogWarning` (fail-open), `/health` báo `Degraded` ở check `redis` (không bao giờ `Unhealthy`, không restart oan). Revoke-check fail-closed: request có auth trả 401 `"Authentication service unavailable."` thay vì cho qua. OAuth vẫn fail-closed (không cấp token) nhưng mù: callback (và start khi mất kết nối thật) trả 500 envelope thay vì 409/503 rõ ràng — cần follow-up map `RedisException` → 409/503 với thông điệp rõ ràng.
-* **Rate-limit phân tán (WP3):** Lua `INCR+EXPIRE` key `ratelimit:{policy}:{ip}:{bucket}`, giữ nguyên ngưỡng `10/60/300 per 1m` + envelope 429 và header `Retry-After` cũ. Chi phí: 1 Lua eval/request.
-* **Revoke JWT tức thì (WP6):** claim `ver` = `User.TokenVersion`, Redis key `auth:ver:{userId}` TTL 16p; `token.ver < cachedVer` → 401 `"Session has been revoked. Please sign in again."`. Bump khi ban/suspend/đổi pass. Chi phí: 1 Redis `GET`/authenticated request (+1 DB read khi cache miss).
-* **Worker riêng (WP8):** mặc định api tự chạy 6 background job (`BackgroundJobs:Enabled=true`). Khi chạy ≥2 replica api, tách job sang host chuyên để không double-run:
+* **Cờ tính năng** `Redis:Features:{OAuth,SignalR,Cache,CronLock}` (mặc định `true`): tắt cờ nào = replica về đúng code memory/DB cũ của phần đó, không cần sửa code hay redeploy bản khác.
+* **Redis chết lúc chạy:** các đường non-OAuth vẫn phục vụ (HTTP 200) — cache đọc thẳng DB, cron bỏ qua kỳ + log, `/health` báo `Degraded` ở check `redis` (không bao giờ `Unhealthy`, không restart oan). OAuth vẫn fail-closed (không cấp token) nhưng mù: callback (và start khi mất kết nối thật) trả 500 envelope thay vì 409/503 rõ ràng — cần follow-up map `RedisException` → 409/503 với thông điệp rõ ràng.
+* **Worker riêng:** mặc định api tự chạy 6 background job (`BackgroundJobs:Enabled=true`). Khi chạy ≥2 replica api, tách job sang host chuyên để không double-run:
   ```bash
   # .env: api thôi chạy job
   BackgroundJobs__Enabled=false
@@ -285,8 +280,8 @@ ConnectionStrings__Redis=redis:6379
   docker compose --profile worker up -d --build
   ```
   Mặc định `docker compose up` không đổi hành vi (api chạy job, worker không lên). Cron lock Redis là lưới an toàn thứ hai khi ai đó quên flag.
-* **Tìm kiếm tiếng Việt (WP9):** `unaccent` (wrapper immutable `unaccent_immutable`) + trigram `pg_trgm` với GIN index trên `Services(Title, Description)`, `Subjects(Name)`, `Users(FullName, Email)`… — `toan` ra `toán`, `nguyen` ra `Nguyễn`, giữ nguyên sort/paging cũ. `EXPLAIN` xác nhận dùng index + timing trước/sau là follow-up staging (sandbox nghiệm thu không có PG nên chưa đo).
-* **Log tập trung (WP7):** Serilog JSON console + Seq sink (chỉ khi `Seq:ServerUrl` khác rỗng; Seq chết không chặn boot), enrich `CorrelationId`, bỏ ồn `/health*`, cấm log secret/PII. Dev/staging: service `seq` trong compose (`:5341`).
+* **Tìm kiếm tiếng Việt:** `unaccent` (wrapper immutable `unaccent_immutable`) + trigram `pg_trgm` với GIN index trên `Services(Title, Description)`, `Subjects(Name)`, `Users(FullName, Email)`… — `toan` ra `toán`, `nguyen` ra `Nguyễn`, giữ nguyên sort/paging cũ. `EXPLAIN` xác nhận dùng index + timing trước/sau là follow-up staging (sandbox nghiệm thu không có PG nên chưa đo).
+* **Log tập trung:** Serilog JSON console + Seq sink (chỉ khi `Seq:ServerUrl` khác rỗng; Seq chết không chặn boot), enrich `CorrelationId`, bỏ ồn `/health*`, cấm log secret/PII. Dev/staging: service `seq` trong compose (`:5341`).
 
 ---
 

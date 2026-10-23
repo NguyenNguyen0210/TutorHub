@@ -1,7 +1,7 @@
 namespace TutorHub.Infrastructure.Distributed;
 
 /// <summary>
-/// WP4 distributed cron lock: at most one node holds a key at a time.
+/// Distributed cron lock: at most one node holds a key at a time.
 /// Acquire is SET key token NX PX ttl; Release deletes only when the stored
 /// token still matches (Lua compare-del), so a node never drops a lock that
 /// another node has since re-acquired.

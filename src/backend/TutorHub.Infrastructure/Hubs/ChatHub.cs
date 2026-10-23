@@ -100,7 +100,7 @@ public class ChatHub : Hub<IChatClient>
         return null;
     }
 
-    // WP2 local-degrade: group membership rides the Redis backplane when it is on.
+    // group membership rides the Redis backplane when it is on.
     // A Redis outage must not fail the handshake or a join/leave call, so transport
     // failures are logged and the connection stays usable for local delivery.
     // Group names are unchanged.

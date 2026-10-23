@@ -8,7 +8,7 @@ using TutorHub.Infrastructure.Authentication.External;
 namespace TutorHub.Infrastructure.UnitTests.Authentication;
 
 /// <summary>
-/// WP1: the distributed state store must behave exactly like
+/// the distributed state store must behave exactly like
 /// <see cref="MemoryExternalAuthStateStore"/> (single-use, provider-bound,
 /// fail-closed) while sharing entries across nodes via Redis.
 /// </summary>

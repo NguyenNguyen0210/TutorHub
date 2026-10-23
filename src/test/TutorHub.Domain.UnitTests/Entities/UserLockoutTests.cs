@@ -6,10 +6,10 @@ using Xunit;
 namespace TutorHub.Domain.UnitTests.Entities;
 
 /// <summary>
-/// P0-D3 / P0-F3: brute-force lockout state machine.
+/// brute-force lockout state machine.
 ///
 /// The counter is per ACCOUNT (not per IP) so a distributed credential-stuffing
-/// attempt cannot sidestep the per-IP rate limiter. Every failure is counted, the
+/// attempt cannot sidestep account security. Every failure is counted, the
 /// threshold locks the account for the configured window, and a successful
 /// authentication clears the state.
 /// </summary>
