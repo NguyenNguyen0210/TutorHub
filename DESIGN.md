@@ -68,7 +68,7 @@ Giao diện phải truyền đạt 4 giá trị:
 | `--semantic-success-subtle` | `#ECFDF5` | — | Nền thẻ thu nhập |
 | `--semantic-holding` | `#D97706` | `HoldingExpiresAt` (15m), `PendingBalance`, `Proposed`, `AwaitingPayout` | Countdown giữ chỗ, đếm ngược giải ngân 12h, tiền trong Escrow |
 | `--semantic-holding-subtle` | `#FFFBEB` | — | Nền banner đếm ngược |
-| `--semantic-danger` | `#EF4444` | `HeldBalance`, `DisputeActive`, `Banned` | Phong tỏa tranh chấp, báo cáo sự cố |
+| `--semantic-danger` | `#EF4444` | `DisputeActive`, `Banned` | Báo cáo sự cố, tài khoản bị khóa |
 | `--semantic-danger-subtle` | `#FEF2F2` | — | Nền thẻ tranh chấp |
 | `--semantic-info` | `#3B82F6` | `EnrollmentActive`, `Scheduled`, `UnderReview` | Tiến độ học, lịch sắp tới |
 
@@ -204,11 +204,10 @@ AuthShell         Thẻ căn giữa, nền sáng tối giản
 - Khi có báo cáo sự cố (`hasIssueReport`): khối danger thông báo buổi học đang có sự cố cần giải quyết khiếu nại, tiền được bảo lưu an toàn.
 - Khi hoàn thành và đã giải ngân (`Completed` + `isPayoutReleased`): callout success xác nhận đã hoàn tất giải ngân cho gia sư.
 
-### 7.3 Escrow Wallet — 4 chỉ số
-`PendingBalance` · `AvailableBalance` · `HeldBalance` · `WithdrawableBalance`
-- `WithdrawableBalance` nổi bật nhất (success, `text-headline-1`, `font-mono`).
+### 7.3 Escrow Wallet — Các chỉ số dòng tiền
+`PendingBalance` · `AvailableBalance` · `WithdrawableBalance`
+- `WithdrawableBalance` nổi bật nhất (success, `text-headline-1`, `font-mono`), tương đương `AvailableBalance`.
 - Nút rút **disabled** khi `WithdrawableBalance < 50.000 ₫`.
-- `HeldBalance` dùng viền danger khi có tranh chấp mở.
 
 ### 7.4 Service Package Card
 Tiêu đề · mô tả · meta (số buổi / phút / trial) · giá trọn gói + giá mỗi buổi ·
