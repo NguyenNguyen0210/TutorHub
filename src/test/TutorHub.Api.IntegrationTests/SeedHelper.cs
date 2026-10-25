@@ -13,7 +13,6 @@ public static class SeedHelper
     public static async Task<(User TutorUser, TutorProfile Tutor, User Admin)> SeedTutorWithWalletAsync(
         AppDbContext db,
         decimal availableBalance = 1_000_000m,
-        decimal heldBalance = 0m,
         CancellationToken ct = default)
     {
         var tutorUser = new User
@@ -55,7 +54,6 @@ public static class SeedHelper
             TutorProfileId = tutor.Id,
             PendingBalance = 0,
             AvailableBalance = availableBalance,
-            HeldBalance = heldBalance,
             UpdatedAt = DateTime.UtcNow
         };
 

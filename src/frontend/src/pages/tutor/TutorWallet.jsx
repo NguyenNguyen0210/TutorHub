@@ -57,8 +57,7 @@ const ESCROW_STEPS = [
  * nhét dài gói trong `hint` của StatCard (bản cũ bị bó/khó đọc).
  *
  * Tuân thủ bất biến tài chính:
- * - DEC-WD-001: Withdrawable = AvailableBalance - HeldBalance (không được rút vào phần phong tỏa tranh chấp).
- * - DEC-S8-028: HeldBalance chỉ giữ khi WithdrawableBalance >= MaxTutorRecovery, ngược lại giữ 0 đồng.
+ * - DEC-WD-001: Withdrawable = AvailableBalance.
  * - Hạn mức tối thiểu tạo lệnh rút: 50.000 ₫.
  */
 export default function TutorWallet() {
@@ -118,9 +117,8 @@ export default function TutorWallet() {
   }
 
   // DEC-WD-001: Withdrawable = Available - Held (không được rút phần đang giữ).
-  const withdrawable = Math.max(0, (wallet.availableBalance || 0) - (wallet.heldBalance || 0));
+  const withdrawable = wallet.availableBalance || 0;
   const canWithdraw = withdrawable >= 50000;
-  const hasHeldFunds = (wallet.heldBalance || 0) > 0;
 
   return (
     <div className="space-y-6">
@@ -162,7 +160,7 @@ export default function TutorWallet() {
       {/* 4 số dư — hàng sổ cái phẳng, số là nhân vật chính */}
       <div>
         <LedgerStrip
-          columns={4}
+          columns={3}
           figures={[
             {
               key: 'pending',
@@ -173,38 +171,26 @@ export default function TutorWallet() {
             },
             {
               key: 'available',
-              label: 'Số dư khả dụng (Available)',
-              value: <Money value={wallet.availableBalance} />,
-              hint: 'Thu nhập các buổi học đã xong (sau trừ phí sàn 10%)',
-            },
-            {
-              key: 'held',
-              label: 'Phong tỏa tranh chấp (Held)',
-              value: <Money value={wallet.heldBalance} />,
-              hint: hasHeldFunds
-                ? 'Đang có khiếu nại chờ bàn trọng tài giải quyết'
-                : 'Không có khoản tiền nào bị phong tỏa',
-              tone: hasHeldFunds ? 'danger' : 'muted',
-            },
-            {
-              key: 'withdrawable',
-              label: 'Hạn mức được rút',
+              label: 'Số dư khả dụng / Được rút',
               value: <Money value={withdrawable} />,
+              hint: 'Thu nhập các buổi học đã xong (sau trừ phí sàn)',
+              tone: 'success',
+            },
+            {
+              key: 'pendingWithdrawal',
+              label: 'Đang xử lý rút',
+              value: <Money value={wallet.pendingWithdrawal} />,
+              hint: 'Lệnh rút đang chờ phê duyệt/đối soát',
+              tone: 'muted',
             },
           ]}
         />
 
-        {/* DEC-WD-001 nổi thành 1 dòng phương trình — tabular để dọc theo cột */}
         <p className="text-body-reg text-fg-secondary mt-3 leading-relaxed tabular-nums">
-          <span className="font-semibold text-fg">Hạn mức được rút</span>
-          <span className="mx-1.5 text-fg-muted">=</span>
-          Khả dụng {formatCurrency(wallet.availableBalance)}
-          <span className="mx-1.5 text-fg-muted">−</span>
-          Phong tỏa {formatCurrency(wallet.heldBalance)}
-          <span className="mx-1.5 text-fg-muted">=</span>
+          <span className="font-semibold text-fg">Hạn mức được rút:</span>{' '}
           <span className="font-bold text-fg">{formatCurrency(withdrawable)}</span>
           <span className="ml-2 inline-block align-middle text-[11px] font-semibold text-fg-muted border border-border rounded-brand-sm px-1.5 py-0.5">
-            Quy tắc rút tiền
+            Tối thiểu 50.000 ₫
           </span>
         </p>
       </div>

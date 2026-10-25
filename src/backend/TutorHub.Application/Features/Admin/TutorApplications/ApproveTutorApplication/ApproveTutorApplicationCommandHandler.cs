@@ -74,7 +74,6 @@ public class ApproveTutorApplicationCommandHandler
             TutorProfileId = tutorProfileId,
             PendingBalance = 0,
             AvailableBalance = 0,
-            HeldBalance = 0,
             UpdatedAt = _clock.UtcNow
         };
 

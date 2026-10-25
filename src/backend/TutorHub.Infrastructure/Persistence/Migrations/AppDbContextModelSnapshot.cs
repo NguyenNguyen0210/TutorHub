@@ -1782,9 +1782,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
 
-                    b.Property<decimal>("HeldBalance")
-                        .HasColumnType("numeric");
-
                     b.Property<decimal>("PendingBalance")
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
@@ -1802,7 +1799,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.ToTable("Wallets", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Wallet_NonNegativeBalances", "\"PendingBalance\" >= 0 AND \"AvailableBalance\" >= 0 AND \"HeldBalance\" >= 0 AND \"HeldBalance\" <= \"AvailableBalance\"");
+                            t.HasCheckConstraint("CK_Wallet_NonNegativeBalances", "\"PendingBalance\" >= 0 AND \"AvailableBalance\" >= 0");
                         });
                 });
 

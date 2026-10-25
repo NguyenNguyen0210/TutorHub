@@ -112,7 +112,7 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
 
         // Pre-release only (12h-grace rule): money is still in Pending escrow,
         // so creating the dispute locks payout release without touching the
-        // tutor's Available balance. HeldBalance on wallet is NOT incremented.
+        // tutor's Available balance. Payout release is locked.
         dispute.SetFinancialHold(session.EarningAmount, FinancialHoldType.EscrowHold, FinancialHoldStatus.Active, now);
 
         if (!session.HasIssueReport)

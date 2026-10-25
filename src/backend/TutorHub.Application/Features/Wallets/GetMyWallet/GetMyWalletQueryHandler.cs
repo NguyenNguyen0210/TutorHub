@@ -39,7 +39,6 @@ public class GetMyWalletQueryHandler : IRequestHandler<GetMyWalletQuery, WalletD
         var walletId = wallet?.Id ?? Guid.Empty;
         var pendingBalance = wallet?.PendingBalance ?? 0m;
         var availableBalance = wallet?.AvailableBalance ?? 0m;
-        var heldBalance = wallet?.HeldBalance ?? 0m;
         var updatedAt = wallet?.UpdatedAt ?? DateTime.MinValue;
 
         // Calculate total pending/processing withdrawals
@@ -49,14 +48,13 @@ public class GetMyWalletQueryHandler : IRequestHandler<GetMyWalletQuery, WalletD
             .SumAsync(w => (decimal?)w.Amount, cancellationToken) ?? 0;
 
         var totalBalance = pendingBalance + availableBalance + pendingWithdrawal;
-        var withdrawableBalance = availableBalance - heldBalance;
+        var withdrawableBalance = availableBalance;
 
         return new WalletDto(
             Id: walletId,
             TutorProfileId: tutor.Id,
             PendingBalance: pendingBalance,
             AvailableBalance: availableBalance,
-            HeldBalance: heldBalance,
             WithdrawableBalance: withdrawableBalance,
             PendingWithdrawal: pendingWithdrawal,
             TotalBalance: totalBalance,

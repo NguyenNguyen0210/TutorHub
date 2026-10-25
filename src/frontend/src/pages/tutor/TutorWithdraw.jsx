@@ -23,7 +23,7 @@ const MIN_WITHDRAW = 50000;
  * mức dùng `primary` / trung tính, không dùng `success` (xanh lá) như bản cũ.
  *
  * Bất biến tài chính:
- * - DEC-WD-001: Withdrawable = AvailableBalance - HeldBalance.
+ * - DEC-WD-001: Withdrawable = AvailableBalance.
  * - Hạn mức tối thiểu tạo lệnh rút: 50.000 ₫.
  */
 export default function TutorWithdraw() {
@@ -74,7 +74,7 @@ export default function TutorWithdraw() {
   }, []);
 
   // DEC-WD-001
-  const withdrawableLimit = Math.max(0, (wallet?.availableBalance || 0) - (wallet?.heldBalance || 0));
+  const withdrawableLimit = Math.max(0, wallet?.availableBalance || 0);
   const parsedAmount = parseInt(amount, 10);
 
   // Lý do chặn submit — hiện ngay cạnh nút thay vì chỉ bắt người dùng bấm rồi mới

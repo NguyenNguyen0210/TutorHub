@@ -41,7 +41,7 @@ dotnet test src/test/TutorHub.Api.IntegrationTests/TutorHub.Api.IntegrationTests
 
 # Run a Single Test / Filter by Class or Test Name
 dotnet test src/backend/TutorHub.sln --filter "FullyQualifiedName~EnrollmentSessionAllocatorTests"
-dotnet test src/backend/TutorHub.sln --filter "Name=CalculateWithdrawableBalance_WithHeldBalance_ReturnsCorrectAmount"
+dotnet test src/backend/TutorHub.sln --filter "Name=DebitAvailableForWithdrawal_WhenSufficient_Decrements"
 
 # Stop locked API process on Windows
 Stop-Process -Name "TutorHub.Api" -Force -ErrorAction SilentlyContinue
@@ -125,7 +125,7 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
 * **Semantic Status Invariants:**
   - `--semantic-success` (`#10B981`): `AvailableBalance`, `SessionPayoutCredit`, `Paid`, `Completed`.
   - `--semantic-holding` (`#D97706`): `HoldingExpiresAt` (15m checkout), `PendingBalance`, `Proposed`, `AwaitingPayout` (12h Grace Period). *Cố ý tách biệt với Secondary Orange (`#F59E0B`)*.
-  - `--semantic-danger` (`#EF4444`): `HeldBalance`, `DisputeActive`, `Banned`.
+  - `--semantic-danger` (`#EF4444`): `DisputeActive`, `Banned`.
   - `--semantic-info` (`#3B82F6`): `EnrollmentActive`, `Scheduled`, `UnderReview`.
 * **Currency Formatting:** Định dạng số tiền VND phân cách dấu chấm (e.g. `2.500.000 ₫`). Monospace font cho số liệu tài chính.
 * **Pure JavaScript:** Frontend sử dụng JavaScript chuẩn (`.jsx`), không dùng TypeScript.

@@ -3,7 +3,7 @@
  *
  * Verified payloads:
  * - GET  /tutors/me/wallet              → WalletDto { id, tutorProfileId, pendingBalance,
- *   availableBalance, heldBalance, withdrawableBalance, pendingWithdrawal, totalBalance, updatedAt }
+ *   availableBalance, withdrawableBalance, pendingWithdrawal, totalBalance, updatedAt }
  * - GET  /tutors/me/wallet/withdrawals  → PagedResult<WithdrawalDto>
  * - POST /tutors/me/wallet/withdrawals  → 201 WithdrawalDto
  * - GET  /tutors/me/wallet/payout-account → TutorPayoutAccountDto
@@ -23,7 +23,6 @@ function normalizeWallet(raw = {}) {
     tutorProfileId: raw.tutorProfileId ?? null,
     pendingBalance: toNumber(raw.pendingBalance),
     availableBalance: toNumber(raw.availableBalance),
-    heldBalance: toNumber(raw.heldBalance),
     withdrawableBalance: toNumber(raw.withdrawableBalance),
     pendingWithdrawal: toNumber(raw.pendingWithdrawal),
     totalBalance: toNumber(raw.totalBalance),

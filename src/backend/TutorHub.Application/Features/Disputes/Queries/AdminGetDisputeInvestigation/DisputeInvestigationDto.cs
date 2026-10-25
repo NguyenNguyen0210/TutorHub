@@ -60,7 +60,6 @@ public class FinancialInvestigationDto
     public decimal OriginalPlatformFee { get; set; }
     public decimal OriginalTutorNet { get; set; }
     public decimal TutorAvailableBalance { get; set; }
-    public decimal TutorHeldBalance { get; set; }
     public decimal TutorWithdrawableBalance { get; set; }
     public bool IsPayoutReleased { get; set; }
 }

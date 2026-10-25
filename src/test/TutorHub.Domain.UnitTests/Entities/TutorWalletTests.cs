@@ -6,39 +6,31 @@ namespace TutorHub.Domain.UnitTests.Entities;
 
 public class TutorWalletTests
 {
-    private static TutorWallet CreateWallet(decimal pending = 0m, decimal available = 0m, decimal held = 0m) => new()
+    private static TutorWallet CreateWallet(decimal pending = 0m, decimal available = 0m) => new()
     {
         Id = Guid.NewGuid(),
         TutorProfileId = Guid.NewGuid(),
         PendingBalance = pending,
         AvailableBalance = available,
-        HeldBalance = held,
         UpdatedAt = DateTime.UtcNow
     };
 
     [Fact]
-    public void ReleaseHold_WhenWithinHeld_Decrements()
+    public void DebitAvailableForWithdrawal_WhenSufficient_Decrements()
     {
-        var wallet = CreateWallet(available: 500m, held: 200m);
-        wallet.ReleaseHold(150m, DateTime.UtcNow);
-        wallet.HeldBalance.Should().Be(50m);
+        var wallet = CreateWallet(available: 500m);
+        wallet.DebitAvailableForWithdrawal(200m, DateTime.UtcNow);
+        wallet.AvailableBalance.Should().Be(300m);
+        wallet.WithdrawableBalance.Should().Be(300m);
     }
 
     [Fact]
-    public void ReleaseHold_WhenExceedsHeld_Throws()
+    public void DebitAvailableForWithdrawal_WhenInsufficient_Throws()
     {
-        var wallet = CreateWallet(available: 500m, held: 100m);
-        var act = () => wallet.ReleaseHold(150m, DateTime.UtcNow);
+        var wallet = CreateWallet(available: 100m);
+        var act = () => wallet.DebitAvailableForWithdrawal(150m, DateTime.UtcNow);
         act.Should().Throw<InvalidOperationException>();
-        wallet.HeldBalance.Should().Be(100m);
-    }
-
-    [Fact]
-    public void ReleaseHold_WhenNonPositive_Throws()
-    {
-        var wallet = CreateWallet(available: 500m, held: 100m);
-        var act = () => wallet.ReleaseHold(0m, DateTime.UtcNow);
-        act.Should().Throw<ArgumentException>();
+        wallet.AvailableBalance.Should().Be(100m);
     }
 
     [Fact]

@@ -139,7 +139,6 @@ public class AdminGetDisputeInvestigationQueryHandler : IRequestHandler<AdminGet
                 OriginalPlatformFee = originalFee,
                 OriginalTutorNet = originalNet,
                 TutorAvailableBalance = tutorWallet?.AvailableBalance ?? 0m,
-                TutorHeldBalance = tutorWallet?.HeldBalance ?? 0m,
                 TutorWithdrawableBalance = tutorWallet?.WithdrawableBalance ?? 0m,
                 IsPayoutReleased = session.IsPayoutReleased
             }

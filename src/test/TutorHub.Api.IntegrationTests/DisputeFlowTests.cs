@@ -106,7 +106,6 @@ public class DisputeFlowTests : IntegrationTestBase
         var wallet = await Db.Wallets.AsNoTracking().FirstAsync(w => w.TutorProfileId == enrollment.TutorProfileId);
         // 1,000,000 seeded + 180,000 tutor net = 1,180,000.
         wallet.AvailableBalance.Should().Be(1_180_000m);
-        wallet.HeldBalance.Should().Be(0m);
 
         var completed = await Db.Sessions.AsNoTracking().FirstAsync(s => s.Id == session.Id);
         completed.Status.Should().Be(SessionStatus.Completed);
