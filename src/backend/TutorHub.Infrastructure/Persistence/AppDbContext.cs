@@ -50,6 +50,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<TopUpRequest> TopUpRequests => Set<TopUpRequest>();
     public DbSet<StudentWithdrawal> StudentWithdrawals => Set<StudentWithdrawal>();
     public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
+    public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
 
     public override int SaveChanges()
     {

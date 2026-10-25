@@ -24,6 +24,7 @@ using TutorHub.Infrastructure.Persistence;
 using TutorHub.Infrastructure.Redis;
 using TutorHub.Infrastructure.Services;
 using TutorHub.Infrastructure.Services.Email;
+using TutorHub.Infrastructure.Services.Idempotency;
 using TutorHub.Infrastructure.Services.Storage;
 using TutorHub.Infrastructure.Services.VnPay;
 
@@ -220,6 +221,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<INotificationService, SignalRNotificationService>();
         services.AddScoped<IChatNotificationService, SignalRChatNotificationService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
+        services.AddScoped<IIdempotencyStore, DbIdempotencyStore>();
 
         // ── External sign-in (Google) ──────────────────────────────────────────
         // Deliberately NOT ValidateOnStart: an API with no OAuth credentials must
@@ -380,6 +382,7 @@ public static class InfrastructureServiceCollectionExtensions
 
 
             services.AddHostedService<AutoPayoutJob>();
+            services.AddHostedService<IdempotencyCleanupJob>();
         }
 
         return services;

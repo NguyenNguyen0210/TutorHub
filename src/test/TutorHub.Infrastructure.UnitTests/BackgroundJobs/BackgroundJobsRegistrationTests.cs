@@ -22,6 +22,7 @@ public class BackgroundJobsRegistrationTests
 
 
         typeof(AutoPayoutJob),
+        typeof(IdempotencyCleanupJob),
     ];
 
     private static ServiceCollection BuildServices(string? flagValue)

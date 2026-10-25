@@ -1,3 +1,4 @@
+using TutorHub.Api.Filters;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -59,6 +60,7 @@ public class StudentWalletController : ControllerBase
     /// </summary>
     [HttpPost("top-up")]
     [HttpPost("top-up/vnpay")]
+    [Idempotent]
     [ProducesResponseType(typeof(ApiResponse<VnPayTopUpRedirectDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -94,6 +96,7 @@ public class StudentWalletController : ControllerBase
     /// Request a withdrawal from student wallet to a bank account.
     /// </summary>
     [HttpPost("withdrawals")]
+    [Idempotent]
     [ProducesResponseType(typeof(ApiResponse<StudentWithdrawalDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]

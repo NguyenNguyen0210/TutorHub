@@ -1,3 +1,4 @@
+using TutorHub.Api.Filters;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -43,6 +44,7 @@ public class WalletsController : ControllerBase
     /// Submit a new withdrawal request to payout bank account (Tutor only).
     /// </summary>
     [HttpPost("withdrawals")]
+    [Idempotent]
     [ProducesResponseType(typeof(ApiResponse<WithdrawalDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]

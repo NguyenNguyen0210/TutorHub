@@ -79,8 +79,9 @@ export const walletService = {
    * POST /tutors/me/wallet/withdrawals → 201 Created + WithdrawalDto
    * Body: { amount, bankName, bankCode, accountNumber, accountHolderName, note }
    */
-  async createWithdrawal(payload) {
-    return api.post('/tutors/me/wallet/withdrawals', payload);
+  async createWithdrawal(payload, idempotencyKey = null) {
+    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
+    return api.post('/tutors/me/wallet/withdrawals', payload, { headers });
   },
 
   /**

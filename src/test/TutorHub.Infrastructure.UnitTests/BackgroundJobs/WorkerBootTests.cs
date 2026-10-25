@@ -22,6 +22,7 @@ public class WorkerBootTests
 
 
         typeof(AutoPayoutJob),
+        typeof(IdempotencyCleanupJob),
     ];
 
     private static IHost BuildWorkerHost(string? flagValue)

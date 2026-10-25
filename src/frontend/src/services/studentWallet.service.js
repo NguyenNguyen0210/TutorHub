@@ -48,8 +48,9 @@ export const studentWalletService = {
     return normalizePaged(res);
   },
 
-  async createVnPayTopUp({ amount }) {
-    const res = await api.post('/students/me/wallet/top-up/vnpay', { amount: Number(amount) });
+  async createVnPayTopUp({ amount }, idempotencyKey = null) {
+    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
+    const res = await api.post('/students/me/wallet/top-up/vnpay', { amount: Number(amount) }, { headers });
     return res;
   },
 
@@ -60,7 +61,8 @@ export const studentWalletService = {
     return normalizePaged(res);
   },
 
-  async requestWithdrawal(payload) {
+  async requestWithdrawal(payload, idempotencyKey = null) {
+    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
     const res = await api.post('/students/me/wallet/withdrawals', {
       amount: Number(payload.amount),
       bankName: payload.bankName,
@@ -68,10 +70,9 @@ export const studentWalletService = {
       accountNumber: payload.accountNumber,
       accountHolderName: payload.accountHolderName,
       note: payload.note || null,
-    });
+    }, { headers });
     return res;
   },
-
   async getMyWithdrawals({ pageNumber = 1, pageSize = 20 } = {}) {
     const res = await api.get('/students/me/wallet/withdrawals', {
       params: { pageNumber, pageSize },
@@ -79,8 +80,9 @@ export const studentWalletService = {
     return normalizePaged(res);
   },
 
-  async payBookingFromWallet(bookingId) {
-    const res = await api.post(`/payments/${bookingId}/wallet`);
+  async payBookingFromWallet(bookingId, idempotencyKey = null) {
+    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
+    const res = await api.post(`/payments/${bookingId}/wallet`, {}, { headers });
     return res;
   },
 

@@ -45,6 +45,7 @@ public interface IAppDbContext
     DbSet<TopUpRequest> TopUpRequests { get; }
     DbSet<StudentWithdrawal> StudentWithdrawals { get; }
     DbSet<ExternalLogin> ExternalLogins { get; }
+    DbSet<IdempotencyRecord> IdempotencyRecords { get; }
 
     DatabaseFacade Database { get; }
 
