@@ -8,8 +8,8 @@ public class StudentWallet
     public StudentProfile StudentProfile { get; set; } = default!;
 
     public decimal AvailableBalance { get; set; }
-    public decimal ReservedBalance { get; set; }
-    public decimal TotalBalance => AvailableBalance + ReservedBalance;
+    public decimal WithdrawingBalance { get; set; }
+    public decimal TotalBalance => AvailableBalance + WithdrawingBalance;
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -35,34 +35,34 @@ public class StudentWallet
         UpdatedAt = now;
     }
 
-    public void ReserveForWithdrawal(decimal amount, DateTime now)
+    public void HoldForWithdrawal(decimal amount, DateTime now)
     {
         Debit(amount, now);
-        ReservedBalance += amount;
+        WithdrawingBalance += amount;
         UpdatedAt = now;
     }
 
-    public void FinalizeWithdrawal(decimal amount, DateTime now)
+    public void CompleteWithdrawal(decimal amount, DateTime now)
     {
         if (amount <= 0)
-            throw new ArgumentException("Finalize withdrawal amount must be positive.", nameof(amount));
+            throw new ArgumentException("Complete withdrawal amount must be positive.", nameof(amount));
 
-        if (ReservedBalance < amount)
-            throw new InvalidOperationException("Reserved balance is insufficient to finalize withdrawal.");
+        if (WithdrawingBalance < amount)
+            throw new InvalidOperationException("Withdrawing balance is insufficient to complete withdrawal.");
 
-        ReservedBalance -= amount;
+        WithdrawingBalance -= amount;
         UpdatedAt = now;
     }
 
-    public void ReleaseWithdrawalReservation(decimal amount, DateTime now)
+    public void ReleaseWithdrawal(decimal amount, DateTime now)
     {
         if (amount <= 0)
             throw new ArgumentException("Release withdrawal amount must be positive.", nameof(amount));
 
-        if (ReservedBalance < amount)
-            throw new InvalidOperationException("Cannot release more than currently reserved balance.");
+        if (WithdrawingBalance < amount)
+            throw new InvalidOperationException("Cannot release more than currently withdrawing balance.");
 
-        ReservedBalance -= amount;
+        WithdrawingBalance -= amount;
         AvailableBalance += amount;
         UpdatedAt = now;
     }

@@ -12,7 +12,7 @@ public class StudentWalletConfiguration : IEntityTypeConfiguration<StudentWallet
 
         builder.ToTable(t =>
         {
-            t.HasCheckConstraint("CK_StudentWallet_NonNegativeBalances", "\"AvailableBalance\" >= 0 AND \"ReservedBalance\" >= 0");
+            t.HasCheckConstraint("CK_StudentWallet_NonNegativeBalances", "\"AvailableBalance\" >= 0 AND \"WithdrawingBalance\" >= 0");
         });
 
         builder.HasIndex(w => w.StudentProfileId)
@@ -22,7 +22,7 @@ public class StudentWalletConfiguration : IEntityTypeConfiguration<StudentWallet
             .HasPrecision(12, 2)
             .IsRequired();
 
-        builder.Property(w => w.ReservedBalance)
+        builder.Property(w => w.WithdrawingBalance)
             .HasPrecision(12, 2)
             .IsRequired();
 

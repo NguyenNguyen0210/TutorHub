@@ -78,9 +78,9 @@ public class StudentRequestWithdrawalCommandHandler : IRequestHandler<StudentReq
                 throw new BadRequestException($"Insufficient available balance. Available: {wallet.AvailableBalance:N0} VND, Requested: {request.Amount:N0} VND.");
             }
 
-            // Reserve funds (INV-STUDENT-WALLET-005): Available decreases, Reserved increases
+            // Hold funds for withdrawal (INV-STUDENT-WALLET-005): Available decreases, Withdrawing increases
             var balanceBefore = wallet.AvailableBalance;
-            wallet.ReserveForWithdrawal(request.Amount, now);
+            wallet.HoldForWithdrawal(request.Amount, now);
             var balanceAfter = wallet.AvailableBalance;
 
             var withdrawal = new StudentWithdrawal

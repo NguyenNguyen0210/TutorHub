@@ -1252,15 +1252,15 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<decimal>("ReservedBalance")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
-
                     b.Property<Guid>("StudentProfileId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("WithdrawingBalance")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
 
                     b.HasKey("Id");
 
@@ -1269,7 +1269,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.ToTable("StudentWallets", t =>
                         {
-                            t.HasCheckConstraint("CK_StudentWallet_NonNegativeBalances", "\"AvailableBalance\" >= 0 AND \"ReservedBalance\" >= 0");
+                            t.HasCheckConstraint("CK_StudentWallet_NonNegativeBalances", "\"AvailableBalance\" >= 0 AND \"WithdrawingBalance\" >= 0");
                         });
                 });
 

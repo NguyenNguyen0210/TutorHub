@@ -50,7 +50,7 @@ public class CreateVnPayTopUpCommandHandler : IRequestHandler<CreateVnPayTopUpCo
                 Id = Guid.NewGuid(),
                 StudentProfileId = studentProfile.Id,
                 AvailableBalance = 0m,
-                ReservedBalance = 0m,
+                WithdrawingBalance = 0m,
                 CreatedAt = now,
                 UpdatedAt = now
             };

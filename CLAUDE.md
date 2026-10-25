@@ -164,7 +164,7 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
   - Giao dịch thanh toán khóa học (`PayBookingFromWallet`) bắt buộc thực hiện trong Database Transaction với khóa dòng (`FOR UPDATE`).
   - Sổ cái `StudentWalletTransaction` là append-only bất biến (`INV-STUDENT-WALLET-003`).
   - Toàn bộ hoàn tiền (hủy khóa, hủy buổi, phán quyết tranh chấp) định tuyến trực tiếp vào ví học viên (`StudentWallet.AvailableBalance`).
-  - Rút tiền học viên tối thiểu 50.000 VNĐ, quản lý qua `ReservedBalance` (bảo vệ bởi `CK_StudentWallet_NonNegativeBalances`).
+  - Rút tiền học viên tối thiểu 50.000 VNĐ, quản lý qua `WithdrawingBalance` (bảo vệ bởi `CK_StudentWallet_NonNegativeBalances`).
 
 ---
 

@@ -2458,7 +2458,7 @@ WHERE w."TutorProfileId" = r."TutorProfileId"
 -- -----------------------------------------------------------------------------
 -- 23. SEED STUDENT WALLETS
 -- -----------------------------------------------------------------------------
-INSERT INTO "StudentWallets" ("Id", "StudentProfileId", "AvailableBalance", "ReservedBalance", "CreatedAt", "UpdatedAt")
+INSERT INTO "StudentWallets" ("Id", "StudentProfileId", "AvailableBalance", "WithdrawingBalance", "CreatedAt", "UpdatedAt")
 SELECT 
     gen_random_uuid(),
     sp."Id",
@@ -2468,6 +2468,6 @@ SELECT
     NOW()
 FROM "StudentProfiles" sp
 ON CONFLICT ("StudentProfileId") DO UPDATE 
-SET "AvailableBalance" = 2500000.00, "ReservedBalance" = 0.00, "UpdatedAt" = NOW();
+SET "AvailableBalance" = 2500000.00, "WithdrawingBalance" = 0.00, "UpdatedAt" = NOW();
 
 COMMIT;

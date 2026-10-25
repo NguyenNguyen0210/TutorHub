@@ -51,7 +51,7 @@ public class AdminCompleteStudentWithdrawalCommandHandler : IRequestHandler<Admi
             }
 
             withdrawal.Complete(adminId);
-            wallet.FinalizeWithdrawal(withdrawal.Amount, now);
+            wallet.CompleteWithdrawal(withdrawal.Amount, now);
 
             // Emit business event
             _context.AddOutboxMessage(new StudentWithdrawalCompletedEvent(

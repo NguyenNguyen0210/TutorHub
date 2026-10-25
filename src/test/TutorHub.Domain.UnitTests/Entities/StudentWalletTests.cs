@@ -11,7 +11,7 @@ public class StudentWalletTests
         Id = Guid.NewGuid(),
         StudentProfileId = Guid.NewGuid(),
         AvailableBalance = available,
-        ReservedBalance = reserved,
+        WithdrawingBalance = reserved,
         CreatedAt = DateTime.UtcNow,
         UpdatedAt = DateTime.UtcNow
     };
@@ -80,81 +80,81 @@ public class StudentWalletTests
     }
 
     [Fact]
-    public void ReserveForWithdrawal_WhenSufficient_MovesFundsToReservedBalance()
+    public void HoldForWithdrawal_WhenSufficient_MovesFundsToWithdrawingBalance()
     {
         var wallet = CreateWallet(available: 500_000m, reserved: 0m);
         var now = DateTime.UtcNow;
 
-        wallet.ReserveForWithdrawal(200_000m, now);
+        wallet.HoldForWithdrawal(200_000m, now);
 
         wallet.AvailableBalance.Should().Be(300_000m);
-        wallet.ReservedBalance.Should().Be(200_000m);
+        wallet.WithdrawingBalance.Should().Be(200_000m);
         wallet.TotalBalance.Should().Be(500_000m);
         wallet.UpdatedAt.Should().Be(now);
     }
 
     [Fact]
-    public void ReserveForWithdrawal_WhenInsufficient_ThrowsInvalidOperationException()
+    public void HoldForWithdrawal_WhenInsufficient_ThrowsInvalidOperationException()
     {
         var wallet = CreateWallet(available: 100_000m, reserved: 0m);
 
-        var act = () => wallet.ReserveForWithdrawal(150_000m, DateTime.UtcNow);
+        var act = () => wallet.HoldForWithdrawal(150_000m, DateTime.UtcNow);
 
         act.Should().Throw<InvalidOperationException>();
         wallet.AvailableBalance.Should().Be(100_000m);
-        wallet.ReservedBalance.Should().Be(0m);
+        wallet.WithdrawingBalance.Should().Be(0m);
     }
 
     [Fact]
-    public void FinalizeWithdrawal_WhenReservedSufficient_DecrementsReservedBalance()
+    public void CompleteWithdrawal_WhenWithdrawingSufficient_DecrementsWithdrawingBalance()
     {
         var wallet = CreateWallet(available: 300_000m, reserved: 200_000m);
         var now = DateTime.UtcNow;
 
-        wallet.FinalizeWithdrawal(200_000m, now);
+        wallet.CompleteWithdrawal(200_000m, now);
 
         wallet.AvailableBalance.Should().Be(300_000m);
-        wallet.ReservedBalance.Should().Be(0m);
+        wallet.WithdrawingBalance.Should().Be(0m);
         wallet.TotalBalance.Should().Be(300_000m);
         wallet.UpdatedAt.Should().Be(now);
     }
 
     [Fact]
-    public void FinalizeWithdrawal_WhenExceedsReserved_ThrowsInvalidOperationException()
+    public void CompleteWithdrawal_WhenExceedsWithdrawing_ThrowsInvalidOperationException()
     {
         var wallet = CreateWallet(available: 300_000m, reserved: 100_000m);
 
-        var act = () => wallet.FinalizeWithdrawal(150_000m, DateTime.UtcNow);
+        var act = () => wallet.CompleteWithdrawal(150_000m, DateTime.UtcNow);
 
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*Reserved balance is insufficient*");
-        wallet.ReservedBalance.Should().Be(100_000m);
+            .WithMessage("*Withdrawing balance is insufficient*");
+        wallet.WithdrawingBalance.Should().Be(100_000m);
     }
 
     [Fact]
-    public void ReleaseWithdrawalReservation_WhenReservedSufficient_ReturnsFundsToAvailable()
+    public void ReleaseWithdrawal_WhenWithdrawingSufficient_ReturnsFundsToAvailable()
     {
         var wallet = CreateWallet(available: 300_000m, reserved: 200_000m);
         var now = DateTime.UtcNow;
 
-        wallet.ReleaseWithdrawalReservation(200_000m, now);
+        wallet.ReleaseWithdrawal(200_000m, now);
 
         wallet.AvailableBalance.Should().Be(500_000m);
-        wallet.ReservedBalance.Should().Be(0m);
+        wallet.WithdrawingBalance.Should().Be(0m);
         wallet.TotalBalance.Should().Be(500_000m);
         wallet.UpdatedAt.Should().Be(now);
     }
 
     [Fact]
-    public void ReleaseWithdrawalReservation_WhenExceedsReserved_ThrowsInvalidOperationException()
+    public void ReleaseWithdrawal_WhenExceedsWithdrawing_ThrowsInvalidOperationException()
     {
         var wallet = CreateWallet(available: 300_000m, reserved: 50_000m);
 
-        var act = () => wallet.ReleaseWithdrawalReservation(100_000m, DateTime.UtcNow);
+        var act = () => wallet.ReleaseWithdrawal(100_000m, DateTime.UtcNow);
 
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*Cannot release more than currently reserved balance*");
-        wallet.ReservedBalance.Should().Be(50_000m);
+            .WithMessage("*Cannot release more than currently withdrawing balance*");
+        wallet.WithdrawingBalance.Should().Be(50_000m);
         wallet.AvailableBalance.Should().Be(300_000m);
     }
 }

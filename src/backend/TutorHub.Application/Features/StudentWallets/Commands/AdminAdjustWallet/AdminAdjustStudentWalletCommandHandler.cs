@@ -84,7 +84,7 @@ public class AdminAdjustStudentWalletCommandHandler : IRequestHandler<AdminAdjus
                 Id = wallet.Id,
                 StudentProfileId = wallet.StudentProfileId,
                 AvailableBalance = wallet.AvailableBalance,
-                ReservedBalance = wallet.ReservedBalance,
+                WithdrawingBalance = wallet.WithdrawingBalance,
                 TotalBalance = wallet.TotalBalance,
                 UpdatedAt = wallet.UpdatedAt
             };

@@ -54,9 +54,9 @@ public class AdminFailStudentWithdrawalCommandHandler : IRequestHandler<AdminFai
             // Transition status to Failed
             withdrawal.Fail(request.Reason, adminId);
 
-            // Release reserved balance back to available balance (Option B)
+            // Release withdrawing balance back to available balance (Option B)
             var balanceBefore = wallet.AvailableBalance;
-            wallet.ReleaseWithdrawalReservation(withdrawal.Amount, now);
+            wallet.ReleaseWithdrawal(withdrawal.Amount, now);
             var balanceAfter = wallet.AvailableBalance;
 
             // Explicit reversal ledger entry (INV-STUDENT-WALLET-003)

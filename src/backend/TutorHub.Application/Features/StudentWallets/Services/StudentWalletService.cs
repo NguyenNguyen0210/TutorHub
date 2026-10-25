@@ -26,7 +26,7 @@ public class StudentWalletService : IStudentWalletService
                 Id = Guid.NewGuid(),
                 StudentProfileId = studentProfileId,
                 AvailableBalance = 0m,
-                ReservedBalance = 0m,
+                WithdrawingBalance = 0m,
                 CreatedAt = now,
                 UpdatedAt = now
             };
@@ -59,7 +59,7 @@ public class StudentWalletService : IStudentWalletService
                 Id = Guid.NewGuid(),
                 StudentProfileId = studentProfileId,
                 AvailableBalance = 0m,
-                ReservedBalance = 0m,
+                WithdrawingBalance = 0m,
                 CreatedAt = now,
                 UpdatedAt = now
             };
