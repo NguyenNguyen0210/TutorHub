@@ -102,7 +102,7 @@ public class GetTutorBusySlotsQueryHandlerTests
             SessionNumber = 2
         };
         cancelledSessionInRange.Schedule(_clock.UtcNow.AddDays(2), _clock.UtcNow.AddDays(2).AddMinutes(60));
-        cancelledSessionInRange.CancelSingle("Cancelled", _clock.UtcNow);
+        cancelledSessionInRange.Cancel("Cancelled", _clock.UtcNow);
 
         var outOfRangeSession = new Session
         {

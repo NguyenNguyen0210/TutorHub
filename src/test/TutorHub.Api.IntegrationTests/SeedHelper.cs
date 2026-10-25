@@ -146,7 +146,7 @@ public static class SeedHelper
     public static async Task CompleteAndReleasePayoutAsync(AppDbContext db, Session session, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
-        var gross = session.EarningAmount;
+        var gross = session.SessionPrice;
         var commissionRate = session.Enrollment.PlatformFeeRate;
         var (commissionAmount, netPayout) = TutorHub.Domain.Services.PlatformFeeCalculator.SplitGross(gross, commissionRate);
 

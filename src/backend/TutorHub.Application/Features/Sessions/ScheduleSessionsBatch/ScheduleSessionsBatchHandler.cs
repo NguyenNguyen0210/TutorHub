@@ -151,10 +151,11 @@ public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatc
             }
 
             // Pass 2: apply everything, then persist once — no partial save.
+            var now = _clock.UtcNow;
             foreach (var item in request.Items)
             {
                 var session = byId[item.SessionId];
-                session.Schedule(item.StartAt, item.EndAt);
+                session.Schedule(item.StartAt, item.EndAt, now);
                 _context.AddOutboxMessage(new SessionScheduledEvent(
                     session.Id,
                     session.EnrollmentId,
@@ -162,8 +163,6 @@ public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatc
                     session.Enrollment.TutorProfile.UserId,
                     item.StartAt,
                     item.EndAt));
-
-                var now = _clock.UtcNow;
                 if (item.StartAt > now.AddHours(24))
                 {
                     _context.AddOutboxMessage(new SessionReminderDueEvent(

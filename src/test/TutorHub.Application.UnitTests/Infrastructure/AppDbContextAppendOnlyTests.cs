@@ -168,7 +168,7 @@ public class AppDbContextAppendOnlyTests
             RelatedTransaction = firstAdjustment,
             Type = TransactionType.PlatformFeeReversal,
             Amount = 0m,
-            CommissionAmount = 10_000m,
+            PlatformFeeAmount = 10_000m,
             Status = TransactionStatus.Succeeded,
             CreatedAt = DateTime.UtcNow
         };

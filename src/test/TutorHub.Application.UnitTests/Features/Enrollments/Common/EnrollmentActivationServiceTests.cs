@@ -92,7 +92,7 @@ public class EnrollmentActivationServiceTests
         var enrollment = await sut.ActivateAsync(booking, Now, CancellationToken.None);
 
         enrollment.Sessions.Should().HaveCount(3);
-        enrollment.Sessions.Sum(s => s.EarningAmount).Should().Be(300_000m);
+        enrollment.Sessions.Sum(s => s.SessionPrice).Should().Be(300_000m);
         _wallets.Should().ContainSingle();
         _wallets[0].PendingBalance.Should().Be(300_000m);
     }

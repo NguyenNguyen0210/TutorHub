@@ -134,7 +134,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
         // =========================================================================
         // Stage A: Pre-Release (Pending Escrow) - DEC-S8-003, DEC-S8-025
         // =========================================================================
-        var gross = session.EarningAmount;
+        var gross = session.SessionPrice;
         // Snapshot rate is authoritative; a legitimate 0% must stay 0%.
         var feeRate = enrollment.PlatformFeeRate;
 

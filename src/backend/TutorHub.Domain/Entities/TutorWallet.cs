@@ -13,7 +13,7 @@ public class TutorWallet
     // Money available for withdrawal
     public decimal AvailableBalance { get; set; }
 
-    // Authoritative withdrawable balance (INV-LEDGER-005)
+    // Authoritative withdrawable balance (INV-LEDGER-005). Alias of AvailableBalance since disputes are pre-release only.
     public decimal WithdrawableBalance => AvailableBalance;
 
     public DateTime UpdatedAt { get; set; }

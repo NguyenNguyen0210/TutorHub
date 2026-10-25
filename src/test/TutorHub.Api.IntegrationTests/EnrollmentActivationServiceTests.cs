@@ -51,7 +51,7 @@ public class EnrollmentActivationServiceTests : IntegrationTestBase
             .OrderBy(s => s.SessionNumber)
             .ToListAsync();
         sessions.Should().HaveCount(3);
-        sessions.Sum(s => s.EarningAmount).Should().Be(900_000m);
+        sessions.Sum(s => s.SessionPrice).Should().Be(900_000m);
 
         // Act: schedule + complete every session -> all payouts release.
         foreach (var s in sessions)

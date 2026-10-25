@@ -106,7 +106,7 @@ export default function AdminDisputeDetail() {
   }
 
   const { dispute, session, enrollment, financialSummary, conversationSnippet = [] } = investigation;
-  const originalSessionFee = Number(financialSummary?.disputedGrossAmount ?? session?.earningAmount ?? 0);
+  const originalSessionFee = Number(financialSummary?.disputedGrossAmount ?? session?.sessionPrice ?? session?.earningAmount ?? 0);
   const platformFeeRate = Number(enrollment?.platformFeeRate ?? 0.10);
   const isPayoutReleased = Boolean(session?.isPayoutReleased || financialSummary?.isPayoutReleased);
 

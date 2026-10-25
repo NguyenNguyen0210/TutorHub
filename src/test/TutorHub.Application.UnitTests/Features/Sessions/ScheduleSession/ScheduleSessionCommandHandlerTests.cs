@@ -68,7 +68,7 @@ public class ScheduleSessionCommandHandlerTests : IDisposable
             EnrollmentId = enrollment.Id,
             Enrollment = enrollment,
             SessionNumber = 1,
-            EarningAmount = 333_333m
+            SessionPrice = 333_333m
         };
         if (preScheduleStart.HasValue)
         {
@@ -158,7 +158,7 @@ public class ScheduleSessionCommandHandlerTests : IDisposable
             EnrollmentId = enrollment.Id,
             Enrollment = null!,
             SessionNumber = 2,
-            EarningAmount = 333_333m
+            SessionPrice = 333_333m
         };
         other.Schedule(overlapStart, overlapStart.AddHours(1));
         _context.Sessions.Add(other);

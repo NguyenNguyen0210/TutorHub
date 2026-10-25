@@ -99,7 +99,7 @@ public class DisputeFlowTests : IntegrationTestBase
         var payoutTx = await Db.Transactions.AsNoTracking().FirstAsync(t =>
             t.SessionId == session.Id && t.Type == TransactionType.SessionPayoutCredit);
         payoutTx.Amount.Should().Be(200_000m);
-        payoutTx.CommissionAmount.Should().Be(20_000m);
+        payoutTx.PlatformFeeAmount.Should().Be(20_000m);
         payoutTx.PayoutAmount.Should().Be(180_000m);
 
         var enrollment = await Db.Enrollments.AsNoTracking().FirstAsync(e => e.BookingId == payoutTx.BookingId);
@@ -150,8 +150,8 @@ public class DisputeFlowTests : IntegrationTestBase
             Amount = 300_000m,
             Type = TransactionType.SessionPayoutCredit,
             Status = TransactionStatus.Released,
-            CommissionRate = 0.10m,
-            CommissionAmount = 30_000m,
+            PlatformFeeRate = 0.10m,
+            PlatformFeeAmount = 30_000m,
             PayoutAmount = 270_000m,
             CreatedAt = DateTime.UtcNow,
             ReleasedAt = DateTime.UtcNow

@@ -75,8 +75,8 @@ public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentComm
                 BookingId = booking.Id,
                 Amount = booking.TotalPrice,
                 Status = TransactionStatus.Held, // Pre-allocated, state confirmed on IPN
-                CommissionRate = 0,
-                CommissionAmount = 0,
+                PlatformFeeRate = 0,
+                PlatformFeeAmount = 0,
                 PayoutAmount = booking.TotalPrice,
                 PaymentGatewayRef = merchantRef,
                 CreatedAt = now
@@ -87,8 +87,8 @@ public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentComm
         {
             paymentTx.PaymentGatewayRef = merchantRef;
             paymentTx.Amount = booking.TotalPrice;
-            paymentTx.CommissionRate = 0;
-            paymentTx.CommissionAmount = 0;
+            paymentTx.PlatformFeeRate = 0;
+            paymentTx.PlatformFeeAmount = 0;
             paymentTx.PayoutAmount = booking.TotalPrice;
         }
 

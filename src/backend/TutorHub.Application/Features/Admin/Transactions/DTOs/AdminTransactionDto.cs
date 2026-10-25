@@ -13,12 +13,16 @@ public record AdminTransactionDto(
     string TutorEmail,
     string SubjectName,
     decimal GrossAmount,
-    decimal CommissionRate,
-    decimal CommissionAmount,
+    decimal PlatformFeeRate,
+    decimal PlatformFeeAmount,
     decimal PayoutAmount,
     string? PaymentGatewayRef,
     TransactionStatus Status,
     DateTime CreatedAt,
     DateTime? ReleasedAt,
     DateTime? RefundedAt
-);
+)
+{
+    public decimal CommissionRate => PlatformFeeRate;
+    public decimal CommissionAmount => PlatformFeeAmount;
+}

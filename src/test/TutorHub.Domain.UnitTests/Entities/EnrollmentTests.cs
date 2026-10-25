@@ -148,7 +148,7 @@ public class EnrollmentTests
         var s2 = enrollment.Sessions.ElementAt(1);
         var s3 = enrollment.Sessions.ElementAt(2);
 
-        s3.CancelSingle("Student cancelled this session", DateTime.UtcNow);
+        s3.Cancel("Student cancelled this session", DateTime.UtcNow);
 
         s1.Schedule(DateTime.UtcNow.AddDays(1), DateTime.UtcNow.AddDays(1).AddHours(1));
         s1.Complete();
@@ -171,7 +171,7 @@ public class EnrollmentTests
         var enrollment = CreateEnrollmentWithSessions(totalPrice: 900_000m, totalSessions: 3);
         foreach (var s in enrollment.Sessions)
         {
-            s.CancelSingle("Cancelled", DateTime.UtcNow);
+            s.Cancel("Cancelled", DateTime.UtcNow);
         }
 
         // Act
@@ -200,7 +200,7 @@ public class EnrollmentTests
         enrollment.RecordCompletedSession(s2.Id);
 
         // Act: cancel the final unresolved session, then re-evaluate.
-        s3.CancelSingle("Cancelled last session", DateTime.UtcNow);
+        s3.Cancel("Cancelled last session", DateTime.UtcNow);
         enrollment.EvaluateCompletion();
 
         // Assert
@@ -433,7 +433,7 @@ public class EnrollmentTests
                 Id = Guid.NewGuid(),
                 EnrollmentId = enrollmentId,
                 SessionNumber = i + 1,
-                EarningAmount = allocations[i]
+                SessionPrice = allocations[i]
             });
         }
 

@@ -58,7 +58,7 @@ public class GetMySessionsQueryHandlerTests
             EnrollmentId = enrollment.Id,
             Enrollment = enrollment,
             SessionNumber = 1,
-            EarningAmount = 300_000m
+            SessionPrice = 300_000m
         };
 
         if (startAt.HasValue && endAt.HasValue)

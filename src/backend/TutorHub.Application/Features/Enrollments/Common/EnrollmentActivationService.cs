@@ -78,7 +78,7 @@ public class EnrollmentActivationService : IEnrollmentActivationService
                 Id = Guid.NewGuid(),
                 EnrollmentId = enrollment.Id,
                 SessionNumber = i + 1,
-                EarningAmount = allocations[i],
+                SessionPrice = allocations[i],
                 CreatedAt = now
             });
         }

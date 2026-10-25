@@ -306,7 +306,7 @@ VALUES
 -- 13. SESSIONS (22 Sessions: Completed, Scheduled, Conflict, Unscheduled)
 -- -----------------------------------------------------------------------------
 INSERT INTO "Sessions" (
-    "Id", "EnrollmentId", "SessionNumber", "EarningAmount", "StartAt", "EndAt",
+    "Id", "EnrollmentId", "SessionNumber", "SessionPrice", "StartAt", "EndAt",
     "Status", "CreatedAt", "UpdatedAt", "CompletedAt", "CancelledAt",
     "GracePeriodStartedAt",
     "IssueReportedAt",
@@ -348,7 +348,7 @@ VALUES
 -- -----------------------------------------------------------------------------
 INSERT INTO "Transactions" (
     "Id", "BookingId", "SessionId", "Amount", "Type", "Status",
-    "CommissionRate", "CommissionAmount", "PayoutAmount",
+    "PlatformFeeRate", "PlatformFeeAmount", "PayoutAmount",
     "PaymentGatewayRef", "DisputeId", "RelatedTransactionId", "Description",
     "SettlementRequired", "CreatedAt", "ReleasedAt", "RefundedAt"
 )
@@ -684,7 +684,7 @@ COMMIT;
 --   - 200 Distinct Vietnamese Students
 --   - 150 Domain-tailored Services
 --   - 500 Bookings, 400 Enrollments (220 Active, 150 Completed, 30 Cancelled)
---   - ~3,800 Sessions (Strict sum(EarningAmount) == TotalPrice allocation)
+--   - ~3,800 Sessions (Strict sum(SessionPrice) == TotalPrice allocation)
 --   - 150 Unique LearningRecords with authentic subject syllabus
 --   - 150 Unique Reviews with personalized tutor replies
 --   - 100 Realistic Conversations with 2-way Dialogues
@@ -1592,7 +1592,7 @@ FROM (
 ) b
 ON CONFLICT ("Id") DO NOTHING;
 
--- 12. SESSIONS (sum(EarningAmount) == TotalPrice 100% Guaranteed per Enrollment)
+-- 12. SESSIONS (sum(SessionPrice) == TotalPrice 100% Guaranteed per Enrollment)
 WITH enrolled_sessions AS (
     SELECT 
         e."Id" AS enrollment_id,
@@ -1612,7 +1612,7 @@ WITH enrolled_sessions AS (
     WHERE e."Id"::text LIKE 'b9000000-%'
 )
 INSERT INTO "Sessions" (
-    "Id", "EnrollmentId", "SessionNumber", "EarningAmount", 
+    "Id", "EnrollmentId", "SessionNumber", "SessionPrice", 
     "StartAt", "EndAt", "Status", "HasIssueReport", "IsPayoutReleased",
     "GracePeriodStartedAt",
     "IssueReportedAt",
@@ -1653,7 +1653,7 @@ ON CONFLICT ("Id") DO NOTHING;
 -- 13. TRANSACTIONS (BookingPayments & SessionPayoutCredits)
 INSERT INTO "Transactions" (
     "Id", "BookingId", "SessionId", "DisputeId", "RelatedTransactionId", 
-    "Amount", "Type", "Status", "CommissionRate", "CommissionAmount", 
+    "Amount", "Type", "Status", "PlatformFeeRate", "PlatformFeeAmount", 
     "PayoutAmount", "PaymentGatewayRef", "Description", "SettlementRequired", 
     "CreatedAt", "ReleasedAt", "RefundedAt"
 )
@@ -1682,7 +1682,7 @@ ON CONFLICT ("Id") DO NOTHING;
 -- SessionPayoutCredit
 INSERT INTO "Transactions" (
     "Id", "BookingId", "SessionId", "DisputeId", "RelatedTransactionId", 
-    "Amount", "Type", "Status", "CommissionRate", "CommissionAmount", 
+    "Amount", "Type", "Status", "PlatformFeeRate", "PlatformFeeAmount", 
     "PayoutAmount", "PaymentGatewayRef", "Description", "SettlementRequired", 
     "CreatedAt", "ReleasedAt", "RefundedAt"
 )
@@ -1692,12 +1692,12 @@ SELECT
     s."Id",
     NULL,
     NULL,
-    s."EarningAmount",
+    s."SessionPrice",
     'SessionPayoutCredit',
     'Released',
     e."PlatformFeeRate",
-    round(s."EarningAmount" * e."PlatformFeeRate", 2),
-    s."EarningAmount" - round(s."EarningAmount" * e."PlatformFeeRate", 2),
+    round(s."SessionPrice" * e."PlatformFeeRate", 2),
+    s."SessionPrice" - round(s."SessionPrice" * e."PlatformFeeRate", 2),
     'EscrowRelease-Vol-' || replace(s."Id"::text, '-', ''),
     'Giải ngân thu nhập buổi học #' || s."SessionNumber",
     false,
@@ -1803,7 +1803,7 @@ WITH candidate_sessions AS (
         ROW_NUMBER() OVER (ORDER BY s."Id") AS row_num,
         s."Id" AS session_id,
         s."Status" AS session_status,
-        s."EarningAmount" AS earning_amount,
+        s."SessionPrice" AS earning_amount,
         e."StudentProfileId",
         e."TutorProfileId",
         sp."UserId" AS student_user_id,
@@ -2421,8 +2421,8 @@ ON CONFLICT ("Id") DO NOTHING;
 WITH wallet_payout_totals AS (
     SELECT 
         e."TutorProfileId",
-        COALESCE(SUM(CASE WHEN s."IsPayoutReleased" = false THEN s."EarningAmount" ELSE 0 END), 0) AS pending_gross,
-        COALESCE(SUM(CASE WHEN s."IsPayoutReleased" = true THEN (s."EarningAmount" - round(s."EarningAmount" * e."PlatformFeeRate", 2)) ELSE 0 END), 0) AS released_net
+        COALESCE(SUM(CASE WHEN s."IsPayoutReleased" = false THEN s."SessionPrice" ELSE 0 END), 0) AS pending_gross,
+        COALESCE(SUM(CASE WHEN s."IsPayoutReleased" = true THEN (s."SessionPrice" - round(s."SessionPrice" * e."PlatformFeeRate", 2)) ELSE 0 END), 0) AS released_net
     FROM "Enrollments" e
     JOIN "Sessions" s ON s."EnrollmentId" = e."Id"
     WHERE e."TutorProfileId"::text LIKE 'b2000000-%'

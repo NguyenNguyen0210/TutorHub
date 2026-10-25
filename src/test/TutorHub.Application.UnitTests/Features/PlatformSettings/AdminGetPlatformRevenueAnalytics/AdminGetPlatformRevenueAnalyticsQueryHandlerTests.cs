@@ -29,7 +29,7 @@ public class AdminGetPlatformRevenueAnalyticsQueryHandlerTests
             Id = Guid.NewGuid(),
             Type = TransactionType.SessionPayoutCredit,
             Amount = 1_000_000m,
-            CommissionAmount = 100_000m,
+            PlatformFeeAmount = 100_000m,
             PayoutAmount = 900_000m,
             Status = TransactionStatus.Released
         };
@@ -40,7 +40,7 @@ public class AdminGetPlatformRevenueAnalyticsQueryHandlerTests
             Id = Guid.NewGuid(),
             Type = TransactionType.PlatformFeeReversal,
             Amount = 0m,
-            CommissionAmount = 40_000m,
+            PlatformFeeAmount = 40_000m,
             Status = TransactionStatus.Succeeded
         };
 
@@ -85,7 +85,7 @@ public class AdminGetPlatformRevenueAnalyticsQueryHandlerTests
         var pendingSession = new Session
         {
             Id = Guid.NewGuid(),
-            EarningAmount = 2_000_000m,
+            SessionPrice = 2_000_000m,
             Enrollment = new Enrollment { PlatformFeeRate = 0.10m }
         };
 
@@ -113,7 +113,7 @@ public class AdminGetPlatformRevenueAnalyticsQueryHandlerTests
         var pendingSession = new Session
         {
             Id = Guid.NewGuid(),
-            EarningAmount = 2_000_000m,
+            SessionPrice = 2_000_000m,
             Enrollment = new Enrollment { PlatformFeeRate = 0m }
         };
 

@@ -1150,10 +1150,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<decimal>("EarningAmount")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
-
                     b.Property<DateTime?>("EndAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1195,6 +1191,10 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("SessionNumber")
                         .HasColumnType("integer");
+
+                    b.Property<decimal>("SessionPrice")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
 
                     b.Property<DateTime?>("StartAt")
                         .HasColumnType("timestamp with time zone");
@@ -1508,14 +1508,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("BookingId")
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("CommissionAmount")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
-
-                    b.Property<decimal>("CommissionRate")
-                        .HasPrecision(5, 4)
-                        .HasColumnType("numeric(5,4)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1533,6 +1525,14 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("PayoutAmount")
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal>("PlatformFeeAmount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal>("PlatformFeeRate")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("numeric(5,4)");
 
                     b.Property<DateTime?>("RefundedAt")
                         .HasColumnType("timestamp with time zone");

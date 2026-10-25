@@ -18,7 +18,7 @@ public class SessionRescheduleTests
             Id = Guid.NewGuid(),
             EnrollmentId = Guid.NewGuid(),
             SessionNumber = 1,
-            EarningAmount = 300_000m
+            SessionPrice = 300_000m
         };
         session.Schedule(initialStart, initialEnd);
 
@@ -45,7 +45,7 @@ public class SessionRescheduleTests
             Id = Guid.NewGuid(),
             EnrollmentId = Guid.NewGuid(),
             SessionNumber = 1,
-            EarningAmount = 300_000m
+            SessionPrice = 300_000m
         };
         var newStart = DateTime.UtcNow.AddDays(2);
         var newEnd = newStart.AddHours(1);
@@ -67,7 +67,7 @@ public class SessionRescheduleTests
             Id = Guid.NewGuid(),
             EnrollmentId = Guid.NewGuid(),
             SessionNumber = 1,
-            EarningAmount = 300_000m
+            SessionPrice = 300_000m
         };
         session.Schedule(DateTime.UtcNow.AddDays(1), DateTime.UtcNow.AddDays(1).AddHours(1));
         session.Complete();
@@ -89,7 +89,7 @@ public class SessionRescheduleTests
             Id = Guid.NewGuid(),
             EnrollmentId = Guid.NewGuid(),
             SessionNumber = 1,
-            EarningAmount = 300_000m
+            SessionPrice = 300_000m
         };
         session.Schedule(DateTime.UtcNow.AddDays(1), DateTime.UtcNow.AddDays(1).AddHours(1));
         session.CancelFromEnrollment();
@@ -111,7 +111,7 @@ public class SessionRescheduleTests
             Id = Guid.NewGuid(),
             EnrollmentId = Guid.NewGuid(),
             SessionNumber = 1,
-            EarningAmount = 300_000m
+            SessionPrice = 300_000m
         };
         session.Schedule(DateTime.UtcNow.AddDays(1), DateTime.UtcNow.AddDays(1).AddHours(1));
 

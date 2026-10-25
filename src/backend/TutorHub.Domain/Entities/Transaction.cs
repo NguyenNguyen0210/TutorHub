@@ -20,10 +20,15 @@ public class Transaction
 
     public TransactionStatus Status { get; set; }
 
-    // Platform commission
-    public decimal CommissionRate { get; set; }
+    // Platform fee
+    public decimal PlatformFeeRate { get; set; }
+    public decimal PlatformFeeAmount { get; set; }
 
-    public decimal CommissionAmount { get; set; }
+    [Obsolete("Use PlatformFeeRate instead.")]
+    public decimal CommissionRate { get => PlatformFeeRate; set => PlatformFeeRate = value; }
+
+    [Obsolete("Use PlatformFeeAmount instead.")]
+    public decimal CommissionAmount { get => PlatformFeeAmount; set => PlatformFeeAmount = value; }
 
     // Amount paid to tutor
     public decimal PayoutAmount { get; set; }
@@ -72,8 +77,8 @@ public class Transaction
             DisputeId = disputeId,
             Type = TransactionType.SessionPayoutCredit,
             Amount = gross,
-            CommissionRate = feeRate,
-            CommissionAmount = feeAmount,
+            PlatformFeeRate = feeRate,
+            PlatformFeeAmount = feeAmount,
             PayoutAmount = netPayout,
             PaymentGatewayRef = paymentGatewayRef,
             Status = TransactionStatus.Released,
@@ -108,8 +113,8 @@ public class Transaction
             RelatedTransactionId = originalPayout?.Id,
             Type = TransactionType.StudentRefund,
             Amount = amount,
-            CommissionRate = 0,
-            CommissionAmount = 0,
+            PlatformFeeRate = 0,
+            PlatformFeeAmount = 0,
             PayoutAmount = 0,
             PaymentGatewayRef = paymentGatewayRef,
             Status = TransactionStatus.Pending,
@@ -144,8 +149,8 @@ public class Transaction
             RelatedTransactionId = originalPayout.Id,
             Type = TransactionType.PlatformFeeReversal,
             Amount = feeReversalAmount,
-            CommissionRate = feeRate,
-            CommissionAmount = feeReversalAmount,
+            PlatformFeeRate = feeRate,
+            PlatformFeeAmount = feeReversalAmount,
             PayoutAmount = 0,
             PaymentGatewayRef = paymentGatewayRef,
             Status = TransactionStatus.Succeeded,

@@ -10,6 +10,9 @@ public class TutorWithdrawalConfiguration : IEntityTypeConfiguration<TutorWithdr
     {
         builder.HasKey(w => w.Id);
 
+        builder.Ignore(w => w.TutorWalletId);
+        builder.Ignore(w => w.TutorWallet);
+
         builder.ToTable("Withdrawals", t =>
         {
             t.HasCheckConstraint("CK_Withdrawal_PositiveAmount", "\"Amount\" > 0");

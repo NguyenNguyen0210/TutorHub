@@ -23,7 +23,8 @@ public class SessionInvestigationDto
     public SessionStatus Status { get; set; }
     public DateTime? StartAt { get; set; }
     public DateTime? EndAt { get; set; }
-    public decimal EarningAmount { get; set; }
+    public decimal SessionPrice { get; set; }
+    public decimal EarningAmount { get => SessionPrice; set => SessionPrice = value; }
     public bool IsPayoutReleased { get; set; }
     public DateTime? GracePeriodStartedAt { get; set; }
     public DateTime? GracePeriodEndsAt { get; set; }

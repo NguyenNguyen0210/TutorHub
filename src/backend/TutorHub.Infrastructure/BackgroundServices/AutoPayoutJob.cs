@@ -161,7 +161,7 @@ public class AutoPayoutJob : BackgroundService
 
             _logger.LogInformation("Auto-completing session {SessionId} after 12h grace period", session.Id);
 
-            var gross = session.EarningAmount;
+            var gross = session.SessionPrice;
             var commissionRate = session.Enrollment.PlatformFeeRate;
             var (commissionAmount, netPayout) = PlatformFeeCalculator.SplitGross(gross, commissionRate);
 

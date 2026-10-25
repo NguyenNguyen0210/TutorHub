@@ -10,7 +10,7 @@ public static class SessionMapper
             Id: session.Id,
             EnrollmentId: session.EnrollmentId,
             SessionNumber: session.SessionNumber,
-            EarningAmount: session.EarningAmount,
+            SessionPrice: session.SessionPrice,
             StartAt: session.StartAt,
             EndAt: session.EndAt,
             Status: session.Status,

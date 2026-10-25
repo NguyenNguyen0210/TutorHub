@@ -180,7 +180,7 @@ export default function SessionDetail() {
             <strong className="block font-semibold">Quy định hoàn tiền học phí:</strong>
             <p className="text-xs m-0">
               Phần tiền học phí tương ứng (
-              <strong className="tabular-nums">{session.earningAmount?.toLocaleString('vi-VN')} ₫</strong>
+              <strong className="tabular-nums">{(session.sessionPrice ?? session.earningAmount)?.toLocaleString('vi-VN')} ₫</strong>
               ) sẽ được trừ khỏi két ký quỹ của gia sư và hoàn trả đầy đủ cho học viên.
             </p>
           </div>
@@ -257,7 +257,7 @@ export default function SessionDetail() {
     {
       key: 'session-fee',
       label: 'Học phí buổi này',
-      value: <Money value={session.earningAmount || 0} />,
+      value: <Money value={session.sessionPrice ?? session.earningAmount ?? 0} />,
       tone: isCompleted ? 'default' : isCancelled ? 'muted' : 'holding',
     },
     {

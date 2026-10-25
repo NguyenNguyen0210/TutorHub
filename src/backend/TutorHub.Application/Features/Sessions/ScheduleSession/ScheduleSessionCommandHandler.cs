@@ -110,7 +110,7 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
             {
                 if (session.Status == SessionStatus.Unscheduled)
                 {
-                    session.Schedule(request.StartAt, request.EndAt);
+                    session.Schedule(request.StartAt, request.EndAt, now);
                 }
                 else if (session.Status == SessionStatus.Scheduled)
                 {

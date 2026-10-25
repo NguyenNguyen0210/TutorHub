@@ -61,7 +61,7 @@ public class GetMyEnrollmentsQueryHandlerTests
                 EnrollmentId = enrollment.Id,
                 Enrollment = enrollment,
                 SessionNumber = i,
-                EarningAmount = 500_000m
+                SessionPrice = 500_000m
             };
 
             if (i <= completedSessions)

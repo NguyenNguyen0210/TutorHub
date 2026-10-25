@@ -67,7 +67,7 @@ public class CancelSessionCommandHandlerTests : IDisposable
         };
         enrollment.Activate();
 
-        // EarningAmount = 0 keeps the handler off the finance/wallet path so the
+        // SessionPrice = 0 keeps the handler off the finance/wallet path so the
         // InMemory provider never sees the relational FOR UPDATE query.
         var session = new Session
         {
@@ -75,7 +75,7 @@ public class CancelSessionCommandHandlerTests : IDisposable
             EnrollmentId = enrollment.Id,
             Enrollment = enrollment,
             SessionNumber = 1,
-            EarningAmount = 0m
+            SessionPrice = 0m
         };
         if (scheduledStart.HasValue)
         {

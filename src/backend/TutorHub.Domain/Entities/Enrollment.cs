@@ -161,6 +161,6 @@ public class Enrollment
         }
 
         // Refund matches exactly the unearned, unrefunded sessions' escrow allocations
-        return newlyCancelledSessions.Sum(s => s.EarningAmount);
+        return newlyCancelledSessions.Sum(s => s.SessionPrice);
     }
 }

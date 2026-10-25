@@ -320,7 +320,7 @@ export default function EnrollmentDetail() {
       ),
       escrow: (
         <span className="text-caption font-semibold text-fg whitespace-nowrap">
-          <Money value={sess.earningAmount || 0} />
+          <Money value={sess.sessionPrice ?? sess.earningAmount ?? 0} />
         </span>
       ),
       actions: (

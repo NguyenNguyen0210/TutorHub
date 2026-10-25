@@ -110,7 +110,7 @@ public class Booking
     /// </summary>
     public void ReactivateForPayment(DateTime now)
     {
-        if (Status != BookingStatus.Cancelled || CancelledBy != Enums.CancelledBy.System)
+        if ((Status != BookingStatus.Expired && Status != BookingStatus.Cancelled) || CancelledBy != Enums.CancelledBy.System)
         {
             throw new InvalidOperationException(
                 "Only system-expired (HoldingExpired) bookings can be reactivated for payment.");

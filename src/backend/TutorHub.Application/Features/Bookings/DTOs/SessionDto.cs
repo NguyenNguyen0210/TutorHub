@@ -6,7 +6,7 @@ public record SessionDto(
     Guid Id,
     Guid EnrollmentId,
     int SessionNumber,
-    decimal EarningAmount,
+    decimal SessionPrice,
     DateTime? StartAt,
     DateTime? EndAt,
     SessionStatus Status,
@@ -21,4 +21,7 @@ public record SessionDto(
     DateTime? IssueReportedAt = null,
     string? TutorName = null,
     string? SubjectName = null
-);
+)
+{
+    public decimal EarningAmount => SessionPrice;
+}

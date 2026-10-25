@@ -318,10 +318,10 @@ export default function TutorSchedule() {
                         </span>
                       )}
 
-                      {session.earningAmount > 0 && (
+                      {(session.sessionPrice ?? session.earningAmount) > 0 && (
                         <span className="flex items-center gap-1.5 tabular-nums">
                           <Icon name="account_balance_wallet" size="xs" className="text-fg-muted" />
-                          {formatCurrency(session.earningAmount)} ký quỹ
+                          {formatCurrency(session.sessionPrice ?? session.earningAmount)} ký quỹ
                         </span>
                       )}
                     </div>

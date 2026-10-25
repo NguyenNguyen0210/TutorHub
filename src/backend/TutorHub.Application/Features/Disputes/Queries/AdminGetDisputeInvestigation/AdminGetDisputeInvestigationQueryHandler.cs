@@ -65,8 +65,8 @@ public class AdminGetDisputeInvestigationQueryHandler : IRequestHandler<AdminGet
             .AsNoTracking()
             .FirstOrDefaultAsync(t => t.SessionId == session.Id && t.Type == TransactionType.SessionPayoutCredit, cancellationToken);
 
-        var gross = session.EarningAmount;
-        var originalFee = originalTx?.CommissionAmount ?? 0m;
+        var gross = session.SessionPrice;
+        var originalFee = originalTx?.PlatformFeeAmount ?? 0m;
         var originalNet = originalTx?.PayoutAmount ?? gross;
 
         return new DisputeInvestigationDto
@@ -112,7 +112,7 @@ public class AdminGetDisputeInvestigationQueryHandler : IRequestHandler<AdminGet
                 Status = session.Status,
                 StartAt = session.StartAt,
                 EndAt = session.EndAt,
-                EarningAmount = session.EarningAmount,
+                SessionPrice = session.SessionPrice,
                 IsPayoutReleased = session.IsPayoutReleased,
                 GracePeriodStartedAt = session.GracePeriodStartedAt,
                 GracePeriodEndsAt = session.GracePeriodEndsAt,

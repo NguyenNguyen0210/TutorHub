@@ -67,8 +67,8 @@ public class BuilderSanityTests
 
         // Assert: Commission = 75,000, Payout = 425,000
         transaction.Amount.Should().Be(500_000m);
-        transaction.CommissionRate.Should().Be(15m);
-        transaction.CommissionAmount.Should().Be(75_000m);
+        transaction.PlatformFeeRate.Should().Be(15m);
+        transaction.PlatformFeeAmount.Should().Be(75_000m);
         transaction.PayoutAmount.Should().Be(425_000m);
     }
 
@@ -82,7 +82,7 @@ public class BuilderSanityTests
             .Build();
 
         // Assert
-        transaction.CommissionAmount.Should().Be(50_000m);
+        transaction.PlatformFeeAmount.Should().Be(50_000m);
         transaction.PayoutAmount.Should().Be(250_000m);
     }
 }

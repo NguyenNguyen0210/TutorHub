@@ -96,7 +96,7 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
             {
                 Status = g.Key,
                 TotalAmount = g.Sum(t => t.Amount),
-                TotalPlatformFee = g.Sum(t => t.CommissionAmount),
+                TotalPlatformFee = g.Sum(t => t.PlatformFeeAmount),
                 TotalPayoutAmount = g.Sum(t => t.PayoutAmount)
             })
             .ToListAsync(cancellationToken);
@@ -124,7 +124,7 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
         decimal feeReversals = await _context.Transactions
             .AsNoTracking()
             .Where(t => t.Type == TransactionType.PlatformFeeReversal)
-            .SumAsync(t => (decimal?)t.CommissionAmount, cancellationToken) ?? 0;
+            .SumAsync(t => (decimal?)t.PlatformFeeAmount, cancellationToken) ?? 0;
 
         decimal totalPlatformRevenue = Math.Max(0m, (releasedTx?.TotalPlatformFee ?? 0) - feeReversals);
         decimal totalTutorPayouts = releasedTx?.TotalPayoutAmount ?? 0;

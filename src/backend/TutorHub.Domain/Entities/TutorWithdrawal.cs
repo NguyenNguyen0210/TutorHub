@@ -8,6 +8,8 @@ public class TutorWithdrawal
 
     public Guid WalletId { get; set; }
     public TutorWallet Wallet { get; set; } = default!;
+    public Guid TutorWalletId { get => WalletId; set => WalletId = value; }
+    public TutorWallet TutorWallet { get => Wallet; set => Wallet = value; }
 
     public decimal Amount { get; set; }
 

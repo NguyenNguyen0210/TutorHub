@@ -67,7 +67,7 @@ public class ScheduleSessionsBatchHandlerTests : IDisposable
             EnrollmentId = enrollment.Id,
             Enrollment = enrollment,
             SessionNumber = 1,
-            EarningAmount = 333_333m
+            SessionPrice = 333_333m
         };
         var s2 = new Session
         {
@@ -75,7 +75,7 @@ public class ScheduleSessionsBatchHandlerTests : IDisposable
             EnrollmentId = enrollment.Id,
             Enrollment = enrollment,
             SessionNumber = 2,
-            EarningAmount = 333_333m
+            SessionPrice = 333_333m
         };
         enrollment.Sessions.Add(s1);
         enrollment.Sessions.Add(s2);
@@ -94,7 +94,7 @@ public class ScheduleSessionsBatchHandlerTests : IDisposable
             EnrollmentId = enrollment.Id,
             Enrollment = null!,
             SessionNumber = 99,
-            EarningAmount = 0m
+            SessionPrice = 0m
         };
         scheduled.Schedule(startAt, startAt.AddHours(1));
         _context.Sessions.Add(scheduled);
