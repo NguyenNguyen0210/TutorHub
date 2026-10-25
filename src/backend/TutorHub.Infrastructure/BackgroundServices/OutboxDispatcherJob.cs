@@ -37,7 +37,9 @@ public class OutboxDispatcherJob : BackgroundService
         [BusinessEventTypes.SessionScheduled] = typeof(SessionScheduledEvent),
         [BusinessEventTypes.SessionRescheduled] = typeof(SessionRescheduledEvent),
         [BusinessEventTypes.SessionCancelled] = typeof(SessionCancelledEvent),
+        [BusinessEventTypes.SessionReminderDue] = typeof(SessionReminderDueEvent),
         [BusinessEventTypes.GracePeriodStarted] = typeof(GracePeriodStartedEvent),
+        [BusinessEventTypes.GracePeriodClosingSoon] = typeof(GracePeriodClosingSoonEvent),
         [BusinessEventTypes.SessionIssueReported] = typeof(SessionIssueReportedEvent),
         [BusinessEventTypes.SessionCompleted] = typeof(SessionCompletedEvent),
 

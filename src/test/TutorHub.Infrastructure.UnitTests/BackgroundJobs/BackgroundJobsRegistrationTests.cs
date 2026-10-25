@@ -19,8 +19,8 @@ public class BackgroundJobsRegistrationTests
         typeof(BookingTimeoutBackgroundService),
         typeof(OutboxDispatcherJob),
         typeof(EmailDeliveryJob),
-        typeof(SessionReminderJob),
-        typeof(GracePeriodReminderJob),
+
+
         typeof(AutoPayoutJob),
     ];
 

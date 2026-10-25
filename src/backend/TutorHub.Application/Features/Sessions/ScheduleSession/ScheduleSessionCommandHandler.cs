@@ -138,6 +138,20 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
                 request.StartAt,
                 request.EndAt));
 
+            // Cancel any previous reminder if rescheduled
+            await _context.CancelPendingOutboxMessagesAsync(session.Id, BusinessEventTypes.SessionReminderDue, cancellationToken);
+
+            // Schedule 24h reminder if session is more than 24h in the future
+            if (request.StartAt > now.AddHours(24))
+            {
+                _context.AddOutboxMessage(new SessionReminderDueEvent(
+                    session.Id,
+                    session.EnrollmentId,
+                    session.Enrollment.StudentProfile.UserId,
+                    session.Enrollment.TutorProfile.UserId,
+                    request.StartAt), scheduledAt: request.StartAt.AddHours(-24));
+            }
+
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }

@@ -129,6 +129,8 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
             userId,
             respondentUserId));
 
+        await _context.CancelPendingOutboxMessagesAsync(session.Id, BusinessEventTypes.GracePeriodClosingSoon, cancellationToken);
+
         await _context.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
 

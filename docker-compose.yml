@@ -120,9 +120,8 @@ services:
       # Empty = console-only logging; safe default, Seq down never blocks boot.
       Seq__ServerUrl: ${Seq__ServerUrl:-http://seq}
       Seq__ApiKey: ${Seq__ApiKey:-}
-      # Worker scale-out: single host runs the 6 background jobs by default.
-      # Set false when the dedicated `worker` service below owns them.
-      BackgroundJobs__Enabled: ${BackgroundJobs__Enabled:-true}
+      # Local dev: single host runs background jobs directly inside API.
+      BackgroundJobs__Enabled: "true"
     ports:
       - "8080:8080"
     healthcheck:

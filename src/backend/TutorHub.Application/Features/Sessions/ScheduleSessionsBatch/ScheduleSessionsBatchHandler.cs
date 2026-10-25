@@ -162,6 +162,17 @@ public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatc
                     session.Enrollment.TutorProfile.UserId,
                     item.StartAt,
                     item.EndAt));
+
+                var now = _clock.UtcNow;
+                if (item.StartAt > now.AddHours(24))
+                {
+                    _context.AddOutboxMessage(new SessionReminderDueEvent(
+                        session.Id,
+                        session.EnrollmentId,
+                        session.Enrollment.StudentProfile.UserId,
+                        session.Enrollment.TutorProfile.UserId,
+                        item.StartAt), scheduledAt: item.StartAt.AddHours(-24));
+                }
             }
 
             await _context.SaveChangesAsync(cancellationToken);

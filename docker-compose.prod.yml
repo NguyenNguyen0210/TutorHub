@@ -54,6 +54,7 @@ services:
       ASPNETCORE_URLS: http://+:8080
       AllowedHosts: ${ALLOWED_HOSTS:?ALLOWED_HOSTS is required}
       Database__MigrateOnStartup: "true"
+      BackgroundJobs__Enabled: "false"
 
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-tutorhub};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD}"
@@ -99,6 +100,56 @@ services:
     networks:
       - internal
       - public
+
+  worker:
+    build:
+      context: ./src/backend
+      dockerfile: TutorHub.Worker/Dockerfile
+    container_name: tutorhub-worker-prod
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Database__MigrateOnStartup: "false"
+      BackgroundJobs__Enabled: "true"
+
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-tutorhub};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD}"
+      Redis__Enabled: "true"
+      Redis__InstanceName: "${REDIS_INSTANCE_NAME:-tutorhub:}"
+
+      Jwt__Secret: ${JWT_SECRET:?JWT_SECRET is required}
+      Jwt__Issuer: ${JWT_ISSUER:-TutorHubAPI}
+      Jwt__Audience: ${JWT_AUDIENCE:-TutorHubClient}
+      RefreshToken__Pepper: ${REFRESH_TOKEN_PEPPER:?REFRESH_TOKEN_PEPPER is required}
+
+      VnPay__TmnCode: ${VNPAY_TMNCODE:?VNPAY_TMNCODE is required}
+      VnPay__HashSecret: ${VNPAY_HASHSECRET:?VNPAY_HASHSECRET is required}
+      VnPay__BaseUrl: ${VNPAY_BASEURL:-https://pay.vnpay.vn/vpcpay.html}
+      VnPay__ReturnUrl: ${VNPAY_RETURNURL:?VNPAY_RETURNURL is required}
+
+      CloudflareR2__AccountId: ${R2_ACCOUNT_ID:?R2_ACCOUNT_ID is required}
+      CloudflareR2__BucketName: ${R2_BUCKET_NAME:?R2_BUCKET_NAME is required}
+      CloudflareR2__AccessKeyId: ${R2_ACCESS_KEY_ID:?R2_ACCESS_KEY_ID is required}
+      CloudflareR2__SecretAccessKey: ${R2_SECRET_ACCESS_KEY:?R2_SECRET_ACCESS_KEY is required}
+
+      Smtp__Host: ${SMTP_HOST:-}
+      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__UseSsl: ${SMTP_USESSL:-true}
+      Smtp__UserName: ${SMTP_USERNAME:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__FromAddress: ${SMTP_FROM_ADDRESS:?SMTP_FROM_ADDRESS is required}
+      Smtp__FromDisplayName: ${SMTP_FROM_DISPLAY_NAME:-TutorHub}
+
+      ExternalAuth__RedirectUri: ${EXTERNAL_AUTH_REDIRECTURI:-}
+      ExternalAuth__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      ExternalAuth__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+    networks:
+      - internal
 
 volumes:
   pgdata_prod:

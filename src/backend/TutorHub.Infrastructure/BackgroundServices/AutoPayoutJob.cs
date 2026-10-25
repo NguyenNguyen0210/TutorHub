@@ -109,6 +109,15 @@ public class AutoPayoutJob : BackgroundService
                     tutorUserId,
                     session.GracePeriodEndsAt!.Value));
 
+                dbContext.AddOutboxMessage(new GracePeriodClosingSoonEvent(
+                    session.Id,
+                    session.EnrollmentId,
+                    studentUserId,
+                    tutorUserId,
+                    session.SessionNumber,
+                    session.GracePeriodEndsAt!.Value),
+                    scheduledAt: session.GracePeriodEndsAt!.Value.AddHours(-2));
+
                 count++;
             }
         }

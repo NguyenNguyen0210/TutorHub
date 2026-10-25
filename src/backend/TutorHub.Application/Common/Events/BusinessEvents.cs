@@ -179,6 +179,45 @@ public record SessionCancelledEvent(
     public Guid AggregateId => SessionId;
 }
 
+public record SessionReminderDueEvent(
+    Guid SessionId,
+    Guid EnrollmentId,
+    Guid StudentUserId,
+    Guid TutorUserId,
+    DateTime StartAt,
+    Guid EventId = default,
+    int EventVersion = 1,
+    DateTime OccurredAt = default
+) : IBusinessEvent
+{
+    public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
+    public string EventType => BusinessEventTypes.SessionReminderDue;
+    public int EventVersion { get; init; } = EventVersion;
+    public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
+    public string AggregateType => "Session";
+    public Guid AggregateId => SessionId;
+}
+
+public record GracePeriodClosingSoonEvent(
+    Guid SessionId,
+    Guid EnrollmentId,
+    Guid StudentUserId,
+    Guid TutorUserId,
+    int SessionNumber,
+    DateTime GracePeriodEndsAt,
+    Guid EventId = default,
+    int EventVersion = 1,
+    DateTime OccurredAt = default
+) : IBusinessEvent
+{
+    public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
+    public string EventType => BusinessEventTypes.GracePeriodClosingSoon;
+    public int EventVersion { get; init; } = EventVersion;
+    public DateTime OccurredAt { get; init; } = OccurredAt == default ? DateTime.UtcNow : OccurredAt;
+    public string AggregateType => "Session";
+    public Guid AggregateId => SessionId;
+}
+
 public record GracePeriodStartedEvent(
     Guid SessionId,
     Guid EnrollmentId,

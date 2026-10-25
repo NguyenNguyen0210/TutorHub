@@ -174,6 +174,11 @@ public class CancelEnrollmentCommandHandler : IRequestHandler<CancelEnrollmentCo
                 userId,
                 request.Reason));
 
+            foreach (var s in enrollment.Sessions)
+            {
+                await _context.CancelPendingOutboxMessagesAsync(s.Id, BusinessEventTypes.SessionReminderDue, cancellationToken);
+            }
+
             await _context.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
         }

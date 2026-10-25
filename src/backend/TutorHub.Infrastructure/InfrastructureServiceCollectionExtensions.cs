@@ -377,8 +377,8 @@ public static class InfrastructureServiceCollectionExtensions
             services.AddHostedService<BookingTimeoutBackgroundService>();
             services.AddHostedService<OutboxDispatcherJob>();
             services.AddHostedService<EmailDeliveryJob>();
-            services.AddHostedService<SessionReminderJob>();
-            services.AddHostedService<GracePeriodReminderJob>();
+
+
             services.AddHostedService<AutoPayoutJob>();
         }
 

@@ -23,6 +23,8 @@ public static class NotificationDeliveryPolicy
         BusinessEventTypes.GracePeriodStarted,
         BusinessEventTypes.SessionIssueReported,
         BusinessEventTypes.SessionCompleted,
+        BusinessEventTypes.SessionReminderDue,
+        BusinessEventTypes.GracePeriodClosingSoon,
         "SessionReminder",
         "GracePeriodReminder",
 

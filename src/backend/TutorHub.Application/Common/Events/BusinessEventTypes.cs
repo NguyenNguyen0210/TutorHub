@@ -12,11 +12,13 @@ public static class BusinessEventTypes
     public const string EnrollmentActivated = "EnrollmentActivated";
     public const string EnrollmentCancelled = "EnrollmentCancelled";
 
-    // 3. Sessions & Attendance (6 events)
+    // 3. Sessions & Attendance (8 events)
     public const string SessionScheduled = "SessionScheduled";
     public const string SessionRescheduled = "SessionRescheduled";
     public const string SessionCancelled = "SessionCancelled";
+    public const string SessionReminderDue = "SessionReminderDue";
     public const string GracePeriodStarted = "GracePeriodStarted";
+    public const string GracePeriodClosingSoon = "GracePeriodClosingSoon";
     public const string SessionIssueReported = "SessionIssueReported";
     public const string SessionCompleted = "SessionCompleted";
 

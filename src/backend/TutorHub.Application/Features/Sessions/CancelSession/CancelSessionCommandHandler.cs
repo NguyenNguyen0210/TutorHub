@@ -178,6 +178,8 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
                 enrollment.TutorProfile.UserId,
                 request.Reason));
 
+            await _context.CancelPendingOutboxMessagesAsync(session.Id, BusinessEventTypes.SessionReminderDue, cancellationToken);
+
             await _auditLogService.LogAsync(
                 action: "SESSION_CANCELLED",
                 entityName: "Session",

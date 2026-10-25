@@ -20,7 +20,9 @@ public class BusinessEventNotificationHandler :
     INotificationHandler<SessionScheduledEvent>,
     INotificationHandler<SessionRescheduledEvent>,
     INotificationHandler<SessionCancelledEvent>,
+    INotificationHandler<SessionReminderDueEvent>,
     INotificationHandler<GracePeriodStartedEvent>,
+    INotificationHandler<GracePeriodClosingSoonEvent>,
     INotificationHandler<SessionIssueReportedEvent>,
     INotificationHandler<SessionCompletedEvent>,
     INotificationHandler<EarningCreatedEvent>,
@@ -252,6 +254,42 @@ public class BusinessEventNotificationHandler :
                 UserId: notification.TutorUserId,
                 Title: "Session Completed — Payout Pending",
                 Message: "Your session has ended. Payout will be automatically released after the 12-hour grace period if no issues are reported.",
+                DeepLink: NotificationRouteRegistry.Session(notification.SessionId)
+            )
+        };
+
+        await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
+    }
+
+    public async Task Handle(SessionReminderDueEvent notification, CancellationToken cancellationToken)
+    {
+        var recipients = new[]
+        {
+            (
+                UserId: notification.StudentUserId,
+                Title: "Upcoming Session Reminder",
+                Message: $"Reminder: You have a scheduled session on {notification.StartAt:dd/MM/yyyy HH:mm} UTC.",
+                DeepLink: NotificationRouteRegistry.Session(notification.SessionId)
+            ),
+            (
+                UserId: notification.TutorUserId,
+                Title: "Upcoming Session Reminder",
+                Message: $"Reminder: You have a scheduled session on {notification.StartAt:dd/MM/yyyy HH:mm} UTC.",
+                DeepLink: NotificationRouteRegistry.Session(notification.SessionId)
+            )
+        };
+
+        await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
+    }
+
+    public async Task Handle(GracePeriodClosingSoonEvent notification, CancellationToken cancellationToken)
+    {
+        var recipients = new[]
+        {
+            (
+                UserId: notification.StudentUserId,
+                Title: "Cảnh báo hết hạn báo cáo sự cố",
+                Message: $"Cửa sổ báo cáo sự cố cho buổi học #{notification.SessionNumber} sắp đóng. Hạn chót: {notification.GracePeriodEndsAt:HH:mm dd/MM/yyyy} UTC.",
                 DeepLink: NotificationRouteRegistry.Session(notification.SessionId)
             )
         };
