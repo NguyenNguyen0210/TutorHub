@@ -96,14 +96,15 @@ Auto-Payout Grace Period (12 giờ phản hồi — Nếu không có báo cáo s
 Wallet Payout Release (Giải ngân SessionPayoutCredit cho từng buổi hoàn thành)
        ↓ (Nếu có khiếu nại / ReportSessionIssue trong 12h grace)
 Dispute Engine (pre-release Escrow hold — quá 12h không report = chấp nhận, khỏi kiện)
-       ↓ (Admin phân xử bằng công thức cân đối phí sàn bất biến)
+       ↓ (Admin phân xử bằng công thức cân đối phí sàn bất biến: DisputeFinancialCalculator)
 Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + AuditLog)
 ```
 
 ### 2. Codebase Structure
-* `src/backend/TutorHub.Domain/`: **Domain Cốt Lõi Độc Lập**. Entities (`User`, `TutorProfile`, `StudentProfile`, `Service`, `Booking`, `Enrollment`, `Session`, `Wallet`, `StudentWallet`, `StudentWalletTransaction`, `StudentWithdrawal`, `TopUpRequest`, `Transaction`, `Dispute`, `AuditLog`), Enums, Allocators (`EnrollmentSessionAllocator`), và Domain Invariants. Tuyệt đối không phụ thuộc vào hạ tầng hay UI.
-* `src/backend/TutorHub.Application/`: **Nghiệp Vụ Ứng Dụng (Vertical Slice / CQRS)**. Chia theo feature (`Features/{Module}/{FeatureName}/`). Chứa `Command/Query`, `Validator`, `Handler`, `DTOs`, Business Events, và Abstractions (`IAppDbContext`, `IAuditLogService`, `IStudentWalletService`, `IPaymentGateway`, `IObjectStorageService`, `IJwtService`).
-* `src/backend/TutorHub.Infrastructure/`: **Hạ Tầng Kỹ Thuật**. `AppDbContext` (interceptor bảo vệ sổ cái bất biến), 6 Background Jobs (`BookingTimeoutBackgroundService`, `OutboxDispatcherJob`, `EmailDeliveryJob`, `SessionReminderJob`, `GracePeriodReminderJob`, `AutoPayoutJob`), VNPay SHA512, Cloudflare R2, và SignalR hubs (`/hubs/chat`, `/hubs/notifications`).
+* `src/backend/TutorHub.Domain/`: **Domain Cốt Lõi Độc Lập**. Entities (`User`, `TutorProfile`, `StudentProfile`, `Service`, `Booking`, `Enrollment`, `Session`, `Wallet`, `StudentWallet`, `StudentWalletTransaction`, `StudentWithdrawal`, `TopUpRequest`, `Transaction`, `Dispute`, `AuditLog`), Enums, Allocators (`EnrollmentSessionAllocator`), Domain Services (`SessionSchedulingRules`, `DisputeFinancialCalculator`), và Domain Invariants. Tuyệt đối không phụ thuộc vào hạ tầng hay UI.
+* `src/backend/TutorHub.Application/`: **Nghiệp Vụ Ứng Dụng (Vertical Slice / CQRS)**. Chia theo feature (`Features/{Module}/{FeatureName}/`). Chứa `Command/Query`, `Validator`, `Handler`, `DTOs`, Business Events, Policies (`ISessionSchedulePolicy` / `SessionSchedulePolicy`), và Abstractions (`IAppDbContext`, `IAuditLogService`, `IStudentWalletService`, `IPaymentGateway`, `IObjectStorageService`, `IJwtService`).
+* `src/backend/TutorHub.Infrastructure/`: **Hạ Tầng Kỹ Thuật**. `AppDbContext` (interceptor bảo vệ sổ cái bất biến), 4 Background Jobs (`BookingTimeoutBackgroundService`, `OutboxDispatcherJob`, `EmailDeliveryJob`, `AutoPayoutJob`). Session Reminders và Grace Period Reminders được xử lý theo Delayed Outbox Pattern (`SessionReminderDueEvent`, `GracePeriodClosingSoonEvent`). VNPay SHA512, Cloudflare R2, và SignalR hubs (`/hubs/chat`, `/hubs/notifications`).
+* `src/backend/TutorHub.Worker/`: **Host Background Jobs Chuyên Biệt**. Độc lập với Web API, sử dụng chung Application & Infrastructure để chạy 4 background jobs trong môi trường Production (`docker-compose.prod.yml`).
 * `src/backend/TutorHub.Api/`: **Giao Tiếp Ngoại Vi (Thin Controllers)**. Controller chỉ dispatch MediatR, Middlewares (`CorrelationIdMiddleware`, `GlobalExceptionHandler`).
 * `src/frontend/`: **Giao Diện Người Dùng (React 18 + Vite + Tailwind)**:
   - `src/styles/tokens.css`: **Nguồn sự thật duy nhất** về Design Tokens (Brand Style Guide v2).
@@ -111,7 +112,7 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
   - `src/store/authStore.js`: Zustand store quản lý trạng thái đăng nhập, user profile, vai trò và token.
   - `src/routes/RouteGuards.jsx`: Protected routes phân quyền theo vai trò (`Student`, `Tutor`, `Admin`).
   - `src/components/`, `src/pages/`, `src/layouts/`: Giao diện chia theo vai trò (Admin, Student, Tutor, Discovery, Checkout, Shared).
-* `src/test/`: **Kiểm Thử Tự Động** (649 test cases - 100% Deterministic Pass): `Domain.UnitTests` (229), `Application.UnitTests` (345), `Api.IntegrationTests` (75, Postgres).
+* `src/test/`: **Kiểm Thử Tự Động** (814 test cases - 100% Deterministic Pass): `Domain.UnitTests` (239), `Application.UnitTests` (455), `Infrastructure.UnitTests` (50), `Api.IntegrationTests` (70, Postgres).
 * `docs/`: **Baseline Nghiệp Vụ Chuẩn**: `prd.md`, `functional-requirements.md`, `user-stories.md`, `openapi.json`.
 * `scripts/` *(untracked local tooling)*: CI contract verification, dev bootstrap, secret scanning.
 

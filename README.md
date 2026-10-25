@@ -73,7 +73,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 │  - CQRS Commands & Queries (MediatR)  ││  - PostgreSQL 16 (EF Core 8)  │
 │  - FluentValidation Pipeline          ││  - VNPay SHA-512 Integration  │
 │  - Domain Event Handlers              ││  - S3 / Cloudflare R2 Storage │
-│  - Transactional Outbox Pattern       ││  - 6 Background Workers       │
+│  - Transactional Outbox Pattern       ││  - 4 Background Workers       │
 └───────────────────┬───────────────────┘└───────────────┬───────────────┘
                     │                                    │
                     └─────────────────┬──────────────────┘
@@ -82,7 +82,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 │                          TutorHub.Domain                               │
 │  Aggregates: User, Service, Booking, Enrollment, Session, Wallet,      │
 │              Transaction, Dispute, AuditLog                            │
-│  Policies: SessionSchedulePolicy, BookingPolicy, FeeCalculator         │
+│  Domain Services: SessionSchedulingRules, DisputeFinancialCalculator   │
 └─────────────────────────────────────┬──────────────────────────────────┘
                                       ▼
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -105,7 +105,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 * Tự động giải phóng trạng thái khi học viên hủy hoặc hết thời gian 15 phút.
 
 ### 3. Quy Chế Dời Lịch Tối Thiểu 2 Giờ (2-Hour Notice Policy)
-* **Gia sư** xếp/dời lịch trực tiếp; học viên không tự chọn slot. Cả hai bên có thể hủy một buổi `Unscheduled` hoặc `Scheduled` tương lai; hủy buổi `Scheduled` phải cách thời điểm bắt đầu tối thiểu **2 giờ** (`SessionSchedulePolicy`, cấu hình `Scheduling:MinimumNoticeHours`, default 2).
+* **Gia sư** xếp/dời lịch trực tiếp; học viên không tự chọn slot. Cả hai bên có thể hủy một buổi `Unscheduled` hoặc `Scheduled` tương lai; hủy buổi `Scheduled` phải cách thời điểm bắt đầu tối thiểu **2 giờ** (`ISessionSchedulePolicy` / `SessionSchedulingRules`, cấu hình `Scheduling:MinimumNoticeHours`, default 2).
 * Ngăn chặn hành vi bùng lịch sát giờ, bảo vệ kế hoạch làm việc của cả hai bên.
 
 ### 4. Cơ Chế Giải Ngân Tự Động 12 Giờ (12-Hour Passive Approval Grace Period)
@@ -160,9 +160,10 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 TutorHub/
 ├── src/
 │   ├── backend/                              # Mã nguồn Backend (.NET 8 Web API)
-│   │   ├── TutorHub.Domain/                  # Core Domain Entities, Enums, Invariants & Policies
-│   │   ├── TutorHub.Application/             # Features (CQRS Command/Query Slices), DTOs, Validators
-│   │   ├── TutorHub.Infrastructure/          # EF Core Persistence, Background Jobs, VNPay, S3, SignalR
+│   │   ├── TutorHub.Domain/                  # Core Domain Entities, Enums, Domain Services (Scheduling, Dispute)
+│   │   ├── TutorHub.Application/             # Features (CQRS Command/Query Slices), Policies DI, Validators
+│   │   ├── TutorHub.Infrastructure/          # EF Core Persistence, 4 Background Jobs, VNPay, S3, SignalR
+│   │   ├── TutorHub.Worker/                  # Host chạy Background Jobs độc lập (Production Container)
 │   │   ├── TutorHub.Api/                     # Controllers, Middlewares, Hubs, Dependency Injections
 │   │   ├── TutorHub.sln                      # Solution chính
 │   │   └── seedData.sql                      # Dữ liệu mẫu khởi tạo toàn diện
@@ -178,11 +179,11 @@ TutorHub/
 │   │   ├── package.json                      # Cấu hình thư viện Frontend
 │   │   └── vite.config.js                    # Cấu hình Vite & loại bỏ console/debugger trong Production
 │   │
-│   └── test/                                 # Bộ kiểm thử tự động Backend (733 Tests)
-│       ├── TutorHub.Domain.UnitTests/        # 225 tests: Logic thực thể, Session Allocation, Policies
-│       ├── TutorHub.Application.UnitTests/   # 420 tests: CQRS Handlers, Validation, Security rules
-│       ├── TutorHub.Infrastructure.UnitTests/# 21 tests: VNPay HMAC, Password Hasher, S3 options
-│       └── TutorHub.Api.IntegrationTests/    # 67 tests: Tích hợp cơ sở dữ liệu thật, API contract, Ledgers
+│   └── test/                                 # Bộ kiểm thử tự động Backend (814 Tests)
+│       ├── TutorHub.Domain.UnitTests/        # 239 tests: Logic thực thể, Invariants, Scheduling & Dispute Rules
+│       ├── TutorHub.Application.UnitTests/   # 455 tests: CQRS Handlers, Policies DI, Validation, Security rules
+│       ├── TutorHub.Infrastructure.UnitTests/# 50 tests: VNPay HMAC, Password Hasher, S3 options, Outbox
+│       └── TutorHub.Api.IntegrationTests/    # 70 tests: Tích hợp cơ sở dữ liệu thật, API contract, Ledgers
 │
 ├── scripts/                                  # Kịch bản kiểm thử & vận hành tự động
 │   └── e2e_grace_period.py                   # Bộ test E2E Playwright kiểm thử luồng 12h Auto-Payout
@@ -272,14 +273,11 @@ ConnectionStrings__Redis=redis:6379
 
 * **Cờ tính năng** `Redis:Features:{OAuth,SignalR,Cache,CronLock}` (mặc định `true`): tắt cờ nào = replica về đúng code memory/DB cũ của phần đó, không cần sửa code hay redeploy bản khác.
 * **Redis chết lúc chạy:** các đường non-OAuth vẫn phục vụ (HTTP 200) — cache đọc thẳng DB, cron bỏ qua kỳ + log, `/health` báo `Degraded` ở check `redis` (không bao giờ `Unhealthy`, không restart oan). OAuth vẫn fail-closed (không cấp token) nhưng mù: callback (và start khi mất kết nối thật) trả 500 envelope thay vì 409/503 rõ ràng — cần follow-up map `RedisException` → 409/503 với thông điệp rõ ràng.
-* **Worker riêng:** mặc định api tự chạy 6 background job (`BackgroundJobs:Enabled=true`). Khi chạy ≥2 replica api, tách job sang host chuyên để không double-run:
-  ```bash
-  # .env: api thôi chạy job
-  BackgroundJobs__Enabled=false
-  # worker là opt-in (profile), tự mang BackgroundJobs__Enabled=true + Database__MigrateOnStartup=false
-  docker compose --profile worker up -d --build
-  ```
-  Mặc định `docker compose up` không đổi hành vi (api chạy job, worker không lên). Cron lock Redis là lưới an toàn thứ hai khi ai đó quên flag.
+* **Worker & Background Jobs:**
+  - **Local Development (`docker-compose.yml`):** Môi trường dev cấu hình cứng `BackgroundJobs__Enabled: "true"` tại container `api` để tự chạy toàn bộ 4 background job nội tại mà không cần bật worker riêng. Container `worker` được gắn profile `worker` (`docker compose --profile worker up`) dành cho trường hợp kiểm thử riêng biệt.
+  - **Production (`docker-compose.prod.yml`):** Container `api` cấu hình cứng `BackgroundJobs__Enabled: "false"`, trong khi container chuyên biệt `tutorhub-worker-prod` (`TutorHub.Worker`) đảm nhận việc chạy 4 background job với `BackgroundJobs__Enabled: "true"` và `Database__MigrateOnStartup: "false"`.
+  - **4 Background Jobs gồm có:** `BookingTimeoutBackgroundService` (hủy giữ chỗ quá hạn 15 phút), `OutboxDispatcherJob` (quét và bắn sự kiện Transactional Outbox), `EmailDeliveryJob` (gửi email bất đồng bộ với exponential backoff), `AutoPayoutJob` (quét buổi học quá hạn 12h Grace Period để tự động giải ngân).
+  - **Nhắc lịch (Reminders):** Session Reminder và Grace Period Reminder không sử dụng cron job định kỳ quét toàn bộ database mà chuyển sang kiến trúc **Delayed Outbox Pattern** (`SessionReminderDueEvent`, `GracePeriodClosingSoonEvent`), tối ưu hiệu năng và tránh rủi ro lock bảng.
 * **Tìm kiếm tiếng Việt:** `unaccent` (wrapper immutable `unaccent_immutable`) + trigram `pg_trgm` với GIN index trên `Services(Title, Description)`, `Subjects(Name)`, `Users(FullName, Email)`… — `toan` ra `toán`, `nguyen` ra `Nguyễn`, giữ nguyên sort/paging cũ. `EXPLAIN` xác nhận dùng index + timing trước/sau là follow-up staging (sandbox nghiệm thu không có PG nên chưa đo).
 * **Log tập trung:** Serilog JSON console + Seq sink (chỉ khi `Seq:ServerUrl` khác rỗng; Seq chết không chặn boot), enrich `CorrelationId`, bỏ ồn `/health*`, cấm log secret/PII. Dev/staging: service `seq` trong compose (`:5341`).
 
@@ -290,11 +288,11 @@ ConnectionStrings__Redis=redis:6379
 TutorHub áp dụng văn hóa kiểm thử chất lượng cao với độ phủ kiểm thử dày đặc ở mọi tầng ứng dụng:
 
 ```text
-733 Backend Tests (100% Passed)
-├── Domain Tests:         225 passed
-├── Application Tests:    420 passed
-├── Infrastructure Tests:  21 passed
-└── Integration Tests:     67 passed
+814 Backend Tests (100% Passed)
+├── Domain Tests:         239 passed
+├── Application Tests:    455 passed
+├── Infrastructure Tests:  50 passed
+└── Integration Tests:     70 passed
 
 22 Playwright E2E Tests (100% Passed)
 └── Full Grace Period, Dispute, Wallet & Checkout lifecycle
@@ -302,7 +300,7 @@ TutorHub áp dụng văn hóa kiểm thử chất lượng cao với độ phủ
 
 ### Chạy Toàn Bộ Test Suite Backend
 ```bash
-# Chạy toàn bộ 733 tests trong solution
+# Chạy toàn bộ 814 tests trong solution
 dotnet test src/backend/TutorHub.sln --logger "console;verbosity=normal"
 ```
 
