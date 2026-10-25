@@ -215,7 +215,7 @@ export default function StudentWallet() {
             {
               key: 'reserved',
               label: 'Đang chờ rút',
-              value: <Money value={wallet.reservedBalance} />,
+              value: <Money value={wallet.withdrawingBalance} />,
               hint: 'Đã tạm giữ, chờ Admin giải ngân',
               tone: 'holding',
             },

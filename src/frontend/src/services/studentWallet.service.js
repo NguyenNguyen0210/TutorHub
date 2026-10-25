@@ -13,7 +13,8 @@ function normalizeWallet(raw = {}) {
     id: raw.id ?? null,
     studentProfileId: raw.studentProfileId ?? null,
     availableBalance: toNumber(raw.availableBalance),
-    reservedBalance: toNumber(raw.reservedBalance),
+    withdrawingBalance: toNumber(raw.withdrawingBalance ?? raw.reservedBalance),
+    reservedBalance: toNumber(raw.withdrawingBalance ?? raw.reservedBalance),
     totalBalance: toNumber(raw.totalBalance),
     updatedAt: raw.updatedAt ?? null,
   };
