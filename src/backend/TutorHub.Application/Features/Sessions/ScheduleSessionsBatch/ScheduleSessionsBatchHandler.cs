@@ -1,7 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using TutorHub.Application.Common.Settings;
+
+
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -16,25 +16,25 @@ public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatc
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IOptions<SchedulingOptions>? _schedulingOptions;
+    private readonly ISessionSchedulePolicy _policy;
     private readonly IClock _clock;
 
     public ScheduleSessionsBatchHandler(
         IAppDbContext context,
         ICurrentUserService currentUserService,
         IClock clock,
-        IOptions<SchedulingOptions>? schedulingOptions = null)
+        ISessionSchedulePolicy policy)
     {
         _context = context;
         _currentUserService = currentUserService;
-        _schedulingOptions = schedulingOptions;
+        _policy = policy;
         _clock = clock;
     }
 
     public async Task<IReadOnlyList<SessionDto>> Handle(ScheduleSessionsBatchCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
-        var policy = new SessionSchedulePolicy(_schedulingOptions, _clock);
+
 
         // Pass 1: load ALL sessions in one query, validate every item before touching state.
         var ids = request.Items.Select(i => i.SessionId).ToList();
@@ -67,7 +67,7 @@ public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatc
                 throw new ForbiddenException("Only the tutor can schedule this session.");
             }
 
-            policy.RequireSchedulable(item.StartAt, item.EndAt);
+            _policy.RequireSchedulable(item.StartAt, item.EndAt);
 
             SessionSchedulingValidationPolicy.ValidateUtc(item.StartAt, item.EndAt);
             SessionSchedulingValidationPolicy.ValidateDuration(
@@ -98,7 +98,7 @@ public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatc
             foreach (var item in request.Items)
             {
                 var session = byId[item.SessionId];
-                policy.RequireNoOverlap(
+                _policy.RequireNoOverlap(
                     session.Enrollment.TutorProfileId,
                     item.StartAt,
                     item.EndAt,

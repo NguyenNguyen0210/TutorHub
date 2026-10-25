@@ -1,7 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using TutorHub.Application.Common.Settings;
+
+
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -19,7 +19,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
     private readonly IAuditLogService _auditLogService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IStudentWalletService _studentWalletService;
-    private readonly IOptions<SchedulingOptions>? _schedulingOptions;
+    private readonly ISessionSchedulePolicy _policy;
 
     public CancelSessionCommandHandler(
         IAppDbContext context,
@@ -27,20 +27,20 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
         IAuditLogService auditLogService,
         ICurrentUserService currentUserService,
         IStudentWalletService studentWalletService,
-        IOptions<SchedulingOptions>? schedulingOptions = null)
+        ISessionSchedulePolicy policy)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
         _currentUserService = currentUserService;
         _studentWalletService = studentWalletService;
-        _schedulingOptions = schedulingOptions;
+        _policy = policy;
     }
 
     public async Task<SessionDto> Handle(CancelSessionCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
-        var policy = new SessionSchedulePolicy(_schedulingOptions, _clock);
+
 
         var session = await _context.Sessions
             .Include(s => s.Enrollment)
@@ -101,7 +101,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
         if (oldStatus == SessionStatus.Scheduled &&
             session.StartAt is { } startAt && session.EndAt is { } endAt)
         {
-            policy.RequireMinimumNotice(startAt, endAt, "cancelled");
+            _policy.RequireMinimumNotice(startAt, endAt, "cancelled");
         }
 
         // 4. Re-evaluate the contract lifecycle: the last unresolved Session may

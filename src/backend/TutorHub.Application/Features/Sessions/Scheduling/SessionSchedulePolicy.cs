@@ -3,10 +3,11 @@ using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Settings;
 using TutorHub.Domain.Enums;
+using TutorHub.Domain.Services;
 
 namespace TutorHub.Application.Features.Sessions.Scheduling;
 
-public sealed class SessionSchedulePolicy
+public sealed class SessionSchedulePolicy : ISessionSchedulePolicy
 {
     private const int DefaultMinimumNoticeHours = 2;
 
@@ -28,27 +29,35 @@ public sealed class SessionSchedulePolicy
 
     public void RequireSchedulable(DateTime startAt, DateTime endAt) => RequireSchedulable(startAt, endAt, "scheduled");
 
-    /// <summary>
-    /// Cancellation uses the same minimum-notice window as scheduling so a
-    /// session cannot be cancelled immediately before it starts.
-    /// </summary>
     public void RequireMinimumNotice(DateTime startAt, DateTime endAt, string operation = "cancelled") =>
         RequireSchedulable(startAt, endAt, operation);
 
     public void RequireSchedulable(DateTime startAt, DateTime endAt, string operation)
     {
-        if (endAt <= startAt) throw new BadRequestException("End time must be after start time.");
-        if (startAt < _clock.UtcNow.AddHours(_noticeHours))
+        if (!SessionSchedulingRules.IsValidTimeRange(startAt, endAt))
+        {
+            throw new BadRequestException("End time must be after start time.");
+        }
+
+        if (!SessionSchedulingRules.HasSufficientNotice(startAt, _clock.UtcNow, TimeSpan.FromHours(_noticeHours)))
+        {
             throw new BadRequestException($"Sessions must be {operation} at least {_noticeHours} hours in advance.");
+        }
     }
 
-    public void RequireNoOverlap(Guid tutorProfileId, DateTime startAt, DateTime endAt,
+    public void RequireNoOverlap(
+        Guid tutorProfileId,
+        DateTime startAt,
+        DateTime endAt,
         IEnumerable<(Guid TutorProfileId, DateTime StartAt, DateTime? EndAt, string Status)> existing)
     {
-        var clash = existing.Any(s => s.TutorProfileId == tutorProfileId
-            && s.Status == nameof(SessionStatus.Scheduled)
-            && startAt < (s.EndAt ?? DateTime.MaxValue)
-            && s.StartAt < endAt);
-        if (clash) throw new ConflictException("The new time overlaps another scheduled session.");
+        var relevantSlots = existing
+            .Where(s => s.TutorProfileId == tutorProfileId && s.Status == nameof(SessionStatus.Scheduled))
+            .Select(s => (s.StartAt, s.EndAt));
+
+        if (SessionSchedulingRules.HasOverlap(startAt, endAt, relevantSlots))
+        {
+            throw new ConflictException("The new time overlaps another scheduled session.");
+        }
     }
 }

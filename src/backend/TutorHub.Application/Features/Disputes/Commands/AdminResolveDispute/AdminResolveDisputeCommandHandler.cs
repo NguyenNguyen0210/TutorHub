@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
@@ -138,27 +138,19 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
         // Snapshot rate is authoritative; a legitimate 0% must stay 0%.
         var feeRate = enrollment.PlatformFeeRate;
 
-        decimal studentRefund = 0m;
-        decimal tutorGrossRelease = 0m;
+        decimal studentRefund;
+        decimal tutorGrossRelease;
 
-        switch (request.Decision)
+        try
         {
-            case DisputeResolutionDecision.StudentWinsFullRefund:
-                studentRefund = gross;
-                tutorGrossRelease = 0m;
-                break;
-
-            case DisputeResolutionDecision.StudentWinsPartialRefund:
-                studentRefund = request.CustomRefundAmount ?? throw new BadRequestException("CustomRefundAmount is required.");
-                if (studentRefund <= 0 || studentRefund >= gross)
-                    throw new BadRequestException($"Partial refund amount must be between 0 and {gross}.");
-                tutorGrossRelease = gross - studentRefund;
-                break;
-
-            case DisputeResolutionDecision.TutorWinsReleaseEarning:
-                studentRefund = 0m;
-                tutorGrossRelease = gross;
-                break;
+            (studentRefund, tutorGrossRelease) = DisputeFinancialCalculator.CalculateFinancialSplit(
+                gross,
+                request.Decision,
+                request.CustomRefundAmount);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new BadRequestException(ex.Message);
         }
 
         // DEC-S8-025 / money conservation: the pre-release earning still sits in the

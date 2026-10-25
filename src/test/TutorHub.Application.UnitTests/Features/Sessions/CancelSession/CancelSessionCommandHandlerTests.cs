@@ -7,6 +7,7 @@ using Moq;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Sessions.CancelSession;
+using TutorHub.Application.Features.Sessions.Scheduling;
 using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
@@ -39,7 +40,7 @@ public class CancelSessionCommandHandlerTests : IDisposable
 
     private CancelSessionCommandHandler CreateHandler() =>
         new(_context, _clock, _auditLogService.Object, _currentUserService,
-            _studentWalletService.Object, _schedulingOptions);
+            _studentWalletService.Object, new SessionSchedulePolicy(_schedulingOptions, _clock));
 
     private async Task<(Session session, User studentUser, User tutorUser)> SeedAggregateAsync(
         DateTime? scheduledStart = null)

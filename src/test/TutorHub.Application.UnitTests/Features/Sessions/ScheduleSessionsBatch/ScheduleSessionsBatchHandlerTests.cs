@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Features.Sessions.ScheduleSessionsBatch;
+using TutorHub.Application.Features.Sessions.Scheduling;
 using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
@@ -34,7 +35,7 @@ public class ScheduleSessionsBatchHandlerTests : IDisposable
     public void Dispose() => _context.Dispose();
 
     private ScheduleSessionsBatchHandler CreateHandler() =>
-        new(_context, _currentUserService, _clock, _schedulingOptions);
+        new(_context, _currentUserService, _clock, new SessionSchedulePolicy(_schedulingOptions, _clock));
 
     private async Task<(Session s1, Session s2, Enrollment enrollment, User studentUser, User tutorUser)> SeedAggregateAsync()
     {

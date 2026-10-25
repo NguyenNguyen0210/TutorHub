@@ -4,6 +4,7 @@ using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using TutorHub.Application.Common.Behaviors;
 using TutorHub.Application.Features.Enrollments.Common;
+using TutorHub.Application.Features.Sessions.Scheduling;
 
 namespace TutorHub.Application;
 
@@ -27,6 +28,7 @@ public static class ApplicationServiceCollectionExtensions
 
         services.AddScoped<IEnrollmentActivationService, EnrollmentActivationService>();
         services.AddScoped<TutorHub.Application.Common.Interfaces.IStudentWalletService, TutorHub.Application.Features.StudentWallets.Services.StudentWalletService>();
+        services.AddTransient<ISessionSchedulePolicy, SessionSchedulePolicy>();
 
         return services;
     }
