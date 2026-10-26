@@ -39,7 +39,7 @@ public class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategoryComman
 
         var userId = _currentUserService.UserIdOrThrow();
 
-        category.SoftDelete(userId, request.Reason);
+        category.SoftDelete(userId);
 
         await _auditLogService.LogAsync(
             action: "CATEGORY_SOFT_DELETED",
@@ -47,7 +47,7 @@ public class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategoryComman
             entityId: category.Id.ToString(),
             userId: userId,
             oldValues: new { category.Name, IsDeleted = false },
-            newValues: new { IsDeleted = true, category.DeleteReason, category.DeletedAt },
+            newValues: new { IsDeleted = true, category.DeletedAt },
             cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);

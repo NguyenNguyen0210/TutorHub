@@ -31,16 +31,14 @@ public class TrashQueriesHandlerTests
             Id = Guid.NewGuid(),
             Name = "Vật Lý Cổ Điển",
             IsDeleted = true,
-            DeletedAt = DateTime.UtcNow.AddDays(-2),
-            DeleteReason = "Reason 1"
+            DeletedAt = DateTime.UtcNow.AddDays(-2)
         };
         var deletedCat2 = new Category
         {
             Id = Guid.NewGuid(),
             Name = "Hóa Học Hữu Cơ",
             IsDeleted = true,
-            DeletedAt = DateTime.UtcNow.AddDays(-1),
-            DeleteReason = "Reason 2"
+            DeletedAt = DateTime.UtcNow.AddDays(-1)
         };
 
         context.Categories.AddRange(activeCat, deletedCat1, deletedCat2);

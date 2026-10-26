@@ -167,8 +167,8 @@ Hoàn tiền & Quyết toán (Refund Pending/Succeeded/Failed + PlatformFeeRever
   - Hạn mức rút tiền tối thiểu 50.000 VNĐ cho cả gia sư và học viên qua `Withdrawals`.
   - Tương thích ngược thông qua route aliasing: `/api/v1/wallets/me`, `/api/v1/tutors/me/wallet`, `/api/v1/students/me/wallet`.
 * ⛔ **13. Soft Delete Pattern Cho Master Data & Khóa Học (`Category`, `Subject`, `Service`):**
-  - Không bao giờ xóa vật lý (Hard Delete) Master Data hoặc khóa học. Các thực thể kế thừa `ISoftDeletable` (`IsDeleted`, `DeletedAt`, `DeletedByUserId`, `DeleteReason`).
-  - EF Core Global Query Filter (`e => !e.IsDeleted`) tự động lọc bỏ các bản ghi đã xóa trong mọi truy vấn nghiệp vụ. Màn hình Thùng rác (Trash) quản trị bắt buộc gọi `.IgnoreQueryFilters()`.
+  - Không bao giờ xóa vật lý (Hard Delete) Master Data hoặc khóa học. Các thực thể định nghĩa trực tiếp các cột xóa mềm (`IsDeleted`, `DeletedAt`, `DeletedByUserId`) trên cấu trúc bảng, không sử dụng interface ISoftDeletable và không cần `DeleteReason`.
+  - EF Core Global Query Filter (`e => !e.IsDeleted`) được cấu hình trực tiếp tại từng EntityTypeConfiguration để tự động lọc bỏ các bản ghi đã xóa trong mọi truy vấn nghiệp vụ. Màn hình Thùng rác (Trash) quản trị bắt buộc gọi `.IgnoreQueryFilters()`.
   - Tránh xung đột Unique Index bằng PostgreSQL Filtered Partial Index (`WHERE "IsDeleted" = false`), cho phép tạo lại bản ghi có cùng tên sau khi đã xóa mềm bản ghi cũ.
   - Ngăn chặn xóa cha nếu con còn hoạt động (Restrict rule): Không thể xóa `Category` nếu còn `Subject` chưa bị xóa. Không thể khôi phục `Subject` nếu `Category` cha đang bị xóa.
   - Sổ cái tài chính (`Transaction`, `Wallet`, `WalletTransaction`, `Withdrawal`, `TopUpRequest`, `AuditLog`) là bất biến và cấm xóa hoàn toàn (cả xóa cứng lẫn xóa mềm).

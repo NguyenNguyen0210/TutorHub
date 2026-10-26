@@ -50,7 +50,7 @@ public class DeleteSubjectCommandHandler : IRequestHandler<DeleteSubjectCommand,
 
         var userId = _currentUserService.UserIdOrThrow();
 
-        subject.SoftDelete(userId, request.Reason);
+        subject.SoftDelete(userId);
 
         await _auditLogService.LogAsync(
             action: "SUBJECT_SOFT_DELETED",
@@ -58,7 +58,7 @@ public class DeleteSubjectCommandHandler : IRequestHandler<DeleteSubjectCommand,
             entityId: subject.Id.ToString(),
             userId: userId,
             oldValues: new { subject.Name, subject.CategoryId, IsDeleted = false },
-            newValues: new { IsDeleted = true, subject.DeleteReason, subject.DeletedAt },
+            newValues: new { IsDeleted = true, subject.DeletedAt },
             cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);

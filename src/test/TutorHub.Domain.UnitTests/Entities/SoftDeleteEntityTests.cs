@@ -18,17 +18,15 @@ public class SoftDeleteEntityTests
             IsActive = true
         };
         var adminId = Guid.NewGuid();
-        var reason = "Deprecated syllabus";
 
         // Act
-        category.SoftDelete(adminId, reason);
+        category.SoftDelete(adminId);
 
         // Assert
         category.IsDeleted.Should().BeTrue();
         category.DeletedAt.Should().NotBeNull();
         category.DeletedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
         category.DeletedByUserId.Should().Be(adminId);
-        category.DeleteReason.Should().Be(reason);
         category.IsActive.Should().BeFalse();
     }
 
@@ -43,16 +41,15 @@ public class SoftDeleteEntityTests
             IsActive = true
         };
         var adminId1 = Guid.NewGuid();
-        category.SoftDelete(adminId1, "First reason");
+        category.SoftDelete(adminId1);
         var originalDeletedAt = category.DeletedAt;
 
         // Act
         var adminId2 = Guid.NewGuid();
-        category.SoftDelete(adminId2, "Second reason");
+        category.SoftDelete(adminId2);
 
         // Assert: preserves first deletion audit values
         category.DeletedByUserId.Should().Be(adminId1);
-        category.DeleteReason.Should().Be("First reason");
         category.DeletedAt.Should().Be(originalDeletedAt);
     }
 
@@ -66,7 +63,7 @@ public class SoftDeleteEntityTests
             Name = "Toán Học",
             IsActive = true
         };
-        category.SoftDelete(Guid.NewGuid(), "Obsolete");
+        category.SoftDelete(Guid.NewGuid());
 
         // Act
         category.Restore();
@@ -75,7 +72,6 @@ public class SoftDeleteEntityTests
         category.IsDeleted.Should().BeFalse();
         category.DeletedAt.Should().BeNull();
         category.DeletedByUserId.Should().BeNull();
-        category.DeleteReason.Should().BeNull();
         category.IsActive.Should().BeTrue();
     }
 
@@ -93,13 +89,12 @@ public class SoftDeleteEntityTests
         var adminId = Guid.NewGuid();
 
         // Act - Soft Delete
-        subject.SoftDelete(adminId, "Merged into standard Math");
+        subject.SoftDelete(adminId);
 
         // Assert
         subject.IsDeleted.Should().BeTrue();
         subject.DeletedAt.Should().NotBeNull();
         subject.DeletedByUserId.Should().Be(adminId);
-        subject.DeleteReason.Should().Be("Merged into standard Math");
         subject.IsActive.Should().BeFalse();
 
         // Act - Restore
@@ -109,7 +104,6 @@ public class SoftDeleteEntityTests
         subject.IsDeleted.Should().BeFalse();
         subject.DeletedAt.Should().BeNull();
         subject.DeletedByUserId.Should().BeNull();
-        subject.DeleteReason.Should().BeNull();
         subject.IsActive.Should().BeTrue();
     }
 
@@ -128,13 +122,12 @@ public class SoftDeleteEntityTests
         var adminId = Guid.NewGuid();
 
         // Act - Soft Delete
-        service.SoftDelete(adminId, "Tutor requested removal");
+        service.SoftDelete(adminId);
 
         // Assert
         service.IsDeleted.Should().BeTrue();
         service.DeletedAt.Should().NotBeNull();
         service.DeletedByUserId.Should().Be(adminId);
-        service.DeleteReason.Should().Be("Tutor requested removal");
         service.Status.Should().Be(ServiceStatus.Unpublished);
 
         // Act - Restore
@@ -144,6 +137,5 @@ public class SoftDeleteEntityTests
         service.IsDeleted.Should().BeFalse();
         service.DeletedAt.Should().BeNull();
         service.DeletedByUserId.Should().BeNull();
-        service.DeleteReason.Should().BeNull();
     }
 }

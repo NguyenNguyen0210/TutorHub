@@ -74,15 +74,14 @@ public class ServiceConfiguration : IEntityTypeConfiguration<Service>
         builder.Property(s => s.CreatedAt)
             .IsRequired();
 
-        // Soft Delete configuration
+        // Soft Delete configuration & Global Query Filter
         builder.Property(s => s.IsDeleted)
             .IsRequired()
             .HasDefaultValue(false);
 
-        builder.Property(s => s.DeleteReason)
-            .HasMaxLength(500);
-
         builder.HasIndex(s => s.IsDeleted);
+
+        builder.HasQueryFilter(s => !s.IsDeleted);
 
         // Foreign keys
         builder.HasOne(s => s.TutorProfile)

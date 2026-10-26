@@ -137,7 +137,6 @@ public class RestoreSubjectCommandHandlerTests
             IsDeleted = true,
             DeletedAt = DateTime.UtcNow,
             DeletedByUserId = adminId,
-            DeleteReason = "Temporary",
             IsActive = false
         };
 
@@ -161,7 +160,6 @@ public class RestoreSubjectCommandHandlerTests
         restored.Should().NotBeNull();
         restored!.IsDeleted.Should().BeFalse();
         restored.DeletedAt.Should().BeNull();
-        restored.DeleteReason.Should().BeNull();
 
         // Assert Audit Log
         auditLogMock.Verify(a => a.LogAsync(

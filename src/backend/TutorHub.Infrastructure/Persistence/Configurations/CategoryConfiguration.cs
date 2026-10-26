@@ -25,14 +25,13 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(c => c.IsActive)
             .IsRequired();
 
-        // Soft Delete configuration
+        // Soft Delete configuration & Global Query Filter
         builder.Property(c => c.IsDeleted)
             .IsRequired()
             .HasDefaultValue(false);
 
-        builder.Property(c => c.DeleteReason)
-            .HasMaxLength(500);
-
         builder.HasIndex(c => c.IsDeleted);
+
+        builder.HasQueryFilter(c => !c.IsDeleted);
     }
 }

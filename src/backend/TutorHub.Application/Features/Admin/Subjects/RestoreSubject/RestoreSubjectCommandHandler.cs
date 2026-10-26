@@ -74,7 +74,7 @@ public class RestoreSubjectCommandHandler : IRequestHandler<RestoreSubjectComman
             entityName: "Subject",
             entityId: subject.Id.ToString(),
             userId: userId,
-            oldValues: new { IsDeleted = true, subject.DeletedAt, subject.DeleteReason },
+            oldValues: new { IsDeleted = true, subject.DeletedAt },
             newValues: new { IsDeleted = false },
             cancellationToken: cancellationToken);
 
@@ -94,8 +94,7 @@ public class RestoreSubjectCommandHandler : IRequestHandler<RestoreSubjectComman
             tutorsCount,
             bookingsCount,
             subject.IsDeleted,
-            subject.DeletedAt,
-            subject.DeleteReason
+            subject.DeletedAt
         );
     }
 }

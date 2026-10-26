@@ -47,8 +47,7 @@ public class GetAdminTrashCategoriesQueryHandler : IRequestHandler<GetAdminTrash
                 c.IsActive,
                 c.Subjects.Count,
                 c.IsDeleted,
-                c.DeletedAt,
-                c.DeleteReason
+                c.DeletedAt
             ))
             .ToListAsync(cancellationToken);
 

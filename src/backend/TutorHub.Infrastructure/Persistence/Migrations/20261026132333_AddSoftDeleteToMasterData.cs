@@ -23,13 +23,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 name: "CK_Booking_TotalPrice",
                 table: "Bookings");
 
-            migrationBuilder.AddColumn<string>(
-                name: "DeleteReason",
-                table: "Subjects",
-                type: "character varying(500)",
-                maxLength: 500,
-                nullable: true);
-
             migrationBuilder.AddColumn<DateTime>(
                 name: "DeletedAt",
                 table: "Subjects",
@@ -48,13 +41,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 type: "boolean",
                 nullable: false,
                 defaultValue: false);
-
-            migrationBuilder.AddColumn<string>(
-                name: "DeleteReason",
-                table: "Services",
-                type: "character varying(500)",
-                maxLength: 500,
-                nullable: true);
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "DeletedAt",
@@ -95,13 +81,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 oldType: "character varying(50)",
                 oldMaxLength: 50,
                 oldNullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "DeleteReason",
-                table: "Categories",
-                type: "character varying(500)",
-                maxLength: 500,
-                nullable: true);
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "DeletedAt",
@@ -196,10 +175,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 table: "Categories");
 
             migrationBuilder.DropColumn(
-                name: "DeleteReason",
-                table: "Subjects");
-
-            migrationBuilder.DropColumn(
                 name: "DeletedAt",
                 table: "Subjects");
 
@@ -212,10 +187,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 table: "Subjects");
 
             migrationBuilder.DropColumn(
-                name: "DeleteReason",
-                table: "Services");
-
-            migrationBuilder.DropColumn(
                 name: "DeletedAt",
                 table: "Services");
 
@@ -226,10 +197,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
             migrationBuilder.DropColumn(
                 name: "IsDeleted",
                 table: "Services");
-
-            migrationBuilder.DropColumn(
-                name: "DeleteReason",
-                table: "Categories");
 
             migrationBuilder.DropColumn(
                 name: "DeletedAt",

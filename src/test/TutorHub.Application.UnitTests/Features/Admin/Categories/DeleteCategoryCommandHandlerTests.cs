@@ -34,7 +34,7 @@ public class DeleteCategoryCommandHandlerTests
         // Arrange
         var (context, currentUser, auditLogMock) = CreateTestEnv();
         var handler = new DeleteCategoryCommandHandler(context, currentUser, auditLogMock.Object);
-        var command = new DeleteCategoryCommand(Guid.NewGuid(), "Obsolete");
+        var command = new DeleteCategoryCommand(Guid.NewGuid());
 
         // Act
         var act = () => handler.Handle(command, CancellationToken.None);
@@ -57,7 +57,7 @@ public class DeleteCategoryCommandHandlerTests
         await context.SaveChangesAsync();
 
         var handler = new DeleteCategoryCommandHandler(context, currentUser, auditLogMock.Object);
-        var command = new DeleteCategoryCommand(category.Id, "Delete reason");
+        var command = new DeleteCategoryCommand(category.Id);
 
         // Act
         var act = () => handler.Handle(command, CancellationToken.None);
@@ -89,7 +89,7 @@ public class DeleteCategoryCommandHandlerTests
         await context.SaveChangesAsync();
 
         var handler = new DeleteCategoryCommandHandler(context, currentUser, auditLogMock.Object);
-        var command = new DeleteCategoryCommand(category.Id, "Out of syllabus");
+        var command = new DeleteCategoryCommand(category.Id);
 
         // Act
         await handler.Handle(command, CancellationToken.None);
@@ -103,7 +103,6 @@ public class DeleteCategoryCommandHandlerTests
         raw.Should().NotBeNull();
         raw!.IsDeleted.Should().BeTrue();
         raw.DeletedByUserId.Should().Be(adminId);
-        raw.DeleteReason.Should().Be("Out of syllabus");
 
         // Assert: Audit log recorded
         auditLogMock.Verify(a => a.LogAsync(

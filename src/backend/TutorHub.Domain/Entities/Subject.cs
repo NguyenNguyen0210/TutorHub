@@ -1,8 +1,6 @@
-using TutorHub.Domain.Common;
-
 namespace TutorHub.Domain.Entities;
 
-public class Subject : ISoftDeletable
+public class Subject
 {
     public Guid Id { get; set; }
 
@@ -13,23 +11,21 @@ public class Subject : ISoftDeletable
 
     public bool IsActive { get; set; } = true;
 
-    // Soft delete audit properties
+    // Soft delete columns
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedByUserId { get; set; }
-    public string? DeleteReason { get; set; }
 
     // Relationships
     public ICollection<TutorSubject> TutorSubjects { get; set; }
         = new List<TutorSubject>();
 
-    public void SoftDelete(Guid deletedByUserId, string? reason = null)
+    public void SoftDelete(Guid deletedByUserId)
     {
         if (IsDeleted) return;
         IsDeleted = true;
         DeletedAt = DateTime.UtcNow;
         DeletedByUserId = deletedByUserId;
-        DeleteReason = reason?.Trim();
         IsActive = false;
     }
 
@@ -39,7 +35,6 @@ public class Subject : ISoftDeletable
         IsDeleted = false;
         DeletedAt = null;
         DeletedByUserId = null;
-        DeleteReason = null;
         IsActive = true;
     }
 }

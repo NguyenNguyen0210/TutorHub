@@ -56,7 +56,7 @@ public class RestoreCategoryCommandHandler : IRequestHandler<RestoreCategoryComm
             entityName: "Category",
             entityId: category.Id.ToString(),
             userId: userId,
-            oldValues: new { IsDeleted = true, category.DeletedAt, category.DeleteReason },
+            oldValues: new { IsDeleted = true, category.DeletedAt },
             newValues: new { IsDeleted = false },
             cancellationToken: cancellationToken);
 
@@ -69,8 +69,7 @@ public class RestoreCategoryCommandHandler : IRequestHandler<RestoreCategoryComm
             category.IsActive,
             category.Subjects.Count(s => !s.IsDeleted),
             category.IsDeleted,
-            category.DeletedAt,
-            category.DeleteReason
+            category.DeletedAt
         );
     }
 }

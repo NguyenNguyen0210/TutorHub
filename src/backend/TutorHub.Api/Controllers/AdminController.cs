@@ -359,10 +359,9 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DeleteCategory(
         [FromRoute] Guid id,
-        [FromQuery] string? reason = null,
         CancellationToken cancellationToken = default)
     {
-        var command = new DeleteCategoryCommand(id, reason);
+        var command = new DeleteCategoryCommand(id);
         await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<object?>.SuccessResult(null, "Category deleted successfully."));
     }
@@ -462,10 +461,9 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DeleteSubject(
         [FromRoute] Guid id,
-        [FromQuery] string? reason = null,
         CancellationToken cancellationToken = default)
     {
-        var command = new DeleteSubjectCommand(id, reason);
+        var command = new DeleteSubjectCommand(id);
         await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<object?>.SuccessResult(null, "Subject deleted successfully."));
     }

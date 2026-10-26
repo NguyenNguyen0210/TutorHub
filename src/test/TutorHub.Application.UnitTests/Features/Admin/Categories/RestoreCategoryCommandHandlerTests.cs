@@ -99,7 +99,6 @@ public class RestoreCategoryCommandHandlerTests
             IsDeleted = true,
             DeletedAt = DateTime.UtcNow,
             DeletedByUserId = adminId,
-            DeleteReason = "Temporary",
             IsActive = false
         };
         context.Categories.Add(deletedCategory);
@@ -121,7 +120,6 @@ public class RestoreCategoryCommandHandlerTests
         restored.Should().NotBeNull();
         restored!.IsDeleted.Should().BeFalse();
         restored.DeletedAt.Should().BeNull();
-        restored.DeleteReason.Should().BeNull();
 
         // Assert Audit Log
         auditLogMock.Verify(a => a.LogAsync(

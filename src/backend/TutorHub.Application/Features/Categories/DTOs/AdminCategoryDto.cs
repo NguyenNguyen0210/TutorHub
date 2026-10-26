@@ -7,12 +7,11 @@ public record AdminCategoryDto(
     bool IsActive,
     int SubjectsCount,
     bool IsDeleted,
-    DateTime? DeletedAt,
-    string? DeleteReason
+    DateTime? DeletedAt
 )
 {
     public AdminCategoryDto(Guid id, string name, string? description, bool isActive, int subjectsCount)
-        : this(id, name, description, isActive, subjectsCount, false, null, null)
+        : this(id, name, description, isActive, subjectsCount, false, null)
     {
     }
 }

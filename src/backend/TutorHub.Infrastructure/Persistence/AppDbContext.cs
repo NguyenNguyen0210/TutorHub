@@ -2,7 +2,6 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Search;
-using TutorHub.Domain.Common;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 
@@ -93,7 +92,7 @@ public class AppDbContext : DbContext, IAppDbContext
     }
 
     /// <summary>
-    /// Intercepts entity deletions on ISoftDeletable types and converts them to soft updates.
+    /// Intercepts entity deletions on soft-deletable entities (Category, Subject, Service) and converts them to soft updates.
     /// </summary>
     private void ApplySoftDelete()
     {
@@ -108,16 +107,39 @@ public class AppDbContext : DbContext, IAppDbContext
             // Outside of active HTTP request context
         }
 
-        foreach (var entry in ChangeTracker.Entries<ISoftDeletable>())
+        foreach (var entry in ChangeTracker.Entries())
         {
             if (entry.State == EntityState.Deleted)
             {
-                entry.State = EntityState.Modified;
-                entry.Entity.IsDeleted = true;
-                entry.Entity.DeletedAt ??= now;
-                if (currentUserId.HasValue && !entry.Entity.DeletedByUserId.HasValue)
+                if (entry.Entity is Category cat)
                 {
-                    entry.Entity.DeletedByUserId = currentUserId.Value;
+                    entry.State = EntityState.Modified;
+                    cat.IsDeleted = true;
+                    cat.DeletedAt ??= now;
+                    if (currentUserId.HasValue && !cat.DeletedByUserId.HasValue)
+                    {
+                        cat.DeletedByUserId = currentUserId.Value;
+                    }
+                }
+                else if (entry.Entity is Subject sub)
+                {
+                    entry.State = EntityState.Modified;
+                    sub.IsDeleted = true;
+                    sub.DeletedAt ??= now;
+                    if (currentUserId.HasValue && !sub.DeletedByUserId.HasValue)
+                    {
+                        sub.DeletedByUserId = currentUserId.Value;
+                    }
+                }
+                else if (entry.Entity is Service srv)
+                {
+                    entry.State = EntityState.Modified;
+                    srv.IsDeleted = true;
+                    srv.DeletedAt ??= now;
+                    if (currentUserId.HasValue && !srv.DeletedByUserId.HasValue)
+                    {
+                        srv.DeletedByUserId = currentUserId.Value;
+                    }
                 }
             }
         }
@@ -265,23 +287,6 @@ public class AppDbContext : DbContext, IAppDbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-
-        // Dynamically apply Global Query Filter to all ISoftDeletable entities
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            if (typeof(ISoftDeletable).IsAssignableFrom(entityType.ClrType))
-            {
-                var parameter = Expression.Parameter(entityType.ClrType, "e");
-                var filter = Expression.Lambda(
-                    Expression.Equal(
-                        Expression.Property(parameter, nameof(ISoftDeletable.IsDeleted)),
-                        Expression.Constant(false)
-                    ),
-                    parameter
-                );
-                entityType.SetQueryFilter(filter);
-            }
-        }
 
         // Maps VietnameseSearch.UnaccentImmutable to public.unaccent_immutable(text)
         // (EnableVietnameseSearch migration). Search predicates using it translate to

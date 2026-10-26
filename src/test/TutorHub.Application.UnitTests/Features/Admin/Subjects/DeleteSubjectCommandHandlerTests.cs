@@ -35,7 +35,7 @@ public class DeleteSubjectCommandHandlerTests
         var (context, currentUser, auditLogMock) = CreateTestEnv();
         var handler = new DeleteSubjectCommandHandler(context, currentUser, auditLogMock.Object);
 
-        var act = () => handler.Handle(new DeleteSubjectCommand(Guid.NewGuid(), "reason"), CancellationToken.None);
+        var act = () => handler.Handle(new DeleteSubjectCommand(Guid.NewGuid()), CancellationToken.None);
 
         await act.Should().ThrowAsync<NotFoundException>();
     }
@@ -105,7 +105,7 @@ public class DeleteSubjectCommandHandlerTests
         await context.SaveChangesAsync();
 
         var handler = new DeleteSubjectCommandHandler(context, currentUser, auditLogMock.Object);
-        var command = new DeleteSubjectCommand(subject.Id, "Restructuring curriculum");
+        var command = new DeleteSubjectCommand(subject.Id);
 
         // Act
         await handler.Handle(command, CancellationToken.None);
@@ -119,7 +119,6 @@ public class DeleteSubjectCommandHandlerTests
         raw.Should().NotBeNull();
         raw!.IsDeleted.Should().BeTrue();
         raw.DeletedByUserId.Should().Be(adminId);
-        raw.DeleteReason.Should().Be("Restructuring curriculum");
 
         // Assert: Audit log
         auditLogMock.Verify(a => a.LogAsync(

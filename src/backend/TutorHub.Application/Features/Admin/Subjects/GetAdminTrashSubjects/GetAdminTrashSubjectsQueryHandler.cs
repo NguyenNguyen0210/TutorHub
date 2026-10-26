@@ -56,8 +56,7 @@ public class GetAdminTrashSubjectsQueryHandler : IRequestHandler<GetAdminTrashSu
                 s.TutorSubjects.Count,
                 _context.Bookings.Count(b => b.SubjectId == s.Id),
                 s.IsDeleted,
-                s.DeletedAt,
-                s.DeleteReason
+                s.DeletedAt
             ))
             .ToListAsync(cancellationToken);
 

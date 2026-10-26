@@ -22,15 +22,14 @@ public class SubjectConfiguration : IEntityTypeConfiguration<Subject>
         builder.Property(s => s.IsActive)
             .IsRequired();
 
-        // Soft Delete configuration
+        // Soft Delete configuration & Global Query Filter
         builder.Property(s => s.IsDeleted)
             .IsRequired()
             .HasDefaultValue(false);
 
-        builder.Property(s => s.DeleteReason)
-            .HasMaxLength(500);
-
         builder.HasIndex(s => s.IsDeleted);
+
+        builder.HasQueryFilter(s => !s.IsDeleted);
 
         builder.HasOne(s => s.Category)
             .WithMany(c => c.Subjects)

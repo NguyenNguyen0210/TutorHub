@@ -9,12 +9,11 @@ public record AdminSubjectDto(
     int TutorsCount,
     int BookingsCount,
     bool IsDeleted,
-    DateTime? DeletedAt,
-    string? DeleteReason
+    DateTime? DeletedAt
 )
 {
     public AdminSubjectDto(Guid id, string name, Guid categoryId, string categoryName, bool isActive, int tutorsCount, int bookingsCount)
-        : this(id, name, categoryId, categoryName, isActive, tutorsCount, bookingsCount, false, null, null)
+        : this(id, name, categoryId, categoryName, isActive, tutorsCount, bookingsCount, false, null)
     {
     }
 }
