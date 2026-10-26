@@ -39,19 +39,14 @@ public class GetServiceDetailQueryHandler : IRequestHandler<GetServiceDetailQuer
             },
             cancellationToken);
 
-        // 2. If cached is present, verify caller is not the owner
-        if (cached is not null)
+        // 2. If cached and caller is NOT the owner -> return cached data immediately
+        bool isOwner = cached is not null && request.CurrentUserId.HasValue && cached.Tutor.UserId == request.CurrentUserId.Value;
+        if (cached is not null && !isOwner)
         {
-            if (request.CurrentUserId.HasValue && cached.Tutor.UserId == request.CurrentUserId.Value)
-            {
-                // Owner preview bypasses cache to get live edits/metrics
-                return await LoadFromDbAsync(request.Id, request.CurrentUserId, cancellationToken);
-            }
-
             return cached;
         }
 
-        // 3. Fallback to DB (e.g. if draft owned by current user or not found)
+        // 3. Fallback to DB (Owner preview for live edits/metrics, or draft services not in public cache)
         return await LoadFromDbAsync(request.Id, request.CurrentUserId, cancellationToken);
     }
 
