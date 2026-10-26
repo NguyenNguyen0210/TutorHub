@@ -163,7 +163,6 @@ TutorHub/
 │   │   ├── TutorHub.Domain/                  # Core Domain Entities, Enums, Domain Services (Scheduling, Dispute)
 │   │   ├── TutorHub.Application/             # Features (CQRS Command/Query Slices), Policies DI, Validators
 │   │   ├── TutorHub.Infrastructure/          # EF Core Persistence, 4 Background Jobs, VNPay, S3, SignalR
-│   │   ├── TutorHub.Worker/                  # Host chạy Background Jobs độc lập (Production Container)
 │   │   ├── TutorHub.Api/                     # Controllers, Middlewares, Hubs, Dependency Injections
 │   │   ├── TutorHub.sln                      # Solution chính
 │   │   └── seedData.sql                      # Dữ liệu mẫu khởi tạo toàn diện
@@ -262,23 +261,13 @@ npm run dev
 
 ## 🔀 Mở Rộng Quy Mô (Scale-Out với Redis)
 
-* **1 replica:** không cần Redis. Mặc định `Redis:Enabled=false`, API boot và phục vụ bình thường.
-* **≥2 replica:** bắt buộc 1 Redis chung (`redis:7-alpine` đã có sẵn trong `docker-compose.yml`):
-
-```bash
-# .env
-Redis__Enabled=true
-ConnectionStrings__Redis=redis:6379
-```
-
-* **Cờ tính năng** `Redis:Features:{OAuth,SignalR,Cache,CronLock}` (mặc định `true`): tắt cờ nào = replica về đúng code memory/DB cũ của phần đó, không cần sửa code hay redeploy bản khác.
-* **Redis chết lúc chạy:** các đường non-OAuth vẫn phục vụ (HTTP 200) — cache đọc thẳng DB, cron bỏ qua kỳ + log, `/health` báo `Degraded` ở check `redis` (không bao giờ `Unhealthy`, không restart oan). OAuth vẫn fail-closed (không cấp token) nhưng mù: callback (và start khi mất kết nối thật) trả 500 envelope thay vì 409/503 rõ ràng — cần follow-up map `RedisException` → 409/503 với thông điệp rõ ràng.
-* **Worker & Background Jobs:**
-  - **Local Development (`docker-compose.yml`):** Môi trường dev cấu hình cứng `BackgroundJobs__Enabled: "true"` tại container `api` để tự chạy toàn bộ 5 background job nội tại mà không cần bật worker riêng. Container `worker` được gắn profile `worker` (`docker compose --profile worker up`) dành cho trường hợp kiểm thử riêng biệt.
-  - **Production (`docker-compose.prod.yml`):** Container `api` cấu hình cứng `BackgroundJobs__Enabled: "false"`, trong khi container chuyên biệt `tutorhub-worker-prod` (`TutorHub.Worker`) đảm nhận việc chạy 5 background job với `BackgroundJobs__Enabled: "true"` và `Database__MigrateOnStartup: "false"`.
-  - **5 Background Jobs gồm có:** `BookingTimeoutBackgroundService` (hủy giữ chỗ quá hạn 15 phút), `OutboxDispatcherJob` (quét và bắn sự kiện Transactional Outbox), `EmailDeliveryJob` (gửi email bất đồng bộ với exponential backoff), `AutoPayoutJob` (quét buổi học quá hạn 12h Grace Period để tự động giải ngân), `IdempotencyCleanupJob` (quét và dọn dẹp các bản ghi idempotency đã hết hạn).
+* **Redis tích hợp:** Luôn được kích hoạt chuẩn hóa (`Redis:Enabled=true`), sử dụng chung Redis (`redis:7-alpine` trong compose / container production) cho distributed lock, distributed cache, SignalR backplane và OAuth state.
+* **Redis chết lúc chạy:** Các đường non-OAuth vẫn phục vụ — cache đọc thẳng DB, cron bỏ qua kỳ + log, `/health` báo `Degraded` ở check `redis` (không bao giờ `Unhealthy`, không restart tiến trình).
+* **Background Jobs (Hợp nhất vào API host):**
+  - Cả môi trường Dev (`docker-compose.yml`) và Production (`docker-compose.prod.yml`) đều cấu hình `BackgroundJobs__Enabled: "true"` trực tiếp trên container `api`, tinh giản việc duy trì container worker riêng rẽ.
+  - **5 Background Jobs gồm có:** `BookingTimeoutBackgroundService` (hủy giữ chỗ quá hạn 15 phút), `OutboxDispatcherJob` (quét và bắn sự kiện Transactional Outbox), `EmailDeliveryJob` (gửi email bất đồng bộ dự phòng), `AutoPayoutJob` (quét buổi học quá hạn 12h Grace Period để tự động giải ngân), `IdempotencyCleanupJob` (quét và dọn dẹp các bản ghi idempotency đã hết hạn).
   - **Khóa phân tán (Redis Distributed Cron Lock):** Các cron job chạy đa node được điều phối bởi `IRedisDistributedLock` (`SET NX PX` kết hợp script Lua Compare-and-Delete) để đảm bảo tại một thời điểm chỉ có 1 node thực thi task, an toàn khi scale ngang.
-  - **Bộ đệm phân tán toàn diện (Read-Through Caching):** Cung cấp `ICategoryCacheService`, `ISubjectCacheService`, `IServiceDetailCacheService`, và `ITutorProfileCacheService` với kỹ thuật Versioning (`cat:ver`, `subj:ver`) chống nghẽn `KEYS *` của Redis, kết hợp `SemaphoreSlim` per-key chống Cache Stampede.
+  - **Bộ đệm phân tán (Read-Through Caching):** Cung cấp `IServiceDetailCacheService` và `ITutorProfileCacheService` kết hợp `SemaphoreSlim` per-key chống Cache Stampede. Các danh mục (Categories) và môn học (Subjects) truy vấn trực tiếp DB qua index tối ưu.
   - **Lớp bảo vệ Idempotency Outer Shield:** Bộ lọc `[Idempotent]` kết hợp băm SHA-256 fingerprint trên body request và `DbIdempotencyStore` chống thanh toán/tạo đơn/rút tiền trùng lặp khi mạng lag.
   - **Nhắc lịch (Reminders):** Session Reminder và Grace Period Reminder không sử dụng cron job định kỳ quét toàn bộ database mà chuyển sang kiến trúc **Delayed Outbox Pattern** (`SessionReminderDueEvent`, `GracePeriodClosingSoonEvent`), tối ưu hiệu năng và tránh rủi ro lock bảng.
 * **Tìm kiếm tiếng Việt:** `unaccent` (wrapper immutable `unaccent_immutable`) + trigram `pg_trgm` với GIN index trên `Services(Title, Description)`, `Subjects(Name)`, `Users(FullName, Email)`… — `toan` ra `toán`, `nguyen` ra `Nguyễn`, giữ nguyên sort/paging cũ. `EXPLAIN` xác nhận dùng index + timing trước/sau là follow-up staging (sandbox nghiệm thu không có PG nên chưa đo).

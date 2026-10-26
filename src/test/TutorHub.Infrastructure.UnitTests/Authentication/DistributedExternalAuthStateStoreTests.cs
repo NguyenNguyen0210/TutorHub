@@ -9,7 +9,7 @@ namespace TutorHub.Infrastructure.UnitTests.Authentication;
 
 /// <summary>
 /// the distributed state store must behave exactly like
-/// <see cref="MemoryExternalAuthStateStore"/> (single-use, provider-bound,
+/// <see cref="IExternalAuthStateStore"/> (single-use, provider-bound,
 /// fail-closed) while sharing entries across nodes via Redis.
 /// </summary>
 public class DistributedExternalAuthStateStoreTests

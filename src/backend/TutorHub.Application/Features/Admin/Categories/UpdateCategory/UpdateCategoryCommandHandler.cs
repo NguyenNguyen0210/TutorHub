@@ -1,79 +1,65 @@
-using MediatR;
-using Microsoft.EntityFrameworkCore;
-using TutorHub.Application.Common.Caching;
-using TutorHub.Application.Common.Exceptions;
-using TutorHub.Application.Common.Interfaces;
-using TutorHub.Application.Features.Categories.DTOs;
-
-namespace TutorHub.Application.Features.Admin.Categories.UpdateCategory;
-
-public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryCommand, AdminCategoryDto>
-{
-    private readonly IAppDbContext _context;
-    private readonly ISubjectCacheService _cache;
-    private readonly ICategoryCacheService _categoryCache;
-
-    public UpdateCategoryCommandHandler(
-        IAppDbContext context,
-        ISubjectCacheService? cache = null,
-        ICategoryCacheService? categoryCache = null)
-    {
-        _context = context;
-        _cache = cache ?? NoOpSubjectCacheService.Instance;
-        _categoryCache = categoryCache ?? NoOpCategoryCacheService.Instance;
-    }
-
-    public async Task<AdminCategoryDto> Handle(UpdateCategoryCommand request, CancellationToken cancellationToken)
-    {
-        var category = await _context.Categories
-            .Include(c => c.Subjects)
-            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
-
-        if (category == null)
-        {
-            throw new NotFoundException("Category", request.Id);
-        }
-
-        var normalizedName = request.Name.Trim();
-
-        // Case-insensitive uniqueness check
-        var duplicate = await _context.Categories
-            .AnyAsync(c => c.Id != request.Id && c.Name.ToLower() == normalizedName.ToLower(), cancellationToken);
-
-        if (duplicate)
-        {
-            throw new ConflictException("Category name already exists.");
-        }
-
-        category.Name = normalizedName;
-        category.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
-        category.IsActive = request.IsActive;
-
-        try
-        {
-            await _context.SaveChangesAsync(cancellationToken);
-            // Detail entries embed category state (CategoryName; deactivation
-            // flips detail to 404), so drop them for every subject in this
-            // category — Subjects is already loaded via Include above.
-            await _cache.InvalidateSubjectsAsync(category.Subjects.Select(s => s.Id), cancellationToken);
-            await _categoryCache.InvalidateCategoryAsync(category.Id, cancellationToken);
-        }
-        catch (DbUpdateException ex)
-        {
-            var innerMsg = ex.InnerException?.Message ?? string.Empty;
-            if (innerMsg.Contains("IX_Categories_Name") || innerMsg.Contains("23505"))
-            {
-                throw new ConflictException("Category name already exists.");
-            }
-            throw;
-        }
-
-        return new AdminCategoryDto(
-            category.Id,
-            category.Name,
-            category.Description,
-            category.IsActive,
-            category.Subjects.Count
-        );
-    }
-}
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Exceptions;
+using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Features.Categories.DTOs;
+
+namespace TutorHub.Application.Features.Admin.Categories.UpdateCategory;
+
+public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryCommand, AdminCategoryDto>
+{
+    private readonly IAppDbContext _context;
+
+    public UpdateCategoryCommandHandler(IAppDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<AdminCategoryDto> Handle(UpdateCategoryCommand request, CancellationToken cancellationToken)
+    {
+        var category = await _context.Categories
+            .Include(c => c.Subjects)
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+
+        if (category == null)
+        {
+            throw new NotFoundException("Category", request.Id);
+        }
+
+        var normalizedName = request.Name.Trim();
+
+        var exists = await _context.Categories
+            .AnyAsync(c => c.Id != request.Id && c.Name.ToLower() == normalizedName.ToLower(), cancellationToken);
+
+        if (exists)
+        {
+            throw new ConflictException("Category name already exists.");
+        }
+
+        category.Name = normalizedName;
+        category.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+        category.IsActive = request.IsActive;
+
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            var innerMsg = ex.InnerException?.Message ?? string.Empty;
+            if (innerMsg.Contains("IX_Categories_Name") || innerMsg.Contains("23505"))
+            {
+                throw new ConflictException("Category name already exists.");
+            }
+            throw;
+        }
+
+        return new AdminCategoryDto(
+            category.Id,
+            category.Name,
+            category.Description,
+            category.IsActive,
+            category.Subjects.Count
+        );
+    }
+}

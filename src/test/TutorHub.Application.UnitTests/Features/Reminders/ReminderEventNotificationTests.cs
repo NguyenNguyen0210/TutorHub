@@ -65,8 +65,6 @@ public class ReminderEventNotificationTests
         await handler.Handle(domainEvent, CancellationToken.None);
 
         // Assert
-        inboxMessages.Should().HaveCount(1);
-        inboxMessages[0].EventId.Should().Be(domainEvent.EventId);
 
         notifications.Should().HaveCount(2);
         notifications.Select(n => n.UserId).Should().Contain(new[] { studentUser.Id, tutorUser.Id });
@@ -126,8 +124,6 @@ public class ReminderEventNotificationTests
         await handler.Handle(domainEvent, CancellationToken.None);
 
         // Assert
-        inboxMessages.Should().HaveCount(1);
-        inboxMessages[0].EventId.Should().Be(domainEvent.EventId);
 
         notifications.Should().HaveCount(1);
         notifications[0].UserId.Should().Be(studentUser.Id);
@@ -142,14 +138,15 @@ public class ReminderEventNotificationTests
     {
         // Arrange
         var existingEventId = Guid.NewGuid();
-        var inboxMessages = new List<InboxMessage>
+        var users = new List<User>();
+        var inboxMessages = new List<InboxMessage>();
+        var notifications = new List<Notification>
         {
-            new() { Id = Guid.NewGuid(), ConsumerName = "NotificationConsumer", EventId = existingEventId, ProcessedAt = DateTime.UtcNow }
+            new() { Id = Guid.NewGuid(), EventId = existingEventId, UserId = Guid.NewGuid(), Title = "Old", Message = "Old", Type = "Test", DeduplicationKey = $"event:{existingEventId}" }
         };
-
-        var notifications = new List<Notification>();
         var emailDeliveries = new List<EmailDelivery>();
 
+        _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
         _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
@@ -173,7 +170,7 @@ public class ReminderEventNotificationTests
         await handler.Handle(domainEvent, CancellationToken.None);
 
         // Assert
-        notifications.Should().BeEmpty();
+        notifications.Should().HaveCount(1);
         emailDeliveries.Should().BeEmpty();
     }
 }

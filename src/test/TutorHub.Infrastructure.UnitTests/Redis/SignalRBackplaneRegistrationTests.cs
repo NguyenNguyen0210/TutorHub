@@ -11,23 +11,20 @@ using SignalRRedisOptions = Microsoft.AspNetCore.SignalR.StackExchangeRedis.Redi
 namespace TutorHub.Infrastructure.UnitTests.Redis;
 
 /// <summary>
-/// the SignalR Redis backplane is a startup wiring decision. Flag on registers
-/// the Redis lifetime manager with the TutorHub channel prefix and abortConnect=false
-/// semantics; flag off (or Redis disabled) keeps the default local lifetime manager.
+/// Redis backplane is always configured for SignalR.
 /// These tests never touch the network: registration is asserted via service
 /// descriptors and the parsed options, never by connecting.
 /// </summary>
 public class SignalRBackplaneRegistrationTests
 {
-    private static ServiceCollection BuildServices(bool redisEnabled, bool signalRFeature)
+    private static ServiceCollection BuildServices()
     {
         var settings = new Dictionary<string, string?>
         {
             ["ConnectionStrings:DefaultConnection"] =
                 "Host=localhost;Port=5432;Database=tutorhub;Username=tutorhub;Password=123456",
-            ["Redis:Enabled"] = redisEnabled.ToString(),
-            ["Redis:ConnectionString"] = "localhost:6379",
-            ["Redis:Features:SignalR"] = signalRFeature.ToString()
+            ["Redis:Enabled"] = "true",
+            ["Redis:ConnectionString"] = "localhost:6379"
         };
 
         var configuration = new ConfigurationBuilder()
@@ -36,7 +33,6 @@ public class SignalRBackplaneRegistrationTests
 
         var services = new ServiceCollection();
         services.AddLogging();
-        // A real host registers IConfiguration in the container; BindConfiguration relies on it.
         services.AddSingleton<IConfiguration>(configuration);
         services.AddInfrastructure(configuration, new StubHostEnvironment());
 
@@ -44,9 +40,9 @@ public class SignalRBackplaneRegistrationTests
     }
 
     [Fact]
-    public void SignalRFlagOn_RegistersRedisBackplaneAsEffectiveLifetimeManager()
+    public void RegistersRedisBackplaneAsEffectiveLifetimeManager()
     {
-        var services = BuildServices(redisEnabled: true, signalRFeature: true);
+        var services = BuildServices();
 
         var managers = services
             .Where(d => d.ServiceType == typeof(HubLifetimeManager<>))
@@ -59,41 +55,15 @@ public class SignalRBackplaneRegistrationTests
     }
 
     [Fact]
-    public void SignalRFlagOn_ConfiguresChannelPrefixAndKeepsConnectingInBackground()
+    public void ConfiguresChannelPrefixAndKeepsConnectingInBackground()
     {
-        var services = BuildServices(redisEnabled: true, signalRFeature: true);
+        var services = BuildServices();
         using var provider = services.BuildServiceProvider();
 
-        // Resolving the options only runs the configure callback (pure parse of the
-        // connection string). No connection is opened, so no redis is required.
         var options = provider.GetRequiredService<IOptions<SignalRRedisOptions>>().Value;
 
         options.Configuration.ChannelPrefix.ToString().Should().Be("TutorHub");
-        // The (string, configure) overload replaces the library default options object
-        // (which already has AbortOnConnectFail=false) with the parsed connection
-        // string (default true). Registration must re-assert false so a down redis
-        // never blocks boot and the backplane connects in the background instead.
         options.Configuration.AbortOnConnectFail.Should().BeFalse();
-    }
-
-    [Fact]
-    public void SignalRFlagOff_KeepsLocalLifetimeManager()
-    {
-        var services = BuildServices(redisEnabled: true, signalRFeature: false);
-
-        services.Should().NotContain(d =>
-            d.ServiceType == typeof(HubLifetimeManager<>) &&
-            d.ImplementationType == typeof(Microsoft.AspNetCore.SignalR.StackExchangeRedis.RedisHubLifetimeManager<>));
-    }
-
-    [Fact]
-    public void RedisDisabled_KeepsLocalLifetimeManager()
-    {
-        var services = BuildServices(redisEnabled: false, signalRFeature: true);
-
-        services.Should().NotContain(d =>
-            d.ServiceType == typeof(HubLifetimeManager<>) &&
-            d.ImplementationType == typeof(Microsoft.AspNetCore.SignalR.StackExchangeRedis.RedisHubLifetimeManager<>));
     }
 
     private sealed class StubHostEnvironment : IHostEnvironment

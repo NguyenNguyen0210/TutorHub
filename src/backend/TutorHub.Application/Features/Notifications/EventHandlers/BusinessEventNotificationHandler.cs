@@ -49,31 +49,24 @@ public class BusinessEventNotificationHandler :
     private readonly INotificationService? _notificationService;
     private readonly IClock _clock;
     private readonly ILogger<BusinessEventNotificationHandler> _logger;
+    private readonly IEmailSender? _emailSender;
 
     public BusinessEventNotificationHandler(
         IAppDbContext dbContext,
         IClock clock,
         ILogger<BusinessEventNotificationHandler> logger,
-        INotificationService? notificationService = null)
+        INotificationService? notificationService = null,
+        IEmailSender? emailSender = null)
     {
         _dbContext = dbContext;
         _clock = clock;
         _logger = logger;
         _notificationService = notificationService;
-    }
-
-    private async Task<bool> IsAlreadyProcessedAsync(Guid eventId, CancellationToken cancellationToken)
-    {
-        return await _dbContext.InboxMessages
-            .AnyAsync(i => i.ConsumerName == "NotificationConsumer" && i.EventId == eventId, cancellationToken);
+        _emailSender = emailSender;
     }
 
     public async Task Handle(TutorApplicationSubmittedEvent notification, CancellationToken cancellationToken)
     {
-        if (await IsAlreadyProcessedAsync(notification.EventId, cancellationToken))
-        {
-            return;
-        }
 
         var adminUserIds = await _dbContext.Users
             .Where(u => u.Role == UserRole.Admin)
@@ -650,11 +643,9 @@ public class BusinessEventNotificationHandler :
         IEnumerable<(Guid UserId, string Title, string Message, string DeepLink)> recipients,
         CancellationToken cancellationToken)
     {
-        const string consumerName = "NotificationConsumer";
-
-        // 1. Idempotency Check
-        var alreadyProcessed = await _dbContext.InboxMessages
-            .AnyAsync(i => i.ConsumerName == consumerName && i.EventId == domainEvent.EventId, cancellationToken);
+        // 1. Idempotency Check using Notifications table
+        var alreadyProcessed = await _dbContext.Notifications
+            .AnyAsync(n => n.EventId == domainEvent.EventId, cancellationToken);
 
         if (alreadyProcessed)
         {
@@ -714,15 +705,6 @@ public class BusinessEventNotificationHandler :
             }
         }
 
-        var inboxEntry = new InboxMessage
-        {
-            Id = Guid.NewGuid(),
-            ConsumerName = consumerName,
-            EventId = domainEvent.EventId,
-            ProcessedAt = now
-        };
-
-        _dbContext.InboxMessages.Add(inboxEntry);
         _dbContext.Notifications.AddRange(notificationsToInsert);
         _dbContext.EmailDeliveries.AddRange(emailDeliveriesToInsert);
 
@@ -730,11 +712,31 @@ public class BusinessEventNotificationHandler :
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException ex) when (IsInboxDuplicateViolation(ex))
+        catch (DbUpdateException ex) when (IsNotificationDuplicateViolation(ex))
         {
-            // Concurrent execution already handled this InboxMessage
             _logger.LogInformation("Concurrent duplicate delivery ignored for EventId {EventId}", domainEvent.EventId);
             return;
+        }
+
+        // Direct email dispatch if IEmailSender is injected
+        if (_emailSender != null)
+        {
+            foreach (var email in emailDeliveriesToInsert)
+            {
+                try
+                {
+                    await _emailSender.SendEmailAsync(email.ToEmail, email.Subject, email.Body, $"email:{email.Id}", cancellationToken);
+                    email.Status = EmailDeliveryStatus.Sent;
+                    email.SentAt = _clock.UtcNow;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Direct email delivery failed for {ToEmail}", email.ToEmail);
+                    email.Status = EmailDeliveryStatus.Failed;
+                    email.LastError = ex.Message;
+                }
+            }
+            await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
         // Best-effort Realtime Push (Note: SignalR failure never rolls back the committed state)
@@ -769,7 +771,7 @@ public class BusinessEventNotificationHandler :
         }
     }
 
-    private static bool IsInboxDuplicateViolation(DbUpdateException ex)
+    private static bool IsNotificationDuplicateViolation(DbUpdateException ex)
     {
         var inner = ex.InnerException;
         if (inner == null)
@@ -782,8 +784,9 @@ public class BusinessEventNotificationHandler :
         var sqlState = inner.GetType().GetProperty("SqlState")?.GetValue(inner) as string;
 
         var isUniqueViolationCode = sqlState == "23505" || msg.Contains("23505", StringComparison.OrdinalIgnoreCase);
-        var isTargetConstraint = string.Equals(constraintName, "IX_InboxMessages_ConsumerEvent", StringComparison.OrdinalIgnoreCase) ||
-                                 msg.Contains("IX_InboxMessages_ConsumerEvent", StringComparison.OrdinalIgnoreCase);
+        var isTargetConstraint = (constraintName != null && constraintName.Contains("Notifications", StringComparison.OrdinalIgnoreCase)) ||
+                                 msg.Contains("Notifications", StringComparison.OrdinalIgnoreCase) ||
+                                 msg.Contains("DeduplicationKey", StringComparison.OrdinalIgnoreCase);
 
         return isUniqueViolationCode && isTargetConstraint;
     }

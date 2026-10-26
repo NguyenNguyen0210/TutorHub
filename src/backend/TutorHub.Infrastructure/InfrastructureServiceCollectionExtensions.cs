@@ -261,124 +261,58 @@ public static class InfrastructureServiceCollectionExtensions
                 }
             });
 
-        if (redis.Enabled)
+        var redisConnStr = !string.IsNullOrWhiteSpace(redis.ConnectionString)
+            ? redis.ConnectionString
+            : "localhost:6379";
+
+        services.AddStackExchangeRedisCache(options =>
         {
-            if (string.IsNullOrWhiteSpace(redis.ConnectionString))
-            {
-                throw new InvalidOperationException(
-                    "Redis:Enabled is true but no Redis connection string is configured. " +
-                    "Set ConnectionStrings:Redis (ConnectionStrings__Redis) or Redis:ConnectionString.");
-            }
+            options.Configuration = redisConnStr;
+            options.InstanceName = redis.InstanceName;
+        });
 
-            services.AddStackExchangeRedisCache(options =>
-            {
-                options.Configuration = redis.ConnectionString;
-                options.InstanceName = redis.InstanceName;
-            });
-
-            services.AddSingleton<IConnectionMultiplexer>(_ =>
-            {
-                var multiplexerOptions = ConfigurationOptions.Parse(redis.ConnectionString);
-                multiplexerOptions.AbortOnConnectFail = false;
-                return ConnectionMultiplexer.Connect(multiplexerOptions);
-            });
-        }
+        services.AddSingleton<IConnectionMultiplexer>(_ =>
+        {
+            var multiplexerOptions = ConfigurationOptions.Parse(redisConnStr);
+            multiplexerOptions.AbortOnConnectFail = false;
+            return ConnectionMultiplexer.Connect(multiplexerOptions);
+        });
 
         services.TryAddSingleton(TimeProvider.System);
 
-        // ── Public catalog & profile cache: Redis when the Cache flag is ──
-        // on, pass-through otherwise (disabled mode behaves byte-identically to
-        // uncached code). IDistributedCache only exists when Redis is Enabled,
-        // so the real services require both flags.
-        if (redis.Enabled && redis.Features.Cache)
-        {
-            services.AddSingleton<ISubjectCacheService, SubjectCacheService>();
-            services.AddSingleton<ICategoryCacheService, CategoryCacheService>();
-            services.AddSingleton<IServiceDetailCacheService, ServiceDetailCacheService>();
-            services.AddSingleton<ITutorProfileCacheService, TutorProfileCacheService>();
-        }
-        else
-        {
-            services.AddSingleton<ISubjectCacheService>(_ => NoOpSubjectCacheService.Instance);
-            services.AddSingleton<ICategoryCacheService>(_ => NoOpCategoryCacheService.Instance);
-            services.AddSingleton<IServiceDetailCacheService>(_ => NoOpServiceDetailCacheService.Instance);
-            services.AddSingleton<ITutorProfileCacheService>(_ => NoOpTutorProfileCacheService.Instance);
-        }
+        // Core Redis-backed Cache Services
+        services.AddSingleton<IServiceDetailCacheService, ServiceDetailCacheService>();
+        services.AddSingleton<ITutorProfileCacheService, TutorProfileCacheService>();
 
         services.AddSingleton<IExternalAuthProvider, GoogleAuthProvider>();
 
-        // ── OAuth state: Redis when the OAuth flag is on, memory otherwise ──
-        // The distributed store needs IConnectionMultiplexer, which only exists
-        // when Redis is Enabled — consistent because the OAuth flag implies
-        // Enabled. A missing multiplexer fails fast on first resolve (lazy
-        // factory), not as a null at runtime.
-        if (redis.Enabled && redis.Features.OAuth)
+        // Redis-backed OAuth state
+        services.AddSingleton<IRedisStringCommands>(sp =>
         {
-            services.AddSingleton<IRedisStringCommands>(sp =>
-            {
-                var multiplexer = sp.GetService<IConnectionMultiplexer>()
-                    ?? throw new InvalidOperationException(
-                        "Redis:Features:OAuth is true but no IConnectionMultiplexer is registered. " +
-                        "OAuth state requires Redis:Enabled with a connection string.");
-                return new StackExchangeRedisStringCommands(multiplexer.GetDatabase());
-            });
-            services.AddSingleton<IExternalAuthStateStore, DistributedExternalAuthStateStore>();
-        }
-        else
-        {
-            services.AddSingleton<IExternalAuthStateStore, MemoryExternalAuthStateStore>();
-        }
+            var multiplexer = sp.GetService<IConnectionMultiplexer>()
+                ?? throw new InvalidOperationException("No IConnectionMultiplexer is registered.");
+            return new StackExchangeRedisStringCommands(multiplexer.GetDatabase());
+        });
+        services.AddSingleton<IExternalAuthStateStore, DistributedExternalAuthStateStore>();
 
-        // ── Cron lock: Redis when the CronLock flag is on, no-op otherwise ──
-        // The lock seam needs IConnectionMultiplexer, which only exists when
-        // Redis is Enabled — consistent because the CronLock flag implies
-        // Enabled. Disabled mode runs every tick locally (original behavior).
-        if (redis.Enabled && redis.Features.CronLock)
+        // Redis Distributed Cron Lock
+        services.AddSingleton<IRedisLockCommands>(sp =>
         {
-            services.AddSingleton<IRedisLockCommands>(sp =>
-            {
-                var multiplexer = sp.GetService<IConnectionMultiplexer>()
-                    ?? throw new InvalidOperationException(
-                        "Redis:Features:CronLock is true but no IConnectionMultiplexer is registered. " +
-                        "Cron locks require Redis:Enabled with a connection string.");
-                return new StackExchangeRedisLockCommands(multiplexer.GetDatabase());
-            });
-            services.AddSingleton<IRedisDistributedLock, RedisDistributedLock>();
-        }
-        else
-        {
-            services.AddSingleton<IRedisDistributedLock>(_ => NoOpRedisDistributedLock.Instance);
-        }
+            var multiplexer = sp.GetService<IConnectionMultiplexer>()
+                ?? throw new InvalidOperationException("No IConnectionMultiplexer is registered.");
+            return new StackExchangeRedisLockCommands(multiplexer.GetDatabase());
+        });
+        services.AddSingleton<IRedisDistributedLock, RedisDistributedLock>();
 
+        // Redis SignalR Backplane
         var signalR = services.AddSignalR();
-
-        // ── SignalR backplane: Redis when the SignalR flag is on, local otherwise ──
-        // The (connectionString, Action<RedisOptions>) overload is deliberate: the
-        // backplane owns its connection (opened lazily by the library, never Connect()ed
-        // here), so this block creates no ConnectionMultiplexer of its own — the shared Redis block above
-        // singleton above stays the single shared multiplexer for cache/OAuth. The 8.0.11
-        // overloads offer no DI-aware way to hand that multiplexer over (ConnectionFactory
-        // is a Func<TextWriter, Task<IConnectionMultiplexer>> with no service provider),
-        // and a dedicated backplane connection is the documented Microsoft topology.
-        // NOTE: this overload REPLACES the library default Configuration (which already
-        // has AbortOnConnectFail=false) with ConfigurationOptions.Parse output (default
-        // true), so re-assert AbortOnConnectFail=false here: Redis down must never block
-        // boot, and the lifetime manager then connects in the background. Hub group names
-        // are unchanged. Group sends already degrade (try/catch + warn in the
-        // SignalR*NotificationService senders); hub group joins degrade the same way.
-        if (redis.Enabled && redis.Features.SignalR)
+        signalR.AddStackExchangeRedis(redisConnStr, o =>
         {
-            signalR.AddStackExchangeRedis(redis.ConnectionString, o =>
-            {
-                // RedisChannel.Literal: the implicit string conversion is obsolete;
-                // the prefix is a fixed namespace, never a pattern.
-                o.Configuration.ChannelPrefix = RedisChannel.Literal("TutorHub");
-                o.Configuration.AbortOnConnectFail = false;
-            });
-        }
+            o.Configuration.ChannelPrefix = RedisChannel.Literal("TutorHub");
+            o.Configuration.AbortOnConnectFail = false;
+        });
 
-        // Worker scale-out: standalone TutorHub.Worker owns the jobs while API
-        // replicas scale job-free. Default true keeps single-host behavior unchanged.
+        // Background jobs: default true runs hosted services directly in the API host.
         if (configuration.GetValue("BackgroundJobs:Enabled", true))
         {
             // Background Workers

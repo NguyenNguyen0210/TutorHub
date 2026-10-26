@@ -19,8 +19,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Api.IntegrationTes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Infrastructure.UnitTests", "..\test\TutorHub.Infrastructure.UnitTests\TutorHub.Infrastructure.UnitTests.csproj", "{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TutorHub.Worker", "TutorHub.Worker\TutorHub.Worker.csproj", "{02243290-535A-49D6-890A-C18812697057}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -127,18 +125,6 @@ Global
 		{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}.Release|x64.Build.0 = Release|Any CPU
 		{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}.Release|x86.ActiveCfg = Release|Any CPU
 		{E9CA6A6D-CDEA-435B-A4B1-5330C5524219}.Release|x86.Build.0 = Release|Any CPU
-		{02243290-535A-49D6-890A-C18812697057}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{02243290-535A-49D6-890A-C18812697057}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{02243290-535A-49D6-890A-C18812697057}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{02243290-535A-49D6-890A-C18812697057}.Debug|x64.Build.0 = Debug|Any CPU
-		{02243290-535A-49D6-890A-C18812697057}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{02243290-535A-49D6-890A-C18812697057}.Debug|x86.Build.0 = Debug|Any CPU
-		{02243290-535A-49D6-890A-C18812697057}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{02243290-535A-49D6-890A-C18812697057}.Release|Any CPU.Build.0 = Release|Any CPU
-		{02243290-535A-49D6-890A-C18812697057}.Release|x64.ActiveCfg = Release|Any CPU
-		{02243290-535A-49D6-890A-C18812697057}.Release|x64.Build.0 = Release|Any CPU
-		{02243290-535A-49D6-890A-C18812697057}.Release|x86.ActiveCfg = Release|Any CPU
-		{02243290-535A-49D6-890A-C18812697057}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

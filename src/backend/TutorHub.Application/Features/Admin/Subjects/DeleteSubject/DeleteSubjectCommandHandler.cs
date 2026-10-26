@@ -1,62 +1,40 @@
-using MediatR;
-using Microsoft.EntityFrameworkCore;
-using TutorHub.Application.Common.Caching;
-using TutorHub.Application.Common.Exceptions;
-using TutorHub.Application.Common.Interfaces;
-
-namespace TutorHub.Application.Features.Admin.Subjects.DeleteSubject;
-
-public class DeleteSubjectCommandHandler : IRequestHandler<DeleteSubjectCommand, Unit>
-{
-    private readonly IAppDbContext _context;
-    private readonly ISubjectCacheService _cache;
-    private readonly ICategoryCacheService _categoryCache;
-
-    public DeleteSubjectCommandHandler(
-        IAppDbContext context,
-        ISubjectCacheService? cache = null,
-        ICategoryCacheService? categoryCache = null)
-    {
-        _context = context;
-        _cache = cache ?? NoOpSubjectCacheService.Instance;
-        _categoryCache = categoryCache ?? NoOpCategoryCacheService.Instance;
-    }
-
-    public async Task<Unit> Handle(DeleteSubjectCommand request, CancellationToken cancellationToken)
-    {
-        var subject = await _context.Subjects
-            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
-
-        if (subject == null)
-        {
-            throw new NotFoundException("Subject", request.Id);
-        }
-
-        // Safe Deletion: Check if associated with Tutors or Bookings
-        var hasTutors = await _context.TutorSubjects
-            .AnyAsync(ts => ts.SubjectId == request.Id, cancellationToken);
-
-        var hasBookings = await _context.Bookings
-            .AnyAsync(b => b.SubjectId == request.Id, cancellationToken);
-
-        if (hasTutors || hasBookings)
-        {
-            throw new ConflictException("Cannot delete subject that is currently associated with tutors or bookings. Please deactivate the subject instead.");
-        }
-
-        _context.Subjects.Remove(subject);
-
-        try
-        {
-            await _context.SaveChangesAsync(cancellationToken);
-            await _cache.InvalidateSubjectAsync(request.Id, cancellationToken);
-            await _categoryCache.InvalidateCategoriesAsync(cancellationToken);
-        }
-        catch (DbUpdateException)
-        {
-            throw new ConflictException("Cannot delete subject because it is referenced by other records.");
-        }
-
-        return Unit.Value;
-    }
-}
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Exceptions;
+using TutorHub.Application.Common.Interfaces;
+
+namespace TutorHub.Application.Features.Admin.Subjects.DeleteSubject;
+
+public class DeleteSubjectCommandHandler : IRequestHandler<DeleteSubjectCommand, Unit>
+{
+    private readonly IAppDbContext _context;
+
+    public DeleteSubjectCommandHandler(IAppDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Unit> Handle(DeleteSubjectCommand request, CancellationToken cancellationToken)
+    {
+        var subject = await _context.Subjects
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+
+        if (subject == null)
+        {
+            throw new NotFoundException("Subject", request.Id);
+        }
+
+        var hasTutors = await _context.TutorSubjects
+            .AnyAsync(ts => ts.SubjectId == request.Id, cancellationToken);
+
+        if (hasTutors)
+        {
+            throw new ConflictException("Cannot delete subject because it is referenced by one or more tutors. Deactivate the subject instead.");
+        }
+
+        _context.Subjects.Remove(subject);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Unit.Value;
+    }
+}
