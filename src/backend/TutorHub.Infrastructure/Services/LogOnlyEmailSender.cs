@@ -22,14 +22,14 @@ public class LogOnlyEmailSender : IEmailSender
         string toEmail,
         string subject,
         string body,
-        string? idempotencyKey = null,
+        string? correlationId = null,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(
-            "[DEV EMAIL DISPATCHED] To={ToEmail} | Subject=\"{Subject}\" | IdempotencyKey={IdempotencyKey}\n----- Email Content -----\n{Body}\n---------------------------",
+            "[DEV EMAIL DISPATCHED] To={ToEmail} | Subject=\"{Subject}\" | CorrelationId={CorrelationId}\n----- Email Content -----\n{Body}\n---------------------------",
             toEmail,
             subject,
-            idempotencyKey,
+            correlationId,
             body);
 
         return Task.CompletedTask;

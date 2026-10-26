@@ -27,7 +27,7 @@ public class MailKitEmailSender : IEmailSender
         string toEmail,
         string subject,
         string body,
-        string? idempotencyKey = null,
+        string? correlationId = null,
         CancellationToken cancellationToken = default)
     {
         var message = new MimeMessage();
@@ -35,6 +35,16 @@ public class MailKitEmailSender : IEmailSender
         message.From.Add(new MailboxAddress(fromName, _options.FromAddress));
         message.To.Add(MailboxAddress.Parse(toEmail));
         message.Subject = subject;
+
+        if (!string.IsNullOrWhiteSpace(correlationId))
+        {
+            message.Headers.Add("X-Correlation-ID", correlationId);
+            var cleanId = correlationId.Replace("email:", "").Trim();
+            if (!string.IsNullOrWhiteSpace(cleanId))
+            {
+                message.MessageId = $"<{cleanId}@tutorhub.vn>";
+            }
+        }
 
         var bodyBuilder = new BodyBuilder();
         if (body.TrimStart().StartsWith("<") && (body.Contains("</html>") || body.Contains("</div>") || body.Contains("</p>")))
@@ -78,9 +88,9 @@ public class MailKitEmailSender : IEmailSender
         await client.DisconnectAsync(true, cancellationToken);
 
         _logger.LogInformation(
-            "Sent email through MailKit SMTP: To={ToEmail}, Subject=\"{Subject}\", IdempotencyKey={IdempotencyKey}",
+            "Sent email through MailKit SMTP: To={ToEmail}, Subject=\"{Subject}\", CorrelationId={CorrelationId}",
             toEmail,
             subject,
-            idempotencyKey);
+            correlationId);
     }
 }

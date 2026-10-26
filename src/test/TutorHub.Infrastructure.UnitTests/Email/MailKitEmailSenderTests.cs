@@ -41,7 +41,7 @@ public class MailKitEmailSenderTests
             () => _smtpClientMock.Object);
 
         // Act
-        await sender.SendEmailAsync("student@test.com", "Test Subject", "Hello World!", "idemp-1");
+        await sender.SendEmailAsync("student@test.com", "Test Subject", "Hello World!", "corr-123");
 
         // Assert
         _smtpClientMock.Verify(c => c.ConnectAsync("smtp.test.com", 587, SecureSocketOptions.StartTls, It.IsAny<CancellationToken>()), Times.Once);
@@ -54,6 +54,8 @@ public class MailKitEmailSenderTests
         capturedMessage.From.Mailboxes.Single().Address.Should().Be("noreply@tutorhub.vn");
         capturedMessage.Subject.Should().Be("Test Subject");
         capturedMessage.TextBody.Should().Be("Hello World!");
+        capturedMessage.Headers["X-Correlation-ID"].Should().Be("corr-123");
+        capturedMessage.MessageId.Should().Be("corr-123@tutorhub.vn");
     }
 
     [Fact]
