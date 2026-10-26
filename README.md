@@ -73,7 +73,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 │  - CQRS Commands & Queries (MediatR)  ││  - PostgreSQL 16 (EF Core 8)  │
 │  - FluentValidation Pipeline          ││  - VNPay SHA-512 Integration  │
 │  - Domain Event Handlers              ││  - S3 / Cloudflare R2 Storage │
-│  - Transactional Outbox Pattern       ││  - 4 Background Workers       │
+│  - Transactional Outbox Pattern       ││  - 5 Background Jobs          │
 └───────────────────┬───────────────────┘└───────────────┬───────────────┘
                     │                                    │
                     └─────────────────┬──────────────────┘
