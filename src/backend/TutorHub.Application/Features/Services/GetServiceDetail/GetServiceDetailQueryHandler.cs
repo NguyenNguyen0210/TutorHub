@@ -1,6 +1,7 @@
 using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Services.DTOs;
@@ -11,14 +12,50 @@ namespace TutorHub.Application.Features.Services.GetServiceDetail;
 public class GetServiceDetailQueryHandler : IRequestHandler<GetServiceDetailQuery, ServiceDetailDto>
 {
     private readonly IAppDbContext _context;
+    private readonly IServiceDetailCacheService _cache;
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    public GetServiceDetailQueryHandler(IAppDbContext context)
+    public GetServiceDetailQueryHandler(IAppDbContext context, IServiceDetailCacheService? cache = null)
     {
         _context = context;
+        _cache = cache ?? NoOpServiceDetailCacheService.Instance;
     }
 
     public async Task<ServiceDetailDto> Handle(GetServiceDetailQuery request, CancellationToken cancellationToken)
+    {
+        // 1. Try public cache first
+        var cached = await _cache.GetServiceDetailAsync(
+            request.Id,
+            async () =>
+            {
+                try
+                {
+                    return await LoadFromDbAsync(request.Id, null, cancellationToken);
+                }
+                catch (NotFoundException)
+                {
+                    return null;
+                }
+            },
+            cancellationToken);
+
+        // 2. If cached is present, verify caller is not the owner
+        if (cached is not null)
+        {
+            if (request.CurrentUserId.HasValue && cached.Tutor.UserId == request.CurrentUserId.Value)
+            {
+                // Owner preview bypasses cache to get live edits/metrics
+                return await LoadFromDbAsync(request.Id, request.CurrentUserId, cancellationToken);
+            }
+
+            return cached;
+        }
+
+        // 3. Fallback to DB (e.g. if draft owned by current user or not found)
+        return await LoadFromDbAsync(request.Id, request.CurrentUserId, cancellationToken);
+    }
+
+    private async Task<ServiceDetailDto> LoadFromDbAsync(Guid serviceId, Guid? currentUserId, CancellationToken cancellationToken)
     {
         var service = await _context.Services
             .AsNoTracking()
@@ -27,32 +64,32 @@ public class GetServiceDetailQueryHandler : IRequestHandler<GetServiceDetailQuer
             .Include(s => s.TutorProfile)
                 .ThenInclude(tp => tp.User)
                     .ThenInclude(u => u.TutorApplications)
-            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Id == serviceId, cancellationToken);
 
         if (service == null)
         {
-            throw new NotFoundException("Service", request.Id);
+            throw new NotFoundException("Service", serviceId);
         }
 
         // Visibility check: Published vs Owner Preview / Admin
-        bool isOwner = request.CurrentUserId.HasValue && service.TutorProfile.UserId == request.CurrentUserId.Value;
+        bool isOwner = currentUserId.HasValue && service.TutorProfile.UserId == currentUserId.Value;
         if (!isOwner)
         {
             if (service.Status != ServiceStatus.Published)
             {
-                throw new NotFoundException("Service", request.Id);
+                throw new NotFoundException("Service", serviceId);
             }
 
             if (service.TutorProfile.User.Status != AccountStatus.Active)
             {
-                throw new NotFoundException("Service", request.Id);
+                throw new NotFoundException("Service", serviceId);
             }
 
             bool isApproved = service.TutorProfile.User.TutorApplications
                 .Any(a => a.Status == TutorApplicationStatus.Approved);
             if (!isApproved)
             {
-                throw new NotFoundException("Service", request.Id);
+                throw new NotFoundException("Service", serviceId);
             }
         }
 

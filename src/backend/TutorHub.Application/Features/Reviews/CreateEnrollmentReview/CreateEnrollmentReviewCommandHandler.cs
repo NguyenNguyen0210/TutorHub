@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
@@ -18,17 +19,23 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
     private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
     private readonly IOptions<ReviewOptions>? _reviewOptions;
+    private readonly IServiceDetailCacheService _serviceCache;
+    private readonly ITutorProfileCacheService _tutorCache;
 
     public CreateEnrollmentReviewCommandHandler(
         IAppDbContext context,
         IClock clock,
         ICurrentUserService currentUserService,
-        IOptions<ReviewOptions>? reviewOptions = null)
+        IOptions<ReviewOptions>? reviewOptions = null,
+        IServiceDetailCacheService? serviceCache = null,
+        ITutorProfileCacheService? tutorCache = null)
     {
         _context = context;
         _clock = clock;
         _currentUserService = currentUserService;
         _reviewOptions = reviewOptions;
+        _serviceCache = serviceCache ?? NoOpServiceDetailCacheService.Instance;
+        _tutorCache = tutorCache ?? NoOpTutorProfileCacheService.Instance;
     }
 
     public async Task<ReviewDto> Handle(CreateEnrollmentReviewCommand request, CancellationToken cancellationToken)
@@ -124,6 +131,8 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
+            await _serviceCache.InvalidateServiceDetailAsync(enrollment.ServiceId, cancellationToken);
+            await _tutorCache.InvalidateTutorProfileAsync(enrollment.TutorProfileId, cancellationToken);
         }
         catch (DbUpdateException ex)
         {

@@ -286,17 +286,23 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.TryAddSingleton(TimeProvider.System);
 
-        // ── Subject/platform-setting cache: Redis when the Cache flag is ──
+        // ── Public catalog & profile cache: Redis when the Cache flag is ──
         // on, pass-through otherwise (disabled mode behaves byte-identically to
         // uncached code). IDistributedCache only exists when Redis is Enabled,
         // so the real services require both flags.
         if (redis.Enabled && redis.Features.Cache)
         {
             services.AddSingleton<ISubjectCacheService, SubjectCacheService>();
+            services.AddSingleton<ICategoryCacheService, CategoryCacheService>();
+            services.AddSingleton<IServiceDetailCacheService, ServiceDetailCacheService>();
+            services.AddSingleton<ITutorProfileCacheService, TutorProfileCacheService>();
         }
         else
         {
             services.AddSingleton<ISubjectCacheService>(_ => NoOpSubjectCacheService.Instance);
+            services.AddSingleton<ICategoryCacheService>(_ => NoOpCategoryCacheService.Instance);
+            services.AddSingleton<IServiceDetailCacheService>(_ => NoOpServiceDetailCacheService.Instance);
+            services.AddSingleton<ITutorProfileCacheService>(_ => NoOpTutorProfileCacheService.Instance);
         }
 
         services.AddSingleton<IExternalAuthProvider, GoogleAuthProvider>();

@@ -10,11 +10,16 @@ public class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategoryComman
 {
     private readonly IAppDbContext _context;
     private readonly ISubjectCacheService _cache;
+    private readonly ICategoryCacheService _categoryCache;
 
-    public DeleteCategoryCommandHandler(IAppDbContext context, ISubjectCacheService? cache = null)
+    public DeleteCategoryCommandHandler(
+        IAppDbContext context,
+        ISubjectCacheService? cache = null,
+        ICategoryCacheService? categoryCache = null)
     {
         _context = context;
         _cache = cache ?? NoOpSubjectCacheService.Instance;
+        _categoryCache = categoryCache ?? NoOpCategoryCacheService.Instance;
     }
 
     public async Task<Unit> Handle(DeleteCategoryCommand request, CancellationToken cancellationToken)
@@ -43,6 +48,7 @@ public class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategoryComman
             // the category still contains subjects. The list bump is kept so
             // any cached listing mentioning the category name refreshes.
             await _cache.InvalidateSubjectListsAsync(cancellationToken);
+            await _categoryCache.InvalidateCategoryAsync(category.Id, cancellationToken);
         }
         catch (DbUpdateException)
         {

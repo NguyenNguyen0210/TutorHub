@@ -10,11 +10,16 @@ public class DeleteSubjectCommandHandler : IRequestHandler<DeleteSubjectCommand,
 {
     private readonly IAppDbContext _context;
     private readonly ISubjectCacheService _cache;
+    private readonly ICategoryCacheService _categoryCache;
 
-    public DeleteSubjectCommandHandler(IAppDbContext context, ISubjectCacheService? cache = null)
+    public DeleteSubjectCommandHandler(
+        IAppDbContext context,
+        ISubjectCacheService? cache = null,
+        ICategoryCacheService? categoryCache = null)
     {
         _context = context;
         _cache = cache ?? NoOpSubjectCacheService.Instance;
+        _categoryCache = categoryCache ?? NoOpCategoryCacheService.Instance;
     }
 
     public async Task<Unit> Handle(DeleteSubjectCommand request, CancellationToken cancellationToken)
@@ -45,6 +50,7 @@ public class DeleteSubjectCommandHandler : IRequestHandler<DeleteSubjectCommand,
         {
             await _context.SaveChangesAsync(cancellationToken);
             await _cache.InvalidateSubjectAsync(request.Id, cancellationToken);
+            await _categoryCache.InvalidateCategoriesAsync(cancellationToken);
         }
         catch (DbUpdateException)
         {

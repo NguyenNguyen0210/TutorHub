@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Tutors.DTOs;
@@ -11,11 +12,16 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ITutorProfileCacheService _tutorCache;
 
-    public UpdateMyProfileCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
+    public UpdateMyProfileCommandHandler(
+        IAppDbContext context,
+        ICurrentUserService currentUserService,
+        ITutorProfileCacheService? tutorCache = null)
     {
         _context = context;
         _currentUserService = currentUserService;
+        _tutorCache = tutorCache ?? NoOpTutorProfileCacheService.Instance;
     }
 
     public async Task<TutorMyProfileDto> Handle(UpdateMyProfileCommand request, CancellationToken cancellationToken)
@@ -95,6 +101,7 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+        await _tutorCache.InvalidateTutorProfileAsync(tutor.Id, cancellationToken);
 
         var latestApplication = await _context.TutorApplications
             .AsNoTracking()

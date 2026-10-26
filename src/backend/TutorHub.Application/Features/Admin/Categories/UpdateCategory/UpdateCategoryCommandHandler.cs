@@ -11,11 +11,16 @@ public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryComman
 {
     private readonly IAppDbContext _context;
     private readonly ISubjectCacheService _cache;
+    private readonly ICategoryCacheService _categoryCache;
 
-    public UpdateCategoryCommandHandler(IAppDbContext context, ISubjectCacheService? cache = null)
+    public UpdateCategoryCommandHandler(
+        IAppDbContext context,
+        ISubjectCacheService? cache = null,
+        ICategoryCacheService? categoryCache = null)
     {
         _context = context;
         _cache = cache ?? NoOpSubjectCacheService.Instance;
+        _categoryCache = categoryCache ?? NoOpCategoryCacheService.Instance;
     }
 
     public async Task<AdminCategoryDto> Handle(UpdateCategoryCommand request, CancellationToken cancellationToken)
@@ -51,6 +56,7 @@ public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryComman
             // flips detail to 404), so drop them for every subject in this
             // category — Subjects is already loaded via Include above.
             await _cache.InvalidateSubjectsAsync(category.Subjects.Select(s => s.Id), cancellationToken);
+            await _categoryCache.InvalidateCategoryAsync(category.Id, cancellationToken);
         }
         catch (DbUpdateException ex)
         {

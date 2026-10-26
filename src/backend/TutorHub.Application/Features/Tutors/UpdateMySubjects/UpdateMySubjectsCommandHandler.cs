@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Tutors.DTOs;
@@ -11,11 +12,16 @@ public class UpdateMySubjectsCommandHandler : IRequestHandler<UpdateMySubjectsCo
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ITutorProfileCacheService _tutorCache;
 
-    public UpdateMySubjectsCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
+    public UpdateMySubjectsCommandHandler(
+        IAppDbContext context,
+        ICurrentUserService currentUserService,
+        ITutorProfileCacheService? tutorCache = null)
     {
         _context = context;
         _currentUserService = currentUserService;
+        _tutorCache = tutorCache ?? NoOpTutorProfileCacheService.Instance;
     }
 
     public async Task<IReadOnlyList<TutorSubjectDto>> Handle(UpdateMySubjectsCommand request, CancellationToken cancellationToken)
@@ -76,6 +82,7 @@ public class UpdateMySubjectsCommandHandler : IRequestHandler<UpdateMySubjectsCo
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+        await _tutorCache.InvalidateTutorProfileAsync(tutor.Id, cancellationToken);
 
         // Fetch refreshed subjects with metadata
         var updatedSubjects = await _context.TutorSubjects
