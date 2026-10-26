@@ -51,20 +51,18 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
             },
             cancellationToken);
 
-        if (cached is not null)
-        {
-            // If the logged-in user is the owner, load fresh from DB to see unpublished services / inactive subjects
-            if (currentUserId.HasValue && cached.UserId == currentUserId.Value)
-            {
-                return await LoadFromDbAsync(request.TutorProfileId, isOwner: true, isAdmin: false, cancellationToken);
-            }
+        // 2. If cached and caller is NOT the owner -> return cached immediately
+        bool isOwner = cached != null
+            ? (currentUserId.HasValue && cached.UserId == currentUserId.Value)
+            : (currentUserId.HasValue && await _context.TutorProfiles.AnyAsync(t => t.Id == request.TutorProfileId && t.UserId == currentUserId.Value, cancellationToken));
 
+        if (cached is not null && !isOwner)
+        {
             return cached;
         }
 
-        // 2. Cache miss / not eligible for public caching
-        var isOwner = currentUserId.HasValue && await _context.TutorProfiles.AnyAsync(t => t.Id == request.TutorProfileId && t.UserId == currentUserId.Value, cancellationToken);
-        return await LoadFromDbAsync(request.TutorProfileId, isOwner, isAdmin, cancellationToken);
+        // 3. Fallback to DB (Owner preview for unlisted services / pending profiles, or cache miss)
+        return await LoadFromDbAsync(request.TutorProfileId, isOwner, isAdmin: false, cancellationToken);
     }
 
     private async Task<TutorProfileDto> LoadFromDbAsync(Guid tutorProfileId, bool isOwner, bool isAdmin, CancellationToken cancellationToken)
