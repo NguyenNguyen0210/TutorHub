@@ -29,6 +29,7 @@ public class User
     // Profiles
     public TutorProfile? TutorProfile { get; set; }
     public StudentProfile? StudentProfile { get; set; }
+    public Wallet? Wallet { get; set; }
     public ICollection<TutorApplication> TutorApplications { get; set; } = new List<TutorApplication>();
 
     /// <summary>

@@ -32,7 +32,7 @@ public class GetMyStudentWalletQueryHandler : IRequestHandler<GetMyStudentWallet
 
         var wallet = await _context.StudentWallets
             .AsNoTracking()
-            .FirstOrDefaultAsync(w => w.StudentProfileId == student.Id, cancellationToken);
+            .FirstOrDefaultAsync(w => (w.UserId == userId || w.StudentProfileId == student.Id), cancellationToken);
 
         if (wallet == null)
         {
@@ -50,7 +50,8 @@ public class GetMyStudentWalletQueryHandler : IRequestHandler<GetMyStudentWallet
         return new StudentWalletDto
         {
             Id = wallet.Id,
-            StudentProfileId = wallet.StudentProfileId,
+            StudentProfileId = wallet.StudentProfileId ?? student.Id,
+            UserId = wallet.UserId,
             AvailableBalance = wallet.AvailableBalance,
             WithdrawingBalance = wallet.WithdrawingBalance,
             TotalBalance = wallet.TotalBalance,

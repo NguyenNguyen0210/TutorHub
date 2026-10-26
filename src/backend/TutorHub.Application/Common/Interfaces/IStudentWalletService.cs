@@ -4,7 +4,7 @@ namespace TutorHub.Application.Common.Interfaces;
 
 public interface IStudentWalletService
 {
-    Task<StudentWallet> GetOrCreateWalletAsync(Guid studentProfileId, DateTime now, CancellationToken cancellationToken = default);
+    Task<Wallet> GetOrCreateWalletAsync(Guid studentProfileId, DateTime now, CancellationToken cancellationToken = default);
 
     Task CreditRefundAsync(
         Guid studentProfileId,

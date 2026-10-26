@@ -2,20 +2,22 @@ using TutorHub.Domain.Enums;
 
 namespace TutorHub.Domain.Entities;
 
-public class TutorWithdrawal
+public class Withdrawal
 {
     public Guid Id { get; set; }
 
     public Guid WalletId { get; set; }
-    public TutorWallet Wallet { get; set; } = default!;
+    public Wallet Wallet { get; set; } = default!;
+
+    public Guid StudentWalletId { get => WalletId; set => WalletId = value; }
+    public Wallet StudentWallet { get => Wallet; set => Wallet = value; }
     public Guid TutorWalletId { get => WalletId; set => WalletId = value; }
-    public TutorWallet TutorWallet { get => Wallet; set => Wallet = value; }
+    public Wallet TutorWallet { get => Wallet; set => Wallet = value; }
 
     public decimal Amount { get; set; }
 
     public WithdrawalStatus Status { get; set; } = WithdrawalStatus.Pending;
 
-    // Immutable snapshot of tutor's payout destination
     public string BankName { get; set; } = string.Empty;
     public string? BankCode { get; set; }
     public string AccountNumber { get; set; } = string.Empty;
@@ -34,7 +36,6 @@ public class TutorWithdrawal
 
     public string? FailureReason { get; set; }
 
-    // Domain State Machine Methods (Strict Linear State Transitions)
     public void MarkProcessing(Guid adminId)
     {
         if (Status != WithdrawalStatus.Pending)
@@ -80,3 +81,4 @@ public class TutorWithdrawal
         ProcessedByAdminId = adminId;
     }
 }
+

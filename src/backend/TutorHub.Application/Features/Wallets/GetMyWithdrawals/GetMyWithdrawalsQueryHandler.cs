@@ -23,20 +23,31 @@ public class GetMyWithdrawalsQueryHandler : IRequestHandler<GetMyWithdrawalsQuer
     {
         var userId = _currentUserService.UserIdOrThrow();
 
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+        if (user == null)
+        {
+            throw new UnauthorizedException("User not found.");
+        }
+
         var tutor = await _context.TutorProfiles
             .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
-        if (tutor == null)
-        {
-            throw new ForbiddenException("Only registered tutors can access withdrawal history.");
-        }
+        var student = await _context.StudentProfiles
+            .FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken);
+
+        var tutorId = tutor?.Id ?? Guid.Empty;
+        var studentId = student?.Id ?? Guid.Empty;
 
         var query = _context.Withdrawals
             .AsNoTracking()
-            .Include(w => w.Wallet).ThenInclude(wall => wall.TutorProfile).ThenInclude(tp => tp.User)
+            .Include(w => w.Wallet).ThenInclude(wall => wall.User)
             .Include(w => w.ProcessingStartedByAdmin)
             .Include(w => w.ProcessedByAdmin)
-            .Where(w => w.Wallet.TutorProfileId == tutor.Id)
+            .Where(w => w.Wallet.UserId == userId ||
+                        (w.Wallet.TutorProfileId != null && w.Wallet.TutorProfileId == tutorId) ||
+                        (w.Wallet.StudentProfileId != null && w.Wallet.StudentProfileId == studentId))
             .AsQueryable();
 
         if (request.Status.HasValue)
@@ -57,8 +68,8 @@ public class GetMyWithdrawalsQueryHandler : IRequestHandler<GetMyWithdrawalsQuer
                 w.Id,
                 w.WalletId,
                 w.Wallet.TutorProfileId,
-                w.Wallet.TutorProfile.User.FullName,
-                w.Wallet.TutorProfile.User.Email,
+                w.Wallet.User != null ? w.Wallet.User.FullName : (w.Wallet.TutorProfile != null && w.Wallet.TutorProfile.User != null ? w.Wallet.TutorProfile.User.FullName : string.Empty),
+                w.Wallet.User != null ? w.Wallet.User.Email : (w.Wallet.TutorProfile != null && w.Wallet.TutorProfile.User != null ? w.Wallet.TutorProfile.User.Email : string.Empty),
                 w.Amount,
                 w.Status,
                 w.BankName,
@@ -74,7 +85,11 @@ public class GetMyWithdrawalsQueryHandler : IRequestHandler<GetMyWithdrawalsQuer
                 w.ProcessedByAdminId,
                 w.ProcessedByAdmin != null ? w.ProcessedByAdmin.FullName : null,
                 w.FailureReason
-            ))
+            )
+            {
+                UserId = w.Wallet.UserId,
+                StudentProfileId = w.Wallet.StudentProfileId
+            })
             .ToListAsync(cancellationToken);
 
         return new PagedResult<WithdrawalDto>(

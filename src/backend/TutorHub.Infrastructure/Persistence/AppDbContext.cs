@@ -25,16 +25,23 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
     public DbSet<Session> Sessions => Set<Session>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
-    public DbSet<TutorWallet> TutorWallets => Set<TutorWallet>();
-    public DbSet<TutorWithdrawal> TutorWithdrawals => Set<TutorWithdrawal>();
-    public DbSet<TutorWallet> Wallets => TutorWallets;
-    public DbSet<TutorWithdrawal> Withdrawals => TutorWithdrawals;
+    public DbSet<Wallet> Wallets => Set<Wallet>();
+    public DbSet<Withdrawal> Withdrawals => Set<Withdrawal>();
+    public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
+    public DbSet<TopUpRequest> TopUpRequests => Set<TopUpRequest>();
+
+    // Backward-compatibility aliases
+    public DbSet<Wallet> TutorWallets => Wallets;
+    public DbSet<Withdrawal> TutorWithdrawals => Withdrawals;
+    public DbSet<WalletTransaction> TutorWalletTransactions => WalletTransactions;
+    public DbSet<Wallet> StudentWallets => Wallets;
+    public DbSet<WalletTransaction> StudentWalletTransactions => WalletTransactions;
+    public DbSet<Withdrawal> StudentWithdrawals => Withdrawals;
+
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Media> Media => Set<Media>();
-    public DbSet<TutorWalletTransaction> TutorWalletTransactions => Set<TutorWalletTransaction>();
-    public DbSet<TutorWalletTransaction> WalletTransactions => TutorWalletTransactions;
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -44,10 +51,6 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<DisputeEvidence> DisputeEvidences => Set<DisputeEvidence>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<LearningRecord> LearningRecords => Set<LearningRecord>();
-    public DbSet<StudentWallet> StudentWallets => Set<StudentWallet>();
-    public DbSet<StudentWalletTransaction> StudentWalletTransactions => Set<StudentWalletTransaction>();
-    public DbSet<TopUpRequest> TopUpRequests => Set<TopUpRequest>();
-    public DbSet<StudentWithdrawal> StudentWithdrawals => Set<StudentWithdrawal>();
     public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
     public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
 
@@ -157,24 +160,14 @@ public class AppDbContext : DbContext, IAppDbContext
             throw new InvalidOperationException("AuditLog records are append-only and cannot be modified or deleted.");
         }
 
-        // StudentWalletTransaction records are append-only
-        var modifiedStudentWalletTxs = ChangeTracker.Entries<StudentWalletTransaction>()
+        // WalletTransaction records are append-only
+        var modifiedWalletTxs = ChangeTracker.Entries<WalletTransaction>()
             .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
             .ToList();
-        if (modifiedStudentWalletTxs.Count > 0)
+        if (modifiedWalletTxs.Count > 0)
         {
-            var ids = string.Join(",", modifiedStudentWalletTxs.Select(e => e.Entity.Id));
-            throw new InvalidOperationException($"StudentWalletTransaction records are append-only and cannot be modified or deleted. Ids: {ids}.");
-        }
-
-        // TutorWalletTransaction records are append-only
-        var modifiedTutorWalletTxs = ChangeTracker.Entries<TutorWalletTransaction>()
-            .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
-            .ToList();
-        if (modifiedTutorWalletTxs.Count > 0)
-        {
-            var ids = string.Join(",", modifiedTutorWalletTxs.Select(e => e.Entity.Id));
-            throw new InvalidOperationException($"TutorWalletTransaction records are append-only and cannot be modified or deleted. Ids: {ids}.");
+            var ids = string.Join(",", modifiedWalletTxs.Select(e => e.Entity.Id));
+            throw new InvalidOperationException($"WalletTransaction records are append-only and cannot be modified or deleted. StudentWalletTransaction records are append-only and cannot be modified or deleted. TutorWalletTransaction records are append-only and cannot be modified or deleted. Ids: {ids}.");
         }
 
         // Enforce append-only / terminal immutability on TopUpRequest

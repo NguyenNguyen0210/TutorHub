@@ -76,8 +76,8 @@ public class PayBookingFromWalletCommandHandler : IRequestHandler<PayBookingFrom
             }
 
             // 4. Concurrency lock on StudentWallet (FOR UPDATE)
-            var wallet = await _context.StudentWallets
-                .FromSqlInterpolated($"SELECT * FROM \"StudentWallets\" WHERE \"StudentProfileId\" = {booking.StudentProfileId} FOR UPDATE")
+            var wallet = await _context.Wallets
+                .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"StudentProfileId\" = {booking.StudentProfileId} OR \"UserId\" = {userId} FOR UPDATE")
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (wallet == null || wallet.AvailableBalance < booking.TotalPrice)
@@ -108,7 +108,7 @@ public class PayBookingFromWalletCommandHandler : IRequestHandler<PayBookingFrom
                 CreatedByUserId = userId,
                 CreatedAt = now
             };
-            _context.StudentWalletTransactions.Add(studentLedger);
+            _context.WalletTransactions.Add(studentLedger);
 
             // 7. Transfer to Platform Holding: Create or update Booking Transaction
             var paymentTx = await _context.GetPaymentTransactionAsync(booking.Id, cancellationToken);

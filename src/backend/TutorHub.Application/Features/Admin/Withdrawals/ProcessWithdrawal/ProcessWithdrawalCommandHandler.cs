@@ -29,7 +29,7 @@ public class ProcessWithdrawalCommandHandler : IRequestHandler<ProcessWithdrawal
         var userId = _currentUserService.UserIdOrThrow();
 
         var withdrawal = await _context.Withdrawals
-            .Include(w => w.Wallet).ThenInclude(wall => wall.TutorProfile).ThenInclude(tp => tp.User)
+            .Include(w => w.Wallet).ThenInclude(wall => wall.User)
             .Include(w => w.ProcessingStartedByAdmin)
             .Include(w => w.ProcessedByAdmin)
             .FirstOrDefaultAsync(w => w.Id == request.WithdrawalId, cancellationToken);
@@ -69,8 +69,8 @@ public class ProcessWithdrawalCommandHandler : IRequestHandler<ProcessWithdrawal
             Id: withdrawal.Id,
             WalletId: withdrawal.WalletId,
             TutorProfileId: withdrawal.Wallet.TutorProfileId,
-            TutorName: withdrawal.Wallet.TutorProfile.User.FullName,
-            TutorEmail: withdrawal.Wallet.TutorProfile.User.Email,
+            TutorName: withdrawal.Wallet.User?.FullName ?? withdrawal.Wallet.TutorProfile?.User?.FullName ?? string.Empty,
+            TutorEmail: withdrawal.Wallet.User?.Email ?? withdrawal.Wallet.TutorProfile?.User?.Email ?? string.Empty,
             Amount: withdrawal.Amount,
             Status: withdrawal.Status,
             BankName: withdrawal.BankName,

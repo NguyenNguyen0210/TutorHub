@@ -31,8 +31,8 @@ public class AdminCompleteStudentWithdrawalCommandHandler : IRequestHandler<Admi
         try
         {
             var withdrawal = await _context.StudentWithdrawals
-                .Include(w => w.StudentWallet)
-                    .ThenInclude(sw => sw.StudentProfile)
+                .Include(w => w.Wallet)
+                    .ThenInclude(sw => sw.User)
                 .FirstOrDefaultAsync(w => w.Id == request.WithdrawalId, cancellationToken);
 
             if (withdrawal == null)
@@ -42,7 +42,7 @@ public class AdminCompleteStudentWithdrawalCommandHandler : IRequestHandler<Admi
 
             // Concurrency lock on student wallet
             var wallet = await _context.StudentWallets
-                .FromSqlInterpolated($"SELECT * FROM \"StudentWallets\" WHERE \"Id\" = {withdrawal.StudentWalletId} FOR UPDATE")
+                .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"Id\" = {withdrawal.WalletId} FOR UPDATE")
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (wallet == null)
@@ -56,8 +56,8 @@ public class AdminCompleteStudentWithdrawalCommandHandler : IRequestHandler<Admi
             // Emit business event
             _context.AddOutboxMessage(new StudentWithdrawalCompletedEvent(
                 withdrawal.Id,
-                withdrawal.StudentWallet.StudentProfileId,
-                withdrawal.StudentWallet.StudentProfile.UserId,
+                withdrawal.Wallet.StudentProfileId ?? Guid.Empty,
+                withdrawal.Wallet.UserId != Guid.Empty ? withdrawal.Wallet.UserId : (withdrawal.Wallet.StudentProfile?.UserId ?? Guid.Empty),
                 new MoneyDto(withdrawal.Amount, "VND"),
                 adminId,
                 Guid.NewGuid(),

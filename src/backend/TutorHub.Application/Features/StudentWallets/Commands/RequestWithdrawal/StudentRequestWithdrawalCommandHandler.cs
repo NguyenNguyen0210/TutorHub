@@ -65,7 +65,7 @@ public class StudentRequestWithdrawalCommandHandler : IRequestHandler<StudentReq
 
             // Pessimistic row-level lock on student wallet
             var wallet = await _context.StudentWallets
-                .FromSqlInterpolated($"SELECT * FROM \"StudentWallets\" WHERE \"StudentProfileId\" = {student.Id} FOR UPDATE")
+                .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"UserId\" = {userId} OR \"StudentProfileId\" = {student.Id} FOR UPDATE")
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (wallet == null)

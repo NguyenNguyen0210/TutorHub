@@ -25,9 +25,8 @@ public class AdminGetStudentWithdrawalsQueryHandler
 
         var query = _context.StudentWithdrawals
             .AsNoTracking()
-            .Include(w => w.StudentWallet)
-                .ThenInclude(sw => sw.StudentProfile)
-                    .ThenInclude(p => p.User)
+            .Include(w => w.Wallet)
+                .ThenInclude(w => w.User)
             .AsQueryable();
 
         if (request.Status.HasValue)
@@ -56,8 +55,8 @@ public class AdminGetStudentWithdrawalsQueryHandler
                 RequestedAt = w.RequestedAt,
                 ProcessedAt = w.ProcessedAt,
                 FailureReason = w.FailureReason,
-                StudentName = w.StudentWallet.StudentProfile.User.FullName,
-                StudentEmail = w.StudentWallet.StudentProfile.User.Email
+                StudentName = w.Wallet.User != null ? w.Wallet.User.FullName : (w.Wallet.StudentProfile != null && w.Wallet.StudentProfile.User != null ? w.Wallet.StudentProfile.User.FullName : null),
+                StudentEmail = w.Wallet.User != null ? w.Wallet.User.Email : (w.Wallet.StudentProfile != null && w.Wallet.StudentProfile.User != null ? w.Wallet.StudentProfile.User.Email : null)
             })
             .ToListAsync(cancellationToken);
 

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace TutorHub.Domain.Entities;
 
 public class StudentProfile
@@ -9,7 +11,8 @@ public class StudentProfile
     public User User { get; set; } = default!;
 
     // Domain relationships
-    public StudentWallet? Wallet { get; set; }
+    [NotMapped]
+    public Wallet? Wallet => User?.Wallet;
 
     public ICollection<Booking> Bookings { get; set; }
         = new List<Booking>();

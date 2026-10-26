@@ -101,7 +101,7 @@ Hoàn tiền & Quyết toán (Refund Pending/Succeeded/Failed + PlatformFeeRever
 ```
 
 ### 2. Codebase Structure
-* `src/backend/TutorHub.Domain/`: **Domain Cốt Lõi Độc Lập**. Entities (`User`, `TutorProfile`, `StudentProfile`, `Service`, `Booking`, `Enrollment`, `Session`, `Wallet`, `StudentWallet`, `StudentWalletTransaction`, `StudentWithdrawal`, `TopUpRequest`, `Transaction`, `Dispute`, `AuditLog`), Enums, Allocators (`EnrollmentSessionAllocator`), Domain Services (`SessionSchedulingRules`, `DisputeFinancialCalculator`), và Domain Invariants. Tuyệt đối không phụ thuộc vào hạ tầng hay UI.
+* `src/backend/TutorHub.Domain/`: **Domain Cốt Lõi Độc Lập**. Entities (`User`, `TutorProfile`, `StudentProfile`, `Service`, `Booking`, `Enrollment`, `Session`, `Wallet`, `WalletTransaction`, `Withdrawal`, `TopUpRequest`, `Transaction`, `Dispute`, `AuditLog`), Enums, Allocators (`EnrollmentSessionAllocator`), Domain Services (`SessionSchedulingRules`, `DisputeFinancialCalculator`), và Domain Invariants. Tuyệt đối không phụ thuộc vào hạ tầng hay UI.
 * `src/backend/TutorHub.Application/`: **Nghiệp Vụ Ứng Dụng (Vertical Slice / CQRS)**. Chia theo feature (`Features/{Module}/{FeatureName}/`). Chứa `Command/Query`, `Validator`, `Handler`, `DTOs`, Business Events, Policies (`ISessionSchedulePolicy` / `SessionSchedulePolicy`), và Abstractions (`IAppDbContext`, `IAuditLogService`, `IStudentWalletService`, `IPaymentGateway`, `IObjectStorageService`, `IJwtService`).
 * `src/backend/TutorHub.Infrastructure/`: **Hạ Tầng Kỹ Thuật**. `AppDbContext` (bảo đảm tính toàn vẹn dữ liệu giao dịch), 5 Background Jobs (`BookingTimeoutBackgroundService`, `OutboxDispatcherJob`, `EmailDeliveryJob`, `AutoPayoutJob`, `IdempotencyCleanupJob`). Khóa phân tán đa node `IRedisDistributedLock` (`SET NX PX` + Lua script atomic compare-and-delete). Hệ thống Cache phân tán Read-Through / Fail-Open (`IServiceDetailCacheService`, `ITutorProfileCacheService`) với `SemaphoreSlim` chống Cache Stampede. Lớp bảo vệ Idempotency (`DbIdempotencyStore` + `IdempotencyRecord`). Session Reminders và Grace Period Reminders được xử lý theo Delayed Outbox Pattern (`SessionReminderDueEvent`, `GracePeriodClosingSoonEvent`). VNPay SHA512, Cloudflare R2, và SignalR hubs (`/hubs/chat`, `/hubs/notifications`).
 * `src/backend/TutorHub.Api/`: **Giao Tiếp Ngoại Vi & Host (Thin Controllers + Background Jobs)**. Controller chỉ dispatch MediatR, Middlewares (`CorrelationIdMiddleware`, `GlobalExceptionHandler`), Action Filters (`[Idempotent]` filter chống xử lý lặp lại với SHA-256 fingerprint), và trực tiếp host 5 background hosted services.
@@ -158,12 +158,14 @@ Hoàn tiền & Quyết toán (Refund Pending/Succeeded/Failed + PlatformFeeRever
 * ⛔ **9. Snapshot Phí Sàn (Không hồi tố):** `Enrollment` snapshot cố định `PlatformFeeRate` và `FeePolicyVersion` tại thời điểm tạo. Việc Admin thay đổi phí sàn toàn hệ thống (`PlatformSetting`) chỉ áp dụng cho các hợp đồng tạo mới sau đó, không hồi tố hợp đồng cũ.
 * ⛔ **10. Khóa Tài Nguyên Có Thứ Tự Tránh Deadlock:** Mọi nghiệp vụ có tranh chấp và ví phải khóa tài nguyên theo thứ tự: $\text{Dispute} \prec \text{Wallet (FOR UPDATE)} \prec \text{Transaction}$.
 * ⛔ **11. VNPay Return URL là Read-Only:** Tuyệt đối không cập nhật trạng thái đơn hàng hay cộng tiền ví trong Return URL. Mọi mutation tài chính bắt buộc phải nằm trong **IPN Webhook** và bọc trong **Database Transaction**.
-* ⛔ **12. Ví Học Viên (Student Wallet) & Toàn Vẹn Lịch Sử Giao Dịch:**
-  - Thanh toán khóa học bắt buộc 100% qua ví học viên (`StudentWallet.AvailableBalance`).
-  - Giao dịch thanh toán khóa học (`PayBookingFromWallet`) bắt buộc thực hiện trong Database Transaction với khóa dòng (`FOR UPDATE`).
-  - Bảng `StudentWalletTransaction` là append-only (chỉ thêm mới, không sửa/xóa giao dịch đã ghi).
-  - Toàn bộ hoàn tiền (hủy khóa, hủy buổi, phán quyết tranh chấp) định tuyến trực tiếp vào ví học viên (`StudentWallet.AvailableBalance`).
-  - Rút tiền học viên tối thiểu 50.000 VNĐ, quản lý qua `WithdrawingBalance` (bảo vệ bởi `CK_StudentWallet_NonNegativeBalances`).
+* ⛔ **12. Hệ Thống Ví Người Dùng Hợp Nhất (Unified Wallet System) & Toàn Vẹn Sổ Cái:**
+  - Hợp nhất TutorWallet và StudentWallet thành thực thể `Wallet` duy nhất gắn trực tiếp với `UserId` (quan hệ 1:1 `User - Wallet`).
+  - Mô hình 3 xô số dư: `AvailableBalance`, `PendingBalance` (tiền Escrow đang giữ chờ giải ngân), `WithdrawingBalance` (tiền phong tỏa chờ Admin duyệt rút). Ràng buộc toàn vẹn DB: `CK_Wallet_NonNegativeBalances`.
+  - Thanh toán khóa học bắt buộc qua ví (`Wallet.AvailableBalance`) với khóa dòng bi quan (`SELECT ... FOR UPDATE`).
+  - Sổ cái tài chính `WalletTransactions` là append-only (chỉ thêm mới, cấm sửa/xóa giao dịch đã ghi).
+  - Toàn bộ hoàn tiền (hủy khóa, hủy buổi, phán quyết tranh chấp) định tuyến trực tiếp vào ví người dùng (`AvailableBalance`).
+  - Hạn mức rút tiền tối thiểu 50.000 VNĐ cho cả gia sư và học viên qua `Withdrawals`.
+  - Tương thích ngược thông qua route aliasing: `/api/v1/wallets/me`, `/api/v1/tutors/me/wallet`, `/api/v1/students/me/wallet`.
 
 ---
 

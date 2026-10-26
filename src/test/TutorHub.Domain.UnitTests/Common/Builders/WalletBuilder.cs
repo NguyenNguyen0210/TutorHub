@@ -37,16 +37,16 @@ public class WalletBuilder
         return this;
     }
 
-    public TutorWallet Build()
+    public Wallet Build()
     {
-        return new TutorWallet
+        return new Wallet
         {
             Id = _id,
             TutorProfileId = _tutorProfileId,
             PendingBalance = _pendingBalance,
             AvailableBalance = _availableBalance,
             UpdatedAt = _updatedAt,
-            Withdrawals = new List<TutorWithdrawal>()
+            Withdrawals = new List<Withdrawal>()
         };
     }
 }

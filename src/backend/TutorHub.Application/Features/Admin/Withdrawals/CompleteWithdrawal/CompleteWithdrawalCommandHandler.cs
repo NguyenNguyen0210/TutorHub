@@ -29,7 +29,7 @@ public class CompleteWithdrawalCommandHandler : IRequestHandler<CompleteWithdraw
         var userId = _currentUserService.UserIdOrThrow();
 
         var withdrawal = await _context.Withdrawals
-            .Include(w => w.Wallet).ThenInclude(wall => wall.TutorProfile).ThenInclude(tp => tp.User)
+            .Include(w => w.Wallet).ThenInclude(wall => wall.User)
             .Include(w => w.ProcessingStartedByAdmin)
             .Include(w => w.ProcessedByAdmin)
             .FirstOrDefaultAsync(w => w.Id == request.WithdrawalId, cancellationToken);
@@ -68,8 +68,8 @@ public class CompleteWithdrawalCommandHandler : IRequestHandler<CompleteWithdraw
         // Enqueue Outbox Message in same DB transaction
         _context.AddOutboxMessage(new WithdrawalCompletedEvent(
             withdrawal.Id,
-            withdrawal.Wallet.TutorProfileId,
-            withdrawal.Wallet.TutorProfile.UserId,
+            withdrawal.Wallet.TutorProfileId ?? Guid.Empty,
+            withdrawal.Wallet.UserId != Guid.Empty ? withdrawal.Wallet.UserId : (withdrawal.Wallet.TutorProfile?.UserId ?? Guid.Empty),
             new MoneyDto(withdrawal.Amount)));
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -80,8 +80,8 @@ public class CompleteWithdrawalCommandHandler : IRequestHandler<CompleteWithdraw
             Id: withdrawal.Id,
             WalletId: withdrawal.WalletId,
             TutorProfileId: withdrawal.Wallet.TutorProfileId,
-            TutorName: withdrawal.Wallet.TutorProfile.User.FullName,
-            TutorEmail: withdrawal.Wallet.TutorProfile.User.Email,
+            TutorName: withdrawal.Wallet.User?.FullName ?? withdrawal.Wallet.TutorProfile?.User?.FullName ?? string.Empty,
+            TutorEmail: withdrawal.Wallet.User?.Email ?? withdrawal.Wallet.TutorProfile?.User?.Email ?? string.Empty,
             Amount: withdrawal.Amount,
             Status: withdrawal.Status,
             BankName: withdrawal.BankName,

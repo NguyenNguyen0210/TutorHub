@@ -17,6 +17,7 @@ namespace TutorHub.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/admin/student-wallets")]
+[Route("api/v1/admin/wallets")]
 [Authorize(Roles = "Admin")]
 public class AdminStudentWalletController : ControllerBase
 {

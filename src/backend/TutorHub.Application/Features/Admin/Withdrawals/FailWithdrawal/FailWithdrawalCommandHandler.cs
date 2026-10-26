@@ -34,7 +34,7 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
 
         // Reads + guards run outside the transaction (fail fast before acquiring DB resources).
         var withdrawal = await _context.Withdrawals
-            .Include(w => w.Wallet).ThenInclude(wall => wall.TutorProfile).ThenInclude(tp => tp.User)
+            .Include(w => w.Wallet).ThenInclude(wall => wall.User)
             .Include(w => w.ProcessingStartedByAdmin)
             .Include(w => w.ProcessedByAdmin)
             .FirstOrDefaultAsync(w => w.Id == request.WithdrawalId, cancellationToken);
@@ -78,7 +78,7 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
         withdrawal.ProcessedByAdmin = admin;
 
         // Atomic restoration of AvailableBalance
-        wallet.CreditAvailable(withdrawal.Amount, now);
+        if (wallet.WithdrawingBalance >= withdrawal.Amount) wallet.ReleaseWithdrawal(withdrawal.Amount, now); else wallet.CreditAvailable(withdrawal.Amount, now);
 
         // Record immutable ledger adjustment entry
         var adjustmentEntry = new WalletTransaction
@@ -99,8 +99,8 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
         // Enqueue Outbox Message in same DB transaction
         _context.AddOutboxMessage(new WithdrawalFailedEvent(
             withdrawal.Id,
-            withdrawal.Wallet.TutorProfileId,
-            withdrawal.Wallet.TutorProfile.UserId,
+            withdrawal.Wallet.TutorProfileId ?? Guid.Empty,
+            withdrawal.Wallet.UserId != Guid.Empty ? withdrawal.Wallet.UserId : (withdrawal.Wallet.TutorProfile?.UserId ?? Guid.Empty),
             new MoneyDto(withdrawal.Amount),
             withdrawal.FailureReason!));
 
@@ -122,8 +122,8 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
             Id: withdrawal.Id,
             WalletId: withdrawal.WalletId,
             TutorProfileId: withdrawal.Wallet.TutorProfileId,
-            TutorName: withdrawal.Wallet.TutorProfile.User.FullName,
-            TutorEmail: withdrawal.Wallet.TutorProfile.User.Email,
+            TutorName: withdrawal.Wallet.User?.FullName ?? withdrawal.Wallet.TutorProfile?.User?.FullName ?? string.Empty,
+            TutorEmail: withdrawal.Wallet.User?.Email ?? withdrawal.Wallet.TutorProfile?.User?.Email ?? string.Empty,
             Amount: withdrawal.Amount,
             Status: withdrawal.Status,
             BankName: withdrawal.BankName,

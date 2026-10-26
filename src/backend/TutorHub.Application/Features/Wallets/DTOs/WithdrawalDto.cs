@@ -5,9 +5,9 @@ namespace TutorHub.Application.Features.Wallets.DTOs;
 public record WithdrawalDto(
     Guid Id,
     Guid WalletId,
-    Guid TutorProfileId,
-    string TutorName,
-    string TutorEmail,
+    Guid? TutorProfileId,
+    string? TutorName,
+    string? TutorEmail,
     decimal Amount,
     WithdrawalStatus Status,
     string BankName,
@@ -23,4 +23,15 @@ public record WithdrawalDto(
     Guid? ProcessedByAdminId,
     string? ProcessedByAdminName,
     string? FailureReason
-);
+)
+{
+    public Guid? UserId { get; init; }
+    public Guid? StudentProfileId { get; init; }
+
+    /// <summary>
+    /// Backward-compatibility aliases for frontend components expecting student withdrawal fields.
+    /// </summary>
+    public Guid StudentWalletId => WalletId;
+    public string? StudentName => TutorName;
+    public string? StudentEmail => TutorEmail;
+}

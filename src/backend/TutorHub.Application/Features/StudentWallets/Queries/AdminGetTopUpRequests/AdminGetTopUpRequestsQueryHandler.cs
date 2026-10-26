@@ -25,9 +25,8 @@ public class AdminGetTopUpRequestsQueryHandler
 
         var query = _context.TopUpRequests
             .AsNoTracking()
-            .Include(r => r.StudentWallet)
-                .ThenInclude(w => w.StudentProfile)
-                    .ThenInclude(p => p.User)
+            .Include(r => r.Wallet)
+                .ThenInclude(w => w.User)
             .AsQueryable();
 
         if (request.Status.HasValue)
@@ -53,8 +52,8 @@ public class AdminGetTopUpRequestsQueryHandler
                 ProcessedAt = r.ProcessedAt,
                 RejectionReason = r.RejectionReason,
                 AdminNote = r.AdminNote,
-                StudentName = r.StudentWallet.StudentProfile.User.FullName,
-                StudentEmail = r.StudentWallet.StudentProfile.User.Email
+                StudentName = r.Wallet.User != null ? r.Wallet.User.FullName : (r.Wallet.StudentProfile != null && r.Wallet.StudentProfile.User != null ? r.Wallet.StudentProfile.User.FullName : null),
+                StudentEmail = r.Wallet.User != null ? r.Wallet.User.Email : (r.Wallet.StudentProfile != null && r.Wallet.StudentProfile.User != null ? r.Wallet.StudentProfile.User.Email : null)
             })
             .ToListAsync(cancellationToken);
 

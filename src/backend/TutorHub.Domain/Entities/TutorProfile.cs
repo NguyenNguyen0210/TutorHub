@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Domain.Entities;
@@ -71,5 +72,6 @@ public class TutorProfile
     public ICollection<Service> Services { get; set; }
         = new List<Service>();
 
-    public TutorWallet? Wallet { get; set; }
+    [NotMapped]
+    public Wallet? Wallet => User?.Wallet;
 }

@@ -42,19 +42,20 @@ public class CreateVnPayTopUpCommandHandler : IRequestHandler<CreateVnPayTopUpCo
             throw new ForbiddenException("Only registered students can request a wallet top-up.");
         }
 
-        // Lazy create student wallet if not exists
-        if (studentProfile.Wallet == null)
+        var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId || w.StudentProfileId == studentProfile.Id, cancellationToken);
+        if (wallet == null)
         {
-            studentProfile.Wallet = new StudentWallet
+            wallet = new Wallet
             {
                 Id = Guid.NewGuid(),
+                UserId = userId,
                 StudentProfileId = studentProfile.Id,
                 AvailableBalance = 0m,
                 WithdrawingBalance = 0m,
                 CreatedAt = now,
                 UpdatedAt = now
             };
-            _context.StudentWallets.Add(studentProfile.Wallet);
+            _context.Wallets.Add(wallet);
         }
 
         // Unique merchant reference with TOPUP prefix recognized by VNPay IPN / Return
@@ -64,7 +65,7 @@ public class CreateVnPayTopUpCommandHandler : IRequestHandler<CreateVnPayTopUpCo
         var topUpRequest = new TopUpRequest
         {
             Id = Guid.NewGuid(),
-            StudentWalletId = studentProfile.Wallet.Id,
+            WalletId = wallet.Id,
             Amount = request.Amount,
             TransferReference = merchantRef,
             Status = TopUpRequestStatus.Pending,

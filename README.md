@@ -115,9 +115,13 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
   * Nếu học viên báo cáo sự cố, lệnh giải ngân bị đóng băng ngay lập tức, chuyển sang trạng thái tranh chấp.
   * Nếu không phát sinh sự cố, khi đồng hồ điểm hết 12 giờ, hệ thống sẽ tự động giải ngân thù lao buổi học vào Ví gia sư.
 
-### 5. Hệ Thống Ví & Ký Quỹ Độc Lập (Escrow & Double-Entry Ledger)
-* **Ví gia sư (Tutor Wallet):** Ký quỹ thù lao theo từng buổi học. Toàn bộ tiền học được giữ an toàn trong Escrow và chỉ giải ngân từng buổi khi hoàn thành.
-* **Ví học viên (Student Wallet):** Nạp tiền tự động 24/7 qua cổng VNPay, thanh toán khóa học nhanh không cần nhập lại thông tin thẻ, nhận tiền hoàn trả tranh chấp tức thì và đặt lệnh rút tiền về tài khoản ngân hàng.
+### 5. Hệ Thống Ví Người Dùng Hợp Nhất & Ký Quỹ Độc Lập (Unified Wallet & Escrow Ledger)
+* **Ví Hợp Nhất (User 1:1 Wallet):** Hợp nhất kiến trúc ví giữa Gia sư và Học viên, gắn trực tiếp với tài khoản người dùng (`User`).
+* **Mô hình 3 xô số dư minh bạch:**
+  - `AvailableBalance`: Số dư khả dụng dùng để thanh toán đặt lịch học, rút tiền về tài khoản ngân hàng hoặc nhận tiền giải ngân/hoàn trả.
+  - `PendingBalance`: Tiền ký quỹ Escrow đang giữ chờ giải ngân từng buổi học qua cửa sổ 12h Grace Period.
+  - `WithdrawingBalance`: Số dư phong tỏa tạm thời khi người dùng gửi yêu cầu rút tiền chờ Admin duyệt.
+* **Sổ cái tài chính chuẩn xác:** Toàn bộ biến động số dư được ghi nhận bất biến trong `WalletTransactions`, hỗ trợ nạp tiền VNPay tự động 24/7 và rút tiền nội địa an toàn.
 
 ### 6. Động Cơ Phân Giải Tranh Chấp Trong Grace 12 Giờ (Dispute Arbitration Engine)
 * Khiếu nại chỉ tồn tại trước giải ngân (pre-release): trong 12 giờ Grace Period, học viên báo cáo sự cố → tiền giữ trong Escrow, không chuyển cho gia sư, chờ Admin phân xử.

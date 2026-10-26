@@ -14,23 +14,40 @@ public class StudentWalletService : IStudentWalletService
         _context = context;
     }
 
-    public async Task<StudentWallet> GetOrCreateWalletAsync(Guid studentProfileId, DateTime now, CancellationToken cancellationToken = default)
+    public async Task<Wallet> GetOrCreateWalletAsync(Guid studentProfileId, DateTime now, CancellationToken cancellationToken = default)
     {
-        var wallet = await _context.StudentWallets
+        var wallet = await _context.Wallets
             .FirstOrDefaultAsync(w => w.StudentProfileId == studentProfileId, cancellationToken);
 
         if (wallet == null)
         {
-            wallet = new StudentWallet
+            var studentProfile = await _context.StudentProfiles
+                .FirstOrDefaultAsync(s => s.Id == studentProfileId, cancellationToken);
+            var userId = studentProfile?.UserId ?? Guid.Empty;
+
+            if (userId != Guid.Empty)
             {
-                Id = Guid.NewGuid(),
-                StudentProfileId = studentProfileId,
-                AvailableBalance = 0m,
-                WithdrawingBalance = 0m,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
-            _context.StudentWallets.Add(wallet);
+                wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId, cancellationToken);
+            }
+
+            if (wallet == null)
+            {
+                wallet = new Wallet
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    StudentProfileId = studentProfileId,
+                    AvailableBalance = 0m,
+                    WithdrawingBalance = 0m,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+                _context.Wallets.Add(wallet);
+            }
+            else
+            {
+                wallet.StudentProfileId = studentProfileId;
+            }
         }
 
         return wallet;
@@ -47,35 +64,40 @@ public class StudentWalletService : IStudentWalletService
     {
         if (amount <= 0) return;
 
-        // Row-level lock on student wallet (FOR UPDATE)
-        var wallet = await _context.StudentWallets
-            .FromSqlInterpolated($"SELECT * FROM \"StudentWallets\" WHERE \"StudentProfileId\" = {studentProfileId} FOR UPDATE")
+        // Row-level lock on wallet (FOR UPDATE)
+        var wallet = await _context.Wallets
+            .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"StudentProfileId\" = {studentProfileId} OR \"UserId\" = (SELECT \"UserId\" FROM \"StudentProfiles\" WHERE \"Id\" = {studentProfileId}) FOR UPDATE")
             .FirstOrDefaultAsync(cancellationToken);
 
         if (wallet == null)
         {
-            wallet = new StudentWallet
+            var studentProfile = await _context.StudentProfiles
+                .FirstOrDefaultAsync(s => s.Id == studentProfileId, cancellationToken);
+            var userId = studentProfile?.UserId ?? Guid.Empty;
+
+            wallet = new Wallet
             {
                 Id = Guid.NewGuid(),
+                UserId = userId,
                 StudentProfileId = studentProfileId,
                 AvailableBalance = 0m,
                 WithdrawingBalance = 0m,
                 CreatedAt = now,
                 UpdatedAt = now
             };
-            _context.StudentWallets.Add(wallet);
+            _context.Wallets.Add(wallet);
         }
 
         var balanceBefore = wallet.AvailableBalance;
-        wallet.Credit(amount, now);
+        wallet.CreditAvailable(amount, now);
         var balanceAfter = wallet.AvailableBalance;
 
         // Append-only immutable ledger entry
-        var ledger = new StudentWalletTransaction
+        var ledger = new WalletTransaction
         {
             Id = Guid.NewGuid(),
-            StudentWalletId = wallet.Id,
-            Type = StudentWalletTransactionType.RefundCredit,
+            WalletId = wallet.Id,
+            Type = WalletTransactionType.RefundCredit,
             Direction = FinancialDirection.Credit,
             Amount = amount,
             BalanceBefore = balanceBefore,
@@ -86,6 +108,6 @@ public class StudentWalletService : IStudentWalletService
             CreatedAt = now
         };
 
-        _context.StudentWalletTransactions.Add(ledger);
+        _context.WalletTransactions.Add(ledger);
     }
 }

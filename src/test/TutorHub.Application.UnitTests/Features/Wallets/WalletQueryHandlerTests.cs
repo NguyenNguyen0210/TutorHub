@@ -16,6 +16,11 @@ public class WalletQueryHandlerTests
     private readonly Mock<IAppDbContext> _contextMock = new();
     private readonly StubCurrentUserService _currentUser = new();
 
+    public WalletQueryHandlerTests()
+    {
+        _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile>()).Object);
+    }
+
     [Fact]
     public async Task GetMyWallet_IncludesBothPendingAndProcessingInPendingWithdrawals()
     {
@@ -30,6 +35,7 @@ public class WalletQueryHandlerTests
         var wallet = new Wallet
         {
             Id = Guid.NewGuid(),
+            UserId = user.Id,
             TutorProfileId = tutor.Id,
             PendingBalance = 1_000_000m,
             AvailableBalance = 500_000m,
@@ -102,6 +108,7 @@ public class WalletQueryHandlerTests
         var wallet = new Wallet
         {
             Id = Guid.NewGuid(),
+            UserId = user.Id,
             TutorProfileId = tutor.Id
         };
 

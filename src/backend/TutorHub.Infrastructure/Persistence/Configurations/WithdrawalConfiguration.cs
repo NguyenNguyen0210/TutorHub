@@ -4,15 +4,20 @@ using TutorHub.Domain.Entities;
 
 namespace TutorHub.Infrastructure.Persistence.Configurations;
 
-public class StudentWithdrawalConfiguration : IEntityTypeConfiguration<StudentWithdrawal>
+public class WithdrawalConfiguration : IEntityTypeConfiguration<Withdrawal>
 {
-    public void Configure(EntityTypeBuilder<StudentWithdrawal> builder)
+    public void Configure(EntityTypeBuilder<Withdrawal> builder)
     {
         builder.HasKey(w => w.Id);
 
-        builder.ToTable(t =>
+        builder.Ignore(w => w.TutorWalletId);
+        builder.Ignore(w => w.TutorWallet);
+        builder.Ignore(w => w.StudentWalletId);
+        builder.Ignore(w => w.StudentWallet);
+
+        builder.ToTable("Withdrawals", t =>
         {
-            t.HasCheckConstraint("CK_StudentWithdrawal_PositiveAmount", "\"Amount\" > 0");
+            t.HasCheckConstraint("CK_Withdrawal_PositiveAmount", "\"Amount\" > 0");
         });
 
         builder.Property(w => w.Amount)
@@ -45,15 +50,17 @@ public class StudentWithdrawalConfiguration : IEntityTypeConfiguration<StudentWi
         builder.Property(w => w.RequestedAt)
             .IsRequired();
 
+        builder.Property(w => w.ProcessingStartedAt);
+
         builder.Property(w => w.FailureReason)
             .HasMaxLength(500);
 
-        builder.HasIndex(w => new { w.StudentWalletId, w.Status });
+        builder.HasIndex(w => new { w.WalletId, w.Status });
         builder.HasIndex(w => w.Status);
 
-        builder.HasOne(w => w.StudentWallet)
+        builder.HasOne(w => w.Wallet)
             .WithMany(wallet => wallet.Withdrawals)
-            .HasForeignKey(w => w.StudentWalletId)
+            .HasForeignKey(w => w.WalletId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(w => w.ProcessingStartedByAdmin)
@@ -67,3 +74,4 @@ public class StudentWithdrawalConfiguration : IEntityTypeConfiguration<StudentWi
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
+

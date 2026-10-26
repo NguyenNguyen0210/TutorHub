@@ -4,11 +4,14 @@ using TutorHub.Domain.Entities;
 
 namespace TutorHub.Infrastructure.Persistence.Configurations;
 
-public class TutorWalletTransactionConfiguration : IEntityTypeConfiguration<TutorWalletTransaction>
+public class WalletTransactionConfiguration : IEntityTypeConfiguration<WalletTransaction>
 {
-    public void Configure(EntityTypeBuilder<TutorWalletTransaction> builder)
+    public void Configure(EntityTypeBuilder<WalletTransaction> builder)
     {
         builder.HasKey(wt => wt.Id);
+
+        builder.Ignore(wt => wt.StudentWalletId);
+        builder.Ignore(wt => wt.StudentWallet);
 
         builder.ToTable("WalletTransactions");
 
@@ -17,7 +20,16 @@ public class TutorWalletTransactionConfiguration : IEntityTypeConfiguration<Tuto
             .HasMaxLength(50)
             .IsRequired();
 
+        builder.Property(wt => wt.Direction)
+            .HasConversion<string>()
+            .HasMaxLength(10)
+            .IsRequired();
+
         builder.Property(wt => wt.Amount)
+            .HasPrecision(12, 2)
+            .IsRequired();
+
+        builder.Property(wt => wt.BalanceBefore)
             .HasPrecision(12, 2)
             .IsRequired();
 
@@ -25,7 +37,15 @@ public class TutorWalletTransactionConfiguration : IEntityTypeConfiguration<Tuto
             .HasPrecision(12, 2)
             .IsRequired();
 
+        builder.Property(wt => wt.ReferenceType)
+            .HasMaxLength(100);
+
+        builder.Property(wt => wt.ReferenceId);
+
         builder.Property(wt => wt.Description)
+            .HasMaxLength(500);
+
+        builder.Property(wt => wt.Reason)
             .HasMaxLength(500);
 
         builder.Property(wt => wt.CreatedAt)
@@ -45,3 +65,4 @@ public class TutorWalletTransactionConfiguration : IEntityTypeConfiguration<Tuto
             .OnDelete(DeleteBehavior.SetNull);
     }
 }
+
