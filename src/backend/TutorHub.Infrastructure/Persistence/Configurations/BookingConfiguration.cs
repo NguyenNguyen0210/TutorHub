@@ -10,19 +10,10 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
     {
         builder.HasKey(b => b.Id);
 
-        builder.ToTable(t =>
-        {
-            t.HasCheckConstraint("CK_Booking_TotalPrice", "\"TotalPrice\" >= 0 AND \"TotalSessions\" > 0 AND \"SessionDurationMinutes\" > 0");
-        });
-
         builder.Property(b => b.Status)
             .HasConversion<string>()
-            .HasMaxLength(50)
+            .HasMaxLength(20)
             .IsRequired();
-
-        builder.Property(b => b.CancelledBy)
-            .HasConversion<string>()
-            .HasMaxLength(50);
 
         builder.Property(b => b.CancellationReason)
             .HasMaxLength(500);
@@ -66,12 +57,13 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.HasOne(b => b.Subject)
             .WithMany()
             .HasForeignKey(b => b.SubjectId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(b => b.Service)
             .WithMany()
             .HasForeignKey(b => b.ServiceId)
-            .IsRequired()
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

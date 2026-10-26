@@ -1,8 +1,9 @@
+using TutorHub.Domain.Common;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Domain.Entities;
 
-public class Service
+public class Service : ISoftDeletable
 {
     public Guid Id { get; set; }
 
@@ -41,6 +42,12 @@ public class Service
     public ServiceStatus Status { get; set; } = ServiceStatus.Draft;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
+
+    // Soft delete audit properties
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedByUserId { get; set; }
+    public string? DeleteReason { get; set; }
 
     // Domain state transitions (state machine only — authorization is in Application layer)
     public void Publish()
@@ -94,6 +101,27 @@ public class Service
         }
 
         Status = ServiceStatus.Published;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SoftDelete(Guid deletedByUserId, string? reason = null)
+    {
+        if (IsDeleted) return;
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+        DeletedByUserId = deletedByUserId;
+        DeleteReason = reason?.Trim();
+        Status = ServiceStatus.Unpublished;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Restore()
+    {
+        if (!IsDeleted) return;
+        IsDeleted = false;
+        DeletedAt = null;
+        DeletedByUserId = null;
+        DeleteReason = null;
         UpdatedAt = DateTime.UtcNow;
     }
 }

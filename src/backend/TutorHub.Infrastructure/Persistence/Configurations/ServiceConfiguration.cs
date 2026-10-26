@@ -74,6 +74,16 @@ public class ServiceConfiguration : IEntityTypeConfiguration<Service>
         builder.Property(s => s.CreatedAt)
             .IsRequired();
 
+        // Soft Delete configuration
+        builder.Property(s => s.IsDeleted)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(s => s.DeleteReason)
+            .HasMaxLength(500);
+
+        builder.HasIndex(s => s.IsDeleted);
+
         // Foreign keys
         builder.HasOne(s => s.TutorProfile)
             .WithMany(t => t.Services)
@@ -83,6 +93,7 @@ public class ServiceConfiguration : IEntityTypeConfiguration<Service>
         builder.HasOne(s => s.Subject)
             .WithMany()
             .HasForeignKey(s => s.SubjectId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

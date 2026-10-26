@@ -14,11 +14,23 @@ public class SubjectConfiguration : IEntityTypeConfiguration<Subject>
             .IsRequired()
             .HasMaxLength(100);
 
+        // PostgreSQL Partial Unique Index: unique only among non-deleted records within a category
         builder.HasIndex(s => new { s.Name, s.CategoryId })
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false");
 
         builder.Property(s => s.IsActive)
             .IsRequired();
+
+        // Soft Delete configuration
+        builder.Property(s => s.IsDeleted)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(s => s.DeleteReason)
+            .HasMaxLength(500);
+
+        builder.HasIndex(s => s.IsDeleted);
 
         builder.HasOne(s => s.Category)
             .WithMany(c => c.Subjects)

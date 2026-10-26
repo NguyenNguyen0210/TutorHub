@@ -24,6 +24,7 @@ public class TutorSubjectConfiguration : IEntityTypeConfiguration<TutorSubject>
         builder.HasOne(ts => ts.Subject)
             .WithMany(s => s.TutorSubjects)
             .HasForeignKey(ts => ts.SubjectId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -8,6 +8,10 @@ using TutorHub.Application.Features.Admin.Categories.CreateCategory;
 using TutorHub.Application.Features.Admin.Categories.DeleteCategory;
 using TutorHub.Application.Features.Admin.Categories.GetAdminCategories;
 using TutorHub.Application.Features.Admin.Categories.UpdateCategory;
+using TutorHub.Application.Features.Admin.Categories.GetAdminTrashCategories;
+using TutorHub.Application.Features.Admin.Categories.RestoreCategory;
+using TutorHub.Application.Features.Admin.Subjects.GetAdminTrashSubjects;
+using TutorHub.Application.Features.Admin.Subjects.RestoreSubject;
 using TutorHub.Application.Features.Admin.Dashboard.DTOs;
 using TutorHub.Application.Features.Admin.Dashboard.GetAdminDashboardStats;
 using TutorHub.Application.Features.Admin.Dashboard.GetAdminRevenueChart;
@@ -347,17 +351,50 @@ public class AdminController : ControllerBase
     }
 
     /// <summary>
-    /// Delete a category (Admin only - must contain no subjects).
+    /// Soft delete a category (Admin only - must contain no active subjects).
     /// </summary>
     [HttpDelete("categories/{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> DeleteCategory([FromRoute] Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteCategory(
+        [FromRoute] Guid id,
+        [FromQuery] string? reason = null,
+        CancellationToken cancellationToken = default)
     {
-        var command = new DeleteCategoryCommand(id);
+        var command = new DeleteCategoryCommand(id, reason);
         await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<object?>.SuccessResult(null, "Category deleted successfully."));
+    }
+
+    /// <summary>
+    /// Get paginated list of soft-deleted categories in trash (Admin only).
+    /// </summary>
+    [HttpGet("categories/trash")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<AdminCategoryDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAdminTrashCategories(
+        [FromQuery] string? search,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetAdminTrashCategoriesQuery(search, pageNumber, pageSize);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<AdminCategoryDto>>.SuccessResult(result, "Trash categories retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Restore a soft-deleted category from trash (Admin only).
+    /// </summary>
+    [HttpPost("categories/{id:guid}/restore")]
+    [ProducesResponseType(typeof(ApiResponse<AdminCategoryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RestoreCategory([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        var command = new RestoreCategoryCommand(id);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<AdminCategoryDto>.SuccessResult(result, "Category restored successfully."));
     }
 
     // ==========================================
@@ -417,17 +454,51 @@ public class AdminController : ControllerBase
     }
 
     /// <summary>
-    /// Delete a subject (Admin only - must not be associated with tutors or bookings).
+    /// Soft delete a subject (Admin only - must not be associated with tutors or active bookings).
     /// </summary>
     [HttpDelete("subjects/{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<object?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> DeleteSubject([FromRoute] Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteSubject(
+        [FromRoute] Guid id,
+        [FromQuery] string? reason = null,
+        CancellationToken cancellationToken = default)
     {
-        var command = new DeleteSubjectCommand(id);
+        var command = new DeleteSubjectCommand(id, reason);
         await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<object?>.SuccessResult(null, "Subject deleted successfully."));
+    }
+
+    /// <summary>
+    /// Get paginated list of soft-deleted subjects in trash (Admin only).
+    /// </summary>
+    [HttpGet("subjects/trash")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<AdminSubjectDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAdminTrashSubjects(
+        [FromQuery] Guid? categoryId,
+        [FromQuery] string? search,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetAdminTrashSubjectsQuery(categoryId, search, pageNumber, pageSize);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<AdminSubjectDto>>.SuccessResult(result, "Trash subjects retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Restore a soft-deleted subject from trash (Admin only).
+    /// </summary>
+    [HttpPost("subjects/{id:guid}/restore")]
+    [ProducesResponseType(typeof(ApiResponse<AdminSubjectDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RestoreSubject([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        var command = new RestoreSubjectCommand(id);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<AdminSubjectDto>.SuccessResult(result, "Subject restored successfully."));
     }
 
     /// <summary>

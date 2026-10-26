@@ -94,9 +94,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CancelledBy")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                    b.Property<int?>("CancelledBy")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
@@ -118,8 +117,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<Guid>("StudentProfileId")
                         .HasColumnType("uuid");
@@ -154,16 +153,23 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TutorProfileId", "Status");
 
-                    b.ToTable("Bookings", t =>
-                        {
-                            t.HasCheckConstraint("CK_Booking_TotalPrice", "\"TotalPrice\" >= 0 AND \"TotalSessions\" > 0 AND \"SessionDurationMinutes\" > 0");
-                        });
+                    b.ToTable("Bookings");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Category", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DeleteReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Description")
@@ -173,6 +179,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -180,8 +191,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("IsDeleted");
+
                     b.HasIndex("Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("Categories");
                 });
@@ -466,8 +480,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CancelledBy")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
@@ -490,8 +504,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<Guid>("StudentProfileId")
                         .HasColumnType("uuid");
@@ -1090,6 +1104,16 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<string>("CurriculumJson")
                         .HasColumnType("jsonb");
 
+                    b.Property<string>("DeleteReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(5000)
@@ -1101,6 +1125,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("FaqsJson")
                         .HasColumnType("jsonb");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("LearningScope")
                         .HasMaxLength(2000)
@@ -1158,6 +1187,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
 
                     b.HasIndex("SubjectId", "Status");
 
@@ -1279,8 +1310,23 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("DeleteReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1291,8 +1337,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CategoryId");
 
+                    b.HasIndex("IsDeleted");
+
                     b.HasIndex("Name", "CategoryId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("Subjects");
                 });
@@ -1900,8 +1949,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasOne("TutorHub.Domain.Entities.Service", "Service")
                         .WithMany()
                         .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TutorHub.Domain.Entities.StudentProfile", "StudentProfile")
                         .WithMany("Bookings")
@@ -1912,8 +1960,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasOne("TutorHub.Domain.Entities.Subject", "Subject")
                         .WithMany()
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
                         .WithMany()
@@ -2017,8 +2064,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasOne("TutorHub.Domain.Entities.Service", "Service")
                         .WithMany()
                         .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TutorHub.Domain.Entities.StudentProfile", "StudentProfile")
                         .WithMany()
@@ -2029,8 +2075,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasOne("TutorHub.Domain.Entities.Subject", "Subject")
                         .WithMany()
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
                         .WithMany()
@@ -2186,8 +2231,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasOne("TutorHub.Domain.Entities.Subject", "Subject")
                         .WithMany()
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
                         .WithMany("Services")
@@ -2310,8 +2354,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasOne("TutorHub.Domain.Entities.Subject", "Subject")
                         .WithMany("TutorSubjects")
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
                         .WithMany("TutorSubjects")

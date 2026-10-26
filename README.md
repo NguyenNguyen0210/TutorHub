@@ -135,6 +135,14 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 ### 8. Kiểm Toán Bất Biến (Immutable Central Audit Log)
 * Mọi giao dịch tài chính (`Transactions`) và nhật ký kiểm toán (`AuditLogs`) được bảo vệ bởi trigger cấp cơ sở dữ liệu: **Append-Only, nghiêm cấm UPDATE và DELETE**.
 
+### 9. Mô Hình Xóa Mềm & Thùng Rác Quản Trị (Soft Delete Pattern & Admin Trash)
+* Áp dụng xóa mềm chuẩn hóa (`ISoftDeletable`) cho Master Data (`Category`, `Subject`) và Gói dịch vụ (`Service`), tự động ẩn khỏi luồng nghiệp vụ thông qua EF Core Global Query Filter (`!IsDeleted`).
+* Tránh xung đột tên trùng lặp khi tạo mới bằng **PostgreSQL Filtered Partial Unique Index** (`WHERE "IsDeleted" = false`), cho phép tái sử dụng tên sau khi bản ghi cũ đã xóa mềm.
+* Cung cấp API Quản trị Thùng rác & Khôi phục chuyên biệt:
+  * `GET /api/v1/admin/categories/trash` & `POST /api/v1/admin/categories/{id}/restore`
+  * `GET /api/v1/admin/subjects/trash` & `POST /api/v1/admin/subjects/{id}/restore`
+* Bảo đảm tính toàn vẹn quan hệ phân cấp: Không thể xóa Danh mục nếu còn Môn học đang hoạt động; không thể khôi phục Môn học nếu Danh mục cha đang bị xóa. Sổ cái tài chính tuyệt đối bất biến và cấm xóa.
+
 ---
 
 ## 💻 Ngăn Xếp Công Nghệ (Technology Stack)

@@ -14,13 +14,25 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .IsRequired()
             .HasMaxLength(100);
 
+        // PostgreSQL Partial Unique Index: unique only among non-deleted records
         builder.HasIndex(c => c.Name)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false");
 
         builder.Property(c => c.Description)
             .HasMaxLength(500);
 
         builder.Property(c => c.IsActive)
             .IsRequired();
+
+        // Soft Delete configuration
+        builder.Property(c => c.IsDeleted)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(c => c.DeleteReason)
+            .HasMaxLength(500);
+
+        builder.HasIndex(c => c.IsDeleted);
     }
 }

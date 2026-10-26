@@ -1,6 +1,8 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Search;
+using TutorHub.Domain.Common;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 
@@ -8,9 +10,17 @@ namespace TutorHub.Infrastructure.Persistence;
 
 public class AppDbContext : DbContext, IAppDbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options)
+    private readonly ICurrentUserService? _currentUserService;
+    private readonly IClock? _clock;
+
+    public AppDbContext(
+        DbContextOptions<AppDbContext> options,
+        ICurrentUserService? currentUserService = null,
+        IClock? clock = null)
         : base(options)
     {
+        _currentUserService = currentUserService;
+        _clock = clock;
     }
 
     public DbSet<User> Users => Set<User>();
@@ -56,26 +66,61 @@ public class AppDbContext : DbContext, IAppDbContext
 
     public override int SaveChanges()
     {
+        ApplySoftDelete();
         EnforceTransactionIntegrity();
         return base.SaveChanges();
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
+        ApplySoftDelete();
         EnforceTransactionIntegrity();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        ApplySoftDelete();
         EnforceTransactionIntegrity();
         return base.SaveChangesAsync(cancellationToken);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
+        ApplySoftDelete();
         EnforceTransactionIntegrity();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    /// <summary>
+    /// Intercepts entity deletions on ISoftDeletable types and converts them to soft updates.
+    /// </summary>
+    private void ApplySoftDelete()
+    {
+        var now = _clock?.UtcNow ?? DateTime.UtcNow;
+        Guid? currentUserId = null;
+        try
+        {
+            currentUserId = _currentUserService?.UserId;
+        }
+        catch
+        {
+            // Outside of active HTTP request context
+        }
+
+        foreach (var entry in ChangeTracker.Entries<ISoftDeletable>())
+        {
+            if (entry.State == EntityState.Deleted)
+            {
+                entry.State = EntityState.Modified;
+                entry.Entity.IsDeleted = true;
+                entry.Entity.DeletedAt ??= now;
+                if (currentUserId.HasValue && !entry.Entity.DeletedByUserId.HasValue)
+                {
+                    entry.Entity.DeletedByUserId = currentUserId.Value;
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -160,6 +205,26 @@ public class AppDbContext : DbContext, IAppDbContext
             throw new InvalidOperationException("AuditLog records are append-only and cannot be modified or deleted.");
         }
 
+        // Wallets cannot be deleted
+        var deletedWallets = ChangeTracker.Entries<Wallet>()
+            .Where(e => e.State == EntityState.Deleted)
+            .ToList();
+        if (deletedWallets.Count > 0)
+        {
+            var ids = string.Join(",", deletedWallets.Select(e => e.Entity.Id));
+            throw new InvalidOperationException($"Wallet records cannot be deleted. Ids: {ids}.");
+        }
+
+        // Withdrawals cannot be deleted
+        var deletedWithdrawals = ChangeTracker.Entries<Withdrawal>()
+            .Where(e => e.State == EntityState.Deleted)
+            .ToList();
+        if (deletedWithdrawals.Count > 0)
+        {
+            var ids = string.Join(",", deletedWithdrawals.Select(e => e.Entity.Id));
+            throw new InvalidOperationException($"Withdrawal records cannot be deleted. Ids: {ids}.");
+        }
+
         // WalletTransaction records are append-only
         var modifiedWalletTxs = ChangeTracker.Entries<WalletTransaction>()
             .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
@@ -200,6 +265,23 @@ public class AppDbContext : DbContext, IAppDbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+        // Dynamically apply Global Query Filter to all ISoftDeletable entities
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(ISoftDeletable).IsAssignableFrom(entityType.ClrType))
+            {
+                var parameter = Expression.Parameter(entityType.ClrType, "e");
+                var filter = Expression.Lambda(
+                    Expression.Equal(
+                        Expression.Property(parameter, nameof(ISoftDeletable.IsDeleted)),
+                        Expression.Constant(false)
+                    ),
+                    parameter
+                );
+                entityType.SetQueryFilter(filter);
+            }
+        }
 
         // Maps VietnameseSearch.UnaccentImmutable to public.unaccent_immutable(text)
         // (EnableVietnameseSearch migration). Search predicates using it translate to
