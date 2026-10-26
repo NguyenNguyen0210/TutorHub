@@ -130,40 +130,6 @@ services:
       timeout: 5s
       retries: 10
 
-  # One-shot loader. Waits for the api service to create the schema, then loads
-  # src/backend/seedData.sql ONLY while the database is still empty — so a repeat
-  # `docker compose up` never wipes existing domain data (seedData.sql TRUNCATEs).
-  seed:
-    image: postgres:16-alpine
-    container_name: tutorhub-seed
-    restart: "no"
-    depends_on:
-      api:
-        condition: service_started
-    environment:
-      PGPASSWORD: ${POSTGRES_PASSWORD:-tutorhub}
-      PGUSER: ${POSTGRES_USER:-tutorhub}
-      PGDATABASE: ${POSTGRES_DB:-tutorhub}
-      PGCLIENTENCODING: UTF8
-    volumes:
-      - ./src/backend/seedData.sql:/seed/seedData.sql:ro
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        set -e
-        echo "[seed] waiting for database migrations to complete..."
-        until psql -h postgres -tAc "select to_regclass('public.\"Users\"')" 2>/dev/null | grep -q Users; do
-          sleep 2
-        done
-        count=$$(psql -h postgres -tAc 'select count(*) from "Users"')
-        if [ "$$count" = "0" ]; then
-          echo "[seed] platform data is empty -> loading seedData.sql"
-          psql -h postgres -v ON_ERROR_STOP=1 -q -f /seed/seedData.sql
-          echo "[seed] seedData.sql loaded successfully"
-        else
-          echo "[seed] skipped: platform data already present"
-        fi
-
 volumes:
   pgdata:
   redisdata:

@@ -213,8 +213,13 @@ Phương pháp nhanh nhất để chạy toàn bộ hệ thống kèm dữ liệ
 # 1. Sao chép biến môi trường mẫu
 cp .env.example .env
 
-# 2. Khởi động cụm dịch vụ (PostgreSQL, Backend API, Database Seeder)
-docker-compose up -d --build
+# 2. Khởi động cụm dịch vụ (PostgreSQL, Redis, Seq, Backend API)
+docker compose up -d --build
+
+# 3. Nạp dữ liệu mẫu (chạy khi khởi tạo lần đầu hoặc khi muốn reset dữ liệu)
+./scripts/seed-data.sh     # Linux/macOS/Git Bash
+# hoặc trên Windows PowerShell:
+.\scripts\seed-data.ps1
 ```
 
 Sau khi khởi chạy thành công:
