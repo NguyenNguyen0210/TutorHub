@@ -49,7 +49,7 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
             throw new ConflictException("Report has already been resolved.");
         }
 
-        // 1b. Conflict of interest guard (FR-TRUST-003)
+        // 1b. Conflict of interest guard
         if (report.ReporterUserId == userId)
         {
             throw new ConflictException("Administrators cannot resolve reports they filed themselves.");
@@ -70,7 +70,7 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
         var now = _clock.UtcNow;
         var admin = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
-        // 2. Pure Trust & Safety Enforcement (FR-TRUST-004) - Zero Financial Mutation
+        // 2. Pure Trust & Safety Enforcement - Zero Financial Mutation
         // Uses domain transitions + revokes refresh tokens so suspend/ban takes effect immediately.
         if (report.ReportedUserId.HasValue)
         {
@@ -175,7 +175,7 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
             }
         }
 
-        // 3b. Content Removal for Service Violations (FR-TRUST-004)
+        // 3b. Content Removal for Service Violations
         if (request.Decision == ReportDecision.RemoveContent &&
             (report.ReportType == TrustReportType.ServiceViolation || report.ReportType == TrustReportType.General) &&
             Guid.TryParse(report.TargetId, out var serviceId))
@@ -214,7 +214,7 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
 
         report.ResolvedByAdmin = admin;
 
-        // 4b. Warning notification to reported user (FR-TRUST-005)
+        // 4b. Warning notification to reported user
         if (request.Decision == ReportDecision.WarningIssued && report.ReportedUserId.HasValue)
         {
             _context.AddOutboxMessage(new ReportResolvedEvent(
@@ -225,7 +225,7 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
                 request.Resolution));
         }
 
-        // 5. Central Append-Only Audit Logging (INV-LEDGER-006)
+        // 5. Central Append-Only Audit Logging
         await _auditLogService.LogAsync(
             action: $"TrustReportResolved_{request.Decision}",
             entityName: "Report",

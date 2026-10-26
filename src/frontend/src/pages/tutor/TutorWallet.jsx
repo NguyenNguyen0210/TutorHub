@@ -9,10 +9,10 @@ import ErrorState from '@/components/common/ErrorState';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
-import LedgerStrip from '@/components/ledger/LedgerStrip';
-import LedgerTable from '@/components/ledger/LedgerTable';
-import SignedAmount from '@/components/ledger/SignedAmount';
-import StateBadge from '@/components/ledger/StateBadge';
+import StatStrip from '@/components/common/StatStrip';
+import DataTable from '@/components/common/DataTable';
+import SignedAmount from '@/components/common/SignedAmount';
+import StateBadge from '@/components/common/StateBadge';
 
 const WITHDRAW_COLUMNS = [
   { key: 'time', label: 'Thời gian yêu cầu' },
@@ -23,7 +23,7 @@ const WITHDRAW_COLUMNS = [
 ];
 
 /**
- * Quy trình Escrow dạng 3 bước ngang có spine (SPEC Tutor §4.3).
+ * Quy trình Escrow dạng 3 bước ngang có spine.
  *
  * Màu tiêu đề bước = trạng thái tiền ở bước đó: `holding` (đang ký quỹ) →
  * `success` (đã đối soát) → trung tính (tiền ra khỏi ví). Bước 3 cố tình KHÔNG
@@ -49,15 +49,15 @@ const ESCROW_STEPS = [
 ];
 
 /**
- * Quản trị ví bảo chứng & Trung tâm tài chính Gia sư — Operational Ledger
- * (SPEC Tutor §4.3).
+ * Quản trị ví bảo chứng & Trung tâm tài chính Gia sư — Quản lý ví & giao dịch
+ *.
  *
  * Bốn số dư đọc ngang như một dòng sổ cái: ký quỹ → khả dụng → phong tỏa → được
  * rút. Công thức hạn mức nổi thành một dòng phương trình ngay dưới strip thay vì
  * nhét dài gói trong `hint` của StatCard (bản cũ bị bó/khó đọc).
  *
  * Tuân thủ bất biến tài chính:
- * - DEC-WD-001: Withdrawable = AvailableBalance.
+ *: Withdrawable = AvailableBalance.
  * - Hạn mức tối thiểu tạo lệnh rút: 50.000 ₫.
  */
 export default function TutorWallet() {
@@ -116,7 +116,7 @@ export default function TutorWallet() {
     );
   }
 
-  // DEC-WD-001: Withdrawable = Available - Held (không được rút phần đang giữ).
+  // Withdrawable = Available - Held (không được rút phần đang giữ).
   const withdrawable = wallet.availableBalance || 0;
   const canWithdraw = withdrawable >= 50000;
 
@@ -159,7 +159,7 @@ export default function TutorWallet() {
 
       {/* 4 số dư — hàng sổ cái phẳng, số là nhân vật chính */}
       <div>
-        <LedgerStrip
+        <StatStrip
           columns={3}
           figures={[
             {
@@ -233,7 +233,7 @@ export default function TutorWallet() {
             description="Lệnh rút tiền của bạn sẽ hiển thị tại đây sau khi tạo yêu cầu."
           />
         ) : (
-          <LedgerTable
+          <DataTable
             caption="Lịch sử lệnh rút tiền về ngân hàng của Gia sư"
             columns={WITHDRAW_COLUMNS}
             minWidth={680}
@@ -260,7 +260,7 @@ export default function TutorWallet() {
                 </td>
               </tr>
             ))}
-          </LedgerTable>
+          </DataTable>
         )}
       </Card>
     </div>

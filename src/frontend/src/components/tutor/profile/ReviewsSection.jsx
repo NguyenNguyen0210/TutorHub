@@ -36,7 +36,7 @@ function Stars({ rating = 0, className = '' }) {
 Stars.propTypes = { rating: PropTypes.number, className: PropTypes.string };
 
 /**
- * ReviewsSection — đánh giá từ học viên (SPEC §4.5).
+ * ReviewsSection — đánh giá từ học viên.
  *
  * Thanh phân bố sao chỉ hiện khi có đánh giá thật trong payload; `totalReviews`
  * từ hồ sơ có thể lớn hơn số bản ghi đã tải nên phần thống kê ghi rõ

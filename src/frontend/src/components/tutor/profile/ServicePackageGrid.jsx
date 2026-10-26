@@ -10,10 +10,10 @@ import ServicePackageCard from './ServicePackageCard';
 const VISIBLE_LIMIT = 3;
 
 /**
- * ServicePackageGrid — section "Dịch vụ học tập" của hồ sơ gia sư (SPEC §4.4).
+ * ServicePackageGrid — section "Dịch vụ học tập" của hồ sơ gia sư.
  *
  * V1 chỉ nhận tối đa 3 gói đầu vì `TutorProfileDto.services` chưa phân trang
- * (SPEC §7). Link "Xem tất cả" chỉ hiện khi nhiều hơn 3 gói.
+ *. Link "Xem tất cả" chỉ hiện khi nhiều hơn 3 gói.
  */
 export default function ServicePackageGrid({
   services = [],

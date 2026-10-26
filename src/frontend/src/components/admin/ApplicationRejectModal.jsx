@@ -4,10 +4,10 @@ import Icon from '@/components/ui/Icon';
 import Button, { IconButton } from '@/components/ui/Button';
 
 /**
- * Modal từ chối hồ sơ gia sư kèm lý do (Operational Ledger — SPEC §4.2).
+ * Modal từ chối hồ sơ gia sư kèm lý do (Operational Ledger —.
  *
  * Hành động phá hủy nên dùng `danger-outline` / `danger` — không bao giờ
- * `success` (SPEC §4.2). Endpoint và payload do page cha giữ nguyên.
+ * `success`. Endpoint và payload do page cha giữ nguyên.
  */
 const REASON_PRESETS = [
   'Thiếu bằng cấp minh chứng',

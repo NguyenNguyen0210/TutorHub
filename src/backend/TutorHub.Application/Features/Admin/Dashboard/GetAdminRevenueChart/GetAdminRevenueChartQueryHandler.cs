@@ -74,7 +74,7 @@ public class GetAdminRevenueChartQueryHandler : IRequestHandler<GetAdminRevenueC
 
             var releasedTx = monthTx.Where(t => t.Status == TransactionStatus.Released).ToList();
             // Refunds are counted by type (StudentRefund), independent of their
-            // Pending/Succeeded settlement state (DEC-S8-032).
+            // Pending/Succeeded settlement state.
             var refundedTx = monthTx.Where(t => t.Type == TransactionType.StudentRefund).ToList();
             var bookingPayments = monthTx.Where(t => t.Type == TransactionType.BookingPayment && t.Status == TransactionStatus.Held).ToList();
 

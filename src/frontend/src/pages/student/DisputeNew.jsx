@@ -22,7 +22,7 @@ const ALLOWED_MIME_TYPES = [
   'application/pdf',
   'text/plain',
 ];
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB per DEC-S8-018
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB per integrity rules
 const MIN_DESCRIPTION_LENGTH = 20;
 
 const REASONS = [
@@ -36,7 +36,7 @@ const REASONS = [
 ];
 
 /**
- * StepHeading — tiêu đề bước 15/600 kèm số thứ tự (SPEC §5.6).
+ * StepHeading — tiêu đề bước 15/600 kèm số thứ tự.
  *
  * Mở khiếu nại là việc có hậu quả tài chính, nên đánh số bước để người dùng thấy
  * còn bao nhiêu việc thay vì một form dài. `aside` là meta căn phải (bộ đếm ký

@@ -41,7 +41,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
 
         try
         {
-        // 1. Lock Dispute (Lock Order Level 1 - DEC-S8-027).
+        // 1. Lock Dispute (Lock Order Level 1).
         // NOTE: locked via separate SELECT ... FOR UPDATE (not FromSql entity
         // query) because the Disputes xmin row-version breaks FromSql+Include
         // composition on Npgsql ("column t.xmin does not exist").
@@ -62,7 +62,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             throw new NotFoundException(nameof(Dispute), request.DisputeId);
         }
 
-        // Terminal state check (DEC-S8-002, INV-DISP-005)
+        // Terminal state check
         if (dispute.Status == DisputeStatus.Resolved || dispute.Status == DisputeStatus.Dismissed)
         {
             throw new ConflictException($"Dispute is already closed in status '{dispute.Status}'.");
@@ -80,7 +80,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
         var enrollment = session.Enrollment;
         var now = _clock.UtcNow;
 
-        // 2. Lock Wallet (Lock Order Level 4 - DEC-S8-027)
+        // 2. Lock Wallet (Lock Order Level 4)
         var tutorWallet = await _context.Wallets
             .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {enrollment.TutorProfileId} FOR UPDATE")
             .FirstOrDefaultAsync(cancellationToken);
@@ -132,7 +132,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
         }
 
         // =========================================================================
-        // Stage A: Pre-Release (Pending Escrow) - DEC-S8-003, DEC-S8-025
+        // Stage A: Pre-Release (Pending Escrow)
         // =========================================================================
         var gross = session.SessionPrice;
         // Snapshot rate is authoritative; a legitimate 0% must stay 0%.
@@ -153,7 +153,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             throw new BadRequestException(ex.Message);
         }
 
-        // DEC-S8-025 / money conservation: the pre-release earning still sits in the
+        // Money conservation: the pre-release earning still sits in the
         // tutor wallet's Pending escrow. Remove the session's gross slice before any
         // split; otherwise a tutor win creates money and a student win strands escrow.
         if (studentRefund > 0 || tutorGrossRelease > 0)

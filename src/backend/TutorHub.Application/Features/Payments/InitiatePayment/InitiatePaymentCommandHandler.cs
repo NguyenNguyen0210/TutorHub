@@ -64,7 +64,7 @@ public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentComm
 
         // 5. Initialize/Update the gateway attempt. The payment transaction
         // represents the GROSS escrow amount; the platform fee is only applied
-        // when each session earns out (FR-EARN-003).
+        // when each session earns out.
         var paymentTx = await _context.GetPaymentTransactionAsync(booking.Id, cancellationToken);
 
         if (paymentTx == null)

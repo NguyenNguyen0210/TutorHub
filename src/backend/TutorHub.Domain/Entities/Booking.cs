@@ -66,7 +66,7 @@ public class Booking
         // Booking-level cancellation is only valid for the unpaid 15-minute
         // Holding checkout. Once Paid, an Enrollment + escrow exist and all
         // cancellation/refund must go through Enrollment.Cancel (pro-rata) so
-        // sessions and wallet stay consistent (FR-CANCEL-003/004, PRD §8.1).
+        // sessions and wallet stay consistent.
         if (Status != BookingStatus.Holding)
         {
             return false;
@@ -106,7 +106,7 @@ public class Booking
     /// Revives a booking that the system auto-cancelled when the checkout hold
     /// expired, when a successful gateway IPN arrives after expiry. Only system
     /// cancellations may be revived so a deliberate user/tutor cancellation is
-    /// never silently overturned (FR-PAY-003, PRD §12.1).
+    /// never silently overturned.
     /// </summary>
     public void ReactivateForPayment(DateTime now)
     {

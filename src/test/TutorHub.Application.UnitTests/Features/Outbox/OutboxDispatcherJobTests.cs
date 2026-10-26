@@ -65,7 +65,7 @@ public class OutboxDispatcherJobTests
         // Act
         var processedCount = await job.ProcessPendingMessagesBatchAsync(CancellationToken.None);
 
-        // Assert (INV-EVENT-002, INV-EVENT-010, INV-EVENT-011)
+        // Assert
         processedCount.Should().Be(1);
         outboxMessage.Status.Should().Be(OutboxMessageStatus.Processed);
         outboxMessage.ProcessedAt.Should().NotBeNull();
@@ -112,7 +112,7 @@ public class OutboxDispatcherJobTests
         // Act
         var processedCount = await job.ProcessPendingMessagesBatchAsync(CancellationToken.None);
 
-        // Assert (DEC-S7-015: Exponential backoff on retry)
+        // Assert (Note: Exponential backoff on retry)
         processedCount.Should().Be(1);
         outboxMessage.Status.Should().Be(OutboxMessageStatus.Pending);
         outboxMessage.RetryCount.Should().Be(1);
@@ -158,7 +158,7 @@ public class OutboxDispatcherJobTests
         // Act
         var processedCount = await job.ProcessPendingMessagesBatchAsync(CancellationToken.None);
 
-        // Assert (DEC-S7-013, INV-EVENT-013: Max retries transition to DeadLettered)
+        // Assert (Note: Max retries transition to DeadLettered)
         processedCount.Should().Be(1);
         outboxMessage.Status.Should().Be(OutboxMessageStatus.DeadLettered);
         outboxMessage.DeadLetteredAt.Should().NotBeNull();

@@ -64,7 +64,7 @@ public class ReminderEventNotificationTests
         // Act
         await handler.Handle(domainEvent, CancellationToken.None);
 
-        // Assert (INV-EVENT-006, INV-EVENT-021, FR-NOTIF-004)
+        // Assert
         inboxMessages.Should().HaveCount(1);
         inboxMessages[0].EventId.Should().Be(domainEvent.EventId);
 

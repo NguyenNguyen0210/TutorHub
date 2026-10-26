@@ -116,7 +116,7 @@ public class WalletsController : ControllerBase
     }
 
     /// <summary>
-    /// Get paginated financial ledger statement for authenticated tutor (Tutor only).
+    /// Get paginated transaction history for authenticated tutor (Tutor only).
     /// </summary>
     [HttpGet("statement")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<WalletTransactionDto>>), StatusCodes.Status200OK)]

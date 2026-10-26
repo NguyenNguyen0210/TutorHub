@@ -13,13 +13,13 @@ public class TutorWallet
     // Money available for withdrawal
     public decimal AvailableBalance { get; set; }
 
-    // Authoritative withdrawable balance (INV-LEDGER-005). Alias of AvailableBalance since disputes are pre-release only.
+    // Authoritative withdrawable balance. Alias of AvailableBalance since disputes are pre-release only.
     public decimal WithdrawableBalance => AvailableBalance;
 
     public DateTime UpdatedAt { get; set; }
 
     // balance mutations go through guarded domain methods so the
-    // DEC-WD-001 / DEC-S8-001 invariants live in one place.
+    // Wallet balance constraints.
     // Handlers own persistence (locks, transactions); this class owns math.
 
     public void CreditPending(decimal amount, DateTime now)

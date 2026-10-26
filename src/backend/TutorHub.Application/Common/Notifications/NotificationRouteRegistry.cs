@@ -1,9 +1,9 @@
 namespace TutorHub.Application.Common.Notifications;
 
 /// <summary>
-/// Canonical Server-Side Notification Route Registry (DEC-S7-007, INV-NOTIF-006).
+/// Canonical Server-Side Notification Route Registry.
 /// Generates uniform deep links as navigation hints for client navigation.
-/// Target endpoints independently enforce security and authorization (INV-NOTIF-007).
+/// Target endpoints independently enforce security and authorization.
 /// </summary>
 public static class NotificationRouteRegistry
 {

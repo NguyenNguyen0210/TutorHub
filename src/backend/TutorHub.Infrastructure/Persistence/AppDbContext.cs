@@ -54,39 +54,37 @@ public class AppDbContext : DbContext, IAppDbContext
 
     public override int SaveChanges()
     {
-        EnforceLedgerImmutability();
+        EnforceTransactionIntegrity();
         return base.SaveChanges();
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
-        EnforceLedgerImmutability();
+        EnforceTransactionIntegrity();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        EnforceLedgerImmutability();
+        EnforceTransactionIntegrity();
         return base.SaveChangesAsync(cancellationToken);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        EnforceLedgerImmutability();
+        EnforceTransactionIntegrity();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
     /// <summary>
-    /// Append-only / immutability guards for the financial ledger
-    /// (INV-LEDGER-006, INV-LEDGER-007, DEC-S8-030).
+    /// Financial data integrity guards for settled transactions and audit logs.
     ///
     /// Invoked from EVERY SaveChanges entry point (sync, sync-bool, async,
-    /// async-bool) so that no overload can bypass the ledger invariants. Guarding
-    /// only the async overload left the other three as an open door.
+    /// async-bool) to ensure settled historical records cannot be modified or deleted.
     /// </summary>
-    private void EnforceLedgerImmutability()
+    private void EnforceTransactionIntegrity()
     {
-        // Enforce append-only / immutability on Transaction (DEC-S8-030, INV-LEDGER-007)
+        // Enforce immutability on settled transactions
         var deletedTransactions = ChangeTracker.Entries<Transaction>()
             .Where(e => e.State == EntityState.Deleted)
             .ToList();
@@ -121,7 +119,7 @@ public class AppDbContext : DbContext, IAppDbContext
             throw new InvalidOperationException($"Settled historical financial records are immutable and cannot be modified. Ids: {ids}. Props: {props}.");
         }
 
-        // Anti-chaining validation (DEC-S8-030, INV-LEDGER-007)
+        // Financial adjustments must point directly to original earning transaction
         var addedAdjustments = ChangeTracker.Entries<Transaction>()
             .Where(e => e.State == EntityState.Added && e.Entity.RelatedTransactionId.HasValue)
             .ToList();
@@ -151,7 +149,7 @@ public class AppDbContext : DbContext, IAppDbContext
             }
         }
 
-        // Enforce append-only on AuditLog (DEC-S8-005, INV-LEDGER-006)
+        // AuditLog records are append-only
         var modifiedAuditLogs = ChangeTracker.Entries<AuditLog>()
             .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
             .ToList();
@@ -160,7 +158,7 @@ public class AppDbContext : DbContext, IAppDbContext
             throw new InvalidOperationException("AuditLog records are append-only and cannot be modified or deleted.");
         }
 
-        // Enforce append-only on StudentWalletTransaction (INV-STUDENT-WALLET-003)
+        // StudentWalletTransaction records are append-only
         var modifiedStudentWalletTxs = ChangeTracker.Entries<StudentWalletTransaction>()
             .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
             .ToList();
@@ -170,7 +168,7 @@ public class AppDbContext : DbContext, IAppDbContext
             throw new InvalidOperationException($"StudentWalletTransaction records are append-only and cannot be modified or deleted. Ids: {ids}.");
         }
 
-        // Enforce append-only on TutorWalletTransaction (INV-TUTOR-WALLET-001)
+        // TutorWalletTransaction records are append-only
         var modifiedTutorWalletTxs = ChangeTracker.Entries<TutorWalletTransaction>()
             .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
             .ToList();
@@ -180,7 +178,7 @@ public class AppDbContext : DbContext, IAppDbContext
             throw new InvalidOperationException($"TutorWalletTransaction records are append-only and cannot be modified or deleted. Ids: {ids}.");
         }
 
-        // Enforce append-only / terminal immutability on TopUpRequest (INV-STUDENT-WALLET-004)
+        // Enforce append-only / terminal immutability on TopUpRequest
         var deletedTopUpRequests = ChangeTracker.Entries<TopUpRequest>()
             .Where(e => e.State == EntityState.Deleted)
             .ToList();

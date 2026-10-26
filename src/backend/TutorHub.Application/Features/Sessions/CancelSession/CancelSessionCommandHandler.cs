@@ -105,10 +105,10 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
         }
 
         // 4. Re-evaluate the contract lifecycle: the last unresolved Session may
-        // now be terminal, allowing the Enrollment to complete (FR-ENR-005).
+        // now be terminal, allowing the Enrollment to complete.
         enrollment.EvaluateCompletion();
 
-        // 5. Financial Escrow Adjustment & Refund Record (INV-LEDGER-006, INV-REFUND-004)
+        // 5. Financial Escrow Adjustment & Refund Record
         // Lock the tutor wallet row so concurrent payouts/cancellations cannot race pending-escrow.
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
         try

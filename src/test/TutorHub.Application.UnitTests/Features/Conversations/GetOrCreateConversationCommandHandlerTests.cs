@@ -79,7 +79,7 @@ public class GetOrCreateConversationCommandHandlerTests
         // Act
         var result = await handler.Handle(new GetOrCreateConversationCommand(studentUser.Id), CancellationToken.None);
 
-        // Assert (INV-MSG-001: StudentProfile is always Student, TutorProfile is always Tutor)
+        // Assert (Note: StudentProfile is always Student, TutorProfile is always Tutor)
         result.StudentProfileId.Should().Be(studentProfile.Id);
         result.TutorProfileId.Should().Be(tutorProfile.Id);
         conversationsList.Should().HaveCount(1);

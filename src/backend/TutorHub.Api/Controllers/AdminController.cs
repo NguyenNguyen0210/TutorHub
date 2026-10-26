@@ -657,7 +657,7 @@ public class AdminController : ControllerBase
     }
 
     /// <summary>
-    /// Admin: Inspect conversations with operational access reason (DEC-S7-016).
+    /// Admin: Inspect conversations with operational access reason.
     /// </summary>
     [HttpGet("conversations")]
     [ProducesResponseType(typeof(ApiResponse<TutorHub.Application.Features.Conversations.DTOs.CursorPagedResult<TutorHub.Application.Features.Conversations.DTOs.ConversationDto>>), StatusCodes.Status200OK)]
@@ -677,7 +677,7 @@ public class AdminController : ControllerBase
     }
 
     /// <summary>
-    /// Admin: Inspect messages in a conversation with operational access reason (DEC-S7-016).
+    /// Admin: Inspect messages in a conversation with operational access reason.
     /// </summary>
     [HttpGet("conversations/{id:guid}/messages")]
     [ProducesResponseType(typeof(ApiResponse<TutorHub.Application.Features.Conversations.DTOs.CursorPagedResult<TutorHub.Application.Features.Conversations.DTOs.MessageDto>>), StatusCodes.Status200OK)]

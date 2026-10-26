@@ -53,7 +53,7 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Report another user for conduct, harassment, or platform violations (FR-TRUST-001).
+    /// Report another user for conduct, harassment, or platform violations.
     /// </summary>
     [HttpPost("{id:guid}/report")]
     [ProducesResponseType(typeof(ApiResponse<TutorHub.Application.Features.Reports.DTOs.ReportSummaryDto>), StatusCodes.Status201Created)]

@@ -26,7 +26,7 @@ const VIETNAM_BANKS = [
 const MIN_WITHDRAW = 50000;
 
 /**
- * Rút tiền về ngân hàng — tách từ modal cũ sang trang riêng (SPEC §5.3).
+ * Rút tiền về ngân hàng — tách từ modal cũ sang trang riêng.
  *
  * Form này có 5 trường + cảnh báo giữ tiền; đặt trong modal hẹp là nghẽn trên
  * mobile. `handleRequestWithdrawal` giữ nguyên endpoint + payload, chỉ chuyển

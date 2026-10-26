@@ -59,7 +59,7 @@ public class AdminFailStudentWithdrawalCommandHandler : IRequestHandler<AdminFai
             wallet.ReleaseWithdrawal(withdrawal.Amount, now);
             var balanceAfter = wallet.AvailableBalance;
 
-            // Explicit reversal ledger entry (INV-STUDENT-WALLET-003)
+            // Explicit reversal ledger entry
             var ledger = new StudentWalletTransaction
             {
                 Id = Guid.NewGuid(),

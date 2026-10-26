@@ -67,7 +67,7 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
         }
 
         // A dispute addresses an issue with a delivery inside its grace window
-        // (FR-DISPUTE-001, PRD §8.4). AwaitingPayout implies the session already
+        //. AwaitingPayout implies the session already
         // took place; future sessions use cancellation or reschedule instead.
         var now = _clock.UtcNow;
 
@@ -77,7 +77,7 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
             throw new BadRequestException("The 12-hour grace period has expired. The session is deemed accepted and can no longer be disputed.");
         }
 
-        // Active dispute deduplication: only 1 active dispute per session (INV-DISP-001)
+        // Active dispute deduplication: only 1 active dispute per session
         var existingActiveDispute = await _context.Disputes
             .AnyAsync(d => d.SessionId == session.Id &&
                            d.Status != DisputeStatus.Resolved &&
@@ -122,7 +122,7 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
 
         _context.Disputes.Add(dispute);
 
-        // Outbox event (DEC-S7-001)
+        // Outbox event
         _context.AddOutboxMessage(new DisputeCreatedEvent(
             dispute.Id,
             session.EnrollmentId,

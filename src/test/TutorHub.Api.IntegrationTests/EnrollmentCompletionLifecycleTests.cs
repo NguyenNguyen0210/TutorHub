@@ -11,7 +11,7 @@ namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
 /// H2 regression: an Enrollment must complete once every Session is resolved,
-/// even when one Session was cancelled (FR-ENR-005, FR-SESSION-007).
+/// even when one Session was cancelled.
 /// </summary>
 public class EnrollmentCompletionLifecycleTests : IntegrationTestBase
 {

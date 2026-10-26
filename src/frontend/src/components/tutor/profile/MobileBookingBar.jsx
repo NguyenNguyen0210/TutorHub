@@ -6,10 +6,10 @@ import Icon from '@/components/ui/Icon';
 import { scrollToSection, SECTION_IDS } from './sectionNav';
 
 /**
- * MobileBookingBar — CTA kép dính đáy màn hình, chỉ hiện trên mobile (SPEC §3.2).
+ * MobileBookingBar — CTA kép dính đáy màn hình, chỉ hiện trên mobile.
  *
  * Ở desktop rail sticky đã có CTA nên thanh này bị ẩn để không trùng lặp.
- * Không có animation (SPEC §5: tôn trọng prefers-reduced-motion).
+ * Không có animation: tôn trọng prefers-reduced-motion).
  */
 export default function MobileBookingBar({ tutorId, show = true }) {
   if (!show) return null;

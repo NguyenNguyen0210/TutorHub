@@ -3,12 +3,12 @@ import PropTypes from 'prop-types';
 import { cn } from '@/lib/cn';
 
 /**
- * LedgerStrip — hàng số liệu sổ cái tài chính & vận hành hiện đại.
+ * StatStrip — Thanh tóm tắt chỉ số và số dư.
  *
- * Operational Ledger (SPEC §4): số liệu là trọng tâm, trực quan, chính xác.
+ * số liệu là trọng tâm, trực quan, chính xác.
  * Hỗ trợ top indicator border và subtle gradient tinh tế cho trạng thái holding / danger.
  */
-export default function LedgerStrip({ figures, className, columns = 4 }) {
+export default function StatStrip({ figures, className, columns = 4 }) {
   const cols =
     columns === 3
       ? 'sm:grid-cols-3'
@@ -80,7 +80,7 @@ export default function LedgerStrip({ figures, className, columns = 4 }) {
   );
 }
 
-LedgerStrip.propTypes = {
+StatStrip.propTypes = {
   figures: PropTypes.arrayOf(
     PropTypes.shape({
       key: PropTypes.string.isRequired,

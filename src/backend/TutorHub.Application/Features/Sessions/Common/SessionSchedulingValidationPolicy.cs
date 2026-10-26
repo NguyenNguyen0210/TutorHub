@@ -4,7 +4,7 @@ using TutorHub.Domain.Services;
 namespace TutorHub.Application.Features.Sessions.Common;
 
 /// <summary>
-/// Canonical scheduling validation policy (INV-RESCHED-005).
+/// Canonical scheduling validation policy.
 /// Shared across initial Session Scheduling and Session Rescheduling to guarantee 100% semantic consistency.
 /// </summary>
 public static class SessionSchedulingValidationPolicy

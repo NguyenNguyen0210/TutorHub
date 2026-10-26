@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace TutorHub.Application.Common.Settings;
 
 /// <summary>
-/// Platform fee configuration options (DEC-S8-020).
+/// Platform fee configuration options.
 /// Binds from configuration ("PlatformFee" section or "PlatformFeeRate" key in .env).
 /// </summary>
 public class PlatformFeeOptions

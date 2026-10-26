@@ -70,7 +70,7 @@ public class StudentWalletService : IStudentWalletService
         wallet.Credit(amount, now);
         var balanceAfter = wallet.AvailableBalance;
 
-        // Append-only immutable ledger entry (INV-STUDENT-WALLET-003)
+        // Append-only immutable ledger entry
         var ledger = new StudentWalletTransaction
         {
             Id = Guid.NewGuid(),

@@ -84,7 +84,7 @@ public class DisputeConfiguration : IEntityTypeConfiguration<Dispute>
         builder.HasIndex(d => d.RespondentUserId);
         builder.HasIndex(d => d.Status);
 
-        // At most one ACTIVE (non-terminal) dispute per session (INV-DISP-001).
+        // At most one ACTIVE (non-terminal) dispute per session.
         // A plain (non-unique) SessionId index is kept above for lookups; this
         // filtered unique index additionally prevents concurrent duplicate filing.
         builder.HasIndex(d => d.SessionId)
@@ -92,7 +92,7 @@ public class DisputeConfiguration : IEntityTypeConfiguration<Dispute>
             .IsUnique()
             .HasFilter("\"Status\" IN ('Open', 'UnderReview', 'RequiresAdminFinancialIntervention', 'RequiresAdminRefundSettlement')");
 
-        // Filtered unique index: Single terminal financial dispute resolution per original earning (DEC-S8-033, INV-DISP-009)
+        // Filtered unique index: Single terminal financial dispute resolution per original earning
         builder.HasIndex(d => d.OriginalTransactionId)
             .HasFilter("\"AffectsFinancialResolution\" = TRUE")
             .IsUnique();

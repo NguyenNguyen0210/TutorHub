@@ -15,12 +15,12 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
-import ActionQueue from '@/components/ledger/ActionQueue';
-import LedgerStrip from '@/components/ledger/LedgerStrip';
-import StateBadge from '@/components/ledger/StateBadge';
+import ActionQueue from '@/components/common/ActionQueue';
+import StatStrip from '@/components/common/StatStrip';
+import StateBadge from '@/components/common/StateBadge';
 
 /**
- * Bảng điều hành gia sư — Operational Ledger (SPEC §4.1).
+ * Bảng điều hành gia sư — Tổng quan lịch dạy & công việc.
  *
  * Mirror của Bàn học Học viên nhưng ưu tiên khác: gia sư bán thời gian, nên việc
  * chờ nằm ở tiền hợp đồng đang ký quỹ (buổi chưa xếp lịch, buổi chờ giải ngân)
@@ -107,7 +107,7 @@ export default function TutorDashboard() {
   );
 
   /**
-   * Hàng việc chờ — thứ tự ưu tiên (SPEC §4.1):
+   * Hàng việc chờ — thứ tự ưu tiên:
    *   1. Buổi chưa xếp lịch — tiền hợp đồng đang ký quỹ, học viên đang chờ.
    *   2. Buổi chờ giải ngân tự động — thông tin đếm ngược cho gia sư.
    *   3. Buổi sắp tới.
@@ -127,7 +127,7 @@ export default function TutorDashboard() {
             ? `Học viên ${s.studentName} đang chờ. Tiền buổi học chưa được giải ngân.`
             : 'Tiền buổi học chưa được giải ngân, cần xếp lịch để bắt đầu.',
           // `startAt` null nên không có deadline; `priority` giữ nó ở đầu hàng đợi
-          // theo SPEC §4.1 thay vì bị đẩy xuống cuối.
+          // theo thay vì bị đẩy xuống cuối.
           priority: 0,
           deadlineAt: undefined,
           icon: 'calendar_month',
@@ -374,7 +374,7 @@ export default function TutorDashboard() {
 
       <ActionQueue items={queue} />
 
-      <LedgerStrip
+      <StatStrip
         figures={[
           {
             key: 'students',

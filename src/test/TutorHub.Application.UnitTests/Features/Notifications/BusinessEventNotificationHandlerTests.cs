@@ -55,7 +55,7 @@ public class BusinessEventNotificationHandlerTests
         // Act
         await handler.Handle(domainEvent, CancellationToken.None);
 
-        // Assert (INV-EVENT-006, INV-EVENT-021)
+        // Assert
         inboxMessages.Should().HaveCount(1);
         inboxMessages[0].EventId.Should().Be(domainEvent.EventId);
         inboxMessages[0].ConsumerName.Should().Be("NotificationConsumer");
@@ -102,7 +102,7 @@ public class BusinessEventNotificationHandlerTests
         // Act
         await handler.Handle(domainEvent, CancellationToken.None);
 
-        // Assert (INV-EVENT-004: Deduplication prevents double notification)
+        // Assert (Note: Deduplication prevents double notification)
         notifications.Should().BeEmpty();
         emailDeliveries.Should().BeEmpty();
     }
@@ -154,7 +154,7 @@ public class BusinessEventNotificationHandlerTests
         // Act
         await handler.Handle(domainEvent, CancellationToken.None);
 
-        // Assert (INV-EVENT-021: Multi-recipient events commit all recipient notifications with 1 InboxMessage)
+        // Assert (Note: Multi-recipient events commit all recipient notifications with 1 InboxMessage)
         inboxMessages.Should().HaveCount(1);
         notifications.Should().HaveCount(2);
         notifications.Select(n => n.UserId).Should().Contain(new[] { studentUser.Id, tutorUser.Id });

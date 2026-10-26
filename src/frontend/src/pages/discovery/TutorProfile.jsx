@@ -28,7 +28,7 @@ import { SECTION_IDS } from '@/components/tutor/profile/sectionNav';
  * - GET /tutors/{id}/reviews → PagedResult<TutorPublicReviewDto>
  *
  * Bất biến giữ nguyên:
- * - DEC-S8-020: package-based checkout, giữ chỗ 15 phút.
+ *: package-based checkout, giữ chỗ 15 phút.
  * - Guards đặt chỗ: chưa đăng nhập → login?redirect; tài khoản Tutor → cảnh báo.
  *
  * Layout: 12 cột — nội dung 8 + rail 4 sticky (§3.1); mobile xếp dọc + CTA

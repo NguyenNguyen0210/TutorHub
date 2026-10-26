@@ -54,7 +54,7 @@ public class EmailDeliveryJobTests
         // Act
         var processedCount = await job.ProcessPendingEmailsBatchAsync(CancellationToken.None);
 
-        // Assert (DEC-S7-010, INV-EVENT-017)
+        // Assert
         processedCount.Should().Be(1);
         email.Status.Should().Be(EmailDeliveryStatus.Sent);
         email.SentAt.Should().NotBeNull();

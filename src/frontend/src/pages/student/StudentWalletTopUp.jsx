@@ -13,7 +13,7 @@ const PRESET_AMOUNTS = [100000, 200000, 500000, 1000000, 2000000, 5000000];
 const MIN_TOP_UP = 10000;
 
 /**
- * Nạp tiền vào Ví Học Viên — tách từ modal cũ sang trang riêng (SPEC §5.3).
+ * Nạp tiền vào Ví Học Viên — tách từ modal cũ sang trang riêng.
  * `handleRequestTopUp` giữ nguyên: cùng endpoint, cùng payload, cùng redirect
  * sang VNPay Sandbox.
  */

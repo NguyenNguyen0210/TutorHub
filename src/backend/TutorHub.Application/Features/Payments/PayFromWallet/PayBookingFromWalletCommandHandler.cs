@@ -87,12 +87,12 @@ public class PayBookingFromWalletCommandHandler : IRequestHandler<PayBookingFrom
                 throw new BadRequestException($"Số dư ví không đủ để thanh toán. Số dư hiện có: {available:N0} VND, Số tiền cần thanh toán: {booking.TotalPrice:N0} VND. Cần nạp thêm: {shortfall:N0} VND.");
             }
 
-            // 5. Debit wallet (INV-STUDENT-WALLET-005)
+            // 5. Debit wallet
             var balanceBefore = wallet.AvailableBalance;
             wallet.Debit(booking.TotalPrice, now);
             var balanceAfter = wallet.AvailableBalance;
 
-            // 6. Create immutable student ledger record (INV-STUDENT-WALLET-003)
+            // 6. Create immutable student ledger record
             var studentLedger = new StudentWalletTransaction
             {
                 Id = Guid.NewGuid(),

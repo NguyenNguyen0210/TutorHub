@@ -11,9 +11,9 @@ import Input, { Field } from '@/components/ui/Input';
 import Tabs from '@/components/ui/Tabs';
 import { TableSkeleton } from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
-import LedgerTable from '@/components/ledger/LedgerTable';
-import SignedAmount from '@/components/ledger/SignedAmount';
-import StateBadge from '@/components/ledger/StateBadge';
+import DataTable from '@/components/common/DataTable';
+import SignedAmount from '@/components/common/SignedAmount';
+import StateBadge from '@/components/common/StateBadge';
 import { PageHeader } from '@/components/ui/StatCard';
 
 const TOPUP_COLUMNS = [
@@ -327,7 +327,7 @@ export default function AdminStudentWallets() {
                 description="Khi học viên tạo yêu cầu nạp tiền chuyển khoản, thông tin sẽ xuất hiện ở đây."
               />
             ) : (
-              <LedgerTable
+              <DataTable
                 caption="Danh sách yêu cầu nạp tiền qua cổng VNPay của học viên"
                 columns={TOPUP_COLUMNS}
                 minWidth={750}
@@ -379,7 +379,7 @@ export default function AdminStudentWallets() {
                     </tr>
                   );
                 })}
-              </LedgerTable>
+              </DataTable>
             )}
           </Card>
         )}
@@ -419,7 +419,7 @@ export default function AdminStudentWallets() {
                 description="Khi học viên tạo lệnh rút tiền, thông tin sẽ xuất hiện ở đây để kế toán xử lý."
               />
             ) : (
-              <LedgerTable
+              <DataTable
                 caption="Danh sách yêu cầu rút tiền của học viên về tài khoản ngân hàng"
                 columns={WITHDRAWAL_COLUMNS}
                 minWidth={800}
@@ -493,7 +493,7 @@ export default function AdminStudentWallets() {
                     </tr>
                   );
                 })}
-              </LedgerTable>
+              </DataTable>
             )}
           </Card>
         )}

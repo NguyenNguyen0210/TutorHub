@@ -7,11 +7,11 @@ import Icon from '@/components/ui/Icon';
 import { getTeachingModeMeta } from '@/config/enums';
 
 /**
- * BookingRail — cột phải sticky: hành động + số liệu tin cậy (SPEC §4.6).
+ * BookingRail — cột phải sticky: hành động + số liệu tin cậy.
  *
  * Rail cố tình **không** lặp lại nội dung headline: headline kể con người và
  * học vấn, rail trả lời "tôi có thể làm gì tiếp" và "con số này đáng tin bao
- * nhiêu". Số liệu thiếu (tỷ lệ phản hồi, số học viên đã dạy) là V2 theo SPEC §7
+ * nhiêu". Số liệu thiếu (tỷ lệ phản hồi, số học viên đã dạy) là V2 theo
  * nên bị bỏ hẳn thay vì điền 0.
  */
 export default function BookingRail({ tutor }) {

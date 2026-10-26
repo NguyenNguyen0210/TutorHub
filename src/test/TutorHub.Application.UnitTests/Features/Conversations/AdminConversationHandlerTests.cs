@@ -49,7 +49,7 @@ public class AdminConversationHandlerTests
         // Act
         var act = () => handler.Handle(new AdminGetConversationsQuery("abc"), CancellationToken.None);
 
-        // Assert (DEC-S7-016: OperationalReason >= 5 chars)
+        // Assert (Note: OperationalReason >= 5 chars)
         var ex = await act.Should().ThrowAsync<BadRequestException>();
         ex.Which.Errors.Should().Contain(e => e.Contains("valid operational reason"));
     }

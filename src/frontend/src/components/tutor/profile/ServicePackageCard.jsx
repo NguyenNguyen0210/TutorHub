@@ -9,7 +9,7 @@ import Money from '@/components/ui/Money';
 import { getTeachingModeMeta } from '@/config/enums';
 
 /**
- * ServicePackageCard — card gói học trong hồ sơ gia sư (SPEC §4.4).
+ * ServicePackageCard — card gói học trong hồ sơ gia sư.
  *
  * Giá theo mô hình **package-first** đồng bộ với màn hình quản lý gia sư:
  * giá trọn gói là thông tin chính (20px/700), giá quy đổi mỗi buổi chỉ là

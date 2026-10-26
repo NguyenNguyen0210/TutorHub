@@ -69,7 +69,7 @@ public static class InfrastructureServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        // Platform Fee Options Pattern Configuration (DEC-S8-020)
+        // Platform Fee Options Pattern Configuration
         services.AddOptions<PlatformFeeOptions>()
             .BindConfiguration(PlatformFeeOptions.SectionName)
             .Configure<IConfiguration>((options, config) =>

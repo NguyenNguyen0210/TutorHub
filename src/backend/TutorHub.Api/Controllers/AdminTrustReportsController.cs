@@ -24,7 +24,7 @@ public class AdminTrustReportsController : ControllerBase
     }
 
     /// <summary>
-    /// Admin: List Trust &amp; Safety reports with optional status filter (FR-TRUST-003).
+    /// Admin: List Trust &amp; Safety reports with optional status filter.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<ReportSummaryDto>>), StatusCodes.Status200OK)]
@@ -40,7 +40,7 @@ public class AdminTrustReportsController : ControllerBase
     }
 
     /// <summary>
-    /// Admin: Get Trust &amp; Safety report detail by ID (FR-TRUST-003).
+    /// Admin: Get Trust &amp; Safety report detail by ID.
     /// </summary>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<AdminReportDetailDto>), StatusCodes.Status200OK)]
@@ -53,7 +53,7 @@ public class AdminTrustReportsController : ControllerBase
     }
 
     /// <summary>
-    /// Admin: Enforce Trust &amp; Safety moderation action on a report (FR-TRUST-004: Warn, Suspend, Ban, RemoveContent, Dismiss).
+    /// Admin: Enforce Trust &amp; Safety moderation action on a report (Note: Warn, Suspend, Ban, RemoveContent, Dismiss).
     /// </summary>
     [HttpPost("{id:guid}/resolve")]
     [ProducesResponseType(typeof(ApiResponse<AdminReportDetailDto>), StatusCodes.Status200OK)]

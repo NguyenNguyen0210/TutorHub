@@ -53,7 +53,7 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
             throw new ForbiddenException($"Cannot request withdrawal while account is '{tutor.User.Status}'. Please contact support.");
         }
 
-        // Payout destination resolution (DEC-WD-002): explicit request values take precedence over tutor profile defaults
+        // Payout destination resolution: explicit request values take precedence over tutor profile defaults
         string bankName;
         string? bankCode;
         string accountNumber;
@@ -86,7 +86,7 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
 
         var now = _clock.UtcNow;
 
-        // Enforce minimum withdrawal amount configured on platform (DEC-WD-001)
+        // Enforce minimum withdrawal amount configured on platform
         var configuredMin = _withdrawalOptions?.Value?.MinAmount;
         decimal minAmount = configuredMin.HasValue && configuredMin.Value > 0 ? configuredMin.Value : 50_000m;
 
@@ -105,11 +105,11 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
             throw new BadRequestException("Tutor wallet not found.");
         }
 
-        // Concurrency-safe stateful balance verification (DEC-WD-001, DEC-S8-001).
+        // Concurrency-safe stateful balance verification.
         // guarded domain math maps to 400 via the catch below.
         try
         {
-            // Deduct available balance immediately (DEC-WD-007)
+            // Deduct available balance immediately
             wallet.DebitAvailableForWithdrawal(request.Amount, now);
         }
         catch (InvalidOperationException ex)
@@ -121,7 +121,7 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
             throw new BadRequestException(ex.Message);
         }
 
-        // Create pending withdrawal with immutable bank snapshot (DEC-WD-002, DEC-WD-003)
+        // Create pending withdrawal with immutable bank snapshot
         var withdrawal = new Withdrawal
         {
             Id = Guid.NewGuid(),
@@ -138,7 +138,7 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
 
         _context.Withdrawals.Add(withdrawal);
 
-        // Record immutable ledger entry (DEC-WD-004, DEC-WD-009)
+        // Record immutable ledger entry
         var ledgerEntry = new WalletTransaction
         {
             Id = Guid.NewGuid(),
@@ -154,7 +154,7 @@ public class CreateWithdrawalCommandHandler : IRequestHandler<CreateWithdrawalCo
 
         _context.WalletTransactions.Add(ledgerEntry);
 
-        // Enqueue Outbox Message in same DB transaction (DEC-S7-012, SP7-INT-001)
+        // Enqueue Outbox Message in same DB transaction
         _context.AddOutboxMessage(new WithdrawalRequestedEvent(
             withdrawal.Id,
             tutor.Id,

@@ -652,7 +652,7 @@ public class BusinessEventNotificationHandler :
     {
         const string consumerName = "NotificationConsumer";
 
-        // 1. Idempotency Check (INV-EVENT-006, INV-EVENT-021)
+        // 1. Idempotency Check
         var alreadyProcessed = await _dbContext.InboxMessages
             .AnyAsync(i => i.ConsumerName == consumerName && i.EventId == domainEvent.EventId, cancellationToken);
 
@@ -737,7 +737,7 @@ public class BusinessEventNotificationHandler :
             return;
         }
 
-        // Best-effort Realtime Push (INV-EVENT-016: SignalR failure never rolls back the committed state)
+        // Best-effort Realtime Push (Note: SignalR failure never rolls back the committed state)
         foreach (var notif in notificationsToInsert)
         {
             try

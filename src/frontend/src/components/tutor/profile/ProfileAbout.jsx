@@ -12,11 +12,11 @@ const BIO_CLAMP_CHARS = 420;
 const NO_BIO = 'Chưa có thông tin giới thiệu chi tiết từ gia sư.';
 
 /**
- * ProfileAbout — phần "Giới thiệu về tôi" + môn học + 3 lớp bảo chứng (SPEC §4.4).
+ * ProfileAbout — phần "Giới thiệu về tôi" + môn học + 3 lớp bảo chứng.
  *
  * "Điểm mạnh giảng dạy" chỉ hiện những gì suy ra được từ dữ liệu thật
  * (học vấn + số năm + môn đang dạy). Không có dữ liệu thì ẩn hẳn khối, không
- * dựng câu chữ bịa (SPEC §6.4).
+ * dựng câu chữ bịa.
  */
 export default function ProfileAbout({ tutor }) {
   const [expanded, setExpanded] = useState(false);

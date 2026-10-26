@@ -13,10 +13,10 @@ import Badge from '@/components/ui/Badge';
 import Icon from '@/components/ui/Icon';
 import Tabs from '@/components/ui/Tabs';
 import { useToast } from '@/components/ui/Toast';
-import LedgerStrip from '@/components/ledger/LedgerStrip';
-import LedgerTable from '@/components/ledger/LedgerTable';
-import SignedAmount from '@/components/ledger/SignedAmount';
-import StateBadge from '@/components/ledger/StateBadge';
+import StatStrip from '@/components/common/StatStrip';
+import DataTable from '@/components/common/DataTable';
+import SignedAmount from '@/components/common/SignedAmount';
+import StateBadge from '@/components/common/StateBadge';
 
 const STATEMENT_COLUMNS = [
   { key: 'time', label: 'Thời gian' },
@@ -50,7 +50,7 @@ const TABS = [
 ];
 
 /**
- * Ví Học Viên — Operational Ledger (SPEC §5.2).
+ * Ví Học Viên — Quản lý ví & giao dịch.
  *
  * Ba số dư là chủ đạo; sổ cái là tab mặc định. Hai luồng tiền (nạp / rút) đã tách
  * sang trang riêng `/student/wallet/topup` và `/student/wallet/withdraw` vì form
@@ -203,7 +203,7 @@ export default function StudentWallet() {
       </div>
 
       <div>
-        <LedgerStrip
+        <StatStrip
           columns={3}
           figures={[
             {
@@ -257,7 +257,7 @@ export default function StudentWallet() {
                 description="Khi bạn nạp tiền, thanh toán khóa học hoặc nhận hoàn tiền, lịch sử chi tiết sẽ hiển thị tại đây."
               />
             ) : (
-              <LedgerTable caption="Sổ cái biến động số dư Ví Học Viên" columns={STATEMENT_COLUMNS} minWidth={720}>
+              <DataTable caption="Sổ cái biến động số dư Ví Học Viên" columns={STATEMENT_COLUMNS} minWidth={720}>
                 {statement.map((item) => {
                   const isCredit = item.direction === 'Credit';
                   return (
@@ -292,7 +292,7 @@ export default function StudentWallet() {
                     </tr>
                   );
                 })}
-              </LedgerTable>
+              </DataTable>
             )}
           </Card>
         )}
@@ -319,7 +319,7 @@ export default function StudentWallet() {
                 actionPath="/student/wallet/topup"
               />
             ) : (
-              <LedgerTable caption="Lịch sử yêu cầu nạp tiền Ví Học Viên" columns={TOPUP_COLUMNS} minWidth={680}>
+              <DataTable caption="Lịch sử yêu cầu nạp tiền Ví Học Viên" columns={TOPUP_COLUMNS} minWidth={680}>
                 {topUps.map((r) => (
                   <tr key={r.id} className="hover:bg-neutral-50/60 transition-colors">
                     <td className="px-4 py-2.5 font-mono text-fg-muted whitespace-nowrap text-[12px]">
@@ -354,7 +354,7 @@ export default function StudentWallet() {
                     </td>
                   </tr>
                 ))}
-              </LedgerTable>
+              </DataTable>
             )}
           </Card>
         )}
@@ -381,7 +381,7 @@ export default function StudentWallet() {
                 actionPath="/student/wallet/withdraw"
               />
             ) : (
-              <LedgerTable caption="Lịch sử yêu cầu rút tiền Ví Học Viên" columns={WITHDRAW_COLUMNS} minWidth={680}>
+              <DataTable caption="Lịch sử yêu cầu rút tiền Ví Học Viên" columns={WITHDRAW_COLUMNS} minWidth={680}>
                 {withdrawals.map((w) => (
                   <tr key={w.id} className="hover:bg-neutral-50/60 transition-colors">
                     <td className="px-4 py-2.5 font-mono text-fg-muted whitespace-nowrap text-[12px]">
@@ -404,7 +404,7 @@ export default function StudentWallet() {
                     </td>
                   </tr>
                 ))}
-              </LedgerTable>
+              </DataTable>
             )}
           </Card>
         )}

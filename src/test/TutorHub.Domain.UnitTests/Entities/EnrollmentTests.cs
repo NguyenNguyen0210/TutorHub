@@ -158,7 +158,7 @@ public class EnrollmentTests
         s2.Complete();
         enrollment.RecordCompletedSession(s2.Id);
 
-        // Assert: cancelled session no longer blocks completion (FR-ENR-005).
+        // Assert: cancelled session no longer blocks completion.
         enrollment.Status.Should().Be(EnrollmentStatus.Completed);
         enrollment.CompletedAt.Should().NotBeNull();
         enrollment.CompletedSessions.Should().Be(2);

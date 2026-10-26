@@ -35,7 +35,7 @@ public class Transaction
 
     public string? PaymentGatewayRef { get; set; }
 
-    // Linkages for dispute resolution & explicit adjustments (DEC-S8-025, DEC-S8-030)
+    // Linkages for dispute resolution & explicit adjustments
     public Guid? DisputeId { get; set; }
     public Guid? RelatedTransactionId { get; set; }
     public Transaction? RelatedTransaction { get; set; }
@@ -49,7 +49,7 @@ public class Transaction
     public DateTime? RefundedAt { get; set; }
 
     // explicit factories so every ledger row is created with the
-    // correct Type/Status/refs. Chaining stays forbidden (DEC-S8-030):
+    // correct Type/Status/refs. Chaining stays forbidden:
     // adjustments must reference the original payout (validated again in
     // AdminResolveDispute + AppDbContext.SaveChangesAsync).
 
@@ -101,7 +101,7 @@ public class Transaction
             throw new ArgumentException("Refund amount must be positive.", nameof(amount));
         if (originalPayout != null && originalPayout.Type != TransactionType.SessionPayoutCredit)
             throw new ArgumentException(
-                "Refunds must reference the original payout transaction (DEC-S8-030).",
+                "Refunds must reference the original payout transaction.",
                 nameof(originalPayout));
 
         return new Transaction
@@ -135,7 +135,7 @@ public class Transaction
     {
         if (originalPayout.Type != TransactionType.SessionPayoutCredit)
             throw new ArgumentException(
-                "Fee reversals must reference the original payout transaction (DEC-S8-030).",
+                "Fee reversals must reference the original payout transaction.",
                 nameof(originalPayout));
         if (feeReversalAmount <= 0)
             throw new ArgumentOutOfRangeException(nameof(feeReversalAmount), feeReversalAmount, "Fee reversal amount must be strictly greater than zero.");

@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 > **TutorHub** là nền tảng marketplace kết nối Gia Sư (Tutor) và Học Viên (Student) trực tuyến theo mô hình **Service / Package-based Learning**.  
-> Hệ thống hỗ trợ đặt mua gói dịch vụ (15 phút checkout hold), phân rã hợp đồng học tập (**Enrollment**) thành các buổi học (**Sessions**), cơ chế giải ngân tự động 12 giờ (**Auto-Payout Grace Period**), giải ngân từng buổi vào ví bảo chứng (**Escrow Wallet**), thanh toán thực tế **VNPay 2.1.0**, Realtime **SignalR**, **Transactional Outbox** (26 sự kiện + MessageSent), công cụ giải quyết tranh chấp 2 giai đoạn (**Dispute Engine**), và sổ cái kiểm toán bất biến (**Central Audit Log**).
+> Hệ thống hỗ trợ đặt mua gói dịch vụ (15 phút checkout hold), phân rã hợp đồng học tập (**Enrollment**) thành các buổi học (**Sessions**), cơ chế giải ngân tự động 12 giờ (**Auto-Payout Grace Period**), giải ngân từng buổi vào ví bảo chứng (**Escrow Wallet**), thanh toán thực tế **VNPay 2.1.0**, Realtime **SignalR**, **Transactional Outbox** (26 sự kiện + MessageSent), công cụ giải quyết tranh chấp 2 giai đoạn (**Dispute Engine**), và nhật ký kiểm toán hệ thống (**Audit Log**).
 >
 > **Auth policy:** Access token có thời hạn 15 phút kết hợp Refresh Token (7 ngày). Khi Ban/Suspend/ChangePassword, refresh tokens bị thu hồi ngay lập tức để chặn cấp mới token khi access token hiện tại hết hạn.
 
@@ -97,13 +97,13 @@ Wallet Payout Release (Giải ngân SessionPayoutCredit cho từng buổi hoàn 
        ↓ (Nếu có khiếu nại / ReportSessionIssue trong 12h grace)
 Dispute Engine (pre-release Escrow hold — quá 12h không report = chấp nhận, khỏi kiện)
        ↓ (Admin phân xử bằng công thức cân đối phí sàn bất biến: DisputeFinancialCalculator)
-Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + AuditLog)
+Hoàn tiền & Quyết toán (Refund Pending/Succeeded/Failed + PlatformFeeReversal + AuditLog)
 ```
 
 ### 2. Codebase Structure
 * `src/backend/TutorHub.Domain/`: **Domain Cốt Lõi Độc Lập**. Entities (`User`, `TutorProfile`, `StudentProfile`, `Service`, `Booking`, `Enrollment`, `Session`, `Wallet`, `StudentWallet`, `StudentWalletTransaction`, `StudentWithdrawal`, `TopUpRequest`, `Transaction`, `Dispute`, `AuditLog`), Enums, Allocators (`EnrollmentSessionAllocator`), Domain Services (`SessionSchedulingRules`, `DisputeFinancialCalculator`), và Domain Invariants. Tuyệt đối không phụ thuộc vào hạ tầng hay UI.
 * `src/backend/TutorHub.Application/`: **Nghiệp Vụ Ứng Dụng (Vertical Slice / CQRS)**. Chia theo feature (`Features/{Module}/{FeatureName}/`). Chứa `Command/Query`, `Validator`, `Handler`, `DTOs`, Business Events, Policies (`ISessionSchedulePolicy` / `SessionSchedulePolicy`), và Abstractions (`IAppDbContext`, `IAuditLogService`, `IStudentWalletService`, `IPaymentGateway`, `IObjectStorageService`, `IJwtService`).
-* `src/backend/TutorHub.Infrastructure/`: **Hạ Tầng Kỹ Thuật**. `AppDbContext` (interceptor bảo vệ sổ cái bất biến), 5 Background Jobs (`BookingTimeoutBackgroundService`, `OutboxDispatcherJob`, `EmailDeliveryJob`, `AutoPayoutJob`, `IdempotencyCleanupJob`). Khóa phân tán đa node `IRedisDistributedLock` (`SET NX PX` + Lua script atomic compare-and-delete). Hệ thống Cache phân tán Read-Through / Fail-Open (`ICategoryCacheService`, `ISubjectCacheService`, `IServiceDetailCacheService`, `ITutorProfileCacheService`) với `SemaphoreSlim` chống Cache Stampede. Lớp bảo vệ Idempotency (`DbIdempotencyStore` + `IdempotencyRecord`). Session Reminders và Grace Period Reminders được xử lý theo Delayed Outbox Pattern (`SessionReminderDueEvent`, `GracePeriodClosingSoonEvent`). VNPay SHA512, Cloudflare R2, và SignalR hubs (`/hubs/chat`, `/hubs/notifications`).
+* `src/backend/TutorHub.Infrastructure/`: **Hạ Tầng Kỹ Thuật**. `AppDbContext` (bảo đảm tính toàn vẹn dữ liệu giao dịch), 5 Background Jobs (`BookingTimeoutBackgroundService`, `OutboxDispatcherJob`, `EmailDeliveryJob`, `AutoPayoutJob`, `IdempotencyCleanupJob`). Khóa phân tán đa node `IRedisDistributedLock` (`SET NX PX` + Lua script atomic compare-and-delete). Hệ thống Cache phân tán Read-Through / Fail-Open (`ICategoryCacheService`, `ISubjectCacheService`, `IServiceDetailCacheService`, `ITutorProfileCacheService`) với `SemaphoreSlim` chống Cache Stampede. Lớp bảo vệ Idempotency (`DbIdempotencyStore` + `IdempotencyRecord`). Session Reminders và Grace Period Reminders được xử lý theo Delayed Outbox Pattern (`SessionReminderDueEvent`, `GracePeriodClosingSoonEvent`). VNPay SHA512, Cloudflare R2, và SignalR hubs (`/hubs/chat`, `/hubs/notifications`).
 * `src/backend/TutorHub.Worker/`: **Host Background Jobs Chuyên Biệt**. Độc lập với Web API, sử dụng chung Application & Infrastructure để chạy 5 background jobs trong môi trường Production (`docker-compose.prod.yml`).
 * `src/backend/TutorHub.Api/`: **Giao Tiếp Ngoại Vi (Thin Controllers)**. Controller chỉ dispatch MediatR, Middlewares (`CorrelationIdMiddleware`, `GlobalExceptionHandler`), Action Filters (`[Idempotent]` filter chống xử lý lặp lại với SHA-256 fingerprint).
 * `src/frontend/`: **Giao Diện Người Dùng (React 18 + Vite + Tailwind)**:
@@ -147,22 +147,22 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
 ## 🚫 LUẬT CỨNG BẤT BIẾN [ĐIỀU KHÔNG ĐƯỢC PHÁ]
 
 * ⛔ **1. Không bao giờ tắt `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`:** Mọi commit phải build thành công với **0 Warnings, 0 Errors** trên cả Backend (`dotnet build`) và Frontend (`npm run lint`).
-* ⛔ **2. Mô hình Booking là Package-based (Service-only):** `Booking` bắt buộc tham chiếu `ServiceId` (required, `DEC-S8-020`). Thanh toán thành công kích hoạt `Enrollment` (qua `Pending → Active`) và sinh $N$ `Session`. Tuyệt đối không tạo booking đơn lẻ ngoài gói dịch vụ. Custom Agreement đã bị xóa hẳn (v1.3).
-* ⛔ **3. Sổ Cái Tài Chính & Audit Log là Append-Only (`INV-LEDGER-006`, `INV-LEDGER-007`):** `AppDbContext.SaveChangesAsync` chặn đứng mọi hành vi `Modified` hoặc `Deleted` đối với `AuditLog` và các giao dịch đã quyết toán (`Transaction.Status == Released || Succeeded`). Mọi điều chỉnh tài chính phải là transaction mới (`StudentRefund`, `PlatformFeeReversal`).
-* ⛔ **4. Cấm Chaining Transaction (`DEC-S8-030`):** Mọi giao dịch điều chỉnh (`StudentRefund`, `PlatformFeeReversal`) phải trỏ trực tiếp về giao dịch giải ngân gốc (`RelatedTransaction.Type == SessionPayoutCredit`), cấm trỏ bắc cầu vào một adjustment khác.
-* ⛔ **5. Bất Biến Rút Tiền Khả Dụng (`DEC-WD-001`, `DEC-S8-001`):** Gia sư chỉ được rút tiền tối đa bằng `WithdrawableBalance = AvailableBalance - HeldBalance`. Không được rút vào phần tiền đang bị giữ (`HeldBalance`). (v1.4: dispute không còn tạo hold mới; rule giữ nguyên ở tầng ví.)
-* ⛔ **6. ~~Bất Biến Tranh Chấp Không Giữ Tiền Một Phần (`DEC-S8-028`, `INV-DISP-008`)~~ — RETIRED (v1.4):** post-release disputes đã bị xóa nên trường hợp giữ tiền một phần không còn xảy ra. `HeldBalance`/`RequiresAdminFinancialIntervention` chỉ còn ý nghĩa lịch sử.
-* ⛔ **7. Công Thức Cân Đối Phí Sàn Chuẩn (`DEC-S8-025`, `Mandatory Patch B`) — chỉ còn ý nghĩa lịch sử (v1.4):**
+* ⛔ **2. Mô hình Booking là Package-based (Service-only):** `Booking` bắt buộc tham chiếu `ServiceId` (required). Thanh toán thành công kích hoạt `Enrollment` (qua `Pending → Active`) và sinh $N$ `Session`. Tuyệt đối không tạo booking đơn lẻ ngoài gói dịch vụ. Custom Agreement đã bị xóa hẳn (v1.3).
+* ⛔ **3. Bảo đảm tính toàn vẹn Giao dịch & Audit Log (Append-Only):** `AppDbContext.SaveChangesAsync` chặn đứng mọi hành vi `Modified` hoặc `Deleted` đối với `AuditLog` và các giao dịch đã quyết toán (`Transaction.Status == Released || Succeeded`). Mọi điều chỉnh tài chính phải là transaction mới (`StudentRefund`, `PlatformFeeReversal`).
+* ⛔ **4. Cấm Chaining Transaction:** Mọi giao dịch điều chỉnh (`StudentRefund`, `PlatformFeeReversal`) phải trỏ trực tiếp về giao dịch giải ngân gốc (`RelatedTransaction.Type == SessionPayoutCredit`), cấm trỏ bắc cầu vào một adjustment khác.
+* ⛔ **5. Rút Tiền Khả Dụng:** Gia sư chỉ được rút tiền tối đa bằng `WithdrawableBalance = AvailableBalance - HeldBalance`. Không được rút vào phần tiền đang bị giữ (`HeldBalance`). (v1.4: dispute không còn tạo hold mới; rule giữ nguyên ở tầng ví.)
+* ⛔ **6. ~~Tranh Chấp Không Giữ Tiền Một Phần~~ — RETIRED (v1.4):** post-release disputes đã bị xóa nên trường hợp giữ tiền một phần không còn xảy ra. `HeldBalance`/`RequiresAdminFinancialIntervention` chỉ còn ý nghĩa lịch sử.
+* ⛔ **7. Công Thức Cân Đối Phí Sàn Chuẩn — chỉ còn ý nghĩa lịch sử (v1.4):**
   $$\text{StudentRefund} \equiv \text{TutorNetRecovery} + \text{PlatformFeeReversal}$$
   Pre-release resolve hiện chia trực tiếp `tutorGrossRelease` theo snapshot fee, không clawback. Không tạo `PlatformFeeReversal` mới.
-* ⛔ **8. Vòng Đời Hoàn Tiền Ngoại Vi (`DEC-S8-032`, `INV-REFUND-004`):** Khi Admin phân xử hoàn tiền cho học viên, `StudentRefund` bắt đầu ở trạng thái `Pending`. Chỉ chuyển sang `Succeeded` khi cổng thanh toán xác nhận thành công. Nếu cổng thất bại (`Failed`), nghĩa vụ tài chính nội bộ vẫn giữ nguyên (`SettlementRequired = true`) để Admin xử lý offline, không được rollback tiền ví gia sư.
-* ⛔ **9. Snapshot Phí Sàn Bất Biến (`DEC-S8-020`):** `Enrollment` snapshot cố định `PlatformFeeRate` và `FeePolicyVersion` tại thời điểm tạo. Việc Admin thay đổi phí sàn toàn hệ thống (`PlatformSetting`) chỉ áp dụng cho các hợp đồng tạo mới sau đó, không hồi tố hợp đồng cũ.
-* ⛔ **10. Khóa Tài Nguyên Có Thứ Tự Tránh Deadlock (`DEC-S8-027`):** Mọi nghiệp vụ có tranh chấp và ví phải khóa tài nguyên theo thứ tự: $\text{Dispute} \prec \text{Wallet (FOR UPDATE)} \prec \text{Transaction}$.
+* ⛔ **8. Vòng Đời Hoàn Tiền Ngoại Vi:** Khi Admin phân xử hoàn tiền cho học viên, `StudentRefund` bắt đầu ở trạng thái `Pending`. Chỉ chuyển sang `Succeeded` khi cổng thanh toán xác nhận thành công. Nếu cổng thất bại (`Failed`), nghĩa vụ tài chính nội bộ vẫn giữ nguyên (`SettlementRequired = true`) để Admin xử lý offline, không được rollback tiền ví gia sư.
+* ⛔ **9. Snapshot Phí Sàn (Không hồi tố):** `Enrollment` snapshot cố định `PlatformFeeRate` và `FeePolicyVersion` tại thời điểm tạo. Việc Admin thay đổi phí sàn toàn hệ thống (`PlatformSetting`) chỉ áp dụng cho các hợp đồng tạo mới sau đó, không hồi tố hợp đồng cũ.
+* ⛔ **10. Khóa Tài Nguyên Có Thứ Tự Tránh Deadlock:** Mọi nghiệp vụ có tranh chấp và ví phải khóa tài nguyên theo thứ tự: $\text{Dispute} \prec \text{Wallet (FOR UPDATE)} \prec \text{Transaction}$.
 * ⛔ **11. VNPay Return URL là Read-Only:** Tuyệt đối không cập nhật trạng thái đơn hàng hay cộng tiền ví trong Return URL. Mọi mutation tài chính bắt buộc phải nằm trong **IPN Webhook** và bọc trong **Database Transaction**.
-* ⛔ **12. Ví Học Viên (Student Wallet) & Sổ Cái Bất Biến (`INV-STUDENT-WALLET-001` - `005`):**
+* ⛔ **12. Ví Học Viên (Student Wallet) & Toàn Vẹn Lịch Sử Giao Dịch:**
   - Thanh toán khóa học bắt buộc 100% qua ví học viên (`StudentWallet.AvailableBalance`).
   - Giao dịch thanh toán khóa học (`PayBookingFromWallet`) bắt buộc thực hiện trong Database Transaction với khóa dòng (`FOR UPDATE`).
-  - Sổ cái `StudentWalletTransaction` là append-only bất biến (`INV-STUDENT-WALLET-003`).
+  - Bảng `StudentWalletTransaction` là append-only (chỉ thêm mới, không sửa/xóa giao dịch đã ghi).
   - Toàn bộ hoàn tiền (hủy khóa, hủy buổi, phán quyết tranh chấp) định tuyến trực tiếp vào ví học viên (`StudentWallet.AvailableBalance`).
   - Rút tiền học viên tối thiểu 50.000 VNĐ, quản lý qua `WithdrawingBalance` (bảo vệ bởi `CK_StudentWallet_NonNegativeBalances`).
 
@@ -173,7 +173,7 @@ Ledger Settlement (Refund Pending/Succeeded/Failed + PlatformFeeReversal + Audit
 1. **Bẫy lọc ngày (Date Filtering Bug):** Khi lọc `fromDate` đến `toDate`, luôn dùng khoảng nửa mở (Half-Open Interval): `CreatedAt >= fromDate.Date && CreatedAt < toDate.Date.AddDays(1)`.
 2. **Bẫy đơn vị tiền VNPay (* 100):** VNPay yêu cầu số tiền nhân 100 (`Amount * 100`). Khi nhận IPN về, phải chia 100 (`vnp_Amount / 100`) trước khi so sánh với `Transaction.Amount`.
 3. **Bẫy kiểm tra giờ rảnh Gia sư:** Giờ bắt đầu và kết thúc của Session lưu ở UTC. Phải convert sang `Asia/Ho_Chi_Minh` trước khi kiểm tra `DayOfWeek`, `StartTime`, `EndTime` trong bảng `AvailabilitySlots`.
-4. **Bẫy kiểm tra file đính kèm & bằng chứng (`DEC-S8-018`):** Dung lượng tối đa 10MB và bắt buộc kiểm tra MIME Type whitelist (`image/jpeg`, `image/png`, `image/webp`, `application/pdf`, `text/plain`).
+4. **Bẫy kiểm tra file đính kèm & bằng chứng:** Dung lượng tối đa 10MB và bắt buộc kiểm tra MIME Type whitelist (`image/jpeg`, `image/png`, `image/webp`, `application/pdf`, `text/plain`).
 
 ---
 

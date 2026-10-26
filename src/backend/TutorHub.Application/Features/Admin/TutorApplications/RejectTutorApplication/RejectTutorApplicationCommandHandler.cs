@@ -35,7 +35,7 @@ public class RejectTutorApplicationCommandHandler
         // Domain invariant — throws if not Pending, or reason is empty
         application.Reject(request.Reason, userId);
 
-        // Enqueue Outbox Message in same DB transaction (DEC-S7-001, DEC-S7-002)
+        // Enqueue Outbox Message in same DB transaction
         _context.AddOutboxMessage(new TutorApplicationRejectedEvent(
             application.Id,
             application.UserId,

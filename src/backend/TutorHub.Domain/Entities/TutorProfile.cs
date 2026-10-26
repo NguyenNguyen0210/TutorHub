@@ -43,7 +43,7 @@ public class TutorProfile
         RatingAvg = Math.Round((decimal)allRatings.Average(), 2);
     }
 
-    // Default Payout Bank Destination (DEC-WD-002)
+    // Default Payout Bank Destination
     public string? BankName { get; set; }
     public string? BankCode { get; set; }
     public string? AccountNumber { get; set; }

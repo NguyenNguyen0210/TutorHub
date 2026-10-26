@@ -39,7 +39,7 @@ public class StudentWalletController : ControllerBase
     }
 
     /// <summary>
-    /// Get paginated transaction ledger statement for student wallet.
+    /// Get paginated transaction history for student wallet.
     /// </summary>
     [HttpGet("statement")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<StudentWalletTransactionDto>>), StatusCodes.Status200OK)]

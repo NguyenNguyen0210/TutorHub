@@ -6,13 +6,13 @@ import Avatar from '@/components/ui/Avatar';
 import { IconButton } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/StatCard';
 import { formatDateTime } from '@/utils/formatters';
-import StateBadge from '@/components/ledger/StateBadge';
+import StateBadge from '@/components/common/StateBadge';
 
 /**
- * Bảng danh sách hồ sơ gia sư + thanh phân trang (Operational Ledger — SPEC §4.2).
+ * Bảng danh sách hồ sơ gia sư + thanh phân trang (Quản lý ví & giao dịch —.
  *
- * Vì sao KHÔNG dùng `LedgerTable`: kit khai báo `columns[].label` là `string`
- * (xem `components/ledger/LedgerTable.jsx`), còn cột đầu của bảng này chứa ô
+ * Vì sao KHÔNG dùng `DataTable`: kit khai báo `columns[].label` là `string`
+ * (xem `components/common/DataTable.jsx`), còn cột đầu của bảng này chứa ô
  * chọn "select all" — một control, không phải nhãn văn bản. Bảng giữ nguyên
  * `<table>` thật (scope="col" cho screen reader) nhưng ăn đúng màu của kit:
  * `bg-neutral-50` cho header, `divide-border`, chữ `fg-*`.

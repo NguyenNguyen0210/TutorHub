@@ -4,9 +4,9 @@ import { cn } from '@/lib/cn';
 import Money from '@/components/ui/Money';
 
 /**
- * SignedAmount — biến động tiền có dấu, là neo thị giác của mọi bảng sổ cái.
+ * SignedAmount — biến động tiền có dấu, là neo thị giác của mọi bảng giao dịch.
  *
- * Quy tắc SPEC §2.4: tiền KHÔNG dùng `font-mono` (chỉ mã kỹ thuật/timestamp mới
+ * Quy tắc tiền KHÔNG dùng `font-mono` (chỉ mã kỹ thuật/timestamp mới
  * dùng mono). Vì vậy ở đây chỉ `tabular-nums` + font semibold.
  */
 export default function SignedAmount({ amount, direction, className, showZero = true }) {

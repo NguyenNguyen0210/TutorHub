@@ -86,7 +86,7 @@ public class SubmitTutorApplicationCommandHandler
 
         _context.TutorApplications.Add(application);
 
-        // Enqueue Outbox Message in same DB transaction (DEC-S7-001, DEC-S7-002)
+        // Enqueue Outbox Message in same DB transaction
         _context.AddOutboxMessage(new TutorApplicationSubmittedEvent(application.Id, application.UserId));
 
         await _context.SaveChangesAsync(cancellationToken);

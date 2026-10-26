@@ -78,7 +78,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Mes
 
         _dbContext.Messages.Add(message);
 
-        // Enqueue MessageSent Outbox message in same DB transaction (DEC-S7-001, DEC-S7-002)
+        // Enqueue MessageSent Outbox message in same DB transaction
         _dbContext.OutboxMessages.Add(new OutboxMessage
         {
             Id = Guid.NewGuid(),
@@ -123,7 +123,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Mes
             CreatedAt = message.CreatedAt
         };
 
-        // Best-effort SignalR realtime push post-commit (INV-EVENT-016)
+        // Best-effort SignalR realtime push post-commit
         if (_chatNotificationService != null)
         {
             await _chatNotificationService.SendMessageRealtimeAsync(conversation.Id, messageDto, cancellationToken);

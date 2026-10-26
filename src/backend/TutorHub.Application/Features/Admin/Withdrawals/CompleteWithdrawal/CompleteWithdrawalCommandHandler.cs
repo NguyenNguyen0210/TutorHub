@@ -39,7 +39,7 @@ public class CompleteWithdrawalCommandHandler : IRequestHandler<CompleteWithdraw
             throw new NotFoundException("Withdrawal", request.WithdrawalId);
         }
 
-        // Strict State Transition Guard (DEC-WD-003, INV-WD-004): Must be in Processing status
+        // Strict State Transition Guard: Must be in Processing status
         if (withdrawal.Status != WithdrawalStatus.Processing)
         {
             throw new ConflictException(
@@ -65,7 +65,7 @@ public class CompleteWithdrawalCommandHandler : IRequestHandler<CompleteWithdraw
             newValues: new { Status = withdrawal.Status.ToString() },
             cancellationToken: cancellationToken);
 
-        // Enqueue Outbox Message in same DB transaction (DEC-S7-012, SP7-INT-001)
+        // Enqueue Outbox Message in same DB transaction
         _context.AddOutboxMessage(new WithdrawalCompletedEvent(
             withdrawal.Id,
             withdrawal.Wallet.TutorProfileId,

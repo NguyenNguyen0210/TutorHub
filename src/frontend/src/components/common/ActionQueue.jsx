@@ -21,7 +21,7 @@ const SPINE_CLASS = {
 /**
  * ActionQueue — "việc đang chờ mình", xếp theo hạn chót tăng dần.
  *
- * Đây là phần "memorable" của Operational Ledger: mọi màn vận hành đều dựng
+ * Đây là phần "memorable" của Dashboard: mọi màn vận hành đều dựng
  * từ cùng một nguyên tắc — thứ tiền bị giữ phải nằm trên cùng, không phải sau
  * 4 thẻ số liệu.
  *

@@ -80,7 +80,7 @@ public class ApproveTutorApplicationCommandHandler
         _context.TutorProfiles.Add(profile);
         _context.Wallets.Add(wallet);
 
-        // Enqueue Outbox Message in same DB transaction (DEC-S7-001, DEC-S7-002)
+        // Enqueue Outbox Message in same DB transaction
         _context.AddOutboxMessage(new TutorApplicationApprovedEvent(
             application.Id,
             application.UserId,

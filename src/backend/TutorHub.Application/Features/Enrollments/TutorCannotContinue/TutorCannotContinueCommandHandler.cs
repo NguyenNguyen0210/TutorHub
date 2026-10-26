@@ -48,19 +48,19 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
             throw new NotFoundException("Enrollment", request.EnrollmentId);
         }
 
-        // 1. Authorization: Only the assigned tutor can invoke this command (FR-CONTINUE-001)
+        // 1. Authorization: Only the assigned tutor can invoke this command
         if (enrollment.TutorProfile.UserId != userId)
         {
             throw new ForbiddenException("Only the assigned tutor can report inability to continue.");
         }
 
-        // 2. Status Validation: Only Active enrollments can be discontinued (FR-CONTINUE-001)
+        // 2. Status Validation: Only Active enrollments can be discontinued
         if (enrollment.Status != EnrollmentStatus.Active)
         {
             throw new ConflictException($"Cannot discontinue an enrollment in '{enrollment.Status}' status. Only Active enrollments can be discontinued.");
         }
 
-        // 3. Domain Logic: Cancel sessions and compute refund (INV-REFUND-001)
+        // 3. Domain Logic: Cancel sessions and compute refund
         var now = _clock.UtcNow;
 
         if (enrollment.Sessions.Any(s => s.Status == SessionStatus.AwaitingPayout))
@@ -136,7 +136,7 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
                     now));
             }
 
-            // 5. Audit + notify affected parties (FR-CONTINUE-003, PRD §8.2)
+            // 5. Audit + notify affected parties
             await _auditLogService.LogAsync(
                 action: "ENROLLMENT_TUTOR_CANNOT_CONTINUE",
                 entityName: "Enrollment",

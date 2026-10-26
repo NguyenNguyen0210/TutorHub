@@ -47,7 +47,7 @@ export function getStateMeta(domain, value) {
 
 /**
  * StateBadge — badge trạng thái duy nhất của vùng workspace.
- * Màu = trạng thái (SPEC §2.2), không phải trang trí.
+ * Màu = trạng thái (), không phải trang trí.
  */
 export default function StateBadge({ status, domain = 'session', size = 'sm', className }) {
   const { label, color } = getStateMeta(domain, status);

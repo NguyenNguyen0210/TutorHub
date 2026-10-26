@@ -86,7 +86,7 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
             }
         }
 
-        // 3. Domain state transition and refund calculation (DEC-C7-REFUND-001)
+        // 3. Domain state transition and refund calculation
         var now = _clock.UtcNow;
         var oldStatus = enrollment.Status.ToString();
 
@@ -97,7 +97,7 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
 
         var refundAmount = enrollment.Cancel(request.Reason, CancelledBy.Admin, now);
 
-        // 4. Financial Escrow Adjustment & Refund Record (DEC-C7-FINANCE-003).
+        // 4. Financial Escrow Adjustment & Refund Record.
         // Lock the tutor wallet row so concurrent payouts/cancellations cannot
         // race the pending-escrow read-modify-write.
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
@@ -173,7 +173,7 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
                 newValues: new { status = "Cancelled", reason = request.Reason, refundAmount },
                 cancellationToken: cancellationToken);
 
-            // Enqueue EnrollmentCancelled Outbox Message (DEC-S7-001, DEC-S7-002)
+            // Enqueue EnrollmentCancelled Outbox Message
             _context.AddOutboxMessage(new EnrollmentCancelledEvent(
                 enrollment.Id,
                 enrollment.StudentProfile.UserId,

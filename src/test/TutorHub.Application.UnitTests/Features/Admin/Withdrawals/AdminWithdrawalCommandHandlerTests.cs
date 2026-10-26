@@ -122,7 +122,7 @@ public class AdminWithdrawalCommandHandlerTests
     [Fact]
     public async Task CompleteWithdrawal_FromPending_ThrowsConflictException()
     {
-        // Arrange (Strict State Machine Guard - DEC-WD-003, INV-WD-004)
+        // Arrange (Strict State Machine Guard)
         var (withdrawal, wallet, admin) = CreateTestAggregate(WithdrawalStatus.Pending);
 
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
@@ -143,7 +143,7 @@ public class AdminWithdrawalCommandHandlerTests
     [Fact]
     public async Task FailWithdrawal_FromPending_ThrowsConflictException()
     {
-        // Arrange (Strict State Machine Guard - DEC-WD-003, INV-WD-004)
+        // Arrange (Strict State Machine Guard)
         var (withdrawal, wallet, admin) = CreateTestAggregate(WithdrawalStatus.Pending);
 
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);

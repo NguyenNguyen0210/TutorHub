@@ -38,7 +38,7 @@ public static class BusinessEventTypes
     public const string ReportCreated = "ReportCreated";
     public const string ReportResolved = "ReportResolved";
 
-    // Communication Domain Event (Separate from 24 Core Business Events - INV-EVENT-009)
+    // Communication Domain Event (Separate from 24 Core Business Events)
     public const string MessageSent = "MessageSent";
 
     // 6. Student Wallet & Top-up Events

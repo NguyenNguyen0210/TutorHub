@@ -41,7 +41,7 @@ public class AdminConfirmTopUpCommandHandler : IRequestHandler<AdminConfirmTopUp
                 throw new NotFoundException(nameof(TopUpRequest), request.TopUpRequestId);
             }
 
-            // Idempotency check (INV-STUDENT-WALLET-004): if already confirmed, do not credit twice
+            // Idempotency check: if already confirmed, do not credit twice
             if (topUp.Status == TopUpRequestStatus.Confirmed)
             {
                 return MapToDto(topUp);
@@ -66,7 +66,7 @@ public class AdminConfirmTopUpCommandHandler : IRequestHandler<AdminConfirmTopUp
             wallet.Credit(topUp.Amount, now);
             var balanceAfter = wallet.AvailableBalance;
 
-            // Append-only immutable ledger entry (INV-STUDENT-WALLET-003)
+            // Append-only immutable ledger entry
             var ledgerEntry = new StudentWalletTransaction
             {
                 Id = Guid.NewGuid(),

@@ -111,7 +111,7 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
             .SumAsync(b => (decimal?)b.TotalPrice, cancellationToken) ?? 0;
 
         // Refunds are materialized as StudentRefund transactions and start Pending
-        // until the external provider settles them (DEC-S8-032); count by type so
+        // until the external provider settles them; count by type so
         // the obligation is visible regardless of settlement status.
         decimal refundedAmount = await _context.Transactions
             .AsNoTracking()

@@ -59,13 +59,13 @@ public class SendMessageCommandHandlerTests
         messagesList.Should().HaveCount(1);
         messagesList[0].Content.Should().Be("Hello Tutor!");
 
-        // Outbox event was created in same atomic transaction (INV-EVENT-001, INV-EVENT-009)
+        // Outbox event was created in same atomic transaction
         outboxList.Should().HaveCount(1);
         outboxList[0].EventType.Should().Be("MessageSent");
         outboxList[0].AggregateId.Should().Be(conversation.Id);
         outboxList[0].Payload.Should().Contain("Hello Tutor!");
 
-        // Conversation summary was updated (INV-EVENT-019)
+        // Conversation summary was updated
         conversation.LastMessageId.Should().Be(messagesList[0].Id);
         conversation.LastMessagePreview.Should().Be("Hello Tutor!");
     }
@@ -100,7 +100,7 @@ public class SendMessageCommandHandlerTests
         // Act
         var act = () => handler.Handle(command, CancellationToken.None);
 
-        // Assert (INV-MSG-003, INV-MSG-004)
+        // Assert
         var ex = await act.Should().ThrowAsync<ForbiddenException>();
         ex.Which.Errors.Should().Contain(e => e.Contains("Only conversation participants can send messages"));
     }

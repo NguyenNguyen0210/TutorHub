@@ -126,7 +126,7 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
                 throw new ConflictException(ex.Message);
             }
 
-            // 7. Enqueue Outbox Message in same DB transaction (DEC-S7-001, DEC-S7-002).
+            // 7. Enqueue Outbox Message in same DB transaction.
             _context.AddOutboxMessage(new SessionScheduledEvent(
                 session.Id,
                 session.EnrollmentId,

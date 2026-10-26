@@ -146,7 +146,7 @@ public class AdminProcessRefundCallbackCommandHandlerTests
     [Fact]
     public async Task Handle_WhenProviderSettlementFails_MarksRefundFailed_MaintainsInternalObligation_DoesNotRevertTutorDebit()
     {
-        // Arrange (INV-REFUND-004 test)
+        // Arrange
         var adminId = Guid.NewGuid();
         _currentUser.Set(adminId, UserRole.Admin);
         var dispute = new Dispute

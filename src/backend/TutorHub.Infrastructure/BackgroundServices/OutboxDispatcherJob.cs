@@ -212,10 +212,10 @@ public class OutboxDispatcherJob : BackgroundService
                 throw new InvalidOperationException($"Failed to deserialize payload for event type '{message.EventType}'.");
             }
 
-            // In-process dispatch to MediatR handlers (INV-EVENT-002)
+            // In-process dispatch to MediatR handlers
             await publisher.Publish(eventObj, handlerCts.Token);
 
-            // Mark completed safely with token check (INV-EVENT-011, INV-EVENT-012)
+            // Mark completed safely with token check
             var completeNow = _clock.UtcNow;
             if (message.LockedBy == _workerId && message.Status == OutboxMessageStatus.Processing)
             {

@@ -84,7 +84,7 @@ public class ConversationTests
         // Act
         conversation.UpdateLastMessage(olderId, olderContent, olderTime);
 
-        // Assert (INV-EVENT-019)
+        // Assert
         conversation.LastMessageId.Should().Be(newerId);
         conversation.LastMessageAt.Should().Be(newerTime);
         conversation.LastMessagePreview.Should().Be(newerContent);

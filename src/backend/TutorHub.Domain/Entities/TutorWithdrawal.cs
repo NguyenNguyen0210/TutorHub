@@ -15,7 +15,7 @@ public class TutorWithdrawal
 
     public WithdrawalStatus Status { get; set; } = WithdrawalStatus.Pending;
 
-    // Immutable snapshot of tutor's payout destination (DEC-WD-002)
+    // Immutable snapshot of tutor's payout destination
     public string BankName { get; set; } = string.Empty;
     public string? BankCode { get; set; }
     public string AccountNumber { get; set; } = string.Empty;
@@ -34,7 +34,7 @@ public class TutorWithdrawal
 
     public string? FailureReason { get; set; }
 
-    // Domain State Machine Methods (Strict Linear State Transitions - DEC-WD-003)
+    // Domain State Machine Methods (Strict Linear State Transitions)
     public void MarkProcessing(Guid adminId)
     {
         if (Status != WithdrawalStatus.Pending)

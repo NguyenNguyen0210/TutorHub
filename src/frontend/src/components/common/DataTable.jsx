@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { cn } from '@/lib/cn';
 
 /**
- * LedgerTable — vỏ bảng sổ cái có ngữ nghĩa thật.
+ * DataTable — Bảng dữ liệu ngữ nghĩa chuẩn.
  *
  * Các bảng cũ dựng bằng `<div>` lồng nhau: mất semantics cho screen reader, và
  * không có cơ chế cố định header khi cuộn dọc. Ở đây dùng `<table>` thật với
@@ -11,7 +11,7 @@ import { cn } from '@/lib/cn';
  *
  * `align` theo cột để tiền luôn căn phải — đọc số dọc hàng dễ hơn đọc số rải rác.
  */
-export default function LedgerTable({ caption, columns, children, className, minWidth = 640 }) {
+export default function DataTable({ caption, columns, children, className, minWidth = 640 }) {
   return (
     <div className={cn('overflow-x-auto', className)}>
       <table className="w-full text-caption" style={{ minWidth: `${minWidth}px` }}>
@@ -40,7 +40,7 @@ export default function LedgerTable({ caption, columns, children, className, min
   );
 }
 
-LedgerTable.propTypes = {
+DataTable.propTypes = {
   caption: PropTypes.string.isRequired,
   columns: PropTypes.arrayOf(
     PropTypes.shape({

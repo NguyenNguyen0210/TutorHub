@@ -46,7 +46,7 @@ public class AdminGetConversationsQueryHandler : IRequestHandler<AdminGetConvers
 
         var adminUserId = _currentUserService.UserId.Value;
 
-        // Structured Operational Security Logging (DEC-S7-016 / INV-MSG-005)
+        // Structured Operational Security Logging
         _logger.LogInformation(
             "AdminOperationalAccess: Admin {AdminUserId} queried conversations list. Reason: {OperationalReason}, Timestamp: {Timestamp}",
             adminUserId,

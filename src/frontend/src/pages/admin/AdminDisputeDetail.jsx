@@ -509,7 +509,7 @@ export default function AdminDisputeDetail() {
             title="Công cụ phân bổ tài chính & giải quyết bồi hoàn"
             icon={<Icon name="calculate" size="sm" />}
             action={
-              /* Phí sàn là dòng tiền trung tính — không tô xanh (SPEC §4.2). */
+              /* Phí sàn là dòng tiền trung tính — không tô xanh. */
               <Badge variant="neutral" size="sm">
                 Bảo toàn phí sàn {(platformFeeRate * 100).toFixed(0)}%
               </Badge>
@@ -621,8 +621,7 @@ export default function AdminDisputeDetail() {
               )}
             </div>
 
-            {/* Conservation Math Identity Banner — số tiền KHÔNG dùng font-mono
-                (SPEC §2.4), chỉ `tabular-nums` để dọc thẳng cột. */}
+            {/* Conservation Math Identity Banner — số tiền KHÔNG dùng font-mono, chỉ `tabular-nums` để dọc thẳng cột. */}
             <div className="p-3 rounded-brand-md bg-brand-navy-900 text-center text-caption text-neutral-300 tabular-nums">
               {isPayoutReleased ? (
                 <>

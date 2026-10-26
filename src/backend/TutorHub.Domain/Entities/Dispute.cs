@@ -25,14 +25,14 @@ public class Dispute
     public string? ResolutionSource { get; private set; }
     public DateTime? ResolvedAt { get; private set; }
 
-    // Financial Hold fields (DEC-S8-001, DEC-S8-022, DEC-S8-028, DEC-S8-034)
+    // Financial Hold fields
     public decimal HeldAmount { get; private set; }
     public FinancialHoldType HoldType { get; private set; } = FinancialHoldType.None;
     public FinancialHoldStatus HoldStatus { get; private set; } = FinancialHoldStatus.None;
     public DateTime? HeldAt { get; private set; }
     public DateTime? HoldReleasedAt { get; private set; }
 
-    // DB single resolution enforcement (DEC-S8-033, INV-DISP-009)
+    // DB single resolution enforcement
     public Guid? OriginalTransactionId { get; set; }
     public bool AffectsFinancialResolution { get; set; } = false;
 

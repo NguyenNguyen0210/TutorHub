@@ -2,7 +2,7 @@ namespace TutorHub.Domain.Services;
 
 /// <summary>
 /// Single authority for splitting a gross session amount into the platform fee and
-/// the tutor net (DEC-S8-020 / FR-EARN-003).
+/// the tutor net.
 ///
 /// Every payout path used to inline <c>Math.Round(gross * rate, 2, MidpointRounding.AwayFromZero)</c>
 /// and then subtract. Consolidating it here keeps the rounding contract identical

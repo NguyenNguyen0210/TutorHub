@@ -48,13 +48,13 @@ public class CancelEnrollmentCommandHandler : IRequestHandler<CancelEnrollmentCo
             throw new NotFoundException("Enrollment", request.EnrollmentId);
         }
 
-        // 1. Authorization: Only the enrolled student can cancel (DEC-C7-SEC-001)
+        // 1. Authorization: Only the enrolled student can cancel
         if (enrollment.StudentProfile.UserId != userId)
         {
             throw new ForbiddenException("You are not authorized to cancel this enrollment.");
         }
 
-        // 2. Status Validation: Only Active enrollments can be cancelled (DEC-C7-BUSINESS-001)
+        // 2. Status Validation: Only Active enrollments can be cancelled
         if (enrollment.Status != EnrollmentStatus.Active)
         {
             throw new ConflictException($"Cannot cancel an enrollment in '{enrollment.Status}' status. Only Active enrollments can be cancelled.");
@@ -80,7 +80,7 @@ public class CancelEnrollmentCommandHandler : IRequestHandler<CancelEnrollmentCo
             }
         }
 
-        // 3. Domain Logic: Cancel sessions and compute refund (INV-REFUND-001)
+        // 3. Domain Logic: Cancel sessions and compute refund
         var now = _clock.UtcNow;
 
         if (enrollment.Sessions.Any(s => s.Status == SessionStatus.AwaitingPayout))
@@ -90,7 +90,7 @@ public class CancelEnrollmentCommandHandler : IRequestHandler<CancelEnrollmentCo
 
         var refundAmount = enrollment.Cancel(request.Reason, CancelledBy.Student, now);
 
-        // 4. Financial Escrow Adjustment & Refund Record (DEC-C7-FINANCE-003).
+        // 4. Financial Escrow Adjustment & Refund Record.
         // Lock the tutor wallet row so concurrent payouts/cancellations cannot
         // race the pending-escrow read-modify-write.
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
@@ -166,7 +166,7 @@ public class CancelEnrollmentCommandHandler : IRequestHandler<CancelEnrollmentCo
                 newValues: new { status = "Cancelled", reason = request.Reason, refundAmount },
                 cancellationToken: cancellationToken);
 
-            // Enqueue EnrollmentCancelled Outbox Message (DEC-S7-001, DEC-S7-002)
+            // Enqueue EnrollmentCancelled Outbox Message
             _context.AddOutboxMessage(new EnrollmentCancelledEvent(
                 enrollment.Id,
                 enrollment.StudentProfile.UserId,

@@ -62,7 +62,7 @@ public class AdminModerateReviewCommandHandler : IRequestHandler<AdminModerateRe
             tutorProfile.ApplyReview(remainingRatings);
         }
 
-        // Audit trail for moderation action (INV-LEDGER-006)
+        // Audit trail for moderation action
         await _auditLogService.LogAsync(
             action: "REVIEW_MODERATED",
             entityName: "Review",
