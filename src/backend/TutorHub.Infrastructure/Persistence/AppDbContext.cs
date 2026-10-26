@@ -38,7 +38,6 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
-    public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<EmailDelivery> EmailDeliveries => Set<EmailDelivery>();
     public DbSet<Dispute> Disputes => Set<Dispute>();

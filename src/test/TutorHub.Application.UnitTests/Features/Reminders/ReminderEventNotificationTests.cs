@@ -37,12 +37,10 @@ public class ReminderEventNotificationTests
         };
 
         var users = new List<User> { studentUser, tutorUser };
-        var inboxMessages = new List<InboxMessage>();
         var notifications = new List<Notification>();
         var emailDeliveries = new List<EmailDelivery>();
 
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
-        _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 
@@ -95,12 +93,10 @@ public class ReminderEventNotificationTests
         };
 
         var users = new List<User> { studentUser, tutorUser };
-        var inboxMessages = new List<InboxMessage>();
         var notifications = new List<Notification>();
         var emailDeliveries = new List<EmailDelivery>();
 
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
-        _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 
@@ -139,7 +135,6 @@ public class ReminderEventNotificationTests
         // Arrange
         var existingEventId = Guid.NewGuid();
         var users = new List<User>();
-        var inboxMessages = new List<InboxMessage>();
         var notifications = new List<Notification>
         {
             new() { Id = Guid.NewGuid(), EventId = existingEventId, UserId = Guid.NewGuid(), Title = "Old", Message = "Old", Type = "Test", DeduplicationKey = $"event:{existingEventId}" }
@@ -147,7 +142,6 @@ public class ReminderEventNotificationTests
         var emailDeliveries = new List<EmailDelivery>();
 
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
-        _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 

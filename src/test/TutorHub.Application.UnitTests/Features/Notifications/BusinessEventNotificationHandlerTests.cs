@@ -20,7 +20,7 @@ public class BusinessEventNotificationHandlerTests
     private readonly Mock<INotificationService> _notificationServiceMock = new();
 
     [Fact]
-    public async Task Handle_TutorApplicationSubmittedEvent_InsertsNotificationsForAdmins_AndInboxMessage()
+    public async Task Handle_TutorApplicationSubmittedEvent_InsertsNotificationsForAdmins()
     {
         // Arrange
         var adminUser = new User
@@ -32,12 +32,10 @@ public class BusinessEventNotificationHandlerTests
         };
 
         var users = new List<User> { adminUser };
-        var inboxMessages = new List<InboxMessage>();
         var notifications = new List<Notification>();
         var emailDeliveries = new List<EmailDelivery>();
 
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
-        _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 
@@ -67,7 +65,7 @@ public class BusinessEventNotificationHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenInboxMessageAlreadyExists_IsIdempotentAndSkipsProcessing()
+    public async Task Handle_WhenNotificationAlreadyExists_IsIdempotentAndSkipsProcessing()
     {
         // Arrange
         var existingEventId = Guid.NewGuid();
@@ -79,7 +77,6 @@ public class BusinessEventNotificationHandlerTests
             Role = UserRole.Admin
         };
         var users = new List<User> { adminUser };
-        var inboxMessages = new List<InboxMessage>();
         var notifications = new List<Notification>
         {
             new() { Id = Guid.NewGuid(), EventId = existingEventId, UserId = adminUser.Id, Title = "Old", Message = "Old", Type = "Test", DeduplicationKey = $"event:{existingEventId}" }
@@ -87,7 +84,6 @@ public class BusinessEventNotificationHandlerTests
         var emailDeliveries = new List<EmailDelivery>();
 
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
-        _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 
@@ -132,12 +128,10 @@ public class BusinessEventNotificationHandlerTests
         };
 
         var users = new List<User> { studentUser, tutorUser };
-        var inboxMessages = new List<InboxMessage>();
         var notifications = new List<Notification>();
         var emailDeliveries = new List<EmailDelivery>();
 
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
-        _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 
@@ -181,12 +175,10 @@ public class BusinessEventNotificationHandlerTests
         var reportId = Guid.NewGuid();
 
         var users = new List<User> { reportedUser };
-        var inboxMessages = new List<InboxMessage>();
         var notifications = new List<Notification>();
         var emailDeliveries = new List<EmailDelivery>();
 
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
-        _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 
@@ -215,17 +207,15 @@ public class BusinessEventNotificationHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenDbUpdateExceptionIsDuplicateInboxMessage_GracefullyIgnored()
+    public async Task Handle_WhenDbUpdateExceptionIsDuplicate_GracefullyIgnored()
     {
         // Arrange
         var user = new User { Id = Guid.NewGuid(), Email = "user@example.com", FullName = "User" };
         var users = new List<User> { user };
-        var inboxMessages = new List<InboxMessage>();
         var notifications = new List<Notification>();
         var emailDeliveries = new List<EmailDelivery>();
 
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
-        _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 
@@ -263,12 +253,10 @@ public class BusinessEventNotificationHandlerTests
         // Arrange
         var user = new User { Id = Guid.NewGuid(), Email = "user@example.com", FullName = "User" };
         var users = new List<User> { user };
-        var inboxMessages = new List<InboxMessage>();
         var notifications = new List<Notification>();
         var emailDeliveries = new List<EmailDelivery>();
 
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
-        _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 

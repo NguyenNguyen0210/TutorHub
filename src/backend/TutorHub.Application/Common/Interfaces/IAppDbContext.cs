@@ -33,7 +33,6 @@ public interface IAppDbContext
     DbSet<Conversation> Conversations { get; }
     DbSet<Message> Messages { get; }
     DbSet<OutboxMessage> OutboxMessages { get; }
-    DbSet<InboxMessage> InboxMessages { get; }
     DbSet<Notification> Notifications { get; }
     DbSet<EmailDelivery> EmailDeliveries { get; }
     DbSet<Dispute> Disputes { get; }
