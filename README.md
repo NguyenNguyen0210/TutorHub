@@ -238,6 +238,24 @@ docker compose up -d --build
 .\scripts\seed-data.ps1
 ```
 
+Seed dùng dữ liệu nhân vật và giao dịch **giả lập** nhưng nhất quán: 10 gia sư đã duyệt,
+2 hồ sơ đang chờ/từ chối, 24 học viên, 20 gói học, 48 booking và các buổi học,
+ví, đánh giá, hội thoại tương ứng. Mọi tài khoản được seed dùng mật khẩu `Test@123`.
+Ví dụ đăng nhập: `admin@tutorhub.test`, `gia-su01@tutorhub.test`,
+`hoc-vien01@tutorhub.test`. Seed không tạo email đã gửi, refresh token,
+tệp đính kèm hay lệnh thanh toán thật.
+
+`src/backend/seedData.sql` đã chứa toàn bộ các câu `INSERT` và có thể chép riêng
+sang máy khác để nạp; máy đích chỉ cần PostgreSQL với schema đã áp dụng đủ EF migrations.
+Không cần Python hay script generator khi nạp dữ liệu. Ví dụ nạp trực tiếp bằng `psql`
+(thay tên user/database theo máy đích):
+
+```bash
+psql -U tutorhub -d tutorhub -v ON_ERROR_STOP=1 -f src/backend/seedData.sql
+```
+
+Lệnh nạp sẽ thay thế toàn bộ dữ liệu nghiệp vụ hiện có trong database đích.
+
 Sau khi khởi chạy thành công:
 * **Backend API:** `http://localhost:8080`
 * **Swagger Documentation (chỉ khi `ASPNETCORE_ENVIRONMENT=Development`):** `http://localhost:8080/swagger`
@@ -258,8 +276,8 @@ docker run -d --name tutorhub-postgres -p 5433:5432 -e POSTGRES_DB=tutorhub -e P
 # Cập nhật schema database qua EF Core
 dotnet ef database update --project src/backend/TutorHub.Infrastructure --startup-project src/backend/TutorHub.Api
 
-# Nạp dữ liệu mẫu
-docker exec -i tutorhub-postgres psql -U tutorhub -d tutorhub < src/backend/seedData.sql
+# Nạp dữ liệu mẫu (script kiểm tra migration và hỏi trước khi thay dữ liệu cũ)
+./scripts/seed-data.sh
 ```
 
 #### Bước 3.2: Khởi chạy Backend API (.NET 8)
@@ -298,7 +316,7 @@ npm run dev
 
 ## 🧪 Kiểm Thử Tự Động (Automated Testing)
 
-Project có unit test cho Domain, Application và Infrastructure, integration test cho API và kịch bản Playwright E2E. Số lượng và kết quả test cần lấy từ lần chạy hiện tại; tài liệu không giữ số đếm cố định. Integration test hiện dùng PostgreSQL tại `localhost:5433`, user `tutorhub`, password `123456` và tự tạo database `tutorhub_integration` (xem `IntegrationWebApplicationFactory`).
+Project có unit test cho Domain, Application và Infrastructure, integration test cho API và kịch bản Playwright E2E. Số lượng và kết quả test cần lấy từ lần chạy hiện tại; tài liệu không giữ số đếm cố định. Integration test dùng PostgreSQL tại `localhost:5433` (có thể đổi cổng bằng `POSTGRES_PORT`), user `tutorhub`, mật khẩu từ biến môi trường `POSTGRES_PASSWORD` (mặc định `123456`) và tự tạo database `tutorhub_integration` (xem `IntegrationWebApplicationFactory`). Đặt `POSTGRES_PASSWORD` bằng mật khẩu của container đang chạy trước khi gọi `dotnet test`.
 
 ### Chạy Toàn Bộ Test Suite Backend
 ```bash

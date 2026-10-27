@@ -48,12 +48,12 @@ if ($runningContainer -notmatch $containerName) {
     exit 1
 }
 
-# 2. Kiểm tra xem Migration đã được áp dụng chưa (kiểm tra bảng Users)
+# 2. Kiểm tra migration mới nhất cần cho seed data.
 Write-Host "🔍 Kiểm tra trạng thái schema database..." -ForegroundColor Cyan
-$checkTableCmd = "docker exec $containerName psql -U $postgresUser -d $postgresDb -tAc ""select to_regclass('public.`""Users`""')"""
-$tableResult = Invoke-Expression $checkTableCmd 2>$null
-if ($tableResult -notmatch "Users") {
-    Write-Host "⚠️  Cảnh báo: Bảng 'Users' chưa tồn tại trong database!" -ForegroundColor Yellow
+$schemaCheck = 'SELECT to_regclass(''public."Users"'') IS NOT NULL AND to_regclass(''public."ConversationAttachments"'') IS NOT NULL'
+$schemaReady = docker exec $containerName psql -U $postgresUser -d $postgresDb -tAc $schemaCheck 2>$null
+if ($LASTEXITCODE -ne 0 -or $schemaReady.Trim() -ne "t") {
+    Write-Host "⚠️  Database chưa áp dụng đủ migration cho seed data hiện tại." -ForegroundColor Yellow
     Write-Host "💡 Bạn cần chạy EF Core Migration trước khi seed data:" -ForegroundColor Yellow
     Write-Host "   dotnet ef database update --project src/backend/TutorHub.Infrastructure --startup-project src/backend/TutorHub.Api" -ForegroundColor Gray
     Write-Host "   (Hoặc đợi container tutorhub-api khởi động hoàn tất nếu chạy full docker compose)" -ForegroundColor Gray
@@ -72,7 +72,11 @@ if (-not $Force) {
 
 # 4. Thực thi nạp seedData.sql
 Write-Host "⏳ Đang nạp dữ liệu từ seedData.sql vào database '$postgresDb'..." -ForegroundColor Cyan
-Get-Content $sqlFile -Encoding UTF8 | docker exec -i $containerName psql -U $postgresUser -d $postgresDb -v ON_ERROR_STOP=1 -q
+$seedSql = Get-Content -LiteralPath $sqlFile -Raw -Encoding UTF8
+$seedSql | docker exec -i $containerName psql -U $postgresUser -d $postgresDb -v ON_ERROR_STOP=1 -q
+if ($LASTEXITCODE -ne 0) {
+    throw "Nạp seed data thất bại; PostgreSQL đã rollback transaction."
+}
 
 Write-Host "✅ Nạp dữ liệu mẫu thành công!" -ForegroundColor Green
 Write-Host "🔑 Mật khẩu mặc định cho tất cả tài khoản test: Test@123" -ForegroundColor Green
