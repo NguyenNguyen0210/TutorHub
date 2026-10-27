@@ -51,8 +51,8 @@ public class GetEnrollmentByIdQueryHandlerTests
             TeachingMode = TeachingMode.Offline
         };
 
-        var session1 = new Session { Id = Guid.NewGuid(), EnrollmentId = enrollment.Id, Enrollment = enrollment, SessionNumber = 1, EarningAmount = 1_000_000m };
-        var session2 = new Session { Id = Guid.NewGuid(), EnrollmentId = enrollment.Id, Enrollment = enrollment, SessionNumber = 2, EarningAmount = 1_000_000m };
+        var session1 = new Session { Id = Guid.NewGuid(), EnrollmentId = enrollment.Id, Enrollment = enrollment, SessionNumber = 1, SessionPrice = 1_000_000m };
+        var session2 = new Session { Id = Guid.NewGuid(), EnrollmentId = enrollment.Id, Enrollment = enrollment, SessionNumber = 2, SessionPrice = 1_000_000m };
 
         enrollment.Sessions.Add(session2); // Add in reverse order to test sorting
         enrollment.Sessions.Add(session1);

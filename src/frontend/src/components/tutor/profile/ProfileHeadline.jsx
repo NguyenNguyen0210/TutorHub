@@ -26,10 +26,10 @@ function StarRow({ value, className = '' }) {
 StarRow.propTypes = { value: PropTypes.number.isRequired, className: PropTypes.string };
 
 /**
- * ProfileHeadline — phần "con người + niềm tin" của hồ sơ (SPEC §4.2).
+ * ProfileHeadline — phần "con người + niềm tin" của hồ sơ.
  *
  * Nguyên tắc: chỉ hiện số liệu có thật từ API. Các số liệu cần backend mới
- * (tỷ lệ phản hồi, số học viên đã dạy, nút Lưu) nằm ở V2 — xem SPEC §7 —
+ * (tỷ lệ phản hồi, số học viên đã dạy, nút Lưu) nằm ở V2 — xem —
  * nên ở đây cố tình không dựng, không hiện 0 giả.
  */
 export default function ProfileHeadline({ tutor }) {

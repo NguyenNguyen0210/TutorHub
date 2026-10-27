@@ -107,9 +107,9 @@ public class Enrollment
     /// Recomputes progress and completes the Enrollment once every Session is
     /// resolved (Completed or Cancelled) and at least one Session was actually
     /// delivered. A single cancelled Session must not block completion
-    /// (FR-ENR-005, FR-SESSION-007). An all-cancelled enrollment is an early
+    ///. An all-cancelled enrollment is an early
     /// termination and is intentionally NOT auto-completed here; it must go
-    /// through cancellation (FR-OPEN-004).
+    /// through cancellation.
     /// </summary>
     public void EvaluateCompletion()
     {
@@ -161,6 +161,6 @@ public class Enrollment
         }
 
         // Refund matches exactly the unearned, unrefunded sessions' escrow allocations
-        return newlyCancelledSessions.Sum(s => s.EarningAmount);
+        return newlyCancelledSessions.Sum(s => s.SessionPrice);
     }
 }

@@ -84,7 +84,7 @@ public class GetConversationMessagesQueryHandlerTests
         // Act
         var act = () => handler.Handle(new GetConversationMessagesQuery(conversation.Id, null, 20), CancellationToken.None);
 
-        // Assert (INV-MSG-003, INV-MSG-006)
+        // Assert
         var ex = await act.Should().ThrowAsync<ForbiddenException>();
         ex.Which.Errors.Should().Contain(e => e.Contains("not authorized to view messages in this conversation"));
     }

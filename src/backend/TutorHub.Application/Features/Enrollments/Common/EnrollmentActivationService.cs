@@ -10,7 +10,7 @@ namespace TutorHub.Application.Features.Enrollments.Common;
 
 /// <summary>
 /// Shared activation of a paid Booking into an active Enrollment: snapshots the
-/// platform fee (DEC-S8-020), allocates N Sessions, credits the tutor wallet's
+/// platform fee, allocates N Sessions, credits the tutor wallet's
 /// Pending escrow with the GROSS amount, and enqueues the outbox events. Kept in
 /// one place so every payment-confirmation path activates identically.
 /// </summary>
@@ -37,7 +37,7 @@ public class EnrollmentActivationService : IEnrollmentActivationService
             throw new InvalidOperationException("Booking is missing ServiceId commercial reference.");
         }
 
-        // Snapshot fee from PlatformFeeOptions (DEC-S8-020, non-retroactive).
+        // Snapshot fee from PlatformFeeOptions (non-retroactive).
         // NO FALLBACK: a missing or malformed setting must fail loudly instead of
         // silently snapshotting a guessed rate.
         if (!_feeOptions.Rate.HasValue)
@@ -78,7 +78,7 @@ public class EnrollmentActivationService : IEnrollmentActivationService
                 Id = Guid.NewGuid(),
                 EnrollmentId = enrollment.Id,
                 SessionNumber = i + 1,
-                EarningAmount = allocations[i],
+                SessionPrice = allocations[i],
                 CreatedAt = now
             });
         }
@@ -88,7 +88,7 @@ public class EnrollmentActivationService : IEnrollmentActivationService
         enrollment.Activate();
 
         // Escrow holds the GROSS enrollment amount; the platform fee is only
-        // removed when each session is released (FR-EARN-003).
+        // removed when each session is released.
         var wallet = await _context.Wallets
             .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {booking.TutorProfileId} FOR UPDATE")
             .FirstOrDefaultAsync(cancellationToken);

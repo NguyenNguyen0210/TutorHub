@@ -16,7 +16,7 @@ public class Session
 
     // --- Immutable Financial Snapshot ---
     // Set once during Enrollment creation. Never modified.
-    public decimal EarningAmount { get; set; }
+    public decimal SessionPrice { get; set; }
 
     // --- Schedule (nullable until Scheduled) ---
     public DateTime? StartAt { get; private set; }
@@ -153,7 +153,7 @@ public class Session
     }
 
     /// <summary>
-    /// Direct completion of a session.
+    /// Direct completion of a session (primarily for test harness/direct admin bypass; production uses TryStartGracePeriod + AutoComplete).
     /// </summary>
     public void Complete(DateTime? now = null)
     {
@@ -180,7 +180,7 @@ public class Session
     /// Sets or updates the schedule for this Session.
     /// Valid from Unscheduled or Scheduled status.
     /// </summary>
-    public void Schedule(DateTime startAt, DateTime endAt)
+    public void Schedule(DateTime startAt, DateTime endAt, DateTime? now = null)
     {
         if (Status == SessionStatus.Completed || Status == SessionStatus.AwaitingPayout)
         {
@@ -203,7 +203,7 @@ public class Session
         StartAt = startAt;
         EndAt = endAt;
         Status = SessionStatus.Scheduled;
-        UpdatedAt = DateTime.UtcNow;
+        UpdatedAt = now ?? DateTime.UtcNow;
     }
 
     /// <summary>
@@ -253,9 +253,9 @@ public class Session
     }
 
     /// <summary>
-    /// Cancels a single session on participant request.
+    /// Cancels a session on participant request.
     /// </summary>
-    public void CancelSingle(string reason, DateTime now)
+    public void Cancel(string reason, DateTime now)
     {
         if (string.IsNullOrWhiteSpace(reason))
         {
@@ -294,6 +294,9 @@ public class Session
         ResolutionNotes = reason.Trim();
         ResolutionSource = "SingleSessionCancel";
     }
+
+    [Obsolete("Use Cancel(reason, now) instead.")]
+    public void CancelSingle(string reason, DateTime now) => Cancel(reason, now);
 
     /// <summary>
     /// Cancels the session. Called by Enrollment.Cancel() for bulk cancellation.

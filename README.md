@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Backend%20Tests-733%20Passed-success?style=flat-square&logo=xunit" alt="Backend Tests: 733 Passed" />
+  <img src="https://img.shields.io/badge/Backend%20Tests-758%20Passed-success?style=flat-square&logo=xunit" alt="Backend Tests: 758 Passed" />
   <img src="https://img.shields.io/badge/Playwright%20E2E-22%20Passed-success?style=flat-square&logo=playwright" alt="Playwright E2E: 22 Passed" />
   <img src="https://img.shields.io/badge/Architecture-Clean%20%2B%20CQRS-blueviolet?style=flat-square" alt="Clean Architecture + CQRS" />
   <img src="https://img.shields.io/badge/Security-OAuth2%20PKCE%20%7C%20JWT%20Rotation-green?style=flat-square" alt="Security" />
@@ -73,7 +73,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 │  - CQRS Commands & Queries (MediatR)  ││  - PostgreSQL 16 (EF Core 8)  │
 │  - FluentValidation Pipeline          ││  - VNPay SHA-512 Integration  │
 │  - Domain Event Handlers              ││  - S3 / Cloudflare R2 Storage │
-│  - Transactional Outbox Pattern       ││  - 6 Background Workers       │
+│  - Transactional Outbox Pattern       ││  - 5 Background Jobs          │
 └───────────────────┬───────────────────┘└───────────────┬───────────────┘
                     │                                    │
                     └─────────────────┬──────────────────┘
@@ -82,7 +82,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 │                          TutorHub.Domain                               │
 │  Aggregates: User, Service, Booking, Enrollment, Session, Wallet,      │
 │              Transaction, Dispute, AuditLog                            │
-│  Policies: SessionSchedulePolicy, BookingPolicy, FeeCalculator         │
+│  Domain Services: SessionSchedulingRules, DisputeFinancialCalculator   │
 └─────────────────────────────────────┬──────────────────────────────────┘
                                       ▼
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -105,7 +105,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 * Tự động giải phóng trạng thái khi học viên hủy hoặc hết thời gian 15 phút.
 
 ### 3. Quy Chế Dời Lịch Tối Thiểu 2 Giờ (2-Hour Notice Policy)
-* **Gia sư** xếp/dời lịch trực tiếp; học viên không tự chọn slot. Cả hai bên có thể hủy một buổi `Unscheduled` hoặc `Scheduled` tương lai; hủy buổi `Scheduled` phải cách thời điểm bắt đầu tối thiểu **2 giờ** (`SessionSchedulePolicy`, cấu hình `Scheduling:MinimumNoticeHours`, default 2).
+* **Gia sư** xếp/dời lịch trực tiếp; học viên không tự chọn slot. Cả hai bên có thể hủy một buổi `Unscheduled` hoặc `Scheduled` tương lai; hủy buổi `Scheduled` phải cách thời điểm bắt đầu tối thiểu **2 giờ** (`ISessionSchedulePolicy` / `SessionSchedulingRules`, cấu hình `Scheduling:MinimumNoticeHours`, default 2).
 * Ngăn chặn hành vi bùng lịch sát giờ, bảo vệ kế hoạch làm việc của cả hai bên.
 
 ### 4. Cơ Chế Giải Ngân Tự Động 12 Giờ (12-Hour Passive Approval Grace Period)
@@ -115,9 +115,13 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
   * Nếu học viên báo cáo sự cố, lệnh giải ngân bị đóng băng ngay lập tức, chuyển sang trạng thái tranh chấp.
   * Nếu không phát sinh sự cố, khi đồng hồ điểm hết 12 giờ, hệ thống sẽ tự động giải ngân thù lao buổi học vào Ví gia sư.
 
-### 5. Hệ Thống Ví & Ký Quỹ Độc Lập (Escrow & Double-Entry Ledger)
-* **Ví gia sư (Tutor Wallet):** Ký quỹ thù lao theo từng buổi học. Toàn bộ tiền học được giữ an toàn trong Escrow và chỉ giải ngân từng buổi khi hoàn thành.
-* **Ví học viên (Student Wallet):** Nạp tiền tự động 24/7 qua cổng VNPay, thanh toán khóa học nhanh không cần nhập lại thông tin thẻ, nhận tiền hoàn trả tranh chấp tức thì và đặt lệnh rút tiền về tài khoản ngân hàng.
+### 5. Hệ Thống Ví Người Dùng Hợp Nhất & Ký Quỹ Độc Lập (Unified Wallet & Escrow Ledger)
+* **Ví Hợp Nhất (User 1:1 Wallet):** Hợp nhất kiến trúc ví giữa Gia sư và Học viên, gắn trực tiếp với tài khoản người dùng (`User`).
+* **Mô hình 3 xô số dư minh bạch:**
+  - `AvailableBalance`: Số dư khả dụng dùng để thanh toán đặt lịch học, rút tiền về tài khoản ngân hàng hoặc nhận tiền giải ngân/hoàn trả.
+  - `PendingBalance`: Tiền ký quỹ Escrow đang giữ chờ giải ngân từng buổi học qua cửa sổ 12h Grace Period.
+  - `WithdrawingBalance`: Số dư phong tỏa tạm thời khi người dùng gửi yêu cầu rút tiền chờ Admin duyệt.
+* **Sổ cái tài chính chuẩn xác:** Toàn bộ biến động số dư được ghi nhận bất biến trong `WalletTransactions`, hỗ trợ nạp tiền VNPay tự động 24/7 và rút tiền nội địa an toàn.
 
 ### 6. Động Cơ Phân Giải Tranh Chấp Trong Grace 12 Giờ (Dispute Arbitration Engine)
 * Khiếu nại chỉ tồn tại trước giải ngân (pre-release): trong 12 giờ Grace Period, học viên báo cáo sự cố → tiền giữ trong Escrow, không chuyển cho gia sư, chờ Admin phân xử.
@@ -130,6 +134,14 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 
 ### 8. Kiểm Toán Bất Biến (Immutable Central Audit Log)
 * Mọi giao dịch tài chính (`Transactions`) và nhật ký kiểm toán (`AuditLogs`) được bảo vệ bởi trigger cấp cơ sở dữ liệu: **Append-Only, nghiêm cấm UPDATE và DELETE**.
+
+### 9. Mô Hình Xóa Mềm & Thùng Rác Quản Trị (Soft Delete Pattern & Admin Trash)
+* Áp dụng xóa mềm trực tiếp trên cấu trúc bảng (`IsDeleted`, `DeletedAt`, `DeletedByUserId`) cho Master Data (`Category`, `Subject`) và Gói dịch vụ (`Service`), tự động ẩn khỏi luồng nghiệp vụ thông qua EF Core Global Query Filter (`!IsDeleted`).
+* Tránh xung đột tên trùng lặp khi tạo mới bằng **PostgreSQL Filtered Partial Unique Index** (`WHERE "IsDeleted" = false`), cho phép tái sử dụng tên sau khi bản ghi cũ đã xóa mềm.
+* Cung cấp API Quản trị Thùng rác & Khôi phục chuyên biệt:
+  * `GET /api/v1/admin/categories/trash` & `POST /api/v1/admin/categories/{id}/restore`
+  * `GET /api/v1/admin/subjects/trash` & `POST /api/v1/admin/subjects/{id}/restore`
+* Bảo đảm tính toàn vẹn quan hệ phân cấp: Không thể xóa Danh mục nếu còn Môn học đang hoạt động; không thể khôi phục Môn học nếu Danh mục cha đang bị xóa. Sổ cái tài chính tuyệt đối bất biến và cấm xóa.
 
 ---
 
@@ -160,9 +172,9 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 TutorHub/
 ├── src/
 │   ├── backend/                              # Mã nguồn Backend (.NET 8 Web API)
-│   │   ├── TutorHub.Domain/                  # Core Domain Entities, Enums, Invariants & Policies
-│   │   ├── TutorHub.Application/             # Features (CQRS Command/Query Slices), DTOs, Validators
-│   │   ├── TutorHub.Infrastructure/          # EF Core Persistence, Background Jobs, VNPay, S3, SignalR
+│   │   ├── TutorHub.Domain/                  # Core Domain Entities, Enums, Domain Services (Scheduling, Dispute)
+│   │   ├── TutorHub.Application/             # Features (CQRS Command/Query Slices), Policies DI, Validators
+│   │   ├── TutorHub.Infrastructure/          # EF Core Persistence, 4 Background Jobs, VNPay, S3, SignalR
 │   │   ├── TutorHub.Api/                     # Controllers, Middlewares, Hubs, Dependency Injections
 │   │   ├── TutorHub.sln                      # Solution chính
 │   │   └── seedData.sql                      # Dữ liệu mẫu khởi tạo toàn diện
@@ -178,11 +190,11 @@ TutorHub/
 │   │   ├── package.json                      # Cấu hình thư viện Frontend
 │   │   └── vite.config.js                    # Cấu hình Vite & loại bỏ console/debugger trong Production
 │   │
-│   └── test/                                 # Bộ kiểm thử tự động Backend (733 Tests)
-│       ├── TutorHub.Domain.UnitTests/        # 225 tests: Logic thực thể, Session Allocation, Policies
-│       ├── TutorHub.Application.UnitTests/   # 420 tests: CQRS Handlers, Validation, Security rules
-│       ├── TutorHub.Infrastructure.UnitTests/# 21 tests: VNPay HMAC, Password Hasher, S3 options
-│       └── TutorHub.Api.IntegrationTests/    # 67 tests: Tích hợp cơ sở dữ liệu thật, API contract, Ledgers
+│   └── test/                                 # Bộ kiểm thử tự động Backend (814 Tests)
+│       ├── TutorHub.Domain.UnitTests/        # 239 tests: Logic thực thể, Invariants, Scheduling & Dispute Rules
+│       ├── TutorHub.Application.UnitTests/   # 455 tests: CQRS Handlers, Policies DI, Validation, Security rules
+│       ├── TutorHub.Infrastructure.UnitTests/# 50 tests: VNPay HMAC, Password Hasher, S3 options, Outbox
+│       └── TutorHub.Api.IntegrationTests/    # 70 tests: Tích hợp cơ sở dữ liệu thật, API contract, Ledgers
 │
 ├── scripts/                                  # Kịch bản kiểm thử & vận hành tự động
 │   └── e2e_grace_period.py                   # Bộ test E2E Playwright kiểm thử luồng 12h Auto-Payout
@@ -213,8 +225,13 @@ Phương pháp nhanh nhất để chạy toàn bộ hệ thống kèm dữ liệ
 # 1. Sao chép biến môi trường mẫu
 cp .env.example .env
 
-# 2. Khởi động cụm dịch vụ (PostgreSQL, Backend API, Database Seeder)
-docker-compose up -d --build
+# 2. Khởi động cụm dịch vụ (PostgreSQL, Redis, Seq, Backend API)
+docker compose up -d --build
+
+# 3. Nạp dữ liệu mẫu (chạy khi khởi tạo lần đầu hoặc khi muốn reset dữ liệu)
+./scripts/seed-data.sh     # Linux/macOS/Git Bash
+# hoặc trên Windows PowerShell:
+.\scripts\seed-data.ps1
 ```
 
 Sau khi khởi chạy thành công:
@@ -261,25 +278,15 @@ npm run dev
 
 ## 🔀 Mở Rộng Quy Mô (Scale-Out với Redis)
 
-* **1 replica:** không cần Redis. Mặc định `Redis:Enabled=false`, API boot và phục vụ bình thường.
-* **≥2 replica:** bắt buộc 1 Redis chung (`redis:7-alpine` đã có sẵn trong `docker-compose.yml`):
-
-```bash
-# .env
-Redis__Enabled=true
-ConnectionStrings__Redis=redis:6379
-```
-
-* **Cờ tính năng** `Redis:Features:{OAuth,SignalR,Cache,CronLock}` (mặc định `true`): tắt cờ nào = replica về đúng code memory/DB cũ của phần đó, không cần sửa code hay redeploy bản khác.
-* **Redis chết lúc chạy:** các đường non-OAuth vẫn phục vụ (HTTP 200) — cache đọc thẳng DB, cron bỏ qua kỳ + log, `/health` báo `Degraded` ở check `redis` (không bao giờ `Unhealthy`, không restart oan). OAuth vẫn fail-closed (không cấp token) nhưng mù: callback (và start khi mất kết nối thật) trả 500 envelope thay vì 409/503 rõ ràng — cần follow-up map `RedisException` → 409/503 với thông điệp rõ ràng.
-* **Worker riêng:** mặc định api tự chạy 6 background job (`BackgroundJobs:Enabled=true`). Khi chạy ≥2 replica api, tách job sang host chuyên để không double-run:
-  ```bash
-  # .env: api thôi chạy job
-  BackgroundJobs__Enabled=false
-  # worker là opt-in (profile), tự mang BackgroundJobs__Enabled=true + Database__MigrateOnStartup=false
-  docker compose --profile worker up -d --build
-  ```
-  Mặc định `docker compose up` không đổi hành vi (api chạy job, worker không lên). Cron lock Redis là lưới an toàn thứ hai khi ai đó quên flag.
+* **Redis tích hợp:** Luôn được kích hoạt chuẩn hóa (`Redis:Enabled=true`), sử dụng chung Redis (`redis:7-alpine` trong compose / container production) cho distributed lock, distributed cache, SignalR backplane và OAuth state.
+* **Redis chết lúc chạy:** Các đường non-OAuth vẫn phục vụ — cache đọc thẳng DB, cron bỏ qua kỳ + log, `/health` báo `Degraded` ở check `redis` (không bao giờ `Unhealthy`, không restart tiến trình).
+* **Background Jobs (Hợp nhất vào API host):**
+  - Cả môi trường Dev (`docker-compose.yml`) và Production (`docker-compose.prod.yml`) đều cấu hình `BackgroundJobs__Enabled: "true"` trực tiếp trên container `api`, tinh giản việc duy trì container worker riêng rẽ.
+  - **5 Background Jobs gồm có:** `BookingTimeoutBackgroundService` (hủy giữ chỗ quá hạn 15 phút), `OutboxDispatcherJob` (quét và bắn sự kiện Transactional Outbox), `EmailDeliveryJob` (gửi email bất đồng bộ dự phòng), `AutoPayoutJob` (quét buổi học quá hạn 12h Grace Period để tự động giải ngân), `IdempotencyCleanupJob` (quét và dọn dẹp các bản ghi idempotency đã hết hạn).
+  - **Khóa phân tán (Redis Distributed Cron Lock):** Các cron job chạy đa node được điều phối bởi `IRedisDistributedLock` (`SET NX PX` kết hợp script Lua Compare-and-Delete) để đảm bảo tại một thời điểm chỉ có 1 node thực thi task, an toàn khi scale ngang.
+  - **Bộ đệm phân tán (Read-Through Caching):** Cung cấp `IServiceDetailCacheService` và `ITutorProfileCacheService` kết hợp `SemaphoreSlim` per-key chống Cache Stampede. Các danh mục (Categories) và môn học (Subjects) truy vấn trực tiếp DB qua index tối ưu.
+  - **Lớp bảo vệ Idempotency Outer Shield:** Bộ lọc `[Idempotent]` kết hợp băm SHA-256 fingerprint trên body request và `DbIdempotencyStore` chống thanh toán/tạo đơn/rút tiền trùng lặp khi mạng lag.
+  - **Nhắc lịch (Reminders):** Session Reminder và Grace Period Reminder không sử dụng cron job định kỳ quét toàn bộ database mà chuyển sang kiến trúc **Delayed Outbox Pattern** (`SessionReminderDueEvent`, `GracePeriodClosingSoonEvent`), tối ưu hiệu năng và tránh rủi ro lock bảng.
 * **Tìm kiếm tiếng Việt:** `unaccent` (wrapper immutable `unaccent_immutable`) + trigram `pg_trgm` với GIN index trên `Services(Title, Description)`, `Subjects(Name)`, `Users(FullName, Email)`… — `toan` ra `toán`, `nguyen` ra `Nguyễn`, giữ nguyên sort/paging cũ. `EXPLAIN` xác nhận dùng index + timing trước/sau là follow-up staging (sandbox nghiệm thu không có PG nên chưa đo).
 * **Log tập trung:** Serilog JSON console + Seq sink (chỉ khi `Seq:ServerUrl` khác rỗng; Seq chết không chặn boot), enrich `CorrelationId`, bỏ ồn `/health*`, cấm log secret/PII. Dev/staging: service `seq` trong compose (`:5341`).
 
@@ -290,11 +297,11 @@ ConnectionStrings__Redis=redis:6379
 TutorHub áp dụng văn hóa kiểm thử chất lượng cao với độ phủ kiểm thử dày đặc ở mọi tầng ứng dụng:
 
 ```text
-733 Backend Tests (100% Passed)
-├── Domain Tests:         225 passed
-├── Application Tests:    420 passed
-├── Infrastructure Tests:  21 passed
-└── Integration Tests:     67 passed
+814 Backend Tests (100% Passed)
+├── Domain Tests:         239 passed
+├── Application Tests:    455 passed
+├── Infrastructure Tests:  50 passed
+└── Integration Tests:     70 passed
 
 22 Playwright E2E Tests (100% Passed)
 └── Full Grace Period, Dispute, Wallet & Checkout lifecycle
@@ -302,7 +309,7 @@ TutorHub áp dụng văn hóa kiểm thử chất lượng cao với độ phủ
 
 ### Chạy Toàn Bộ Test Suite Backend
 ```bash
-# Chạy toàn bộ 733 tests trong solution
+# Chạy toàn bộ 814 tests trong solution
 dotnet test src/backend/TutorHub.sln --logger "console;verbosity=normal"
 ```
 

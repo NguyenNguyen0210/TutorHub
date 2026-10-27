@@ -6,8 +6,10 @@ public class TopUpRequest
 {
     public Guid Id { get; set; }
 
-    public Guid StudentWalletId { get; set; }
-    public StudentWallet StudentWallet { get; set; } = default!;
+    public Guid WalletId { get; set; }
+    public Wallet Wallet { get; set; } = default!;
+    public Guid StudentWalletId { get => WalletId; set => WalletId = value; }
+    public Wallet StudentWallet { get => Wallet; set => Wallet = value; }
 
     public decimal Amount { get; set; }
     public string TransferReference { get; set; } = string.Empty;

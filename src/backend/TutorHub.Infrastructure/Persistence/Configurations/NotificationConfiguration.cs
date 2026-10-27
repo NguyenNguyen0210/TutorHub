@@ -12,7 +12,7 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
 
         builder.HasKey(n => n.Id);
 
-        // Deduplication invariant (DEC-S7-003, INV-EVENT-004)
+        // Deduplication invariant
         builder.HasIndex(n => new { n.UserId, n.Type, n.DeduplicationKey })
             .IsUnique()
             .HasDatabaseName("IX_Notifications_Dedup");

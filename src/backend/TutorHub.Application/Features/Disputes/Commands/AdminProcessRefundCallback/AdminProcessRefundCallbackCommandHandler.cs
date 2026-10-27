@@ -87,7 +87,7 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
             }
             else
             {
-                // TransactionStatus.Failed (DEC-S8-032, INV-REFUND-004)
+                // TransactionStatus.Failed
                 // Economic obligation remains outstanding; does not revert tutor debit or platform fee reversal
                 refundTx.Status = TransactionStatus.Failed;
                 refundTx.SettlementRequired = true;
@@ -123,7 +123,7 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
 
             // Refund settlement mutates an in-flight (Pending) StudentRefund into a
             // terminal state; the append-only guard in AppDbContext permits this
-            // because the original status is not Released/Succeeded (DEC-S8-032).
+            // because the original status is not Released/Succeeded.
             await _context.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
 

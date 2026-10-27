@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
@@ -13,7 +14,10 @@ public static class OutboxExtensions
         WriteIndented = false
     };
 
-    public static void AddOutboxMessage<TEvent>(this IAppDbContext dbContext, TEvent domainEvent) 
+    public static void AddOutboxMessage<TEvent>(
+        this IAppDbContext dbContext, 
+        TEvent domainEvent, 
+        DateTime? scheduledAt = null) 
         where TEvent : IBusinessEvent
     {
         var payload = JsonSerializer.Serialize(domainEvent, domainEvent.GetType(), JsonOptions);
@@ -31,8 +35,30 @@ public static class OutboxExtensions
                 Payload = payload,
                 OccurredAt = domainEvent.OccurredAt,
                 CreatedAt = DateTime.UtcNow,
-                Status = OutboxMessageStatus.Pending
+                Status = OutboxMessageStatus.Pending,
+                NextAttemptAt = scheduledAt
             });
+        }
+    }
+
+    public static async Task CancelPendingOutboxMessagesAsync(
+        this IAppDbContext dbContext,
+        Guid aggregateId,
+        string eventType,
+        CancellationToken cancellationToken = default)
+    {
+        if (dbContext.OutboxMessages == null) return;
+
+        var pendingMessages = await dbContext.OutboxMessages
+            .Where(m => m.AggregateId == aggregateId &&
+                        m.EventType == eventType &&
+                        m.Status == OutboxMessageStatus.Pending)
+            .ToListAsync(cancellationToken);
+
+        foreach (var message in pendingMessages)
+        {
+            message.Status = OutboxMessageStatus.DeadLettered;
+            message.LastError = "Cancelled due to session state change.";
         }
     }
 }

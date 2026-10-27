@@ -18,7 +18,7 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.Property(s => s.SessionNumber)
             .IsRequired();
 
-        builder.Property(s => s.EarningAmount)
+        builder.Property(s => s.SessionPrice)
             .HasPrecision(12, 2)
             .IsRequired();
 

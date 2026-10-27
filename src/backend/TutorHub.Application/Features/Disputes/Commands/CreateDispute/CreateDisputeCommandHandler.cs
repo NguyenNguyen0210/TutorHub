@@ -67,7 +67,7 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
         }
 
         // A dispute addresses an issue with a delivery inside its grace window
-        // (FR-DISPUTE-001, PRD §8.4). AwaitingPayout implies the session already
+        //. AwaitingPayout implies the session already
         // took place; future sessions use cancellation or reschedule instead.
         var now = _clock.UtcNow;
 
@@ -77,7 +77,7 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
             throw new BadRequestException("The 12-hour grace period has expired. The session is deemed accepted and can no longer be disputed.");
         }
 
-        // Active dispute deduplication: only 1 active dispute per session (INV-DISP-001)
+        // Active dispute deduplication: only 1 active dispute per session
         var existingActiveDispute = await _context.Disputes
             .AnyAsync(d => d.SessionId == session.Id &&
                            d.Status != DisputeStatus.Resolved &&
@@ -112,8 +112,8 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
 
         // Pre-release only (12h-grace rule): money is still in Pending escrow,
         // so creating the dispute locks payout release without touching the
-        // tutor's Available balance. HeldBalance on wallet is NOT incremented.
-        dispute.SetFinancialHold(session.EarningAmount, FinancialHoldType.EscrowHold, FinancialHoldStatus.Active, now);
+        // tutor's Available balance. Payout release is locked.
+        dispute.SetFinancialHold(session.SessionPrice, FinancialHoldType.EscrowHold, FinancialHoldStatus.Active, now);
 
         if (!session.HasIssueReport)
         {
@@ -122,12 +122,14 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
 
         _context.Disputes.Add(dispute);
 
-        // Outbox event (DEC-S7-001)
+        // Outbox event
         _context.AddOutboxMessage(new DisputeCreatedEvent(
             dispute.Id,
             session.EnrollmentId,
             userId,
             respondentUserId));
+
+        await _context.CancelPendingOutboxMessagesAsync(session.Id, BusinessEventTypes.GracePeriodClosingSoon, cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);

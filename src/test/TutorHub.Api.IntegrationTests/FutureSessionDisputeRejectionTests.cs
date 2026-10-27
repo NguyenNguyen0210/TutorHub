@@ -12,7 +12,7 @@ namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
 /// M9 regression: a dispute is a post-delivery mechanism and must be rejected
-/// while the session has not yet taken place (FR-DISPUTE-001, PRD §8.4).
+/// while the session has not yet taken place.
 /// </summary>
 public class FutureSessionDisputeRejectionTests : IntegrationTestBase
 {

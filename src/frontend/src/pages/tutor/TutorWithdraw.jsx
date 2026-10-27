@@ -12,18 +12,18 @@ import Badge from '@/components/ui/Badge';
 import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
 import Input, { Field } from '@/components/ui/Input';
-import StateBadge from '@/components/ledger/StateBadge';
+import StateBadge from '@/components/common/StateBadge';
 
 const MIN_WITHDRAW = 50000;
 
 /**
- * Yêu cầu rút tiền về tài khoản ngân hàng — Operational Ledger (SPEC Tutor §4.4).
+ * Yêu cầu rút tiền về tài khoản ngân hàng — Yêu cầu rút tiền.
  *
  * Rút tiền là TIỀN RA, không phải "đã quyết toán" → nút submit và Callout hạn
  * mức dùng `primary` / trung tính, không dùng `success` (xanh lá) như bản cũ.
  *
  * Bất biến tài chính:
- * - DEC-WD-001: Withdrawable = AvailableBalance - HeldBalance.
+ *: Withdrawable = AvailableBalance.
  * - Hạn mức tối thiểu tạo lệnh rút: 50.000 ₫.
  */
 export default function TutorWithdraw() {
@@ -73,8 +73,7 @@ export default function TutorWithdraw() {
     };
   }, []);
 
-  // DEC-WD-001
-  const withdrawableLimit = Math.max(0, (wallet?.availableBalance || 0) - (wallet?.heldBalance || 0));
+    const withdrawableLimit = Math.max(0, wallet?.availableBalance || 0);
   const parsedAmount = parseInt(amount, 10);
 
   // Lý do chặn submit — hiện ngay cạnh nút thay vì chỉ bắt người dùng bấm rồi mới

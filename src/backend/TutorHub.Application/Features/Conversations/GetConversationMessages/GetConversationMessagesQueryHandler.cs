@@ -40,7 +40,7 @@ public class GetConversationMessagesQueryHandler : IRequestHandler<GetConversati
             throw new NotFoundException($"Conversation with ID '{request.ConversationId}' not found.");
         }
 
-        // Participant Authorization check (INV-MSG-003, INV-MSG-006)
+        // Participant Authorization check
         var isStudent = conversation.StudentProfile != null && conversation.StudentProfile.UserId == currentUserId;
         var isTutor = conversation.TutorProfile != null && conversation.TutorProfile.UserId == currentUserId;
 

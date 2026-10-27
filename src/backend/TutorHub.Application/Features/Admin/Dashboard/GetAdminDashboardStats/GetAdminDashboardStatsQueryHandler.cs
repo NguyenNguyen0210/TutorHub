@@ -96,7 +96,7 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
             {
                 Status = g.Key,
                 TotalAmount = g.Sum(t => t.Amount),
-                TotalPlatformFee = g.Sum(t => t.CommissionAmount),
+                TotalPlatformFee = g.Sum(t => t.PlatformFeeAmount),
                 TotalPayoutAmount = g.Sum(t => t.PayoutAmount)
             })
             .ToListAsync(cancellationToken);
@@ -111,7 +111,7 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
             .SumAsync(b => (decimal?)b.TotalPrice, cancellationToken) ?? 0;
 
         // Refunds are materialized as StudentRefund transactions and start Pending
-        // until the external provider settles them (DEC-S8-032); count by type so
+        // until the external provider settles them; count by type so
         // the obligation is visible regardless of settlement status.
         decimal refundedAmount = await _context.Transactions
             .AsNoTracking()
@@ -124,7 +124,7 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
         decimal feeReversals = await _context.Transactions
             .AsNoTracking()
             .Where(t => t.Type == TransactionType.PlatformFeeReversal)
-            .SumAsync(t => (decimal?)t.CommissionAmount, cancellationToken) ?? 0;
+            .SumAsync(t => (decimal?)t.PlatformFeeAmount, cancellationToken) ?? 0;
 
         decimal totalPlatformRevenue = Math.Max(0m, (releasedTx?.TotalPlatformFee ?? 0) - feeReversals);
         decimal totalTutorPayouts = releasedTx?.TotalPayoutAmount ?? 0;

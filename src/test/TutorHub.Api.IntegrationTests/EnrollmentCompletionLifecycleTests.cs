@@ -11,7 +11,7 @@ namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
 /// H2 regression: an Enrollment must complete once every Session is resolved,
-/// even when one Session was cancelled (FR-ENR-005, FR-SESSION-007).
+/// even when one Session was cancelled.
 /// </summary>
 public class EnrollmentCompletionLifecycleTests : IntegrationTestBase
 {
@@ -102,12 +102,12 @@ public class EnrollmentCompletionLifecycleTests : IntegrationTestBase
         await SendAsync(new CancelSessionCommand(sessionToCancel.Id, "Illness emergency"));
 
         var updatedWallet = await Db.Wallets.AsNoTracking().FirstAsync(w => w.TutorProfileId == enrollment.TutorProfileId);
-        updatedWallet.PendingBalance.Should().Be(initialPending - sessionToCancel.EarningAmount);
+        updatedWallet.PendingBalance.Should().Be(initialPending - sessionToCancel.SessionPrice);
 
         var refundTx = await Db.Transactions.AsNoTracking()
             .FirstOrDefaultAsync(t => t.SessionId == sessionToCancel.Id && t.Type == TransactionType.StudentRefund);
         refundTx.Should().NotBeNull();
-        refundTx!.Amount.Should().Be(sessionToCancel.EarningAmount);
+        refundTx!.Amount.Should().Be(sessionToCancel.SessionPrice);
         refundTx.SettlementRequired.Should().BeFalse();
         refundTx.Status.Should().Be(TransactionStatus.Succeeded);
     }

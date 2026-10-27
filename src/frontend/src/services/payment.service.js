@@ -21,8 +21,9 @@ export const paymentService = {
   /**
    * POST /payments/vnpay/create-url → PaymentRedirectDto
    */
-  async createVnPayUrl(bookingId) {
-    const res = await api.post('/payments/vnpay/create-url', { bookingId });
+  async createVnPayUrl(bookingId, idempotencyKey = null) {
+    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
+    const res = await api.post('/payments/vnpay/create-url', { bookingId }, { headers });
     return normalizeRedirect(res);
   },
 

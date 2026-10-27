@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Search;
@@ -8,9 +9,17 @@ namespace TutorHub.Infrastructure.Persistence;
 
 public class AppDbContext : DbContext, IAppDbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options)
+    private readonly ICurrentUserService? _currentUserService;
+    private readonly IClock? _clock;
+
+    public AppDbContext(
+        DbContextOptions<AppDbContext> options,
+        ICurrentUserService? currentUserService = null,
+        IClock? clock = null)
         : base(options)
     {
+        _currentUserService = currentUserService;
+        _clock = clock;
     }
 
     public DbSet<User> Users => Set<User>();
@@ -25,67 +34,126 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
     public DbSet<Session> Sessions => Set<Session>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
-    public DbSet<TutorWallet> TutorWallets => Set<TutorWallet>();
-    public DbSet<TutorWithdrawal> TutorWithdrawals => Set<TutorWithdrawal>();
-    public DbSet<TutorWallet> Wallets => TutorWallets;
-    public DbSet<TutorWithdrawal> Withdrawals => TutorWithdrawals;
+    public DbSet<Wallet> Wallets => Set<Wallet>();
+    public DbSet<Withdrawal> Withdrawals => Set<Withdrawal>();
+    public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
+    public DbSet<TopUpRequest> TopUpRequests => Set<TopUpRequest>();
+
+    // Backward-compatibility aliases
+    public DbSet<Wallet> TutorWallets => Wallets;
+    public DbSet<Withdrawal> TutorWithdrawals => Withdrawals;
+    public DbSet<WalletTransaction> TutorWalletTransactions => WalletTransactions;
+    public DbSet<Wallet> StudentWallets => Wallets;
+    public DbSet<WalletTransaction> StudentWalletTransactions => WalletTransactions;
+    public DbSet<Withdrawal> StudentWithdrawals => Withdrawals;
+
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Media> Media => Set<Media>();
-    public DbSet<TutorWalletTransaction> TutorWalletTransactions => Set<TutorWalletTransaction>();
-    public DbSet<TutorWalletTransaction> WalletTransactions => TutorWalletTransactions;
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
-    public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<EmailDelivery> EmailDeliveries => Set<EmailDelivery>();
     public DbSet<Dispute> Disputes => Set<Dispute>();
     public DbSet<DisputeEvidence> DisputeEvidences => Set<DisputeEvidence>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<LearningRecord> LearningRecords => Set<LearningRecord>();
-    public DbSet<StudentWallet> StudentWallets => Set<StudentWallet>();
-    public DbSet<StudentWalletTransaction> StudentWalletTransactions => Set<StudentWalletTransaction>();
-    public DbSet<TopUpRequest> TopUpRequests => Set<TopUpRequest>();
-    public DbSet<StudentWithdrawal> StudentWithdrawals => Set<StudentWithdrawal>();
     public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
+    public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
 
     public override int SaveChanges()
     {
-        EnforceLedgerImmutability();
+        ApplySoftDelete();
+        EnforceTransactionIntegrity();
         return base.SaveChanges();
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
-        EnforceLedgerImmutability();
+        ApplySoftDelete();
+        EnforceTransactionIntegrity();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        EnforceLedgerImmutability();
+        ApplySoftDelete();
+        EnforceTransactionIntegrity();
         return base.SaveChangesAsync(cancellationToken);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        EnforceLedgerImmutability();
+        ApplySoftDelete();
+        EnforceTransactionIntegrity();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
     /// <summary>
-    /// Append-only / immutability guards for the financial ledger
-    /// (INV-LEDGER-006, INV-LEDGER-007, DEC-S8-030).
+    /// Intercepts entity deletions on soft-deletable entities (Category, Subject, Service) and converts them to soft updates.
+    /// </summary>
+    private void ApplySoftDelete()
+    {
+        var now = _clock?.UtcNow ?? DateTime.UtcNow;
+        Guid? currentUserId = null;
+        try
+        {
+            currentUserId = _currentUserService?.UserId;
+        }
+        catch
+        {
+            // Outside of active HTTP request context
+        }
+
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.State == EntityState.Deleted)
+            {
+                if (entry.Entity is Category cat)
+                {
+                    entry.State = EntityState.Modified;
+                    cat.IsDeleted = true;
+                    cat.DeletedAt ??= now;
+                    if (currentUserId.HasValue && !cat.DeletedByUserId.HasValue)
+                    {
+                        cat.DeletedByUserId = currentUserId.Value;
+                    }
+                }
+                else if (entry.Entity is Subject sub)
+                {
+                    entry.State = EntityState.Modified;
+                    sub.IsDeleted = true;
+                    sub.DeletedAt ??= now;
+                    if (currentUserId.HasValue && !sub.DeletedByUserId.HasValue)
+                    {
+                        sub.DeletedByUserId = currentUserId.Value;
+                    }
+                }
+                else if (entry.Entity is Service srv)
+                {
+                    entry.State = EntityState.Modified;
+                    srv.IsDeleted = true;
+                    srv.DeletedAt ??= now;
+                    if (currentUserId.HasValue && !srv.DeletedByUserId.HasValue)
+                    {
+                        srv.DeletedByUserId = currentUserId.Value;
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Financial data integrity guards for settled transactions and audit logs.
     ///
     /// Invoked from EVERY SaveChanges entry point (sync, sync-bool, async,
-    /// async-bool) so that no overload can bypass the ledger invariants. Guarding
-    /// only the async overload left the other three as an open door.
+    /// async-bool) to ensure settled historical records cannot be modified or deleted.
     /// </summary>
-    private void EnforceLedgerImmutability()
+    private void EnforceTransactionIntegrity()
     {
-        // Enforce append-only / immutability on Transaction (DEC-S8-030, INV-LEDGER-007)
+        // Enforce immutability on settled transactions
         var deletedTransactions = ChangeTracker.Entries<Transaction>()
             .Where(e => e.State == EntityState.Deleted)
             .ToList();
@@ -120,7 +188,7 @@ public class AppDbContext : DbContext, IAppDbContext
             throw new InvalidOperationException($"Settled historical financial records are immutable and cannot be modified. Ids: {ids}. Props: {props}.");
         }
 
-        // Anti-chaining validation (DEC-S8-030, INV-LEDGER-007)
+        // Financial adjustments must point directly to original earning transaction
         var addedAdjustments = ChangeTracker.Entries<Transaction>()
             .Where(e => e.State == EntityState.Added && e.Entity.RelatedTransactionId.HasValue)
             .ToList();
@@ -150,7 +218,7 @@ public class AppDbContext : DbContext, IAppDbContext
             }
         }
 
-        // Enforce append-only on AuditLog (DEC-S8-005, INV-LEDGER-006)
+        // AuditLog records are append-only
         var modifiedAuditLogs = ChangeTracker.Entries<AuditLog>()
             .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
             .ToList();
@@ -159,27 +227,37 @@ public class AppDbContext : DbContext, IAppDbContext
             throw new InvalidOperationException("AuditLog records are append-only and cannot be modified or deleted.");
         }
 
-        // Enforce append-only on StudentWalletTransaction (INV-STUDENT-WALLET-003)
-        var modifiedStudentWalletTxs = ChangeTracker.Entries<StudentWalletTransaction>()
-            .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
+        // Wallets cannot be deleted
+        var deletedWallets = ChangeTracker.Entries<Wallet>()
+            .Where(e => e.State == EntityState.Deleted)
             .ToList();
-        if (modifiedStudentWalletTxs.Count > 0)
+        if (deletedWallets.Count > 0)
         {
-            var ids = string.Join(",", modifiedStudentWalletTxs.Select(e => e.Entity.Id));
-            throw new InvalidOperationException($"StudentWalletTransaction records are append-only and cannot be modified or deleted. Ids: {ids}.");
+            var ids = string.Join(",", deletedWallets.Select(e => e.Entity.Id));
+            throw new InvalidOperationException($"Wallet records cannot be deleted. Ids: {ids}.");
         }
 
-        // Enforce append-only on TutorWalletTransaction (INV-TUTOR-WALLET-001)
-        var modifiedTutorWalletTxs = ChangeTracker.Entries<TutorWalletTransaction>()
-            .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
+        // Withdrawals cannot be deleted
+        var deletedWithdrawals = ChangeTracker.Entries<Withdrawal>()
+            .Where(e => e.State == EntityState.Deleted)
             .ToList();
-        if (modifiedTutorWalletTxs.Count > 0)
+        if (deletedWithdrawals.Count > 0)
         {
-            var ids = string.Join(",", modifiedTutorWalletTxs.Select(e => e.Entity.Id));
-            throw new InvalidOperationException($"TutorWalletTransaction records are append-only and cannot be modified or deleted. Ids: {ids}.");
+            var ids = string.Join(",", deletedWithdrawals.Select(e => e.Entity.Id));
+            throw new InvalidOperationException($"Withdrawal records cannot be deleted. Ids: {ids}.");
         }
 
-        // Enforce append-only / terminal immutability on TopUpRequest (INV-STUDENT-WALLET-004)
+        // WalletTransaction records are append-only
+        var modifiedWalletTxs = ChangeTracker.Entries<WalletTransaction>()
+            .Where(e => e.State == EntityState.Modified || e.State == EntityState.Deleted)
+            .ToList();
+        if (modifiedWalletTxs.Count > 0)
+        {
+            var ids = string.Join(",", modifiedWalletTxs.Select(e => e.Entity.Id));
+            throw new InvalidOperationException($"WalletTransaction records are append-only and cannot be modified or deleted. StudentWalletTransaction records are append-only and cannot be modified or deleted. TutorWalletTransaction records are append-only and cannot be modified or deleted. Ids: {ids}.");
+        }
+
+        // Enforce append-only / terminal immutability on TopUpRequest
         var deletedTopUpRequests = ChangeTracker.Entries<TopUpRequest>()
             .Where(e => e.State == EntityState.Deleted)
             .ToList();

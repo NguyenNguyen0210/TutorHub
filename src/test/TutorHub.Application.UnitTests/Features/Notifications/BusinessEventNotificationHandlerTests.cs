@@ -20,7 +20,7 @@ public class BusinessEventNotificationHandlerTests
     private readonly Mock<INotificationService> _notificationServiceMock = new();
 
     [Fact]
-    public async Task Handle_TutorApplicationSubmittedEvent_InsertsNotificationsForAdmins_AndInboxMessage()
+    public async Task Handle_TutorApplicationSubmittedEvent_InsertsNotificationsForAdmins()
     {
         // Arrange
         var adminUser = new User
@@ -32,12 +32,10 @@ public class BusinessEventNotificationHandlerTests
         };
 
         var users = new List<User> { adminUser };
-        var inboxMessages = new List<InboxMessage>();
         var notifications = new List<Notification>();
         var emailDeliveries = new List<EmailDelivery>();
 
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
-        _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 
@@ -55,11 +53,7 @@ public class BusinessEventNotificationHandlerTests
         // Act
         await handler.Handle(domainEvent, CancellationToken.None);
 
-        // Assert (INV-EVENT-006, INV-EVENT-021)
-        inboxMessages.Should().HaveCount(1);
-        inboxMessages[0].EventId.Should().Be(domainEvent.EventId);
-        inboxMessages[0].ConsumerName.Should().Be("NotificationConsumer");
-
+        // Assert
         notifications.Should().HaveCount(1);
         notifications[0].UserId.Should().Be(adminUser.Id);
         notifications[0].Type.Should().Be(BusinessEventTypes.TutorApplicationSubmitted);
@@ -71,19 +65,25 @@ public class BusinessEventNotificationHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenInboxMessageAlreadyExists_IsIdempotentAndSkipsProcessing()
+    public async Task Handle_WhenNotificationAlreadyExists_IsIdempotentAndSkipsProcessing()
     {
         // Arrange
         var existingEventId = Guid.NewGuid();
-        var inboxMessages = new List<InboxMessage>
+        var adminUser = new User
         {
-            new() { Id = Guid.NewGuid(), ConsumerName = "NotificationConsumer", EventId = existingEventId, ProcessedAt = DateTime.UtcNow }
+            Id = Guid.NewGuid(),
+            Email = "admin@tutorhub.com",
+            FullName = "Admin User",
+            Role = UserRole.Admin
         };
-
-        var notifications = new List<Notification>();
+        var users = new List<User> { adminUser };
+        var notifications = new List<Notification>
+        {
+            new() { Id = Guid.NewGuid(), EventId = existingEventId, UserId = adminUser.Id, Title = "Old", Message = "Old", Type = "Test", DeduplicationKey = $"event:{existingEventId}" }
+        };
         var emailDeliveries = new List<EmailDelivery>();
 
-        _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
+        _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 
@@ -102,8 +102,8 @@ public class BusinessEventNotificationHandlerTests
         // Act
         await handler.Handle(domainEvent, CancellationToken.None);
 
-        // Assert (INV-EVENT-004: Deduplication prevents double notification)
-        notifications.Should().BeEmpty();
+        // Assert (Note: Deduplication prevents double notification)
+        notifications.Should().HaveCount(1);
         emailDeliveries.Should().BeEmpty();
     }
 
@@ -128,12 +128,10 @@ public class BusinessEventNotificationHandlerTests
         };
 
         var users = new List<User> { studentUser, tutorUser };
-        var inboxMessages = new List<InboxMessage>();
         var notifications = new List<Notification>();
         var emailDeliveries = new List<EmailDelivery>();
 
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
-        _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 
@@ -154,8 +152,7 @@ public class BusinessEventNotificationHandlerTests
         // Act
         await handler.Handle(domainEvent, CancellationToken.None);
 
-        // Assert (INV-EVENT-021: Multi-recipient events commit all recipient notifications with 1 InboxMessage)
-        inboxMessages.Should().HaveCount(1);
+        // Assert (Note: Multi-recipient events commit all recipient notifications)
         notifications.Should().HaveCount(2);
         notifications.Select(n => n.UserId).Should().Contain(new[] { studentUser.Id, tutorUser.Id });
 
@@ -178,12 +175,10 @@ public class BusinessEventNotificationHandlerTests
         var reportId = Guid.NewGuid();
 
         var users = new List<User> { reportedUser };
-        var inboxMessages = new List<InboxMessage>();
         var notifications = new List<Notification>();
         var emailDeliveries = new List<EmailDelivery>();
 
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
-        _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 
@@ -205,7 +200,6 @@ public class BusinessEventNotificationHandlerTests
         await handler.Handle(domainEvent, CancellationToken.None);
 
         // Assert
-        inboxMessages.Should().HaveCount(1);
         notifications.Should().HaveCount(1);
         notifications[0].UserId.Should().Be(reportedUserId);
         notifications[0].Title.Should().Be("Official Warning Issued");
@@ -213,23 +207,21 @@ public class BusinessEventNotificationHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenDbUpdateExceptionIsDuplicateInboxMessage_GracefullyIgnored()
+    public async Task Handle_WhenDbUpdateExceptionIsDuplicate_GracefullyIgnored()
     {
         // Arrange
         var user = new User { Id = Guid.NewGuid(), Email = "user@example.com", FullName = "User" };
         var users = new List<User> { user };
-        var inboxMessages = new List<InboxMessage>();
         var notifications = new List<Notification>();
         var emailDeliveries = new List<EmailDelivery>();
 
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
-        _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 
         var duplicateException = new DbUpdateException(
             "An error occurred while saving the entity changes.",
-            new Exception("23505: duplicate key value violates unique constraint \"IX_InboxMessages_ConsumerEvent\""));
+            new Exception("23505: duplicate key value violates unique constraint \"IX_Notifications_UserId_Type_DeduplicationKey\""));
 
         _dbContextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(duplicateException);
@@ -261,12 +253,10 @@ public class BusinessEventNotificationHandlerTests
         // Arrange
         var user = new User { Id = Guid.NewGuid(), Email = "user@example.com", FullName = "User" };
         var users = new List<User> { user };
-        var inboxMessages = new List<InboxMessage>();
         var notifications = new List<Notification>();
         var emailDeliveries = new List<EmailDelivery>();
 
         _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(users).Object);
-        _dbContextMock.Setup(c => c.InboxMessages).Returns(MockDbSetHelper.CreateMockDbSet(inboxMessages).Object);
         _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
         _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(emailDeliveries).Object);
 

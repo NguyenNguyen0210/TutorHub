@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
@@ -18,17 +19,23 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
     private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
     private readonly IOptions<ReviewOptions>? _reviewOptions;
+    private readonly IServiceDetailCacheService _serviceCache;
+    private readonly ITutorProfileCacheService _tutorCache;
 
     public CreateEnrollmentReviewCommandHandler(
         IAppDbContext context,
         IClock clock,
         ICurrentUserService currentUserService,
-        IOptions<ReviewOptions>? reviewOptions = null)
+        IOptions<ReviewOptions>? reviewOptions = null,
+        IServiceDetailCacheService? serviceCache = null,
+        ITutorProfileCacheService? tutorCache = null)
     {
         _context = context;
         _clock = clock;
         _currentUserService = currentUserService;
         _reviewOptions = reviewOptions;
+        _serviceCache = serviceCache ?? NoOpServiceDetailCacheService.Instance;
+        _tutorCache = tutorCache ?? NoOpTutorProfileCacheService.Instance;
     }
 
     public async Task<ReviewDto> Handle(CreateEnrollmentReviewCommand request, CancellationToken cancellationToken)
@@ -51,7 +58,7 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
             throw new ForbiddenException("Only the student enrolled in this service can submit a review.");
         }
 
-        // 2. Eligibility Guard (DEC-REV-002): Must be Completed
+        // 2. Eligibility Guard: Must be Completed
         if (enrollment.Status != EnrollmentStatus.Completed)
         {
             throw new ConflictException("Reviews can only be submitted for completed enrollments.");
@@ -59,7 +66,7 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
 
         var now = _clock.UtcNow;
 
-        // 3. Review Window Guard (FR-CONFIG-006 / DEC-REV-008): Read platform setting with 30d fallback
+        // 3. Review Window Guard: Read platform setting with 30d fallback
         var configuredDays = _reviewOptions?.Value?.WindowDays;
         var reviewWindowDays = configuredDays.HasValue && configuredDays.Value > 0
             ? configuredDays.Value
@@ -70,7 +77,7 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
             throw new ConflictException($"The {reviewWindowDays}-day review window for this completed enrollment has expired.");
         }
 
-        // 4. Cardinality / Uniqueness Guard (DEC-REV-001): Max 1 review per enrollment
+        // 4. Cardinality / Uniqueness Guard: Max 1 review per enrollment
         var alreadyReviewed = await _context.Reviews
             .AnyAsync(r => r.EnrollmentId == request.EnrollmentId, cancellationToken);
 
@@ -92,7 +99,7 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
 
         review.Enrollment = enrollment;
 
-        // 5. Rating Aggregation / Projection (DEC-REV-007)
+        // 5. Rating Aggregation / Projection
         var existingRatings = await _context.Reviews
             .AsNoTracking()
             .Include(r => r.Enrollment)
@@ -112,7 +119,7 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
             tutorProfile.ApplyReview(allRatings);
         }
 
-        // Enqueue ReviewCreated Outbox Message (DEC-S7-001, DEC-S7-002)
+        // Enqueue ReviewCreated Outbox Message
         _context.AddOutboxMessage(new ReviewCreatedEvent(
             review.Id,
             enrollment.Id,
@@ -124,6 +131,8 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
+            await _serviceCache.InvalidateServiceDetailAsync(enrollment.ServiceId, cancellationToken);
+            await _tutorCache.InvalidateTutorProfileAsync(enrollment.TutorProfileId, cancellationToken);
         }
         catch (DbUpdateException ex)
         {

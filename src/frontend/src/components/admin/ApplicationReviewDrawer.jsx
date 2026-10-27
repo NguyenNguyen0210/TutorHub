@@ -4,10 +4,10 @@ import { cn } from '@/lib/cn';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
 import Button, { IconButton } from '@/components/ui/Button';
-import StateBadge from '@/components/ledger/StateBadge';
+import StateBadge from '@/components/common/StateBadge';
 
 /**
- * Bảng chi tiết hồ sơ gia sư (Operational Ledger — SPEC §4.2).
+ * Bảng chi tiết hồ sơ gia sư (Quản lý ví & giao dịch —.
  *
  * Tách ra khỏi `pages/admin/AdminTutorApplications.jsx` vì file chính vượt ~700
  * dòng. Toàn bộ màu ở đây đi qua token (`fg-*` / `border` / `success*` /

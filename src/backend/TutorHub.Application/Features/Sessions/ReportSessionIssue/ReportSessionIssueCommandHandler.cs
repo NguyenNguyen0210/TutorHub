@@ -74,7 +74,7 @@ public class ReportSessionIssueCommandHandler : IRequestHandler<ReportSessionIss
             };
 
             // Pre-release escrow hold (money is still in PendingBalance)
-            dispute.SetFinancialHold(session.EarningAmount, FinancialHoldType.EscrowHold, FinancialHoldStatus.Active, now);
+            dispute.SetFinancialHold(session.SessionPrice, FinancialHoldType.EscrowHold, FinancialHoldStatus.Active, now);
 
             _context.Disputes.Add(dispute);
 

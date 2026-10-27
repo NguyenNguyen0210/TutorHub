@@ -20,17 +20,22 @@ public class Transaction
 
     public TransactionStatus Status { get; set; }
 
-    // Platform commission
-    public decimal CommissionRate { get; set; }
+    // Platform fee
+    public decimal PlatformFeeRate { get; set; }
+    public decimal PlatformFeeAmount { get; set; }
 
-    public decimal CommissionAmount { get; set; }
+    [Obsolete("Use PlatformFeeRate instead.")]
+    public decimal CommissionRate { get => PlatformFeeRate; set => PlatformFeeRate = value; }
+
+    [Obsolete("Use PlatformFeeAmount instead.")]
+    public decimal CommissionAmount { get => PlatformFeeAmount; set => PlatformFeeAmount = value; }
 
     // Amount paid to tutor
     public decimal PayoutAmount { get; set; }
 
     public string? PaymentGatewayRef { get; set; }
 
-    // Linkages for dispute resolution & explicit adjustments (DEC-S8-025, DEC-S8-030)
+    // Linkages for dispute resolution & explicit adjustments
     public Guid? DisputeId { get; set; }
     public Guid? RelatedTransactionId { get; set; }
     public Transaction? RelatedTransaction { get; set; }
@@ -44,7 +49,7 @@ public class Transaction
     public DateTime? RefundedAt { get; set; }
 
     // explicit factories so every ledger row is created with the
-    // correct Type/Status/refs. Chaining stays forbidden (DEC-S8-030):
+    // correct Type/Status/refs. Chaining stays forbidden:
     // adjustments must reference the original payout (validated again in
     // AdminResolveDispute + AppDbContext.SaveChangesAsync).
 
@@ -72,8 +77,8 @@ public class Transaction
             DisputeId = disputeId,
             Type = TransactionType.SessionPayoutCredit,
             Amount = gross,
-            CommissionRate = feeRate,
-            CommissionAmount = feeAmount,
+            PlatformFeeRate = feeRate,
+            PlatformFeeAmount = feeAmount,
             PayoutAmount = netPayout,
             PaymentGatewayRef = paymentGatewayRef,
             Status = TransactionStatus.Released,
@@ -96,7 +101,7 @@ public class Transaction
             throw new ArgumentException("Refund amount must be positive.", nameof(amount));
         if (originalPayout != null && originalPayout.Type != TransactionType.SessionPayoutCredit)
             throw new ArgumentException(
-                "Refunds must reference the original payout transaction (DEC-S8-030).",
+                "Refunds must reference the original payout transaction.",
                 nameof(originalPayout));
 
         return new Transaction
@@ -108,8 +113,8 @@ public class Transaction
             RelatedTransactionId = originalPayout?.Id,
             Type = TransactionType.StudentRefund,
             Amount = amount,
-            CommissionRate = 0,
-            CommissionAmount = 0,
+            PlatformFeeRate = 0,
+            PlatformFeeAmount = 0,
             PayoutAmount = 0,
             PaymentGatewayRef = paymentGatewayRef,
             Status = TransactionStatus.Pending,
@@ -130,7 +135,7 @@ public class Transaction
     {
         if (originalPayout.Type != TransactionType.SessionPayoutCredit)
             throw new ArgumentException(
-                "Fee reversals must reference the original payout transaction (DEC-S8-030).",
+                "Fee reversals must reference the original payout transaction.",
                 nameof(originalPayout));
         if (feeReversalAmount <= 0)
             throw new ArgumentOutOfRangeException(nameof(feeReversalAmount), feeReversalAmount, "Fee reversal amount must be strictly greater than zero.");
@@ -144,8 +149,8 @@ public class Transaction
             RelatedTransactionId = originalPayout.Id,
             Type = TransactionType.PlatformFeeReversal,
             Amount = feeReversalAmount,
-            CommissionRate = feeRate,
-            CommissionAmount = feeReversalAmount,
+            PlatformFeeRate = feeRate,
+            PlatformFeeAmount = feeReversalAmount,
             PayoutAmount = 0,
             PaymentGatewayRef = paymentGatewayRef,
             Status = TransactionStatus.Succeeded,

@@ -10,12 +10,12 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Money from '@/components/ui/Money';
 import Icon from '@/components/ui/Icon';
-import LedgerStrip from '@/components/ledger/LedgerStrip';
+import StatStrip from '@/components/common/StatStrip';
 import { PageHeader } from '@/components/ui/StatCard';
 import { useToast } from '@/components/ui/Toast';
 
 // Tông của thẻ hành động: dùng đúng bảng màu của `ActionQueue` trong
-// components/ledger/ để bàn trọng tài Admin trông giống hệt hàng đợi trong
+// components/common/ để bàn trọng tài Admin đồng bộ giao diện
 // workspace (chờ tiền = holding, tranh chấp = danger).
 const ACTION_TONE_CLASS = {
   danger: 'border-l-danger bg-danger-subtle',
@@ -182,8 +182,8 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Top 4 Primary Financial & Volume KPIs — hàng số liệu phẳng (LedgerStrip) */}
-      <LedgerStrip
+      {/* Top 4 Primary Financial & Volume KPIs — hàng số liệu phẳng (StatStrip) */}
+      <StatStrip
         columns={4}
         figures={[
           {
@@ -193,7 +193,7 @@ export default function AdminDashboard() {
             hint: `Net GMV thực: ${formatCurrency(financials.netGmv)}`,
           },
           {
-            // Phí sàn là dòng tiền trung tính, không phải "thành công" (SPEC §4.2).
+            // Phí sàn là dòng tiền trung tính, không phải "thành công".
             key: 'platformFee',
             label: 'Doanh thu phí sàn đã thu',
             value: <Money value={financials.totalPlatformRevenue} />,
@@ -275,7 +275,7 @@ export default function AdminDashboard() {
 
           {/* Visual Distribution Progress Bar
               Mảng "Phí sàn" cố tình TRUNG TÍNH (neutral) — phí sàn không phải
-              dòng tiền "thành công"; mảng hoàn trả dùng brand-secondary (SPEC §3.5). */}
+              dòng tiền "thành công"; mảng hoàn trả dùng brand-secondary. */}
           <div className="space-y-1.5 pt-1">
             <div className="flex justify-between text-[11px] font-semibold text-fg-muted">
               <span>Cơ cấu GMV sàn ({formatCurrency(totalGmv)})</span>

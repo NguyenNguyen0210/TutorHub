@@ -14,12 +14,12 @@ import Button from '@/components/ui/Button';
 import Avatar from '@/components/ui/Avatar';
 import { Progress } from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
-import ActionQueue from '@/components/ledger/ActionQueue';
-import LedgerStrip from '@/components/ledger/LedgerStrip';
-import StateBadge from '@/components/ledger/StateBadge';
+import ActionQueue from '@/components/common/ActionQueue';
+import StatStrip from '@/components/common/StatStrip';
+import StateBadge from '@/components/common/StateBadge';
 
 /**
- * Bàn học của học viên — Operational Ledger (SPEC §5.1).
+ * Bàn học của học viên — Quản lý ví & giao dịch.
  *
  * Nguyên tắc bố cục: thứ đang chờ xử lý nằm trên cùng. Cửa sổ báo cáo sự cố
  * 12h là thời điểm tiền học trong thời gian chờ giải ngân, nên nó nằm ở hàng đầu.
@@ -234,7 +234,7 @@ export default function StudentDashboard() {
 
       <ActionQueue items={queue} />
 
-      <LedgerStrip
+      <StatStrip
         figures={[
           {
             key: 'active',

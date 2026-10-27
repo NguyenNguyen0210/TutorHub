@@ -1,20 +1,25 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Admin.Subjects.DeleteSubject;
 
 public class DeleteSubjectCommandHandler : IRequestHandler<DeleteSubjectCommand, Unit>
 {
     private readonly IAppDbContext _context;
-    private readonly ISubjectCacheService _cache;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly IAuditLogService _auditLogService;
 
-    public DeleteSubjectCommandHandler(IAppDbContext context, ISubjectCacheService? cache = null)
+    public DeleteSubjectCommandHandler(
+        IAppDbContext context,
+        ICurrentUserService currentUserService,
+        IAuditLogService auditLogService)
     {
         _context = context;
-        _cache = cache ?? NoOpSubjectCacheService.Instance;
+        _currentUserService = currentUserService;
+        _auditLogService = auditLogService;
     }
 
     public async Task<Unit> Handle(DeleteSubjectCommand request, CancellationToken cancellationToken)
@@ -27,29 +32,36 @@ public class DeleteSubjectCommandHandler : IRequestHandler<DeleteSubjectCommand,
             throw new NotFoundException("Subject", request.Id);
         }
 
-        // Safe Deletion: Check if associated with Tutors or Bookings
         var hasTutors = await _context.TutorSubjects
             .AnyAsync(ts => ts.SubjectId == request.Id, cancellationToken);
 
-        var hasBookings = await _context.Bookings
-            .AnyAsync(b => b.SubjectId == request.Id, cancellationToken);
-
-        if (hasTutors || hasBookings)
+        if (hasTutors)
         {
-            throw new ConflictException("Cannot delete subject that is currently associated with tutors or bookings. Please deactivate the subject instead.");
+            throw new ConflictException("Cannot delete subject because it is referenced by one or more tutors. Deactivate the subject instead.");
         }
 
-        _context.Subjects.Remove(subject);
+        var hasActiveBookings = await _context.Bookings
+            .AnyAsync(b => b.SubjectId == request.Id && (b.Status == BookingStatus.Holding || b.Status == BookingStatus.Paid), cancellationToken);
 
-        try
+        if (hasActiveBookings)
         {
-            await _context.SaveChangesAsync(cancellationToken);
-            await _cache.InvalidateSubjectAsync(request.Id, cancellationToken);
+            throw new ConflictException("Cannot delete subject because it has active bookings. Deactivate the subject instead.");
         }
-        catch (DbUpdateException)
-        {
-            throw new ConflictException("Cannot delete subject because it is referenced by other records.");
-        }
+
+        var userId = _currentUserService.UserIdOrThrow();
+
+        subject.SoftDelete(userId);
+
+        await _auditLogService.LogAsync(
+            action: "SUBJECT_SOFT_DELETED",
+            entityName: "Subject",
+            entityId: subject.Id.ToString(),
+            userId: userId,
+            oldValues: new { subject.Name, subject.CategoryId, IsDeleted = false },
+            newValues: new { IsDeleted = true, subject.DeletedAt },
+            cancellationToken: cancellationToken);
+
+        await _context.SaveChangesAsync(cancellationToken);
 
         return Unit.Value;
     }

@@ -28,8 +28,8 @@ public class AdminRejectTopUpCommandHandler : IRequestHandler<AdminRejectTopUpCo
         var now = _clock.UtcNow;
 
         var topUp = await _context.TopUpRequests
-            .Include(r => r.StudentWallet)
-                .ThenInclude(w => w.StudentProfile)
+            .Include(r => r.Wallet)
+                .ThenInclude(w => w.User)
             .FirstOrDefaultAsync(r => r.Id == request.TopUpRequestId, cancellationToken);
 
         if (topUp == null)
@@ -47,8 +47,8 @@ public class AdminRejectTopUpCommandHandler : IRequestHandler<AdminRejectTopUpCo
         // Emit outbox business event
         _context.AddOutboxMessage(new StudentTopUpRejectedEvent(
             topUp.Id,
-            topUp.StudentWallet.StudentProfileId,
-            topUp.StudentWallet.StudentProfile.UserId,
+            topUp.Wallet.StudentProfileId ?? Guid.Empty,
+            topUp.Wallet.UserId != Guid.Empty ? topUp.Wallet.UserId : (topUp.Wallet.StudentProfile?.UserId ?? Guid.Empty),
             request.Reason,
             adminId,
             Guid.NewGuid(),

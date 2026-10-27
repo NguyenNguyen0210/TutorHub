@@ -34,7 +34,7 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
 
         // Reads + guards run outside the transaction (fail fast before acquiring DB resources).
         var withdrawal = await _context.Withdrawals
-            .Include(w => w.Wallet).ThenInclude(wall => wall.TutorProfile).ThenInclude(tp => tp.User)
+            .Include(w => w.Wallet).ThenInclude(wall => wall.User)
             .Include(w => w.ProcessingStartedByAdmin)
             .Include(w => w.ProcessedByAdmin)
             .FirstOrDefaultAsync(w => w.Id == request.WithdrawalId, cancellationToken);
@@ -44,7 +44,7 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
             throw new NotFoundException("Withdrawal", request.WithdrawalId);
         }
 
-        // Strict State Transition Guard (DEC-WD-003, INV-WD-004): Must be in Processing status
+        // Strict State Transition Guard: Must be in Processing status
         if (withdrawal.Status != WithdrawalStatus.Processing)
         {
             throw new ConflictException(
@@ -73,14 +73,14 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
             throw new BadRequestException("Tutor wallet not found.");
         }
 
-        // Domain State Transition: Fail (DEC-WD-003, DEC-WD-004)
+        // Domain State Transition: Fail
         withdrawal.Fail(request.Reason, userId);
         withdrawal.ProcessedByAdmin = admin;
 
-        // Atomic restoration of AvailableBalance (DEC-WD-004, DEC-WD-007)
-        wallet.CreditAvailable(withdrawal.Amount, now);
+        // Atomic restoration of AvailableBalance
+        if (wallet.WithdrawingBalance >= withdrawal.Amount) wallet.ReleaseWithdrawal(withdrawal.Amount, now); else wallet.CreditAvailable(withdrawal.Amount, now);
 
-        // Record immutable ledger adjustment entry (DEC-WD-004, DEC-WD-009)
+        // Record immutable ledger adjustment entry
         var adjustmentEntry = new WalletTransaction
         {
             Id = Guid.NewGuid(),
@@ -96,11 +96,11 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
 
         _context.WalletTransactions.Add(adjustmentEntry);
 
-        // Enqueue Outbox Message in same DB transaction (DEC-S7-012, SP7-INT-001)
+        // Enqueue Outbox Message in same DB transaction
         _context.AddOutboxMessage(new WithdrawalFailedEvent(
             withdrawal.Id,
-            withdrawal.Wallet.TutorProfileId,
-            withdrawal.Wallet.TutorProfile.UserId,
+            withdrawal.Wallet.TutorProfileId ?? Guid.Empty,
+            withdrawal.Wallet.UserId != Guid.Empty ? withdrawal.Wallet.UserId : (withdrawal.Wallet.TutorProfile?.UserId ?? Guid.Empty),
             new MoneyDto(withdrawal.Amount),
             withdrawal.FailureReason!));
 
@@ -122,8 +122,8 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
             Id: withdrawal.Id,
             WalletId: withdrawal.WalletId,
             TutorProfileId: withdrawal.Wallet.TutorProfileId,
-            TutorName: withdrawal.Wallet.TutorProfile.User.FullName,
-            TutorEmail: withdrawal.Wallet.TutorProfile.User.Email,
+            TutorName: withdrawal.Wallet.User?.FullName ?? withdrawal.Wallet.TutorProfile?.User?.FullName ?? string.Empty,
+            TutorEmail: withdrawal.Wallet.User?.Email ?? withdrawal.Wallet.TutorProfile?.User?.Email ?? string.Empty,
             Amount: withdrawal.Amount,
             Status: withdrawal.Status,
             BankName: withdrawal.BankName,

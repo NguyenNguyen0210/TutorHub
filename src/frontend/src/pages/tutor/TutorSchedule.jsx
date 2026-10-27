@@ -12,10 +12,10 @@ import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import Tabs from '@/components/ui/Tabs';
 import { useToast } from '@/components/ui/Toast';
-import StateBadge from '@/components/ledger/StateBadge';
+import StateBadge from '@/components/common/StateBadge';
 
 /**
- * Lịch dạy của gia sư — Operational Ledger (SPEC Tutor §4.2).
+ * Lịch dạy của gia sư — Lịch dạy của gia sư.
  *
  * Bố cục 2 tab, tab state nằm trên URL (`?tab=`) để link từ Action Queue ở
  * dashboard mở thẳng đúng nhánh.
@@ -318,10 +318,10 @@ export default function TutorSchedule() {
                         </span>
                       )}
 
-                      {session.earningAmount > 0 && (
+                      {(session.sessionPrice ?? session.earningAmount) > 0 && (
                         <span className="flex items-center gap-1.5 tabular-nums">
                           <Icon name="account_balance_wallet" size="xs" className="text-fg-muted" />
-                          {formatCurrency(session.earningAmount)} ký quỹ
+                          {formatCurrency(session.sessionPrice ?? session.earningAmount)} ký quỹ
                         </span>
                       )}
                     </div>

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Domain.Entities;
@@ -43,7 +44,7 @@ public class TutorProfile
         RatingAvg = Math.Round((decimal)allRatings.Average(), 2);
     }
 
-    // Default Payout Bank Destination (DEC-WD-002)
+    // Default Payout Bank Destination
     public string? BankName { get; set; }
     public string? BankCode { get; set; }
     public string? AccountNumber { get; set; }
@@ -71,5 +72,6 @@ public class TutorProfile
     public ICollection<Service> Services { get; set; }
         = new List<Service>();
 
-    public TutorWallet? Wallet { get; set; }
+    [NotMapped]
+    public Wallet? Wallet => User?.Wallet;
 }

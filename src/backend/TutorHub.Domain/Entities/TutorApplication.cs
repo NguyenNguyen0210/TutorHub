@@ -74,7 +74,7 @@ public class TutorApplication
 
     /// <summary>
     /// Transition: Pending → Rejected.
-    /// Reason is mandatory per business invariant INV-TUTOR-002.
+    /// Reason is mandatory.
     /// </summary>
     public void Reject(string reason, Guid adminId)
     {

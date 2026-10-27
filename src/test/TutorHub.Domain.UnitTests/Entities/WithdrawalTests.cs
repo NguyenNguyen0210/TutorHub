@@ -67,7 +67,7 @@ public class WithdrawalTests
     [Fact]
     public void Complete_FromPending_ThrowsInvalidOperationException()
     {
-        // Arrange (Strict State Machine Guard - DEC-WD-003, INV-WD-004)
+        // Arrange (Strict State Machine Guard)
         var withdrawal = new Withdrawal
         {
             Id = Guid.NewGuid(),
@@ -87,7 +87,7 @@ public class WithdrawalTests
     [InlineData(WithdrawalStatus.Failed)]
     public void Complete_FromTerminalStatus_ThrowsInvalidOperationException(WithdrawalStatus status)
     {
-        // Arrange (Idempotency Guard - DEC-WD-008)
+        // Arrange (Idempotency Guard)
         var withdrawal = new Withdrawal { Id = Guid.NewGuid(), Status = status };
 
         // Act
@@ -123,7 +123,7 @@ public class WithdrawalTests
     [Fact]
     public void Fail_FromPending_ThrowsInvalidOperationException()
     {
-        // Arrange (Strict State Machine Guard - DEC-WD-003, INV-WD-004)
+        // Arrange (Strict State Machine Guard)
         var withdrawal = new Withdrawal
         {
             Id = Guid.NewGuid(),
@@ -164,7 +164,7 @@ public class WithdrawalTests
     [InlineData(WithdrawalStatus.Failed)]
     public void Fail_FromTerminalStatus_ThrowsInvalidOperationException(WithdrawalStatus status)
     {
-        // Arrange (Idempotency Guard - DEC-WD-008)
+        // Arrange (Idempotency Guard)
         var withdrawal = new Withdrawal { Id = Guid.NewGuid(), Status = status };
 
         // Act

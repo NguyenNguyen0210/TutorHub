@@ -69,7 +69,7 @@ public class AdminDisputesController : ControllerBase
     }
 
     /// <summary>
-    /// Admin: Terminal resolution with financial settlement and explicit ledger adjustments.
+    /// Admin: Terminal dispute resolution with financial settlement and transaction adjustments.
     /// </summary>
     [HttpPost("{id:guid}/resolve")]
     [ProducesResponseType(typeof(ApiResponse<DisputeDto>), StatusCodes.Status200OK)]

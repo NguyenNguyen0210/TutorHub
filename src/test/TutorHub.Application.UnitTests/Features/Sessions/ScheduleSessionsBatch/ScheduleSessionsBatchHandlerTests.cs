@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Features.Sessions.ScheduleSessionsBatch;
+using TutorHub.Application.Features.Sessions.Scheduling;
 using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
@@ -34,7 +35,7 @@ public class ScheduleSessionsBatchHandlerTests : IDisposable
     public void Dispose() => _context.Dispose();
 
     private ScheduleSessionsBatchHandler CreateHandler() =>
-        new(_context, _currentUserService, _clock, _schedulingOptions);
+        new(_context, _currentUserService, _clock, new SessionSchedulePolicy(_schedulingOptions, _clock));
 
     private async Task<(Session s1, Session s2, Enrollment enrollment, User studentUser, User tutorUser)> SeedAggregateAsync()
     {
@@ -66,7 +67,7 @@ public class ScheduleSessionsBatchHandlerTests : IDisposable
             EnrollmentId = enrollment.Id,
             Enrollment = enrollment,
             SessionNumber = 1,
-            EarningAmount = 333_333m
+            SessionPrice = 333_333m
         };
         var s2 = new Session
         {
@@ -74,7 +75,7 @@ public class ScheduleSessionsBatchHandlerTests : IDisposable
             EnrollmentId = enrollment.Id,
             Enrollment = enrollment,
             SessionNumber = 2,
-            EarningAmount = 333_333m
+            SessionPrice = 333_333m
         };
         enrollment.Sessions.Add(s1);
         enrollment.Sessions.Add(s2);
@@ -93,7 +94,7 @@ public class ScheduleSessionsBatchHandlerTests : IDisposable
             EnrollmentId = enrollment.Id,
             Enrollment = null!,
             SessionNumber = 99,
-            EarningAmount = 0m
+            SessionPrice = 0m
         };
         scheduled.Schedule(startAt, startAt.AddHours(1));
         _context.Sessions.Add(scheduled);

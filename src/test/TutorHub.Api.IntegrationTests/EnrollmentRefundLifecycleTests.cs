@@ -11,7 +11,7 @@ namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
 /// H3 regression: enrollment cancellation refunds must be created in the Pending
-/// settlement lifecycle (DEC-S8-032 / INV-REFUND-004), never pre-marked Refunded.
+/// settlement lifecycle, never pre-marked Refunded.
 /// </summary>
 public class EnrollmentRefundLifecycleTests : IntegrationTestBase
 {

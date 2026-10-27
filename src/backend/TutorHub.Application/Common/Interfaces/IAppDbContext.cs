@@ -18,33 +18,34 @@ public interface IAppDbContext
     DbSet<Enrollment> Enrollments { get; }
     DbSet<Session> Sessions { get; }
     DbSet<Transaction> Transactions { get; }
-    DbSet<TutorWallet> TutorWallets { get; }
-    DbSet<TutorWithdrawal> TutorWithdrawals { get; }
+    DbSet<Wallet> Wallets { get; }
+    DbSet<Withdrawal> Withdrawals { get; }
+    DbSet<WalletTransaction> WalletTransactions { get; }
+    DbSet<TopUpRequest> TopUpRequests { get; }
     DbSet<Review> Reviews { get; }
     DbSet<Report> Reports { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<Media> Media { get; }
-    DbSet<TutorWalletTransaction> TutorWalletTransactions { get; }
 
     // Backward-compatibility aliases
-    DbSet<TutorWallet> Wallets => TutorWallets;
-    DbSet<TutorWithdrawal> Withdrawals => TutorWithdrawals;
-    DbSet<TutorWalletTransaction> WalletTransactions => TutorWalletTransactions;
+    DbSet<Wallet> TutorWallets => Wallets;
+    DbSet<Withdrawal> TutorWithdrawals => Withdrawals;
+    DbSet<WalletTransaction> TutorWalletTransactions => WalletTransactions;
+    DbSet<Wallet> StudentWallets => Wallets;
+    DbSet<WalletTransaction> StudentWalletTransactions => WalletTransactions;
+    DbSet<Withdrawal> StudentWithdrawals => Withdrawals;
+
     DbSet<Conversation> Conversations { get; }
     DbSet<Message> Messages { get; }
     DbSet<OutboxMessage> OutboxMessages { get; }
-    DbSet<InboxMessage> InboxMessages { get; }
     DbSet<Notification> Notifications { get; }
     DbSet<EmailDelivery> EmailDeliveries { get; }
     DbSet<Dispute> Disputes { get; }
     DbSet<DisputeEvidence> DisputeEvidences { get; }
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<LearningRecord> LearningRecords { get; }
-    DbSet<StudentWallet> StudentWallets { get; }
-    DbSet<StudentWalletTransaction> StudentWalletTransactions { get; }
-    DbSet<TopUpRequest> TopUpRequests { get; }
-    DbSet<StudentWithdrawal> StudentWithdrawals { get; }
     DbSet<ExternalLogin> ExternalLogins { get; }
+    DbSet<IdempotencyRecord> IdempotencyRecords { get; }
 
     DatabaseFacade Database { get; }
 

@@ -8,9 +8,7 @@ using TutorHub.Infrastructure.BackgroundServices;
 namespace TutorHub.Infrastructure.UnitTests.BackgroundJobs;
 
 /// <summary>
-/// Phase 3 Task 1: the 6 background jobs are gated behind
-/// <c>BackgroundJobs:Enabled</c> (default true) so a standalone
-/// <c>TutorHub.Worker</c> can own them while API replicas scale job-free.
+/// Background jobs are gated behind <c>BackgroundJobs:Enabled</c> (default true).
 /// </summary>
 public class BackgroundJobsRegistrationTests
 {
@@ -19,9 +17,8 @@ public class BackgroundJobsRegistrationTests
         typeof(BookingTimeoutBackgroundService),
         typeof(OutboxDispatcherJob),
         typeof(EmailDeliveryJob),
-        typeof(SessionReminderJob),
-        typeof(GracePeriodReminderJob),
         typeof(AutoPayoutJob),
+        typeof(IdempotencyCleanupJob),
     ];
 
     private static ServiceCollection BuildServices(string? flagValue)
@@ -56,7 +53,7 @@ public class BackgroundJobsRegistrationTests
             .Select(d => d.ImplementationType);
 
     [Fact]
-    public void FlagUnset_RegistersAllSixJobs()
+    public void FlagUnset_RegistersAllFiveJobs()
     {
         var services = BuildServices(flagValue: null);
 
@@ -64,7 +61,7 @@ public class BackgroundJobsRegistrationTests
     }
 
     [Fact]
-    public void FlagTrue_RegistersAllSixJobs()
+    public void FlagTrue_RegistersAllFiveJobs()
     {
         var services = BuildServices(flagValue: "true");
 
@@ -72,7 +69,7 @@ public class BackgroundJobsRegistrationTests
     }
 
     [Fact]
-    public void FlagFalse_RegistersNoneOfTheSixJobs()
+    public void FlagFalse_RegistersNoneOfTheJobs()
     {
         var services = BuildServices(flagValue: "false");
 

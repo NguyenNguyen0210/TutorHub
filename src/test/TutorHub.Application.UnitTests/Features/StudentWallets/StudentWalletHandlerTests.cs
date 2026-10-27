@@ -40,7 +40,7 @@ public class StudentWalletHandlerTests
 
         result.Should().NotBeNull();
         result.AvailableBalance.Should().Be(0m);
-        result.ReservedBalance.Should().Be(0m);
+        result.WithdrawingBalance.Should().Be(0m);
         result.TotalBalance.Should().Be(0m);
     }
 
@@ -58,7 +58,7 @@ public class StudentWalletHandlerTests
             Id = Guid.NewGuid(),
             StudentProfileId = studentProfile.Id,
             AvailableBalance = 750_000m,
-            ReservedBalance = 200_000m,
+            WithdrawingBalance = 200_000m,
             UpdatedAt = _clock.UtcNow
         };
 
@@ -74,7 +74,7 @@ public class StudentWalletHandlerTests
 
         result.Should().NotBeNull();
         result.AvailableBalance.Should().Be(750_000m);
-        result.ReservedBalance.Should().Be(200_000m);
+        result.WithdrawingBalance.Should().Be(200_000m);
         result.TotalBalance.Should().Be(950_000m);
     }
 

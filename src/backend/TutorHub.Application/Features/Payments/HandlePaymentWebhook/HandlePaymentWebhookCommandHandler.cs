@@ -260,8 +260,8 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
             await using var dbTx = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
 
             var topUp = await _context.TopUpRequests
-                .Include(t => t.StudentWallet)
-                    .ThenInclude(w => w.StudentProfile)
+                .Include(t => t.Wallet)
+                    .ThenInclude(w => w.User)
                 .FirstOrDefaultAsync(t => t.TransferReference == txnRef, cancellationToken);
 
             if (topUp == null)
@@ -287,7 +287,7 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
             {
                 // Lock wallet row
                 var wallet = await _context.StudentWallets
-                    .FromSqlInterpolated($"SELECT * FROM \"StudentWallets\" WHERE \"Id\" = {topUp.StudentWalletId} FOR UPDATE")
+                    .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"Id\" = {topUp.WalletId} FOR UPDATE")
                     .FirstOrDefaultAsync(cancellationToken);
 
                 if (wallet == null)
@@ -321,8 +321,8 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
 
                 _context.AddOutboxMessage(new StudentTopUpConfirmedEvent(
                     topUp.Id,
-                    topUp.StudentWallet.StudentProfileId,
-                    topUp.StudentWallet.StudentProfile.UserId,
+                    topUp.Wallet.StudentProfileId ?? Guid.Empty,
+                    topUp.Wallet.UserId,
                     new MoneyDto(topUp.Amount, "VND"),
                     Guid.Empty,
                     Guid.NewGuid(),
@@ -334,7 +334,7 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
                     action: "VNPayConfirmed",
                     entityName: "TopUpRequest",
                     entityId: topUp.Id.ToString(),
-                    userId: topUp.StudentWallet.StudentProfile.UserId,
+                    userId: topUp.Wallet.UserId,
                     oldValues: null,
                     newValues: new { Amount = topUp.Amount, GatewayRef = txnRef, TransactionNo = transactionNo },
                     cancellationToken: cancellationToken);
@@ -349,7 +349,7 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
                     action: "VNPayFailed",
                     entityName: "TopUpRequest",
                     entityId: topUp.Id.ToString(),
-                    userId: topUp.StudentWallet.StudentProfile.UserId,
+                    userId: topUp.Wallet.UserId,
                     oldValues: null,
                     newValues: new { Amount = topUp.Amount, GatewayRef = txnRef, TransactionNo = transactionNo },
                     cancellationToken: cancellationToken);

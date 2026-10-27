@@ -23,7 +23,8 @@ public class SessionInvestigationDto
     public SessionStatus Status { get; set; }
     public DateTime? StartAt { get; set; }
     public DateTime? EndAt { get; set; }
-    public decimal EarningAmount { get; set; }
+    public decimal SessionPrice { get; set; }
+    public decimal EarningAmount { get => SessionPrice; set => SessionPrice = value; }
     public bool IsPayoutReleased { get; set; }
     public DateTime? GracePeriodStartedAt { get; set; }
     public DateTime? GracePeriodEndsAt { get; set; }
@@ -60,7 +61,6 @@ public class FinancialInvestigationDto
     public decimal OriginalPlatformFee { get; set; }
     public decimal OriginalTutorNet { get; set; }
     public decimal TutorAvailableBalance { get; set; }
-    public decimal TutorHeldBalance { get; set; }
     public decimal TutorWithdrawableBalance { get; set; }
     public bool IsPayoutReleased { get; set; }
 }

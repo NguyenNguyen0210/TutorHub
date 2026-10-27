@@ -15,7 +15,6 @@ SET client_encoding = 'UTF8';
 -- Clean wipe existing domain data in cascade order (preserves __EFMigrationsHistory)
 TRUNCATE TABLE 
     "AuditLogs",
-    "InboxMessages",
     "OutboxMessages",
     "EmailDeliveries",
     "Notifications",
@@ -28,10 +27,7 @@ TRUNCATE TABLE
     "Messages",
     "Conversations",
     "Reviews",
-    "StudentWalletTransactions",
-    "StudentWithdrawals",
     "TopUpRequests",
-    "StudentWallets",
     "WalletTransactions",
     "Withdrawals",
     "Transactions",
@@ -46,7 +42,9 @@ TRUNCATE TABLE
     "TutorProfiles",
     "TutorApplications",
     "StudentProfiles",
-    "Users"
+    "Users",
+    "IdempotencyRecords",
+    "ExternalLogins"
 RESTART IDENTITY CASCADE;
 
 -- -----------------------------------------------------------------------------
@@ -158,50 +156,64 @@ Nhiều thế hệ học sinh của cô đã xuất sắc giành điểm 9+ môn
 -- -----------------------------------------------------------------------------
 -- 5. WALLETS (5 Wallets for 5 Tutors)
 -- -----------------------------------------------------------------------------
-INSERT INTO "Wallets" ("Id", "TutorProfileId", "PendingBalance", "AvailableBalance", "HeldBalance", "UpdatedAt")
+INSERT INTO "Wallets" ("Id", "UserId", "TutorProfileId", "StudentProfileId", "PendingBalance", "AvailableBalance", "WithdrawingBalance", "CreatedAt", "UpdatedAt")
 VALUES
-    ('22222222-3333-3333-3333-111111111111', '22222222-2222-2222-2222-111111111111', 3600000.00, 900000.00, 200000.00, NOW()),
-    ('33333333-3333-3333-3333-111111111111', '33333333-2222-2222-2222-111111111111', 1200000.00, 1080000.00, 0.00, NOW()),
-    ('44444444-3333-3333-3333-111111111111', '44444444-2222-2222-2222-111111111111', 2500000.00, 450000.00, 0.00, NOW()),
-    ('44444444-3333-3333-3333-333333333333', '44444444-2222-2222-2222-333333333333', 1500000.00, 540000.00, 0.00, NOW()),
-    ('44444444-3333-3333-3333-444444444444', '44444444-2222-2222-2222-444444444444', 0.00, 1800000.00, 0.00, NOW());
+    -- Tutor Wallets (5 Curated Tutors)
+    ('22222222-3333-3333-3333-111111111111', '22222222-1111-1111-1111-111111111111', '22222222-2222-2222-2222-111111111111', NULL, 3600000.00, 900000.00, 0.00, NOW() - INTERVAL '50 days', NOW()),
+    ('33333333-3333-3333-3333-111111111111', '33333333-1111-1111-1111-111111111111', '33333333-2222-2222-2222-111111111111', NULL, 1200000.00, 1080000.00, 0.00, NOW() - INTERVAL '45 days', NOW()),
+    ('44444444-3333-3333-3333-111111111111', '44444444-1111-1111-1111-111111111111', '44444444-2222-2222-2222-111111111111', NULL, 2500000.00, 450000.00, 0.00, NOW() - INTERVAL '40 days', NOW()),
+    ('44444444-3333-3333-3333-333333333333', '44444444-3333-1111-1111-111111111111', '44444444-2222-2222-2222-333333333333', NULL, 1500000.00, 540000.00, 0.00, NOW() - INTERVAL '30 days', NOW()),
+    ('44444444-3333-3333-3333-444444444444', '44444444-4444-1111-1111-111111111111', '44444444-2222-2222-2222-444444444444', NULL, 0.00, 1800000.00, 0.00, NOW() - INTERVAL '25 days', NOW()),
+    -- Student Wallets (8 Curated Students)
+    ('55555555-3333-3333-3333-111111111111', '55555555-1111-1111-1111-111111111111', NULL, '55555555-2222-2222-2222-111111111111', 0.00, 2500000.00, 0.00, NOW() - INTERVAL '30 days', NOW()),
+    ('66666666-3333-3333-3333-111111111111', '66666666-1111-1111-1111-111111111111', NULL, '66666666-2222-2222-2222-111111111111', 0.00, 1800000.00, 0.00, NOW() - INTERVAL '28 days', NOW()),
+    ('77777777-3333-3333-3333-111111111111', '77777777-1111-1111-1111-111111111111', NULL, '77777777-2222-2222-2222-111111111111', 0.00, 3200000.00, 0.00, NOW() - INTERVAL '26 days', NOW()),
+    ('88888888-3333-3333-3333-111111111111', '88888888-1111-1111-1111-111111111111', NULL, '88888888-2222-2222-2222-111111111111', 0.00, 1500000.00, 0.00, NOW() - INTERVAL '24 days', NOW()),
+    ('99999999-3333-3333-3333-111111111111', '99999999-1111-1111-1111-111111111111', NULL, '99999999-2222-2222-2222-111111111111', 0.00, 4000000.00, 0.00, NOW() - INTERVAL '22 days', NOW()),
+    ('aaaaaaaa-3333-3333-3333-111111111111', 'aaaaaaaa-1111-1111-1111-111111111111', NULL, 'aaaaaaaa-2222-2222-2222-111111111111', 0.00, 2000000.00, 0.00, NOW() - INTERVAL '20 days', NOW()),
+    ('bbbbbbbb-3333-3333-3333-111111111111', 'bbbbbbbb-1111-1111-1111-111111111111', NULL, 'bbbbbbbb-2222-2222-2222-111111111111', 0.00, 1200000.00, 0.00, NOW() - INTERVAL '18 days', NOW()),
+    ('cccccccc-3333-3333-3333-111111111111', 'cccccccc-1111-1111-1111-111111111111', NULL, 'cccccccc-2222-2222-2222-111111111111', 0.00, 5000000.00, 0.00, NOW() - INTERVAL '16 days', NOW());
 
 -- -----------------------------------------------------------------------------
 -- 6. CATEGORIES (10 Categories)
 -- -----------------------------------------------------------------------------
-INSERT INTO "Categories" ("Id", "Name", "Description", "IsActive")
+INSERT INTO "Categories" ("Id", "Name", "Description", "IsActive", "IsDeleted", "DeletedAt", "DeletedByUserId")
 VALUES
-    ('11111111-0000-0000-0000-000000000001', 'Toán học', 'Các môn toán từ cơ bản đến nâng cao, luyện thi đại học', true),
-    ('11111111-0000-0000-0000-000000000002', 'Ngoại ngữ', 'Tiếng Anh, Tiếng Nhật, Tiếng Trung, Tiếng Hàn và chứng chỉ quốc tế', true),
-    ('11111111-0000-0000-0000-000000000003', 'Khoa học tự nhiên', 'Vật lý, Hóa học, Sinh học các khối lớp', true),
-    ('11111111-0000-0000-0000-000000000004', 'Công nghệ thông tin', 'Lập trình C#, Python, Frontend, Backend, Cơ sở dữ liệu', true),
-    ('11111111-0000-0000-0000-000000000005', 'Khoa học xã hội', 'Ngữ văn, Lịch sử, Địa lý, Triết học', true),
-    ('11111111-0000-0000-0000-000000000006', 'Nghệ thuật & Âm nhạc', 'Piano, Guitar, Mỹ thuật, Thanh nhạc', true),
-    ('11111111-0000-0000-0000-000000000007', 'Kỹ năng mềm', 'Giao tiếp, Thuyết trình, Tư duy phản biện', true),
-    ('11111111-0000-0000-0000-000000000008', 'Luyện thi chứng chỉ', 'SAT, ACT, GMAT, Đánh giá năng lực ĐHQG', true),
-    ('11111111-0000-0000-0000-000000000009', 'Kinh tế & Tài chính', 'Kế toán, Tài chính doanh nghiệp, Kinh tế vi mô', true),
-    ('11111111-0000-0000-0000-000000000010', 'Thể thao & Yoga', 'Cờ vua, Yoga tại nhà, Thể dục phát triển thể chất', true);
+    ('11111111-0000-0000-0000-000000000001', 'Toán học', 'Các môn toán từ cơ bản đến nâng cao, luyện thi đại học', true, false, NULL, NULL),
+    ('11111111-0000-0000-0000-000000000002', 'Ngoại ngữ', 'Tiếng Anh, Tiếng Nhật, Tiếng Trung, Tiếng Hàn và chứng chỉ quốc tế', true, false, NULL, NULL),
+    ('11111111-0000-0000-0000-000000000003', 'Khoa học tự nhiên', 'Vật lý, Hóa học, Sinh học các khối lớp', true, false, NULL, NULL),
+    ('11111111-0000-0000-0000-000000000004', 'Công nghệ thông tin', 'Lập trình C#, Python, Frontend, Backend, Cơ sở dữ liệu', true, false, NULL, NULL),
+    ('11111111-0000-0000-0000-000000000005', 'Khoa học xã hội', 'Ngữ văn, Lịch sử, Địa lý, Triết học', true, false, NULL, NULL),
+    ('11111111-0000-0000-0000-000000000006', 'Nghệ thuật & Âm nhạc', 'Piano, Guitar, Mỹ thuật, Thanh nhạc', true, false, NULL, NULL),
+    ('11111111-0000-0000-0000-000000000007', 'Kỹ năng mềm', 'Giao tiếp, Thuyết trình, Tư duy phản biện', true, false, NULL, NULL),
+    ('11111111-0000-0000-0000-000000000008', 'Luyện thi chứng chỉ', 'SAT, ACT, GMAT, Đánh giá năng lực ĐHQG', true, false, NULL, NULL),
+    ('11111111-0000-0000-0000-000000000009', 'Kinh tế & Tài chính', 'Kế toán, Tài chính doanh nghiệp, Kinh tế vi mô', true, false, NULL, NULL),
+    ('11111111-0000-0000-0000-000000000010', 'Thể thao & Yoga', 'Cờ vua, Yoga tại nhà, Thể dục phát triển thể chất', true, false, NULL, NULL),
+    ('11111111-0000-0000-0000-000000000091', 'Lập trình Flash & ActionScript', 'Khóa học công nghệ Flash cũ đã ngừng phát triển', false, true, NOW() - INTERVAL '15 days', '11111111-1111-1111-1111-111111111111'),
+    ('11111111-0000-0000-0000-000000000092', 'Luyện thi Pascal THCS', 'Môn thi Pascal cấp huyện cũ trước khi chuyển sang C++', false, true, NOW() - INTERVAL '30 days', '11111111-1111-1111-1111-111111111111');;
 
 -- -----------------------------------------------------------------------------
 -- 7. SUBJECTS (15 Subjects)
 -- -----------------------------------------------------------------------------
-INSERT INTO "Subjects" ("Id", "Name", "CategoryId", "IsActive")
+INSERT INTO "Subjects" ("Id", "Name", "CategoryId", "IsActive", "IsDeleted", "DeletedAt", "DeletedByUserId")
 VALUES
-    ('aaaaaaaa-0001-0000-0000-000000000001', 'Toán THPT (Lớp 10-12)', '11111111-0000-0000-0000-000000000001', true),
-    ('aaaaaaaa-0001-0000-0000-000000000002', 'Toán THCS (Lớp 6-9)', '11111111-0000-0000-0000-000000000001', true),
-    ('aaaaaaaa-0001-0000-0000-000000000003', 'Tiếng Anh Giao Tiếp', '11111111-0000-0000-0000-000000000002', true),
-    ('aaaaaaaa-0001-0000-0000-000000000004', 'Luyện thi IELTS 6.5+', '11111111-0000-0000-0000-000000000002', true),
-    ('aaaaaaaa-0001-0000-0000-000000000005', 'Tiếng Nhật Sơ - Trung Cấp (N5 - N3)', '11111111-0000-0000-0000-000000000002', true),
-    ('aaaaaaaa-0001-0000-0000-000000000006', 'Vật lý THPT (Lớp 10-12)', '11111111-0000-0000-0000-000000000003', true),
-    ('aaaaaaaa-0001-0000-0000-000000000007', 'Hóa học THPT (Lớp 10-12)', '11111111-0000-0000-0000-000000000003', true),
-    ('aaaaaaaa-0001-0000-0000-000000000008', 'Sinh học THPT', '11111111-0000-0000-0000-000000000003', true),
-    ('aaaaaaaa-0001-0000-0000-000000000009', 'Lập trình C# / ASP.NET Core', '11111111-0000-0000-0000-000000000004', true),
-    ('aaaaaaaa-0001-0000-0000-000000000010', 'Lập trình Python Cho Người Mới', '11111111-0000-0000-0000-000000000004', true),
-    ('aaaaaaaa-0001-0000-0000-000000000011', 'Ngữ văn THPT & Luyện Thi ĐH', '11111111-0000-0000-0000-000000000005', true),
-    ('aaaaaaaa-0001-0000-0000-000000000012', 'Luyện thi Đánh Giá Năng Lực', '11111111-0000-0000-0000-000000000008', true),
-    ('aaaaaaaa-0001-0000-0000-000000000013', 'Cờ vua chiến thuật cơ bản & nâng cao', '11111111-0000-0000-0000-000000000010', true),
-    ('aaaaaaaa-0001-0000-0000-000000000014', 'Kỹ năng thuyết trình & Đàm phán', '11111111-0000-0000-0000-000000000007', true),
-    ('aaaaaaaa-0001-0000-0000-000000000015', 'Nguyên lý kế toán tài chính', '11111111-0000-0000-0000-000000000009', true);
+    ('aaaaaaaa-0001-0000-0000-000000000001', 'Toán THPT (Lớp 10-12)', '11111111-0000-0000-0000-000000000001', true, false, NULL, NULL),
+    ('aaaaaaaa-0001-0000-0000-000000000002', 'Toán THCS (Lớp 6-9)', '11111111-0000-0000-0000-000000000001', true, false, NULL, NULL),
+    ('aaaaaaaa-0001-0000-0000-000000000003', 'Tiếng Anh Giao Tiếp', '11111111-0000-0000-0000-000000000002', true, false, NULL, NULL),
+    ('aaaaaaaa-0001-0000-0000-000000000004', 'Luyện thi IELTS 6.5+', '11111111-0000-0000-0000-000000000002', true, false, NULL, NULL),
+    ('aaaaaaaa-0001-0000-0000-000000000005', 'Tiếng Nhật Sơ - Trung Cấp (N5 - N3)', '11111111-0000-0000-0000-000000000002', true, false, NULL, NULL),
+    ('aaaaaaaa-0001-0000-0000-000000000006', 'Vật lý THPT (Lớp 10-12)', '11111111-0000-0000-0000-000000000003', true, false, NULL, NULL),
+    ('aaaaaaaa-0001-0000-0000-000000000007', 'Hóa học THPT (Lớp 10-12)', '11111111-0000-0000-0000-000000000003', true, false, NULL, NULL),
+    ('aaaaaaaa-0001-0000-0000-000000000008', 'Sinh học THPT', '11111111-0000-0000-0000-000000000003', true, false, NULL, NULL),
+    ('aaaaaaaa-0001-0000-0000-000000000009', 'Lập trình C# / ASP.NET Core', '11111111-0000-0000-0000-000000000004', true, false, NULL, NULL),
+    ('aaaaaaaa-0001-0000-0000-000000000010', 'Lập trình Python Cho Người Mới', '11111111-0000-0000-0000-000000000004', true, false, NULL, NULL),
+    ('aaaaaaaa-0001-0000-0000-000000000011', 'Ngữ văn THPT & Luyện Thi ĐH', '11111111-0000-0000-0000-000000000005', true, false, NULL, NULL),
+    ('aaaaaaaa-0001-0000-0000-000000000012', 'Luyện thi Đánh Giá Năng Lực', '11111111-0000-0000-0000-000000000008', true, false, NULL, NULL),
+    ('aaaaaaaa-0001-0000-0000-000000000013', 'Cờ vua chiến thuật cơ bản & nâng cao', '11111111-0000-0000-0000-000000000010', true, false, NULL, NULL),
+    ('aaaaaaaa-0001-0000-0000-000000000014', 'Kỹ năng thuyết trình & Đàm phán', '11111111-0000-0000-0000-000000000007', true, false, NULL, NULL),
+    ('aaaaaaaa-0001-0000-0000-000000000015', 'Nguyên lý kế toán tài chính', '11111111-0000-0000-0000-000000000009', true, false, NULL, NULL),
+    ('aaaaaaaa-0001-0000-0000-000000000091', 'ActionScript 2.0 Cơ Bản', '11111111-0000-0000-0000-000000000004', false, true, NOW() - INTERVAL '10 days', '11111111-1111-1111-1111-111111111111'),
+    ('aaaaaaaa-0001-0000-0000-000000000092', 'Pascal Căn Bản Cho Người Mới', '11111111-0000-0000-0000-000000000004', false, true, NOW() - INTERVAL '20 days', '11111111-1111-1111-1111-111111111111');;
 
 -- -----------------------------------------------------------------------------
 -- 8. TUTOR SUBJECTS (15 Mappings)
@@ -306,7 +318,7 @@ VALUES
 -- 13. SESSIONS (22 Sessions: Completed, Scheduled, Conflict, Unscheduled)
 -- -----------------------------------------------------------------------------
 INSERT INTO "Sessions" (
-    "Id", "EnrollmentId", "SessionNumber", "EarningAmount", "StartAt", "EndAt",
+    "Id", "EnrollmentId", "SessionNumber", "SessionPrice", "StartAt", "EndAt",
     "Status", "CreatedAt", "UpdatedAt", "CompletedAt", "CancelledAt",
     "GracePeriodStartedAt",
     "IssueReportedAt",
@@ -348,7 +360,7 @@ VALUES
 -- -----------------------------------------------------------------------------
 INSERT INTO "Transactions" (
     "Id", "BookingId", "SessionId", "Amount", "Type", "Status",
-    "CommissionRate", "CommissionAmount", "PayoutAmount",
+    "PlatformFeeRate", "PlatformFeeAmount", "PayoutAmount",
     "PaymentGatewayRef", "DisputeId", "RelatedTransactionId", "Description",
     "SettlementRequired", "CreatedAt", "ReleasedAt", "RefundedAt"
 )
@@ -395,22 +407,22 @@ VALUES
 -- -----------------------------------------------------------------------------
 INSERT INTO "WalletTransactions" (
     "Id", "WalletId", "WithdrawalId", "DisputeId",
-    "Type", "Amount", "BalanceAfter", "Description",
+    "Type", "Direction", "Amount", "BalanceBefore", "BalanceAfter", "Description",
     "CreatedByUserId", "CreatedAt"
 )
 VALUES
-    ('ba02ba02-0001-0000-0000-000000000001', '22222222-3333-3333-3333-111111111111', NULL, NULL, 'SessionPayoutCredit', 180000.00, 180000.00, 'Giải ngân buổi học Toán #1', NULL, NOW() - INTERVAL '14 days'),
-    ('ba02ba02-0001-0000-0000-000000000002', '22222222-3333-3333-3333-111111111111', 'fa01fa01-0001-0000-0000-000000000002', NULL, 'WithdrawalDebit', 500000.00, 900000.00, 'Rút tiền thành công về VCB', '11111111-1111-1111-1111-111111111111', NOW() - INTERVAL '9 days'),
-    ('ba02ba02-0001-0000-0000-000000000003', '33333333-3333-3333-3333-111111111111', NULL, NULL, 'SessionPayoutCredit', 270000.00, 270000.00, 'Giải ngân buổi học IELTS #1', NULL, NOW() - INTERVAL '19 days'),
-    ('ba02ba02-0001-0000-0000-000000000004', '33333333-3333-3333-3333-111111111111', 'fa01fa01-0001-0000-0000-000000000004', NULL, 'WithdrawalDebit', 270000.00, 0.00, 'Rút tiền thành công về NCB', '11111111-1111-1111-1111-111111111111', NOW() - INTERVAL '17 days'),
-    ('ba02ba02-0001-0000-0000-000000000005', '33333333-3333-3333-3333-111111111111', NULL, NULL, 'SessionPayoutCredit', 540000.00, 540000.00, 'Giải ngân gói IELTS khác', NULL, NOW() - INTERVAL '5 days'),
-    ('ba02ba02-0001-0000-0000-000000000006', '44444444-3333-3333-3333-111111111111', NULL, NULL, 'SessionPayoutCredit', 162000.00, 162000.00, 'Giải ngân buổi học Vật lý #1', NULL, NOW() - INTERVAL '9 days'),
-    ('ba02ba02-0001-0000-0000-000000000007', '44444444-3333-3333-3333-111111111111', NULL, NULL, 'SessionPayoutCredit', 162000.00, 324000.00, 'Giải ngân buổi học Vật lý #2', NULL, NOW() - INTERVAL '6 days'),
-    ('ba02ba02-0001-0000-0000-000000000008', '44444444-3333-3333-3333-111111111111', 'fa01fa01-0001-0000-0000-000000000006', NULL, 'WithdrawalDebit', 150000.00, 174000.00, 'Rút tiền về MBBank', '11111111-1111-1111-1111-111111111111', NOW() - INTERVAL '7 days'),
-    ('ba02ba02-0001-0000-0000-000000000009', '44444444-3333-3333-3333-333333333333', NULL, NULL, 'SessionPayoutCredit', 180000.00, 180000.00, 'Giải ngân buổi học Tiếng Nhật #1', NULL, NOW() - INTERVAL '7 days'),
-    ('ba02ba02-0001-0000-0000-000000000010', '44444444-3333-3333-3333-333333333333', NULL, NULL, 'SessionPayoutCredit', 180000.00, 360000.00, 'Giải ngân buổi học Tiếng Nhật #2', NULL, NOW() - INTERVAL '5 days'),
-    ('ba02ba02-0001-0000-0000-000000000011', '44444444-3333-3333-3333-444444444444', NULL, NULL, 'SessionPayoutCredit', 180000.00, 180000.00, 'Giải ngân buổi học Ngữ văn #1', NULL, NOW() - INTERVAL '6 days'),
-    ('ba02ba02-0001-0000-0000-000000000012', '44444444-3333-3333-3333-444444444444', NULL, NULL, 'SessionPayoutCredit', 180000.00, 360000.00, 'Giải ngân buổi học Ngữ văn #2', NULL, NOW() - INTERVAL '4 days');
+('ba02ba02-0001-0000-0000-000000000001', '22222222-3333-3333-3333-111111111111', NULL, NULL, 'SessionPayoutCredit', 'Credit', 180000.00, 0.00, 180000.00, 'Giải ngân buổi học Toán #1', NULL, NOW() - INTERVAL '14 days'),
+    ('ba02ba02-0001-0000-0000-000000000002', '22222222-3333-3333-3333-111111111111', 'fa01fa01-0001-0000-0000-000000000002', NULL, 'WithdrawalDebit', 'Debit', 500000.00, 1400000.00, 900000.00, 'Rút tiền thành công về VCB', '11111111-1111-1111-1111-111111111111', NOW() - INTERVAL '9 days'),
+    ('ba02ba02-0001-0000-0000-000000000003', '33333333-3333-3333-3333-111111111111', NULL, NULL, 'SessionPayoutCredit', 'Credit', 270000.00, 0.00, 270000.00, 'Giải ngân buổi học IELTS #1', NULL, NOW() - INTERVAL '19 days'),
+    ('ba02ba02-0001-0000-0000-000000000004', '33333333-3333-3333-3333-111111111111', 'fa01fa01-0001-0000-0000-000000000004', NULL, 'WithdrawalDebit', 'Debit', 270000.00, 270000.00, 0.00, 'Rút tiền thành công về NCB', '11111111-1111-1111-1111-111111111111', NOW() - INTERVAL '17 days'),
+    ('ba02ba02-0001-0000-0000-000000000005', '33333333-3333-3333-3333-111111111111', NULL, NULL, 'SessionPayoutCredit', 'Credit', 540000.00, 0.00, 540000.00, 'Giải ngân gói IELTS khác', NULL, NOW() - INTERVAL '5 days'),
+    ('ba02ba02-0001-0000-0000-000000000006', '44444444-3333-3333-3333-111111111111', NULL, NULL, 'SessionPayoutCredit', 'Credit', 162000.00, 0.00, 162000.00, 'Giải ngân buổi học Vật lý #1', NULL, NOW() - INTERVAL '9 days'),
+    ('ba02ba02-0001-0000-0000-000000000007', '44444444-3333-3333-3333-111111111111', NULL, NULL, 'SessionPayoutCredit', 'Credit', 162000.00, 162000.00, 324000.00, 'Giải ngân buổi học Vật lý #2', NULL, NOW() - INTERVAL '6 days'),
+    ('ba02ba02-0001-0000-0000-000000000008', '44444444-3333-3333-3333-111111111111', 'fa01fa01-0001-0000-0000-000000000006', NULL, 'WithdrawalDebit', 'Debit', 150000.00, 324000.00, 174000.00, 'Rút tiền về MBBank', '11111111-1111-1111-1111-111111111111', NOW() - INTERVAL '7 days'),
+    ('ba02ba02-0001-0000-0000-000000000009', '44444444-3333-3333-3333-333333333333', NULL, NULL, 'SessionPayoutCredit', 'Credit', 180000.00, 0.00, 180000.00, 'Giải ngân buổi học Tiếng Nhật #1', NULL, NOW() - INTERVAL '7 days'),
+    ('ba02ba02-0001-0000-0000-000000000010', '44444444-3333-3333-3333-333333333333', NULL, NULL, 'SessionPayoutCredit', 'Credit', 180000.00, 180000.00, 360000.00, 'Giải ngân buổi học Tiếng Nhật #2', NULL, NOW() - INTERVAL '5 days'),
+    ('ba02ba02-0001-0000-0000-000000000011', '44444444-3333-3333-3333-444444444444', NULL, NULL, 'SessionPayoutCredit', 'Credit', 180000.00, 0.00, 180000.00, 'Giải ngân buổi học Ngữ văn #1', NULL, NOW() - INTERVAL '6 days'),
+    ('ba02ba02-0001-0000-0000-000000000012', '44444444-3333-3333-3333-444444444444', NULL, NULL, 'SessionPayoutCredit', 'Credit', 180000.00, 180000.00, 360000.00, 'Giải ngân buổi học Ngữ văn #2', NULL, NOW() - INTERVAL '4 days');
 
 -- -----------------------------------------------------------------------------
 -- 17. REVIEWS (10 Reviews)
@@ -639,23 +651,7 @@ VALUES
     ('ba0bba0b-0001-0000-0000-000000000012', 'e0e0e0e0-0001-0000-0000-000000000012', 'BookingPaidIntegrationEvent', 1, 'Booking', 'dddddddd-0001-0000-0000-000000000011', '{"BookingId":"dddddddd-0001-0000-0000-000000000011","Amount":6000000.00}', NOW() - INTERVAL '4 days', NOW() - INTERVAL '4 days', 'Processed', NOW() - INTERVAL '4 days' + INTERVAL '2 seconds', 0, NULL);
 
 -- -----------------------------------------------------------------------------
--- 30. INBOX MESSAGES (10 Consumer Records)
--- -----------------------------------------------------------------------------
-INSERT INTO "InboxMessages" ("Id", "ConsumerName", "EventId", "ProcessedAt")
-VALUES
-    ('ba0cba0c-0001-0000-0000-000000000001', 'BookingPaidNotificationConsumer', 'e0e0e0e0-0001-0000-0000-000000000001', NOW() - INTERVAL '15 days'),
-    ('ba0cba0c-0001-0000-0000-000000000002', 'CourseCompletedNotificationConsumer', 'e0e0e0e0-0001-0000-0000-000000000003', NOW() - INTERVAL '19 days'),
-    ('ba0cba0c-0001-0000-0000-000000000003', 'SessionPayoutSignalRConsumer', 'e0e0e0e0-0001-0000-0000-000000000004', NOW() - INTERVAL '19 days'),
-    ('ba0cba0c-0001-0000-0000-000000000004', 'SessionPayoutSignalRConsumer', 'e0e0e0e0-0001-0000-0000-000000000005', NOW() - INTERVAL '14 days'),
-    ('ba0cba0c-0001-0000-0000-000000000005', 'BookingPaidNotificationConsumer', 'e0e0e0e0-0001-0000-0000-000000000006', NOW() - INTERVAL '10 days'),
-    ('ba0cba0c-0001-0000-0000-000000000006', 'BookingPaidNotificationConsumer', 'e0e0e0e0-0001-0000-0000-000000000007', NOW() - INTERVAL '8 days'),
-    ('ba0cba0c-0001-0000-0000-000000000007', 'BookingPaidNotificationConsumer', 'e0e0e0e0-0001-0000-0000-000000000008', NOW() - INTERVAL '7 days'),
-    ('ba0cba0c-0001-0000-0000-000000000008', 'DisputeAuditConsumer', 'e0e0e0e0-0001-0000-0000-000000000009', NOW() - INTERVAL '1 day'),
-    ('ba0cba0c-0001-0000-0000-000000000009', 'WithdrawalAdminAlertConsumer', 'e0e0e0e0-0001-0000-0000-000000000010', NOW() - INTERVAL '5 hours'),
-    ('ba0cba0c-0001-0000-0000-000000000010', 'BookingPaidNotificationConsumer', 'e0e0e0e0-0001-0000-0000-000000000011', NOW() - INTERVAL '6 days');
-
--- -----------------------------------------------------------------------------
--- 31. AUDIT LOGS (12 Records)
+-- 30. AUDIT LOGS (12 Records)
 -- -----------------------------------------------------------------------------
 INSERT INTO "AuditLogs" (
     "Id", "UserId", "Action", "EntityName", "EntityId",
@@ -684,7 +680,7 @@ COMMIT;
 --   - 200 Distinct Vietnamese Students
 --   - 150 Domain-tailored Services
 --   - 500 Bookings, 400 Enrollments (220 Active, 150 Completed, 30 Cancelled)
---   - ~3,800 Sessions (Strict sum(EarningAmount) == TotalPrice allocation)
+--   - ~3,800 Sessions (Strict sum(SessionPrice) == TotalPrice allocation)
 --   - 150 Unique LearningRecords with authentic subject syllabus
 --   - 150 Unique Reviews with personalized tutor replies
 --   - 100 Realistic Conversations with 2-way Dialogues
@@ -1223,6 +1219,23 @@ INSERT INTO "TutorApplications" (
     ('b4000000-0000-0000-0000-000000000049', 'b1000000-0000-0000-0000-000000000049', 'Cử nhân ULIS - ĐHQG Hà Nội, IELTS 8.0, giáo viên tiếng Anh nhiệt huyết, chuyên luyện thi điểm cao.', 'Cử nhân Sư phạm Tiếng Anh - ĐH Ngoại Ngữ ĐHQG-HN (ULIS), IELTS 8.0', 5, 'Online', 'Phường Mộ Lao, Quận Hà Đông, Hà Nội', 'Approved', NULL, NOW() - INTERVAL '119 days', NOW() - INTERVAL '118 days', '11111111-1111-1111-1111-111111111111'::uuid, 'ĐH Ngoại Ngữ - ĐHQGHN (ULIS)', 'Sư phạm Tiếng Anh', 'Cử nhân', 'IELTS 8.0, Chứng chỉ Nghiệp vụ Sư phạm Xuất sắc', 'Tiếng Anh', 'Tiếng Anh THPT & Luyện Thi ĐGNL', 'Hệ thống hóa ngữ pháp trọng tâm, kỹ thuật xử lý dạng bài điền từ và đọc hiểu nhanh.', 'Hơn 100 học viên đạt 8.5+ môn Tiếng Anh trong kỳ thi THPT Quốc Gia.'),
     ('b4000000-0000-0000-0000-000000000050', 'b1000000-0000-0000-0000-000000000050', 'Cử nhân ĐH Sư Phạm TP.HCM, cựu Thủ khoa ĐGNL ĐHQG-HCM 1.085 điểm, chuyên gia luyện thi toán logic.', 'Cử nhân Sư phạm Toán - ĐH Sư Phạm TP.HCM (Thủ khoa ĐGNL ĐHQG-HCM 1.085/1.200 điểm)', 6, 'Both', 'Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh', 'Approved', NULL, NOW() - INTERVAL '120 days', NOW() - INTERVAL '119 days', '11111111-1111-1111-1111-111111111111'::uuid, 'ĐH Sư Phạm TP.HCM', 'Sư phạm Toán học', 'Cử nhân', 'Chứng chỉ Nghiệp vụ Sư phạm Xuất sắc, Thủ khoa Kỳ thi ĐGNL ĐHQG-HCM', 'Toán học', 'Tư Duy Logic & Toán ĐGNL ĐHQG-HCM', 'Chiến thuật giải toán logic suy luận ngược, phương pháp kiểm tra tính đúng đắn của dữ liệu.', 'Hơn 90 học sinh đạt trên 850 điểm kỳ thi ĐGNL ĐHQG TP.HCM, nhiều bạn đỗ nguyện vọng 1 Bách Khoa, Kinh Tế.');
 
+
+-- 5b. SYNTHETIC TUTOR WALLETS (50 Wallets for 50 Synthetic Tutors)
+INSERT INTO "Wallets" ("Id", "UserId", "TutorProfileId", "StudentProfileId", "PendingBalance", "AvailableBalance", "WithdrawingBalance", "CreatedAt", "UpdatedAt")
+SELECT 
+    ('b3000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
+    ('b1000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
+    ('b2000000-0000-0000-0000-' || lpad(i::text, 12, '0'))::uuid,
+    NULL,
+    0.00,
+    0.00,
+    0.00,
+    NOW() - INTERVAL '40 days',
+    NOW()
+FROM generate_series(1, 50) AS i
+ON CONFLICT ("UserId") DO UPDATE
+SET "TutorProfileId" = EXCLUDED."TutorProfileId", "UpdatedAt" = NOW();
+
 -- 6. TUTOR SUBJECTS (100 Mappings for 50 Tutors)
 INSERT INTO "TutorSubjects" ("Id", "TutorProfileId", "SubjectId", "IsActive") VALUES
     ('b0010000-0000-0000-0000-000000000001', 'b2000000-0000-0000-0000-000000000001', 'aaaaaaaa-0001-0000-0000-000000000001', true),
@@ -1592,7 +1605,7 @@ FROM (
 ) b
 ON CONFLICT ("Id") DO NOTHING;
 
--- 12. SESSIONS (sum(EarningAmount) == TotalPrice 100% Guaranteed per Enrollment)
+-- 12. SESSIONS (sum(SessionPrice) == TotalPrice 100% Guaranteed per Enrollment)
 WITH enrolled_sessions AS (
     SELECT 
         e."Id" AS enrollment_id,
@@ -1612,7 +1625,7 @@ WITH enrolled_sessions AS (
     WHERE e."Id"::text LIKE 'b9000000-%'
 )
 INSERT INTO "Sessions" (
-    "Id", "EnrollmentId", "SessionNumber", "EarningAmount", 
+    "Id", "EnrollmentId", "SessionNumber", "SessionPrice", 
     "StartAt", "EndAt", "Status", "HasIssueReport", "IsPayoutReleased",
     "GracePeriodStartedAt",
     "IssueReportedAt",
@@ -1653,7 +1666,7 @@ ON CONFLICT ("Id") DO NOTHING;
 -- 13. TRANSACTIONS (BookingPayments & SessionPayoutCredits)
 INSERT INTO "Transactions" (
     "Id", "BookingId", "SessionId", "DisputeId", "RelatedTransactionId", 
-    "Amount", "Type", "Status", "CommissionRate", "CommissionAmount", 
+    "Amount", "Type", "Status", "PlatformFeeRate", "PlatformFeeAmount", 
     "PayoutAmount", "PaymentGatewayRef", "Description", "SettlementRequired", 
     "CreatedAt", "ReleasedAt", "RefundedAt"
 )
@@ -1682,7 +1695,7 @@ ON CONFLICT ("Id") DO NOTHING;
 -- SessionPayoutCredit
 INSERT INTO "Transactions" (
     "Id", "BookingId", "SessionId", "DisputeId", "RelatedTransactionId", 
-    "Amount", "Type", "Status", "CommissionRate", "CommissionAmount", 
+    "Amount", "Type", "Status", "PlatformFeeRate", "PlatformFeeAmount", 
     "PayoutAmount", "PaymentGatewayRef", "Description", "SettlementRequired", 
     "CreatedAt", "ReleasedAt", "RefundedAt"
 )
@@ -1692,12 +1705,12 @@ SELECT
     s."Id",
     NULL,
     NULL,
-    s."EarningAmount",
+    s."SessionPrice",
     'SessionPayoutCredit',
     'Released',
     e."PlatformFeeRate",
-    round(s."EarningAmount" * e."PlatformFeeRate", 2),
-    s."EarningAmount" - round(s."EarningAmount" * e."PlatformFeeRate", 2),
+    round(s."SessionPrice" * e."PlatformFeeRate", 2),
+    s."SessionPrice" - round(s."SessionPrice" * e."PlatformFeeRate", 2),
     'EscrowRelease-Vol-' || replace(s."Id"::text, '-', ''),
     'Giải ngân thu nhập buổi học #' || s."SessionNumber",
     false,
@@ -1711,13 +1724,15 @@ ON CONFLICT ("Id") DO NOTHING;
 
 -- 14. WALLET TRANSACTIONS
 INSERT INTO "WalletTransactions" (
-    "Id", "WalletId", "Type", "Amount", "BalanceAfter", "Description", "CreatedAt"
+    "Id", "WalletId", "Type", "Direction", "Amount", "BalanceBefore", "BalanceAfter", "Description", "CreatedAt"
 )
 SELECT
     ('c0' || substr(replace(t."Id"::text, '-', ''), 3, 14) || '-0000-000000000000')::uuid,
     w."Id",
     'SessionPayoutCredit',
+    'Credit',
     t."PayoutAmount",
+    0.00,
     t."PayoutAmount",
     'Cộng thu nhập buổi học #' || s."SessionNumber",
     t."CreatedAt"
@@ -1783,12 +1798,14 @@ ON CONFLICT ("Id") DO NOTHING;
 
 -- WalletTransactions for Completed Withdrawals
 INSERT INTO "WalletTransactions" (
-    "Id", "WalletId", "Type", "Amount", "BalanceAfter", "Description", "CreatedAt"
+    "Id", "WalletId", "Type", "Direction", "Amount", "BalanceBefore", "BalanceAfter", "Description", "CreatedAt"
 )
 SELECT
     ('c2000000-0000-0000-0001-' || substr(replace(w."Id"::text, '-', ''), 21, 12))::uuid,
     w."WalletId",
     'WithdrawalDebit',
+    'Debit',
+    w."Amount",
     w."Amount",
     0.00,
     'Rút tiền về tài khoản ngân hàng ' || w."AccountNumber",
@@ -1803,7 +1820,7 @@ WITH candidate_sessions AS (
         ROW_NUMBER() OVER (ORDER BY s."Id") AS row_num,
         s."Id" AS session_id,
         s."Status" AS session_status,
-        s."EarningAmount" AS earning_amount,
+        s."SessionPrice" AS earning_amount,
         e."StudentProfileId",
         e."TutorProfileId",
         sp."UserId" AS student_user_id,
@@ -2421,8 +2438,8 @@ ON CONFLICT ("Id") DO NOTHING;
 WITH wallet_payout_totals AS (
     SELECT 
         e."TutorProfileId",
-        COALESCE(SUM(CASE WHEN s."IsPayoutReleased" = false THEN s."EarningAmount" ELSE 0 END), 0) AS pending_gross,
-        COALESCE(SUM(CASE WHEN s."IsPayoutReleased" = true THEN (s."EarningAmount" - round(s."EarningAmount" * e."PlatformFeeRate", 2)) ELSE 0 END), 0) AS released_net
+        COALESCE(SUM(CASE WHEN s."IsPayoutReleased" = false THEN s."SessionPrice" ELSE 0 END), 0) AS pending_gross,
+        COALESCE(SUM(CASE WHEN s."IsPayoutReleased" = true THEN (s."SessionPrice" - round(s."SessionPrice" * e."PlatformFeeRate", 2)) ELSE 0 END), 0) AS released_net
     FROM "Enrollments" e
     JOIN "Sessions" s ON s."EnrollmentId" = e."Id"
     WHERE e."TutorProfileId"::text LIKE 'b2000000-%'
@@ -2449,7 +2466,7 @@ UPDATE "Wallets" w
 SET 
     "PendingBalance" = r.pending_gross,
     "AvailableBalance" = r.available_balance,
-    "HeldBalance" = 0.00,
+
     "UpdatedAt" = NOW()
 FROM reconciled r
 WHERE w."TutorProfileId" = r."TutorProfileId"
@@ -2458,16 +2475,21 @@ WHERE w."TutorProfileId" = r."TutorProfileId"
 -- -----------------------------------------------------------------------------
 -- 23. SEED STUDENT WALLETS
 -- -----------------------------------------------------------------------------
-INSERT INTO "StudentWallets" ("Id", "StudentProfileId", "AvailableBalance", "ReservedBalance", "CreatedAt", "UpdatedAt")
+-- 23. SEED BULK STUDENT WALLETS (200 Students)
+INSERT INTO "Wallets" ("Id", "UserId", "StudentProfileId", "TutorProfileId", "PendingBalance", "AvailableBalance", "WithdrawingBalance", "CreatedAt", "UpdatedAt")
 SELECT 
     gen_random_uuid(),
+    sp."UserId",
     sp."Id",
+    NULL,
+    0.00,
     2500000.00,
     0.00,
     NOW(),
     NOW()
 FROM "StudentProfiles" sp
-ON CONFLICT ("StudentProfileId") DO UPDATE 
-SET "AvailableBalance" = 2500000.00, "ReservedBalance" = 0.00, "UpdatedAt" = NOW();
+WHERE sp."Id"::text LIKE 'b6000000-%'
+ON CONFLICT ("UserId") DO UPDATE 
+SET "AvailableBalance" = EXCLUDED."AvailableBalance", "StudentProfileId" = EXCLUDED."StudentProfileId", "UpdatedAt" = NOW();
 
 COMMIT;

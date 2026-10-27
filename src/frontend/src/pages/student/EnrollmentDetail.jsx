@@ -17,19 +17,19 @@ import { Progress } from '@/components/ui/Callout';
 import { DetailSkeleton } from '@/components/common/Skeleton';
 import { Textarea, Field } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
-import LedgerStrip from '@/components/ledger/LedgerStrip';
-import LedgerTable from '@/components/ledger/LedgerTable';
-import StateBadge, { getStateMeta } from '@/components/ledger/StateBadge';
+import StatStrip from '@/components/common/StatStrip';
+import DataTable from '@/components/common/DataTable';
+import StateBadge, { getStateMeta } from '@/components/common/StateBadge';
 
 /**
- * Hợp đồng học tập — Operational Ledger (SPEC §5.4).
+ * Hợp đồng học tập — Quản lý ví & giao dịch.
  *
  * Sổ cái buổi học là phần lõi của màn này, không phải phần phụ sau header. Vì vậy
  * danh sách buổi nằm ngay dưới dải số liệu, dạng dòng sổ thật: spine màu trạng
  * thái ở mép trái, thời gian tabular, ký quỹ căn phải, thao tác cuối dòng.
  * Desktop = bảng; mobile = card xếp dọc (cùng dữ liệu, cùng view-model).
  *
- * Màu ở đây là TRẠNG THÁI, không phải trang trí (SPEC §2.2): `Tỷ lệ phí sàn`
+ * Màu ở đây là TRẠNG THÁI, không phải trang trí: `Tỷ lệ phí sàn`
  * dùng màu trung tính vì phí sàn không phải tín hiệu tốt cho học viên.
  */
 
@@ -320,7 +320,7 @@ export default function EnrollmentDetail() {
       ),
       escrow: (
         <span className="text-caption font-semibold text-fg whitespace-nowrap">
-          <Money value={sess.earningAmount || 0} />
+          <Money value={sess.sessionPrice ?? sess.earningAmount ?? 0} />
         </span>
       ),
       actions: (
@@ -461,7 +461,7 @@ export default function EnrollmentDetail() {
           </div>
         </div>
 
-        <LedgerStrip
+        <StatStrip
           figures={[
             {
               key: 'total',
@@ -519,7 +519,7 @@ export default function EnrollmentDetail() {
         ) : (
           <>
             {/* Desktop: dòng sổ thật — spine trạng thái · thời gian · ký quỹ · thao tác */}
-            <LedgerTable
+            <DataTable
               caption="Sổ buổi học của hợp đồng"
               columns={SESSION_COLUMNS}
               minWidth={700}
@@ -560,7 +560,7 @@ export default function EnrollmentDetail() {
                   )}
                 </React.Fragment>
               ))}
-            </LedgerTable>
+            </DataTable>
 
             {/* Mobile: cùng view-model, xếp dọc thành card */}
             <ul className="lg:hidden space-y-2.5">

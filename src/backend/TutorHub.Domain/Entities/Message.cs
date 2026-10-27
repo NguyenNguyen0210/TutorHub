@@ -15,7 +15,7 @@ public class Message
     // Content
     public string Content { get; set; } = string.Empty;
 
-    // Optional Attachment (DEC-S7-019)
+    // Optional Attachment
     public string? AttachmentKey { get; set; }
     public string? AttachmentName { get; set; }
     public string? AttachmentContentType { get; set; }

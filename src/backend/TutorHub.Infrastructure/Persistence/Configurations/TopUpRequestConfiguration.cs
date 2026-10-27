@@ -10,6 +10,9 @@ public class TopUpRequestConfiguration : IEntityTypeConfiguration<TopUpRequest>
     {
         builder.HasKey(r => r.Id);
 
+        builder.Ignore(r => r.StudentWalletId);
+        builder.Ignore(r => r.StudentWallet);
+
         builder.ToTable(t =>
         {
             t.HasCheckConstraint("CK_TopUpRequest_PositiveAmount", "\"Amount\" > 0");
@@ -40,12 +43,12 @@ public class TopUpRequestConfiguration : IEntityTypeConfiguration<TopUpRequest>
         builder.Property(r => r.AdminNote)
             .HasMaxLength(500);
 
-        builder.HasIndex(r => new { r.StudentWalletId, r.Status });
+        builder.HasIndex(r => new { r.WalletId, r.Status });
         builder.HasIndex(r => r.Status);
 
-        builder.HasOne(r => r.StudentWallet)
+        builder.HasOne(r => r.Wallet)
             .WithMany(w => w.TopUpRequests)
-            .HasForeignKey(r => r.StudentWalletId)
+            .HasForeignKey(r => r.WalletId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(r => r.ProcessedByAdmin)

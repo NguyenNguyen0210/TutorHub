@@ -60,7 +60,7 @@ public class ActiveDisputeUniqueIndexTests : IntegrationTestBase
             Id = Guid.NewGuid(),
             EnrollmentId = enrollment.Id,
             SessionNumber = 1,
-            EarningAmount = 900_000m,
+            SessionPrice = 900_000m,
             CreatedAt = DateTime.UtcNow
         };
 

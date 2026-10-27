@@ -68,7 +68,7 @@ public class MarkConversationAsReadCommandHandler : IRequestHandler<MarkConversa
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        // Best-effort SignalR realtime read receipt post-commit (INV-EVENT-016)
+        // Best-effort SignalR realtime read receipt post-commit
         if (_chatNotificationService != null && unreadMessages.Count > 0)
         {
             var lastReadMessage = unreadMessages.OrderByDescending(m => m.CreatedAt).First();

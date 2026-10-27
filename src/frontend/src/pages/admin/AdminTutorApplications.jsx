@@ -5,7 +5,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/Dialog';
 import Icon from '@/components/ui/Icon';
 import Button from '@/components/ui/Button';
-import LedgerStrip from '@/components/ledger/LedgerStrip';
+import StatStrip from '@/components/common/StatStrip';
 import ApplicationTable from '@/components/admin/ApplicationTable';
 import ApplicationReviewDrawer from '@/components/admin/ApplicationReviewDrawer';
 import ApplicationGuidelinesModal from '@/components/admin/ApplicationGuidelinesModal';
@@ -46,10 +46,10 @@ const FILTER_SELECT =
   'h-10 px-3 pr-8 rounded-xl border border-border text-[13px] text-fg bg-surface focus:outline-none focus:ring-2 focus:ring-brand-primary-600 cursor-pointer';
 
 /**
- * Bàn kiểm duyệt hồ sơ gia sư — Operational Ledger (SPEC §4.2).
+ * Bàn kiểm duyệt hồ sơ gia sư — Quản lý ví & giao dịch.
  *
  * Trước đây file này là nguồn màu thô lớn nhất toàn repo (268 chỗ). Nay mọi
- * màu đi qua token, KPI dùng `LedgerStrip`, bảng dùng `StateBadge` domain
+ * màu đi qua token, KPI dùng `StatStrip`, bảng dùng `StateBadge` domain
  * `application` và các khối lớn đã tách ra `components/admin/`.
  */
 export default function AdminTutorApplications() {
@@ -378,8 +378,8 @@ export default function AdminTutorApplications() {
         </Button>
       </div>
 
-      {/* 2. 4 STAT METRIC CARDS — hàng số liệu phẳng của Operational Ledger */}
-      <LedgerStrip
+      {/* 2. 4 STAT METRIC CARDS — hàng số liệu phẳng của Quản lý ví & giao dịch */}
+      <StatStrip
         columns={4}
         figures={[
           {

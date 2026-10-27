@@ -5,7 +5,7 @@ import Icon from '@/components/ui/Icon';
 import { SectionShell } from './SectionShell';
 
 /**
- * ProfilePlaceholderSection — section chờ backend (SPEC §7: chứng chỉ, FAQ).
+ * ProfilePlaceholderSection — section chờ backend: chứng chỉ, FAQ).
  *
  * SPEC yêu cầu "thiếu data thì ẩn block, không dựng số 0 giả". Ẩn hẳn sẽ làm
  * tab neo tương ứng bị chết, nên thay bằng một dòng chữ trung thực: nói rõ

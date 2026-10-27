@@ -84,7 +84,7 @@ public class CreateReportCommandHandler : IRequestHandler<CreateReportCommand, R
 
         _context.Reports.Add(report);
 
-        // Enqueue ReportCreated Outbox Message (DEC-S7-001, DEC-S7-002)
+        // Enqueue ReportCreated Outbox Message
         _context.AddOutboxMessage(new ReportCreatedEvent(
             report.Id,
             userId,

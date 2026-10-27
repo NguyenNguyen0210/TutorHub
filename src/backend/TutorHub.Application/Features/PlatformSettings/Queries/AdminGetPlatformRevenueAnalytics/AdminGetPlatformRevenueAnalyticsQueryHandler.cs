@@ -34,13 +34,13 @@ public class AdminGetPlatformRevenueAnalyticsQueryHandler : IRequestHandler<Admi
         var recognizedFee = await _context.Transactions
             .AsNoTracking()
             .Where(t => t.Type == TransactionType.SessionPayoutCredit && t.Status == TransactionStatus.Released)
-            .SumAsync(t => t.CommissionAmount, cancellationToken);
+            .SumAsync(t => t.PlatformFeeAmount, cancellationToken);
 
         // 4. Platform fee reversals (from dispute adjustments)
         var feeReversals = await _context.Transactions
             .AsNoTracking()
             .Where(t => t.Type == TransactionType.PlatformFeeReversal && t.Status == TransactionStatus.Succeeded)
-            .SumAsync(t => t.CommissionAmount, cancellationToken);
+            .SumAsync(t => t.PlatformFeeAmount, cancellationToken);
 
         // 5. Net recognized platform revenue
         var netRevenue = recognizedFee - feeReversals;
@@ -53,7 +53,7 @@ public class AdminGetPlatformRevenueAnalyticsQueryHandler : IRequestHandler<Admi
             .ToListAsync(cancellationToken);
 
         var unrecognizedPendingFee = pendingSessions.Sum(s =>
-            Math.Round(s.EarningAmount * s.Enrollment.PlatformFeeRate, 2, MidpointRounding.AwayFromZero));
+            Math.Round(s.SessionPrice * s.Enrollment.PlatformFeeRate, 2, MidpointRounding.AwayFromZero));
 
         // 7. Dispute Metrics
         var disputes = await _context.Disputes

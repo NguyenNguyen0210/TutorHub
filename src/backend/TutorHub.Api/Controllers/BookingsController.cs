@@ -8,6 +8,7 @@ using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Bookings.GetBookingById;
 using TutorHub.Application.Features.Bookings.GetMyBookings;
 using TutorHub.Domain.Enums;
+using TutorHub.Api.Filters;
 
 namespace TutorHub.Api.Controllers;
 
@@ -27,6 +28,7 @@ public class BookingsController : ControllerBase
     /// </summary>
     [Authorize(Roles = "Student")]
     [HttpPost]
+    [Idempotent]
     [ProducesResponseType(typeof(ApiResponse<BookingDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]

@@ -73,7 +73,7 @@ public class GetMyTransactionsQueryHandler : IRequestHandler<GetMyTransactionsQu
                 t.Booking.Subject.Name,
                 isStudent ? t.Booking.TutorProfile.User.FullName : t.Booking.StudentProfile.User.FullName,
                 t.Amount,
-                isStudent ? null : (decimal?)t.CommissionAmount,
+                isStudent ? null : (decimal?)t.PlatformFeeAmount,
                 isStudent ? null : (decimal?)t.PayoutAmount,
                 t.Status,
                 t.PaymentGatewayRef,

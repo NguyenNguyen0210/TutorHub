@@ -32,8 +32,8 @@ public class AdminFailStudentWithdrawalCommandHandler : IRequestHandler<AdminFai
         try
         {
             var withdrawal = await _context.StudentWithdrawals
-                .Include(w => w.StudentWallet)
-                    .ThenInclude(sw => sw.StudentProfile)
+                .Include(w => w.Wallet)
+                    .ThenInclude(sw => sw.User)
                 .FirstOrDefaultAsync(w => w.Id == request.WithdrawalId, cancellationToken);
 
             if (withdrawal == null)
@@ -43,7 +43,7 @@ public class AdminFailStudentWithdrawalCommandHandler : IRequestHandler<AdminFai
 
             // Concurrency lock on student wallet
             var wallet = await _context.StudentWallets
-                .FromSqlInterpolated($"SELECT * FROM \"StudentWallets\" WHERE \"Id\" = {withdrawal.StudentWalletId} FOR UPDATE")
+                .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"Id\" = {withdrawal.WalletId} FOR UPDATE")
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (wallet == null)
@@ -54,12 +54,12 @@ public class AdminFailStudentWithdrawalCommandHandler : IRequestHandler<AdminFai
             // Transition status to Failed
             withdrawal.Fail(request.Reason, adminId);
 
-            // Release reserved balance back to available balance (Option B)
+            // Release withdrawing balance back to available balance (Option B)
             var balanceBefore = wallet.AvailableBalance;
-            wallet.ReleaseWithdrawalReservation(withdrawal.Amount, now);
+            wallet.ReleaseWithdrawal(withdrawal.Amount, now);
             var balanceAfter = wallet.AvailableBalance;
 
-            // Explicit reversal ledger entry (INV-STUDENT-WALLET-003)
+            // Explicit reversal ledger entry
             var ledger = new StudentWalletTransaction
             {
                 Id = Guid.NewGuid(),
@@ -82,8 +82,8 @@ public class AdminFailStudentWithdrawalCommandHandler : IRequestHandler<AdminFai
             // Emit business event
             _context.AddOutboxMessage(new StudentWithdrawalFailedEvent(
                 withdrawal.Id,
-                withdrawal.StudentWallet.StudentProfileId,
-                withdrawal.StudentWallet.StudentProfile.UserId,
+                withdrawal.Wallet.StudentProfileId ?? Guid.Empty,
+                withdrawal.Wallet.UserId != Guid.Empty ? withdrawal.Wallet.UserId : (withdrawal.Wallet.StudentProfile?.UserId ?? Guid.Empty),
                 new MoneyDto(withdrawal.Amount, "VND"),
                 request.Reason.Trim(),
                 adminId,

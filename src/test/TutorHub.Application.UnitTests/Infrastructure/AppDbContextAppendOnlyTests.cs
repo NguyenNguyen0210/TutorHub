@@ -32,10 +32,10 @@ public class AppDbContextAppendOnlyTests
         context.Transactions.Add(tx);
         await context.SaveChangesAsync();
 
-        // Act: Attempt to modify settled transaction to Refunded (DEC-S8-030)
+        // Act: Attempt to modify settled transaction to Refunded
         tx.Status = TransactionStatus.Refunded;
 
-        // Assert: Throws InvalidOperationException per INV-LEDGER-007
+        // Assert: Throws InvalidOperationException per integrity rules
         var act = () => context.SaveChangesAsync();
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*immutable*");
@@ -67,7 +67,7 @@ public class AppDbContextAppendOnlyTests
         // Act: Attempt to delete existing transaction
         context.Transactions.Remove(tx);
 
-        // Assert: Throws InvalidOperationException per INV-LEDGER-007
+        // Assert: Throws InvalidOperationException per integrity rules
         var act = () => context.SaveChangesAsync();
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*cannot be deleted*");
@@ -99,7 +99,7 @@ public class AppDbContextAppendOnlyTests
         // Act: Attempt to tamper with audit log
         log.Action = "TamperedAction";
 
-        // Assert: Throws InvalidOperationException per INV-LEDGER-006
+        // Assert: Throws InvalidOperationException per integrity rules
         var act = () => context.SaveChangesAsync();
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*AuditLog records are append-only*");
@@ -131,7 +131,7 @@ public class AppDbContextAppendOnlyTests
         // Act: Attempt to delete audit log
         context.AuditLogs.Remove(log);
 
-        // Assert: Throws InvalidOperationException per INV-LEDGER-006
+        // Assert: Throws InvalidOperationException per integrity rules
         var act = () => context.SaveChangesAsync();
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*AuditLog records are append-only*");
@@ -140,7 +140,7 @@ public class AppDbContextAppendOnlyTests
     [Fact]
     public async Task SaveChangesAsync_WhenAdjustmentPointsToNonEarningTransaction_ThrowsInvalidOperationException()
     {
-        // Arrange (DEC-S8-030 Anti-Chaining Test: Adjustment chained to another adjustment)
+        // Arrange (Anti-Chaining Test: Adjustment chained to another adjustment)
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
@@ -168,13 +168,13 @@ public class AppDbContextAppendOnlyTests
             RelatedTransaction = firstAdjustment,
             Type = TransactionType.PlatformFeeReversal,
             Amount = 0m,
-            CommissionAmount = 10_000m,
+            PlatformFeeAmount = 10_000m,
             Status = TransactionStatus.Succeeded,
             CreatedAt = DateTime.UtcNow
         };
         context.Transactions.Add(chainedAdjustment);
 
-        // Assert: Throws InvalidOperationException per INV-LEDGER-007
+        // Assert: Throws InvalidOperationException per integrity rules
         var act = () => context.SaveChangesAsync();
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*chaining is forbidden*");
@@ -271,7 +271,7 @@ public class AppDbContextAppendOnlyTests
     [Fact]
     public async Task SaveChangesAsync_WhenModifyingStudentWalletTransaction_ThrowsInvalidOperationException()
     {
-        // Arrange (INV-STUDENT-WALLET-003)
+        // Arrange
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
@@ -307,7 +307,7 @@ public class AppDbContextAppendOnlyTests
     [Fact]
     public async Task SaveChangesAsync_WhenDeletingStudentWalletTransaction_ThrowsInvalidOperationException()
     {
-        // Arrange (INV-STUDENT-WALLET-003)
+        // Arrange
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;

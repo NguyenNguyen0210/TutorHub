@@ -181,6 +181,26 @@ public class BookingTests
     }
 
     [Fact]
+    public void ReactivateForPayment_WhenBookingStatusIsExpired_ReactivatesToPaid()
+    {
+        // Arrange
+        var booking = CreateTestBooking(BookingStatus.Holding);
+        var now = DateTime.UtcNow;
+        booking.Expire(now);
+
+        // Act
+        booking.ReactivateForPayment(now);
+
+        // Assert
+        booking.Status.Should().Be(BookingStatus.Paid);
+        booking.CancelledBy.Should().BeNull();
+        booking.CancellationReason.Should().BeNull();
+        booking.CancelledAt.Should().BeNull();
+        booking.HoldingExpiresAt.Should().BeNull();
+        booking.ConfirmedAt.Should().Be(now);
+    }
+
+    [Fact]
     public void ReactivateForPayment_WhenCancelledByStudent_Throws()
     {
         // Arrange

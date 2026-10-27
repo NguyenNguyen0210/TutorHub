@@ -9,10 +9,10 @@ import ErrorState from '@/components/common/ErrorState';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
-import LedgerStrip from '@/components/ledger/LedgerStrip';
-import LedgerTable from '@/components/ledger/LedgerTable';
-import SignedAmount from '@/components/ledger/SignedAmount';
-import StateBadge from '@/components/ledger/StateBadge';
+import StatStrip from '@/components/common/StatStrip';
+import DataTable from '@/components/common/DataTable';
+import SignedAmount from '@/components/common/SignedAmount';
+import StateBadge from '@/components/common/StateBadge';
 
 const WITHDRAW_COLUMNS = [
   { key: 'time', label: 'Thời gian yêu cầu' },
@@ -23,7 +23,7 @@ const WITHDRAW_COLUMNS = [
 ];
 
 /**
- * Quy trình Escrow dạng 3 bước ngang có spine (SPEC Tutor §4.3).
+ * Quy trình Escrow dạng 3 bước ngang có spine.
  *
  * Màu tiêu đề bước = trạng thái tiền ở bước đó: `holding` (đang ký quỹ) →
  * `success` (đã đối soát) → trung tính (tiền ra khỏi ví). Bước 3 cố tình KHÔNG
@@ -49,16 +49,15 @@ const ESCROW_STEPS = [
 ];
 
 /**
- * Quản trị ví bảo chứng & Trung tâm tài chính Gia sư — Operational Ledger
- * (SPEC Tutor §4.3).
+ * Quản trị ví bảo chứng & Trung tâm tài chính Gia sư — Quản lý ví & giao dịch
+ *.
  *
  * Bốn số dư đọc ngang như một dòng sổ cái: ký quỹ → khả dụng → phong tỏa → được
  * rút. Công thức hạn mức nổi thành một dòng phương trình ngay dưới strip thay vì
  * nhét dài gói trong `hint` của StatCard (bản cũ bị bó/khó đọc).
  *
  * Tuân thủ bất biến tài chính:
- * - DEC-WD-001: Withdrawable = AvailableBalance - HeldBalance (không được rút vào phần phong tỏa tranh chấp).
- * - DEC-S8-028: HeldBalance chỉ giữ khi WithdrawableBalance >= MaxTutorRecovery, ngược lại giữ 0 đồng.
+ *: Withdrawable = AvailableBalance.
  * - Hạn mức tối thiểu tạo lệnh rút: 50.000 ₫.
  */
 export default function TutorWallet() {
@@ -117,10 +116,9 @@ export default function TutorWallet() {
     );
   }
 
-  // DEC-WD-001: Withdrawable = Available - Held (không được rút phần đang giữ).
-  const withdrawable = Math.max(0, (wallet.availableBalance || 0) - (wallet.heldBalance || 0));
+  // Withdrawable = Available - Held (không được rút phần đang giữ).
+  const withdrawable = wallet.availableBalance || 0;
   const canWithdraw = withdrawable >= 50000;
-  const hasHeldFunds = (wallet.heldBalance || 0) > 0;
 
   return (
     <div className="space-y-6">
@@ -161,8 +159,8 @@ export default function TutorWallet() {
 
       {/* 4 số dư — hàng sổ cái phẳng, số là nhân vật chính */}
       <div>
-        <LedgerStrip
-          columns={4}
+        <StatStrip
+          columns={3}
           figures={[
             {
               key: 'pending',
@@ -173,38 +171,26 @@ export default function TutorWallet() {
             },
             {
               key: 'available',
-              label: 'Số dư khả dụng (Available)',
-              value: <Money value={wallet.availableBalance} />,
-              hint: 'Thu nhập các buổi học đã xong (sau trừ phí sàn 10%)',
-            },
-            {
-              key: 'held',
-              label: 'Phong tỏa tranh chấp (Held)',
-              value: <Money value={wallet.heldBalance} />,
-              hint: hasHeldFunds
-                ? 'Đang có khiếu nại chờ bàn trọng tài giải quyết'
-                : 'Không có khoản tiền nào bị phong tỏa',
-              tone: hasHeldFunds ? 'danger' : 'muted',
-            },
-            {
-              key: 'withdrawable',
-              label: 'Hạn mức được rút',
+              label: 'Số dư khả dụng / Được rút',
               value: <Money value={withdrawable} />,
+              hint: 'Thu nhập các buổi học đã xong (sau trừ phí sàn)',
+              tone: 'success',
+            },
+            {
+              key: 'pendingWithdrawal',
+              label: 'Đang xử lý rút',
+              value: <Money value={wallet.pendingWithdrawal} />,
+              hint: 'Lệnh rút đang chờ phê duyệt/đối soát',
+              tone: 'muted',
             },
           ]}
         />
 
-        {/* DEC-WD-001 nổi thành 1 dòng phương trình — tabular để dọc theo cột */}
         <p className="text-body-reg text-fg-secondary mt-3 leading-relaxed tabular-nums">
-          <span className="font-semibold text-fg">Hạn mức được rút</span>
-          <span className="mx-1.5 text-fg-muted">=</span>
-          Khả dụng {formatCurrency(wallet.availableBalance)}
-          <span className="mx-1.5 text-fg-muted">−</span>
-          Phong tỏa {formatCurrency(wallet.heldBalance)}
-          <span className="mx-1.5 text-fg-muted">=</span>
+          <span className="font-semibold text-fg">Hạn mức được rút:</span>{' '}
           <span className="font-bold text-fg">{formatCurrency(withdrawable)}</span>
           <span className="ml-2 inline-block align-middle text-[11px] font-semibold text-fg-muted border border-border rounded-brand-sm px-1.5 py-0.5">
-            Quy tắc rút tiền
+            Tối thiểu 50.000 ₫
           </span>
         </p>
       </div>
@@ -247,7 +233,7 @@ export default function TutorWallet() {
             description="Lệnh rút tiền của bạn sẽ hiển thị tại đây sau khi tạo yêu cầu."
           />
         ) : (
-          <LedgerTable
+          <DataTable
             caption="Lịch sử lệnh rút tiền về ngân hàng của Gia sư"
             columns={WITHDRAW_COLUMNS}
             minWidth={680}
@@ -274,7 +260,7 @@ export default function TutorWallet() {
                 </td>
               </tr>
             ))}
-          </LedgerTable>
+          </DataTable>
         )}
       </Card>
     </div>

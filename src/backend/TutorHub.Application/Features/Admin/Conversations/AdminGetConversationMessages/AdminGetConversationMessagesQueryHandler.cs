@@ -55,7 +55,7 @@ public class AdminGetConversationMessagesQueryHandler : IRequestHandler<AdminGet
             throw new NotFoundException($"Conversation with ID '{request.ConversationId}' not found.");
         }
 
-        // Structured Operational Security Logging (DEC-S7-016 / INV-MSG-005)
+        // Structured Operational Security Logging
         _logger.LogInformation(
             "AdminOperationalAccess: Admin {AdminUserId} queried messages for Conversation {ConversationId}. Reason: {OperationalReason}, Timestamp: {Timestamp}",
             adminUserId,

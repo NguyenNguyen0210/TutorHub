@@ -12,9 +12,9 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Tabs from '@/components/ui/Tabs';
 import EmptyState from '@/components/common/EmptyState';
-import LedgerTable from '@/components/ledger/LedgerTable';
-import LedgerStrip from '@/components/ledger/LedgerStrip';
-import { getStateMeta } from '@/components/ledger/StateBadge';
+import DataTable from '@/components/common/DataTable';
+import StatStrip from '@/components/common/StatStrip';
+import { getStateMeta } from '@/components/common/StateBadge';
 import { PageHeader, Spinner } from '@/components/ui/StatCard';
 
 const USER_COLUMNS = [
@@ -174,8 +174,8 @@ export default function AdminUsers() {
         }
       />
 
-      {/* 3 số liệu — hàng số liệu phẳng của Operational Ledger */}
-      <LedgerStrip
+      {/* 3 số liệu — hàng số liệu phẳng của Quản lý ví & giao dịch */}
+      <StatStrip
         columns={3}
         figures={[
           {
@@ -282,7 +282,7 @@ export default function AdminUsers() {
           </div>
         ) : (
           <>
-            <LedgerTable
+            <DataTable
               caption="Danh sách người dùng hệ thống kèm trạng thái tài khoản"
               columns={USER_COLUMNS}
               minWidth={780}
@@ -396,7 +396,7 @@ export default function AdminUsers() {
                   </tr>
                 );
               })}
-            </LedgerTable>
+            </DataTable>
 
             {/* Pagination Controls */}
             {totalPages > 1 && (

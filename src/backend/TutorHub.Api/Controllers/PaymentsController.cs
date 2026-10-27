@@ -1,3 +1,4 @@
+using TutorHub.Api.Filters;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -26,6 +27,7 @@ public class PaymentsController : ControllerBase
     /// </summary>
     [Authorize(Roles = "Student")]
     [HttpPost("vnpay/create-url")]
+    [Idempotent]
     [ProducesResponseType(typeof(ApiResponse<PaymentRedirectDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -52,6 +54,7 @@ public class PaymentsController : ControllerBase
     /// </summary>
     [Authorize(Roles = "Student")]
     [HttpPost("{bookingId:guid}/wallet")]
+    [Idempotent]
     [ProducesResponseType(typeof(ApiResponse<PayBookingFromWalletResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]

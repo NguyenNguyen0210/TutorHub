@@ -10,7 +10,7 @@ namespace TutorHub.Infrastructure.Authentication.External;
 
 /// <summary>
 /// Redis-backed <see cref="IExternalAuthStateStore"/>. Same observable semantics
-/// as <see cref="MemoryExternalAuthStateStore"/> (single-use, provider-bound,
+/// as <see cref="IExternalAuthStateStore"/> (single-use, provider-bound,
 /// fail-closed) but shared across nodes. Consume is atomic via GETDEL, so two
 /// nodes racing the same callback cannot both succeed.
 /// </summary>

@@ -10,8 +10,7 @@ namespace TutorHub.Infrastructure.Configuration;
 /// value copied from <c>.env.example</c> (or the old hard-coded docker-compose
 /// default) that is long enough to satisfy length validation but is not a secret.
 ///
-/// Lives here (not in the Api) so both hosts — <c>TutorHub.Api</c> and
-/// <c>TutorHub.Worker</c> — enforce the identical check.
+/// Lives in Infrastructure so startup enforces this security check.
 /// </summary>
 public static class StartupSecretGuard
 {

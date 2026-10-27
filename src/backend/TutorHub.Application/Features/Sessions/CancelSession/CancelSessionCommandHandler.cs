@@ -1,7 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using TutorHub.Application.Common.Settings;
+
+
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -19,7 +19,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
     private readonly IAuditLogService _auditLogService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IStudentWalletService _studentWalletService;
-    private readonly IOptions<SchedulingOptions>? _schedulingOptions;
+    private readonly ISessionSchedulePolicy _policy;
 
     public CancelSessionCommandHandler(
         IAppDbContext context,
@@ -27,20 +27,20 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
         IAuditLogService auditLogService,
         ICurrentUserService currentUserService,
         IStudentWalletService studentWalletService,
-        IOptions<SchedulingOptions>? schedulingOptions = null)
+        ISessionSchedulePolicy policy)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
         _currentUserService = currentUserService;
         _studentWalletService = studentWalletService;
-        _schedulingOptions = schedulingOptions;
+        _policy = policy;
     }
 
     public async Task<SessionDto> Handle(CancelSessionCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
-        var policy = new SessionSchedulePolicy(_schedulingOptions, _clock);
+
 
         var session = await _context.Sessions
             .Include(s => s.Enrollment)
@@ -77,12 +77,12 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
         }
 
         // 3. Domain gate: Unscheduled, or Scheduled with future StartAt. Completed /
-        // Cancelled / started sessions are rejected inside CancelSingle (→ 409 via handler mapping).
+        // Cancelled / started sessions are rejected inside Cancel (→ 409 via handler mapping).
         var now = _clock.UtcNow;
         var oldStatus = session.Status;
         try
         {
-            session.CancelSingle(request.Reason, now);
+            session.Cancel(request.Reason, now);
         }
         catch (ArgumentException ex)
         {
@@ -95,25 +95,25 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
 
         // 3b. Minimum-notice rule for a Scheduled session (Unscheduled sessions
         // need no notice). Reuse the scheduling policy so the math lives in one
-        // place. Runs after CancelSingle so an already-started session still maps
+        // place. Runs after Cancel so an already-started session still maps
         // to Conflict above, preserving existing behavior. Nothing is persisted
         // yet, so throwing here leaves the session untouched.
         if (oldStatus == SessionStatus.Scheduled &&
             session.StartAt is { } startAt && session.EndAt is { } endAt)
         {
-            policy.RequireMinimumNotice(startAt, endAt, "cancelled");
+            _policy.RequireMinimumNotice(startAt, endAt, "cancelled");
         }
 
         // 4. Re-evaluate the contract lifecycle: the last unresolved Session may
-        // now be terminal, allowing the Enrollment to complete (FR-ENR-005).
+        // now be terminal, allowing the Enrollment to complete.
         enrollment.EvaluateCompletion();
 
-        // 5. Financial Escrow Adjustment & Refund Record (INV-LEDGER-006, INV-REFUND-004)
+        // 5. Financial Escrow Adjustment & Refund Record
         // Lock the tutor wallet row so concurrent payouts/cancellations cannot race pending-escrow.
         await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
-            if (session.EarningAmount > 0)
+            if (session.SessionPrice > 0)
             {
                 var wallet = await _context.Wallets
                     .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {enrollment.TutorProfileId} FOR UPDATE")
@@ -121,7 +121,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
 
                 if (wallet != null)
                 {
-                    wallet.DebitPending(session.EarningAmount, now);
+                    wallet.DebitPending(session.SessionPrice, now);
                 }
                 else
                 {
@@ -131,7 +131,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
                 // Credit refund directly into Student Wallet (Holding -> Student Wallet)
                 await _studentWalletService.CreditRefundAsync(
                     enrollment.StudentProfileId,
-                    session.EarningAmount,
+                    session.SessionPrice,
                     "SessionCancellation",
                     session.Id,
                     $"Hoàn tiền hủy buổi học: {request.Reason.Trim()}",
@@ -143,7 +143,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
                     sessionId: session.Id,
                     disputeId: null,
                     originalPayout: null,
-                    amount: session.EarningAmount,
+                    amount: session.SessionPrice,
                     paymentGatewayRef: $"WalletRefund-Session-{session.Id:N}",
                     description: $"Single session cancellation refund: {request.Reason.Trim()}",
                     now: now);
@@ -155,7 +155,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
                 _context.AddOutboxMessage(new RefundCreatedEvent(
                     enrollment.Id,
                     enrollment.StudentProfile.UserId,
-                    new MoneyDto(session.EarningAmount),
+                    new MoneyDto(session.SessionPrice),
                     refundTx.Id,
                     Guid.NewGuid(),
                     1,
@@ -164,7 +164,7 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
                 _context.AddOutboxMessage(new RefundCompletedEvent(
                     enrollment.Id,
                     enrollment.StudentProfile.UserId,
-                    new MoneyDto(session.EarningAmount),
+                    new MoneyDto(session.SessionPrice),
                     refundTx.Id,
                     Guid.NewGuid(),
                     1,
@@ -178,13 +178,15 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
                 enrollment.TutorProfile.UserId,
                 request.Reason));
 
+            await _context.CancelPendingOutboxMessagesAsync(session.Id, BusinessEventTypes.SessionReminderDue, cancellationToken);
+
             await _auditLogService.LogAsync(
                 action: "SESSION_CANCELLED",
                 entityName: "Session",
                 entityId: session.Id.ToString(),
                 userId: userId,
                 oldValues: new { status = oldStatus.ToString() },
-                newValues: new { status = "Cancelled", reason = request.Reason, refundAmount = session.EarningAmount },
+                newValues: new { status = "Cancelled", reason = request.Reason, refundAmount = session.SessionPrice },
                 cancellationToken: cancellationToken);
 
             await _context.SaveChangesAsync(cancellationToken);

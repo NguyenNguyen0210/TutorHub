@@ -14,19 +14,19 @@ import Button from '@/components/ui/Button';
 import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
 import Input, { Textarea, Field } from '@/components/ui/Input';
-import StateBadge from '@/components/ledger/StateBadge';
-import LedgerStrip from '@/components/ledger/LedgerStrip';
+import StateBadge from '@/components/common/StateBadge';
+import StatStrip from '@/components/common/StatStrip';
 import dayjs from 'dayjs';
 
 /**
  * SessionDetail — `/student/sessions/:id` và `/tutor/sessions/:id` (cùng component,
  * phân nhánh theo `isTutor`).
  *
- * Thứ tự khối (SPEC §5.5): identity → hạn chót báo cáo sự cố → cửa sổ bảo vệ 12 giờ →
+ * Thứ tự khối: identity → hạn chót báo cáo sự cố → cửa sổ bảo vệ 12 giờ →
  * nhật ký buổi học → thanh action ở chân trang. Hành động không còn chen giữa
  * header và khối đối soát — khối quan trọng nhất phải nằm ngay dưới hạn chót.
  *
- * Operational Ledger: số ở `LedgerStrip` phẳng, màu = trạng thái, tiền qua
+ * Quản lý ví & giao dịch: số ở `StatStrip` phẳng, màu = trạng thái, tiền qua
  * `<Money>` (tabular, không `font-mono`), chỉ timestamp mới dùng mono.
  */
 export default function SessionDetail() {
@@ -180,7 +180,7 @@ export default function SessionDetail() {
             <strong className="block font-semibold">Quy định hoàn tiền học phí:</strong>
             <p className="text-xs m-0">
               Phần tiền học phí tương ứng (
-              <strong className="tabular-nums">{session.earningAmount?.toLocaleString('vi-VN')} ₫</strong>
+              <strong className="tabular-nums">{(session.sessionPrice ?? session.earningAmount)?.toLocaleString('vi-VN')} ₫</strong>
               ) sẽ được trừ khỏi két ký quỹ của gia sư và hoàn trả đầy đủ cho học viên.
             </p>
           </div>
@@ -251,13 +251,13 @@ export default function SessionDetail() {
       ? dayjs(session.endAt).diff(dayjs(session.startAt), 'minute')
       : 0;
 
-  // Màu = trạng thái (SPEC §2.2): đã quyết toán → neutral, đã hoàn → muted,
+  // Màu = trạng thái: đã quyết toán → neutral, đã hoàn → muted,
   // còn nằm trong két ký quỹ → holding.
   const ledgerFigures = [
     {
       key: 'session-fee',
       label: 'Học phí buổi này',
-      value: <Money value={session.earningAmount || 0} />,
+      value: <Money value={session.sessionPrice ?? session.earningAmount ?? 0} />,
       tone: isCompleted ? 'default' : isCancelled ? 'muted' : 'holding',
     },
     {
@@ -350,7 +350,7 @@ export default function SessionDetail() {
       )}
 
       {/* Hai số cứng của buổi học: tiền và thời lượng. Số là nhân vật chính. */}
-      <LedgerStrip figures={ledgerFigures} columns={2} />
+      <StatStrip figures={ledgerFigures} columns={2} />
 
       {/* 3 · Cửa sổ bảo vệ 12 giờ — khối quan trọng nhất của màn */}
       {!isCancelled && (

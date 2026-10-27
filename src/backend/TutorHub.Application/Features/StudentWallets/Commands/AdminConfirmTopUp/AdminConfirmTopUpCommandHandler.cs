@@ -32,8 +32,8 @@ public class AdminConfirmTopUpCommandHandler : IRequestHandler<AdminConfirmTopUp
         try
         {
             var topUp = await _context.TopUpRequests
-                .Include(r => r.StudentWallet)
-                    .ThenInclude(w => w.StudentProfile)
+                .Include(r => r.Wallet)
+                    .ThenInclude(w => w.User)
                 .FirstOrDefaultAsync(r => r.Id == request.TopUpRequestId, cancellationToken);
 
             if (topUp == null)
@@ -41,7 +41,7 @@ public class AdminConfirmTopUpCommandHandler : IRequestHandler<AdminConfirmTopUp
                 throw new NotFoundException(nameof(TopUpRequest), request.TopUpRequestId);
             }
 
-            // Idempotency check (INV-STUDENT-WALLET-004): if already confirmed, do not credit twice
+            // Idempotency check: if already confirmed, do not credit twice
             if (topUp.Status == TopUpRequestStatus.Confirmed)
             {
                 return MapToDto(topUp);
@@ -54,7 +54,7 @@ public class AdminConfirmTopUpCommandHandler : IRequestHandler<AdminConfirmTopUp
 
             // Pessimistic row-level lock on StudentWallet
             var wallet = await _context.StudentWallets
-                .FromSqlInterpolated($"SELECT * FROM \"StudentWallets\" WHERE \"Id\" = {topUp.StudentWalletId} FOR UPDATE")
+                .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"Id\" = {topUp.WalletId} FOR UPDATE")
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (wallet == null)
@@ -66,7 +66,7 @@ public class AdminConfirmTopUpCommandHandler : IRequestHandler<AdminConfirmTopUp
             wallet.Credit(topUp.Amount, now);
             var balanceAfter = wallet.AvailableBalance;
 
-            // Append-only immutable ledger entry (INV-STUDENT-WALLET-003)
+            // Append-only immutable ledger entry
             var ledgerEntry = new StudentWalletTransaction
             {
                 Id = Guid.NewGuid(),
@@ -92,8 +92,8 @@ public class AdminConfirmTopUpCommandHandler : IRequestHandler<AdminConfirmTopUp
             // Emit business event
             _context.AddOutboxMessage(new StudentTopUpConfirmedEvent(
                 topUp.Id,
-                topUp.StudentWallet.StudentProfileId,
-                topUp.StudentWallet.StudentProfile.UserId,
+                topUp.Wallet.StudentProfileId ?? Guid.Empty,
+                topUp.Wallet.UserId != Guid.Empty ? topUp.Wallet.UserId : (topUp.Wallet.StudentProfile?.UserId ?? Guid.Empty),
                 new MoneyDto(topUp.Amount, "VND"),
                 adminId,
                 Guid.NewGuid(),

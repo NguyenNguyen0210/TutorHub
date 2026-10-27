@@ -34,7 +34,7 @@ function resolveDeepLink(link, role) {
  * Phân loại thông báo — SUY ĐOÁN, không phải dữ liệu thật.
  *
  * DTO `Notification` từ API KHÔNG có field `category` (đã grep toàn repo: 0 kết quả),
- * nên hàm dưới đoán nhóm bằng cách tìm chuỗi trong `type`. Hệ quả đã ghi ở SPEC §4/§6:
+ * nên hàm dưới đoán nhóm bằng cách tìm chuỗi trong `type`. Hệ quả đã ghi ở/§6:
  * một type mới từ backend có thể rơi nhầm nhóm mà không ai báo lỗi. Sửa đúng là thêm
  * `category` vào DTO backend — không tự bịa bản phân loại ở file này.
  *
@@ -140,7 +140,7 @@ export default function Notifications() {
               Trung tâm thông báo & Cảnh báo hệ thống
             </h1>
             {/* "Còn N mới" là trạng thái đọc, không phải tín hiệu nguy hiểm —
-                đỏ (danger) theo SPEC §1 dành cho xung đột / tranh chấp. */}
+                đỏ (danger) theo dành cho xung đột / tranh chấp. */}
             {unreadCount > 0 && (
               <Badge variant="primary" size="sm" dot>
                 {unreadCount} mới

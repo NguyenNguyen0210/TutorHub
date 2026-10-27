@@ -6,9 +6,15 @@ public record WalletTransactionDto(
     Guid Id,
     Guid WalletId,
     Guid? WithdrawalId,
-    TutorWalletTransactionType Type,
+    WalletTransactionType Type,
     decimal Amount,
     decimal BalanceAfter,
     string? Description,
     DateTime CreatedAt
-);
+)
+{
+    public FinancialDirection? Direction { get; init; }
+    public decimal? BalanceBefore { get; init; }
+    public string? ReferenceType { get; init; }
+    public Guid? ReferenceId { get; init; }
+}

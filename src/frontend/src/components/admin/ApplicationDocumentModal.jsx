@@ -4,9 +4,9 @@ import Icon from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/Button';
 
 /**
- * Modal xem trước văn bằng (Operational Ledger — SPEC §4.2).
+ * Modal xem trước văn bằng (Operational Ledger —.
  *
- * Nền overlay dùng `brand-navy-950` thay cho `black` cứng (SPEC §3.8); mọi
+ * Nền overlay dùng `brand-navy-950` thay cho `black` cứng; mọi
  * viền/nền trong điều kiện đi qua `border` / `surface` / `neutral-*`.
  */
 export default function ApplicationDocumentModal({ doc, onClose }) {

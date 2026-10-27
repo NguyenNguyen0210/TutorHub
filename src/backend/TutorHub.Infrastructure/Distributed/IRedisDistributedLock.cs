@@ -18,22 +18,3 @@ public interface IRedisDistributedLock
     /// <summary>Releases <paramref name="key"/> when it still holds <paramref name="token"/>; no-op otherwise.</summary>
     Task ReleaseAsync(string key, string token, CancellationToken cancellationToken = default);
 }
-
-/// <summary>
-/// Pass-through used when the cron lock is disabled: every acquire succeeds,
-/// so disabled mode behaves exactly like the original unlocked jobs.
-/// </summary>
-public sealed class NoOpRedisDistributedLock : IRedisDistributedLock
-{
-    public static readonly NoOpRedisDistributedLock Instance = new();
-
-    private NoOpRedisDistributedLock()
-    {
-    }
-
-    public Task<bool> AcquireAsync(string key, string token, TimeSpan ttl, CancellationToken cancellationToken = default) =>
-        Task.FromResult(true);
-
-    public Task ReleaseAsync(string key, string token, CancellationToken cancellationToken = default) =>
-        Task.CompletedTask;
-}

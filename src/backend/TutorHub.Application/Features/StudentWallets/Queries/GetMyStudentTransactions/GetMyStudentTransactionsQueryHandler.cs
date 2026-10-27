@@ -36,7 +36,7 @@ public class GetMyStudentTransactionsQueryHandler
 
         var wallet = await _context.StudentWallets
             .AsNoTracking()
-            .FirstOrDefaultAsync(w => w.StudentProfileId == student.Id, cancellationToken);
+            .FirstOrDefaultAsync(w => (w.UserId == userId || w.StudentProfileId == student.Id), cancellationToken);
 
         var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
         var pageSize = request.PageSize < 1 ? 20 : (request.PageSize > 100 ? 100 : request.PageSize);
@@ -71,7 +71,7 @@ public class GetMyStudentTransactionsQueryHandler
                 Amount = t.Amount,
                 BalanceBefore = t.BalanceBefore,
                 BalanceAfter = t.BalanceAfter,
-                ReferenceType = t.ReferenceType,
+                ReferenceType = t.ReferenceType ?? string.Empty,
                 ReferenceId = t.ReferenceId,
                 Description = t.Description,
                 Reason = t.Reason,

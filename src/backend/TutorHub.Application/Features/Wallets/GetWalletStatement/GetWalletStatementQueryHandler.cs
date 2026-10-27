@@ -1,6 +1,5 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Wallets.DTOs;
@@ -22,18 +21,19 @@ public class GetWalletStatementQueryHandler : IRequestHandler<GetWalletStatement
     {
         var userId = _currentUserService.UserIdOrThrow();
 
-        var tutor = await _context.TutorProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
+        var tutor = _context.TutorProfiles != null
+            ? await _context.TutorProfiles.AsNoTracking().FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken)
+            : null;
+        var student = _context.StudentProfiles != null
+            ? await _context.StudentProfiles.AsNoTracking().FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken)
+            : null;
 
-        if (tutor == null)
-        {
-            throw new ForbiddenException("Only registered tutors can access their wallet statement.");
-        }
+        var tutorId = tutor?.Id;
+        var studentId = student?.Id;
 
         var wallet = await _context.Wallets
             .AsNoTracking()
-            .FirstOrDefaultAsync(w => w.TutorProfileId == tutor.Id, cancellationToken);
+            .FirstOrDefaultAsync(w => w.UserId == userId || (tutorId != null && w.TutorProfileId == tutorId) || (studentId != null && w.StudentProfileId == studentId), cancellationToken);
 
         if (wallet == null)
         {
@@ -47,27 +47,33 @@ public class GetWalletStatementQueryHandler : IRequestHandler<GetWalletStatement
 
         var query = _context.WalletTransactions
             .AsNoTracking()
-            .Where(wt => wt.WalletId == wallet.Id);
+            .Where(t => t.WalletId == wallet.Id);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
         var pageSize = request.PageSize < 1 ? 20 : (request.PageSize > 100 ? 100 : request.PageSize);
 
         var items = await query
-            .OrderByDescending(wt => wt.CreatedAt)
-            .ThenByDescending(wt => wt.Id)
+            .OrderByDescending(t => t.CreatedAt)
+            .ThenByDescending(t => t.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .Select(wt => new WalletTransactionDto(
-                wt.Id,
-                wt.WalletId,
-                wt.WithdrawalId,
-                wt.Type,
-                wt.Amount,
-                wt.BalanceAfter,
-                wt.Description,
-                wt.CreatedAt
-            ))
+            .Select(t => new WalletTransactionDto(
+                t.Id,
+                t.WalletId,
+                t.WithdrawalId,
+                t.Type,
+                t.Amount,
+                t.BalanceAfter,
+                t.Description,
+                t.CreatedAt
+            )
+            {
+                Direction = t.Direction,
+                BalanceBefore = t.BalanceBefore,
+                ReferenceType = t.ReferenceType,
+                ReferenceId = t.ReferenceId
+            })
             .ToListAsync(cancellationToken);
 
         return new PagedResult<WalletTransactionDto>(

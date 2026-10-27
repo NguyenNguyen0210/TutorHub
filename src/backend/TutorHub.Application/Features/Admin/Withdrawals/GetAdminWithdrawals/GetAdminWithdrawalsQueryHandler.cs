@@ -20,7 +20,7 @@ public class GetAdminWithdrawalsQueryHandler : IRequestHandler<GetAdminWithdrawa
     {
         var query = _context.Withdrawals
             .AsNoTracking()
-            .Include(w => w.Wallet).ThenInclude(wall => wall.TutorProfile).ThenInclude(tp => tp.User)
+            .Include(w => w.Wallet).ThenInclude(wall => wall.User)
             .Include(w => w.ProcessingStartedByAdmin)
             .Include(w => w.ProcessedByAdmin)
             .AsQueryable();
@@ -43,8 +43,8 @@ public class GetAdminWithdrawalsQueryHandler : IRequestHandler<GetAdminWithdrawa
                 w.Id,
                 w.WalletId,
                 w.Wallet.TutorProfileId,
-                w.Wallet.TutorProfile.User.FullName,
-                w.Wallet.TutorProfile.User.Email,
+                w.Wallet.User != null ? w.Wallet.User.FullName : (w.Wallet.TutorProfile != null && w.Wallet.TutorProfile.User != null ? w.Wallet.TutorProfile.User.FullName : string.Empty),
+                w.Wallet.User != null ? w.Wallet.User.Email : (w.Wallet.TutorProfile != null && w.Wallet.TutorProfile.User != null ? w.Wallet.TutorProfile.User.Email : string.Empty),
                 w.Amount,
                 w.Status,
                 w.BankName,

@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Tutors.DTOs;
@@ -12,16 +13,59 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ITutorProfileCacheService _cache;
 
     public GetTutorByIdQueryHandler(
         IAppDbContext context,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ITutorProfileCacheService? cache = null)
     {
         _context = context;
         _currentUserService = currentUserService;
+        _cache = cache ?? NoOpTutorProfileCacheService.Instance;
     }
 
     public async Task<TutorProfileDto> Handle(GetTutorByIdQuery request, CancellationToken cancellationToken)
+    {
+        var currentUserId = _currentUserService.UserId;
+        var isAdmin = _currentUserService.Role == UserRole.Admin;
+
+        if (isAdmin)
+        {
+            return await LoadFromDbAsync(request.TutorProfileId, isOwner: false, isAdmin: true, cancellationToken);
+        }
+
+        // 1. Try public cache first
+        var cached = await _cache.GetTutorProfileAsync(
+            request.TutorProfileId,
+            async () =>
+            {
+                try
+                {
+                    return await LoadFromDbAsync(request.TutorProfileId, isOwner: false, isAdmin: false, cancellationToken);
+                }
+                catch (NotFoundException)
+                {
+                    return null;
+                }
+            },
+            cancellationToken);
+
+        // 2. If cached and caller is NOT the owner -> return cached immediately
+        bool isOwner = cached != null
+            ? (currentUserId.HasValue && cached.UserId == currentUserId.Value)
+            : (currentUserId.HasValue && await _context.TutorProfiles.AnyAsync(t => t.Id == request.TutorProfileId && t.UserId == currentUserId.Value, cancellationToken));
+
+        if (cached is not null && !isOwner)
+        {
+            return cached;
+        }
+
+        // 3. Fallback to DB (Owner preview for unlisted services / pending profiles, or cache miss)
+        return await LoadFromDbAsync(request.TutorProfileId, isOwner, isAdmin: false, cancellationToken);
+    }
+
+    private async Task<TutorProfileDto> LoadFromDbAsync(Guid tutorProfileId, bool isOwner, bool isAdmin, CancellationToken cancellationToken)
     {
         var tutor = await _context.TutorProfiles
             .AsNoTracking()
@@ -31,15 +75,12 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
                     .ThenInclude(s => s.Category)
             .Include(t => t.Services)
                 .ThenInclude(s => s.Subject)
-            .FirstOrDefaultAsync(t => t.Id == request.TutorProfileId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.Id == tutorProfileId, cancellationToken);
 
         if (tutor == null)
         {
-            throw new NotFoundException("TutorProfile", request.TutorProfileId);
+            throw new NotFoundException("TutorProfile", tutorProfileId);
         }
-
-        var isOwner = _currentUserService.UserId.HasValue && _currentUserService.UserId.Value == tutor.UserId;
-        var isAdmin = _currentUserService.Role == UserRole.Admin;
 
         var isApproved = await _context.TutorApplications
             .AnyAsync(a => a.UserId == tutor.UserId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
@@ -48,7 +89,7 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
 
         if (!isEligible && !isOwner && !isAdmin)
         {
-            throw new NotFoundException("TutorProfile", request.TutorProfileId);
+            throw new NotFoundException("TutorProfile", tutorProfileId);
         }
 
         var subjects = tutor.TutorSubjects

@@ -10,7 +10,6 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
     {
         builder.HasKey(e => e.Id);
 
-        // Snapshot terms & properties
         builder.Property(e => e.TotalPrice)
             .HasPrecision(12, 2)
             .IsRequired();
@@ -35,20 +34,20 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
 
         builder.Property(e => e.Status)
             .HasConversion<string>()
-            .HasMaxLength(50)
+            .HasMaxLength(20)
             .IsRequired();
-
-        builder.Property(e => e.CancelledBy)
-            .HasConversion<string>()
-            .HasMaxLength(50);
-
-        builder.Property(e => e.CancellationReason)
-            .HasMaxLength(500);
 
         builder.Property(e => e.CreatedAt)
             .IsRequired();
 
-        // Foreign keys & Relationships
+        builder.Property(e => e.CancellationReason)
+            .HasMaxLength(500);
+
+        builder.Property(e => e.CancelledBy)
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
+        // Relationships
         builder.HasOne(e => e.Booking)
             .WithOne(b => b.Enrollment)
             .HasForeignKey<Enrollment>(e => e.BookingId)
@@ -67,11 +66,13 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
         builder.HasOne(e => e.Service)
             .WithMany()
             .HasForeignKey(e => e.ServiceId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(e => e.Subject)
             .WithMany()
             .HasForeignKey(e => e.SubjectId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Indexes

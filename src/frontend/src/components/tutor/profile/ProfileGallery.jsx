@@ -6,8 +6,8 @@ import Icon from '@/components/ui/Icon';
 /**
  * ProfileGallery — khối ảnh đại diện 16/10 của hồ sơ gia sư.
  *
- * V1 (SPEC §4.1 G-1): chỉ ảnh đại diện. V2 sẽ thêm album + video giới thiệu
- * (cần backend `galleryImageUrls[]` + `introVideoUrl`, xem SPEC §7) — không
+ * V1 G-1): chỉ ảnh đại diện. V2 sẽ thêm album + video giới thiệu
+ * (cần backend `galleryImageUrls[]` + `introVideoUrl`, xem — không
  * dựng placeholder ảnh giả.
  *
  * Ảnh chân dung trong khung 16/10 rất dễ cắt mất mặt, nên dùng `object-top`

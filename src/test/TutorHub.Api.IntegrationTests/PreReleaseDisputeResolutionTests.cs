@@ -128,7 +128,7 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
             t.SessionId == session.Id && t.Type == TransactionType.SessionPayoutCredit);
         payoutTx.Should().NotBeNull();
         payoutTx!.Amount.Should().Be(300_000m);
-        payoutTx.CommissionAmount.Should().Be(30_000m);
+        payoutTx.PlatformFeeAmount.Should().Be(30_000m);
         payoutTx.PayoutAmount.Should().Be(270_000m);
     }
 
@@ -176,9 +176,9 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
             t.SessionId == session.Id && t.Type == TransactionType.SessionPayoutCredit);
         payoutTx.Should().NotBeNull();
         payoutTx!.Amount.Should().Be(200_000m);
-        payoutTx.CommissionAmount.Should().Be(20_000m);
+        payoutTx.PlatformFeeAmount.Should().Be(20_000m);
         payoutTx.PayoutAmount.Should().Be(180_000m);
 
-        (refundTx.Amount + payoutTx.PayoutAmount + payoutTx.CommissionAmount).Should().Be(300_000m);
+        (refundTx.Amount + payoutTx.PayoutAmount + payoutTx.PlatformFeeAmount).Should().Be(300_000m);
     }
 }

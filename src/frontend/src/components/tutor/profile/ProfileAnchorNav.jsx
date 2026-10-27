@@ -4,7 +4,7 @@ import Tabs from '@/components/ui/Tabs';
 import { scrollToSection, observeActiveSection } from './sectionNav';
 
 /**
- * ProfileAnchorNav — thanh điều hướng neo sticky dưới topbar (SPEC §4.3).
+ * ProfileAnchorNav — thanh điều hướng neo sticky dưới topbar.
  *
  * Dùng lại component `Tabs` chung để giữ đúng ngôn ngữ thị giác + focus ring
  * của design system; nội dung tabpanel rỗng nên được ẩn đi vì đây là

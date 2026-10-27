@@ -146,8 +146,8 @@ public class EmailDeliveryJob : BackgroundService
 
         try
         {
-            var idempotencyKey = $"email:{delivery.Id}";
-            await emailSender.SendEmailAsync(delivery.ToEmail, delivery.Subject, delivery.Body, idempotencyKey, emailCts.Token);
+            var correlationId = $"email:{delivery.Id}";
+            await emailSender.SendEmailAsync(delivery.ToEmail, delivery.Subject, delivery.Body, correlationId, emailCts.Token);
 
             var now = _clock.UtcNow;
             if (delivery.LockedBy == _workerId && delivery.Status == EmailDeliveryStatus.Processing)

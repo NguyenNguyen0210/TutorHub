@@ -65,7 +65,7 @@ public class StudentRequestWithdrawalCommandHandler : IRequestHandler<StudentReq
 
             // Pessimistic row-level lock on student wallet
             var wallet = await _context.StudentWallets
-                .FromSqlInterpolated($"SELECT * FROM \"StudentWallets\" WHERE \"StudentProfileId\" = {student.Id} FOR UPDATE")
+                .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"UserId\" = {userId} OR \"StudentProfileId\" = {student.Id} FOR UPDATE")
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (wallet == null)
@@ -78,9 +78,9 @@ public class StudentRequestWithdrawalCommandHandler : IRequestHandler<StudentReq
                 throw new BadRequestException($"Insufficient available balance. Available: {wallet.AvailableBalance:N0} VND, Requested: {request.Amount:N0} VND.");
             }
 
-            // Reserve funds (INV-STUDENT-WALLET-005): Available decreases, Reserved increases
+            // Hold funds for withdrawal: Available decreases, Withdrawing increases
             var balanceBefore = wallet.AvailableBalance;
-            wallet.ReserveForWithdrawal(request.Amount, now);
+            wallet.HoldForWithdrawal(request.Amount, now);
             var balanceAfter = wallet.AvailableBalance;
 
             var withdrawal = new StudentWithdrawal

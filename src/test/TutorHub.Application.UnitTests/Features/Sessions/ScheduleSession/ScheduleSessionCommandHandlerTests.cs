@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Features.Sessions.ScheduleSession;
+using TutorHub.Application.Features.Sessions.Scheduling;
 using TutorHub.Application.UnitTests.TestHelpers;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
@@ -34,7 +35,7 @@ public class ScheduleSessionCommandHandlerTests : IDisposable
     public void Dispose() => _context.Dispose();
 
     private ScheduleSessionCommandHandler CreateHandler() =>
-        new(_context, _currentUserService, _clock, _schedulingOptions);
+        new(_context, _currentUserService, _clock, new SessionSchedulePolicy(_schedulingOptions, _clock));
 
     private async Task<(Session session, Enrollment enrollment, User studentUser, User tutorUser)> SeedAggregateAsync(
         DateTime? preScheduleStart = null)
@@ -67,7 +68,7 @@ public class ScheduleSessionCommandHandlerTests : IDisposable
             EnrollmentId = enrollment.Id,
             Enrollment = enrollment,
             SessionNumber = 1,
-            EarningAmount = 333_333m
+            SessionPrice = 333_333m
         };
         if (preScheduleStart.HasValue)
         {
@@ -157,7 +158,7 @@ public class ScheduleSessionCommandHandlerTests : IDisposable
             EnrollmentId = enrollment.Id,
             Enrollment = null!,
             SessionNumber = 2,
-            EarningAmount = 333_333m
+            SessionPrice = 333_333m
         };
         other.Schedule(overlapStart, overlapStart.AddHours(1));
         _context.Sessions.Add(other);

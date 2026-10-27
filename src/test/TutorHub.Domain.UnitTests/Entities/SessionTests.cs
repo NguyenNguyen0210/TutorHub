@@ -16,7 +16,7 @@ public class SessionTests
             Id = Guid.NewGuid(),
             EnrollmentId = Guid.NewGuid(),
             SessionNumber = 1,
-            EarningAmount = 350_000m
+            SessionPrice = 350_000m
         };
 
         // Assert
@@ -39,7 +39,7 @@ public class SessionTests
             Id = Guid.NewGuid(),
             EnrollmentId = Guid.NewGuid(),
             SessionNumber = 1,
-            EarningAmount = 350_000m
+            SessionPrice = 350_000m
         };
         var startAt = DateTime.UtcNow.AddDays(1);
         var endAt = startAt.AddHours(1);
@@ -64,7 +64,7 @@ public class SessionTests
             Id = Guid.NewGuid(),
             EnrollmentId = Guid.NewGuid(),
             SessionNumber = 1,
-            EarningAmount = 350_000m
+            SessionPrice = 350_000m
         };
         session.Schedule(DateTime.UtcNow.AddDays(1), DateTime.UtcNow.AddDays(1).AddHours(1));
 
@@ -265,14 +265,14 @@ public class SessionTests
     }
 
     [Fact]
-    public void CancelSingle_FromUnscheduled_TransitionsToCancelled()
+    public void Cancel_FromUnscheduled_TransitionsToCancelled()
     {
         // Arrange
         var session = new Session();
         var now = DateTime.UtcNow;
 
         // Act
-        session.CancelSingle("Student requested cancellation", now);
+        session.Cancel("Student requested cancellation", now);
 
         // Assert
         session.Status.Should().Be(SessionStatus.Cancelled);
@@ -282,7 +282,7 @@ public class SessionTests
     }
 
     [Fact]
-    public void CancelSingle_FromFutureScheduled_TransitionsToCancelled()
+    public void Cancel_FromFutureScheduled_TransitionsToCancelled()
     {
         // Arrange
         var session = new Session();
@@ -290,7 +290,7 @@ public class SessionTests
         session.Schedule(now.AddDays(2), now.AddDays(2).AddHours(1));
 
         // Act
-        session.CancelSingle("Tutor emergency", now);
+        session.Cancel("Tutor emergency", now);
 
         // Assert
         session.Status.Should().Be(SessionStatus.Cancelled);
@@ -300,7 +300,7 @@ public class SessionTests
     }
 
     [Fact]
-    public void CancelSingle_FromPastScheduled_ThrowsInvalidOperationException()
+    public void Cancel_FromPastScheduled_ThrowsInvalidOperationException()
     {
         // Arrange
         var session = new Session();
@@ -308,7 +308,7 @@ public class SessionTests
         session.Schedule(now.AddDays(-1), now.AddDays(-1).AddHours(1));
 
         // Act
-        var act = () => session.CancelSingle("Trying to cancel past session", now);
+        var act = () => session.Cancel("Trying to cancel past session", now);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
@@ -316,7 +316,7 @@ public class SessionTests
     }
 
     [Fact]
-    public void CancelSingle_FromCompleted_ThrowsInvalidOperationException()
+    public void Cancel_FromCompleted_ThrowsInvalidOperationException()
     {
         // Arrange
         var session = new Session();
@@ -324,7 +324,7 @@ public class SessionTests
         session.Complete();
 
         // Act
-        var act = () => session.CancelSingle("Session already completed", DateTime.UtcNow);
+        var act = () => session.Cancel("Session already completed", DateTime.UtcNow);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
@@ -332,15 +332,15 @@ public class SessionTests
     }
 
     [Fact]
-    public void CancelSingle_FromAlreadyCancelled_ThrowsInvalidOperationException()
+    public void Cancel_FromAlreadyCancelled_ThrowsInvalidOperationException()
     {
         // Arrange
         var session = new Session();
         var now = DateTime.UtcNow;
-        session.CancelSingle("First cancellation", now);
+        session.Cancel("First cancellation", now);
 
         // Act
-        var act = () => session.CancelSingle("Second cancellation", now);
+        var act = () => session.Cancel("Second cancellation", now);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
@@ -351,13 +351,13 @@ public class SessionTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void CancelSingle_WithoutReason_ThrowsArgumentException(string? invalidReason)
+    public void Cancel_WithoutReason_ThrowsArgumentException(string? invalidReason)
     {
         // Arrange
         var session = new Session();
 
         // Act
-        var act = () => session.CancelSingle(invalidReason!, DateTime.UtcNow);
+        var act = () => session.Cancel(invalidReason!, DateTime.UtcNow);
 
         // Assert
         act.Should().Throw<ArgumentException>()

@@ -13,7 +13,6 @@ public static class SeedHelper
     public static async Task<(User TutorUser, TutorProfile Tutor, User Admin)> SeedTutorWithWalletAsync(
         AppDbContext db,
         decimal availableBalance = 1_000_000m,
-        decimal heldBalance = 0m,
         CancellationToken ct = default)
     {
         var tutorUser = new User
@@ -55,7 +54,6 @@ public static class SeedHelper
             TutorProfileId = tutor.Id,
             PendingBalance = 0,
             AvailableBalance = availableBalance,
-            HeldBalance = heldBalance,
             UpdatedAt = DateTime.UtcNow
         };
 
@@ -148,7 +146,7 @@ public static class SeedHelper
     public static async Task CompleteAndReleasePayoutAsync(AppDbContext db, Session session, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
-        var gross = session.EarningAmount;
+        var gross = session.SessionPrice;
         var commissionRate = session.Enrollment.PlatformFeeRate;
         var (commissionAmount, netPayout) = TutorHub.Domain.Services.PlatformFeeCalculator.SplitGross(gross, commissionRate);
 

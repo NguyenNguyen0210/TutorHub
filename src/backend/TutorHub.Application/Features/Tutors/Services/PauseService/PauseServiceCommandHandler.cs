@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Tutors.Services.DTOs;
@@ -10,11 +11,19 @@ public class PauseServiceCommandHandler : IRequestHandler<PauseServiceCommand, S
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IServiceDetailCacheService _serviceCache;
+    private readonly ITutorProfileCacheService _tutorCache;
 
-    public PauseServiceCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
+    public PauseServiceCommandHandler(
+        IAppDbContext context,
+        ICurrentUserService currentUserService,
+        IServiceDetailCacheService? serviceCache = null,
+        ITutorProfileCacheService? tutorCache = null)
     {
         _context = context;
         _currentUserService = currentUserService;
+        _serviceCache = serviceCache ?? NoOpServiceDetailCacheService.Instance;
+        _tutorCache = tutorCache ?? NoOpTutorProfileCacheService.Instance;
     }
 
     public async Task<ServiceDto> Handle(PauseServiceCommand request, CancellationToken cancellationToken)
@@ -41,6 +50,8 @@ public class PauseServiceCommandHandler : IRequestHandler<PauseServiceCommand, S
         service.Pause();
 
         await _context.SaveChangesAsync(cancellationToken);
+        await _serviceCache.InvalidateServiceDetailAsync(service.Id, cancellationToken);
+        await _tutorCache.InvalidateTutorProfileAsync(service.TutorProfileId, cancellationToken);
 
         return ServiceDtoMapper.FromService(
             service,

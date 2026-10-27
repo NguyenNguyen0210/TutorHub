@@ -9,7 +9,7 @@ public class CreateWithdrawalCommandValidator : AbstractValidator<CreateWithdraw
         RuleFor(x => x.Amount)
             .GreaterThan(0).WithMessage("Withdrawal amount must be greater than zero.");
 
-        // "All-or-Nothing" Payout Destination Validation (DEC-WD-002)
+        // "All-or-Nothing" Payout Destination Validation
         When(x => !string.IsNullOrWhiteSpace(x.BankName) ||
                   !string.IsNullOrWhiteSpace(x.AccountNumber) ||
                   !string.IsNullOrWhiteSpace(x.AccountHolderName), () =>

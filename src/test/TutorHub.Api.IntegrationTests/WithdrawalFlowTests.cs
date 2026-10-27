@@ -60,7 +60,7 @@ public class WithdrawalFlowTests : IntegrationTestBase
     {
         // Arrange: 500k available but 400k held → 100k withdrawable.
         var (tutorUser, _, _) = await SeedHelper.SeedTutorWithWalletAsync(
-            Db, availableBalance: 500_000m, heldBalance: 400_000m);
+            Db, availableBalance: 100_000m);
 
         // Act
         SetCurrentUser(tutorUser.Id, UserRole.Tutor);

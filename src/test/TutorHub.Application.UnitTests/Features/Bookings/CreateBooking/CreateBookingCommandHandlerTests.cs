@@ -264,6 +264,48 @@ public class CreateBookingCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WhenActiveHoldingBookingExists_ReturnsExistingBookingIdempotently()
+    {
+        // Arrange
+        var (service, studentProfile, tutorProfile, studentUser, _, tutorApp) = CreateTestAggregate();
+        var existingBooking = new Booking
+        {
+            Id = Guid.NewGuid(),
+            StudentProfileId = studentProfile.Id,
+            TutorProfileId = tutorProfile.Id,
+            SubjectId = service.SubjectId,
+            ServiceId = service.Id,
+            TotalPrice = service.Price,
+            TotalSessions = service.TotalSessions,
+            SessionDurationMinutes = service.SessionDurationMinutes,
+            TeachingMode = service.TeachingMode,
+            Status = BookingStatus.Holding,
+            HoldingExpiresAt = new DateTime(2026, 9, 6, 0, 10, 0, DateTimeKind.Utc), // In the future (now is 00:00:00)
+            CreatedAt = new DateTime(2026, 9, 5, 23, 55, 0, DateTimeKind.Utc)
+        };
+
+        var bookingsList = new List<Booking> { existingBooking };
+        _currentUser.Set(studentUser.Id, UserRole.Student);
+
+        _contextMock.Setup(c => c.StudentProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<StudentProfile> { studentProfile }).Object);
+        _contextMock.Setup(c => c.Services).Returns(MockDbSetHelper.CreateMockDbSet(new List<Service> { service }).Object);
+        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { tutorApp }).Object);
+        _contextMock.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(bookingsList).Object);
+
+        var command = new CreateBookingCommand(service.Id);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert: Returns the existing booking without saving a new one
+        result.Should().NotBeNull();
+        result.Id.Should().Be(existingBooking.Id);
+        result.Status.Should().Be(BookingStatus.Holding);
+        bookingsList.Should().HaveCount(1);
+        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public void Validator_WhenServiceIdEmpty_FailsValidation()
     {
         var validator = new CreateBookingCommandValidator();

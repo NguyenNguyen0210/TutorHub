@@ -4,7 +4,7 @@ import Icon from '@/components/ui/Icon';
 import Button, { IconButton } from '@/components/ui/Button';
 
 /**
- * Modal "Quy chuẩn xét duyệt hồ sơ gia sư" (Operational Ledger — SPEC §4.2).
+ * Modal "Quy chuẩn xét duyệt hồ sơ gia sư" (Operational Ledger —.
  *
  * Số thứ tự là huy hiệu trung tính, không phải màu trạng thái: dùng
  * `brand-primary-*` cho số thứ tự (giống màu CTA) và tiêu đề dùng `text-fg`.

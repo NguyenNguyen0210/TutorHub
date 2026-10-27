@@ -1,10 +1,8 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
-using TutorHub.Application.Common.Settings;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Sessions.Common;
 using TutorHub.Application.Features.Sessions.Scheduling;
@@ -16,19 +14,19 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IOptions<SchedulingOptions>? _schedulingOptions;
     private readonly IClock _clock;
+    private readonly ISessionSchedulePolicy _policy;
 
     public ScheduleSessionCommandHandler(
         IAppDbContext context,
         ICurrentUserService currentUserService,
         IClock clock,
-        IOptions<SchedulingOptions>? schedulingOptions = null)
+        ISessionSchedulePolicy policy)
     {
         _context = context;
         _currentUserService = currentUserService;
         _clock = clock;
-        _schedulingOptions = schedulingOptions;
+        _policy = policy;
     }
 
     public async Task<SessionDto> Handle(ScheduleSessionCommand request, CancellationToken cancellationToken)
@@ -62,8 +60,7 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
         SessionSchedulingValidationPolicy.ValidateDuration(request.StartAt, request.EndAt, session.Enrollment.SessionDurationMinutes);
 
         // 4. Minimum-notice rule.
-        var policy = new SessionSchedulePolicy(_schedulingOptions, _clock);
-        policy.RequireSchedulable(request.StartAt, request.EndAt);
+        _policy.RequireSchedulable(request.StartAt, request.EndAt);
 
         var tutorProfileId = session.Enrollment.TutorProfileId;
 
@@ -85,7 +82,7 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
                 })
                 .ToListAsync(cancellationToken);
 
-            policy.RequireNoOverlap(
+            _policy.RequireNoOverlap(
                 tutorProfileId,
                 request.StartAt,
                 request.EndAt,
@@ -113,7 +110,7 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
             {
                 if (session.Status == SessionStatus.Unscheduled)
                 {
-                    session.Schedule(request.StartAt, request.EndAt);
+                    session.Schedule(request.StartAt, request.EndAt, now);
                 }
                 else if (session.Status == SessionStatus.Scheduled)
                 {
@@ -129,7 +126,7 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
                 throw new ConflictException(ex.Message);
             }
 
-            // 7. Enqueue Outbox Message in same DB transaction (DEC-S7-001, DEC-S7-002).
+            // 7. Enqueue Outbox Message in same DB transaction.
             _context.AddOutboxMessage(new SessionScheduledEvent(
                 session.Id,
                 session.EnrollmentId,
@@ -137,6 +134,20 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
                 session.Enrollment.TutorProfile.UserId,
                 request.StartAt,
                 request.EndAt));
+
+            // Cancel any previous reminder if rescheduled
+            await _context.CancelPendingOutboxMessagesAsync(session.Id, BusinessEventTypes.SessionReminderDue, cancellationToken);
+
+            // Schedule 24h reminder if session is more than 24h in the future
+            if (request.StartAt > now.AddHours(24))
+            {
+                _context.AddOutboxMessage(new SessionReminderDueEvent(
+                    session.Id,
+                    session.EnrollmentId,
+                    session.Enrollment.StudentProfile.UserId,
+                    session.Enrollment.TutorProfile.UserId,
+                    request.StartAt), scheduledAt: request.StartAt.AddHours(-24));
+            }
 
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);

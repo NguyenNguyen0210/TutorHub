@@ -6,6 +6,6 @@ public interface IEmailSender
         string toEmail,
         string subject,
         string body,
-        string? idempotencyKey = null,
+        string? correlationId = null,
         CancellationToken cancellationToken = default);
 }

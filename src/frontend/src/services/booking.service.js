@@ -24,8 +24,9 @@ export const bookingService = {
   },
 
   /** POST /bookings → BookingDto (tạo hold 15 phút) */
-  async createBooking(serviceId) {
-    const res = await api.post('/bookings', { serviceId });
+  async createBooking(serviceId, idempotencyKey = null) {
+    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
+    const res = await api.post('/bookings', { serviceId }, { headers });
     return res;
   },
 
