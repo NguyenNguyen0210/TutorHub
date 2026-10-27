@@ -1,6 +1,8 @@
 using MediatR;
 using TutorHub.Application.Common.Exceptions;
+using TutorHub.Application.Common.Files;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Security;
 using TutorHub.Application.Features.Media.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
@@ -48,11 +50,36 @@ public class CompleteUploadCommandHandler : IRequestHandler<CompleteUploadComman
             throw new ForbiddenException("Object storage key does not match the authenticated user partition.");
         }
 
-        // 1. Verify object exists in object storage via HEAD check
-        var exists = await _storageService.ExistsAsync(request.ObjectKey, cancellationToken);
-        if (!exists)
+        // Read actual object metadata; the completion request is untrusted.
+        var stored = await _storageService.GetMetadataAsync(request.ObjectKey, cancellationToken);
+        if (stored == null)
         {
             throw new NotFoundException("File was not found in object storage. Please ensure direct upload succeeded.");
+        }
+
+        var maxBytes = request.MediaType == MediaType.Avatar
+            ? UploadLimits.MediaAvatarMaxBytes
+            : UploadLimits.MediaPresignedMaxBytes;
+        var extension = Path.GetExtension(request.ObjectKey);
+        if (stored.Size <= 0 || stored.Size > maxBytes || stored.Size != request.FileSize ||
+            !UploadLimits.MediaExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase) ||
+            !string.Equals(extension, Path.GetExtension(request.OriginalFileName), StringComparison.OrdinalIgnoreCase) ||
+            !UploadLimits.MediaMimeTypes.Contains(stored.ContentType, StringComparer.OrdinalIgnoreCase) ||
+            !string.Equals(stored.ContentType, request.ContentType, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BadRequestException("Uploaded file size, extension, or content type is invalid.");
+        }
+
+        await using (var stream = await _storageService.DownloadAsync(request.ObjectKey, cancellationToken))
+        {
+            var header = new byte[12];
+            var read = await stream.ReadAtLeastAsync(header, header.Length, throwOnEndOfStream: false, cancellationToken: cancellationToken);
+            using var headerStream = new MemoryStream(header, 0, read, writable: false);
+            if (!FileSignatureValidator.IsValidSignature(headerStream, extension, out var detectedMime) ||
+                !string.Equals(detectedMime, stored.ContentType, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new BadRequestException("Uploaded file content does not match its declared type.");
+            }
         }
 
         var isPrivate = request.MediaType != MediaType.Avatar;
@@ -63,8 +90,8 @@ public class CompleteUploadCommandHandler : IRequestHandler<CompleteUploadComman
             Id = Guid.NewGuid(),
             ObjectKey = request.ObjectKey,
             OriginalFileName = request.OriginalFileName,
-            ContentType = request.ContentType,
-            FileSize = request.FileSize,
+            ContentType = stored.ContentType,
+            FileSize = stored.Size,
             StorageProvider = _storageService.Provider,
             MediaType = request.MediaType,
             IsPrivate = isPrivate,

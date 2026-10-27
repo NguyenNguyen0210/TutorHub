@@ -30,6 +30,12 @@ public class CreateDisputeCommandHandler : IRequestHandler<CreateDisputeCommand,
 
         try
         {
+        var lockedSession = await _context.Sessions
+            .FromSqlInterpolated($"SELECT * FROM \"Sessions\" WHERE \"Id\" = {request.SessionId} FOR UPDATE")
+            .FirstOrDefaultAsync(cancellationToken);
+        if (lockedSession == null)
+            throw new NotFoundException(nameof(Session), request.SessionId);
+
         var session = await _context.Sessions
             .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(sp => sp.User)
             .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(tp => tp.User)

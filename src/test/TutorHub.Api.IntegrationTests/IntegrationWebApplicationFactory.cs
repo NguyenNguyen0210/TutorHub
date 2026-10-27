@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
+using TutorHub.Application.Common.Storage;
 using TutorHub.Infrastructure.Persistence;
 
 namespace TutorHub.Api.IntegrationTests;
@@ -18,9 +20,10 @@ namespace TutorHub.Api.IntegrationTests;
 public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
 {
     private static readonly string Port = Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5433";
+    private static readonly string Password = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD") ?? "123456";
 
     public static readonly string IntegrationConnectionString =
-        $"Host=localhost;Port={Port};Database=tutorhub_integration;Username=tutorhub;Password=123456";
+        $"Host=localhost;Port={Port};Database=tutorhub_integration;Username=tutorhub;Password={Password}";
 
     private static readonly object Sync = new();
     private static bool _initialized;
@@ -63,6 +66,9 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
             }
 
             services.AddSingleton<TutorHub.Application.Common.Interfaces.ICurrentUserService>(CurrentUser);
+
+            services.RemoveAll<IObjectStorageService>();
+            services.AddSingleton<IObjectStorageService, TestObjectStorageService>();
         });
     }
 
@@ -80,7 +86,7 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
             }
 
             var maintenanceCs =
-                $"Host=localhost;Port={Port};Database=postgres;Username=tutorhub;Password=123456";
+                $"Host=localhost;Port={Port};Database=postgres;Username=tutorhub;Password={Password}";
             using (var conn = new NpgsqlConnection(maintenanceCs))
             {
                 conn.Open();

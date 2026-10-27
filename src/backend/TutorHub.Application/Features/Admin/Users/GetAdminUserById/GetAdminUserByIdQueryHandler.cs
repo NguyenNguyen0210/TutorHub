@@ -36,7 +36,7 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
                 .AsNoTracking()
                 .Include(t => t.TutorSubjects)
                     .ThenInclude(ts => ts.Subject)
-                .Include(t => t.Wallet)
+                .Include(t => t.User).ThenInclude(u => u.Wallet)
                 .FirstOrDefaultAsync(t => t.UserId == user.Id, cancellationToken);
 
             if (tutorProfile != null)

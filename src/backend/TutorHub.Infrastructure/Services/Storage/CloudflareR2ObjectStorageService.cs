@@ -86,6 +86,11 @@ public sealed class CloudflareR2ObjectStorageService : IObjectStorageService
     public async Task<bool> ExistsAsync(
         string objectKey,
         CancellationToken cancellationToken = default)
+        => await GetMetadataAsync(objectKey, cancellationToken) != null;
+
+    public async Task<StoredFileResult?> GetMetadataAsync(
+        string objectKey,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -96,11 +101,13 @@ public sealed class CloudflareR2ObjectStorageService : IObjectStorageService
             };
 
             var response = await _s3Client.GetObjectMetadataAsync(metaRequest, cancellationToken);
-            return response.HttpStatusCode == HttpStatusCode.OK;
+            return response.HttpStatusCode == HttpStatusCode.OK
+                ? new StoredFileResult(objectKey, response.ContentLength, response.Headers.ContentType, response.ETag)
+                : null;
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
-            return false;
+            return null;
         }
     }
 
@@ -124,6 +131,7 @@ public sealed class CloudflareR2ObjectStorageService : IObjectStorageService
     public Task<string> GenerateUploadUrlAsync(
         string objectKey,
         string contentType,
+        long contentLength,
         TimeSpan expiration,
         CancellationToken cancellationToken = default)
     {
@@ -135,6 +143,7 @@ public sealed class CloudflareR2ObjectStorageService : IObjectStorageService
             ContentType = contentType,
             Expires = DateTime.UtcNow.Add(expiration)
         };
+        preSignedUrlRequest.Headers.ContentLength = contentLength;
 
         var preSignedUrl = _s3Client.GetPreSignedURL(preSignedUrlRequest);
         return Task.FromResult(preSignedUrl);

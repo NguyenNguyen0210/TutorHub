@@ -111,10 +111,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 oldType: "character varying(50)",
                 oldMaxLength: 50);
 
-            migrationBuilder.AlterColumn<int>(
+            migrationBuilder.AlterColumn<string>(
                 name: "CancelledBy",
                 table: "Bookings",
-                type: "integer",
+                type: "character varying(20)",
+                maxLength: 20,
                 nullable: true,
                 oldClrType: typeof(string),
                 oldType: "character varying(50)",
@@ -247,8 +248,9 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                 type: "character varying(50)",
                 maxLength: 50,
                 nullable: true,
-                oldClrType: typeof(int),
-                oldType: "integer",
+                oldClrType: typeof(string),
+                oldType: "character varying(20)",
+                oldMaxLength: 20,
                 oldNullable: true);
 
             migrationBuilder.CreateIndex(

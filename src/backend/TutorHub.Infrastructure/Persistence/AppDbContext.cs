@@ -52,6 +52,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Media> Media => Set<Media>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
+    public DbSet<ConversationAttachment> ConversationAttachments => Set<ConversationAttachment>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<Notification> Notifications => Set<Notification>();
@@ -173,6 +174,17 @@ public class AppDbContext : DbContext, IAppDbContext
                 if (origType == TransactionType.SessionPayoutCredit || origType == TransactionType.PlatformFeeReversal)
                     return true;
                 // Terminal statuses (Released, Succeeded, Failed, Refunded) cannot be modified
+                if (origStatus == TransactionStatus.Failed &&
+                    origType == TransactionType.StudentRefund &&
+                    (bool)e.OriginalValues[nameof(Transaction.SettlementRequired)]! &&
+                    e.Entity.Status == TransactionStatus.Succeeded &&
+                    !e.Entity.SettlementRequired &&
+                    e.Properties.Where(p => p.IsModified).All(p =>
+                        p.Metadata.Name == nameof(Transaction.Status) ||
+                        p.Metadata.Name == nameof(Transaction.SettlementRequired) ||
+                        p.Metadata.Name == nameof(Transaction.RefundedAt) ||
+                        p.Metadata.Name == nameof(Transaction.PaymentGatewayRef)))
+                    return false;
                 return origStatus == TransactionStatus.Released
                     || origStatus == TransactionStatus.Succeeded
                     || origStatus == TransactionStatus.Failed

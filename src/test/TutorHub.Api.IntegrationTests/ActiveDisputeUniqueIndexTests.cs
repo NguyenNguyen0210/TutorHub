@@ -32,6 +32,7 @@ public class ActiveDisputeUniqueIndexTests : IntegrationTestBase
             Id = Guid.NewGuid(),
             StudentProfileId = studentProfile.Id,
             TutorProfileId = tutor.Id,
+            ServiceId = service.Id,
             SubjectId = subject.Id,
             TotalPrice = 900_000m,
             TotalSessions = 1,

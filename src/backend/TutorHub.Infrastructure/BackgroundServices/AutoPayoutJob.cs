@@ -138,37 +138,51 @@ public class AutoPayoutJob : BackgroundService
         var count = 0;
 
         var expiredSessions = await dbContext.Sessions
-            .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
-            .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
-            .Include(s => s.Enrollment).ThenInclude(e => e.Sessions)
+            .AsNoTracking()
             .Where(s => s.Status == SessionStatus.AwaitingPayout &&
                         s.GracePeriodEndsAt.HasValue &&
                         s.GracePeriodEndsAt.Value <= now &&
                         !s.HasIssueReport &&
                         !s.IsPayoutReleased)
+            .Select(s => s.Id)
             .ToListAsync(cancellationToken);
 
-        foreach (var session in expiredSessions)
+        foreach (var sessionId in expiredSessions)
         {
-            var hasActiveDispute = await dbContext.Disputes
-                .AsNoTracking()
-                .AnyAsync(d => d.SessionId == session.Id
-                    && d.Status != DisputeStatus.Resolved
-                    && d.Status != DisputeStatus.Dismissed, cancellationToken);
-
-            if (hasActiveDispute)
-                continue;
-
-            _logger.LogInformation("Auto-completing session {SessionId} after 12h grace period", session.Id);
-
-            var gross = session.SessionPrice;
-            var commissionRate = session.Enrollment.PlatformFeeRate;
-            var (commissionAmount, netPayout) = PlatformFeeCalculator.SplitGross(gross, commissionRate);
-
-            await using var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            _logger.LogInformation("Auto-completing session {SessionId} after 12h grace period", sessionId);
+            // A failed transaction must not leave tracked changes for the next session.
+            using var sessionScope = _scopeFactory.CreateScope();
+            var sessionContext = sessionScope.ServiceProvider.GetRequiredService<IAppDbContext>();
+            await using var tx = await sessionContext.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                var wallet = await dbContext.Wallets
+                // ReportIssue and CreateDispute lock this row first. Recheck under
+                // the same lock before releasing any escrow.
+                var session = await sessionContext.Sessions
+                    .FromSqlInterpolated($"SELECT * FROM \"Sessions\" WHERE \"Id\" = {sessionId} FOR UPDATE")
+                    .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
+                    .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
+                    .Include(s => s.Enrollment).ThenInclude(e => e.Sessions)
+                    .FirstAsync(cancellationToken);
+                var eligible = session.Status == SessionStatus.AwaitingPayout
+                    && session.GracePeriodEndsAt <= now
+                    && !session.HasIssueReport
+                    && !session.IsPayoutReleased;
+                var hasActiveDispute = await sessionContext.Disputes.AsNoTracking()
+                    .AnyAsync(d => d.SessionId == session.Id
+                        && d.Status != DisputeStatus.Resolved
+                        && d.Status != DisputeStatus.Dismissed, cancellationToken);
+                if (!eligible || hasActiveDispute)
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    continue;
+                }
+
+                var gross = session.SessionPrice;
+                var commissionRate = session.Enrollment.PlatformFeeRate;
+                var (commissionAmount, netPayout) = PlatformFeeCalculator.SplitGross(gross, commissionRate);
+
+                var wallet = await sessionContext.Wallets
                     .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {session.Enrollment.TutorProfileId} FOR UPDATE")
                     .FirstOrDefaultAsync(cancellationToken);
 
@@ -196,7 +210,7 @@ public class AutoPayoutJob : BackgroundService
                     paymentGatewayRef: $"AutoPayout-{session.Id:N}",
                     now: now);
 
-                dbContext.Transactions.Add(payoutTx);
+                sessionContext.Transactions.Add(payoutTx);
 
                 var ledgerEntry = new TutorWalletTransaction
                 {
@@ -209,19 +223,19 @@ public class AutoPayoutJob : BackgroundService
                     CreatedAt = now
                 };
 
-                if (dbContext.WalletTransactions != null)
+                if (sessionContext.WalletTransactions != null)
                 {
-                    dbContext.WalletTransactions.Add(ledgerEntry);
+                    sessionContext.WalletTransactions.Add(ledgerEntry);
                 }
 
-                dbContext.AddOutboxMessage(new SessionCompletedEvent(
+                sessionContext.AddOutboxMessage(new SessionCompletedEvent(
                     session.Id,
                     session.EnrollmentId,
                     session.Enrollment.StudentProfile.UserId,
                     session.Enrollment.TutorProfile.UserId,
                     new MoneyDto(gross)));
 
-                dbContext.AddOutboxMessage(new EarningCreatedEvent(
+                sessionContext.AddOutboxMessage(new EarningCreatedEvent(
                     session.Id,
                     session.Enrollment.TutorProfileId,
                     session.Enrollment.TutorProfile.UserId,
@@ -230,14 +244,14 @@ public class AutoPayoutJob : BackgroundService
                     new MoneyDto(netPayout),
                     payoutTx.Id));
 
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await sessionContext.SaveChangesAsync(cancellationToken);
                 await tx.CommitAsync(cancellationToken);
                 count++;
             }
             catch (Exception ex)
             {
                 await tx.RollbackAsync(cancellationToken);
-                _logger.LogError(ex, "Failed to auto-payout session {SessionId}", session.Id);
+                _logger.LogError(ex, "Failed to auto-payout session {SessionId}", sessionId);
             }
         }
 

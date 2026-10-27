@@ -51,6 +51,17 @@ public class ProcessWithdrawalCommandHandler : IRequestHandler<ProcessWithdrawal
             throw new UnauthorizedException("Admin user not found.");
         }
 
+        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+        await _context.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"Withdrawals\" WHERE \"Id\" = {withdrawal.Id} FOR UPDATE",
+            cancellationToken);
+        var currentStatus = await _context.Withdrawals.AsNoTracking()
+            .Where(w => w.Id == withdrawal.Id)
+            .Select(w => w.Status)
+            .FirstAsync(cancellationToken);
+        if (currentStatus != WithdrawalStatus.Pending)
+            throw new ConflictException($"Cannot mark withdrawal as Processing from '{currentStatus}' status.");
+
         withdrawal.MarkProcessing(userId);
         withdrawal.ProcessingStartedByAdmin = admin;
 
@@ -64,6 +75,7 @@ public class ProcessWithdrawalCommandHandler : IRequestHandler<ProcessWithdrawal
             cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
 
         return new WithdrawalDto(
             Id: withdrawal.Id,

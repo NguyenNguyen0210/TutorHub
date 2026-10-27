@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Payments;
 using TutorHub.Application.Features.Payments.DTOs;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Payments.GetPaymentResult;
 
@@ -54,12 +55,18 @@ public class GetPaymentResultQueryHandler : IRequestHandler<GetPaymentResultQuer
 
         if (transaction == null && (parsed.MerchantReference?.StartsWith("TOPUP", StringComparison.OrdinalIgnoreCase) ?? false))
         {
-            var topUpMsg = parsed.IsSuccessful
+            var topUp = await _context.TopUpRequests.AsNoTracking()
+                .FirstOrDefaultAsync(t => t.TransferReference == parsed.MerchantReference, cancellationToken);
+            var confirmed = topUp?.Status == TopUpRequestStatus.Confirmed &&
+                topUp.Amount == parsed.Amount && parsed.IsSuccessful;
+            var topUpMsg = confirmed
                 ? "Nạp tiền vào ví học viên thành công! Số dư khả dụng của bạn đã được cập nhật."
-                : "Giao dịch nạp tiền qua cổng VNPay không thành công hoặc bị hủy.";
+                : topUp?.Status == TopUpRequestStatus.Pending && parsed.IsSuccessful
+                    ? "Cổng thanh toán đã báo thành công; hệ thống đang xác nhận số dư ví."
+                    : "Giao dịch nạp tiền chưa được xác nhận hoặc không thành công.";
 
             return new PaymentResultDto(
-                Success: parsed.IsSuccessful,
+                Success: confirmed,
                 Message: topUpMsg,
                 BookingId: Guid.Empty,
                 MerchantReference: parsed.MerchantReference ?? string.Empty,

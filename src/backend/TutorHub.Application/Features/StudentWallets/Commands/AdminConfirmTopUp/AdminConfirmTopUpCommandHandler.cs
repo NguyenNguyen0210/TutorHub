@@ -32,9 +32,8 @@ public class AdminConfirmTopUpCommandHandler : IRequestHandler<AdminConfirmTopUp
         try
         {
             var topUp = await _context.TopUpRequests
-                .Include(r => r.Wallet)
-                    .ThenInclude(w => w.User)
-                .FirstOrDefaultAsync(r => r.Id == request.TopUpRequestId, cancellationToken);
+                .FromSqlInterpolated($"SELECT * FROM \"TopUpRequests\" WHERE \"Id\" = {request.TopUpRequestId} FOR UPDATE")
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (topUp == null)
             {
@@ -61,6 +60,7 @@ public class AdminConfirmTopUpCommandHandler : IRequestHandler<AdminConfirmTopUp
             {
                 throw new NotFoundException(nameof(StudentWallet), topUp.StudentWalletId);
             }
+            topUp.Wallet = wallet;
 
             var balanceBefore = wallet.AvailableBalance;
             wallet.Credit(topUp.Amount, now);

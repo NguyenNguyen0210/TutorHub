@@ -50,6 +50,17 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
                 throw new ConflictException("Refund has already settled successfully.");
             }
 
+            if (refundTx.Status == TransactionStatus.Failed && request.Outcome == TransactionStatus.Failed)
+            {
+                return new RefundCallbackResultDto
+                {
+                    TransactionId = refundTx.Id,
+                    Status = refundTx.Status,
+                    SettlementRequired = refundTx.SettlementRequired,
+                    Message = "External refund settlement remains failed; administrative settlement intervention required."
+                };
+            }
+
             var now = _clock.UtcNow;
             var oldStatus = refundTx.Status;
 
@@ -121,9 +132,8 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
                 newValues: new { Status = refundTx.Status.ToString(), SettlementRequired = refundTx.SettlementRequired, Reason = request.FailureReason },
                 cancellationToken: cancellationToken);
 
-            // Refund settlement mutates an in-flight (Pending) StudentRefund into a
-            // terminal state; the append-only guard in AppDbContext permits this
-            // because the original status is not Released/Succeeded.
+            // Failed refunds with an outstanding settlement obligation may be
+            // completed on retry; AppDbContext permits only that transition.
             await _context.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
 

@@ -27,10 +27,10 @@ public class AdminRejectTopUpCommandHandler : IRequestHandler<AdminRejectTopUpCo
         var adminId = _currentUserService.UserIdOrThrow();
         var now = _clock.UtcNow;
 
+        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
         var topUp = await _context.TopUpRequests
-            .Include(r => r.Wallet)
-                .ThenInclude(w => w.User)
-            .FirstOrDefaultAsync(r => r.Id == request.TopUpRequestId, cancellationToken);
+            .FromSqlInterpolated($"SELECT * FROM \"TopUpRequests\" WHERE \"Id\" = {request.TopUpRequestId} FOR UPDATE")
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (topUp == null)
         {
@@ -41,6 +41,8 @@ public class AdminRejectTopUpCommandHandler : IRequestHandler<AdminRejectTopUpCo
         {
             throw new BadRequestException($"Cannot reject top-up request in '{topUp.Status}' status. Must be Pending.");
         }
+
+        topUp.Wallet = await _context.Wallets.FirstAsync(w => w.Id == topUp.WalletId, cancellationToken);
 
         topUp.Reject(adminId, request.Reason, now);
 
@@ -57,6 +59,7 @@ public class AdminRejectTopUpCommandHandler : IRequestHandler<AdminRejectTopUpCo
         ));
 
         await _context.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
 
         return new TopUpRequestDto
         {

@@ -68,17 +68,26 @@ public class ApproveTutorApplicationCommandHandler
             Longitude = application.Longitude,
         };
 
-        var wallet = new Wallet
-        {
-            Id = Guid.NewGuid(),
-            TutorProfileId = tutorProfileId,
-            PendingBalance = 0,
-            AvailableBalance = 0,
-            UpdatedAt = _clock.UtcNow
-        };
-
         _context.TutorProfiles.Add(profile);
-        _context.Wallets.Add(wallet);
+
+        var wallet = await _context.Wallets
+            .FirstOrDefaultAsync(w => w.UserId == application.UserId, cancellationToken);
+        if (wallet == null)
+        {
+            var now = _clock.UtcNow;
+            _context.Wallets.Add(new Wallet
+            {
+                Id = Guid.NewGuid(),
+                UserId = application.UserId,
+                TutorProfileId = tutorProfileId,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+        }
+        else
+        {
+            wallet.TutorProfileId = tutorProfileId;
+        }
 
         // Enqueue Outbox Message in same DB transaction
         _context.AddOutboxMessage(new TutorApplicationApprovedEvent(

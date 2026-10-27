@@ -20,13 +20,14 @@ public class GenerateUploadUrlCommandValidator : AbstractValidator<GenerateUploa
             .NotEmpty().WithMessage("Content-Type is required.")
             .Must(ct => AllowedContentTypes.Contains(ct)).WithMessage("Unsupported MIME type.");
 
-        RuleFor(x => x)
-            .Must(x => !x.EstimatedSize.HasValue || x.MediaType != MediaType.Avatar || x.EstimatedSize.Value <= UploadLimits.MediaAvatarMaxBytes)
-            .WithMessage("Avatar file size must not exceed 5MB.");
+        RuleFor(x => x.EstimatedSize)
+            .GreaterThan(0).WithMessage("File size must be greater than 0.")
+            .LessThanOrEqualTo(UploadLimits.MediaPresignedMaxBytes)
+            .WithMessage("File size must not exceed 20MB.");
 
         RuleFor(x => x)
-            .Must(x => !x.EstimatedSize.HasValue || x.EstimatedSize.Value <= UploadLimits.MediaPresignedMaxBytes)
-            .WithMessage("File size must not exceed 20MB.");
+            .Must(x => x.MediaType != MediaType.Avatar || x.EstimatedSize <= UploadLimits.MediaAvatarMaxBytes)
+            .WithMessage("Avatar file size must not exceed 5MB.");
     }
 
     private static bool HaveValidExtension(string fileName)

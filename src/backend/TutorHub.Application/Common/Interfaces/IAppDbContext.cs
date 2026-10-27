@@ -36,6 +36,7 @@ public interface IAppDbContext
     DbSet<Withdrawal> StudentWithdrawals => Withdrawals;
 
     DbSet<Conversation> Conversations { get; }
+    DbSet<ConversationAttachment> ConversationAttachments { get; }
     DbSet<Message> Messages { get; }
     DbSet<OutboxMessage> OutboxMessages { get; }
     DbSet<Notification> Notifications { get; }
