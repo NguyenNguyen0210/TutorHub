@@ -119,6 +119,4 @@ __pycache__/
 
 .worktrees/
 
-docs/
-
 !.env.production.example

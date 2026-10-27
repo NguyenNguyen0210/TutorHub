@@ -89,7 +89,7 @@ Giao diện phải truyền đạt 4 giá trị:
 
 ## 3. Typography
 
-**Font chính: Be Vietnam Pro.** JetBrains Mono chỉ cho dữ liệu tài chính/định danh.
+**Font chính: Be Vietnam Pro.** JetBrains Mono chỉ cho mã định danh, countdown và timestamp kỹ thuật.
 
 > **Ghi chú (2026-09-26):** mục này trước đây ghi *Inter*. Thực tế `tokens.css` +
 > `tailwind.config.js` đã chạy **Be Vietnam Pro** (Inter vẫn được nạp sẵn trong
@@ -107,7 +107,7 @@ Giao diện phải truyền đạt 4 giá trị:
 | Body Regular | `14px / 1.5` | 400 | Nội dung, bảng, form |
 | Caption | `12px / 1.4` | 500 | Tag, trạng thái, thời gian tương đối |
 | Label | `12px / 1.4` | 600, `uppercase`, tracking-wide | Nhãn trường, nhãn cột |
-| Monospace Numeric | `14px / 1.4` | 600 | Tiền, countdown, `PaymentGatewayRef`, `CorrelationId` |
+| Monospace Technical | `14px / 1.4` | 600 | Countdown, `PaymentGatewayRef`, `CorrelationId` |
 
 ---
 
@@ -206,22 +206,23 @@ AuthShell         Thẻ căn giữa, nền sáng tối giản
 
 ### 7.3 Escrow Wallet — Các chỉ số dòng tiền
 `PendingBalance` · `AvailableBalance` · `WithdrawableBalance`
-- `WithdrawableBalance` nổi bật nhất (success, `text-headline-1`, `font-mono`), tương đương `AvailableBalance`.
+- `WithdrawableBalance` nổi bật nhất (success, `text-headline-1`, dùng `<Money>`), tương đương `AvailableBalance`.
 - Nút rút **disabled** khi `WithdrawableBalance < 50.000 ₫`.
 
 ### 7.4 Service Package Card
 Tiêu đề · mô tả · meta (số buổi / phút / trial) · giá trọn gói + giá mỗi buổi ·
-CTA "Đặt mua gói này (giữ chỗ 15p)" (primary) + "Thương lượng riêng" (ghost).
+CTA "Đăng ký học ngay" tạo Booking giữ chỗ 15 phút; không có luồng Custom Agreement/thương lượng riêng.
 
 ### 7.5 Session Breakdown Timeline
 Progress `x / N buổi`; mỗi dòng: số buổi · giá · trạng thái · thời gian · hành động
 (Xem nhật ký / Vào lớp / Dời lịch / Xếp lịch / Theo dõi khiếu nại).
 
-### 7.6 Admin Dispute Fee Calculator (DEC-S8-025)
-- Nhập `StudentRefund` → tự phân bổ `TutorNetRecovery` + `PlatformFeeReversal`.
-- **Khoá cứng:** `StudentRefund ≡ TutorNetRecovery + PlatformFeeReversal`.
-- Thu hồi từ ví gia sư **không vượt** số thực nhận; thiếu tiền ⇒ `HeldAmount = 0` +
-  `RequiresAdminFinancialIntervention` (DEC-S8-028).
+### 7.6 Admin Dispute Fee Calculator
+- Tranh chấp chỉ được phân xử trước khi giải ngân, từ khoản escrow của buổi học.
+- Nhập `StudentRefund` trong khoảng `0..SessionPrice`; phần còn lại là `TutorGrossRelease`.
+- **Khoá cứng:** `StudentRefund + TutorGrossRelease = SessionPrice` cho phán quyết có biến động tài chính.
+- Hiển thị riêng `TutorNetPayout` và phí sàn, được tính từ `TutorGrossRelease` theo `Enrollment.PlatformFeeRate`.
+- Quyết định bác đơn không làm thay đổi tài chính; escrow tiếp tục theo luồng auto-payout.
 
 ---
 
@@ -253,12 +254,12 @@ Progress `x / N buổi`; mỗi dòng: số buổi · giá · trạng thái · th
 - [ ] Không hex trực tiếp trong JSX; dùng token Tailwind.
 - [ ] Enum dùng đúng giá trị backend (Holding, Paid, Unscheduled, Scheduled, AwaitingPayout, Completed, Cancelled).
 - [ ] Không phát minh dữ liệu ngoài `seedData.sql` / API thật.
-- [ ] Ví gia sư hiển thị đủ 4 chỉ số.
+- [ ] Ví hiển thị đúng ba số dư `AvailableBalance`, `PendingBalance`, `WithdrawingBalance` và tổng số dư nếu cần.
 - [ ] Tiền dùng `<Money>`, không dùng `font-mono` cho tiền.
 - [ ] Ngày giờ đã convert sang `Asia/Ho_Chi_Minh`.
 - [ ] Countdown khoá CTA tại `00:00`.
 - [ ] Thẻ Grace Period (`GracePeriodCard`) hiển thị countdown 12h và form báo cáo sự cố.
-- [ ] Calculator tranh chấp tuân thủ `StudentRefund ≡ TutorNetRecovery + PlatformFeeReversal`.
+- [ ] Calculator tranh chấp tuân thủ `StudentRefund + TutorGrossRelease = SessionPrice` khi có phân chia tài chính.
 - [ ] Icon Lucide, đúng scale, icon-only có `aria-label`.
 - [ ] Đã kiểm tra 360 / 768 / 1024 / 1440 / 2560 px.
 

@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 > **TutorHub** là nền tảng marketplace kết nối Gia Sư (Tutor) và Học Viên (Student) trực tuyến theo mô hình **Service / Package-based Learning**.  
-> Hệ thống hỗ trợ đặt mua gói dịch vụ (15 phút checkout hold), phân rã hợp đồng học tập (**Enrollment**) thành các buổi học (**Sessions**), cơ chế giải ngân tự động 12 giờ (**Auto-Payout Grace Period**), giải ngân từng buổi vào ví bảo chứng (**Escrow Wallet**), thanh toán thực tế **VNPay 2.1.0**, Realtime **SignalR**, **Transactional Outbox**, công cụ giải quyết tranh chấp 2 giai đoạn (**Dispute Engine**), và nhật ký kiểm toán hệ thống (**Audit Log**).
+> Hệ thống hỗ trợ đặt mua gói dịch vụ (15 phút checkout hold), phân rã hợp đồng học tập (**Enrollment**) thành các buổi học (**Sessions**), cơ chế giải ngân tự động 12 giờ (**Auto-Payout Grace Period**), giải ngân từng buổi từ escrow vào ví gia sư, thanh toán qua ví hoặc **VNPay 2.1.0**, Realtime **SignalR**, **Transactional Outbox**, tranh chấp trước giải ngân (**Dispute Engine**) và nhật ký kiểm toán hệ thống (**Audit Log**).
 >
 > **Auth policy:** Access token có thời hạn 15 phút kết hợp Refresh Token (7 ngày). Khi Ban/Suspend/ChangePassword, refresh tokens bị thu hồi ngay lập tức để chặn cấp mới token khi access token hiện tại hết hạn.
 
@@ -30,7 +30,7 @@ dotnet build src/backend/TutorHub.sln
 # Run API Server locally (http://localhost:5129 | Swagger: http://localhost:5129/swagger)
 dotnet run --project src/backend/TutorHub.Api
 
-# Run Entire Test Suite (640 Executed Tests - 100% Deterministic Pass)
+# Run Entire Test Suite (integration tests require PostgreSQL)
 dotnet test src/backend/TutorHub.sln
 
 # Run Specific Test Projects
@@ -65,16 +65,14 @@ cd src/frontend && npm run lint:fix
 cd src/frontend && npm run build
 ```
 
-### Verification, Guardrails & Environment
+### Environment
 ```bash
-# API Contract & Zero-Mock CI Guardrail
-node scripts/verify-frontend-api-contract.mjs
+# Copy .env.example to .env, replace placeholder secrets, then start services.
+# Set ASPNETCORE_ENVIRONMENT=Development in .env for Swagger and dev email fallback.
+docker compose up -d --build
 
-# Secrets & Credentials Guard Scanner
-pwsh ./scripts/scan-secrets.ps1
-
-# Run Docker Environment (PostgreSQL 16 on port 5433, Backend API on port 8080, Auto-seed)
-docker-compose up -d --build
+# Optional seed; this replaces existing database data after confirmation.
+pwsh ./scripts/seed-data.ps1
 ```
 
 ---
@@ -89,7 +87,7 @@ Booking Checkout (Tạm giữ thanh toán 15 phút - Holding)
        ↓ (VNPay IPN / Dev Simulator)
 Enrollment (Hợp đồng học tập trung tâm - Snapshot PlatformFeeRate)
        ↓ (EnrollmentSessionAllocator tự động sinh N Sessions)
-Sessions (Unscheduled → Scheduled trong AvailabilitySlots của Tutor)
+Sessions (Unscheduled → Scheduled theo chính sách xếp lịch)
        ↓ (Học xong: Kích hoạt Grace Period 12 giờ — Session chuyển sang AwaitingPayout)
 Auto-Payout Grace Period (12 giờ phản hồi — Nếu không có báo cáo sự cố ReportSessionIssue → Tự động giải ngân)
        ↓ (AutoPayoutJob: Quét các buổi AwaitingPayout hết hạn 12h và giải ngân tự động)
@@ -97,7 +95,7 @@ Wallet Payout Release (Giải ngân SessionPayoutCredit cho từng buổi hoàn 
        ↓ (Nếu có khiếu nại / ReportSessionIssue trong 12h grace)
 Dispute Engine (pre-release Escrow hold — quá 12h không report = chấp nhận, khỏi kiện)
        ↓ (Admin phân xử bằng công thức cân đối phí sàn bất biến: DisputeFinancialCalculator)
-Hoàn tiền & Quyết toán (Refund Pending/Succeeded/Failed + PlatformFeeReversal + AuditLog)
+Hoàn tiền & Quyết toán (chia escrow trước giải ngân, ghi có ví học viên + AuditLog)
 ```
 
 ### 2. Codebase Structure
@@ -111,9 +109,9 @@ Hoàn tiền & Quyết toán (Refund Pending/Succeeded/Failed + PlatformFeeRever
   - `src/store/authStore.js`: Zustand store quản lý trạng thái đăng nhập, user profile, vai trò và token.
   - `src/routes/RouteGuards.jsx`: Protected routes phân quyền theo vai trò (`Student`, `Tutor`, `Admin`).
   - `src/components/`, `src/pages/`, `src/layouts/`: Giao diện chia theo vai trò (Admin, Student, Tutor, Discovery, Checkout, Shared).
-* `src/test/`: **Kiểm Thử Tự Động** (828 test cases - 100% Deterministic Pass): `Domain.UnitTests` (239), `Application.UnitTests` (469), `Infrastructure.UnitTests` (50), `Api.IntegrationTests` (70, Postgres).
+* `src/test/`: **Kiểm Thử Tự Động** gồm `Domain.UnitTests`, `Application.UnitTests`, `Infrastructure.UnitTests` và `Api.IntegrationTests` (cần PostgreSQL). Lấy số lượng/kết quả từ lần chạy test hiện tại.
 * `docs/`: **Baseline Nghiệp Vụ Chuẩn**: `prd.md`, `functional-requirements.md`, `user-stories.md`, `openapi.json`.
-* `scripts/` *(untracked local tooling)*: CI contract verification, dev bootstrap, secret scanning.
+* `scripts/`: kịch bản seed dữ liệu (`seed-data.ps1`, `seed-data.sh`) và Playwright E2E (`e2e_grace_period.py`).
 
 ---
 
@@ -137,7 +135,7 @@ Hoàn tiền & Quyết toán (Refund Pending/Succeeded/Failed + PlatformFeeRever
 2. **Exception Handling:** Không `try-catch` trong Controller. Ném các domain exception có cấu trúc (`NotFoundException`, `BadRequestException`, `ConflictException`, `ForbiddenException`, `UnauthorizedException`). `GlobalExceptionHandler` tự động map ra HTTP status code và ProblemDetails JSON.
 3. **DTOs:** Sử dụng C# positional `record` bất biến (Immutable).
 4. **Validation:** Kế thừa `AbstractValidator<TCommand/Query>` trong cùng thư mục slice. MediatR Validation Pipeline Behavior tự động validate trước khi vào Handler.
-5. **Timezone Rule:** Toàn bộ dữ liệu ngày giờ lưu trong DB là **Strict UTC** (`DateTime.UtcNow`). Chỉ chuyển đổi sang Timezone `Asia/Ho_Chi_Minh` khi hiển thị hoặc đối soát khung giờ `AvailabilitySlot` của gia sư.
+5. **Timezone Rule:** Toàn bộ dữ liệu ngày giờ lưu trong DB là **Strict UTC** (`DateTime.UtcNow`). Chuyển sang `Asia/Ho_Chi_Minh` khi hiển thị thời gian cho người dùng.
 6. **Correlation Tracing:** `CorrelationIdMiddleware` tự động sinh hoặc forward header `X-Correlation-ID`. Mọi thao tác quản trị tài chính, tranh chấp, cấu hình sàn đều ghi vào `AuditLog` kèm `CorrelationId`.
 7. **Deterministic Pagination:** Sử dụng `PagedResult<T>` với sắp xếp deterministic: `.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id)`.
 
@@ -147,21 +145,19 @@ Hoàn tiền & Quyết toán (Refund Pending/Succeeded/Failed + PlatformFeeRever
 
 * ⛔ **1. Không bao giờ tắt `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`:** Mọi commit phải build thành công với **0 Warnings, 0 Errors** trên cả Backend (`dotnet build`) và Frontend (`npm run lint`).
 * ⛔ **2. Mô hình Booking là Package-based (Service-only):** `Booking` bắt buộc tham chiếu `ServiceId` (required). Thanh toán thành công kích hoạt `Enrollment` (qua `Pending → Active`) và sinh $N$ `Session`. Tuyệt đối không tạo booking đơn lẻ ngoài gói dịch vụ. Custom Agreement đã bị xóa hẳn (v1.3).
-* ⛔ **3. Bảo đảm tính toàn vẹn Giao dịch & Audit Log (Append-Only):** `AppDbContext.SaveChangesAsync` chặn đứng mọi hành vi `Modified` hoặc `Deleted` đối với `AuditLog` và các giao dịch đã quyết toán (`Transaction.Status == Released || Succeeded`). Mọi điều chỉnh tài chính phải là transaction mới (`StudentRefund`, `PlatformFeeReversal`).
-* ⛔ **4. Cấm Chaining Transaction:** Mọi giao dịch điều chỉnh (`StudentRefund`, `PlatformFeeReversal`) phải trỏ trực tiếp về giao dịch giải ngân gốc (`RelatedTransaction.Type == SessionPayoutCredit`), cấm trỏ bắc cầu vào một adjustment khác.
-* ⛔ **5. Rút Tiền Khả Dụng:** Gia sư chỉ được rút tiền tối đa bằng `WithdrawableBalance = AvailableBalance - HeldBalance`. Không được rút vào phần tiền đang bị giữ (`HeldBalance`). (v1.4: dispute không còn tạo hold mới; rule giữ nguyên ở tầng ví.)
-* ⛔ **6. ~~Tranh Chấp Không Giữ Tiền Một Phần~~ — RETIRED (v1.4):** post-release disputes đã bị xóa nên trường hợp giữ tiền một phần không còn xảy ra. `HeldBalance`/`RequiresAdminFinancialIntervention` chỉ còn ý nghĩa lịch sử.
-* ⛔ **7. Công Thức Cân Đối Phí Sàn Chuẩn — chỉ còn ý nghĩa lịch sử (v1.4):**
-  $$\text{StudentRefund} \equiv \text{TutorNetRecovery} + \text{PlatformFeeReversal}$$
-  Pre-release resolve hiện chia trực tiếp `tutorGrossRelease` theo snapshot fee, không clawback. Không tạo `PlatformFeeReversal` mới.
-* ⛔ **8. Vòng Đời Hoàn Tiền Ngoại Vi:** Khi Admin phân xử hoàn tiền cho học viên, `StudentRefund` bắt đầu ở trạng thái `Pending`. Chỉ chuyển sang `Succeeded` khi cổng thanh toán xác nhận thành công. Nếu cổng thất bại (`Failed`), nghĩa vụ tài chính nội bộ vẫn giữ nguyên (`SettlementRequired = true`) để Admin xử lý offline, không được rollback tiền ví gia sư.
-* ⛔ **9. Snapshot Phí Sàn (Không hồi tố):** `Enrollment` snapshot cố định `PlatformFeeRate` và `FeePolicyVersion` tại thời điểm tạo. Việc Admin thay đổi phí sàn toàn hệ thống (`PlatformSetting`) chỉ áp dụng cho các hợp đồng tạo mới sau đó, không hồi tố hợp đồng cũ.
+* ⛔ **3. Bảo đảm tính toàn vẹn Giao dịch & Audit Log:** `AppDbContext.SaveChangesAsync` cấm sửa/xóa `AuditLog`, `WalletTransaction` và giao dịch tài chính đã quyết toán. Điều chỉnh tài chính phải ghi transaction mới.
+* ⛔ **4. Cấm Chaining Transaction:** Giao dịch điều chỉnh có `RelatedTransactionId` phải trỏ trực tiếp về `SessionPayoutCredit` gốc, không trỏ tới một adjustment khác.
+* ⛔ **5. Rút Tiền Khả Dụng:** `Wallet.WithdrawableBalance = AvailableBalance`; `PendingBalance` là escrow và `WithdrawingBalance` là tiền đang chờ rút, không được dùng để rút thêm.
+* ⛔ **6. Tranh chấp trước giải ngân:** Chỉ xử lý trong grace period khi payout chưa release. Học viên nhận hoàn tiền trực tiếp vào ví; gia sư nhận phần còn lại sau phí sàn.
+* ⛔ **7. Bảo toàn tiền khi phân xử:** `StudentRefund + TutorGrossRelease = SessionPrice` cho các phán quyết có biến động tài chính. Phí sàn tính trên `TutorGrossRelease` bằng `Enrollment.PlatformFeeRate` đã snapshot.
+* ⛔ **8. Hoàn tiền tranh chấp:** Khi admin quyết định hoàn tiền trước giải ngân, hệ thống ghi có ví học viên và tạo refund transaction `Succeeded` trong cùng luồng xử lý.
+* ⛔ **9. Snapshot Phí Sàn (Không hồi tố):** `Enrollment` lưu `PlatformFeeRate` lấy từ cấu hình lúc kích hoạt; không có `FeePolicyVersion` hay bảng `PlatformSetting` trong schema hiện tại.
 * ⛔ **10. Khóa Tài Nguyên Có Thứ Tự Tránh Deadlock:** Mọi nghiệp vụ có tranh chấp và ví phải khóa tài nguyên theo thứ tự: $\text{Dispute} \prec \text{Wallet (FOR UPDATE)} \prec \text{Transaction}$.
 * ⛔ **11. VNPay Return URL là Read-Only:** Tuyệt đối không cập nhật trạng thái đơn hàng hay cộng tiền ví trong Return URL. Mọi mutation tài chính bắt buộc phải nằm trong **IPN Webhook** và bọc trong **Database Transaction**.
 * ⛔ **12. Hệ Thống Ví Người Dùng Hợp Nhất (Unified Wallet System) & Toàn Vẹn Sổ Cái:**
   - Hợp nhất TutorWallet và StudentWallet thành thực thể `Wallet` duy nhất gắn trực tiếp với `UserId` (quan hệ 1:1 `User - Wallet`).
   - Mô hình 3 xô số dư: `AvailableBalance`, `PendingBalance` (tiền Escrow đang giữ chờ giải ngân), `WithdrawingBalance` (tiền phong tỏa chờ Admin duyệt rút). Ràng buộc toàn vẹn DB: `CK_Wallet_NonNegativeBalances`.
-  - Thanh toán khóa học bắt buộc qua ví (`Wallet.AvailableBalance`) với khóa dòng bi quan (`SELECT ... FOR UPDATE`).
+  - Thanh toán khóa học hỗ trợ ví (`Wallet.AvailableBalance`, khóa dòng bi quan `SELECT ... FOR UPDATE`) hoặc VNPay IPN.
   - Sổ cái tài chính `WalletTransactions` là append-only (chỉ thêm mới, cấm sửa/xóa giao dịch đã ghi).
   - Toàn bộ hoàn tiền (hủy khóa, hủy buổi, phán quyết tranh chấp) định tuyến trực tiếp vào ví người dùng (`AvailableBalance`).
   - Hạn mức rút tiền tối thiểu 50.000 VNĐ cho cả gia sư và học viên qua `Withdrawals`.
@@ -179,7 +175,7 @@ Hoàn tiền & Quyết toán (Refund Pending/Succeeded/Failed + PlatformFeeRever
 
 1. **Bẫy lọc ngày (Date Filtering Bug):** Khi lọc `fromDate` đến `toDate`, luôn dùng khoảng nửa mở (Half-Open Interval): `CreatedAt >= fromDate.Date && CreatedAt < toDate.Date.AddDays(1)`.
 2. **Bẫy đơn vị tiền VNPay (* 100):** VNPay yêu cầu số tiền nhân 100 (`Amount * 100`). Khi nhận IPN về, phải chia 100 (`vnp_Amount / 100`) trước khi so sánh với `Transaction.Amount`.
-3. **Bẫy kiểm tra giờ rảnh Gia sư:** Giờ bắt đầu và kết thúc của Session lưu ở UTC. Phải convert sang `Asia/Ho_Chi_Minh` trước khi kiểm tra `DayOfWeek`, `StartTime`, `EndTime` trong bảng `AvailabilitySlots`.
+3. **Bẫy múi giờ khi xếp lịch:** Thời điểm buổi học lưu ở UTC; giao diện phải chuyển sang `Asia/Ho_Chi_Minh` khi hiển thị. Không dùng bảng `AvailabilitySlots` vì subsystem này đã bị xóa.
 4. **Bẫy kiểm tra file đính kèm & bằng chứng:** Dung lượng tối đa 10MB và bắt buộc kiểm tra MIME Type whitelist (`image/jpeg`, `image/png`, `image/webp`, `application/pdf`, `text/plain`).
 
 ---
