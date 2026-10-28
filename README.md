@@ -280,6 +280,17 @@ dotnet ef database update --project src/backend/TutorHub.Infrastructure --startu
 ./scripts/seed-data.sh
 ```
 
+> **Database đã tồn tại:** `20261028125846_InitialBaseline` là baseline dành cho
+> database trống. Migration sẽ dừng nếu phát hiện bảng ứng dụng đã tồn tại.
+> Trước khi nâng cấp, sao lưu database, kiểm tra `__EFMigrationsHistory` và
+> đối chiếu schema hiện tại với baseline trên một bản sao. Không xóa lịch sử
+> migration, không đánh dấu baseline là đã chạy, và không chạy seed trên dữ liệu
+> cần giữ cho đến khi có kế hoạch nâng cấp được kiểm chứng riêng cho database đó.
+
+Khi chạy API sau reverse proxy, khai báo từng địa chỉ IP proxy tin cậy trong
+`ReverseProxy__KnownProxies__0`, `ReverseProxy__KnownProxies__1`, ... . Nếu không
+khai báo, API dùng địa chỉ kết nối trực tiếp và bỏ qua các header IP do client gửi.
+
 #### Bước 3.2: Khởi chạy Backend API (.NET 8)
 ```bash
 cd src/backend/TutorHub.Api
@@ -336,6 +347,8 @@ dotnet test src/test/TutorHub.Application.UnitTests
 dotnet test src/test/TutorHub.Infrastructure.UnitTests
 
 # API Integration Tests (PostgreSQL & Database Triggers)
+# Nếu database test cũ có migration trước baseline, đặt POSTGRES_TEST_DATABASE
+# thành một tên mới bắt đầu bằng tutorhub_integration_ trước khi chạy test.
 dotnet test src/test/TutorHub.Api.IntegrationTests
 ```
 
