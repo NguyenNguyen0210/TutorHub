@@ -6,6 +6,7 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Admin.TutorApplications.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
+using TutorHub.Application.Common.Concurrency;
 
 namespace TutorHub.Application.Features.Admin.TutorApplications.ApproveTutorApplication;
 
@@ -29,12 +30,20 @@ public class ApproveTutorApplicationCommandHandler
     {
         var userId = _currentUserService.UserIdOrThrow();
 
+        await using var transaction = await PostgresAdvisoryLock.BeginTransactionAsync(_context, cancellationToken);
+        await PostgresAdvisoryLock.LockRowAsync(_context,
+            $"SELECT 1 FROM \"TutorApplications\" WHERE \"Id\" = {request.ApplicationId} FOR UPDATE",
+            cancellationToken);
+
         var application = await _context.TutorApplications
             .Include(a => a.User)
             .FirstOrDefaultAsync(a => a.Id == request.ApplicationId, cancellationToken);
 
         if (application == null)
             throw new NotFoundException("TutorApplication", request.ApplicationId);
+
+        await PostgresAdvisoryLock.AcquireAsync(
+            _context, $"tutor-application:{application.UserId:D}", cancellationToken);
 
         // Domain invariant — throws if not Pending
         application.Approve(userId);
@@ -95,15 +104,16 @@ public class ApproveTutorApplicationCommandHandler
             application.UserId,
             userId));
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+            if (transaction != null)
+                await transaction.CommitAsync(cancellationToken);
         }
         catch
         {
-            await transaction.RollbackAsync(cancellationToken);
+            if (transaction != null)
+                await transaction.RollbackAsync(cancellationToken);
             throw;
         }
 

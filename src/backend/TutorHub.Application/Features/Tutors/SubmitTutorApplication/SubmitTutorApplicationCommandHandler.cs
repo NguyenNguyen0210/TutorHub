@@ -6,6 +6,7 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Tutors.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
+using TutorHub.Application.Common.Concurrency;
 
 namespace TutorHub.Application.Features.Tutors.SubmitTutorApplication;
 
@@ -28,6 +29,9 @@ public class SubmitTutorApplicationCommandHandler
         CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
+
+        await using var transaction = await PostgresAdvisoryLock.BeginTransactionAsync(_context, cancellationToken);
+        await PostgresAdvisoryLock.AcquireAsync(_context, $"tutor-application:{userId:D}", cancellationToken);
 
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
@@ -90,6 +94,8 @@ public class SubmitTutorApplicationCommandHandler
         _context.AddOutboxMessage(new TutorApplicationSubmittedEvent(application.Id, application.UserId));
 
         await _context.SaveChangesAsync(cancellationToken);
+        if (transaction != null)
+            await transaction.CommitAsync(cancellationToken);
 
         return TutorApplicationDto.From(application);
     }
