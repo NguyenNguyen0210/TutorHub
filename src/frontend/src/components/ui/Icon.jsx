@@ -10,9 +10,11 @@ import { getLucideIcon } from '@/lib/lucideRegistry';
  *   <Icon name="explore" />                 // tên Material Symbols cũ (tự map sang Lucide)
  *   <Icon as={Lucide.Search} />             // component Lucide trực tiếp
  *
- * Grid chuẩn 24px, stroke 2px, đầu nét bo tròn. Scale: sm=16 · md=20 · lg=24 · xl=32.
+ * Grid chuẩn 24px, stroke 2px, đầu nét bo tròn.
+ * Scale: xs=14 · sm=16 · md=20 · lg=24 · xl=32.
  */
 const SIZE_CLASS = {
+  xs: 'w-3.5 h-3.5',
   sm: 'w-4 h-4',
   md: 'w-5 h-5',
   lg: 'w-6 h-6',
