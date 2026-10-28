@@ -123,7 +123,7 @@ export default function ServiceRow({
     const editBtn = (
       <Button
         variant="outline"
-        size="sm"
+        size="md"
         onClick={() => onEdit(pkg)}
         icon={<Icon name="edit" size="xs" />}
         className="whitespace-nowrap"
@@ -133,13 +133,11 @@ export default function ServiceRow({
     );
     const moreBtn = (pkg.status === 'Published' || pkg.status === 'Paused' || pkg.status === 'Unpublished') && (
       <Menu
+        label={`Thao tác khác cho ${pkg.title}`}
         trigger={(
           <span
-            role="button"
-            tabIndex={0}
-            aria-label={`Thao tác khác cho ${pkg.title}`}
             title="Thao tác khác"
-            className="w-8 h-8 rounded-brand-md inline-flex items-center justify-center text-fg-secondary hover:bg-neutral-100 hover:text-fg transition-colors cursor-pointer"
+            className="w-11 h-11 rounded-brand-md inline-flex items-center justify-center text-fg-secondary hover:bg-neutral-100 hover:text-fg transition-colors cursor-pointer"
           >
             <Icon name="more_vert" size="sm" />
           </span>
@@ -158,7 +156,7 @@ export default function ServiceRow({
               target="_blank"
               rel="noopener noreferrer"
               variant="ghost"
-              size="sm"
+              size="md"
               icon={<Icon name="visibility" size="xs" />}
               className="whitespace-nowrap"
             >
@@ -174,7 +172,7 @@ export default function ServiceRow({
             {editBtn}
             <Button
               variant="primary"
-              size="sm"
+              size="md"
               loading={isActing}
               onClick={() => onResume?.(pkg)}
               icon={<Icon name="play_circle" size="xs" />}
@@ -191,7 +189,7 @@ export default function ServiceRow({
             {editBtn}
             <Button
               variant="primary"
-              size="sm"
+              size="md"
               loading={isActing}
               onClick={() => onPublish(pkg)}
               icon={<Icon name="rocket_launch" size="xs" />}
@@ -208,7 +206,7 @@ export default function ServiceRow({
             {editBtn}
             <Button
               variant="primary"
-              size="sm"
+              size="md"
               loading={isActing}
               onClick={() => onPublish(pkg)}
               icon={<Icon name="rocket_launch" size="xs" />}
@@ -222,7 +220,7 @@ export default function ServiceRow({
   };
 
   return (
-    <article className="bg-surface border border-border rounded-brand-lg shadow-brand-sm hover:shadow-brand-md transition-shadow p-4 sm:p-5 flex flex-col sm:flex-row gap-4">
+    <article className="bg-surface border border-border rounded-brand-lg p-4 sm:p-5 flex flex-col sm:flex-row gap-4 hover:border-brand-primary-300 transition-colors">
       <div className="sm:w-44 shrink-0">
         <ServiceThumb
           title={pkg.title}
@@ -233,7 +231,7 @@ export default function ServiceRow({
 
       <div className="flex-1 min-w-0 space-y-1.5">
         <div className="flex items-start gap-2 flex-wrap">
-          <h2 className="text-[16px] font-semibold text-fg leading-snug flex-1 min-w-[180px]" title={pkg.title}>
+          <h2 className="text-[16px] font-semibold text-fg leading-snug min-w-0" title={pkg.title}>
             <Link to={detailHref} target="_blank" rel="noopener noreferrer" className="hover:text-brand-primary-600 transition-colors">
               {pkg.title}
             </Link>

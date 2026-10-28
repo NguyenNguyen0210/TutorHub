@@ -4,17 +4,9 @@ import Input, { Select, Field } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 
-export const SERVICE_STATUS_OPTIONS = [
-  { value: 'All', label: 'Tất cả trạng thái' },
-  { value: 'Published', label: 'Đã xuất bản' },
-  { value: 'Draft', label: 'Bản nháp' },
-  { value: 'Paused', label: 'Tạm dừng' },
-  { value: 'Unpublished', label: 'Đã gỡ xuất bản' },
-];
-
 /**
- * ServiceFilterBar — tìm kiếm + lọc môn học + lọc trạng thái + xóa bộ lọc.
- * Mobile xếp chồng full-width, nút "Bộ lọc" nằm dưới cùng full-width.
+ * ServiceFilterBar — tìm kiếm + lọc môn học + xóa bộ lọc.
+ * Trạng thái dùng Tabs làm nguồn duy nhất để tránh hai filter mâu thuẫn.
  */
 export default function ServiceFilterBar({
   search,
@@ -22,12 +14,10 @@ export default function ServiceFilterBar({
   subjects,
   subjectId,
   onSubjectIdChange,
-  status,
-  onStatusChange,
   onClear = undefined,
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_200px_200px_auto] gap-3 sm:items-end">
+    <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_220px_auto] gap-3 sm:items-end">
       <div className="relative">
         <span aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted pointer-events-none">
           <Icon name="search" size="sm" />
@@ -55,22 +45,10 @@ export default function ServiceFilterBar({
           ))}
         </Select>
       </Field>
-      <Field label="Trạng thái" htmlFor="service-filter-status">
-        <Select
-          id="service-filter-status"
-          value={status}
-          onChange={(e) => onStatusChange(e.target.value)}
-        >
-          {SERVICE_STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </Select>
-      </Field>
       <Button
         variant="outline"
         onClick={onClear}
+        disabled={!search && subjectId === 'All'}
         icon={<Icon name="filter_list" size="sm" />}
         className="w-full sm:w-auto whitespace-nowrap"
         aria-label="Xóa bộ lọc tìm kiếm"
@@ -89,8 +67,6 @@ ServiceFilterBar.propTypes = {
   ).isRequired,
   subjectId: PropTypes.string.isRequired,
   onSubjectIdChange: PropTypes.func.isRequired,
-  status: PropTypes.string.isRequired,
-  onStatusChange: PropTypes.func.isRequired,
   onClear: PropTypes.func,
 };
 
