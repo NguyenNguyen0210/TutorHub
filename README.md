@@ -50,6 +50,8 @@
 
 ## 🏛️ Kiến Trúc Kỹ Thuật (Architecture)
 
+> Reviewer/nhà tuyển dụng có thể xem [Portfolio Technical Guide](docs/portfolio/README.md) để đọc sơ đồ kiến trúc, ERD, sequence diagram, tài khoản demo và các quyết định kỹ thuật.
+
 Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết hợp mô hình **CQRS (Command Query Responsibility Segregation)** thông qua thư viện MediatR, phân tách rành mạch giữa nghiệp vụ miền (Domain), xử lý ứng dụng (Application), giao tiếp hạ tầng (Infrastructure) và giao diện lập trình (API / Web Client).
 
 ```text
@@ -327,12 +329,17 @@ npm run dev
 
 ## 🧪 Kiểm Thử Tự Động (Automated Testing)
 
-Project có unit test cho Domain, Application và Infrastructure, integration test cho API và kịch bản Playwright E2E. Số lượng và kết quả test cần lấy từ lần chạy hiện tại; tài liệu không giữ số đếm cố định. Integration test dùng PostgreSQL tại `localhost:5433` (có thể đổi cổng bằng `POSTGRES_PORT`), user `tutorhub`, mật khẩu từ biến môi trường `POSTGRES_PASSWORD` (mặc định `123456`) và tự tạo database `tutorhub_integration` (xem `IntegrationWebApplicationFactory`). Đặt `POSTGRES_PASSWORD` bằng mật khẩu của container đang chạy trước khi gọi `dotnet test`.
+Project có unit test cho Domain, Application và Infrastructure, integration test cho API và kịch bản Playwright E2E. Số lượng và kết quả test cần lấy từ lần chạy hiện tại; tài liệu không giữ số đếm cố định. Integration test dùng PostgreSQL tại `localhost:5433` (có thể đổi cổng bằng `POSTGRES_PORT`), user `tutorhub`, mật khẩu từ biến môi trường `POSTGRES_PASSWORD` hoặc tự đọc từ `.env`. Mỗi test process chỉ được phép xóa/tạo lại database có tên bắt đầu bằng `tutorhub_integration`, vì vậy dữ liệu development không bị đụng tới.
 
 ### Chạy Toàn Bộ Test Suite Backend
+```powershell
+# Windows: build và chạy toàn bộ unit + integration test bằng Release
+.\scripts\test-backend.ps1
+```
+
 ```bash
-# Chạy toàn bộ test trong solution (integration test cần PostgreSQL)
-dotnet test src/backend/TutorHub.sln --logger "console;verbosity=normal"
+# Linux/macOS/CI
+bash scripts/test-backend.sh
 ```
 
 ### Chạy Kiểm Thử Từng Dự Án
@@ -347,8 +354,6 @@ dotnet test src/test/TutorHub.Application.UnitTests
 dotnet test src/test/TutorHub.Infrastructure.UnitTests
 
 # API Integration Tests (PostgreSQL & Database Triggers)
-# Nếu database test cũ có migration trước baseline, đặt POSTGRES_TEST_DATABASE
-# thành một tên mới bắt đầu bằng tutorhub_integration_ trước khi chạy test.
 dotnet test src/test/TutorHub.Api.IntegrationTests
 ```
 
