@@ -27,7 +27,7 @@ public class PaymentsController : ControllerBase
     /// </summary>
     [Authorize(Roles = "Student")]
     [HttpPost("vnpay/create-url")]
-    [Idempotent]
+    [Idempotent(RequireKey = true)]
     [ProducesResponseType(typeof(ApiResponse<PaymentRedirectDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -38,7 +38,7 @@ public class PaymentsController : ControllerBase
         [FromBody] InitiatePaymentRequest request,
         CancellationToken cancellationToken)
     {
-        var ipAddress = GetClientIpAddress();
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
 
         var command = new InitiatePaymentCommand(
             BookingId: request.BookingId,
@@ -54,7 +54,7 @@ public class PaymentsController : ControllerBase
     /// </summary>
     [Authorize(Roles = "Student")]
     [HttpPost("{bookingId:guid}/wallet")]
-    [Idempotent]
+    [Idempotent(RequireKey = true)]
     [ProducesResponseType(typeof(ApiResponse<PayBookingFromWalletResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -125,29 +125,4 @@ public class PaymentsController : ControllerBase
         return dictionary;
     }
 
-    private string GetClientIpAddress()
-    {
-        // 1. Check for X-Forwarded-For proxy header
-        if (Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))
-        {
-            var ip = forwardedFor.ToString().Split(',')[0].Trim();
-            if (!string.IsNullOrWhiteSpace(ip))
-            {
-                return ip;
-            }
-        }
-
-        // 2. Check for X-Real-IP proxy header
-        if (Request.Headers.TryGetValue("X-Real-IP", out var realIp))
-        {
-            var ip = realIp.ToString().Trim();
-            if (!string.IsNullOrWhiteSpace(ip))
-            {
-                return ip;
-            }
-        }
-
-        // 3. Fallback to HttpContext Connection RemoteIpAddress
-        return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
-    }
 }

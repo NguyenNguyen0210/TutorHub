@@ -7,6 +7,7 @@
  * - POST /dev/payments/simulate-ipn  body { bookingId, success } → SimulatedPaymentDto (chỉ ở Development)
  */
 import { api } from './api';
+import { idempotencyHeaders } from './idempotency';
 
 function normalizeRedirect(raw = {}) {
   return {
@@ -22,7 +23,7 @@ export const paymentService = {
    * POST /payments/vnpay/create-url → PaymentRedirectDto
    */
   async createVnPayUrl(bookingId, idempotencyKey = null) {
-    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
+    const headers = idempotencyHeaders(idempotencyKey);
     const res = await api.post('/payments/vnpay/create-url', { bookingId }, { headers });
     return normalizeRedirect(res);
   },

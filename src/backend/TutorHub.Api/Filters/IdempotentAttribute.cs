@@ -21,6 +21,7 @@ public class IdempotentAttribute : Attribute, IAsyncActionFilter
     /// Retention time in hours for the cached response (defaults to 24 hours).
     /// </summary>
     public int ExpirationHours { get; set; } = 24;
+    public bool RequireKey { get; set; }
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
@@ -30,6 +31,12 @@ public class IdempotentAttribute : Attribute, IAsyncActionFilter
         if (!httpContext.Request.Headers.TryGetValue(IdempotencyKeyHeader, out var keyVal) &&
             !httpContext.Request.Headers.TryGetValue(AltIdempotencyKeyHeader, out keyVal))
         {
+            if (RequireKey)
+            {
+                context.Result = new BadRequestObjectResult(ApiResponse<object>.FailureResult(
+                    "Idempotency-Key header is required for this operation."));
+                return;
+            }
             await next();
             return;
         }

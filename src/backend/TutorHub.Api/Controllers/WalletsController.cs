@@ -47,7 +47,7 @@ public class WalletsController : ControllerBase
     /// Submit a new withdrawal request to payout bank account.
     /// </summary>
     [HttpPost("withdrawals")]
-    [Idempotent]
+    [Idempotent(RequireKey = true)]
     [ProducesResponseType(typeof(ApiResponse<WithdrawalDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -141,7 +141,7 @@ public class WalletsController : ControllerBase
     /// </summary>
     [HttpPost("top-up")]
     [HttpPost("top-up/vnpay")]
-    [Idempotent]
+    [Idempotent(RequireKey = true)]
     [ProducesResponseType(typeof(ApiResponse<VnPayTopUpRedirectDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
