@@ -57,8 +57,14 @@ export default function TutorSchedule() {
       const sessions = await sessionService.getMySessions();
       const sessionList = Array.isArray(sessions) ? sessions : [];
 
+      const now = Date.now();
       const scheduledSessions = sessionList
-        .filter((s) => s.status === 'Scheduled' || (s.startAt && s.status !== 'Cancelled'))
+        .filter(
+          (s) =>
+            s.status === 'Scheduled' &&
+            s.startAt &&
+            new Date(s.startAt).getTime() >= now
+        )
         .sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
       setUpcomingSessions(scheduledSessions);
 
@@ -275,14 +281,14 @@ export default function TutorSchedule() {
             upcomingSessions.map((session) => (
               <article
                 key={session.id}
-                className="bg-surface border border-border rounded-brand-lg shadow-brand-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-brand-primary-200 hover:shadow-brand-md transition-all"
+                className="bg-surface border border-border rounded-brand-lg p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-brand-primary-300 transition-colors"
               >
                 <div className="flex items-start gap-4">
                   <div
                     aria-hidden="true"
                     className="w-12 h-12 rounded-brand-md bg-brand-primary-50 text-brand-primary-700 border border-brand-primary-100 flex flex-col items-center justify-center shrink-0"
                   >
-                    <span className="text-[10px] font-medium uppercase">
+                    <span className="text-[11px] font-medium">
                       {session.startAt
                         ? new Date(session.startAt).toLocaleDateString('vi-VN', {
                             weekday: 'short',
@@ -290,14 +296,15 @@ export default function TutorSchedule() {
                         : 'Buổi'}
                     </span>
                     <span className="text-sm font-bold tabular-nums">
-                      {session.sessionNumber}
+                      {session.startAt ? new Date(session.startAt).getDate() : session.sessionNumber}
                     </span>
                   </div>
 
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-[15px] font-semibold text-fg leading-snug">
-                        {session.subjectName || 'Buổi học'}
+                        Buổi #{session.sessionNumber}
+                        {session.subjectName ? ` · ${session.subjectName}` : ''}
                       </h2>
                       <StateBadge status={session.status} domain="session" />
                     </div>
@@ -331,7 +338,7 @@ export default function TutorSchedule() {
                 <div className="flex items-center gap-2 self-end sm:self-center">
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="md"
                     onClick={() => navigate(`/tutor/sessions/${session.id}`)}
                   >
                     Chi tiết
@@ -349,7 +356,7 @@ export default function TutorSchedule() {
           {enrollmentsWithUnscheduled.length === 0 ? (
             <EmptyState
               icon="check_circle"
-              title="Tất cả buổi học đã được xếp lịch!"
+              title="Tất cả buổi học đã được xếp lịch"
               description="Hiện tại không có buổi học nào cần xếp lịch."
             />
           ) : (
@@ -376,7 +383,7 @@ export default function TutorSchedule() {
                 return (
                   <section
                     key={enrollment.id}
-                    className="bg-surface border border-border rounded-brand-lg shadow-brand-sm p-5 space-y-4"
+                    className="bg-surface border border-border rounded-brand-lg p-4 sm:p-5 space-y-4"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-border">
                       <div className="min-w-0">
@@ -405,7 +412,7 @@ export default function TutorSchedule() {
                         </span>
                         <Button
                           variant="primary"
-                          size="sm"
+                          size="md"
                           disabled={filledCount === 0 || isBatchSubmitting}
                           loading={isBatchSubmitting}
                           onClick={() => handleScheduleBatch(enrollment)}
@@ -448,8 +455,8 @@ export default function TutorSchedule() {
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-3 flex-wrap">
-                              <div className="flex items-center gap-2">
+                            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:flex-wrap">
+                              <div className="flex w-full items-center gap-2 sm:w-auto">
                                 <input
                                   type="datetime-local"
                                   aria-label={`Thời gian bắt đầu buổi ${session.sessionNumber}`}
@@ -457,7 +464,7 @@ export default function TutorSchedule() {
                                   value={localVal}
                                   onChange={(e) => handleDateChange(session.id, e.target.value)}
                                   className={cn(
-                                    'text-caption px-2.5 py-1.5 border border-border rounded-brand-md',
+                                    'h-11 min-w-0 flex-1 text-caption px-3 border border-border rounded-brand-md sm:flex-none',
                                     'bg-surface text-fg',
                                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600'
                                   )}
@@ -471,7 +478,8 @@ export default function TutorSchedule() {
 
                               <Button
                                 variant="outline"
-                                size="sm"
+                                size="md"
+                                className="w-full sm:w-auto"
                                 disabled={!localVal || isSubmittingThis}
                                 loading={isSubmittingThis}
                                 onClick={() =>
