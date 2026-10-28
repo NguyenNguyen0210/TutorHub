@@ -16,15 +16,6 @@ import FilterSidebar from '@/components/discovery/FilterSidebar';
 import TutorCard from '@/components/discovery/TutorCard';
 import { Drawer } from '@/components/ui/Avatar';
 
-const POPULAR_SEARCH_TAGS = [
-  'Toán THPT',
-  'IELTS',
-  'Lập trình',
-  'Vật lý',
-  'Ngữ văn',
-  'Tiếng Anh',
-];
-
 const SORT_OPTIONS = [
   { value: 'priority', label: 'Ưu tiên phù hợp' },
   { value: 'rating_desc', label: 'Đánh giá cao nhất' },
@@ -233,13 +224,6 @@ export default function Marketplace() {
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  const handleTagClick = (tag) => {
-    setSearchKeyword(tag);
-    setDebouncedKeyword(tag);
-    setPageNumber(1);
-    setSearchParams({ q: tag });
-  };
-
   const handleResetFilters = () => {
     setSearchKeyword('');
     setDebouncedKeyword('');
@@ -316,7 +300,7 @@ export default function Marketplace() {
   const handlePageChange = (newPage) => {
     if (newPage < 1 || newPage > totalPages) return;
     setPageNumber(newPage);
-    window.scrollTo({ top: 380, behavior: 'smooth' });
+    window.scrollTo({ top: 260, behavior: 'smooth' });
   };
 
   // Sidebar dùng chung cho cột trái desktop và drawer mobile (chỉ mount một nơi).
@@ -379,8 +363,6 @@ export default function Marketplace() {
           if (val) setSearchParams({ q: val });
           else setSearchParams({});
         }}
-        popularTags={POPULAR_SEARCH_TAGS}
-        onTagClick={handleTagClick}
       />
 
       {/* 2. Category Navigation Bar */}
@@ -394,8 +376,8 @@ export default function Marketplace() {
       />
 
       {/* 3. Main Discovery Workspace */}
-      <main className="page-shell pt-6 sm:pt-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-7 items-start">
+      <main className="page-shell pt-5 sm:pt-6">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
           {/* Left Column: Filter Sidebar (desktop; mobile dùng drawer) */}
           {!isMobileFilters && (
             <div className="w-full lg:sticky lg:top-[88px] z-20">
@@ -463,16 +445,16 @@ export default function Marketplace() {
             )}
 
             {/* Top Toolbar: Count + Sort Dropdown */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-neutral-200/80 pt-1">
-              <h2 className="text-[18px] sm:text-[22px] font-bold text-neutral-900 tracking-tight">
+            <div className="flex flex-row items-center justify-between gap-3 border-b border-neutral-200/80 pb-3 pt-1">
+              <h2 className="text-[20px] font-bold tracking-tight text-neutral-900 sm:text-[22px]" aria-live="polite">
                 {loading ? 'Đang tìm kiếm gia sư...' : `${totalCount} gia sư phù hợp`}
               </h2>
 
-              <div className="flex items-center gap-2 self-end sm:self-auto">
-                <label htmlFor="sort-tutors" className="text-[13px] font-semibold text-neutral-500 shrink-0">
+              <div className="flex shrink-0 items-center gap-2">
+                <label htmlFor="sort-tutors" className="sr-only shrink-0 text-[14px] font-semibold text-neutral-600 sm:not-sr-only">
                   Sắp xếp:
                 </label>
-                <div className="w-52">
+                <div className="w-40 sm:w-52">
                   <Select
                     id="sort-tutors"
                     value={sortBy}
@@ -493,8 +475,8 @@ export default function Marketplace() {
             </div>
 
             {/* Quick filter chips — two-way synced with sidebar */}
-            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Bộ lọc nhanh">
-              <span className="text-[12.5px] font-semibold text-neutral-500">Lọc nhanh:</span>
+            <div className="flex max-w-full flex-nowrap items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden" role="group" aria-label="Bộ lọc nhanh">
+              <span className="shrink-0 text-[13px] font-semibold text-neutral-600">Lọc nhanh:</span>
               <button
                 type="button"
                 aria-pressed={teachingMode === 'Online'}
@@ -503,7 +485,7 @@ export default function Marketplace() {
                   setPageNumber(1);
                 }}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer',
+                  'inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors',
                   teachingMode === 'Online'
                     ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
                     : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
@@ -520,7 +502,7 @@ export default function Marketplace() {
                   setPageNumber(1);
                 }}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer',
+                  'inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors',
                   priceRange <= QUICK_PRICE_CAP
                     ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
                     : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
@@ -537,14 +519,14 @@ export default function Marketplace() {
                   setPageNumber(1);
                 }}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer',
+                  'inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors',
                   minRating === QUICK_RATING
                     ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
                     : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
                 )}
               >
                 <Icon name="star" size="xs" className="w-3.5 h-3.5" />
-                <span>4.8+ xuất sắc</span>
+                <span>Đánh giá từ 4.8</span>
               </button>
             </div>
 
@@ -569,7 +551,7 @@ export default function Marketplace() {
                 onClearAll={handleResetFilters}
               />
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {tutors.map((tutor) => (
                   <TutorCard
                     key={tutor.id}

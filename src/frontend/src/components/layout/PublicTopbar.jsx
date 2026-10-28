@@ -89,7 +89,8 @@ export default function PublicTopbar() {
           aria-label="TutorHub — trang chủ"
           className="shrink-0 flex items-center"
         >
-          <Logo variant="horizontal" size={36} />
+          <Logo variant="mark" size={36} className="sm:hidden" />
+          <Logo variant="horizontal" size={36} className="hidden sm:inline-flex" />
         </Link>
 
         {/* Center Nav Items: 14px / 500 font */}

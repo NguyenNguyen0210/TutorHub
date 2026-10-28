@@ -65,15 +65,15 @@ export default function FilterSidebar({
   onMinRatingChange,
   experienceRange,
   onExperienceRangeChange,
-  _onResetFilters,
+  onResetFilters,
   className,
 }) {
   const [openSections, setOpenSections] = useState({
-    degree: true,
-    university: true,
+    degree: false,
+    university: false,
     cert: false,
-    price: false,
-    mode: false,
+    price: true,
+    mode: true,
     rating: false,
   });
 
@@ -93,17 +93,24 @@ export default function FilterSidebar({
 
   return (
     <aside className={cn('w-full', className)} aria-label="Bộ lọc gia sư đa chiều">
-      <div className="filter-panel p-5 space-y-4 border border-border rounded-brand-lg bg-surface">
+      <div className="filter-panel flex flex-col gap-4 rounded-brand-lg border border-border bg-surface p-5">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3.5 border-b border-neutral-100">
+        <div className="flex items-center justify-between border-b border-neutral-100 pb-3.5">
           <div className="flex items-center gap-2 font-bold text-[15px] text-neutral-900">
             <Icon name="tune" size="sm" className="text-brand-primary-600" />
             <span>Bộ lọc tìm kiếm</span>
           </div>
+          <button
+            type="button"
+            onClick={onResetFilters}
+            className="min-h-11 rounded-brand-md px-2 text-[13px] font-semibold text-brand-primary-700 hover:bg-brand-primary-50"
+          >
+            Xóa tất cả
+          </button>
         </div>
 
-        {/* 1. Degree Level Section (Học vị & Bằng cấp) */}
-        <div className="space-y-2.5">
+        {/* Thông tin bổ sung: đặt sau các nhu cầu tìm kiếm chính. */}
+        <div className="order-5 space-y-2.5 border-t border-neutral-100 pt-3">
           <button
             type="button"
             onClick={() => toggleSection('degree')}
@@ -159,7 +166,7 @@ export default function FilterSidebar({
         </div>
 
         {/* 2. University Section (Trường đại học đào tạo) */}
-        <div className="space-y-2.5 pt-3 border-t border-neutral-100">
+        <div className="order-6 space-y-2.5 border-t border-neutral-100 pt-3">
           <button
             type="button"
             onClick={() => toggleSection('university')}
@@ -197,7 +204,8 @@ export default function FilterSidebar({
                   <button
                     type="button"
                     onClick={() => setUniSearch('')}
-                    className="absolute right-2 top-1.5 text-neutral-400 hover:text-neutral-600 text-[11px]"
+                    className="absolute right-0 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-brand-md text-neutral-400 hover:text-neutral-600"
+                    aria-label="Xóa từ khóa lọc trường đại học"
                   >
                     ×
                   </button>
@@ -234,7 +242,7 @@ export default function FilterSidebar({
         </div>
 
         {/* 3. Certifications Section (Chứng chỉ chuyên môn) */}
-        <div className="space-y-2.5 pt-3 border-t border-neutral-100">
+        <div className="order-7 space-y-2.5 border-t border-neutral-100 pt-3">
           <button
             type="button"
             onClick={() => toggleSection('cert')}
@@ -286,7 +294,7 @@ export default function FilterSidebar({
         </div>
 
         {/* 4. Teaching Mode & Location */}
-        <div className="space-y-2.5 pt-3 border-t border-neutral-100">
+        <div className="order-2 space-y-2.5 border-t border-neutral-100 pt-3">
           <button
             type="button"
             onClick={() => toggleSection('mode')}
@@ -324,7 +332,7 @@ export default function FilterSidebar({
                       type="button"
                       onClick={() => onTeachingModeChange(option.id)}
                       className={cn(
-                        'py-1.5 px-2 rounded-lg text-[12px] font-medium border text-center transition-all cursor-pointer',
+                        'min-h-11 rounded-lg border px-2 py-1.5 text-center text-[13px] font-medium transition-colors',
                         isSelected
                           ? 'border-brand-primary-600 bg-brand-primary-50 text-brand-primary-600 font-semibold shadow-sm'
                           : 'border-neutral-200 bg-surface text-neutral-700 hover:border-neutral-300'
@@ -341,7 +349,7 @@ export default function FilterSidebar({
                 <div className="pt-2 space-y-1.5 animate-fadeIn">
                   <label
                     htmlFor="filter-city"
-                    className="text-[11.5px] font-semibold text-neutral-500 uppercase tracking-wide"
+                    className="text-[12px] font-semibold text-neutral-600"
                   >
                     Tỉnh / Thành phố:
                   </label>
@@ -364,7 +372,7 @@ export default function FilterSidebar({
         </div>
 
         {/* 5. Price Range & Presets */}
-        <div className="space-y-2.5 pt-3 border-t border-neutral-100">
+        <div className="order-1 space-y-2.5 border-t border-neutral-100 pt-3">
           <button
             type="button"
             onClick={() => toggleSection('price')}
@@ -417,7 +425,7 @@ export default function FilterSidebar({
                       type="button"
                       onClick={() => onPriceRangeChange(p.max)}
                       className={cn(
-                        'text-[11px] px-2 py-1 rounded-md border transition-colors cursor-pointer',
+                    'min-h-11 rounded-md border px-2 py-1 text-[12px] transition-colors',
                         isActive
                           ? 'border-brand-primary-600 bg-brand-primary-50 text-brand-primary-600 font-semibold'
                           : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
@@ -433,7 +441,7 @@ export default function FilterSidebar({
         </div>
 
         {/* 6. Minimum Rating & Experience */}
-        <div className="space-y-2.5 pt-3 border-t border-neutral-100">
+        <div className="order-3 space-y-2.5 border-t border-neutral-100 pt-3">
           <button
             type="button"
             onClick={() => toggleSection('rating')}
@@ -458,7 +466,7 @@ export default function FilterSidebar({
           {openSections.rating && (
             <div id="filter-section-rating" className="space-y-3 pt-1 text-[13px]">
               <div>
-                <p className="text-[11.5px] font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">
+                <p className="mb-1.5 text-[12px] font-semibold text-neutral-600">
                   Đánh giá sao:
                 </p>
                 <div className="space-y-1">
@@ -491,7 +499,7 @@ export default function FilterSidebar({
               </div>
 
               <div className="pt-2 border-t border-neutral-100">
-                <p className="text-[11.5px] font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">
+                <p className="mb-1.5 text-[12px] font-semibold text-neutral-600">
                   Số năm kinh nghiệm:
                 </p>
                 <div className="grid grid-cols-2 gap-1">
@@ -507,7 +515,7 @@ export default function FilterSidebar({
                       type="button"
                       onClick={() => onExperienceRangeChange(exp.id)}
                       className={cn(
-                        'text-[11.5px] py-1 px-2 rounded-md border text-center transition-colors cursor-pointer',
+                        'min-h-11 rounded-md border px-2 py-1 text-center text-[12px] transition-colors',
                         experienceRange === exp.id
                           ? 'border-brand-primary-600 bg-brand-primary-50 text-brand-primary-600 font-semibold'
                           : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
