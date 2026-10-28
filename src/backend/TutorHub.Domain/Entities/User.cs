@@ -34,7 +34,7 @@ public class User
     public ICollection<TutorApplication> TutorApplications { get; set; } = new List<TutorApplication>();
 
     /// <summary>
-    /// Third-party identities (Google, Facebook) linked to this account. Empty for
+    /// Third-party identities (Google) linked to this account. Empty for
     /// accounts that only ever signed in with a password.
     /// </summary>
     public ICollection<ExternalLogin> ExternalLogins { get; set; } = new List<ExternalLogin>();

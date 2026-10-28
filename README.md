@@ -152,7 +152,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 | **Backend Framework** | .NET 8.0 (C# 12) | ASP.NET Core Web API, RESTful Endpoints |
 | **Architectural Patterns** | MediatR 12, FluentValidation 11 | CQRS, Pipeline Behaviors, Request Validation |
 | **ORM & Database** | Entity Framework Core 8, Npgsql 8 | PostgreSQL 16 Provider, Code-First Migrations, Triggers |
-| **Authentication & Security** | JWT Bearer, PBKDF2/BCrypt, OAuth 2.0 PKCE | Xác thực người dùng, Refresh Token Rotation, Google/Facebook Login |
+| **Authentication & Security** | JWT Bearer, PBKDF2/BCrypt, OpenID Connect + PKCE | Xác thực người dùng, Refresh Token Rotation, Google Sign-In |
 | **Realtime Engine** | ASP.NET Core SignalR | WebSockets Hubs cho Trò chuyện và Thông báo |
 | **Payment Gateway** | VNPay SDK (HMAC-SHA512) | Thanh toán trực tuyến, IPN Webhook, Đối soát giao dịch |
 | **Object Storage** | AWS S3 SDK / Cloudflare R2 | Lưu trữ tài liệu, ảnh đại diện, chứng chỉ gia sư qua Presigned URL |
