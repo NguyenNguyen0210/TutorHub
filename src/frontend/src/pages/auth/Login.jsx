@@ -165,8 +165,8 @@ export default function Login() {
           {/* Left Column: Marketing Message, Pillars & Seamless Illustration */}
           <section className="flex flex-col justify-center">
             {/* 1. Tag Pill */}
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-brand-primary-50 text-brand-primary-600 text-[11px] sm:text-[11.5px] font-bold uppercase tracking-wider mb-3.5 border border-brand-primary-100/60 w-fit">
-              HỌC TỐT HƠN MỖI NGÀY
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-brand-primary-50 text-brand-primary-700 text-[11px] sm:text-[11.5px] font-semibold mb-3.5 border border-brand-primary-100/60 w-fit">
+              Học tốt hơn mỗi ngày
             </div>
 
             {/* 2. Headline */}
@@ -226,7 +226,7 @@ export default function Login() {
                 loading="eager"
               />
 
-              {/* Floating Badge 1: Top Right - Hơn 10.000+ học viên */}
+              {/* Floating Badge 1: Top Right - trust message */}
               <div
                 className="absolute top-4 sm:top-5 right-2 sm:right-3 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-[16px] sm:rounded-[18px] shadow-brand-md border border-white/80 max-w-[140px] sm:max-w-[155px] text-left z-20 animate-float"
                 style={{ animationDuration: '5s' }}
@@ -239,11 +239,9 @@ export default function Login() {
                     ↗
                   </div>
                 </div>
-                <p className="text-[12px] sm:text-[13px] font-bold text-fg leading-tight mt-1">
-                  Hơn 10.000+
-                </p>
+                <p className="text-[12px] sm:text-[13px] font-bold text-fg leading-tight mt-1">Học có bảo chứng</p>
                 <p className="text-[9.5px] sm:text-[10.5px] text-neutral-500 leading-snug mt-0.5">
-                  học viên đã tìm được gia sư phù hợp
+                  Khoản thanh toán được giữ an toàn qua Escrow
                 </p>
               </div>
 
@@ -308,7 +306,7 @@ export default function Login() {
 
           {/* Right Column: Login Card */}
           <section className="flex justify-center lg:justify-end">
-            <div className="w-full max-w-[480px] bg-white rounded-[24px] p-7 sm:px-[34px] sm:py-[32px] border border-neutral-100 shadow-brand-lg">
+            <div className="w-full max-w-[480px] bg-white rounded-brand-xl p-7 sm:px-[34px] sm:py-[32px] border border-neutral-100 shadow-brand-lg">
               {/* Card Header */}
               <div className="text-left">
                 <h2 className="text-[25px] sm:text-[27px] font-bold text-fg tracking-tight leading-tight">
@@ -326,7 +324,7 @@ export default function Login() {
                   <label htmlFor="login-email" className="block text-[13px] font-bold text-fg mb-1">
                     Email
                   </label>
-                  <div className="relative flex items-center h-12 bg-white border border-border rounded-[12px] px-3.5 focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10 transition-all">
+                  <div className="relative flex items-center h-12 bg-white border border-border rounded-brand-md px-3.5 focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10 transition-all">
                     <Mail className="w-4 h-4 text-fg-muted shrink-0 mr-2.5 pointer-events-none" />
                     <input
                       id="login-email"
@@ -348,7 +346,7 @@ export default function Login() {
                   <label htmlFor="login-password" className="block text-[13px] font-bold text-fg mb-1">
                     Mật khẩu
                   </label>
-                  <div className="relative flex items-center h-12 bg-white border border-border rounded-[12px] px-3.5 focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10 transition-all">
+                  <div className="relative flex items-center h-12 bg-white border border-border rounded-brand-md px-3.5 focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10 transition-all">
                     <Lock className="w-4 h-4 text-fg-muted shrink-0 mr-2.5 pointer-events-none" />
                     <input
                       id="login-password"
@@ -364,7 +362,7 @@ export default function Login() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 p-1 text-fg-muted hover:text-neutral-700 transition-colors cursor-pointer"
+                      className="absolute right-2 inline-flex h-10 w-10 items-center justify-center text-fg-muted hover:text-neutral-700 transition-colors cursor-pointer"
                       aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                     >
                       {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -372,8 +370,8 @@ export default function Login() {
                   </div>
                 </div>
 
-                {/* 3. Options: Ghi nhớ đăng nhập & Quên mật khẩu */}
-                <div className="flex items-center justify-between pt-0.5">
+                {/* 3. Remember session */}
+                <div className="flex items-center pt-0.5">
                   <label className="flex items-center gap-2 cursor-pointer select-none text-[12.5px] text-fg-secondary">
                     <input
                       type="checkbox"
@@ -385,12 +383,6 @@ export default function Login() {
                     <span>Ghi nhớ đăng nhập</span>
                   </label>
 
-                  <Link
-                    to="/"
-                    className="text-[12.5px] font-medium text-brand-primary-600 hover:underline transition-colors"
-                  >
-                    Quên mật khẩu?
-                  </Link>
                 </div>
 
                 {/* 4. Primary CTA Button */}
@@ -398,7 +390,7 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full h-12 rounded-[12px] bg-brand-primary-600 hover:bg-brand-primary-700 active:bg-brand-primary-800 disabled:opacity-60 text-white font-semibold text-[15px] shadow-sm flex items-center justify-center gap-2 transition-colors cursor-pointer select-none"
+                    className="w-full h-12 rounded-brand-md bg-brand-primary-600 hover:bg-brand-primary-700 active:bg-brand-primary-800 disabled:opacity-60 text-white font-semibold text-[15px] shadow-brand-sm flex items-center justify-center gap-2 transition-colors cursor-pointer select-none"
                   >
                     {loading ? (
                       <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -425,7 +417,7 @@ export default function Login() {
                   type="button"
                   onClick={handleSocialLogin}
                   disabled={socialLoading}
-                  className="w-full flex items-center justify-center gap-2 h-11 px-4 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
+                  className="w-full flex items-center justify-center gap-2 h-11 px-4 rounded-brand-md border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
                 >
                   <GoogleSvg />
                   <span>Google</span>
