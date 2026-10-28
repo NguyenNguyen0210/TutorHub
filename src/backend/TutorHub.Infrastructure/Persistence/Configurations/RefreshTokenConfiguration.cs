@@ -20,6 +20,10 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
 
         builder.HasIndex(r => r.UserId);
 
+        // Rotation must update exactly one still-active row. EF adds the old
+        // RevokedAt value to the UPDATE predicate and rejects a concurrent reuse.
+        builder.Property(r => r.RevokedAt).IsConcurrencyToken();
+
         builder.Property(r => r.CreatedAt)
             .IsRequired();
 

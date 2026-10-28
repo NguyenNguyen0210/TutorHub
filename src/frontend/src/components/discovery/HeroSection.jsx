@@ -12,17 +12,23 @@ export default function HeroSection({
 }) {
 
   return (
-    <section className="relative py-7 sm:py-8 lg:py-10 bg-brand-primary-50 border-b border-brand-primary-100">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto text-center space-y-4 sm:space-y-5">
-          <h1 className="text-[32px] sm:text-[42px] lg:text-[48px] font-bold text-neutral-900 leading-[1.12] tracking-tight">
+    <section className="relative overflow-hidden border-b border-brand-primary-100 bg-brand-primary-50 py-10 sm:py-12 lg:py-16">
+      <div className="absolute inset-y-0 left-0 hidden w-1/3 border-r border-brand-primary-100/70 lg:block" aria-hidden="true" />
+      <div className="page-shell relative">
+        <div className="max-w-3xl mx-auto text-center space-y-5 sm:space-y-6">
+          <div className="inline-flex items-center gap-2 rounded-pill border border-brand-primary-200 bg-surface/80 px-3 py-1.5 text-caption font-semibold text-brand-primary-700 shadow-brand-sm">
+            <Icon name="timeline" size="xs" />
+            Học đúng người · Tiến đúng mục tiêu
+          </div>
+
+          <h1 className="text-[34px] sm:text-[46px] lg:text-[56px] font-bold text-neutral-900 leading-[1.08] tracking-[-0.035em]">
             Tìm gia sư phù hợp <br />
             <span className="text-brand-primary-600">cho mục tiêu của bạn</span>
           </h1>
 
-          <p className="text-[14px] sm:text-[15px] text-neutral-600 max-w-xl mx-auto leading-relaxed">
-            Kết nối với những gia sư chất lượng, học tập hiệu quả hơn mỗi ngày.
-            Gia sư xác thực · Thanh toán được bảo chứng.
+          <p className="text-[15px] sm:text-[17px] text-neutral-600 max-w-2xl mx-auto leading-relaxed">
+            Chọn gia sư đã xác thực, theo dõi tiến độ từng buổi và thanh toán qua
+            cơ chế bảo chứng minh bạch.
           </p>
 
           {/* Floating Search Bar: 52px height, 580px max-width, 130px button */}
@@ -31,7 +37,7 @@ export default function HeroSection({
               e.preventDefault();
               onSearchSubmit(searchKeyword);
             }}
-            className="relative w-full max-w-[580px] mx-auto h-14 flex items-center text-left bg-surface p-1.5 rounded-full border border-neutral-200/90 shadow-brand-sm hover:shadow-brand-md focus-within:ring-2 focus-within:ring-brand-primary-600/20 focus-within:border-brand-primary-600 transition-all"
+            className="relative w-full max-w-[640px] mx-auto h-16 flex items-center text-left bg-surface p-1.5 rounded-brand-xl border border-neutral-200 shadow-brand-md hover:shadow-brand-lg focus-within:ring-2 focus-within:ring-brand-primary-600/20 focus-within:border-brand-primary-600 transition-all"
             role="search"
             aria-label="Tìm kiếm gia sư"
           >
@@ -43,7 +49,7 @@ export default function HeroSection({
               type="text"
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
-              placeholder="Tìm môn học, gia sư hoặc trường…"
+              placeholder="Tìm môn học hoặc gia sư…"
               aria-label="Từ khóa tìm kiếm gia sư"
               className="flex-1 !border-none !shadow-none !bg-transparent text-[14px] placeholder:text-neutral-400 focus:!ring-0 px-1 h-full"
             />
@@ -55,7 +61,7 @@ export default function HeroSection({
                   setSearchKeyword('');
                   onSearchSubmit('');
                 }}
-                className="p-1 mr-1 text-neutral-400 hover:text-neutral-700 transition-colors rounded-full cursor-pointer"
+              className="w-11 h-11 mr-1 inline-flex items-center justify-center text-neutral-400 hover:text-neutral-700 transition-colors rounded-brand-md cursor-pointer"
                 aria-label="Xóa từ khóa tìm kiếm"
               >
                 <Icon name="close" size="sm" />
@@ -64,7 +70,7 @@ export default function HeroSection({
 
             <button
               type="submit"
-              className="h-11 px-3.5 sm:px-5 rounded-full bg-brand-primary-600 hover:bg-brand-primary-700 active:scale-[0.98] text-white text-[13px] sm:text-[14px] font-semibold flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer shadow-sm min-w-[105px] sm:min-w-[128px]"
+              className="h-[3.25rem] px-3.5 sm:px-5 rounded-brand-lg bg-primary hover:bg-primary-hover active:scale-[0.98] text-white text-[13px] sm:text-[14px] font-semibold flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer shadow-brand-sm min-w-[105px] sm:min-w-[128px]"
             >
               <span>Tìm gia sư</span>
               <Icon name="arrow_forward" size="xs" />
@@ -79,15 +85,25 @@ export default function HeroSection({
                 key={tag}
                 type="button"
                 onClick={() => onTagClick(tag)}
-                className="px-3 py-1 rounded-full bg-white/90 hover:bg-white text-neutral-700 hover:text-brand-primary-600 border border-neutral-200/80 hover:border-brand-primary-600/40 shadow-sm text-[12px] font-medium transition-all cursor-pointer"
+                className="min-h-9 px-3 py-1 rounded-pill bg-white/90 hover:bg-white text-neutral-700 hover:text-brand-primary-600 border border-neutral-200/80 hover:border-brand-primary-600/40 shadow-brand-sm text-[12px] font-medium transition-all cursor-pointer"
               >
                 {tag}
               </button>
             ))}
           </div>
 
-          {/* Real tutor proof: overlapping avatars + real count from props */}
-         
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 border-t border-brand-primary-200/70 pt-5 text-left sm:text-center">
+            {[
+              ['verified_user', 'Hồ sơ được xác thực'],
+              ['timeline', 'Tiến độ từng buổi'],
+              ['shield', 'Thanh toán bảo chứng'],
+            ].map(([icon, label]) => (
+              <div key={label} className="flex items-center justify-center gap-2 text-[13px] font-medium text-neutral-700">
+                <Icon name={icon} size="sm" className="text-brand-primary-600" />
+                <span>{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

@@ -94,5 +94,36 @@ public class WithdrawalFlowTests : IntegrationTestBase
         // Assert
         processing.Status.Should().Be(WithdrawalStatus.Processing);
         completed.Status.Should().Be(WithdrawalStatus.Completed);
+        var wallet = await Db.Wallets.AsNoTracking().FirstAsync(w => w.Id == created.WalletId);
+        wallet.AvailableBalance.Should().Be(800_000m);
+        wallet.WithdrawingBalance.Should().Be(0m);
+        (await Db.WalletTransactions.AsNoTracking().CountAsync(t =>
+            t.WithdrawalId == created.Id && t.Type == WalletTransactionType.WithdrawalSuccessSettlement))
+            .Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ConcurrentCompletion_SettlesWithdrawalOnlyOnce()
+    {
+        var (tutorUser, _, admin) = await SeedHelper.SeedTutorWithWalletAsync(Db);
+        SetCurrentUser(tutorUser.Id, UserRole.Tutor);
+        var created = await SendAsync(new CreateWithdrawalCommand(
+            Amount: 200_000m,
+            BankName: "Vietcombank",
+            AccountNumber: "1234567890",
+            AccountHolderName: "INTEGRATION TUTOR"));
+        SetCurrentUser(admin.Id, UserRole.Admin);
+        await SendAsync(new ProcessWithdrawalCommand(created.Id));
+
+        var first = SendAsync(new CompleteWithdrawalCommand(created.Id));
+        var second = SendAsync(new CompleteWithdrawalCommand(created.Id));
+        var act = () => Task.WhenAll(first, second);
+        await act.Should().ThrowAsync<ConflictException>();
+
+        var wallet = await Db.Wallets.AsNoTracking().SingleAsync(w => w.Id == created.WalletId);
+        wallet.WithdrawingBalance.Should().Be(0m);
+        (await Db.WalletTransactions.AsNoTracking().CountAsync(t =>
+            t.WithdrawalId == created.Id && t.Type == WalletTransactionType.WithdrawalSuccessSettlement))
+            .Should().Be(1);
     }
 }

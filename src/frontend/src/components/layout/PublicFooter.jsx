@@ -6,11 +6,11 @@ import { Check } from 'lucide-react';
 export default function PublicFooter() {
   return (
     <footer className="bg-brand-navy-950 text-neutral-300 mt-12">
-      <div className="max-w-[1200px] mx-auto px-6 pt-12 sm:pt-14 pb-8">
+      <div className="max-w-[1200px] mx-auto px-5 sm:px-6 pt-10 sm:pt-14 pb-7">
         {/* Main 4-Column Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr] gap-10 lg:gap-12">
+        <div className="grid grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr] gap-x-6 gap-y-9 lg:gap-12">
           {/* Column 1: Brand & Trust Block */}
-          <div className="space-y-4">
+          <div className="col-span-2 lg:col-span-1 space-y-4">
             <Link to="/" className="inline-flex" aria-label="TutorHub — trang chủ">
               <Logo variant="horizontal" size={34} tone="light" showSubtitle={false} />
             </Link>
@@ -87,7 +87,7 @@ export default function PublicFooter() {
           </div>
 
           {/* Column 4: TutorHub */}
-          <div className="space-y-3">
+          <div className="col-span-2 sm:col-span-1 space-y-3">
             <span className="text-[13px] font-semibold text-neutral-50 uppercase tracking-wider block">
               TutorHub
             </span>
@@ -117,9 +117,9 @@ export default function PublicFooter() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-10 pt-6 border-t border-brand-navy-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-[12.5px] text-neutral-400">
+        <div className="mt-9 pt-5 border-t border-brand-navy-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left text-[12.5px] text-neutral-400">
           <span>© 2026 TutorHub Platform. All rights reserved.</span>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
             <Link to="/" className="hover:text-white transition-colors">
               Điều khoản
             </Link>

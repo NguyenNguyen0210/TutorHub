@@ -77,15 +77,9 @@ public class CancelBookingCommandHandler : IRequestHandler<CancelBookingCommand,
         // 4. Update Booking via domain transition
         booking.Cancel(actor, request.Reason, now);
 
-        // A Holding booking never credited escrow (escrow is credited only on payment
-        // success), so cancellation moves no money. Void any pre-allocated gateway
-        // attempt so it cannot later be replayed as a valid payment.
+        // Preserve gateway attempts and their references. A delayed successful
+        // callback must still find the attempt and create a refund.
         var paymentTx = await _context.GetPaymentTransactionAsync(booking.Id, cancellationToken);
-        if (paymentTx != null && paymentTx.Status == TransactionStatus.Held)
-        {
-            paymentTx.Status = TransactionStatus.Failed;
-            paymentTx.Description = "Booking cancelled before payment completed.";
-        }
 
         await _context.SaveChangesAsync(cancellationToken);
 

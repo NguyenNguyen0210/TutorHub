@@ -25,6 +25,7 @@ public class User
     // distributed credential-stuffing attempt cannot sidestep account security.
     public int AccessFailedCount { get; set; }
     public DateTime? LockoutEndAt { get; set; }
+    public int TokenVersion { get; set; }
 
     // Profiles
     public TutorProfile? TutorProfile { get; set; }
@@ -55,6 +56,7 @@ public class User
             throw new InvalidOperationException(
                 $"Cannot suspend account with status '{Status}'. Only Active accounts can be suspended.");
         Status = AccountStatus.Suspended;
+        TokenVersion++;
     }
 
     /// <summary>
@@ -76,6 +78,7 @@ public class User
         if (Status == AccountStatus.Banned)
             throw new InvalidOperationException("Account is already banned.");
         Status = AccountStatus.Banned;
+        TokenVersion++;
     }
 
     /// <summary>

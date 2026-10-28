@@ -7,6 +7,6 @@ namespace TutorHub.Application.Features.Media.GenerateUploadUrl;
 public record GenerateUploadUrlCommand(
     string FileName,
     string ContentType,
-    long? EstimatedSize,
+    long EstimatedSize,
     MediaType MediaType
 ) : IRequest<UploadUrlDto>;

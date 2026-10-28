@@ -35,6 +35,7 @@ public class JwtService : IJwtService
             new(JwtRegisteredClaimNames.Name, user.FullName),
             new(ClaimTypes.Name, user.FullName),
             new(ClaimTypes.Role, user.Role.ToString()),
+            new("token_version", user.TokenVersion.ToString(System.Globalization.CultureInfo.InvariantCulture)),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 

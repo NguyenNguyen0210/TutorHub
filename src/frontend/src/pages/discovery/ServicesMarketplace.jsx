@@ -349,7 +349,7 @@ export default function ServicesMarketplace() {
       />
 
       {/* 2. Main Discovery Container: 2 Columns */}
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+      <div className="page-shell pt-6 sm:pt-8">
         <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-7 items-start">
           {/* Left Column: Filter Sidebar (desktop; mobile dùng drawer) */}
           {!isMobileFilters && (
@@ -534,7 +534,7 @@ export default function ServicesMarketplace() {
             {/* Services Grid (3 Columns on Desktop) */}
             {!loading && !error && services.length > 0 && (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                   {services.map((service) => (
                     <ServiceCard
                       key={service.id}

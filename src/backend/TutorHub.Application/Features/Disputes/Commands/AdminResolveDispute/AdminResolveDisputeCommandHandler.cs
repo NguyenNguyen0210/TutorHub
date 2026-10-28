@@ -167,6 +167,7 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
         if (tutorNetPayout > 0)
         {
             // guarded domain math.
+            var availableBalanceBefore = tutorWallet.AvailableBalance;
             tutorWallet.CreditAvailable(tutorNetPayout, now);
 
             _context.WalletTransactions.Add(new WalletTransaction
@@ -175,8 +176,12 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
                 WalletId = tutorWallet.Id,
                 DisputeId = dispute.Id,
                 Type = WalletTransactionType.SessionPayoutCredit,
+                Direction = FinancialDirection.Credit,
                 Amount = tutorNetPayout,
+                BalanceBefore = availableBalanceBefore,
                 BalanceAfter = tutorWallet.AvailableBalance,
+                ReferenceType = "Dispute",
+                ReferenceId = dispute.Id,
                 Description = $"Dispute resolution payout for Session #{session.SessionNumber}",
                 CreatedAt = now
             });

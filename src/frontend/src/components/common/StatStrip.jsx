@@ -6,7 +6,7 @@ import { cn } from '@/lib/cn';
  * StatStrip — Thanh tóm tắt chỉ số và số dư.
  *
  * số liệu là trọng tâm, trực quan, chính xác.
- * Hỗ trợ top indicator border và subtle gradient tinh tế cho trạng thái holding / danger.
+ * Hỗ trợ top indicator theo trạng thái holding / danger.
  */
 export default function StatStrip({ figures, className, columns = 4 }) {
   const cols =
@@ -27,26 +27,26 @@ export default function StatStrip({ figures, className, columns = 4 }) {
           <div
             key={f.key}
             className={cn(
-              'bg-surface border border-border rounded-brand-lg px-4 py-3.5 sm:px-5 sm:py-4 min-w-0 transition-all duration-200 hover:shadow-brand-sm relative overflow-hidden',
+              'bg-surface border border-border rounded-brand-lg px-4 py-3.5 sm:px-5 sm:py-4 min-w-0 relative overflow-hidden flex flex-col',
               isHolding
-                ? 'border-t-2 border-t-amber-500 bg-gradient-to-b from-amber-50/20 to-transparent'
+                ? 'border-t-2 border-t-holding bg-holding-subtle/30'
                 : isDanger
-                  ? 'border-t-2 border-t-rose-500 bg-gradient-to-b from-rose-50/20 to-transparent'
-                  : 'border-t-2 border-t-brand-primary-500/40 hover:border-t-brand-primary-600'
+                  ? 'border-t-2 border-t-danger bg-danger-subtle/30'
+                  : 'border-t-2 border-t-brand-primary-500/40'
             )}
           >
-            <dt className="flex items-center justify-between gap-1 text-[11px] sm:text-[11.5px] font-semibold uppercase tracking-wider text-fg-muted mb-1.5 truncate">
-              <span className="truncate">{f.label}</span>
+            <dt className="flex min-h-9 items-start justify-between gap-1 text-caption font-semibold text-fg-secondary mb-1.5 leading-snug">
+              <span>{f.label}</span>
               {isHolding && (
                 <span
-                  className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"
+                  className="w-2 h-2 rounded-full bg-holding shrink-0"
                   aria-hidden="true"
                   title="Thời gian chờ / Ký quỹ"
                 />
               )}
               {isDanger && (
                 <span
-                  className="w-2 h-2 rounded-full bg-rose-500 shrink-0"
+                  className="w-2 h-2 rounded-full bg-danger shrink-0"
                   aria-hidden="true"
                   title="Cần xử lý"
                 />
@@ -55,7 +55,7 @@ export default function StatStrip({ figures, className, columns = 4 }) {
 
             <dd
               className={cn(
-                'text-[24px] sm:text-[28px] leading-tight font-extrabold tabular-nums tracking-tight truncate',
+                'text-[20px] sm:text-[28px] leading-tight font-extrabold tabular-nums tracking-tight whitespace-nowrap',
                 isHolding
                   ? 'text-holding-strong'
                   : isDanger
@@ -69,7 +69,7 @@ export default function StatStrip({ figures, className, columns = 4 }) {
             </dd>
 
             {f.hint && (
-              <p className="text-[12px] text-fg-muted mt-1 truncate">
+              <p className="text-[12px] text-fg-muted mt-1 leading-snug">
                 {f.hint}
               </p>
             )}

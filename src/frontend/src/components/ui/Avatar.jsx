@@ -50,7 +50,7 @@ export default function Avatar({ src, name, size = 'md', className, ...rest }) {
  * Menu — dropdown tuỳ biến, đóng khi click ngoài / nhấn Escape.
  * `items`: [{ key, label, icon?, danger?, onClick } | { type: 'divider' }]
  */
-export function Menu({ trigger, items = [], align = 'right', className }) {
+export function Menu({ trigger, items = [], align = 'right', className, label }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
 
@@ -79,6 +79,7 @@ export function Menu({ trigger, items = [], align = 'right', className }) {
         }}
         role="button"
         tabIndex={0}
+        aria-label={label}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -88,7 +89,7 @@ export function Menu({ trigger, items = [], align = 'right', className }) {
         }}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="inline-flex"
+        className="inline-flex rounded-brand-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         {trigger}
       </div>

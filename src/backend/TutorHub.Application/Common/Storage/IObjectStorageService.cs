@@ -27,6 +27,10 @@ public interface IObjectStorageService
         string objectKey,
         CancellationToken cancellationToken = default);
 
+    Task<StoredFileResult?> GetMetadataAsync(
+        string objectKey,
+        CancellationToken cancellationToken = default);
+
     Task<string> GenerateDownloadUrlAsync(
         string objectKey,
         TimeSpan expiration,
@@ -35,6 +39,7 @@ public interface IObjectStorageService
     Task<string> GenerateUploadUrlAsync(
         string objectKey,
         string contentType,
+        long contentLength,
         TimeSpan expiration,
         CancellationToken cancellationToken = default);
 }

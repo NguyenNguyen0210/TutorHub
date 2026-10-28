@@ -32,6 +32,16 @@ public class TutorApplicationConfiguration : IEntityTypeConfiguration<TutorAppli
 
         builder.HasIndex(a => new { a.UserId, a.Status });
 
+        builder.HasIndex(a => a.UserId, "IX_TutorApplications_UserId_Pending")
+            .IsUnique()
+            .HasFilter("\"Status\" = 'Pending'")
+            .HasDatabaseName("UX_TutorApplications_OnePendingPerUser");
+
+        builder.HasIndex(a => a.UserId, "IX_TutorApplications_UserId_Approved")
+            .IsUnique()
+            .HasFilter("\"Status\" = 'Approved'")
+            .HasDatabaseName("UX_TutorApplications_OneApprovedPerUser");
+
         builder.Property(a => a.Bio)
             .IsRequired()
             .HasMaxLength(2000);

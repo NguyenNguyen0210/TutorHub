@@ -83,4 +83,16 @@ public class TopUpRequestTests
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*Cannot reject top-up request in 'Rejected' status*");
     }
+
+    [Fact]
+    public void VerifiedGatewaySuccess_AfterEarlierRejection_RecordsPayment()
+    {
+        var request = CreatePendingRequest();
+        request.RejectViaGateway("Earlier failed callback", DateTime.UtcNow);
+
+        request.ConfirmViaGateway("123456789", DateTime.UtcNow);
+
+        request.Status.Should().Be(TopUpRequestStatus.Confirmed);
+        request.RejectionReason.Should().BeNull();
+    }
 }

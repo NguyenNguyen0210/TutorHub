@@ -84,7 +84,7 @@ public class CancelBookingCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenHoldingBookingCancelledWithHeldTransaction_ShouldVoidAttemptWithoutWalletChange()
+    public async Task Handle_WhenHoldingBookingCancelled_PreservesAttemptForLateCallback()
     {
         // Arrange
         var bookingId = Guid.NewGuid();
@@ -126,7 +126,7 @@ public class CancelBookingCommandHandlerTests
         result.Status.Should().Be(BookingStatus.Cancelled);
 
         booking.Status.Should().Be(BookingStatus.Cancelled);
-        transaction.Status.Should().Be(TransactionStatus.Failed);
+        transaction.Status.Should().Be(TransactionStatus.Held);
         tutorWallet.PendingBalance.Should().Be(200_000m);
 
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);

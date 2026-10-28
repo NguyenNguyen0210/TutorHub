@@ -7,6 +7,8 @@ using TutorHub.Application.Features.Admin.Reports.DTOs;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
+using TutorHub.Application.Common.Concurrency;
+using TutorHub.Application.Common.Caching;
 
 namespace TutorHub.Application.Features.Admin.Reports.ResolveReport;
 
@@ -16,18 +18,35 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
     private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IServiceDetailCacheService _serviceCache;
+    private readonly ITutorProfileCacheService _tutorCache;
 
-    public ResolveReportCommandHandler(IAppDbContext context, IClock clock, IAuditLogService auditLogService, ICurrentUserService currentUserService)
+    public ResolveReportCommandHandler(
+        IAppDbContext context,
+        IClock clock,
+        IAuditLogService auditLogService,
+        ICurrentUserService currentUserService,
+        IServiceDetailCacheService? serviceCache = null,
+        ITutorProfileCacheService? tutorCache = null)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
         _currentUserService = currentUserService;
+        _serviceCache = serviceCache ?? NoOpServiceDetailCacheService.Instance;
+        _tutorCache = tutorCache ?? NoOpTutorProfileCacheService.Instance;
     }
 
     public async Task<AdminReportDetailDto> Handle(ResolveReportCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
+        Guid? cacheServiceId = null;
+        Guid? cacheTutorProfileId = null;
+
+        await using var transaction = await PostgresAdvisoryLock.BeginTransactionAsync(_context, cancellationToken);
+        await PostgresAdvisoryLock.LockRowAsync(_context,
+            $"SELECT 1 FROM \"Reports\" WHERE \"Id\" = {request.Id} FOR UPDATE",
+            cancellationToken);
 
         var report = await _context.Reports
             .Include(r => r.ReporterUser)
@@ -82,6 +101,8 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
                 // Safety guards: self-lockout & last active admin protection
                 if (request.Decision == ReportDecision.SuspendUser || request.Decision == ReportDecision.BanUser)
                 {
+                    await PostgresAdvisoryLock.AcquireAsync(_context, "admin:last-active", cancellationToken);
+
                     if (reportedUser.Id == userId)
                     {
                         throw new ConflictException(request.Decision == ReportDecision.SuspendUser
@@ -157,6 +178,8 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
                 if (review.Enrollment != null)
                 {
                     var tutorProfileId = review.Enrollment.TutorProfileId;
+                    cacheTutorProfileId = tutorProfileId;
+                    cacheServiceId = review.Enrollment.ServiceId;
                     var remainingRatings = await _context.Reviews
                         .AsNoTracking()
                         .Include(r => r.Enrollment)
@@ -186,6 +209,8 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
             if (service != null && service.Status == ServiceStatus.Published)
             {
                 service.Unpublish();
+                cacheServiceId = service.Id;
+                cacheTutorProfileId = service.TutorProfileId;
 
                 await _auditLogService.LogAsync(
                     action: "SERVICE_FORCE_UNPUBLISHED",
@@ -235,6 +260,32 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
             cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
+        if (transaction != null)
+            await transaction.CommitAsync(cancellationToken);
+
+        if ((request.Decision == ReportDecision.SuspendUser || request.Decision == ReportDecision.BanUser) &&
+            report.ReportedUserId.HasValue)
+        {
+            var reportedTutorProfileId = await _context.TutorProfiles.AsNoTracking()
+                .Where(t => t.UserId == report.ReportedUserId.Value)
+                .Select(t => (Guid?)t.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (reportedTutorProfileId.HasValue)
+            {
+                await _tutorCache.InvalidateTutorProfileAsync(reportedTutorProfileId.Value, cancellationToken);
+                var serviceIds = await _context.Services.AsNoTracking()
+                    .Where(s => s.TutorProfileId == reportedTutorProfileId.Value)
+                    .Select(s => s.Id)
+                    .ToListAsync(cancellationToken);
+                foreach (var affectedServiceId in serviceIds)
+                    await _serviceCache.InvalidateServiceDetailAsync(affectedServiceId, cancellationToken);
+            }
+        }
+
+        if (cacheServiceId.HasValue)
+            await _serviceCache.InvalidateServiceDetailAsync(cacheServiceId.Value, cancellationToken);
+        if (cacheTutorProfileId.HasValue)
+            await _tutorCache.InvalidateTutorProfileAsync(cacheTutorProfileId.Value, cancellationToken);
 
         var booking = report.Booking;
         var studentUser = booking?.StudentProfile?.User;

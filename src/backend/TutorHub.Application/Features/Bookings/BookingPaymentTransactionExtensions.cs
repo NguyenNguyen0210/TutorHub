@@ -17,8 +17,9 @@ public static class BookingPaymentTransactionExtensions
         Guid bookingId,
         CancellationToken cancellationToken)
     {
-        return context.Transactions.FirstOrDefaultAsync(
-            t => t.BookingId == bookingId && t.Type == TransactionType.BookingPayment,
-            cancellationToken);
+        return context.Transactions
+            .Where(t => t.BookingId == bookingId && t.Type == TransactionType.BookingPayment)
+            .OrderByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }

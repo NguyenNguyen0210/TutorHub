@@ -37,10 +37,10 @@ if ! docker ps --filter "name=${CONTAINER_NAME}" --filter "status=running" --for
     exit 1
 fi
 
-# 2. Kiểm tra xem Migration đã được áp dụng chưa (kiểm tra bảng Users)
+# 2. Kiểm tra migration mới nhất cần cho seed data.
 echo "🔍 Kiểm tra trạng thái schema database..."
-if ! docker exec "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select to_regclass('public.\"Users\"')" 2>/dev/null | grep -q "Users"; then
-    echo "⚠️  Cảnh báo: Bảng 'Users' chưa tồn tại trong database!"
+if ! docker exec "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT to_regclass('public.\"Users\"') IS NOT NULL AND to_regclass('public.\"ConversationAttachments\"') IS NOT NULL" 2>/dev/null | grep -q '^t$'; then
+    echo "⚠️  Database chưa áp dụng đủ migration cho seed data hiện tại."
     echo "💡 Bạn cần chạy EF Core Migration trước khi seed data:"
     echo "   dotnet ef database update --project src/backend/TutorHub.Infrastructure --startup-project src/backend/TutorHub.Api"
     echo "   (Hoặc đợi container tutorhub-api khởi động hoàn tất nếu chạy full docker compose)"

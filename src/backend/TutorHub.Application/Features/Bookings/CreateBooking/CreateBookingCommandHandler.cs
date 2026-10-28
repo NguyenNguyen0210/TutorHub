@@ -5,6 +5,7 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
+using TutorHub.Application.Common.Concurrency;
 
 namespace TutorHub.Application.Features.Bookings.CreateBooking;
 
@@ -84,6 +85,10 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
 
         var now = _clock.UtcNow;
 
+        await using var transaction = await PostgresAdvisoryLock.BeginTransactionAsync(_context, cancellationToken);
+        await PostgresAdvisoryLock.AcquireAsync(
+            _context, $"booking-hold:{student.Id:D}:{service.Id:D}", cancellationToken);
+
         // Idempotency (RM13): If an active holding booking already exists for this student and service, return it
         var existingHolding = await _context.Bookings
             .FirstOrDefaultAsync(b => b.StudentProfileId == student.Id
@@ -118,6 +123,8 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
 
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync(cancellationToken);
+        if (transaction != null)
+            await transaction.CommitAsync(cancellationToken);
 
         // centralized mapping (attach loaded navs first).
         booking.StudentProfile = student;

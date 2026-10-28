@@ -94,8 +94,9 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("CancelledBy")
-                        .HasColumnType("integer");
+                    b.Property<string>("CancelledBy")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
@@ -234,6 +235,43 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_Conversations_Tutor");
 
                     b.ToTable("Conversations", (string)null);
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.ConversationAttachment", b =>
+                {
+                    b.Property<string>("StorageKey")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("StorageKey");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.HasIndex("ConversationId", "UploadedByUserId");
+
+                    b.ToTable("ConversationAttachments", (string)null);
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Dispute", b =>
@@ -934,6 +972,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("RevokedAt")
+                        .IsConcurrencyToken()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("TokenHash")
@@ -1572,6 +1611,16 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("UserId", "Status");
 
+                    b.HasIndex(new[] { "UserId" }, "IX_TutorApplications_UserId_Approved")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TutorApplications_OneApprovedPerUser")
+                        .HasFilter("\"Status\" = 'Approved'");
+
+                    b.HasIndex(new[] { "UserId" }, "IX_TutorApplications_UserId_Pending")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TutorApplications_OnePendingPerUser")
+                        .HasFilter("\"Status\" = 'Pending'");
+
                     b.ToTable("TutorApplications");
                 });
 
@@ -1720,6 +1769,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasDefaultValue("Active");
 
+                    b.Property<int>("TokenVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
@@ -1843,7 +1897,10 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("WalletId", "CreatedAt");
 
-                    b.ToTable("WalletTransactions", (string)null);
+                    b.ToTable("WalletTransactions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_WalletTransaction_ValidDirection", "\"Direction\" IN ('Credit', 'Debit')");
+                        });
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Withdrawal", b =>
@@ -1982,6 +2039,21 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("StudentProfile");
 
                     b.Navigation("TutorProfile");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.ConversationAttachment", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.Conversation", null)
+                        .WithMany()
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TutorHub.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Dispute", b =>

@@ -45,12 +45,14 @@ public class PayBookingFromWalletCommandHandler : IRequestHandler<PayBookingFrom
         {
             await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
 
+            // Serialize every payment method for this booking before reading its status.
             var booking = await _context.Bookings
+                .FromSqlInterpolated($"SELECT * FROM \"Bookings\" WHERE \"Id\" = {request.BookingId} FOR UPDATE")
                 .Include(b => b.StudentProfile).ThenInclude(s => s.User)
                 .Include(b => b.TutorProfile).ThenInclude(t => t.User)
                 .Include(b => b.Service)
                 .Include(b => b.Subject)
-                .FirstOrDefaultAsync(b => b.Id == request.BookingId, cancellationToken);
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (booking == null)
             {
@@ -110,27 +112,18 @@ public class PayBookingFromWalletCommandHandler : IRequestHandler<PayBookingFrom
             };
             _context.WalletTransactions.Add(studentLedger);
 
-            // 7. Transfer to Platform Holding: Create or update Booking Transaction
-            var paymentTx = await _context.GetPaymentTransactionAsync(booking.Id, cancellationToken);
-            if (paymentTx == null)
+            // A wallet payment is its own attempt; prior gateway references remain traceable.
+            var paymentTx = new Transaction
             {
-                paymentTx = new Transaction
-                {
-                    Id = Guid.NewGuid(),
-                    BookingId = booking.Id,
-                    Amount = booking.TotalPrice,
-                    Type = TransactionType.BookingPayment,
-                    Status = TransactionStatus.Held, // Platform Holding!
-                    PaymentGatewayRef = "STUDENT_WALLET",
-                    CreatedAt = now
-                };
-                _context.Transactions.Add(paymentTx);
-            }
-            else
-            {
-                paymentTx.Status = TransactionStatus.Held;
-                paymentTx.PaymentGatewayRef = "STUDENT_WALLET";
-            }
+                Id = Guid.NewGuid(),
+                BookingId = booking.Id,
+                Amount = booking.TotalPrice,
+                Type = TransactionType.BookingPayment,
+                Status = TransactionStatus.Held,
+                PaymentGatewayRef = $"STUDENT_WALLET:{booking.Id:N}",
+                CreatedAt = now
+            };
+            _context.Transactions.Add(paymentTx);
 
             // 8. Update Booking Status to Paid
             booking.Status = BookingStatus.Paid;

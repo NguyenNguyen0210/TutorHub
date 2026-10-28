@@ -30,8 +30,20 @@ public class AdminProcessStudentWithdrawalCommandHandler : IRequestHandler<Admin
             throw new NotFoundException(nameof(StudentWithdrawal), request.WithdrawalId);
         }
 
+        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+        await _context.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"Withdrawals\" WHERE \"Id\" = {withdrawal.Id} FOR UPDATE",
+            cancellationToken);
+        var currentStatus = await _context.StudentWithdrawals.AsNoTracking()
+            .Where(w => w.Id == withdrawal.Id)
+            .Select(w => w.Status)
+            .FirstAsync(cancellationToken);
+        if (currentStatus != TutorHub.Domain.Enums.WithdrawalStatus.Pending)
+            throw new ConflictException($"Cannot process withdrawal in '{currentStatus}' status.");
+
         withdrawal.MarkProcessing(adminId);
         await _context.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
 
         return new StudentWithdrawalDto
         {

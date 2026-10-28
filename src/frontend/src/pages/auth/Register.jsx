@@ -299,8 +299,8 @@ export default function Register() {
           {/* Left Column: Marketing Message, Pillars & Illustration */}
           <section className="flex flex-col justify-center">
             {/* Tag Pill */}
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-brand-primary-50 text-brand-primary-600 text-[11px] sm:text-[11.5px] font-bold uppercase tracking-wider mb-3.5 border border-brand-primary-100/60 w-fit">
-              HỌC TỐT HƠN MỖI NGÀY
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-brand-primary-50 text-brand-primary-700 text-[11px] sm:text-[11.5px] font-semibold mb-3.5 border border-brand-primary-100/60 w-fit">
+              Học tốt hơn mỗi ngày
             </div>
 
             {/* Headline */}
@@ -441,7 +441,7 @@ export default function Register() {
 
           {/* Right Column: Register Card */}
           <section className="flex justify-center lg:justify-end">
-            <div className="w-full max-w-[480px] bg-white rounded-[24px] p-7 sm:px-[34px] sm:py-[32px] border border-neutral-100 shadow-brand-lg">
+            <div className="w-full max-w-[480px] bg-white rounded-brand-xl p-7 sm:px-[34px] sm:py-[32px] border border-neutral-100 shadow-brand-lg">
               {/* Card Header */}
               <div className="text-left">
                 <h2 className="text-[25px] sm:text-[27px] font-bold text-fg tracking-tight leading-tight">
@@ -458,7 +458,6 @@ export default function Register() {
                   className="grid grid-cols-2 gap-3"
                   role="radiogroup"
                   aria-label="Chọn loại tài khoản"
-                  onKeyDown={handleRoleKeyDown}
                 >
                   {/* Option 1: Tôi là học viên */}
                   <button
@@ -467,6 +466,7 @@ export default function Register() {
                     aria-checked={selectedRole === 'Student'}
                     tabIndex={selectedRole === 'Student' ? 0 : -1}
                     onClick={() => setSelectedRole('Student')}
+                    onKeyDown={handleRoleKeyDown}
                     className={cn(
                       'p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600',
                       selectedRole === 'Student'
@@ -504,6 +504,7 @@ export default function Register() {
                     aria-checked={selectedRole === 'Tutor'}
                     tabIndex={selectedRole === 'Tutor' ? 0 : -1}
                     onClick={() => setSelectedRole('Tutor')}
+                    onKeyDown={handleRoleKeyDown}
                     className={cn(
                       'p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600',
                       selectedRole === 'Tutor'
@@ -545,7 +546,7 @@ export default function Register() {
                   </label>
                   <div
                     className={cn(
-                      'relative flex items-center h-12 bg-white border rounded-[12px] px-3.5 transition-all',
+                      'relative flex items-center h-12 bg-white border rounded-brand-md px-3.5 transition-all',
                       fieldErrors.fullName
                         ? 'border-error ring-1 ring-error/20 focus-within:border-error focus-within:ring-error/20'
                         : 'border-border focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10'
@@ -584,7 +585,7 @@ export default function Register() {
                   </label>
                   <div
                     className={cn(
-                      'relative flex items-center h-12 bg-white border rounded-[12px] px-3.5 transition-all',
+                      'relative flex items-center h-12 bg-white border rounded-brand-md px-3.5 transition-all',
                       fieldErrors.email
                         ? 'border-error ring-1 ring-error/20 focus-within:border-error focus-within:ring-error/20'
                         : 'border-border focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10'
@@ -623,7 +624,7 @@ export default function Register() {
                   </label>
                   <div
                     className={cn(
-                      'relative flex items-center h-12 bg-white border rounded-[12px] px-3.5 transition-all',
+                      'relative flex items-center h-12 bg-white border rounded-brand-md px-3.5 transition-all',
                       fieldErrors.phoneNumber
                         ? 'border-error ring-1 ring-error/20 focus-within:border-error focus-within:ring-error/20'
                         : 'border-border focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10'
@@ -661,7 +662,7 @@ export default function Register() {
                   </label>
                   <div
                     className={cn(
-                      'relative flex items-center h-12 bg-white border rounded-[12px] px-3.5 transition-all',
+                      'relative flex items-center h-12 bg-white border rounded-brand-md px-3.5 transition-all',
                       fieldErrors.password
                         ? 'border-error ring-1 ring-error/20 focus-within:border-error focus-within:ring-error/20'
                         : 'border-border focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10'
@@ -687,7 +688,7 @@ export default function Register() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 p-1 text-fg-muted hover:text-neutral-700 transition-colors cursor-pointer"
+                      className="absolute right-2 inline-flex h-10 w-10 items-center justify-center text-fg-muted hover:text-neutral-700 transition-colors cursor-pointer"
                       aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                     >
                       {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -741,7 +742,7 @@ export default function Register() {
                   <button
                     type="submit"
                     disabled={loading || socialLoading}
-                    className="w-full h-12 rounded-[12px] bg-brand-primary-600 hover:bg-brand-primary-700 active:bg-brand-primary-800 disabled:opacity-60 text-white font-semibold text-[15px] shadow-sm flex items-center justify-center gap-2 transition-colors cursor-pointer select-none"
+                    className="w-full h-12 rounded-brand-md bg-brand-primary-600 hover:bg-brand-primary-700 active:bg-brand-primary-800 disabled:opacity-60 text-white font-semibold text-[15px] shadow-brand-sm flex items-center justify-center gap-2 transition-colors cursor-pointer select-none"
                   >
                     {loading ? (
                       <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -768,7 +769,7 @@ export default function Register() {
                   type="button"
                   onClick={() => handleSocialRegister('Google')}
                   disabled={loading || socialLoading}
-                  className="w-full flex items-center justify-center gap-2 h-11 px-4 rounded-[10px] border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
+                  className="w-full flex items-center justify-center gap-2 h-11 px-4 rounded-brand-md border border-border bg-white hover:bg-neutral-50 transition-colors text-[13px] font-medium text-neutral-700 cursor-pointer shadow-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
                 >
                   {socialLoading ? (
                     <span className="w-4 h-4 border-2 border-neutral-400/30 border-t-neutral-600 rounded-full animate-spin" />

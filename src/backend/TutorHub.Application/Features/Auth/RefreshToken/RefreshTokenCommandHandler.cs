@@ -106,7 +106,14 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
         };
 
         _context.RefreshTokens.Add(newRefreshTokenEntity);
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new UnauthorizedException("Refresh token has already been used. Please log in again.");
+        }
 
         var expiresAt = _clock.UtcNow.AddMinutes(_lifetimes.AccessTokenExpirationMinutes);
 

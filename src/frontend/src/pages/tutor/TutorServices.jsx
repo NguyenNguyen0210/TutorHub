@@ -14,6 +14,7 @@ import { useConfirm } from '@/components/ui/Dialog';
 import ServiceRow from '@/components/tutor/services/ServiceRow';
 import ServiceFilterBar from '@/components/tutor/services/ServiceFilterBar';
 import ServiceDrawer from '@/components/tutor/services/ServiceDrawer';
+import StatStrip from '@/components/common/StatStrip';
 import {
   createInitialFormState,
   validateServiceForm,
@@ -31,14 +32,6 @@ const STATUS_TABS = [
   { id: 'Unpublished', label: 'Đã gỡ xuất bản' },
 ];
 
-const STATUS_LABELS = {
-  All: 'Tất cả',
-  Draft: 'Bản nháp',
-  Published: 'Đã xuất bản',
-  Paused: 'Tạm dừng',
-  Unpublished: 'Đã gỡ xuất bản',
-};
-
 export default function TutorServices() {
   const toast = useToast();
   const confirm = useConfirm();
@@ -53,7 +46,6 @@ export default function TutorServices() {
   const [activeTab, setActiveTab] = useState('All');
   const [search, setSearch] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('All');
-  const [statusFilter, setStatusFilter] = useState('All');
 
   // Drawer State (Create / Edit)
   const [showDrawer, setShowDrawer] = useState(false);
@@ -344,14 +336,12 @@ export default function TutorServices() {
   const handleClearFilters = useCallback(() => {
     setSearch('');
     setSubjectFilter('All');
-    setStatusFilter('All');
   }, []);
 
   // Clear everything including the status tab
   const handleClearAll = useCallback(() => {
     setSearch('');
     setSubjectFilter('All');
-    setStatusFilter('All');
     setActiveTab('All');
   }, []);
 
@@ -366,26 +356,22 @@ export default function TutorServices() {
       const name = subjects.find((s) => s.id === subjectFilter)?.name || 'Môn học';
       chips.push({ key: 'subject', label: name, clear: () => setSubjectFilter('All') });
     }
-    if (statusFilter !== 'All') {
-      chips.push({ key: 'status', label: STATUS_LABELS[statusFilter] || statusFilter, clear: () => setStatusFilter('All') });
-    }
     return chips;
-  }, [search, subjectFilter, statusFilter, subjects]);
+  }, [search, subjectFilter, subjects]);
 
   // Filtered services
   const filteredServices = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     return services.filter((item) => {
       const matchTab = activeTab === 'All' || item.status === activeTab;
-      const matchStatus = statusFilter === 'All' || item.status === statusFilter;
       const matchSubject = subjectFilter === 'All' || item.subjectId === subjectFilter;
       const matchSearch =
         !keyword ||
         item.title?.toLowerCase().includes(keyword) ||
         item.subjectName?.toLowerCase().includes(keyword);
-      return matchTab && matchStatus && matchSubject && matchSearch;
+      return matchTab && matchSubject && matchSearch;
     });
-  }, [services, activeTab, statusFilter, subjectFilter, search]);
+  }, [services, activeTab, subjectFilter, search]);
 
   return (
     <div className="space-y-5">
@@ -408,25 +394,14 @@ export default function TutorServices() {
         </Button>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" aria-label="Tổng quan dịch vụ">
-        <div className="bg-surface border border-border rounded-brand-lg p-4">
-          <p className="text-2xl font-bold tabular-nums tracking-tight text-fg">{stats.total}</p>
-          <p className="text-caption font-medium text-fg-secondary mt-1">Tổng</p>
-        </div>
-        <div className="bg-surface border border-border rounded-brand-lg p-4">
-          <p className="text-2xl font-bold tabular-nums tracking-tight text-brand-primary-600">{stats.published}</p>
-          <p className="text-caption font-medium text-fg-secondary mt-1">Xuất bản</p>
-        </div>
-        <div className="bg-surface border border-border rounded-brand-lg p-4">
-          <p className="text-2xl font-bold tabular-nums tracking-tight text-fg">{stats.draft}</p>
-          <p className="text-caption font-medium text-fg-secondary mt-1">Bản nháp</p>
-        </div>
-        <div className="bg-surface border border-border rounded-brand-lg p-4">
-          <p className="text-2xl font-bold tabular-nums tracking-tight text-fg">{stats.unpublished}</p>
-          <p className="text-caption font-medium text-fg-secondary mt-1">Chưa xuất bản</p>
-        </div>
-      </div>
+      <StatStrip
+        figures={[
+          { key: 'total', label: 'Tổng dịch vụ', value: <span>{stats.total}</span> },
+          { key: 'published', label: 'Đang tuyển sinh', value: <span>{stats.published}</span> },
+          { key: 'draft', label: 'Bản nháp', value: <span>{stats.draft}</span>, tone: 'muted' },
+          { key: 'paused', label: 'Tạm dừng', value: <span>{stats.paused}</span>, tone: 'holding' },
+        ]}
+      />
 
       {/* Status tabs with counts */}
       <Tabs
@@ -445,8 +420,6 @@ export default function TutorServices() {
         subjects={subjects}
         subjectId={subjectFilter}
         onSubjectIdChange={setSubjectFilter}
-        status={statusFilter}
-        onStatusChange={setStatusFilter}
         onClear={handleClearFilters}
       />
 
@@ -459,7 +432,7 @@ export default function TutorServices() {
               key={chip.key}
               type="button"
               onClick={chip.clear}
-              className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1 rounded-full bg-brand-primary-50 border border-brand-primary-100 text-brand-primary-700 font-medium hover:bg-brand-primary-100 transition-colors cursor-pointer"
+              className="inline-flex min-h-11 items-center gap-1.5 pl-3 pr-2 rounded-full bg-brand-primary-50 border border-brand-primary-100 text-brand-primary-700 font-medium hover:bg-brand-primary-100 transition-colors cursor-pointer"
               aria-label={`Xóa bộ lọc ${chip.label}`}
             >
               {chip.label}
@@ -469,7 +442,7 @@ export default function TutorServices() {
           <button
             type="button"
             onClick={handleClearAll}
-            className="text-fg-secondary hover:text-fg font-medium underline underline-offset-2 cursor-pointer"
+            className="inline-flex min-h-11 items-center px-2 text-fg-secondary hover:text-fg font-medium underline underline-offset-2 cursor-pointer"
           >
             Xóa tất cả
           </button>
@@ -489,9 +462,9 @@ export default function TutorServices() {
 
       {!loading && !error && filteredServices.length === 0 && (
         <EmptyState
-          icon={<Icon name="inventory_2" size="xl" />}
+          icon="inventory_2"
           title={
-            search || subjectFilter !== 'All' || statusFilter !== 'All'
+            search || subjectFilter !== 'All'
               ? 'Không tìm thấy gói dịch vụ phù hợp'
               : activeTab !== 'All'
                 ? `Chưa có gói dịch vụ nào ở trạng thái ${
@@ -500,17 +473,12 @@ export default function TutorServices() {
                 : 'Chưa có gói dịch vụ nào'
           }
           description={
-            search || subjectFilter !== 'All' || statusFilter !== 'All'
+            search || subjectFilter !== 'All'
               ? 'Hãy thử thay đổi từ khóa hoặc bộ lọc.'
               : 'Hãy bắt đầu thiết kế gói học đầu tiên của bạn để thu hút học viên đăng ký trên TutorHub.'
           }
-          action={
-            !search && activeTab === 'All' && subjectFilter === 'All' && statusFilter === 'All' ? (
-              <Button variant="primary" size="md" onClick={handleOpenCreate} icon={<Icon name="add" size="sm" />}>
-                Tạo gói học ngay
-              </Button>
-            ) : null
-          }
+          actionLabel={!search && activeTab === 'All' && subjectFilter === 'All' ? 'Tạo gói học ngay' : undefined}
+          onAction={!search && activeTab === 'All' && subjectFilter === 'All' ? handleOpenCreate : undefined}
         />
       )}
 

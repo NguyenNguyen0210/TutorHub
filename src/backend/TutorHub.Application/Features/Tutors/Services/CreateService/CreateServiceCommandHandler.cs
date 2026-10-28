@@ -5,6 +5,7 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Tutors.Services.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
+using TutorHub.Application.Common.Caching;
 
 namespace TutorHub.Application.Features.Tutors.Services.CreateService;
 
@@ -13,12 +14,18 @@ public class CreateServiceCommandHandler : IRequestHandler<CreateServiceCommand,
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ITutorProfileCacheService _tutorCache;
 
-    public CreateServiceCommandHandler(IAppDbContext context, IClock clock, ICurrentUserService currentUserService)
+    public CreateServiceCommandHandler(
+        IAppDbContext context,
+        IClock clock,
+        ICurrentUserService currentUserService,
+        ITutorProfileCacheService? tutorCache = null)
     {
         _context = context;
         _clock = clock;
         _currentUserService = currentUserService;
+        _tutorCache = tutorCache ?? NoOpTutorProfileCacheService.Instance;
     }
 
     public async Task<ServiceDto> Handle(CreateServiceCommand request, CancellationToken cancellationToken)
@@ -82,6 +89,7 @@ public class CreateServiceCommandHandler : IRequestHandler<CreateServiceCommand,
 
         _context.Services.Add(service);
         await _context.SaveChangesAsync(cancellationToken);
+        await _tutorCache.InvalidateTutorProfileAsync(tutor.Id, cancellationToken);
 
         return ServiceDtoMapper.FromService(
             service,

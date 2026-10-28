@@ -2,19 +2,18 @@
 
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?style=flat&logo=react)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?style=flat&logo=vite)](https://vitejs.dev/)
-[![Ant Design](https://img.shields.io/badge/Ant%20Design-5.20-1890FF?style=flat&logo=antdesign)](https://ant.design/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
 
-Giao diện người dùng Web dành cho học viên, gia sư và quản trị viên của nền tảng **TutorHub**, được xây dựng bằng React 18, Vite, Ant Design 5, TailwindCSS và kết nối trực tiếp với Backend .NET 8 Web API.
+Giao diện người dùng Web dành cho học viên, gia sư và quản trị viên của nền tảng **TutorHub**, được xây dựng bằng React 18, Vite, TailwindCSS và các component trong project, kết nối trực tiếp với Backend .NET 8 Web API.
 
 ---
 
 ## 🚀 Công Nghệ & Thư Viện Sử Dụng
 
 * **Core Runtime & Build Tool:** React 18.3, Vite 5.4
-* **UI Components & Styling:** Ant Design 5.20, `@ant-design/icons`, TailwindCSS 3.4
+* **UI Components & Styling:** TailwindCSS 3.4, Lucide React và các component trong `src/components/`
 * **State Management & Server State:** Zustand 4.5, TanStack React Query 5.56
-* **Routing:** React Router DOM 6.26
+* **Routing:** React Router DOM 7.18
 * **HTTP Client & Realtime:** Axios 1.7 (Interceptors gắn JWT Bearer và Refresh Token Rotation), `@microsoft/signalr` 8.0 (`/hubs/chat`, `/hubs/notifications`)
 * **Utilities:** Day.js 1.11, clsx, tailwind-merge
 

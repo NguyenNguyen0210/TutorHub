@@ -45,6 +45,7 @@ public class GenerateUploadUrlCommandHandler : IRequestHandler<GenerateUploadUrl
         var uploadUrl = await _storageService.GenerateUploadUrlAsync(
             objectKey,
             request.ContentType,
+            request.EstimatedSize,
             TimeSpan.FromMinutes(expirationMinutes),
             cancellationToken
         );

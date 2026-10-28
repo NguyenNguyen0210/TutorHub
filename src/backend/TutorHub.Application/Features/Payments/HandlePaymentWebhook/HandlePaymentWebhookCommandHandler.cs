@@ -67,26 +67,34 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
         {
             using var dbTx = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
 
-            var transactionId = await _context.Transactions
+            var transactionRef = await _context.Transactions
                 .AsNoTracking()
                 .Where(t => t.PaymentGatewayRef == txnRef || t.PaymentGatewayRef == $"{txnRef}|{transactionNo}")
-                .Select(t => (Guid?)t.Id)
+                .OrderByDescending(t => t.PaymentGatewayRef == $"{txnRef}|{transactionNo}")
+                .Select(t => new { t.Id, t.BookingId })
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (transactionId == null)
+            if (transactionRef == null)
             {
                 _logger.LogWarning("Payment webhook: Order not found for TxnRef={TxnRef}", txnRef);
                 return _paymentGateway.BuildAcknowledgement(PaymentWebhookOutcome.NotFound);
             }
 
-            await _context.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT 1 FROM \"Transactions\" WHERE \"Id\" = {transactionId.Value} FOR UPDATE",
-                cancellationToken);
+            // Every payment path locks the booking first. Different gateway attempts
+            // have different transaction rows, so locking only a transaction is insufficient.
+            await _context.Bookings
+                .FromSqlInterpolated($"SELECT * FROM \"Bookings\" WHERE \"Id\" = {transactionRef.BookingId} FOR UPDATE")
+                .AsNoTracking()
+                .FirstAsync(cancellationToken);
+            await _context.Transactions
+                .FromSqlInterpolated($"SELECT * FROM \"Transactions\" WHERE \"Id\" = {transactionRef.Id} FOR UPDATE")
+                .AsNoTracking()
+                .FirstAsync(cancellationToken);
 
             var transaction = await _context.Transactions
                 .Include(t => t.Booking).ThenInclude(b => b.StudentProfile).ThenInclude(s => s.User)
                 .Include(t => t.Booking).ThenInclude(b => b.TutorProfile).ThenInclude(t => t.User)
-                .FirstOrDefaultAsync(t => t.Id == transactionId.Value, cancellationToken);
+                .FirstOrDefaultAsync(t => t.Id == transactionRef.Id, cancellationToken);
 
             if (transaction == null)
             {
@@ -98,6 +106,25 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
             {
                 _logger.LogWarning("Payment webhook: Amount mismatch. Expected={Expected}, Received={Received}", transaction.Amount, amount);
                 return _paymentGateway.BuildAcknowledgement(PaymentWebhookOutcome.InvalidAmount);
+            }
+
+            if (parsed.IsSuccessful && transaction.Status == TransactionStatus.Failed)
+            {
+                // Older timeout runs may have marked the original attempt Failed.
+                // Preserve that immutable row and append the captured payment.
+                var captured = new Transaction
+                {
+                    Id = Guid.NewGuid(),
+                    BookingId = transaction.BookingId,
+                    Booking = transaction.Booking,
+                    Type = TransactionType.BookingPayment,
+                    Status = TransactionStatus.Pending,
+                    Amount = transaction.Amount,
+                    PaymentGatewayRef = $"{txnRef}|{transactionNo}",
+                    CreatedAt = _clock.UtcNow
+                };
+                _context.Transactions.Add(captured);
+                transaction = captured;
             }
 
             if (transaction.Booking.Status != BookingStatus.Holding)
@@ -159,9 +186,16 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
             return _paymentGateway.BuildAcknowledgement(PaymentWebhookOutcome.Success);
         }
 
+        if (transaction.Status == TransactionStatus.Held &&
+            transaction.PaymentGatewayRef == $"{txnRef}|{transactionNo}")
+        {
+            await dbTx.CommitAsync(cancellationToken);
+            return _paymentGateway.BuildAcknowledgement(PaymentWebhookOutcome.Duplicate);
+        }
+
         var alreadyActivated = booking.Status == BookingStatus.Paid
             || await _context.Enrollments.AnyAsync(e => e.BookingId == booking.Id, cancellationToken);
-        if (alreadyActivated)
+        if (alreadyActivated && transaction.Status == TransactionStatus.Held)
         {
             _logger.LogInformation("Payment webhook: Order already processed. Current Status={Status}", booking.Status);
             await dbTx.CommitAsync(cancellationToken);
@@ -172,7 +206,7 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
         transaction.Status = TransactionStatus.Held;
         transaction.PaymentGatewayRef = $"{txnRef}|{transactionNo}";
 
-        if (booking.CancelledBy == CancelledBy.System)
+        if (booking.CancelledBy == CancelledBy.System && !alreadyActivated)
         {
             booking.ReactivateForPayment(now);
 
@@ -260,9 +294,8 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
             await using var dbTx = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
 
             var topUp = await _context.TopUpRequests
-                .Include(t => t.Wallet)
-                    .ThenInclude(w => w.User)
-                .FirstOrDefaultAsync(t => t.TransferReference == txnRef, cancellationToken);
+                .FromSqlInterpolated($"SELECT * FROM \"TopUpRequests\" WHERE \"TransferReference\" = {txnRef} FOR UPDATE")
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (topUp == null)
             {
@@ -286,7 +319,7 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
             if (parsed.IsSuccessful)
             {
                 // Lock wallet row
-                var wallet = await _context.StudentWallets
+                var wallet = await _context.Wallets
                     .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"Id\" = {topUp.WalletId} FOR UPDATE")
                     .FirstOrDefaultAsync(cancellationToken);
 
@@ -295,6 +328,8 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
                     _logger.LogError("Payment webhook: StudentWallet {WalletId} not found for TopUp {TopUpId}", topUp.StudentWalletId, topUp.Id);
                     return _paymentGateway.BuildAcknowledgement(PaymentWebhookOutcome.NotFound);
                 }
+
+                topUp.Wallet = wallet;
 
                 var balanceBefore = wallet.AvailableBalance;
                 wallet.Credit(topUp.Amount, now);
@@ -343,6 +378,7 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
             }
             else
             {
+                topUp.Wallet = await _context.Wallets.FirstAsync(w => w.Id == topUp.WalletId, cancellationToken);
                 topUp.RejectViaGateway($"Giao dịch VNPay thất bại. Mã GD: {transactionNo}", now);
 
                 await _auditLogService.LogAsync(

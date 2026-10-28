@@ -11,6 +11,7 @@ using TutorHub.Application.Features.Conversations.GetMyConversations;
 using TutorHub.Application.Features.Conversations.GetOrCreateConversation;
 using TutorHub.Application.Features.Conversations.MarkConversationAsRead;
 using TutorHub.Application.Features.Conversations.SendMessage;
+using TutorHub.Domain.Entities;
 
 namespace TutorHub.Api.Controllers;
 
@@ -166,11 +167,25 @@ public class ConversationsController : ControllerBase
         }
 
         var storageKey = await _fileStorage.SaveAsync(stream, file.FileName, detectedMime, cancellationToken);
+        var fileName = Path.GetFileName(file.FileName);
+        if (fileName.Length > 256)
+            fileName = fileName[..256];
+        _dbContext.ConversationAttachments.Add(new ConversationAttachment
+        {
+            StorageKey = storageKey,
+            ConversationId = id,
+            UploadedByUserId = currentUserId,
+            FileName = fileName,
+            ContentType = detectedMime,
+            Size = file.Length,
+            CreatedAt = DateTime.UtcNow
+        });
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         var result = new AttachmentUploadResult
         {
             StorageKey = storageKey,
-            FileName = Path.GetFileName(file.FileName),
+            FileName = fileName,
             ContentType = detectedMime,
             Size = file.Length
         };
@@ -215,6 +230,12 @@ public class ConversationsController : ControllerBase
         if (!isStudent && !isTutor && !isAdmin)
         {
             throw new ForbiddenException("You are not authorized to download attachments from this conversation.");
+        }
+
+        if (!await _dbContext.Messages.AsNoTracking().AnyAsync(
+                m => m.ConversationId == id && m.AttachmentKey == storageKey, cancellationToken))
+        {
+            throw new NotFoundException("Attachment is not part of this conversation.");
         }
 
         var stream = await _fileStorage.GetAsync(storageKey, cancellationToken);

@@ -305,7 +305,7 @@ export default function TutorDashboard() {
             </Button>
           }
         >
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-brand-primary-700 bg-brand-primary-50 border border-brand-primary-100 px-2 py-0.5 rounded-pill">
+          <span className="inline-flex items-center gap-1.5 text-caption font-semibold text-brand-primary-700 bg-brand-primary-50 border border-brand-primary-100 px-2 py-0.5 rounded-pill">
             Bước quan trọng tiếp theo
           </span>
           <p className="text-[15px] font-semibold text-fg leading-snug mt-1.5">
@@ -438,7 +438,7 @@ export default function TutorDashboard() {
                     as={Link}
                     to={`/tutor/sessions/${s.id}`}
                     padding="md"
-                    className="block hover:border-brand-primary-200 hover:shadow-brand-md transition-all"
+                    className="block hover:border-brand-primary-300 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -464,8 +464,8 @@ export default function TutorDashboard() {
         <aside className="space-y-4">
           <div className="lg:sticky lg:top-24 space-y-4">
             <Card padding="md" className="space-y-2">
-              <h2 className="text-caption font-semibold uppercase tracking-wide text-fg-secondary">
-                Buổi dạy tới
+              <h2 className="text-[15px] font-semibold text-fg">
+                Buổi dạy tiếp theo
               </h2>
               {nextSession ? (
                 <>

@@ -34,7 +34,6 @@ public class CreateVnPayTopUpCommandHandler : IRequestHandler<CreateVnPayTopUpCo
         var now = _clock.UtcNow;
 
         var studentProfile = await _context.StudentProfiles
-            .Include(s => s.Wallet)
             .FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken);
 
         if (studentProfile == null)

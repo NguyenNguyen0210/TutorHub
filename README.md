@@ -18,8 +18,6 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Backend%20Tests-758%20Passed-success?style=flat-square&logo=xunit" alt="Backend Tests: 758 Passed" />
-  <img src="https://img.shields.io/badge/Playwright%20E2E-22%20Passed-success?style=flat-square&logo=playwright" alt="Playwright E2E: 22 Passed" />
   <img src="https://img.shields.io/badge/Architecture-Clean%20%2B%20CQRS-blueviolet?style=flat-square" alt="Clean Architecture + CQRS" />
   <img src="https://img.shields.io/badge/Security-OAuth2%20PKCE%20%7C%20JWT%20Rotation-green?style=flat-square" alt="Security" />
   <img src="https://img.shields.io/badge/Database-Append--Only%20Ledger-orange?style=flat-square" alt="Append-Only Ledger" />
@@ -57,7 +55,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
 │                          React 18 Client                               │
-│  Vite 5 ── Tailwind CSS ── Ant Design ── Zustand ── SignalR Client     │
+│  Vite 5 ── Tailwind CSS ── Lucide React ── Zustand ── SignalR Client   │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ HTTPS REST / WSS WebSockets
                                     ▼
@@ -158,7 +156,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 | **Object Storage** | AWS S3 SDK / Cloudflare R2 | Lưu trữ tài liệu, ảnh đại diện, chứng chỉ gia sư qua Presigned URL |
 | **Email Service** | MailKit 4 (SMTP) | Gửi email giao dịch, chào mừng đăng ký và thông báo bảo mật |
 | **Frontend Framework** | React 18.3, Vite 5.4 | Client SPA, Fast HMR, Rollup Production Bundler |
-| **Styling & Components** | TailwindCSS 3.4, Ant Design 5.20 | Giao diện doanh nghiệp, thiết kế thích ứng (Responsive UI) |
+| **Styling & Components** | TailwindCSS 3.4, Lucide React, component nội bộ | Giao diện thích ứng (Responsive UI) |
 | **State Management** | Zustand 4.5, TanStack Query 5 | Global Client State & Server Cache Synchronization |
 | **Client HTTP** | Axios 1.7 | HTTP Client với Interceptors tự động Refresh Token |
 | **End-to-End Testing** | Playwright (Python / Node) | Kiểm thử tự động giao diện và luồng người dùng đa vai trò |
@@ -190,11 +188,11 @@ TutorHub/
 │   │   ├── package.json                      # Cấu hình thư viện Frontend
 │   │   └── vite.config.js                    # Cấu hình Vite & loại bỏ console/debugger trong Production
 │   │
-│   └── test/                                 # Bộ kiểm thử tự động Backend (814 Tests)
-│       ├── TutorHub.Domain.UnitTests/        # 239 tests: Logic thực thể, Invariants, Scheduling & Dispute Rules
-│       ├── TutorHub.Application.UnitTests/   # 455 tests: CQRS Handlers, Policies DI, Validation, Security rules
-│       ├── TutorHub.Infrastructure.UnitTests/# 50 tests: VNPay HMAC, Password Hasher, S3 options, Outbox
-│       └── TutorHub.Api.IntegrationTests/    # 70 tests: Tích hợp cơ sở dữ liệu thật, API contract, Ledgers
+│   └── test/                                 # Bộ kiểm thử tự động Backend
+│       ├── TutorHub.Domain.UnitTests/        # Logic thực thể và quy tắc nghiệp vụ
+│       ├── TutorHub.Application.UnitTests/   # CQRS handlers và validation
+│       ├── TutorHub.Infrastructure.UnitTests/# Tích hợp hạ tầng ở mức unit
+│       └── TutorHub.Api.IntegrationTests/    # API và PostgreSQL
 │
 ├── scripts/                                  # Kịch bản kiểm thử & vận hành tự động
 │   └── e2e_grace_period.py                   # Bộ test E2E Playwright kiểm thử luồng 12h Auto-Payout
@@ -219,25 +217,49 @@ TutorHub/
 
 ### 2. Khởi Chạy Nhanh Bằng Docker Compose (Khuyến Nghị)
 
-Phương pháp nhanh nhất để chạy toàn bộ hệ thống kèm dữ liệu mẫu sẵn có:
+Phương pháp nhanh nhất để chạy các dịch vụ; dữ liệu mẫu được nạp riêng ở bước cuối:
 
 ```bash
 # 1. Sao chép biến môi trường mẫu
 cp .env.example .env
 
-# 2. Khởi động cụm dịch vụ (PostgreSQL, Redis, Seq, Backend API)
+# 2. Thay toàn bộ secret mẫu `change_me` trong .env bằng giá trị thật.
+#    API từ chối khởi động nếu vẫn dùng secret mẫu.
+
+# 3. Để dùng Swagger và cấu hình dev, đặt ASPNETCORE_ENVIRONMENT=Development trong .env.
+#    Nếu để trống, Compose mặc định chạy Production và không phục vụ Swagger.
+
+# 4. Khởi động cụm dịch vụ (PostgreSQL, Redis, Seq, Backend API)
 docker compose up -d --build
 
-# 3. Nạp dữ liệu mẫu (chạy khi khởi tạo lần đầu hoặc khi muốn reset dữ liệu)
+# 5. Nạp dữ liệu mẫu nếu cần; script sẽ TRUNCATE dữ liệu hiện có và yêu cầu xác nhận.
 ./scripts/seed-data.sh     # Linux/macOS/Git Bash
 # hoặc trên Windows PowerShell:
 .\scripts\seed-data.ps1
 ```
 
+Seed dùng dữ liệu nhân vật và giao dịch **giả lập** nhưng nhất quán: 10 gia sư đã duyệt,
+2 hồ sơ đang chờ/từ chối, 24 học viên, 20 gói học, 48 booking và các buổi học,
+ví, đánh giá, hội thoại tương ứng. Mọi tài khoản được seed dùng mật khẩu `Test@123`.
+Ví dụ đăng nhập: `admin@tutorhub.test`, `gia-su01@tutorhub.test`,
+`hoc-vien01@tutorhub.test`. Seed không tạo email đã gửi, refresh token,
+tệp đính kèm hay lệnh thanh toán thật.
+
+`src/backend/seedData.sql` đã chứa toàn bộ các câu `INSERT` và có thể chép riêng
+sang máy khác để nạp; máy đích chỉ cần PostgreSQL với schema đã áp dụng đủ EF migrations.
+Không cần Python hay script generator khi nạp dữ liệu. Ví dụ nạp trực tiếp bằng `psql`
+(thay tên user/database theo máy đích):
+
+```bash
+psql -U tutorhub -d tutorhub -v ON_ERROR_STOP=1 -f src/backend/seedData.sql
+```
+
+Lệnh nạp sẽ thay thế toàn bộ dữ liệu nghiệp vụ hiện có trong database đích.
+
 Sau khi khởi chạy thành công:
 * **Backend API:** `http://localhost:8080`
-* **Swagger Documentation:** `http://localhost:8080/swagger`
-* **Cơ sở dữ liệu PostgreSQL:** `localhost:5433` (Database: `tutorhub`, User: `tutorhub`, Password: `tutorhub`)
+* **Swagger Documentation (chỉ khi `ASPNETCORE_ENVIRONMENT=Development`):** `http://localhost:8080/swagger`
+* **Cơ sở dữ liệu PostgreSQL:** `localhost:5433` (database và tài khoản theo `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` trong `.env`)
 
 ---
 
@@ -254,8 +276,8 @@ docker run -d --name tutorhub-postgres -p 5433:5432 -e POSTGRES_DB=tutorhub -e P
 # Cập nhật schema database qua EF Core
 dotnet ef database update --project src/backend/TutorHub.Infrastructure --startup-project src/backend/TutorHub.Api
 
-# Nạp dữ liệu mẫu
-docker exec -i tutorhub-postgres psql -U tutorhub -d tutorhub < src/backend/seedData.sql
+# Nạp dữ liệu mẫu (script kiểm tra migration và hỏi trước khi thay dữ liệu cũ)
+./scripts/seed-data.sh
 ```
 
 #### Bước 3.2: Khởi chạy Backend API (.NET 8)
@@ -278,7 +300,7 @@ npm run dev
 
 ## 🔀 Mở Rộng Quy Mô (Scale-Out với Redis)
 
-* **Redis tích hợp:** Luôn được kích hoạt chuẩn hóa (`Redis:Enabled=true`), sử dụng chung Redis (`redis:7-alpine` trong compose / container production) cho distributed lock, distributed cache, SignalR backplane và OAuth state.
+* **Redis tích hợp:** Compose bật `Redis:Enabled=true`; local Development có thể tắt bằng `Redis__Enabled=false` trong `.env`. Khi bật, Redis dùng cho distributed lock, cache, SignalR backplane và OAuth state.
 * **Redis chết lúc chạy:** Các đường non-OAuth vẫn phục vụ — cache đọc thẳng DB, cron bỏ qua kỳ + log, `/health` báo `Degraded` ở check `redis` (không bao giờ `Unhealthy`, không restart tiến trình).
 * **Background Jobs (Hợp nhất vào API host):**
   - Cả môi trường Dev (`docker-compose.yml`) và Production (`docker-compose.prod.yml`) đều cấu hình `BackgroundJobs__Enabled: "true"` trực tiếp trên container `api`, tinh giản việc duy trì container worker riêng rẽ.
@@ -294,22 +316,11 @@ npm run dev
 
 ## 🧪 Kiểm Thử Tự Động (Automated Testing)
 
-TutorHub áp dụng văn hóa kiểm thử chất lượng cao với độ phủ kiểm thử dày đặc ở mọi tầng ứng dụng:
-
-```text
-814 Backend Tests (100% Passed)
-├── Domain Tests:         239 passed
-├── Application Tests:    455 passed
-├── Infrastructure Tests:  50 passed
-└── Integration Tests:     70 passed
-
-22 Playwright E2E Tests (100% Passed)
-└── Full Grace Period, Dispute, Wallet & Checkout lifecycle
-```
+Project có unit test cho Domain, Application và Infrastructure, integration test cho API và kịch bản Playwright E2E. Số lượng và kết quả test cần lấy từ lần chạy hiện tại; tài liệu không giữ số đếm cố định. Integration test dùng PostgreSQL tại `localhost:5433` (có thể đổi cổng bằng `POSTGRES_PORT`), user `tutorhub`, mật khẩu từ biến môi trường `POSTGRES_PASSWORD` (mặc định `123456`) và tự tạo database `tutorhub_integration` (xem `IntegrationWebApplicationFactory`). Đặt `POSTGRES_PASSWORD` bằng mật khẩu của container đang chạy trước khi gọi `dotnet test`.
 
 ### Chạy Toàn Bộ Test Suite Backend
 ```bash
-# Chạy toàn bộ 814 tests trong solution
+# Chạy toàn bộ test trong solution (integration test cần PostgreSQL)
 dotnet test src/backend/TutorHub.sln --logger "console;verbosity=normal"
 ```
 
@@ -337,6 +348,10 @@ playwright install chromium
 # Thực thi bộ test kịch bản tự động giải ngân và khiếu nại
 python scripts/e2e_grace_period.py
 ```
+
+### Cập nhật bản OpenAPI
+
+`docs/openapi.json` là bản xuất từ API đang chạy ở môi trường Development. Sau khi thay đổi controller hoặc DTO, chạy API với cấu hình Development hợp lệ và xuất lại từ `http://localhost:5129/swagger/v1/swagger.json`. Không sửa tay schema đã sinh.
 
 ---
 

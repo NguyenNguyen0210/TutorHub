@@ -6,25 +6,6 @@ import Icon from '@/components/ui/Icon';
 import { useToast } from '@/components/ui/Toast';
 import { getTeachingModeMeta } from '@/config/enums';
 
-function StarRow({ value, className = '' }) {
-  const rounded = Math.round(value);
-  return (
-    <span className={className}>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Icon
-          key={i}
-          name="star"
-          size="xs"
-          filled={i < rounded}
-          className={i < rounded ? 'text-brand-secondary-500' : 'text-neutral-300'}
-        />
-      ))}
-    </span>
-  );
-}
-
-StarRow.propTypes = { value: PropTypes.number.isRequired, className: PropTypes.string };
-
 /**
  * ProfileHeadline — phần "con người + niềm tin" của hồ sơ.
  *
@@ -115,10 +96,9 @@ export default function ProfileHeadline({ tutor }) {
       {/* Dòng tin cậy — số đi kèm nhãn, không chỉ dựa vào màu/icon */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-caption">
         {hasRating && (
-          <span className="inline-flex items-center gap-1.5 font-bold text-fg bg-brand-secondary-50 border border-brand-secondary-200 px-2 py-0.5 rounded-brand-sm">
-            <Icon name="star" size="xs" filled className="text-brand-secondary-500" />
+          <span className="inline-flex items-center gap-1.5 font-bold text-fg bg-brand-primary-50 border border-brand-primary-200 px-2 py-0.5 rounded-brand-sm">
+            <Icon name="star" size="xs" filled className="text-brand-primary-600" />
             <span className="tabular-nums">{ratingValue.toFixed(1)}</span>
-            <StarRow value={ratingValue} className="inline-flex" />
             <span className="font-medium text-fg-secondary">
               ({tutor.totalReviews ?? 0} đánh giá)
             </span>
@@ -162,7 +142,7 @@ export default function ProfileHeadline({ tutor }) {
       <div className="pt-1">
         <Button
           variant="outline"
-          size="sm"
+          size="md"
           onClick={handleShare}
           icon={<Icon name={copied ? 'check' : 'content_copy'} size="xs" />}
         >

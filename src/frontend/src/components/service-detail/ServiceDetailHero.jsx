@@ -37,10 +37,16 @@ export default function ServiceDetailHero({ service }) {
   };
 
   const embedUrl = getEmbedUrl(service.trialLessonUrl);
+  const rating = Number(tutor.ratingAvg) > 0 ? Number(tutor.ratingAvg) : null;
+  const totalReviews = Number(tutor.totalReviews) || 0;
+  const enrolledCount = Number(service.metrics?.enrolledCount ?? tutor.totalStudents) || 0;
+  const totalSessions = Number(service.totalSessions) || 0;
+  const sessionDuration = Number(service.sessionDurationMinutes) || 0;
+  const hasQuickMetrics = Boolean(rating || enrolledCount > 0 || totalSessions > 0);
 
   return (
-    <div className="bg-gradient-to-b from-brand-primary-50/60 via-neutral-50/40 to-white border-b border-neutral-200/80 pt-6 pb-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="bg-brand-primary-50 border-b border-brand-primary-100 pt-6 pb-10">
+      <div className="page-shell">
         {/* Breadcrumb Navigation */}
         <nav className="flex items-center gap-2 text-xs font-medium text-neutral-500 mb-6 flex-wrap">
           <Link to="/" className="hover:text-brand-primary-600 transition-colors">
@@ -73,7 +79,7 @@ export default function ServiceDetailHero({ service }) {
           <div className="lg:col-span-8 flex flex-col gap-4">
             {/* Badges Bar */}
             <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-primary-100/80 text-brand-primary-700 border border-brand-primary-200/70">
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-brand-sm text-xs font-medium bg-brand-primary-100/80 text-brand-primary-700 border border-brand-primary-200/70">
                 <Icon name="school" size="xs" className="w-3.5 h-3.5" />
                 {subject.name || 'Môn học'}
               </span>
@@ -85,7 +91,7 @@ export default function ServiceDetailHero({ service }) {
 
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-holding-subtle text-holding-strong border border-holding/30">
                 <Icon name="verified_user" size="xs" className="w-3.5 h-3.5 text-holding" />
-                Bảo chứng Escrow 100%
+                Thanh toán bảo chứng
               </span>
             </div>
 
@@ -102,31 +108,29 @@ export default function ServiceDetailHero({ service }) {
             )}
 
             {/* Quick Metrics Bar */}
-            <div className="flex items-center gap-4 sm:gap-6 py-2 border-y border-neutral-200/70 flex-wrap text-sm text-fg-secondary">
-              <div className="flex items-center gap-1.5 font-semibold text-brand-secondary-500">
-                <Icon name="star" size="sm" className="w-4 h-4 fill-brand-secondary-400 text-brand-secondary-400" />
-                <span className="text-fg font-extrabold text-base">
-                  {Number(tutor.ratingAvg) > 0 ? Number(tutor.ratingAvg).toFixed(1) : '5.0'}
-                </span>
-                <span className="text-neutral-500 text-xs font-normal">
-                  ({tutor.totalReviews || 12} đánh giá)
-                </span>
-              </div>
+            {hasQuickMetrics && <div className="flex items-center gap-4 sm:gap-6 py-2 border-y border-neutral-200/70 flex-wrap text-sm text-fg-secondary">
+              {rating && (
+                <div className="flex items-center gap-1.5 font-semibold text-brand-primary-700">
+                  <Icon name="star" size="sm" filled className="w-4 h-4 text-brand-primary-600" />
+                  <span className="text-fg font-extrabold text-base">{rating.toFixed(1)}</span>
+                  {totalReviews > 0 && (
+                    <span className="text-neutral-500 text-xs font-normal">({totalReviews} đánh giá)</span>
+                  )}
+                </div>
+              )}
 
-              <div className="flex items-center gap-1.5">
+              {enrolledCount > 0 && <div className="flex items-center gap-1.5">
                 <Icon name="group" size="sm" className="w-4 h-4 text-brand-primary-600" />
-                <span className="text-fg font-semibold">
-                  {service.metrics?.enrolledCount ?? tutor.totalStudents ?? 25}+
-                </span>
+                <span className="text-fg font-semibold">{enrolledCount}</span>
                 <span className="text-neutral-500 text-xs">học viên đã học</span>
-              </div>
+              </div>}
 
-              <div className="flex items-center gap-1.5">
+              {totalSessions > 0 && <div className="flex items-center gap-1.5">
                 <Icon name="schedule" size="sm" className="w-4 h-4 text-fg-muted" />
-                <span className="text-fg font-semibold">{service.totalSessions} buổi</span>
-                <span className="text-neutral-500 text-xs">({service.sessionDurationMinutes} phút/buổi)</span>
-              </div>
-            </div>
+                <span className="text-fg font-semibold">{totalSessions} buổi</span>
+                {sessionDuration > 0 && <span className="text-neutral-500 text-xs">({sessionDuration} phút/buổi)</span>}
+              </div>}
+            </div>}
 
             {/* Tutor Mini Card Bar */}
             <div className="flex items-center justify-between p-3.5 bg-white rounded-xl border border-neutral-200 shadow-sm hover:border-brand-primary-300 transition-colors">
@@ -141,7 +145,7 @@ export default function ServiceDetailHero({ service }) {
                 </Link>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+                    <span className="text-xs font-medium text-neutral-500">
                       Gia sư phụ trách
                     </span>
                     <Icon name="check_circle" size="xs" className="w-3.5 h-3.5 text-brand-primary-600" />
@@ -152,9 +156,11 @@ export default function ServiceDetailHero({ service }) {
                   >
                     {tutor.fullName}
                   </Link>
-                  <p className="text-xs text-neutral-500 line-clamp-1 max-w-md">
-                    {tutor.education || `${tutor.experienceYears || 3} năm kinh nghiệm giảng dạy`}
-                  </p>
+                  {(tutor.education || tutor.experienceYears > 0) && (
+                    <p className="text-xs text-neutral-500 line-clamp-1 max-w-md">
+                      {tutor.education || `${tutor.experienceYears} năm kinh nghiệm giảng dạy`}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -221,6 +227,7 @@ export default function ServiceDetailHero({ service }) {
             <button
               type="button"
               onClick={() => setIsVideoModalOpen(false)}
+              aria-label="Đóng video học thử"
               className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black text-white flex items-center justify-center transition-colors"
             >
               <Icon name="close" size="sm" className="w-5 h-5" />

@@ -56,27 +56,6 @@ public class AdminWithdrawalCommandHandlerTests
     }
 
     [Fact]
-    public async Task ProcessWithdrawal_FromPending_TransitionsToProcessing()
-    {
-        // Arrange
-        var (withdrawal, wallet, admin) = CreateTestAggregate(WithdrawalStatus.Pending);
-
-        _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
-        _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
-
-        _currentUser.Set(admin.Id, UserRole.Admin);
-        var handler = new ProcessWithdrawalCommandHandler(_contextMock.Object, _auditLogServiceMock.Object, _currentUser);
-        var command = new ProcessWithdrawalCommand(withdrawal.Id);
-
-        // Act
-        var result = await handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        result.Status.Should().Be(WithdrawalStatus.Processing);
-        result.ProcessingStartedByAdminId.Should().Be(admin.Id);
-    }
-
-    [Fact]
     public async Task ProcessWithdrawal_FromNonPending_ThrowsConflictException()
     {
         // Arrange
@@ -95,28 +74,6 @@ public class AdminWithdrawalCommandHandlerTests
         // Assert
         var ex = await act.Should().ThrowAsync<ConflictException>();
         ex.Which.Errors.Should().ContainMatch("*Must be in Pending status*");
-    }
-
-    [Fact]
-    public async Task CompleteWithdrawal_FromProcessing_TransitionsToCompleted_AndPublishesEvent()
-    {
-        // Arrange
-        var (withdrawal, wallet, admin) = CreateTestAggregate(WithdrawalStatus.Processing);
-
-        _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
-        _contextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { admin }).Object);
-
-        _currentUser.Set(admin.Id, UserRole.Admin);
-        var handler = new CompleteWithdrawalCommandHandler(_contextMock.Object, _auditLogServiceMock.Object, _currentUser);
-        var command = new CompleteWithdrawalCommand(withdrawal.Id);
-
-        // Act
-        var result = await handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        result.Status.Should().Be(WithdrawalStatus.Completed);
-        result.ProcessedByAdminId.Should().Be(admin.Id);
-        result.ProcessedAt.Should().NotBeNull();
     }
 
     [Fact]

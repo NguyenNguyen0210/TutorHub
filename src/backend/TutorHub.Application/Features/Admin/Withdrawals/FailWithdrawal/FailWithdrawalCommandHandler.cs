@@ -34,7 +34,6 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
 
         // Reads + guards run outside the transaction (fail fast before acquiring DB resources).
         var withdrawal = await _context.Withdrawals
-            .Include(w => w.Wallet).ThenInclude(wall => wall.User)
             .Include(w => w.ProcessingStartedByAdmin)
             .Include(w => w.ProcessedByAdmin)
             .FirstOrDefaultAsync(w => w.Id == request.WithdrawalId, cancellationToken);
@@ -63,6 +62,16 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
 
         try
         {
+        await _context.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"Withdrawals\" WHERE \"Id\" = {withdrawal.Id} FOR UPDATE",
+            cancellationToken);
+        var currentStatus = await _context.Withdrawals.AsNoTracking()
+            .Where(w => w.Id == withdrawal.Id)
+            .Select(w => w.Status)
+            .FirstAsync(cancellationToken);
+        if (currentStatus != WithdrawalStatus.Processing)
+            throw new ConflictException($"Cannot fail withdrawal in '{currentStatus}' status.");
+
         // Row-level locking (FOR UPDATE)
         var wallet = await _context.Wallets
             .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"Id\" = {withdrawal.WalletId} FOR UPDATE")
@@ -72,13 +81,16 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
         {
             throw new BadRequestException("Tutor wallet not found.");
         }
+        withdrawal.Wallet = wallet;
+        wallet.User = await _context.Users.FirstAsync(u => u.Id == wallet.UserId, cancellationToken);
 
         // Domain State Transition: Fail
         withdrawal.Fail(request.Reason, userId);
         withdrawal.ProcessedByAdmin = admin;
 
         // Atomic restoration of AvailableBalance
-        if (wallet.WithdrawingBalance >= withdrawal.Amount) wallet.ReleaseWithdrawal(withdrawal.Amount, now); else wallet.CreditAvailable(withdrawal.Amount, now);
+        var availableBalanceBefore = wallet.AvailableBalance;
+        wallet.ReleaseWithdrawal(withdrawal.Amount, now);
 
         // Record immutable ledger adjustment entry
         var adjustmentEntry = new WalletTransaction
@@ -87,9 +99,14 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
             WalletId = wallet.Id,
             WithdrawalId = withdrawal.Id,
             Type = WalletTransactionType.WithdrawalFailedAdjustmentCredit,
+            Direction = FinancialDirection.Credit,
             Amount = withdrawal.Amount,
+            BalanceBefore = availableBalanceBefore,
             BalanceAfter = wallet.AvailableBalance,
+            ReferenceType = "Withdrawal",
+            ReferenceId = withdrawal.Id,
             Description = $"Refund for failed withdrawal #{withdrawal.Id}: {request.Reason.Trim()}",
+            Reason = request.Reason.Trim(),
             CreatedByUserId = admin.Id,
             CreatedAt = now
         };

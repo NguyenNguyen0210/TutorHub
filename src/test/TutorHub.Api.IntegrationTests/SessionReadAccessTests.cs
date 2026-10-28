@@ -53,7 +53,7 @@ public class SessionReadAccessTests : IntegrationTestBase
         {
             Id = Guid.NewGuid(),
             Email = $"stranger.{Guid.NewGuid():N}@test.local",
-            PasswordHash = "TEST-HASH",
+            PasswordHash = SeedHelper.DemoPasswordHash,
             FullName = "Unrelated Student",
             Role = UserRole.Student,
             Status = AccountStatus.Active,

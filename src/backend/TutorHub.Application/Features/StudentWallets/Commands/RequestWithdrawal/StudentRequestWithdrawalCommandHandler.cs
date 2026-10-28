@@ -41,7 +41,6 @@ public class StudentRequestWithdrawalCommandHandler : IRequestHandler<StudentReq
         {
             var student = await _context.StudentProfiles
                 .Include(s => s.User)
-                .Include(s => s.Wallet)
                 .FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken);
 
             if (student == null)
@@ -72,6 +71,9 @@ public class StudentRequestWithdrawalCommandHandler : IRequestHandler<StudentReq
             {
                 throw new BadRequestException("Student wallet not found.");
             }
+
+            if (wallet.StudentProfileId != student.Id)
+                wallet.StudentProfileId = student.Id;
 
             if (wallet.AvailableBalance < request.Amount)
             {

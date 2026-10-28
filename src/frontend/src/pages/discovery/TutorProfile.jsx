@@ -167,7 +167,7 @@ export default function TutorProfile() {
 
   return (
     <div className="pb-24 lg:pb-0">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <div className="page-shell pt-6">
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb">
           <ol className="flex items-center gap-1.5 text-caption text-fg-muted">
@@ -195,7 +195,7 @@ export default function TutorProfile() {
       </div>
 
       {secondaryWarning && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <div className="page-shell pt-4">
           <Callout variant="warning" title="Một phần dữ liệu chưa tải được">
             {secondaryWarning}
           </Callout>
@@ -203,7 +203,7 @@ export default function TutorProfile() {
       )}
 
       {/* Gallery + Headline */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <div className="page-shell pt-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
           <div className="lg:col-span-7">
             <ProfileGallery tutor={tutor} />
@@ -215,12 +215,12 @@ export default function TutorProfile() {
       </div>
 
       {/* Anchor navigation */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+      <div className="page-shell mt-6">
         <ProfileAnchorNav sections={anchorSections} />
       </div>
 
       {/* Content + rail */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+      <div className="page-shell pt-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 space-y-8">
             <ProfileAbout tutor={tutor} />

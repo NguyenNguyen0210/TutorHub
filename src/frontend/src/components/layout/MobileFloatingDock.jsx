@@ -6,8 +6,8 @@ import { useAuthStore } from '@/store/authStore';
 import { getNavForRole } from './navConfig';
 
 /**
- * MobileFloatingDock — thanh điều hướng dưới cho mobile (< 1024px).
- * Dữ liệu từ navConfig duy nhất; tối đa 4 mục + mục đăng nhập cho guest.
+ * MobileFloatingDock — điều hướng ngữ cảnh dưới cho mobile (< 1024px).
+ * Tối đa 4 mục, gắn sát cạnh dưới và chừa safe-area để không che nội dung.
  */
 function DockLink({ to, icon, label, active, external }) {
   return (
@@ -16,8 +16,8 @@ function DockLink({ to, icon, label, active, external }) {
       aria-current={active ? 'page' : undefined}
       {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
       className={cn(
-        'flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-brand-md text-[10px] font-semibold transition-colors min-w-[64px]',
-        active ? 'text-brand-primary-700 bg-brand-primary-50' : 'text-fg-secondary'
+        'flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 rounded-brand-md text-[10px] font-semibold transition-colors',
+        active ? 'text-primary bg-primary-subtle' : 'text-fg-secondary hover:text-fg'
       )}
     >
       <Icon name={icon} size="md" />
@@ -56,8 +56,9 @@ const IMMERSIVE_PATHS = ['/app/messages'];
 
 /** Dock cho khách: giữ 3 mục riêng vì `NAV.guest` chỉ có 1 mục khám phá. */
 const GUEST_ITEMS = [
-  { path: '/tutors', label: 'Khám phá', icon: 'explore', match: (p) => p.startsWith('/tutors') },
-  { path: '/tutor/application', label: 'Làm gia sư', icon: 'school', match: () => false },
+  { path: '/', label: 'Tìm gia sư', icon: 'person_search', match: (p) => p === '/' || p.startsWith('/tutors') },
+  { path: '/services', label: 'Gói học', icon: 'local_library', match: (p) => p.startsWith('/services') },
+  { path: '/how-it-works', label: 'Quy trình', icon: 'timeline', match: (p) => p.startsWith('/how-it-works') },
   { path: '/auth/login', label: 'Đăng nhập', icon: 'login', match: (p) => p.startsWith('/auth/login') },
 ];
 
@@ -66,15 +67,16 @@ export default function MobileFloatingDock() {
   const location = useLocation();
 
   const isImmersive = IMMERSIVE_PATHS.some((p) => location.pathname.startsWith(p));
-  if (isImmersive) return null;
+  const hasContextualBottomAction = /^\/(tutors|services|service)\/[^/]+/.test(location.pathname);
+  if (isImmersive || hasContextualBottomAction) return null;
 
   // Đọc qua getNavForRole để dock và sidebar cùng nguồn danh sách.
   const items = isAuthenticated ? getNavForRole(role, isAuthenticated).slice(0, 4) : GUEST_ITEMS;
 
   return (
-    <div className="lg:hidden fixed bottom-4 left-4 right-4 z-50">
+    <div className="lg:hidden fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/95 px-3 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] backdrop-blur-md shadow-[0_-8px_24px_rgb(15_23_42/0.08)]">
       <nav
-        className="glass-surface rounded-brand-lg shadow-brand-lg p-1.5 flex items-center justify-around"
+        className="mx-auto flex max-w-lg items-center justify-around gap-1"
         aria-label="Điều hướng nhanh"
       >
         {items.map((item) => (

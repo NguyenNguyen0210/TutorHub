@@ -5,6 +5,8 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Admin.Users.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
+using TutorHub.Application.Common.Concurrency;
+using TutorHub.Application.Common.Caching;
 
 namespace TutorHub.Application.Features.Admin.Users.BanUser;
 
@@ -14,22 +16,31 @@ public class BanUserCommandHandler : IRequestHandler<BanUserCommand, AdminUserSu
     private readonly IClock _clock;
     private readonly IAuditLogService _auditLogService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ITutorProfileCacheService _tutorCache;
+    private readonly IServiceDetailCacheService _serviceCache;
 
     public BanUserCommandHandler(
         IAppDbContext context,
         IClock clock,
         IAuditLogService auditLogService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ITutorProfileCacheService? tutorCache = null,
+        IServiceDetailCacheService? serviceCache = null)
     {
         _context = context;
         _clock = clock;
         _auditLogService = auditLogService;
         _currentUserService = currentUserService;
+        _tutorCache = tutorCache ?? NoOpTutorProfileCacheService.Instance;
+        _serviceCache = serviceCache ?? NoOpServiceDetailCacheService.Instance;
     }
 
     public async Task<AdminUserSummaryDto> Handle(BanUserCommand request, CancellationToken cancellationToken)
     {
         var adminId = _currentUserService.UserIdOrThrow();
+
+        await using var transaction = await PostgresAdvisoryLock.BeginTransactionAsync(_context, cancellationToken);
+        await PostgresAdvisoryLock.AcquireAsync(_context, "admin:last-active", cancellationToken);
 
         // 1. Self-lockout Invariant: Admin cannot ban themselves
         if (request.UserId == adminId)
@@ -40,6 +51,7 @@ public class BanUserCommandHandler : IRequestHandler<BanUserCommand, AdminUserSu
         // 2. Find target user
         var user = await _context.Users
             .Include(u => u.TutorApplications)
+            .Include(u => u.TutorProfile).ThenInclude(t => t!.Services)
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 
         if (user == null)
@@ -94,6 +106,15 @@ public class BanUserCommandHandler : IRequestHandler<BanUserCommand, AdminUserSu
             cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
+        if (transaction != null)
+            await transaction.CommitAsync(cancellationToken);
+
+        if (user.TutorProfile != null)
+        {
+            await _tutorCache.InvalidateTutorProfileAsync(user.TutorProfile.Id, cancellationToken);
+            foreach (var service in user.TutorProfile.Services)
+                await _serviceCache.InvalidateServiceDetailAsync(service.Id, cancellationToken);
+        }
 
 
         var latestAppStatus = user.TutorApplications

@@ -52,7 +52,7 @@ export default function ServiceFilterSidebar({
 
   return (
     <aside className={`w-full ${className}`} aria-label="Bộ lọc dịch vụ học tập">
-      <div className="p-4 sm:p-5 space-y-4 border border-neutral-200/90 shadow-sm rounded-2xl bg-surface sticky top-[84px]">
+      <div className="filter-panel p-4 sm:p-5 space-y-4 border border-border rounded-brand-lg bg-surface sticky top-[88px]">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
           <div className="flex items-center gap-2 font-bold text-[14.5px] text-neutral-900">

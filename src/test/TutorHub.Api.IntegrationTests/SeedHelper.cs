@@ -10,6 +10,7 @@ namespace TutorHub.Api.IntegrationTests;
 /// </summary>
 public static class SeedHelper
 {
+    public const string DemoPasswordHash = "$2a$12$RgC9Ej9dMFD5/9UMFkiuIeJrkHgQZ.zJ.ptOq6Jr5ppPBraS3kCR.";
     public static async Task<(User TutorUser, TutorProfile Tutor, User Admin)> SeedTutorWithWalletAsync(
         AppDbContext db,
         decimal availableBalance = 1_000_000m,
@@ -19,7 +20,7 @@ public static class SeedHelper
         {
             Id = Guid.NewGuid(),
             Email = $"tutor.{Guid.NewGuid():N}@test.local",
-            PasswordHash = "TEST-HASH",
+            PasswordHash = DemoPasswordHash,
             FullName = "Integration Tutor",
             Role = UserRole.Tutor,
             Status = AccountStatus.Active,
@@ -30,7 +31,7 @@ public static class SeedHelper
         {
             Id = Guid.NewGuid(),
             Email = $"admin.{Guid.NewGuid():N}@test.local",
-            PasswordHash = "TEST-HASH",
+            PasswordHash = DemoPasswordHash,
             FullName = "Integration Admin",
             Role = UserRole.Admin,
             Status = AccountStatus.Active,
@@ -51,9 +52,11 @@ public static class SeedHelper
         var wallet = new Wallet
         {
             Id = Guid.NewGuid(),
+            UserId = tutorUser.Id,
             TutorProfileId = tutor.Id,
             PendingBalance = 0,
             AvailableBalance = availableBalance,
+            CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
@@ -75,7 +78,7 @@ public static class SeedHelper
         {
             Id = Guid.NewGuid(),
             Email = $"student.{Guid.NewGuid():N}@test.local",
-            PasswordHash = "TEST-HASH",
+            PasswordHash = DemoPasswordHash,
             FullName = "Integration Student",
             Role = UserRole.Student,
             Status = AccountStatus.Active,

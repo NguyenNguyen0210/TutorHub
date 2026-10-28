@@ -25,6 +25,8 @@ using TutorHub.Infrastructure.Configuration;
 using TutorHub.Infrastructure.HealthChecks;
 using TutorHub.Infrastructure.Hubs;
 using TutorHub.Infrastructure.Redis;
+using TutorHub.Application.Common.Interfaces;
+using TutorHub.Domain.Enums;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -167,6 +169,29 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
         };
         options.Events = new JwtBearerEvents
         {
+            OnTokenValidated = async context =>
+            {
+                var userIdValue = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var tokenVersionValue = context.Principal?.FindFirst("token_version")?.Value;
+                if (!Guid.TryParse(userIdValue, out var userId) ||
+                    !int.TryParse(tokenVersionValue, out var tokenVersion))
+                {
+                    context.Fail("Access token is missing required security claims.");
+                    return;
+                }
+
+                var dbContext = context.HttpContext.RequestServices.GetRequiredService<IAppDbContext>();
+                var current = await dbContext.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == userId)
+                    .Select(u => new { u.Status, u.TokenVersion })
+                    .FirstOrDefaultAsync(context.HttpContext.RequestAborted);
+
+                if (current == null || current.Status != AccountStatus.Active || current.TokenVersion != tokenVersion)
+                {
+                    context.Fail("Access token has been revoked.");
+                }
+            },
             OnMessageReceived = context =>
             {
                 var accessToken = context.Request.Query["access_token"];

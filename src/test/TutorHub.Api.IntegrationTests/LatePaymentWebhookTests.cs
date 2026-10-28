@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Payments;
 using TutorHub.Application.Features.Bookings.CreateBooking;
+using TutorHub.Application.Features.Bookings.CancelBooking;
+using TutorHub.Application.Features.Bookings.ProcessBookingTimeouts;
 using TutorHub.Application.Features.Enrollments.Common;
 using TutorHub.Application.Features.Payments.HandlePaymentWebhook;
 using TutorHub.Domain.Entities;
@@ -135,6 +137,135 @@ public class LatePaymentWebhookTests : IntegrationTestBase
         result.Code.Should().Be("02");
         (await Db.Enrollments.AsNoTracking().AnyAsync(e => e.BookingId == booking.Id)).Should().BeFalse();
         (await Db.Transactions.AsNoTracking().AnyAsync(t => t.BookingId == booking.Id && t.Type == TransactionType.StudentRefund)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task LateSuccessIpn_ForUnpaidGatewayAttempt_AfterWalletPayment_RequiresRefund()
+    {
+        var (booking, tx) = await SeedNonHoldingBookingAsync(BookingStatus.Paid, CancelledBy.System);
+        tx.Status = TransactionStatus.Pending;
+        await Db.SaveChangesAsync();
+        var parameters = BuildSuccessIpn(tx);
+
+        var result = await CreateHandler().Handle(
+            new HandlePaymentWebhookCommand(parameters), CancellationToken.None);
+
+        result.Code.Should().Be("00");
+        var refund = await Db.Transactions.AsNoTracking().SingleAsync(t =>
+            t.BookingId == booking.Id && t.Type == TransactionType.StudentRefund);
+        refund.SettlementRequired.Should().BeTrue();
+        refund.Amount.Should().Be(tx.Amount);
+
+        var duplicate = await CreateHandler().Handle(
+            new HandlePaymentWebhookCommand(parameters), CancellationToken.None);
+        duplicate.Code.Should().Be("02");
+        (await Db.Transactions.AsNoTracking().CountAsync(t =>
+            t.BookingId == booking.Id && t.Type == TransactionType.StudentRefund)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task StudentCancellation_PreservesGatewayReference_ForLateRefund()
+    {
+        var (booking, tx) = await SeedNonHoldingBookingAsync(BookingStatus.Holding, CancelledBy.Student);
+        tx.Status = TransactionStatus.Pending;
+        await Db.SaveChangesAsync();
+        var parameters = BuildSuccessIpn(tx);
+
+        await SendAsync(new CancelBookingCommand(booking.Id, "Changed plans"));
+        Db.ChangeTracker.Clear();
+
+        var result = await CreateHandler().Handle(
+            new HandlePaymentWebhookCommand(parameters), CancellationToken.None);
+
+        result.Code.Should().Be("00");
+        (await Db.Transactions.AsNoTracking().CountAsync(t =>
+            t.BookingId == booking.Id && t.Type == TransactionType.StudentRefund)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Timeout_KeepsGatewayAttempt_AndLateSuccessRevivesBooking()
+    {
+        var (booking, payment) = await SeedNonHoldingBookingAsync(BookingStatus.Holding, CancelledBy.System);
+        booking.HoldingExpiresAt = DateTime.UtcNow.AddMinutes(-1);
+        await Db.SaveChangesAsync();
+
+        var timeout = new ProcessBookingTimeoutsCommandHandler(
+            Db, NullLogger<ProcessBookingTimeoutsCommandHandler>.Instance, StubIntegrationClock.Instance);
+        (await timeout.Handle(new ProcessBookingTimeoutsCommand(), CancellationToken.None)).Should().BeGreaterThan(0);
+        Db.ChangeTracker.Clear();
+
+        (await Db.Bookings.AsNoTracking().SingleAsync(b => b.Id == booking.Id))
+            .Status.Should().Be(BookingStatus.Expired);
+
+        (await Db.Transactions.AsNoTracking().SingleAsync(t => t.Id == payment.Id))
+            .Status.Should().Be(TransactionStatus.Held);
+        var result = await CreateHandler().Handle(
+            new HandlePaymentWebhookCommand(BuildSuccessIpn(payment)), CancellationToken.None);
+        result.Code.Should().Be("00");
+        (await Db.Bookings.AsNoTracking().SingleAsync(b => b.Id == booking.Id))
+            .Status.Should().Be(BookingStatus.Paid);
+    }
+
+    [Fact]
+    public async Task LegacyFailedAttempt_LateCaptureCreatesNewImmutablePaymentRow()
+    {
+        var (booking, payment) = await SeedNonHoldingBookingAsync(BookingStatus.Cancelled, CancelledBy.System);
+        payment.Status = TransactionStatus.Failed;
+        await Db.SaveChangesAsync();
+        Db.ChangeTracker.Clear();
+
+        var callback = new HandlePaymentWebhookCommand(BuildSuccessIpn(payment));
+        (await CreateHandler().Handle(callback, CancellationToken.None)).Code.Should().Be("00");
+        (await CreateHandler().Handle(callback, CancellationToken.None)).Code.Should().Be("02");
+
+        var attempts = await Db.Transactions.AsNoTracking()
+            .Where(t => t.BookingId == booking.Id && t.Type == TransactionType.BookingPayment)
+            .ToListAsync();
+        attempts.Should().HaveCount(2);
+        attempts.Should().ContainSingle(t => t.Id == payment.Id && t.Status == TransactionStatus.Failed);
+        attempts.Should().ContainSingle(t => t.Id != payment.Id && t.Status == TransactionStatus.Held);
+    }
+
+    [Fact]
+    public async Task ConcurrentGatewayCaptures_ActivateOnce_AndRecordSecondRefund()
+    {
+        var (booking, first) = await SeedNonHoldingBookingAsync(BookingStatus.Holding, CancelledBy.System);
+        first.Status = TransactionStatus.Pending;
+        var second = new Transaction
+        {
+            Id = Guid.NewGuid(), BookingId = booking.Id, Type = TransactionType.BookingPayment,
+            Status = TransactionStatus.Pending, Amount = first.Amount,
+            PaymentGatewayRef = $"REF2-{booking.Id:N}", CreatedAt = DateTime.UtcNow
+        };
+        Db.Transactions.Add(second);
+        await Db.SaveChangesAsync();
+
+        async Task<PaymentWebhookAck> ProcessAsync(Transaction payment)
+        {
+            using var scope = Factory.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<TutorHub.Infrastructure.Persistence.AppDbContext>();
+            var handler = new HandlePaymentWebhookCommandHandler(
+                context, StubIntegrationClock.Instance, new AlwaysValidPaymentGateway(),
+                scope.ServiceProvider.GetRequiredService<IEnrollmentActivationService>(),
+                scope.ServiceProvider.GetRequiredService<IAuditLogService>(),
+                NullLogger<HandlePaymentWebhookCommandHandler>.Instance);
+            return await handler.Handle(
+                new HandlePaymentWebhookCommand(BuildSuccessIpn(payment)), CancellationToken.None);
+        }
+
+        await using var blocker = await Db.Database.BeginTransactionAsync();
+        await Db.Bookings.FromSqlInterpolated(
+            $"SELECT * FROM \"Bookings\" WHERE \"Id\" = {booking.Id} FOR UPDATE")
+            .AsNoTracking().FirstAsync();
+        var firstTask = ProcessAsync(first);
+        var secondTask = ProcessAsync(second);
+        await Task.Delay(100);
+        await blocker.CommitAsync();
+
+        (await Task.WhenAll(firstTask, secondTask)).Should().OnlyContain(a => a.Code == "00");
+        (await Db.Enrollments.AsNoTracking().CountAsync(e => e.BookingId == booking.Id)).Should().Be(1);
+        (await Db.Transactions.AsNoTracking().CountAsync(t => t.BookingId == booking.Id &&
+            t.Type == TransactionType.StudentRefund && t.SettlementRequired)).Should().Be(1);
     }
 
     private sealed class AlwaysValidPaymentGateway : IPaymentGateway

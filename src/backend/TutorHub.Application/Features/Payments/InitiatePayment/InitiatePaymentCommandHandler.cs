@@ -62,35 +62,19 @@ public class InitiatePaymentCommandHandler : IRequestHandler<InitiatePaymentComm
         var merchantRef = $"THB{now:yyMMddHHmmss}{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
         var expireAt = booking.HoldingExpiresAt.Value;
 
-        // 5. Initialize/Update the gateway attempt. The payment transaction
-        // represents the GROSS escrow amount; the platform fee is only applied
-        // when each session earns out.
-        var paymentTx = await _context.GetPaymentTransactionAsync(booking.Id, cancellationToken);
-
-        if (paymentTx == null)
+        // Keep every gateway attempt so a delayed callback can always be found.
+        _context.Transactions.Add(new Transaction
         {
-            var transaction = new Transaction
-            {
-                Id = Guid.NewGuid(),
-                BookingId = booking.Id,
-                Amount = booking.TotalPrice,
-                Status = TransactionStatus.Held, // Pre-allocated, state confirmed on IPN
-                PlatformFeeRate = 0,
-                PlatformFeeAmount = 0,
-                PayoutAmount = booking.TotalPrice,
-                PaymentGatewayRef = merchantRef,
-                CreatedAt = now
-            };
-            _context.Transactions.Add(transaction);
-        }
-        else
-        {
-            paymentTx.PaymentGatewayRef = merchantRef;
-            paymentTx.Amount = booking.TotalPrice;
-            paymentTx.PlatformFeeRate = 0;
-            paymentTx.PlatformFeeAmount = 0;
-            paymentTx.PayoutAmount = booking.TotalPrice;
-        }
+            Id = Guid.NewGuid(),
+            BookingId = booking.Id,
+            Amount = booking.TotalPrice,
+            Status = TransactionStatus.Pending,
+            PlatformFeeRate = 0,
+            PlatformFeeAmount = 0,
+            PayoutAmount = booking.TotalPrice,
+            PaymentGatewayRef = merchantRef,
+            CreatedAt = now
+        });
 
         await _context.SaveChangesAsync(cancellationToken);
 

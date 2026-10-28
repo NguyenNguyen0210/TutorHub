@@ -117,8 +117,9 @@ __pycache__/
 *.py[cod]
 *.class
 
-.worktrees/
+# Local seed generator; the generated SQL is the portable seed artifact.
+/scripts/generate-seed-data.py
 
-docs/
+.worktrees/
 
 !.env.production.example

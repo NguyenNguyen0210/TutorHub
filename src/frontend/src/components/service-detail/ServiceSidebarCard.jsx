@@ -15,9 +15,16 @@ export default function ServiceSidebarCard({ service, onBookNow }) {
   const [bookingLoading, setBookingLoading] = useState(false);
 
   const tutor = service.tutor || {};
-  const totalSessions = Number(service.totalSessions) || 1;
+  const totalSessions = Number(service.totalSessions) > 0 ? Number(service.totalSessions) : null;
+  const sessionDuration = Number(service.sessionDurationMinutes) > 0
+    ? Number(service.sessionDurationMinutes)
+    : null;
   const price = Number(service.price) || 0;
-  const pricePerSession = service.pricePerSession || Math.round(price / totalSessions);
+  const pricePerSession = Number(service.pricePerSession) > 0
+    ? Number(service.pricePerSession)
+    : price > 0 && totalSessions
+    ? Math.round(price / totalSessions)
+    : null;
 
   const handleMessageTutor = () => {
     if (!isAuthenticated) {
@@ -57,46 +64,47 @@ export default function ServiceSidebarCard({ service, onBookNow }) {
   };
 
   return (
-    <div className="sticky top-20 bg-white rounded-2xl border border-neutral-200/90 shadow-brand-sm p-6 flex flex-col gap-6">
+    <div className="sticky top-24 bg-white rounded-brand-xl border border-neutral-200/90 shadow-brand-md p-6 flex flex-col gap-6">
       {/* Price Header */}
       <div>
-        <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider block mb-1">
+        <span className="text-xs font-medium text-neutral-500 block mb-1">
           Học phí trọn gói khóa học
         </span>
         <div className="flex items-baseline gap-2">
-          <Money
-            value={price}
-            className="text-3xl font-black text-brand-primary-600 tracking-tight"
-          />
+          {price > 0 ? (
+            <Money value={price} className="text-3xl font-black text-fg tracking-tight" />
+          ) : (
+            <span className="text-2xl font-bold text-fg">Liên hệ</span>
+          )}
         </div>
-        <p className="text-xs text-neutral-500 mt-1 flex items-center gap-1">
+        {pricePerSession && totalSessions && <p className="text-xs text-neutral-500 mt-1 flex items-center gap-1">
           <span>Trung bình:</span>
           <strong className="text-neutral-700">
             <Money value={pricePerSession} />
           </strong>
           <span>/ buổi ({totalSessions} buổi học)</span>
-        </p>
+        </p>}
       </div>
 
       {/* Package Key Specifications */}
       <div className="py-4 border-y border-neutral-100 flex flex-col gap-3 text-xs sm:text-sm">
-        <div className="flex items-center justify-between">
+        {totalSessions && <div className="flex items-center justify-between">
           <span className="text-neutral-500 flex items-center gap-2">
             <Icon name="event_repeat" size="xs" className="w-4 h-4 text-brand-primary-600" />
             Số lượng buổi:
           </span>
           <span className="font-bold text-fg">{totalSessions} buổi học</span>
-        </div>
+        </div>}
 
-        <div className="flex items-center justify-between">
+        {sessionDuration && <div className="flex items-center justify-between">
           <span className="text-neutral-500 flex items-center gap-2">
             <Icon name="schedule" size="xs" className="w-4 h-4 text-brand-primary-600" />
             Thời lượng mỗi buổi:
           </span>
           <span className="font-bold text-fg">
-            {service.sessionDurationMinutes || 90} phút / buổi
+            {sessionDuration} phút / buổi
           </span>
-        </div>
+        </div>}
 
         <div className="flex items-center justify-between">
           <span className="text-neutral-500 flex items-center gap-2">
@@ -112,13 +120,6 @@ export default function ServiceSidebarCard({ service, onBookNow }) {
           </span>
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className="text-neutral-500 flex items-center gap-2">
-            <Icon name="calendar_month" size="xs" className="w-4 h-4 text-brand-primary-600" />
-            Lịch học:
-          </span>
-          <span className="font-bold text-fg">Linh hoạt theo thỏa thuận</span>
-        </div>
       </div>
 
       {/* Action Buttons */}
@@ -149,8 +150,8 @@ export default function ServiceSidebarCard({ service, onBookNow }) {
 
       {/* Trust & Guarantee Box */}
       <div className="bg-neutral-50/80 rounded-xl p-4 border border-neutral-200/70 flex flex-col gap-3">
-        <span className="text-xs font-bold text-neutral-700 uppercase tracking-wider block">
-          Cam kết bảo đảm quyền lợi học viên
+        <span className="text-xs font-semibold text-neutral-700 block">
+          Cơ chế bảo vệ học phí
         </span>
 
         <div className="flex items-start gap-2.5 text-xs text-fg-secondary">
@@ -163,14 +164,14 @@ export default function ServiceSidebarCard({ service, onBookNow }) {
         <div className="flex items-start gap-2.5 text-xs text-fg-secondary">
           <Icon name="autorenew" size="xs" className="w-4 h-4 text-brand-primary-600 shrink-0 mt-0.5" />
           <span>
-            <strong className="text-fg">Đổi gia sư / Hoàn tiền:</strong> Hỗ trợ hoàn học phí cho các buổi chưa học nếu không hài lòng chất lượng.
+            <strong className="text-fg">Khiếu nại trước giải ngân:</strong> Tiền của buổi học được giữ lại trong lúc sự cố được xử lý.
           </span>
         </div>
 
         <div className="flex items-start gap-2.5 text-xs text-fg-secondary">
-          <Icon name="support_agent" size="xs" className="w-4 h-4 text-holding shrink-0 mt-0.5" />
+          <Icon name="schedule" size="xs" className="w-4 h-4 text-holding shrink-0 mt-0.5" />
           <span>
-            <strong className="text-fg">Hỗ trợ 24/7:</strong> Can thiệp giải quyết tranh chấp lịch học và bảo đảm hợp đồng học tập.
+            <strong className="text-fg">Grace period 12 giờ:</strong> Học viên có thời gian báo cáo sự cố trước khi buổi học tự động giải ngân.
           </span>
         </div>
       </div>

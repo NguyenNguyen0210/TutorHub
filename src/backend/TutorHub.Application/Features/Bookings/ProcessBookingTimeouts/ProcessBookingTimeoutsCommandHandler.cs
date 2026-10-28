@@ -28,31 +28,31 @@ public class ProcessBookingTimeoutsCommandHandler : IRequestHandler<ProcessBooki
         var processedCount = 0;
 
         // 1. Expire Holding Bookings (Past 15-minute window)
-        var expiredHoldingBookings = await _context.Bookings
+        var expiredIds = await _context.Bookings
             .Where(b => b.Status == BookingStatus.Holding &&
                         b.HoldingExpiresAt.HasValue &&
                         b.HoldingExpiresAt.Value <= now)
+            .Select(b => b.Id)
             .ToListAsync(cancellationToken);
 
-        if (expiredHoldingBookings.Count > 0)
+        foreach (var bookingId in expiredIds)
         {
-            _logger.LogInformation("Found {Count} expired holding bookings to release.", expiredHoldingBookings.Count);
-            var expiredIds = expiredHoldingBookings.Select(b => b.Id).ToList();
-            var paymentTxs = await _context.Transactions
-                .Where(t => expiredIds.Contains(t.BookingId) && t.Status == TransactionStatus.Held)
-                .ToListAsync(cancellationToken);
-
-            foreach (var tx in paymentTxs)
+            await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+            var booking = await _context.Bookings
+                .FromSqlInterpolated($"SELECT * FROM \"Bookings\" WHERE \"Id\" = {bookingId} FOR UPDATE")
+                .FirstOrDefaultAsync(cancellationToken);
+            if (booking == null || booking.Status != BookingStatus.Holding ||
+                !booking.HoldingExpiresAt.HasValue || booking.HoldingExpiresAt.Value > now)
             {
-                tx.Status = TransactionStatus.Failed;
-                tx.Description = "Holding window expired before payment completed.";
+                await tx.CommitAsync(cancellationToken);
+                continue;
             }
 
-            foreach (var booking in expiredHoldingBookings)
-            {
-                booking.Expire(now);
-            }
-            processedCount += expiredHoldingBookings.Count;
+            // Keep payment attempts intact: a captured gateway payment may arrive late.
+            booking.Expire(now);
+            await _context.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+            processedCount++;
         }
 
         // Wave 3: the 24-hour tutor-confirmation expiry is gone with the
@@ -60,10 +60,7 @@ public class ProcessBookingTimeoutsCommandHandler : IRequestHandler<ProcessBooki
         // 15-minute Holding window above is enforced.
 
         if (processedCount > 0)
-        {
-            await _context.SaveChangesAsync(cancellationToken);
             _logger.LogInformation("Successfully processed {Count} expired bookings.", processedCount);
-        }
 
         return processedCount;
     }

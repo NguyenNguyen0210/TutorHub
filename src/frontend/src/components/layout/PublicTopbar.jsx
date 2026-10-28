@@ -81,8 +81,8 @@ export default function PublicTopbar() {
     : '/auth/login';
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-border/80">
-      <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-[68px] gap-4">
+    <header className="sticky top-0 z-50 bg-surface/95 backdrop-blur-md border-b border-border/80 shadow-brand-sm">
+      <div className="page-shell flex items-center justify-between h-[72px] gap-4">
         {/* Brand Logo */}
         <Link
           to={isAuthenticated ? getDashboardPath(role) : '/'}
@@ -98,7 +98,7 @@ export default function PublicTopbar() {
             to="/"
             aria-current={location.pathname === '/' || location.pathname === '/tutors' ? 'page' : undefined}
             className={cn(
-              'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
+              'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
               location.pathname === '/' || location.pathname.startsWith('/tutors')
                 ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
                 : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
@@ -111,7 +111,7 @@ export default function PublicTopbar() {
             to="/services"
             aria-current={location.pathname.startsWith('/services') ? 'page' : undefined}
             className={cn(
-              'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
+              'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
               location.pathname.startsWith('/services')
                 ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
                 : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
@@ -125,7 +125,7 @@ export default function PublicTopbar() {
               to="/how-it-works"
               aria-current={location.pathname === '/how-it-works' ? 'page' : undefined}
               className={cn(
-                'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
+                'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
                 location.pathname === '/how-it-works'
                   ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
                   : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
@@ -138,7 +138,7 @@ export default function PublicTopbar() {
               <Link
                 to={schedulePath}
                 className={cn(
-                  'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
+                  'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
                   location.pathname.includes('/schedule') || location.pathname.includes('/sessions')
                     ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
                     : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
@@ -150,7 +150,7 @@ export default function PublicTopbar() {
               <Link
                 to="/app/messages"
                 className={cn(
-                  'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
+                  'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
                   location.pathname.startsWith('/app/messages')
                     ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
                     : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
@@ -162,7 +162,7 @@ export default function PublicTopbar() {
               <Link
                 to={myCoursesPath}
                 className={cn(
-                  'px-3.5 py-2 rounded-lg text-[14px] font-medium transition-colors',
+                  'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
                   location.pathname.includes('/dashboard') || location.pathname.includes('/services')
                     ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
                     : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
@@ -230,13 +230,13 @@ export default function PublicTopbar() {
               </Link>
               <Link
                 to="/auth/register"
-                className="hidden sm:inline-flex items-center justify-center h-9 px-3.5 rounded-[8px] border border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-700 text-[13.5px] font-medium transition-colors"
+                className="hidden sm:inline-flex items-center justify-center h-11 px-4 rounded-brand-md border border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-700 text-[13.5px] font-medium transition-colors"
               >
                 Đăng ký
               </Link>
               <Link
                 to="/auth/login"
-                className="inline-flex items-center justify-center h-8 sm:h-9 px-3 sm:px-4 rounded-[8px] bg-brand-primary-600 hover:bg-brand-primary-700 active:scale-[0.98] text-white text-[13px] sm:text-[13.5px] font-medium transition-all shadow-sm"
+                className="inline-flex items-center justify-center h-11 px-4 rounded-brand-md bg-primary hover:bg-primary-hover active:scale-[0.98] text-white text-[13px] sm:text-[13.5px] font-semibold transition-all shadow-brand-sm"
               >
                 Đăng nhập
               </Link>
@@ -302,14 +302,14 @@ export default function PublicTopbar() {
                 <Link
                   to="/auth/login"
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-center h-10 rounded-brand-md bg-brand-primary-600 text-white font-semibold text-caption hover:bg-brand-primary-700 active:scale-[0.98] transition-all shadow-sm"
+                  className="flex items-center justify-center h-11 rounded-brand-md bg-primary text-white font-semibold text-caption hover:bg-primary-hover active:scale-[0.98] transition-all shadow-brand-sm"
                 >
                   Đăng nhập
                 </Link>
                 <Link
                   to="/auth/register"
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-center h-10 rounded-brand-md border border-neutral-300 bg-white text-neutral-800 font-semibold text-caption hover:bg-neutral-50 active:scale-[0.98] transition-all"
+                  className="flex items-center justify-center h-11 rounded-brand-md border border-neutral-300 bg-white text-neutral-800 font-semibold text-caption hover:bg-neutral-50 active:scale-[0.98] transition-all"
                 >
                   Đăng ký
                 </Link>

@@ -69,7 +69,7 @@ public class BusinessEventNotificationHandler :
     {
 
         var adminUserIds = await _dbContext.Users
-            .Where(u => u.Role == UserRole.Admin)
+            .Where(u => u.Role == UserRole.Admin && u.Status == AccountStatus.Active)
             .Select(u => u.Id)
             .ToListAsync(cancellationToken);
 
@@ -532,7 +532,7 @@ public class BusinessEventNotificationHandler :
     public async Task Handle(StudentTopUpRequestedEvent notification, CancellationToken cancellationToken)
     {
         var adminUserIds = await _dbContext.Users
-            .Where(u => u.Role == UserRole.Admin)
+            .Where(u => u.Role == UserRole.Admin && u.Status == AccountStatus.Active)
             .Select(u => u.Id)
             .ToListAsync(cancellationToken);
 
@@ -579,7 +579,7 @@ public class BusinessEventNotificationHandler :
     public async Task Handle(StudentWithdrawalRequestedEvent notification, CancellationToken cancellationToken)
     {
         var adminUserIds = await _dbContext.Users
-            .Where(u => u.Role == UserRole.Admin)
+            .Where(u => u.Role == UserRole.Admin && u.Status == AccountStatus.Active)
             .Select(u => u.Id)
             .ToListAsync(cancellationToken);
 
@@ -663,7 +663,7 @@ public class BusinessEventNotificationHandler :
         var userIds = recipientList.Select(r => r.UserId).Distinct().ToList();
 
         var users = await _dbContext.Users
-            .Where(u => userIds.Contains(u.Id))
+            .Where(u => userIds.Contains(u.Id) && u.Status == AccountStatus.Active)
             .ToDictionaryAsync(u => u.Id, cancellationToken);
 
         foreach (var (userId, title, message, deepLink) in recipientList)

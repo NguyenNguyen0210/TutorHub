@@ -13,7 +13,12 @@ public class WalletTransactionConfiguration : IEntityTypeConfiguration<WalletTra
         builder.Ignore(wt => wt.StudentWalletId);
         builder.Ignore(wt => wt.StudentWallet);
 
-        builder.ToTable("WalletTransactions");
+        builder.ToTable("WalletTransactions", table =>
+        {
+            table.HasCheckConstraint(
+                "CK_WalletTransaction_ValidDirection",
+                "\"Direction\" IN ('Credit', 'Debit')");
+        });
 
         builder.Property(wt => wt.Type)
             .HasConversion<string>()

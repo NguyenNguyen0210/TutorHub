@@ -57,12 +57,13 @@ public class TopUpRequest
 
     public void ConfirmViaGateway(string transactionNo, DateTime now)
     {
-        if (Status != TopUpRequestStatus.Pending)
+        if (Status == TopUpRequestStatus.Confirmed)
         {
             return;
         }
 
         Status = TopUpRequestStatus.Confirmed;
+        RejectionReason = null;
         ProcessedAt = now;
         AdminNote = $"Auto-approved via VNPay (Txn: {transactionNo})";
     }

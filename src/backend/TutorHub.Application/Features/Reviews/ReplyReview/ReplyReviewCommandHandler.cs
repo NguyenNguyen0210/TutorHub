@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Reviews.DTOs;
+using TutorHub.Application.Common.Caching;
 
 namespace TutorHub.Application.Features.Reviews.ReplyReview;
 
@@ -10,11 +11,16 @@ public class ReplyReviewCommandHandler : IRequestHandler<ReplyReviewCommand, Rev
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IServiceDetailCacheService _serviceCache;
 
-    public ReplyReviewCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
+    public ReplyReviewCommandHandler(
+        IAppDbContext context,
+        ICurrentUserService currentUserService,
+        IServiceDetailCacheService? serviceCache = null)
     {
         _context = context;
         _currentUserService = currentUserService;
+        _serviceCache = serviceCache ?? NoOpServiceDetailCacheService.Instance;
     }
 
     public async Task<ReviewDto> Handle(ReplyReviewCommand request, CancellationToken cancellationToken)
@@ -46,6 +52,7 @@ public class ReplyReviewCommandHandler : IRequestHandler<ReplyReviewCommand, Rev
         // 3. Apply reply via domain method
         review.SetTutorReply(request.Reply);
         await _context.SaveChangesAsync(cancellationToken);
+        await _serviceCache.InvalidateServiceDetailAsync(review.Enrollment.ServiceId, cancellationToken);
 
         var studentUser = review.Enrollment.StudentProfile.User;
         // centralized mapping.

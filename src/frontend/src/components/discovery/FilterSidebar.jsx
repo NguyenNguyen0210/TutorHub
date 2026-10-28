@@ -93,7 +93,7 @@ export default function FilterSidebar({
 
   return (
     <aside className={cn('w-full', className)} aria-label="Bộ lọc gia sư đa chiều">
-      <div className="p-5 space-y-4 border border-neutral-200/80 shadow-sm rounded-[20px] bg-surface">
+      <div className="filter-panel p-5 space-y-4 border border-border rounded-brand-lg bg-surface">
         {/* Header */}
         <div className="flex items-center justify-between pb-3.5 border-b border-neutral-100">
           <div className="flex items-center gap-2 font-bold text-[15px] text-neutral-900">

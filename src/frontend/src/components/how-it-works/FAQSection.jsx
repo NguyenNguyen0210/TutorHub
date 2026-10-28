@@ -6,13 +6,13 @@ const FAQ_ITEMS = [
     id: 'faq-1',
     question: 'TutorHub hoạt động như thế nào?',
     answer:
-      'TutorHub kết nối học viên với gia sư chất lượng. Bạn tìm kiếm gia sư phù hợp, chọn gói học, thanh toán an toàn qua hệ thống bảo chứng (Escrow), và bắt đầu học tập. Tiền chỉ được giải ngân cho gia sư sau khi buổi học hoàn thành.',
+        'TutorHub kết nối học viên với gia sư chất lượng. Bạn tìm kiếm gia sư phù hợp, chọn gói học, thanh toán qua hệ thống bảo chứng (Escrow), rồi xếp lịch từng buổi. Sau khi buổi học kết thúc, học viên có 12 giờ để báo cáo sự cố trước khi hệ thống tự động giải ngân.',
   },
   {
     id: 'faq-2',
     question: 'Thanh toán trên TutorHub có an toàn không?',
     answer:
-      'Hoàn toàn an toàn. TutorHub sử dụng hệ thống bảo chứng Escrow — tiền học phí được giữ trong ví TutorHub và chỉ giải ngân cho gia sư sau khi buổi học được xác nhận hoàn thành bởi cả hai bên.',
+        'TutorHub sử dụng hệ thống bảo chứng Escrow. Học phí được giữ theo từng buổi và chỉ giải ngân sau khi buổi học hoàn thành, hết thời gian báo cáo sự cố và không có tranh chấp đang xử lý.',
   },
   {
     id: 'faq-3',
@@ -24,7 +24,7 @@ const FAQ_ITEMS = [
     id: 'faq-4',
     question: 'Tôi có thể hủy gói học đã mua không?',
     answer:
-      'Bạn có thể yêu cầu hủy gói học trước khi buổi học đầu tiên bắt đầu. Sau khi đã bắt đầu học, việc hủy sẽ tuân theo chính sách hoàn tiền của TutorHub, đảm bảo quyền lợi cho cả hai bên.',
+        'Nếu có sự cố, học viên có thể báo cáo trước khi khoản tiền của buổi học được giải ngân. TutorHub sẽ bảo lưu khoản tiền liên quan trong khi tranh chấp được xem xét theo chính sách hiện hành.',
   },
   {
     id: 'faq-5',
@@ -61,9 +61,7 @@ export default function FAQSection() {
         <div className="max-w-[840px] mx-auto">
           {/* Header Row: Title & Link */}
           <div className="flex items-center justify-between pb-6 border-b border-border">
-            <h2 className="text-[22px] sm:text-[26px] font-bold text-fg">
-              Câu hỏi <span className="text-brand-primary-600">thường gặp</span>
-            </h2>
+            <h2 className="text-[22px] sm:text-[26px] font-bold text-fg">Câu hỏi thường gặp</h2>
             <button
               type="button"
               onClick={() => {
@@ -74,7 +72,7 @@ export default function FAQSection() {
                   setOpenIds(new Set(FAQ_ITEMS.map((item) => item.id)));
                 }
               }}
-              className="inline-flex items-center gap-1 text-[13px] font-semibold text-brand-primary-600 hover:text-brand-primary-700 transition-colors cursor-pointer"
+              className="inline-flex min-h-11 items-center gap-1 px-2 text-[13px] font-semibold text-brand-primary-600 hover:text-brand-primary-700 transition-colors cursor-pointer"
             >
               <span>{openIds.size === FAQ_ITEMS.length ? 'Thu gọn' : 'Xem tất cả'}</span>
               <Icon name="arrow_forward" size="xs" />
@@ -92,7 +90,7 @@ export default function FAQSection() {
                     onClick={() => toggleItem(item.id)}
                     aria-expanded={isOpen}
                     aria-controls={`faq-answer-${item.id}`}
-                    className="w-full flex items-center justify-between gap-4 text-left group cursor-pointer"
+                    className="w-full min-h-11 flex items-center justify-between gap-4 text-left group cursor-pointer"
                   >
                     <span className="text-[15px] sm:text-[16px] font-semibold text-fg group-hover:text-brand-primary-600 transition-colors leading-snug">
                       {item.question}

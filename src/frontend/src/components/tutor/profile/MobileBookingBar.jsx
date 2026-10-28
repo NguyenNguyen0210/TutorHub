@@ -15,8 +15,8 @@ export default function MobileBookingBar({ tutorId, show = true }) {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-40 lg:hidden bg-surface border-t border-border shadow-[0_-4px_16px_-8px_rgb(var(--brand-navy-900)/0.15)]">
-      <div className="px-4 py-3 flex items-center gap-2.5">
+    <div className="fixed bottom-0 inset-x-0 z-50 lg:hidden bg-surface/95 backdrop-blur-md border-t border-border shadow-[0_-4px_16px_-8px_rgb(var(--brand-navy-900)/0.15)]">
+      <div className="px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center gap-2.5">
         <Button
           as={Link}
           to={`/app/messages?tutorId=${tutorId}`}

@@ -49,7 +49,7 @@ export default function ActionQueue({ items, title = 'Việc đang chờ bạn',
 
   return (
     <section className={cn('space-y-2', className)} aria-label={title}>
-      <h2 className="text-caption font-semibold uppercase tracking-wide text-fg-secondary">
+      <h2 className="text-[15px] font-semibold text-fg">
         {title}
       </h2>
       <ul className="space-y-2">

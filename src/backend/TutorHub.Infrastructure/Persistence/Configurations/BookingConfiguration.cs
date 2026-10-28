@@ -15,6 +15,10 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Property(b => b.CancelledBy)
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
         builder.Property(b => b.CancellationReason)
             .HasMaxLength(500);
 

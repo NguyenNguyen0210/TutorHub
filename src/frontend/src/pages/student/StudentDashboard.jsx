@@ -214,7 +214,7 @@ export default function StudentDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="text-headline-page text-fg tracking-tight">
-            Chào mừng trở lại, {user?.fullName || user?.name || 'bạn'}!
+            Bàn học của {user?.fullName || user?.name || 'bạn'}
           </h1>
           <p className="text-body-reg text-fg-secondary mt-1">
             Hợp đồng, lịch học và học phí đang bảo chứng của bạn.
@@ -296,7 +296,7 @@ export default function StudentDashboard() {
                       as={Link}
                       to={`/student/enrollments/${enr.id}`}
                       padding="md"
-                      className="block hover:border-brand-primary-200 hover:shadow-brand-md transition-all"
+                      className="block hover:border-brand-primary-300 transition-colors"
                     >
                       <div className="flex items-start gap-3">
                         <Avatar
@@ -348,7 +348,7 @@ export default function StudentDashboard() {
         <aside className="space-y-4">
           <div className="lg:sticky lg:top-24 space-y-4">
             <Card padding="md" className="space-y-3">
-              <h2 className="text-caption font-semibold uppercase tracking-wide text-fg-secondary">
+              <h2 className="text-[15px] font-semibold text-fg">
                 Tiền của bạn đang ở đâu
               </h2>
               <dl className="space-y-2.5">
@@ -383,7 +383,7 @@ export default function StudentDashboard() {
             {nextSession && (
               <Card padding="md" className="space-y-2">
                 <h2 className="text-caption font-semibold uppercase tracking-wide text-fg-secondary">
-                  Buổi học tới
+                  Buổi học tiếp theo
                 </h2>
                 <p className="text-[15px] font-semibold text-fg">
                   {nextSession.subjectName || `Buổi #${nextSession.sessionNumber}`}

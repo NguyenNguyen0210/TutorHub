@@ -9,6 +9,7 @@ using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Sessions.Common;
 using TutorHub.Application.Features.Sessions.Scheduling;
 using TutorHub.Domain.Enums;
+using TutorHub.Application.Common.Concurrency;
 
 namespace TutorHub.Application.Features.Sessions.ScheduleSessionsBatch;
 
@@ -74,13 +75,20 @@ public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatc
                 item.StartAt, item.EndAt, session.Enrollment.SessionDurationMinutes);
         }
 
+        var tutorProfileIds = sessions.Select(s => s.Enrollment.TutorProfileId).Distinct().ToList();
+        var studentProfileIds = sessions.Select(s => s.Enrollment.StudentProfileId).Distinct().ToList();
+
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
+            await PostgresAdvisoryLock.AcquireManyAsync(_context,
+                tutorProfileIds.Select(id => $"schedule:tutor:{id:D}")
+                    .Concat(studentProfileIds.Select(id => $"schedule:student:{id:D}")),
+                cancellationToken);
+
             // Overlap against the tutor's other Scheduled sessions (single query, batch ids excluded).
             var rangeStart = request.Items.Min(i => i.StartAt);
             var rangeEnd = request.Items.Max(i => i.EndAt);
-            var tutorProfileIds = sessions.Select(s => s.Enrollment.TutorProfileId).Distinct().ToList();
             var dbScheduled = await _context.Sessions
                 .Where(s => !ids.Contains(s.Id) &&
                             tutorProfileIds.Contains(s.Enrollment.TutorProfileId) &&
@@ -107,7 +115,6 @@ public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatc
                         .Select(s => (s.TutorProfileId, s.StartAt!.Value, s.EndAt, nameof(SessionStatus.Scheduled))));
             }
 
-            var studentProfileIds = sessions.Select(s => s.Enrollment.StudentProfileId).Distinct().ToList();
             var dbStudentScheduled = await _context.Sessions
                 .Where(s => !ids.Contains(s.Id) &&
                             studentProfileIds.Contains(s.Enrollment.StudentProfileId) &&

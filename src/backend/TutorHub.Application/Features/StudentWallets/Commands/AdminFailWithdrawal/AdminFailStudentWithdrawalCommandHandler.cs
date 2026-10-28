@@ -32,9 +32,8 @@ public class AdminFailStudentWithdrawalCommandHandler : IRequestHandler<AdminFai
         try
         {
             var withdrawal = await _context.StudentWithdrawals
-                .Include(w => w.Wallet)
-                    .ThenInclude(sw => sw.User)
-                .FirstOrDefaultAsync(w => w.Id == request.WithdrawalId, cancellationToken);
+                .FromSqlInterpolated($"SELECT * FROM \"Withdrawals\" WHERE \"Id\" = {request.WithdrawalId} FOR UPDATE")
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (withdrawal == null)
             {
@@ -50,6 +49,9 @@ public class AdminFailStudentWithdrawalCommandHandler : IRequestHandler<AdminFai
             {
                 throw new NotFoundException(nameof(StudentWallet), withdrawal.StudentWalletId);
             }
+            if (!wallet.StudentProfileId.HasValue)
+                throw new ConflictException("This withdrawal does not belong to a student wallet.");
+            withdrawal.Wallet = wallet;
 
             // Transition status to Failed
             withdrawal.Fail(request.Reason, adminId);
