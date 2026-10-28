@@ -1,7 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 
 /**
- * TutorHub Design Tokens — Brand Style Guide v2
+ * TutorHub Design System v3 — Learning Journey, Protected by Trust
  *
  * Colour values are NEVER written here: every entry points at a CSS variable
  * declared in `src/styles/tokens.css` (`rgb(var(--x) / <alpha-value>)` keeps
@@ -19,6 +19,17 @@ export default {
   theme: {
     extend: {
       colors: {
+        /* ── v3 semantic foundation ─────────────────────────────────── */
+        background: 'rgb(var(--color-background) / <alpha-value>)',
+        foreground: 'rgb(var(--color-foreground) / <alpha-value>)',
+        primary: {
+          DEFAULT: 'rgb(var(--color-primary) / <alpha-value>)',
+          hover: 'rgb(var(--color-primary-hover) / <alpha-value>)',
+          subtle: 'rgb(var(--color-primary-subtle) / <alpha-value>)',
+        },
+        muted: 'rgb(var(--color-surface-muted) / <alpha-value>)',
+        ring: 'rgb(var(--color-ring) / <alpha-value>)',
+
         /* ── Brand: Primary Blue ─────────────────────────────────────── */
         brand: {
           primary: {
@@ -193,11 +204,11 @@ export default {
       },
 
       borderRadius: {
-        'brand-sm': '6px',
-        'brand-md': '10px',
-        'brand-lg': '16px',
-        'brand-xl': '24px',
-        pill: '9999px',
+        'brand-sm': 'var(--radius-sm)',
+        'brand-md': 'var(--radius-md)',
+        'brand-lg': 'var(--radius-lg)',
+        'brand-xl': 'var(--radius-xl)',
+        pill: 'var(--radius-pill)',
         /* Legacy aliases */
         sm6: '6px',
         md10: '10px',
@@ -248,9 +259,9 @@ export default {
       },
 
       boxShadow: {
-        'brand-sm': '0 1px 2px 0 rgb(15 23 42 / 0.05)',
-        'brand-md': '0 4px 12px -2px rgb(15 23 42 / 0.08)',
-        'brand-lg': '0 12px 28px -8px rgb(15 23 42 / 0.12)',
+        'brand-sm': 'var(--shadow-sm)',
+        'brand-md': 'var(--shadow-md)',
+        'brand-lg': 'var(--shadow-lg)',
         'brand-xl': '0 24px 48px -16px rgb(15 23 42 / 0.16)',
         /* Legacy aliases */
         glass: '0 4px 20px -2px rgb(15 23 42 / 0.05)',
@@ -266,6 +277,23 @@ export default {
         float: 'float 4s ease-in-out infinite',
         fadeIn: 'fadeIn 0.25s ease-out forwards',
         shake: 'shake 0.4s ease-in-out',
+      },
+
+      transitionDuration: {
+        fast: 'var(--duration-fast)',
+        normal: 'var(--duration-normal)',
+        slow: 'var(--duration-slow)',
+      },
+
+      transitionTimingFunction: {
+        standard: 'var(--ease-standard)',
+      },
+
+      zIndex: {
+        dropdown: 'var(--z-dropdown)',
+        sticky: 'var(--z-sticky)',
+        dialog: 'var(--z-dialog)',
+        toast: 'var(--z-toast)',
       },
 
       keyframes: {

@@ -1,29 +1,33 @@
-# TutorHub — Design System Specification (`DESIGN.md` v2)
+# TutorHub — Design System Specification (`DESIGN.md` v3)
 
 **Product:** TutorHub — Nền tảng kết nối Gia sư & Học viên trực tuyến
 **Core model:** Service / Package-based Learning với bảo chứng Escrow giải ngân tự động 12h (Auto-Payout Grace Period)
-**Status:** Canonical visual specification — Brand Style Guide v2
+**Status:** Canonical visual specification — Design System v3
 **Stack:** React 18 + Vite 5 + Tailwind CSS 3.4 + Lucide Icons + Be Vietnam Pro (JavaScript thuần, không TypeScript)
 
-> v2 thay thế hệ thống "Royal Navy / Indigo / Glassmorphism" của v1 bằng bản sắc
-> **Minimal SaaS sáng**: Primary Blue, Secondary Orange, neutral slate, sidebar tối nhỏ,
-> canvas sáng. Đây là tiêu chuẩn duy nhất còn hiệu lực.
+> V3 giữ nhận diện cobalt đáng tin cậy của TutorHub nhưng chuyển từ giao diện
+> SaaS đồng dạng sang ý niệm **Learning Journey, Protected by Trust**: hành trình
+> học tập rõ tiến độ, giao dịch được bảo chứng, và mỗi vai trò luôn thấy được
+> bước tiếp theo. Đây là tiêu chuẩn duy nhất còn hiệu lực.
 
 ---
 
-## 1. Brand Identity & Metaphor
+## 1. Brand Identity & Experience Direction
 
-TutorHub là **Cỗ Máy Điều Phối Hợp Đồng Học Tập Trọn Gói Bảo Tồn Dòng Tiền Hai Chiều**.
+TutorHub là **hành trình học tập được bảo chứng bởi niềm tin**. Sản phẩm kết nối
+con người trước, đồng thời làm cho mọi cam kết học tập và dòng tiền trở nên dễ hiểu.
 Giao diện phải truyền đạt 4 giá trị:
 
 | Giá trị | Biểu đạt thị giác |
 |---|---|
 | **Clarity** (Rõ ràng) | Nền sáng, khoảng trắng rộng, phân cấp chữ dứt khoát |
-| **Trust** (Tin cậy) | Primary Blue ổn định, số liệu tài chính monospace, trạng thái Escrow minh bạch |
-| **Simplicity** (Đơn giản) | Ít màu, một accent, không trang trí thừa |
-| **Human-Centered** | Ảnh thật, avatar thật, copy tiếng Việt tự nhiên |
+| **Trust** (Tin cậy) | Primary Blue ổn định, số liệu tài chính tabular, trạng thái Escrow minh bạch |
+| **Momentum** (Tiến triển) | Rail/timeline cho biết đã làm gì, đang ở đâu, bước tiếp theo |
+| **Human-Centered** | Ảnh thật, avatar thật, copy tiếng Việt tự nhiên, hành động theo ngữ cảnh |
 
-**Visual motif:** Growth (tăng trưởng), Connection (kết nối), Trust (bảo chứng), Momentum (tiến độ).
+**Visual signature:** learning-progress rail, nhịp nội dung editorial, canvas porcelain
+mát và ink navy. Card, pill, gradient và shadow chỉ dùng khi chúng thể hiện cấu trúc
+hoặc trạng thái; không lặp cùng một kiểu card cho mọi nội dung.
 
 ---
 
@@ -42,9 +46,9 @@ Giao diện phải truyền đạt 4 giá trị:
 | `--brand-primary-500` | `#3B82F6` | Primary sáng, biểu đồ, progress |
 | `--brand-primary-50` | `#EFF6FF` | Nền subtle, badge nhạt |
 | `--brand-primary-100` | `#DBEAFE` | Viền subtle, chip |
-| `--brand-secondary-500` | `#F59E0B` | **Secondary** — điểm nhấn, badge "nổi bật", CTA phụ |
-| `--brand-secondary-600` | `#D97706` | Secondary hover |
-| `--brand-secondary-50` | `#FFFBEB` | Nền secondary nhạt |
+| `--brand-secondary-500` | `#F59E0B` | Accent có kiểm soát — điểm nhấn hiếm, không dùng cho CTA chung |
+| `--brand-secondary-600` | `#D97706` | Holding/escrow; chỉ dùng theo ngữ nghĩa |
+| `--brand-secondary-50` | `#FFFBEB` | Nền holding/escrow nhạt |
 | `--brand-navy-900` | `#0F172A` | Sidebar tối, footer, dark chrome |
 | `--brand-navy-950` | `#0B0F17` | Sidebar sâu nhất |
 
@@ -72,8 +76,8 @@ Giao diện phải truyền đạt 4 giá trị:
 | `--semantic-danger-subtle` | `#FEF2F2` | — | Nền thẻ tranh chấp |
 | `--semantic-info` | `#3B82F6` | `EnrollmentActive`, `Scheduled`, `UnderReview` | Tiến độ học, lịch sắp tới |
 
-> ⚠️ **`holding` (#D97706) cố ý khác `secondary` (#F59E0B).** Secondary là màu
-> trang trí/CTA; holding là ngữ nghĩa tiền đang bị giữ. Trộn hai màu này làm
+> ⚠️ **`holding` (#D97706) cố ý khác `secondary` (#F59E0B).** Secondary chỉ là
+> accent hiếm; holding là ngữ nghĩa tiền đang bị giữ. Trộn hai màu này làm
 > người dùng đọc sai trạng thái tài chính.
 
 ### 2.4 Quy ước tiền tệ
@@ -84,6 +88,15 @@ Giao diện phải truyền đạt 4 giá trị:
 - **`font-mono` (JetBrains Mono) chỉ dùng cho**: mã GD, `correlationId`, countdown,
   traceId, timestamp kỹ thuật — **không dùng cho tiền tệ, đếm số, phần trăm**.
 - Ngày giờ: lưu UTC, hiển thị `Asia/Ho_Chi_Minh` qua `formatDateTime`.
+
+### 2.5 Kiến trúc token ba lớp
+
+1. **Primitive:** màu, spacing, type, radius, shadow, motion (`--color-cobalt-*`, `--space-*`).
+2. **Semantic:** ý định sản phẩm (`--color-primary`, `--color-background`, `--semantic-holding`).
+3. **Component:** quyết định cho primitive UI (`--button-height-md`, `--card-radius`).
+
+Component và page chỉ dùng semantic/component token. Alias v2 được giữ trong giai
+đoạn chuyển đổi, nhưng không được tạo usage mới.
 
 ---
 
@@ -106,7 +119,7 @@ Giao diện phải truyền đạt 4 giá trị:
 | Body Large | `16px / 1.5` | 400–500 | Mô tả gói học |
 | Body Regular | `14px / 1.5` | 400 | Nội dung, bảng, form |
 | Caption | `12px / 1.4` | 500 | Tag, trạng thái, thời gian tương đối |
-| Label | `12px / 1.4` | 600, `uppercase`, tracking-wide | Nhãn trường, nhãn cột |
+| Label | `12–14px / 1.4` | 500–600, sentence case | Nhãn trường, nhãn cột |
 | Monospace Technical | `14px / 1.4` | 600 | Countdown, `PaymentGatewayRef`, `CorrelationId` |
 
 ---
@@ -173,7 +186,8 @@ WorkspaceShell    Student/Tutor/Admin: sidebar tối 240px + topbar + canvas sá
 AuthShell         Thẻ căn giữa, nền sáng tối giản
 ```
 - **Sidebar tối** (`--brand-navy-900`), item active dùng `--brand-primary-600`.
-- Header dính dùng `.glass-surface`.
+- Header dính dùng bề mặt có độ trong vừa đủ; glass không phải phong cách mặc định.
+- Mobile dùng tối đa 5 mục bottom navigation và sticky action theo ngữ cảnh.
 
 ### 6.3 Dashboard mẫu
 ```text
@@ -190,6 +204,12 @@ AuthShell         Thẻ căn giữa, nền sáng tối giản
 ---
 
 ## 7. Signature Components
+
+### 7.0 Learning Progress Rail
+- Kết nối các bước khám phá → đăng ký → xếp lịch → học → giải ngân/hoàn tất.
+- Mỗi điểm có nhãn trạng thái, thời gian và một hành động tiếp theo rõ ràng.
+- Không chỉ dùng màu: trạng thái phải có icon/label và nội dung hỗ trợ.
+- Trên mobile chuyển thành danh sách dọc, không tạo cuộn ngang bắt buộc.
 
 ### 7.1 Holding Countdown (15 phút Checkout & 12 giờ Grace Period)
 - **15 phút Booking Hold:** Deadline lấy từ `holdingExpiresAt` của server, **không** đếm cục bộ từ đầu.
@@ -265,7 +285,18 @@ Progress `x / N buổi`; mỗi dòng: số buổi · giá · trạng thái · th
 
 ---
 
-## 11. Migration Aliases (tạm thời)
+## 11. Phased Migration & Aliases
+
+Migration thực hiện theo checkpoint có thể rollback độc lập:
+
+1. **Foundation:** token, Tailwind mapping, global accessibility.
+2. **Primitives:** Button, Input, Card, Badge, Callout, Dialog.
+3. **Public marketplace:** home, search/listing, detail, auth, footer/mobile nav.
+4. **Learning workspace:** student/tutor journey, sessions, messages, wallet.
+5. **Admin & hardening:** dense data views, responsive/a11y/performance audit.
+
+Mỗi checkpoint phải qua lint, build và visual smoke ở viewport liên quan trước khi
+chuyển phase. Không đổi hợp đồng API hoặc business invariant chỉ vì redesign.
 
 Trong lúc chuyển đổi, `tailwind.config.js` giữ alias cũ trỏ về token mới để app
 không vỡ: `brand-indigo-*`, `indigo-*`, `financial-*`, `surface-*-light`,
@@ -277,4 +308,4 @@ không vỡ: `brand-indigo-*`, `indigo-*`, `financial-*`, `surface-*-light`,
 
 ---
 
-*`DESIGN.md` v2 là tiêu chuẩn thiết kế chính thức của TutorHub.*
+*`DESIGN.md` v3 là tiêu chuẩn thiết kế chính thức của TutorHub.*

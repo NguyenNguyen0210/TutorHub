@@ -5,7 +5,61 @@
 @tailwind utilities;
 
 /* ========================================================
-   BRAND SURFACES — Brand Style Guide v2
+   V3 FOUNDATIONS — Learning Journey, Protected by Trust
+   ======================================================== */
+
+@layer base {
+  html {
+    color-scheme: light;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-width: 320px;
+    margin: 0;
+    background: rgb(var(--color-background));
+    color: rgb(var(--color-foreground));
+    font-family: 'Be Vietnam Pro', Inter, ui-sans-serif, system-ui, sans-serif;
+    line-height: var(--line-height-normal);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: rgb(var(--color-primary) / 0.16);
+    color: rgb(var(--color-foreground));
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--color-ring));
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .page-shell {
+    width: min(100%, var(--layout-content-max));
+    margin-inline: auto;
+    padding-inline: var(--layout-gutter);
+  }
+
+  .section-shell {
+    padding-block: var(--layout-section-y);
+  }
+
+  .reading-shell {
+    width: min(100%, var(--layout-reading-max));
+  }
+
+  .learning-rail {
+    position: relative;
+    border-inline-start: 2px solid rgb(var(--color-border));
+    padding-inline-start: var(--space-6);
+  }
+}
+
+/* ========================================================
+   LEGACY BRAND SURFACES — retained during phased migration
    ======================================================== */
 
 .glass-surface {
