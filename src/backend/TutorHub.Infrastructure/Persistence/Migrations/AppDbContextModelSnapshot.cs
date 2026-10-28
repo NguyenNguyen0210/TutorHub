@@ -1611,6 +1611,16 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("UserId", "Status");
 
+                    b.HasIndex(new[] { "UserId" }, "IX_TutorApplications_UserId_Approved")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TutorApplications_OneApprovedPerUser")
+                        .HasFilter("\"Status\" = 'Approved'");
+
+                    b.HasIndex(new[] { "UserId" }, "IX_TutorApplications_UserId_Pending")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TutorApplications_OnePendingPerUser")
+                        .HasFilter("\"Status\" = 'Pending'");
+
                     b.ToTable("TutorApplications");
                 });
 
@@ -1759,6 +1769,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasDefaultValue("Active");
 
+                    b.Property<int>("TokenVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
@@ -1882,7 +1897,10 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("WalletId", "CreatedAt");
 
-                    b.ToTable("WalletTransactions", (string)null);
+                    b.ToTable("WalletTransactions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_WalletTransaction_ValidDirection", "\"Direction\" IN ('Credit', 'Debit')");
+                        });
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Withdrawal", b =>
