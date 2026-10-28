@@ -38,6 +38,37 @@ jobs:
       - name: Run Infrastructure Unit Tests
         run: dotnet test src/test/TutorHub.Infrastructure.UnitTests/TutorHub.Infrastructure.UnitTests.csproj --no-build --configuration Release
 
+  api-integration-tests:
+    name: API Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: tutorhub
+          POSTGRES_PASSWORD: test-password
+          POSTGRES_DB: postgres
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U tutorhub -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      POSTGRES_PORT: '5433'
+      POSTGRES_PASSWORD: test-password
+      POSTGRES_TEST_DATABASE: tutorhub_integration_ci
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Run API Integration Tests
+        run: dotnet test src/test/TutorHub.Api.IntegrationTests/TutorHub.Api.IntegrationTests.csproj --configuration Release
+
   frontend-build-lint:
     name: Frontend Lint & Build
     runs-on: ubuntu-latest
@@ -60,6 +91,9 @@ jobs:
 
       - name: Lint Frontend
         run: npm run lint
+
+      - name: Test Frontend
+        run: npm test
 
       - name: Build Frontend
         run: npm run build

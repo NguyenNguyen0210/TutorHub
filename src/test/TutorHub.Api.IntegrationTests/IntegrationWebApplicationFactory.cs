@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
+using System.Text.RegularExpressions;
+using System.Security.Cryptography;
 using TutorHub.Application.Common.Storage;
 using TutorHub.Infrastructure.Persistence;
 
@@ -21,9 +23,20 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
 {
     private static readonly string Port = Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5433";
     private static readonly string Password = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD") ?? "123456";
+    private static readonly string DatabaseName = GetTestDatabaseName();
 
     public static readonly string IntegrationConnectionString =
-        $"Host=localhost;Port={Port};Database=tutorhub_integration;Username=tutorhub;Password={Password}";
+        $"Host=localhost;Port={Port};Database={DatabaseName};Username=tutorhub;Password={Password}";
+
+    private static string GetTestDatabaseName()
+    {
+        var name = Environment.GetEnvironmentVariable("POSTGRES_TEST_DATABASE") ?? "tutorhub_integration";
+        if (!Regex.IsMatch(name, @"^tutorhub_integration(?:_[a-z0-9_]+)?$", RegexOptions.CultureInvariant))
+        {
+            throw new InvalidOperationException("POSTGRES_TEST_DATABASE must start with tutorhub_integration and contain only lowercase letters, digits, or underscores.");
+        }
+        return name;
+    }
 
     private static readonly object Sync = new();
     private static bool _initialized;
@@ -41,7 +54,16 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:DefaultConnection"] = IntegrationConnectionString,
-                ["PlatformFeeRate"] = "0.10"
+                ["PlatformFeeRate"] = "0.10",
+                ["Jwt:Secret"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)),
+                ["RefreshToken:Pepper"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)),
+                ["VnPay:TmnCode"] = "TESTTMN",
+                ["VnPay:HashSecret"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)),
+                ["VnPay:ReturnUrl"] = "http://localhost:5173/payment/return",
+                ["CloudflareR2:AccountId"] = "integration-test",
+                ["CloudflareR2:BucketName"] = "integration-test",
+                ["CloudflareR2:AccessKeyId"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)),
+                ["CloudflareR2:SecretAccessKey"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(32))
             });
         });
 
@@ -91,12 +113,13 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
             {
                 conn.Open();
                 using var cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT 1 FROM pg_database WHERE datname = 'tutorhub_integration'";
+                cmd.CommandText = "SELECT 1 FROM pg_database WHERE datname = @database";
+                cmd.Parameters.AddWithValue("database", DatabaseName);
                 var exists = cmd.ExecuteScalar() != null;
                 if (!exists)
                 {
                     using var create = conn.CreateCommand();
-                    create.CommandText = "CREATE DATABASE tutorhub_integration";
+                    create.CommandText = $"CREATE DATABASE \"{DatabaseName}\"";
                     create.ExecuteNonQuery();
                 }
             }
