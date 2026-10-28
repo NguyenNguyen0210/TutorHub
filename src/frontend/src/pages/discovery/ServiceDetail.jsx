@@ -145,11 +145,7 @@ export default function ServiceDetail() {
   const prerequisites = Array.isArray(service.prerequisites) ? service.prerequisites : [];
   const expectedOutcomes = service.expectedOutcome
     ? service.expectedOutcome.split('. ').filter(Boolean)
-    : [
-        'Nắm vững phương pháp giải các dạng bài tập trọng tâm.',
-        'Tự tin nâng cao phản xạ và tư duy logic độc lập.',
-        'Bứt phá kết quả học tập và đạt chuẩn điểm số đề ra.',
-      ];
+    : [];
 
   const tabs = [
     { key: 'overview', label: 'Tổng quan', sectionId: 'overview' },
@@ -161,20 +157,20 @@ export default function ServiceDetail() {
   ];
 
   return (
-    <div className="min-h-screen bg-neutral-50/60 pb-20">
+    <div className="min-h-screen bg-canvas pb-28 lg:pb-20">
       {/* 1. Top Hero Section */}
       <ServiceDetailHero service={service} />
 
       {/* 2. Sticky Tab Navigation Bar */}
       <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-200/90 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="page-shell">
           <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-2.5 no-scrollbar">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
                 type="button"
                 onClick={() => scrollToSection(tab.sectionId, tab.key)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold whitespace-nowrap transition-colors ${
+                className={`min-h-11 px-3.5 py-1.5 rounded-brand-md text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors ${
                   activeTab === tab.key
                     ? 'bg-brand-primary-600 text-white shadow-sm'
                     : 'text-fg-secondary hover:text-brand-primary-600 hover:bg-neutral-100'
@@ -188,12 +184,12 @@ export default function ServiceDetail() {
       </div>
 
       {/* 3. Main Content: 2-Column Golden Ratio Layout */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+      <div className="page-shell pt-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column (70% - 8 Cols) */}
           <div className="lg:col-span-8 flex flex-col gap-8">
             {/* Section: Overview & Target Audience */}
-            <div id="overview" className="bg-white rounded-2xl border border-neutral-200 p-6 sm:p-8 shadow-sm flex flex-col gap-6">
+            <section id="overview" className="bg-white rounded-brand-lg border border-border p-6 sm:p-8 flex flex-col gap-6">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-brand-primary-600" />
                 <h2 className="text-xl sm:text-2xl font-bold text-fg tracking-tight">
@@ -209,8 +205,8 @@ export default function ServiceDetail() {
               )}
 
               {/* Target Audience */}
-              <div>
-                <h3 className="text-sm font-bold text-fg uppercase tracking-wider mb-3">
+              {targetAudience.length > 0 && <div>
+                <h3 className="text-sm font-semibold text-fg mb-3">
                   Khóa học này dành cho ai?
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -228,11 +224,11 @@ export default function ServiceDetail() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </div>}
 
               {/* Prerequisites */}
-              <div>
-                <h3 className="text-sm font-bold text-fg uppercase tracking-wider mb-3">
+              {prerequisites.length > 0 && <div>
+                <h3 className="text-sm font-semibold text-fg mb-3">
                   Yêu cầu chuẩn bị trước khi học
                 </h3>
                 <ul className="flex flex-col gap-2.5">
@@ -247,11 +243,11 @@ export default function ServiceDetail() {
                     </li>
                   ))}
                 </ul>
-              </div>
-            </div>
+              </div>}
+            </section>
 
             {/* Section: Expected Outcomes */}
-            <div id="outcomes" className="bg-white rounded-2xl border border-neutral-200 p-6 sm:p-8 shadow-sm">
+            {expectedOutcomes.length > 0 && <section id="outcomes" className="bg-white rounded-brand-lg border border-border p-6 sm:p-8">
               <div className="flex items-center gap-2 mb-6">
                 <span className="w-2.5 h-2.5 rounded-full bg-success" />
                 <h2 className="text-xl sm:text-2xl font-bold text-fg tracking-tight">
@@ -279,7 +275,7 @@ export default function ServiceDetail() {
                   </div>
                 ))}
               </div>
-            </div>
+            </section>}
 
             {/* Section: Syllabus (Accordion) */}
             <ServiceSyllabus
@@ -289,7 +285,7 @@ export default function ServiceDetail() {
             />
 
             {/* Section: Tutor Detailed Profile Card */}
-            <div id="tutor-info" className="bg-white rounded-2xl border border-neutral-200 p-6 sm:p-8 shadow-sm flex flex-col gap-6">
+            <section id="tutor-info" className="bg-white rounded-brand-lg border border-border p-6 sm:p-8 flex flex-col gap-6">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-brand-primary-600" />
                 <h2 className="text-xl sm:text-2xl font-bold text-fg tracking-tight">
@@ -321,21 +317,26 @@ export default function ServiceDetail() {
                     </span>
                   </div>
 
-                  <p className="text-xs font-semibold text-neutral-500">
-                    {tutor.education || 'Giảng viên chuyên môn chất lượng cao'}
-                  </p>
+                  {tutor.education && (
+                    <p className="text-xs font-semibold text-neutral-500">{tutor.education}</p>
+                  )}
 
                   <div className="flex items-center gap-4 text-xs text-fg-secondary mt-1 flex-wrap">
-                    <span className="flex items-center gap-1 font-bold text-brand-secondary-500">
-                      <Icon name="star" size="xs" className="w-4 h-4 fill-brand-secondary-400 text-brand-secondary-400" />
-                      {Number(tutor.ratingAvg) > 0 ? Number(tutor.ratingAvg).toFixed(1) : '5.0'}
-                      <span className="text-fg-muted font-normal">({tutor.totalReviews || 12} đánh giá)</span>
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Icon name="work_history" size="xs" className="w-3.5 h-3.5 text-fg-muted" />
-                      {tutor.experienceYears || 3} năm kinh nghiệm
-                    </span>
+                    {Number(tutor.ratingAvg) > 0 && (
+                      <span className="flex items-center gap-1 font-bold text-brand-primary-700">
+                        <Icon name="star" size="xs" filled className="w-4 h-4 text-brand-primary-600" />
+                        {Number(tutor.ratingAvg).toFixed(1)}
+                        {Number(tutor.totalReviews) > 0 && (
+                          <span className="text-fg-muted font-normal">({tutor.totalReviews} đánh giá)</span>
+                        )}
+                      </span>
+                    )}
+                    {tutor.experienceYears > 0 && (
+                      <span className="flex items-center gap-1">
+                        <Icon name="work_history" size="xs" className="w-3.5 h-3.5 text-fg-muted" />
+                        {tutor.experienceYears} năm kinh nghiệm
+                      </span>
+                    )}
                     {tutor.address && (
                       <>
                         <span>•</span>
@@ -364,7 +365,7 @@ export default function ServiceDetail() {
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
 
             {/* Section: Student Reviews */}
             <ServiceReviews
@@ -386,7 +387,7 @@ export default function ServiceDetail() {
       </div>
 
       {/* 4. Mobile Sticky Bottom CTA Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 p-4 shadow-lg flex items-center justify-between gap-4">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-neutral-200 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg flex items-center justify-between gap-4">
         <div>
           <span className="text-[11px] text-neutral-500 block">Học phí trọn gói:</span>
           <Money value={service.price} className="text-xl font-extrabold text-brand-primary-600" />

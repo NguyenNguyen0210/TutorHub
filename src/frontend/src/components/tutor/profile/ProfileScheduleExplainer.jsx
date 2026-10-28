@@ -28,6 +28,7 @@ export default function ProfileScheduleExplainer({ tutorId }) {
   const [busySlots, setBusySlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [availabilityUnavailable, setAvailabilityUnavailable] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function ProfileScheduleExplainer({ tutorId }) {
       try {
         setLoading(true);
         setError(null);
+        setAvailabilityUnavailable(false);
 
         const from = dayjs().startOf('day').toISOString();
         const to = dayjs().add(28, 'day').endOf('day').toISOString();
@@ -49,7 +51,12 @@ export default function ProfileScheduleExplainer({ tutorId }) {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err?.message || 'Không thể tải lịch dạy của gia sư.');
+          if (err?.status === 404 || err?.kind === 'notFound') {
+            setAvailabilityUnavailable(true);
+            setError(null);
+          } else {
+            setError('Không thể tải lịch dạy lúc này. Bạn vẫn có thể nhắn tin để trao đổi thời gian học.');
+          }
           setLoading(false);
         }
       }
@@ -123,7 +130,7 @@ export default function ProfileScheduleExplainer({ tutorId }) {
 
           <div className="flex items-center gap-2 self-end sm:self-auto">
             <Button
-              size="sm"
+              size="md"
               variant="outline"
               onClick={() => setWeekOffset((prev) => Math.max(0, prev - 1))}
               disabled={weekOffset <= 0}
@@ -135,7 +142,7 @@ export default function ProfileScheduleExplainer({ tutorId }) {
               {weekLabel}
             </span>
             <Button
-              size="sm"
+              size="md"
               variant="outline"
               onClick={() => setWeekOffset((prev) => Math.min(3, prev + 1))}
               disabled={weekOffset >= 3}
@@ -153,10 +160,14 @@ export default function ProfileScheduleExplainer({ tutorId }) {
               <div key={i} className="h-28 rounded-brand-md bg-neutral-100 animate-pulse" />
             ))}
           </div>
+        ) : availabilityUnavailable ? (
+          <Callout variant="neutral" title="Gia sư chưa công khai lịch bận">
+            Hãy nhắn tin trực tiếp để thống nhất khung giờ phù hợp trước khi đăng ký gói học.
+          </Callout>
         ) : error ? (
-          <div className="p-4 rounded-brand-md bg-rose-50 border border-rose-200 text-caption text-rose-800">
+          <Callout variant="warning" title="Chưa tải được lịch dạy">
             {error}
-          </div>
+          </Callout>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
             {days.map((day) => (
@@ -213,7 +224,7 @@ export default function ProfileScheduleExplainer({ tutorId }) {
         )}
 
         {/* Legend and Guidance */}
-        <div className="flex flex-wrap items-center gap-4 text-caption pt-1">
+        {!loading && !error && !availabilityUnavailable && <div className="flex flex-wrap items-center gap-4 text-caption pt-1">
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-amber-100 border border-amber-300" />
             <span className="text-fg-secondary">Khung giờ đã có lớp</span>
@@ -222,11 +233,11 @@ export default function ProfileScheduleExplainer({ tutorId }) {
             <span className="w-3 h-3 rounded bg-emerald-100 border border-emerald-300" />
             <span className="text-fg-secondary">Khung giờ có thể học</span>
           </div>
-        </div>
+        </div>}
 
-        <Callout variant="info" icon={<Icon name="info" size="sm" />}>
+        {!availabilityUnavailable && <Callout variant="info" icon={<Icon name="info" size="sm" />}>
           Lịch trên hiển thị các buổi học đã được xác nhận của gia sư. Các khung giờ còn lại gia sư có thể sắp xếp linh hoạt. Bạn có thể nhắn tin trao đổi trước để thống nhất thời gian học phù hợp nhất.
-        </Callout>
+        </Callout>}
 
         {/* Action Button */}
         <div className="pt-1">
@@ -244,7 +255,7 @@ export default function ProfileScheduleExplainer({ tutorId }) {
 
         {/* How It Works Explainer (Collapse/Workflow reference) */}
         <div className="pt-4 border-t border-border">
-          <h4 className="text-caption font-bold text-fg uppercase tracking-wider mb-3">
+          <h4 className="text-caption font-semibold text-fg mb-3">
             Quy trình đăng ký & bảo đảm học tập
           </h4>
           <ol className="space-y-2.5">

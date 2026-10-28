@@ -67,7 +67,8 @@ export default function MobileFloatingDock() {
   const location = useLocation();
 
   const isImmersive = IMMERSIVE_PATHS.some((p) => location.pathname.startsWith(p));
-  if (isImmersive) return null;
+  const hasContextualBottomAction = /^\/(tutors|services|service)\/[^/]+/.test(location.pathname);
+  if (isImmersive || hasContextualBottomAction) return null;
 
   // Đọc qua getNavForRole để dock và sidebar cùng nguồn danh sách.
   const items = isAuthenticated ? getNavForRole(role, isAuthenticated).slice(0, 4) : GUEST_ITEMS;

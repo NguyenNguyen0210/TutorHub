@@ -47,7 +47,7 @@ export default function BookingRail({ tutor }) {
   return (
     <aside className="space-y-4">
       <div className="lg:sticky lg:top-28 space-y-4">
-        <Card padding="lg" className="space-y-4">
+        <Card padding="lg" variant="raised" className="space-y-4">
           <div>
             <Button
               as={Link}
