@@ -2,125 +2,56 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
 
+const TRUST_POINTS = [
+  ['verified_user', 'Hồ sơ được xác thực', 'Thông tin chuyên môn được xét duyệt'],
+  ['timeline', 'Tiến độ nhìn thấy được', 'Theo dõi từng buổi trong gói học'],
+  ['shield', 'Dòng tiền được bảo chứng', 'Có thời gian báo cáo trước giải ngân'],
+];
+
 export default function HowItWorksHero() {
   return (
-    <section className="relative py-8 sm:py-10 lg:py-12 bg-brand-primary-50 border-b border-brand-primary-100/70 overflow-hidden">
-      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center">
-          {/* Left Column: Breadcrumb, Heading, Subtitle, Trust Badges */}
-          <div className="lg:col-span-7 space-y-4 sm:space-y-5">
-            {/* Breadcrumb */}
-            <nav className="flex items-center gap-1.5 text-[12px] font-medium text-fg-muted" aria-label="Breadcrumb">
-              <Link to="/" className="text-fg-muted hover:text-brand-primary-600 transition-colors">
-                Trang chủ
-              </Link>
-              <span className="text-neutral-300">›</span>
-              <span className="text-brand-primary-600 font-semibold">Cách hoạt động</span>
-            </nav>
+    <section className="overflow-hidden border-b border-brand-primary-100 bg-brand-primary-50 py-10 sm:py-14">
+      <div className="page-shell">
+        <nav className="mb-6 flex items-center gap-1.5 text-[12px] font-medium text-fg-muted" aria-label="Breadcrumb">
+          <Link to="/" className="hover:text-primary">Trang chủ</Link>
+          <span aria-hidden="true">/</span>
+          <span className="font-semibold text-primary">Cách hoạt động</span>
+        </nav>
 
-            <h1 className="text-headline-page sm:text-[38px] lg:text-[42px] font-bold text-fg leading-[1.18] tracking-tight">
-              Hành trình học tập dễ dàng <br />
-              cùng <span className="text-brand-primary-600">TutorHub</span>
+        <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <h1 className="max-w-2xl border-l-4 border-brand-primary-600 pl-5 text-[36px] font-bold leading-[1.08] tracking-[-0.035em] text-fg sm:text-[48px]">
+              Một hành trình học tập rõ ràng từ đầu đến cuối
             </h1>
-
-            <p className="text-[14px] sm:text-[15px] text-fg-secondary max-w-xl leading-relaxed">
-              Chúng tôi kết nối học viên với những gia sư chất lượng, cung cấp dịch vụ học tập an toàn,
-              minh bạch và hiệu quả. Chỉ với vài bước đơn giản, bạn đã có thể bắt đầu hành trình học tập của mình.
+            <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-fg-secondary sm:text-[17px]">
+              TutorHub giúp học viên và gia sư cùng nhìn thấy cam kết, tiến độ từng buổi
+              và trạng thái học phí trong một quy trình thống nhất.
             </p>
 
-            {/* 3 Trust Badges */}
-            <div className="pt-2 flex flex-wrap items-center gap-4 sm:gap-6">
-              {/* Badge 1: An toàn thanh toán */}
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-success-subtle border border-success-subtle flex items-center justify-center text-success-strong shrink-0">
-                  <Icon name="verified_user" size="sm" />
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              {TRUST_POINTS.map(([icon, title, description]) => (
+                <div key={title} className="border-t border-brand-primary-200 pt-4">
+                  <Icon name={icon} size="sm" className="text-brand-primary-600" />
+                  <h2 className="mt-2 text-[13px] font-semibold text-fg">{title}</h2>
+                  <p className="mt-1 text-[12px] leading-relaxed text-fg-muted">{description}</p>
                 </div>
-                <div>
-                  <h3 className="text-[13px] font-bold text-fg leading-tight">An toàn thanh toán</h3>
-                  <p className="text-[11.5px] text-fg-muted font-medium">Bảo chứng qua Escrow</p>
-                </div>
-              </div>
-
-              {/* Badge 2: Gia sư chất lượng */}
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-brand-primary-50 border border-brand-primary-100 flex items-center justify-center text-brand-primary-600 shrink-0">
-                  <Icon name="group" size="sm" />
-                </div>
-                <div>
-                  <h3 className="text-[13px] font-bold text-fg leading-tight">Gia sư chất lượng</h3>
-                  <p className="text-[11.5px] text-fg-muted font-medium">Được xác thực kỹ càng</p>
-                </div>
-              </div>
-
-              {/* Badge 3: Học tập hiệu quả */}
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-brand-secondary-50 border border-brand-secondary-100 flex items-center justify-center text-brand-secondary-600 shrink-0">
-                  <Icon name="trending_up" size="sm" />
-                </div>
-                <div>
-                  <h3 className="text-[13px] font-bold text-fg leading-tight">Học tập hiệu quả</h3>
-                  <p className="text-[11.5px] text-fg-muted font-medium">Đạt mục tiêu nhanh hơn</p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Right Column: Visual Graphic Banner with Student & Floating Benefit Badges */}
-          <div className="lg:col-span-5 relative flex items-center justify-center lg:justify-end">
-            <div className="relative w-full max-w-[460px] flex items-center justify-center pt-2 pb-2 select-none">
-              {/* Soft ambient backlight */}
-              <div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-brand-primary-100/40 rounded-full blur-3xl -z-10 pointer-events-none"
-                aria-hidden="true"
-              />
-
-              {/* Floating person cutout, same as main hero (/register & /login) */}
+          <figure className="relative mx-auto w-full max-w-[460px]">
+            <div className="overflow-hidden rounded-brand-xl border border-brand-primary-100 bg-surface">
               <img
                 src="/images/transparent-student-clean.png"
-                alt="Học viên TutorHub học tập hiệu quả cùng gia sư"
-                className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-sm"
+                alt="Học viên đang học trực tuyến trên TutorHub"
+                className="h-auto w-full object-contain"
                 loading="eager"
               />
-
-              {/* Floating Badge 1: Top Right - Kết nối tri thức */}
-              <div
-                className="absolute top-2 -right-1 sm:right-0 bg-white/95 backdrop-blur-md p-2.5 px-3 rounded-2xl shadow-md border border-white/90 flex items-center gap-2.5 animate-float z-20"
-                style={{ animationDuration: '4.8s' }}
-              >
-                <div className="w-8 h-8 rounded-xl bg-brand-primary-50 text-info flex items-center justify-center shrink-0">
-                  <Icon name="timeline" size="sm" />
-                </div>
-                <div>
-                  <p className="text-[12px] font-bold text-fg leading-tight">Kết nối tri thức</p>
-                  <p className="text-[10px] text-fg-muted font-medium">Đạt mục tiêu nhanh hơn, gia sư phù hợp</p>
-                </div>
-              </div>
-
-              {/* Floating Badge 2: Bottom Left - Hơn 10.000+ */}
-              <div
-                className="absolute bottom-6 -left-2 sm:left-0 bg-white/95 backdrop-blur-md p-2.5 px-3 rounded-2xl shadow-md border border-white/90 flex items-center gap-2.5 animate-float z-20"
-                style={{ animationDuration: '5.2s', animationDelay: '0.8s' }}
-              >
-                <div className="w-8 h-8 rounded-xl bg-success-subtle text-success-strong flex items-center justify-center shrink-0">
-                  <Icon name="verified" size="sm" />
-                </div>
-                <div>
-                  <p className="text-[12.5px] font-bold text-fg leading-tight">Hơn 10.000+</p>
-                  <p className="text-[10px] text-fg-muted font-medium">học viên đã tìm được gia sư phù hợp</p>
-                </div>
-              </div>
-
-              {/* Floating Badge 3: Middle Right - Small Chart */}
-              <div
-                className="absolute bottom-14 -right-1 sm:right-2 bg-white/95 backdrop-blur-md p-2 rounded-xl shadow-md border border-white/90 flex items-center justify-center text-brand-secondary-500 animate-float z-20"
-                style={{ animationDuration: '4.2s', animationDelay: '1.4s' }}
-              >
-                <div className="w-7 h-7 rounded-lg bg-holding-subtle flex items-center justify-center">
-                  <Icon name="timeline" size="sm" />
-                </div>
-              </div>
             </div>
-          </div>
+            <figcaption className="mt-3 text-center text-[12px] text-fg-muted">
+              Chọn gói học, xếp lịch và theo dõi tiến độ trong cùng một nơi.
+            </figcaption>
+          </figure>
         </div>
       </div>
     </section>

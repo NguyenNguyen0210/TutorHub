@@ -17,14 +17,10 @@ export default function HowItWorks() {
       <HowItWorksHero />
 
       {/* Section 2: Student Journey (4 steps) */}
-      <div className="pt-6 sm:pt-8">
-        <StepsSection variant="student" />
-      </div>
+      <StepsSection variant="student" />
 
       {/* Section 3: Tutor Journey (4 steps) */}
-      <div className="pt-2 sm:pt-4">
-        <StepsSection variant="tutor" />
-      </div>
+      <StepsSection variant="tutor" />
 
       {/* Section 4: Why TutorHub (4 Benefits) */}
       <WhyTutorHub />
