@@ -167,10 +167,11 @@ api.interceptors.response.use(
 
         const newAccessToken = refreshResponse.data?.data?.accessToken;
         if (newAccessToken) {
-          useAuthStore.getState().login(useAuthStore.getState().user, {
+          const authState = useAuthStore.getState();
+          authState.login(authState.user, {
             accessToken: newAccessToken,
             refreshToken: refreshResponse.data?.data?.refreshToken || refreshToken,
-          });
+          }, authState.rememberMe);
           processQueue(null, newAccessToken);
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return api(originalRequest);
