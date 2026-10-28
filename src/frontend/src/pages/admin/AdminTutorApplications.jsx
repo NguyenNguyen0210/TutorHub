@@ -112,7 +112,7 @@ export default function AdminTutorApplications() {
     return () => {
       isMounted = false;
     };
-  }, [reloadToken]);
+  }, [reloadToken, toast]);
 
   // Format DB applications loaded from API
   const allApplications = useMemo(() => {

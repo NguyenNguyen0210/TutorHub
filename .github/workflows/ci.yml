@@ -12,34 +12,7 @@ concurrency:
 
 jobs:
   backend-build-test:
-    name: Backend Build & Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Restore Backend
-        run: dotnet restore src/backend/TutorHub.sln
-
-      - name: Build Solution (TreatWarningsAsErrors=true)
-        run: dotnet build src/backend/TutorHub.sln --no-restore --configuration Release /p:TreatWarningsAsErrors=true
-
-      - name: Run Domain Unit Tests
-        run: dotnet test src/test/TutorHub.Domain.UnitTests/TutorHub.Domain.UnitTests.csproj --no-build --configuration Release
-
-      - name: Run Application Unit Tests
-        run: dotnet test src/test/TutorHub.Application.UnitTests/TutorHub.Application.UnitTests.csproj --no-build --configuration Release
-
-      - name: Run Infrastructure Unit Tests
-        run: dotnet test src/test/TutorHub.Infrastructure.UnitTests/TutorHub.Infrastructure.UnitTests.csproj --no-build --configuration Release
-
-  api-integration-tests:
-    name: API Integration Tests
+    name: Backend Build & All Tests
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -62,12 +35,20 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - name: Run API Integration Tests
-        run: dotnet test src/test/TutorHub.Api.IntegrationTests/TutorHub.Api.IntegrationTests.csproj --configuration Release
+
+      - name: Restore Backend
+        run: dotnet restore src/backend/TutorHub.sln
+
+      - name: Build Solution (TreatWarningsAsErrors=true)
+        run: dotnet build src/backend/TutorHub.sln --no-restore --configuration Release /p:TreatWarningsAsErrors=true
+
+      - name: Run All Backend Tests
+        run: bash scripts/test-backend.sh --no-build
 
   frontend-build-lint:
     name: Frontend Lint & Build

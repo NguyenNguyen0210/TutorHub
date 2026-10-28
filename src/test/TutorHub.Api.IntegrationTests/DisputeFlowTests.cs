@@ -56,6 +56,7 @@ public class DisputeFlowTests : IntegrationTestBase
     }
 
     [Fact]
+    [Trait("Category", "CriticalFlow")]
     public async Task GracePeriodDispute_PartialRefund_SettlesFromPendingEscrow()
     {
         // Arrange: session is inside its 12h grace window (pre-release, not paid out).
@@ -106,6 +107,16 @@ public class DisputeFlowTests : IntegrationTestBase
         var wallet = await Db.Wallets.AsNoTracking().FirstAsync(w => w.TutorProfileId == enrollment.TutorProfileId);
         // 1,000,000 seeded + 180,000 tutor net = 1,180,000.
         wallet.AvailableBalance.Should().Be(1_180_000m);
+
+        var studentWallet = await Db.Wallets.AsNoTracking()
+            .FirstAsync(w => w.UserId == studentUserId && w.StudentProfileId != null);
+        studentWallet.AvailableBalance.Should().Be(100_000m);
+
+        var refundLedger = await Db.WalletTransactions.AsNoTracking().SingleAsync(t =>
+            t.WalletId == studentWallet.Id && t.ReferenceId == dispute.Id);
+        refundLedger.Amount.Should().Be(100_000m);
+        refundLedger.BalanceBefore.Should().Be(0m);
+        refundLedger.BalanceAfter.Should().Be(100_000m);
 
         var completed = await Db.Sessions.AsNoTracking().FirstAsync(s => s.Id == session.Id);
         completed.Status.Should().Be(SessionStatus.Completed);

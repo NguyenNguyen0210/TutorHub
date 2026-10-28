@@ -88,7 +88,7 @@ export default function TutorApplication() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [toast]);
 
   const updateField = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

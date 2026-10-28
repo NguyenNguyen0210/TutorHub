@@ -95,8 +95,9 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
     }
 
     /// <summary>
-    /// Creates the integration database (if missing) and applies all migrations.
-    /// Safe to call multiple times; runs once per test process.
+    /// Recreates the dedicated integration database and applies all migrations.
+    /// The strict name allow-list makes the destructive reset impossible to run
+    /// against the development or production database. Runs once per test process.
     /// </summary>
     public static void EnsureDatabase()
     {
@@ -109,19 +110,13 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
 
             var maintenanceCs =
                 $"Host=localhost;Port={Port};Database=postgres;Username=tutorhub;Password={Password}";
+            NpgsqlConnection.ClearAllPools();
             using (var conn = new NpgsqlConnection(maintenanceCs))
             {
                 conn.Open();
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT 1 FROM pg_database WHERE datname = @database";
-                cmd.Parameters.AddWithValue("database", DatabaseName);
-                var exists = cmd.ExecuteScalar() != null;
-                if (!exists)
-                {
-                    using var create = conn.CreateCommand();
-                    create.CommandText = $"CREATE DATABASE \"{DatabaseName}\"";
-                    create.ExecuteNonQuery();
-                }
+                using var reset = conn.CreateCommand();
+                reset.CommandText = $"DROP DATABASE IF EXISTS \"{DatabaseName}\" WITH (FORCE); CREATE DATABASE \"{DatabaseName}\"";
+                reset.ExecuteNonQuery();
             }
 
             var options = new DbContextOptionsBuilder<AppDbContext>()

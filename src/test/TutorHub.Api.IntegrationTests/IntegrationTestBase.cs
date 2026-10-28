@@ -7,8 +7,8 @@ namespace TutorHub.Api.IntegrationTests;
 
 /// <summary>
 /// Base for handler-level integration tests: resolves MediatR + a fresh
-/// scoped DbContext from the factory. Each test seeds uniquely-identified
-/// rows (Guids), so no cleanup is required between runs.
+/// scoped DbContext from the factory. The test process starts from a newly
+/// migrated dedicated database; individual tests seed uniquely identified rows.
 /// </summary>
 public abstract class IntegrationTestBase : IClassFixture<IntegrationWebApplicationFactory>, IDisposable
 {
