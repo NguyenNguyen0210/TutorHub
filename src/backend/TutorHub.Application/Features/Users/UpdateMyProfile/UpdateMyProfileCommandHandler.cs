@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Users.DTOs;
+using TutorHub.Application.Common.Caching;
 
 namespace TutorHub.Application.Features.Users.UpdateMyProfile;
 
@@ -10,11 +11,19 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
 {
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ITutorProfileCacheService _tutorCache;
+    private readonly IServiceDetailCacheService _serviceCache;
 
-    public UpdateMyProfileCommandHandler(IAppDbContext context, ICurrentUserService currentUserService)
+    public UpdateMyProfileCommandHandler(
+        IAppDbContext context,
+        ICurrentUserService currentUserService,
+        ITutorProfileCacheService? tutorCache = null,
+        IServiceDetailCacheService? serviceCache = null)
     {
         _context = context;
         _currentUserService = currentUserService;
+        _tutorCache = tutorCache ?? NoOpTutorProfileCacheService.Instance;
+        _serviceCache = serviceCache ?? NoOpServiceDetailCacheService.Instance;
     }
 
     public async Task<MyProfileDto> Handle(UpdateMyProfileCommand request, CancellationToken cancellationToken)
@@ -57,6 +66,21 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
         // Note: Protected fields (Email, Role, PasswordHash, Status, CreatedAt) remain strictly untouched.
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        var tutorProfileId = await _context.TutorProfiles.AsNoTracking()
+            .Where(t => t.UserId == user.Id)
+            .Select(t => (Guid?)t.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (tutorProfileId.HasValue)
+        {
+            await _tutorCache.InvalidateTutorProfileAsync(tutorProfileId.Value, cancellationToken);
+            var serviceIds = await _context.Services.AsNoTracking()
+                .Where(s => s.TutorProfileId == tutorProfileId.Value)
+                .Select(s => s.Id)
+                .ToListAsync(cancellationToken);
+            foreach (var serviceId in serviceIds)
+                await _serviceCache.InvalidateServiceDetailAsync(serviceId, cancellationToken);
+        }
 
         return new MyProfileDto(
             user.Id,

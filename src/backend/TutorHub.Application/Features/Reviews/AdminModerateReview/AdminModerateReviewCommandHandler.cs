@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Reviews.DTOs;
+using TutorHub.Application.Common.Caching;
 
 namespace TutorHub.Application.Features.Reviews.AdminModerateReview;
 
@@ -11,15 +12,21 @@ public class AdminModerateReviewCommandHandler : IRequestHandler<AdminModerateRe
     private readonly IAppDbContext _context;
     private readonly ICurrentUserService _currentUserService;
     private readonly IAuditLogService _auditLogService;
+    private readonly IServiceDetailCacheService _serviceCache;
+    private readonly ITutorProfileCacheService _tutorCache;
 
     public AdminModerateReviewCommandHandler(
         IAppDbContext context,
         ICurrentUserService currentUserService,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        IServiceDetailCacheService? serviceCache = null,
+        ITutorProfileCacheService? tutorCache = null)
     {
         _context = context;
         _currentUserService = currentUserService;
         _auditLogService = auditLogService;
+        _serviceCache = serviceCache ?? NoOpServiceDetailCacheService.Instance;
+        _tutorCache = tutorCache ?? NoOpTutorProfileCacheService.Instance;
     }
 
     public async Task<ReviewDto> Handle(AdminModerateReviewCommand request, CancellationToken cancellationToken)
@@ -73,6 +80,8 @@ public class AdminModerateReviewCommandHandler : IRequestHandler<AdminModerateRe
             cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
+        await _serviceCache.InvalidateServiceDetailAsync(review.Enrollment.ServiceId, cancellationToken);
+        await _tutorCache.InvalidateTutorProfileAsync(tutorProfileId, cancellationToken);
 
         var studentUser = review.Enrollment.StudentProfile.User;
         // centralized mapping.
