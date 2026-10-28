@@ -56,6 +56,19 @@
     border-inline-start: 2px solid rgb(var(--color-border));
     padding-inline-start: var(--space-6);
   }
+
+  .filter-panel button[aria-expanded],
+  .filter-panel label:has(input[type='radio']),
+  .filter-panel label:has(input[type='checkbox']) {
+    min-height: 2.75rem;
+  }
+
+  .filter-panel input[type='radio'],
+  .filter-panel input[type='checkbox'] {
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+  }
 }
 
 /* ========================================================

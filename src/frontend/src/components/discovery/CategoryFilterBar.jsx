@@ -72,8 +72,8 @@ export default function CategoryFilterBar({
   }, [categories, selectedCategoryId]);
 
   return (
-    <div className="w-full bg-surface border-b border-neutral-200/80 shadow-brand-sm z-30">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="w-full bg-surface border-b border-neutral-200/80 z-30">
+      <div className="page-shell">
         <div
           className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-2.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           role="tablist"

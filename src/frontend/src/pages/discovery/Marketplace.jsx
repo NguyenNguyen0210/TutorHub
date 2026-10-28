@@ -394,7 +394,7 @@ export default function Marketplace() {
       />
 
       {/* 3. Main Discovery Workspace */}
-      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+      <main className="page-shell pt-6 sm:pt-8">
         <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-7 items-start">
           {/* Left Column: Filter Sidebar (desktop; mobile dùng drawer) */}
           {!isMobileFilters && (

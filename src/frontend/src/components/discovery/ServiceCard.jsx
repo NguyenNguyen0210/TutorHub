@@ -3,62 +3,11 @@ import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
-import Button from '@/components/ui/Button';
-import { formatVND } from '@/utils/formatters';
-
-// Single brand tint for every category (was 5 decorative hues: blue/indigo/teal/amber/slate)
-const THEME_BY_CATEGORY = {
-  'Ngoại ngữ': {
-    bg: 'bg-brand-primary-50/80 border-b border-brand-primary-100/80',
-    tag: 'TIẾNG ANH & NGOẠI NGỮ',
-    tagClass: 'bg-brand-primary-100/70 text-brand-primary-700',
-  },
-  'Công nghệ thông tin': {
-    bg: 'bg-brand-primary-50/80 border-b border-brand-primary-100/80',
-    tag: 'LẬP TRÌNH & CNTT',
-    tagClass: 'bg-brand-primary-100/70 text-brand-primary-700',
-  },
-  'Toán học': {
-    bg: 'bg-brand-primary-50/80 border-b border-brand-primary-100/80',
-    tag: 'TOÁN HỌC PHỔ THÔNG',
-    tagClass: 'bg-brand-primary-100/70 text-brand-primary-700',
-  },
-  'Khoa học tự nhiên': {
-    bg: 'bg-brand-primary-50/80 border-b border-brand-primary-100/80',
-    tag: 'KHOA HỌC TỰ NHIÊN',
-    tagClass: 'bg-brand-primary-100/70 text-brand-primary-700',
-  },
-  'Khoa học xã hội': {
-    bg: 'bg-brand-primary-50/80 border-b border-brand-primary-100/80',
-    tag: 'KHOA HỌC XÃ HỘI',
-    tagClass: 'bg-brand-primary-100/70 text-brand-primary-700',
-  },
-  'Kỹ năng mềm': {
-    bg: 'bg-brand-primary-50/80 border-b border-brand-primary-100/80',
-    tag: 'KỸ NĂNG & PHÁT TRIỂN',
-    tagClass: 'bg-brand-primary-100/70 text-brand-primary-700',
-  },
-  'Luyện thi chứng chỉ': {
-    bg: 'bg-brand-primary-50/80 border-b border-brand-primary-100/80',
-    tag: 'LUYỆN THI CHỨNG CHỈ',
-    tagClass: 'bg-brand-primary-100/70 text-brand-primary-700',
-  },
-  'Kinh tế & Tài chính': {
-    bg: 'bg-brand-primary-50/80 border-b border-brand-primary-100/80',
-    tag: 'KINH TẾ & TÀI CHÍNH',
-    tagClass: 'bg-brand-primary-100/70 text-brand-primary-700',
-  },
-  default: {
-    bg: 'bg-neutral-50/90 border-b border-neutral-100',
-    tag: 'DỊCH VỤ HỌC TẬP',
-    tagClass: 'bg-neutral-100 text-neutral-700',
-  },
-};
+import Button, { IconButton } from '@/components/ui/Button';
+import Money from '@/components/ui/Money';
 
 export default function ServiceCard({ service }) {
   const [isFavorite, setIsFavorite] = useState(false);
-
-  const theme = THEME_BY_CATEGORY[service.categoryName] || THEME_BY_CATEGORY.default;
 
   const modeLabel =
     service.teachingMode === 'InPerson' || service.teachingMode === 'Offline'
@@ -74,141 +23,113 @@ export default function ServiceCard({ service }) {
       ? 'devices'
       : 'videocam';
 
-  const totalSessions = Number(service.totalSessions) || 1;
-  const sessionDuration = Number(service.sessionDurationMinutes) || 90;
+  const totalSessions = Number(service.totalSessions) > 0 ? Number(service.totalSessions) : null;
+  const sessionDuration = Number(service.sessionDurationMinutes) > 0
+    ? Number(service.sessionDurationMinutes)
+    : null;
   const price = Number(service.price) || 0;
-  const rating = Number(service.tutorRating) > 0 ? Number(service.tutorRating).toFixed(1) : '5.0';
-  const reviewsCount = service.tutorTotalReviews > 0 ? service.tutorTotalReviews : 12;
+  const rating = Number(service.tutorRating) > 0 ? Number(service.tutorRating) : null;
+  const reviewsCount = Number(service.tutorTotalReviews) || 0;
+  const subjectLabel = service.subjectName || service.categoryName || 'Dịch vụ học tập';
+  const TutorIdentity = service.tutorProfileId ? Link : 'div';
 
   return (
-    /* Thẻ KHÔNG phải control: nó chứa hai link (dịch vụ, gia sư) và một nút yêu
-       thích, mà một <button>/<a> thì không được chứa control khác. Trước đây thẻ là
-       <div onClick> — bàn phím không với tới được, và mọi child phải
-       stopPropagation để giành quyền click.
+    <article className="group relative flex min-w-0 flex-col overflow-hidden rounded-brand-lg border border-border bg-surface transition-[border-color,box-shadow,transform] duration-normal ease-standard hover:-translate-y-0.5 hover:border-brand-primary-300 hover:shadow-brand-md">
+      <div className="h-1 bg-brand-primary-600" aria-hidden="true" />
 
-       Nay: <Link> tiêu đề có `::after` phủ kín thẻ ("stretched link"), nên toàn bộ
-       mặt thẻ bấm được, Tab tới được, Enter kích hoạt được, và chuột phải mở
-       được tab mới. Nút yêu thích và link gia sư được nâng lên `z-10` để nằm trên
-       lớp phủ đó. Không còn stopPropagation nào. */
-    <div className="group relative flex flex-col justify-between bg-surface rounded-2xl border border-neutral-200/90 shadow-sm hover:shadow-brand-md hover:border-brand-primary-600/40 transition-all duration-200 overflow-hidden">
-      {/* Top Banner Header: Soft Pastel Tint Background */}
-      <div className={`relative px-4 py-3 ${theme.bg} flex items-center justify-between`}>
-        <span
-          className={`inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold tracking-wide uppercase line-clamp-1 ${theme.tagClass}`}
-        >
-          {service.subjectName || theme.tag}
-        </span>
-
-        {/* Favorite Heart Button: subtle gray border by default, red when active */}
-        <button
-          type="button"
-          onClick={() => setIsFavorite(!isFavorite)}
-          className={`relative z-10 w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-            isFavorite
-              ? 'bg-danger-subtle text-danger border border-danger/20'
-              : 'bg-white/90 text-neutral-400 border border-neutral-200/80 hover:text-danger hover:border-danger/20 shadow-sm'
-          }`}
-          aria-label={isFavorite ? 'Bỏ yêu thích' : 'Yêu thích dịch vụ này'}
-        >
-          <Icon
-            name="favorite"
-            size="xs"
-            filled={isFavorite}
-            className={`w-3.5 h-3.5 ${isFavorite ? 'text-danger' : 'text-neutral-400'}`}
+      <div className="flex flex-1 flex-col p-5">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <span className="inline-flex max-w-[calc(100%-3rem)] items-center rounded-brand-sm bg-primary-subtle px-2.5 py-1 text-[12px] font-medium text-brand-primary-700">
+            <span className="truncate">{subjectLabel}</span>
+          </span>
+          <IconButton
+            label={isFavorite ? 'Bỏ lưu dịch vụ' : 'Lưu dịch vụ'}
+            variant="ghost"
+            size="md"
+            onClick={() => setIsFavorite((value) => !value)}
+            className="relative z-10 -mr-2 -mt-2"
+            icon={
+              <Icon
+                name="favorite"
+                size="sm"
+                filled={isFavorite}
+                className={isFavorite ? 'text-danger' : 'text-neutral-400'}
+              />
+            }
           />
-        </button>
-      </div>
-
-      {/* Main Card Content */}
-      <div className="p-4 flex-1 flex flex-col justify-between space-y-3.5">
-        <div className="space-y-2.5">
-          {/* Service Full Title */}
-          <Link
-            to={`/services/${service.id}`}
-            className="group/title block after:absolute after:inset-0 after:content-['']"
-          >
-            <h3
-              title={service.title}
-              className="text-[15px] font-bold text-neutral-900 group-hover/title:text-brand-primary-600 group-hover:text-brand-primary-600 transition-colors line-clamp-2 leading-snug min-h-[42px]"
-            >
-              {service.title}
-            </h3>
-          </Link>
-
-          {/* Tutor Info Row — link thật, nằm trên lớp phủ của link tiêu đề */}
-          <Link
-            to={`/tutors/${service.tutorProfileId}`}
-            className="relative z-10 flex items-center gap-2 rounded-brand-sm hover:opacity-85 transition-opacity group/tutor"
-          >
-            {/* Không dùng ảnh sinh từ dịch vụ bên thứ ba: bản cũ truyền TÊN thật
-                của gia sư vào seed của dicebear. <Avatar> tự hiện chữ cái đầu. */}
-            <Avatar
-              src={service.tutorAvatarUrl}
-              name={service.tutorName}
-              size="sm"
-              className="w-7 h-7 shrink-0"
-            />
-            <span className="text-[13px] font-semibold text-fg line-clamp-1 group-hover/tutor:text-brand-primary-600">
-              {service.tutorName}
-            </span>
-            <span
-              className="text-success shrink-0 inline-flex items-center"
-              title="Gia sư đã được xác thực"
-            >
-              <Icon name="verified" size="xs" filled className="text-success w-3.5 h-3.5" />
-            </span>
-          </Link>
-
-          {/* Rating & Reviews (Streamlined, no noisy student count) */}
-          <div className="flex items-center gap-1.5 text-[12px] text-neutral-500">
-            <span className="flex items-center text-brand-secondary-500 font-bold gap-0.5">
-              <Icon name="star" size="xs" filled className="text-brand-secondary-500 w-3.5 h-3.5" />
-              <span>{rating}</span>
-            </span>
-            <span className="text-neutral-300">·</span>
-            <span>{reviewsCount} đánh giá</span>
-          </div>
-
-          {/* Package Terms Row: Sessions · Duration & Mode */}
-          <div className="space-y-1 pt-2 border-t border-neutral-100 text-[12px] text-fg-secondary">
-            <div className="flex items-center gap-1.5 font-medium text-neutral-700">
-              <Icon name="schedule" size="xs" className="text-brand-primary-600 w-3.5 h-3.5 shrink-0" />
-              <span>
-                {totalSessions} buổi · {sessionDuration} phút/buổi
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 text-neutral-500">
-              <Icon name={modeIcon} size="xs" className="text-fg-muted w-3.5 h-3.5 shrink-0" />
-              <span>{modeLabel}</span>
-            </div>
-          </div>
         </div>
 
-        {/* Footer: Price (Từ X đ) + Primary CTA */}
-        <div className="pt-3 border-t border-neutral-100 flex items-center justify-between gap-2">
-          <div>
-            <span className="text-[11px] text-neutral-500 font-medium block">Học phí trọn gói</span>
-            <span className="text-[16px] sm:text-[17px] font-extrabold text-brand-primary-600 tracking-tight block">
-              Từ {formatVND(price)}
-            </span>
-          </div>
+        <Link
+          to={`/services/${service.id}`}
+          className="group/title after:absolute after:inset-0 after:content-['']"
+        >
+          <h3 className="min-h-[3rem] text-[17px] font-bold leading-snug text-fg transition-colors line-clamp-2 group-hover/title:text-primary group-hover:text-primary">
+            {service.title}
+          </h3>
+        </Link>
 
-          <Button
-            as={Link}
-            to={`/services/${service.id}`}
-            variant="primary"
+        <TutorIdentity
+          {...(service.tutorProfileId ? { to: `/tutors/${service.tutorProfileId}` } : {})}
+          className="relative z-10 mt-4 flex items-center gap-2.5 rounded-brand-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Avatar
+            src={service.tutorAvatarUrl}
+            name={service.tutorName}
             size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            className="!rounded-lg px-3.5 py-1.5 text-[12.5px] font-bold gap-1 shadow-sm group-hover:bg-brand-primary-700 transition-colors"
-          >
-            <span>Xem chi tiết</span>
-            <Icon name="arrow_forward" size="xs" className="w-3 h-3" />
+            className="h-9 w-9 shrink-0"
+          />
+          <div className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5 text-[13px] font-semibold text-fg">
+              <span className="truncate">{service.tutorName || 'Gia sư'}</span>
+              <Icon name="verified" size="xs" filled className="shrink-0 text-success" />
+              <span className="sr-only">Gia sư đã được xác thực</span>
+            </span>
+            {rating ? (
+              <span className="mt-0.5 flex items-center gap-1 text-[12px] text-fg-secondary">
+                <Icon name="star" size="xs" filled className="text-brand-primary-600" />
+                <span className="font-semibold text-fg">{rating.toFixed(1)}</span>
+                {reviewsCount > 0 && <span>({reviewsCount} đánh giá)</span>}
+              </span>
+            ) : (
+              <span className="mt-0.5 block text-[12px] text-fg-muted">Chưa có đánh giá</span>
+            )}
+          </div>
+        </TutorIdentity>
+
+        <dl className="mt-5 grid grid-cols-2 gap-x-3 gap-y-3 border-y border-border py-4 text-[12px]">
+          <div>
+            <dt className="text-fg-muted">Lộ trình</dt>
+            <dd className="mt-1 font-semibold text-fg">
+              {totalSessions ? `${totalSessions} buổi` : 'Chưa cập nhật'}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-fg-muted">Mỗi buổi</dt>
+            <dd className="mt-1 font-semibold text-fg">
+              {sessionDuration ? `${sessionDuration} phút` : 'Chưa cập nhật'}
+            </dd>
+          </div>
+          <div className="col-span-2 flex items-center gap-1.5 text-fg-secondary">
+            <Icon name={modeIcon} size="xs" className="text-brand-primary-600" />
+            <dd>{modeLabel}</dd>
+          </div>
+        </dl>
+
+        <div className="relative z-10 mt-auto flex items-end justify-between gap-3 pt-4">
+          <div className="min-w-0">
+            <span className="block text-[11px] font-medium text-fg-muted">Học phí trọn gói</span>
+            {price > 0 ? (
+              <Money value={price} className="mt-0.5 block text-[18px] font-bold text-fg" />
+            ) : (
+              <span className="mt-0.5 block text-[16px] font-bold text-fg">Liên hệ</span>
+            )}
+          </div>
+          <Button as={Link} to={`/services/${service.id}`} variant="primary" size="md">
+            Xem gói học
           </Button>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -216,7 +137,6 @@ ServiceCard.propTypes = {
   service: PropTypes.shape({
     id: PropTypes.string.isRequired,
     title: PropTypes.string.isRequired,
-    description: PropTypes.string,
     subjectName: PropTypes.string,
     categoryName: PropTypes.string,
     totalSessions: PropTypes.number,

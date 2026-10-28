@@ -25,11 +25,11 @@ export default function ServiceHeroSection({
   const showSamples = visibleSamples.length > 0;
 
   return (
-    <section className="relative py-6 sm:py-8 lg:py-9 bg-brand-primary-50 border-b border-brand-primary-100">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">
+    <section className="relative py-10 sm:py-12 bg-brand-primary-50 border-b border-brand-primary-100">
+      <div className="page-shell">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Column: Breadcrumb, Headline, Search, Popular Tags */}
-          <div className={`${showSamples ? 'lg:col-span-7' : 'lg:col-span-12 max-w-3xl'} space-y-3 sm:space-y-3.5`}>
+          <div className={`${showSamples ? 'lg:col-span-7' : 'lg:col-span-12 max-w-3xl'} space-y-4`}>
             {/* Breadcrumb */}
             <nav className="flex items-center gap-1.5 text-[12px] font-medium text-neutral-500" aria-label="Breadcrumb">
               <Link to="/" className="text-neutral-500 hover:text-brand-primary-600 transition-colors">
@@ -39,9 +39,8 @@ export default function ServiceHeroSection({
               <span className="text-brand-primary-600 font-semibold">Dịch vụ học tập</span>
             </nav>
 
-            <h1 className="text-[28px] sm:text-[36px] lg:text-[40px] font-bold text-neutral-900 leading-[1.18] tracking-tight">
-              Gói học trọn gói, <br />
-              <span className="text-brand-primary-600">giá minh bạch</span>
+            <h1 className="max-w-xl border-l-4 border-brand-primary-600 pl-5 text-[34px] sm:text-[44px] font-bold text-neutral-900 leading-[1.12] tracking-[-0.03em]">
+              Gói học rõ lộ trình, minh bạch học phí
             </h1>
 
             <p className="text-[13.5px] sm:text-[14.5px] text-neutral-600 max-w-xl leading-relaxed">
@@ -55,7 +54,7 @@ export default function ServiceHeroSection({
                 e.preventDefault();
                 onSearchSubmit(searchKeyword);
               }}
-              className="relative w-full max-w-[560px] h-14 flex items-center bg-surface p-1 rounded-full border border-neutral-200/90 shadow-brand-sm hover:shadow-brand-md focus-within:ring-2 focus-within:ring-brand-primary-600/20 focus-within:border-brand-primary-600 transition-all"
+              className="relative w-full max-w-[600px] h-16 flex items-center bg-surface p-1.5 rounded-brand-xl border border-neutral-200 shadow-brand-md hover:shadow-brand-lg focus-within:ring-2 focus-within:ring-brand-primary-600/20 focus-within:border-brand-primary-600 transition-all"
               role="search"
               aria-label="Tìm kiếm dịch vụ học tập"
             >
@@ -67,7 +66,7 @@ export default function ServiceHeroSection({
                 type="text"
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
-                placeholder="Tìm gói học, môn học hoặc kỹ năng…"
+                placeholder="Tìm gói học hoặc kỹ năng…"
                 aria-label="Từ khóa tìm kiếm gói học"
                 className="flex-1 !border-none !shadow-none !bg-transparent text-[13.5px] placeholder:text-neutral-400 focus:!ring-0 px-1 h-full"
               />
@@ -79,7 +78,7 @@ export default function ServiceHeroSection({
                     setSearchKeyword('');
                     onSearchSubmit('');
                   }}
-                  className="p-1 mr-1 text-neutral-400 hover:text-neutral-600 transition-colors"
+                  className="w-11 h-11 mr-1 inline-flex items-center justify-center rounded-brand-md text-neutral-400 hover:text-neutral-600 transition-colors"
                   aria-label="Xóa từ khóa"
                 >
                   <Icon name="close" size="xs" />
@@ -90,7 +89,7 @@ export default function ServiceHeroSection({
                 type="submit"
                 variant="primary"
                 size="md"
-                className="!rounded-full px-4 h-11 text-[13px] font-semibold shrink-0 gap-1.5 shadow-sm"
+                className="!rounded-brand-lg px-4 h-[3.25rem] text-[13px] font-semibold shrink-0 gap-1.5 shadow-brand-sm"
               >
                 <span>Tìm dịch vụ</span>
                 <Icon name="arrow_forward" size="xs" />
@@ -105,7 +104,7 @@ export default function ServiceHeroSection({
                   key={tag}
                   type="button"
                   onClick={() => onTagClick(tag)}
-                  className="px-2.5 py-0.5 rounded-full bg-white/90 hover:bg-white text-neutral-700 hover:text-brand-primary-600 border border-neutral-200/80 hover:border-brand-primary-600/40 shadow-sm font-medium text-[11.5px] transition-all cursor-pointer"
+                  className="min-h-9 px-2.5 py-1 rounded-pill bg-white/90 hover:bg-white text-neutral-700 hover:text-brand-primary-600 border border-neutral-200/80 hover:border-brand-primary-600/40 shadow-brand-sm font-medium text-[11.5px] transition-all cursor-pointer"
                 >
                   {tag}
                 </button>
@@ -117,8 +116,8 @@ export default function ServiceHeroSection({
           {showSamples && (
             <div className="lg:col-span-5">
               <div className="w-full max-w-[460px] mx-auto lg:ml-auto space-y-2.5">
-                <h2 className="text-[11.5px] font-bold uppercase tracking-wider text-neutral-500">
-                  Gói học nổi bật
+                <h2 className="text-[13px] font-semibold text-neutral-700">
+                  Gói học đang được quan tâm
                 </h2>
                 {visibleSamples.map((service, index) => {
                   const totalSessions = Number(service.totalSessions) || 0;
@@ -134,10 +133,10 @@ export default function ServiceHeroSection({
                     <Link
                       key={service.id ?? service.title ?? index}
                       to={`/services/${service.id}`}
-                      className="group flex items-center justify-between gap-3 bg-surface rounded-2xl border border-neutral-200/90 shadow-sm hover:shadow-brand-md hover:border-brand-primary-600/40 transition-all p-3.5"
+                      className="group flex items-center justify-between gap-3 bg-surface rounded-brand-lg border border-neutral-200/90 hover:shadow-brand-md hover:border-brand-primary-300 transition-all p-4"
                     >
                       <div className="min-w-0 space-y-1">
-                        <span className="inline-block px-2 py-0.5 rounded-md text-[10.5px] font-bold tracking-wide uppercase line-clamp-1 bg-brand-primary-100/70 text-brand-primary-700">
+                        <span className="inline-block text-[11.5px] font-medium line-clamp-1 text-brand-primary-700">
                           {service.subjectName || service.categoryName || 'Gói học'}
                         </span>
                         <p
