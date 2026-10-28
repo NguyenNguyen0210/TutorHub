@@ -5,6 +5,7 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Conversations.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
+using TutorHub.Application.Common.Concurrency;
 
 namespace TutorHub.Application.Features.Conversations.SendMessage;
 
@@ -34,6 +35,8 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Mes
         }
 
         var currentUserId = _currentUserService.UserId.Value;
+
+        await using var transaction = await PostgresAdvisoryLock.BeginTransactionAsync(_dbContext, cancellationToken);
 
         var conversation = await _dbContext.Conversations
             .Include(c => c.StudentProfile)
@@ -83,11 +86,28 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Mes
         var preview = !string.IsNullOrWhiteSpace(message.Content)
             ? message.Content
             : (!string.IsNullOrWhiteSpace(message.AttachmentName) ? $"[Attachment: {message.AttachmentName}]" : string.Empty);
-        conversation.UpdateLastMessage(message.Id, preview, message.CreatedAt);
+        var summaryPreview = preview.Length > 100 ? preview[..100] : preview;
+
+        if (!PostgresAdvisoryLock.IsPostgres(_dbContext))
+            conversation.UpdateLastMessage(message.Id, summaryPreview, message.CreatedAt);
 
         _dbContext.Messages.Add(message);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+        await PostgresAdvisoryLock.LockRowAsync(_dbContext, $"""
+            UPDATE "Conversations"
+            SET "LastMessageId" = {message.Id},
+                "LastMessageAt" = {message.CreatedAt},
+                "LastMessagePreview" = {summaryPreview}
+            WHERE "Id" = {conversation.Id}
+              AND ("LastMessageAt" IS NULL
+                   OR "LastMessageAt" < {message.CreatedAt}
+                   OR ("LastMessageAt" = {message.CreatedAt}
+                       AND ("LastMessageId" IS NULL OR "LastMessageId" < {message.Id})))
+            """,
+            cancellationToken);
+        if (transaction != null)
+            await transaction.CommitAsync(cancellationToken);
 
         var senderUser = await _dbContext.Users
             .AsNoTracking()
