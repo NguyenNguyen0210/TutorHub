@@ -7,6 +7,7 @@ using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Application.Features.Sessions.Common;
 using TutorHub.Application.Features.Sessions.Scheduling;
 using TutorHub.Domain.Enums;
+using TutorHub.Application.Common.Concurrency;
 
 namespace TutorHub.Application.Features.Sessions.ScheduleSession;
 
@@ -63,10 +64,15 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
         _policy.RequireSchedulable(request.StartAt, request.EndAt);
 
         var tutorProfileId = session.Enrollment.TutorProfileId;
+        var studentId = session.Enrollment.StudentProfileId;
 
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
+            await PostgresAdvisoryLock.AcquireManyAsync(_context,
+                new[] { $"schedule:tutor:{tutorProfileId:D}", $"schedule:student:{studentId:D}" },
+                cancellationToken);
+
             // 5. Overlap with the tutor's other Scheduled sessions in range.
             var overlapping = await _context.Sessions
                 .Where(s => s.Id != session.Id &&
@@ -90,7 +96,6 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
                     .Select(s => (s.TutorProfileId, s.StartAt!.Value, s.EndAt, nameof(SessionStatus.Scheduled))));
 
             // 5b. Overlap with the student's other Scheduled sessions in range (RM9)
-            var studentId = session.Enrollment.StudentProfileId;
             var studentOverlap = await _context.Sessions
                 .Where(s => s.Id != session.Id &&
                             s.Enrollment.StudentProfileId == studentId &&
