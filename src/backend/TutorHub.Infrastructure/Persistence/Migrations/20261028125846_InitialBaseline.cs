@@ -11,6 +11,17 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // A squashed baseline is valid only for an empty database. Existing deployments
+            // still have the old migration history and must be migrated via a reviewed plan.
+            migrationBuilder.Sql("""
+                DO $$
+                BEGIN
+                    IF to_regclass('public."Categories"') IS NOT NULL
+                       OR to_regclass('public."Users"') IS NOT NULL THEN
+                        RAISE EXCEPTION 'InitialBaseline requires an empty database. Back up the existing database and reconcile its old EF migration history before upgrading.';
+                    END IF;
+                END $$;
+                """);
             migrationBuilder.CreateTable(
                 name: "Categories",
                 columns: table => new
