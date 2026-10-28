@@ -12,8 +12,8 @@ using TutorHub.Infrastructure.Persistence;
 namespace TutorHub.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260925111013_AddServiceShowcaseFields")]
-    partial class AddServiceShowcaseFields
+    [Migration("20261028125846_InitialBaseline")]
+    partial class InitialBaseline
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -84,39 +84,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.ToTable("AuditLogs");
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.AvailabilitySlot", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("DayOfWeek")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<TimeOnly>("EndTime")
-                        .HasColumnType("time without time zone");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<TimeOnly>("StartTime")
-                        .HasColumnType("time without time zone");
-
-                    b.Property<Guid>("TutorProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TutorProfileId", "DayOfWeek");
-
-                    b.ToTable("AvailabilitySlots", t =>
-                        {
-                            t.HasCheckConstraint("CK_AvailabilitySlot_TimeRange", "\"StartTime\" < \"EndTime\"");
-                        });
-                });
-
             modelBuilder.Entity("TutorHub.Domain.Entities.Booking", b =>
                 {
                     b.Property<Guid>("Id")
@@ -131,8 +98,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CancelledBy")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
@@ -143,13 +110,10 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid?>("CustomAgreementId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime?>("HoldingExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid?>("ServiceId")
+                    b.Property<Guid>("ServiceId")
                         .HasColumnType("uuid");
 
                     b.Property<int>("SessionDurationMinutes")
@@ -157,8 +121,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<Guid>("StudentProfileId")
                         .HasColumnType("uuid");
@@ -183,10 +147,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CustomAgreementId")
-                        .IsUnique()
-                        .HasFilter("\"CustomAgreementId\" IS NOT NULL");
-
                     b.HasIndex("ServiceId");
 
                     b.HasIndex("Status");
@@ -197,16 +157,19 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TutorProfileId", "Status");
 
-                    b.ToTable("Bookings", t =>
-                        {
-                            t.HasCheckConstraint("CK_Booking_TotalPrice", "\"TotalPrice\" >= 0 AND \"TotalSessions\" > 0 AND \"SessionDurationMinutes\" > 0");
-                        });
+                    b.ToTable("Bookings");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Category", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Description")
@@ -216,6 +179,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -223,8 +191,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("IsDeleted");
+
                     b.HasIndex("Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("Categories");
                 });
@@ -269,95 +240,41 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.ToTable("Conversations", (string)null);
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.CustomAgreement", b =>
+            modelBuilder.Entity("TutorHub.Domain.Entities.ConversationAttachment", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                    b.Property<string>("StorageKey")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
-                    b.Property<DateTime?>("AcceptedAt")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
-                    b.Property<string>("CancellationReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime?>("CancelledAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ConversationId")
+                    b.Property<Guid>("ConversationId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Description")
+                    b.Property<string>("FileName")
                         .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
 
-                    b.Property<DateTime?>("RejectedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("RejectionReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid?>("ServiceId")
+                    b.Property<Guid>("UploadedByUserId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("SessionDurationMinutes")
-                        .HasColumnType("integer");
+                    b.HasKey("StorageKey");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                    b.HasIndex("UploadedByUserId");
 
-                    b.Property<Guid>("StudentProfileId")
-                        .HasColumnType("uuid");
+                    b.HasIndex("ConversationId", "UploadedByUserId");
 
-                    b.Property<Guid>("SubjectId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("TeachingMode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<decimal>("TotalPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<int>("TotalSessions")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("TutorProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ConversationId");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("ServiceId");
-
-                    b.HasIndex("SubjectId");
-
-                    b.HasIndex("StudentProfileId", "Status");
-
-                    b.HasIndex("TutorProfileId", "Status");
-
-                    b.ToTable("CustomAgreements");
+                    b.ToTable("ConversationAttachments", (string)null);
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Dispute", b =>
@@ -600,8 +517,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CancelledBy")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
@@ -611,9 +528,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("FeePolicyVersion")
-                        .HasColumnType("integer");
 
                     b.Property<decimal>("PlatformFeeRate")
                         .HasPrecision(5, 4)
@@ -627,8 +541,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<Guid>("StudentProfileId")
                         .HasColumnType("uuid");
@@ -669,30 +583,98 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.ToTable("Enrollments");
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.InboxMessage", b =>
+            modelBuilder.Entity("TutorHub.Domain.Entities.ExternalLogin", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("ConsumerName")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EmailAtLinkTime")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<DateTime>("LastLoginAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Provider")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProviderUserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("Provider", "ProviderUserId")
+                        .IsUnique();
+
+                    b.ToTable("ExternalLogins");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.IdempotencyRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Key")
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
-                    b.Property<Guid>("EventId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("RequestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
-                    b.Property<DateTime>("ProcessedAt")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<string>("ResponseBody")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ResponseContentType")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<int?>("ResponseStatusCode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ConsumerName", "EventId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_InboxMessages_ConsumerEvent");
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("IX_IdempotencyRecords_ExpiresAt");
 
-                    b.ToTable("InboxMessages", (string)null);
+                    b.HasIndex("Key", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_IdempotencyRecords_Key_UserId");
+
+                    b.ToTable("IdempotencyRecords", (string)null);
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.LearningRecord", b =>
@@ -980,82 +962,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.ToTable("OutboxMessages", (string)null);
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.PlatformSetting", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("CurrentVersion")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid?>("LastUpdatedByAdminId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.ToTable("PlatformSettings");
-                });
-
-            modelBuilder.Entity("TutorHub.Domain.Entities.PlatformSettingVersion", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ChangedByAdminId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("EffectiveFrom")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("PlatformSettingId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<int>("Version")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlatformSettingId", "Version")
-                        .IsUnique();
-
-                    b.ToTable("PlatformSettingVersions");
-                });
-
             modelBuilder.Entity("TutorHub.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1069,6 +975,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("RevokedAt")
+                        .IsConcurrencyToken()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("TokenHash")
@@ -1235,6 +1142,12 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<string>("CurriculumJson")
                         .HasColumnType("jsonb");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(5000)
@@ -1246,6 +1159,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("FaqsJson")
                         .HasColumnType("jsonb");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("LearningScope")
                         .HasMaxLength(2000)
@@ -1304,6 +1222,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("IsDeleted");
+
                     b.HasIndex("SubjectId", "Status");
 
                     b.HasIndex("TutorProfileId", "Status");
@@ -1317,15 +1237,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime?>("AttendanceVerificationDueAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("AttendanceVerificationOpenedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("AttendanceVerifiedAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1335,21 +1246,35 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<decimal>("EarningAmount")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
-
                     b.Property<DateTime?>("EndAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("EnrollmentId")
                         .HasColumnType("uuid");
 
-                    b.Property<bool>("HasAttendanceConflict")
+                    b.Property<DateTime?>("GracePeriodEndsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("GracePeriodStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("HasIssueReport")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsPayoutReleased")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("IssueReportDescription")
+                        .HasColumnType("text");
+
+                    b.Property<string>("IssueReportReason")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("IssueReportedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("IssueReportedByUserId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ResolutionNotes")
                         .HasColumnType("text");
@@ -1363,6 +1288,10 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<int>("SessionNumber")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("SessionPrice")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
                     b.Property<DateTime?>("StartAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1370,18 +1299,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
-
-                    b.Property<int?>("StudentAttendance")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("StudentAttendanceSubmittedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("TutorAttendance")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("TutorAttendanceSubmittedAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1391,69 +1308,13 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasIndex("EnrollmentId", "SessionNumber")
                         .IsUnique();
 
+                    b.HasIndex("Status", "GracePeriodEndsAt");
+
                     b.HasIndex("Status", "StartAt");
 
                     b.ToTable("Sessions", t =>
                         {
                             t.HasCheckConstraint("CK_Session_Schedule", "\"StartAt\" IS NULL OR \"EndAt\" IS NULL OR \"StartAt\" < \"EndAt\"");
-                        });
-                });
-
-            modelBuilder.Entity("TutorHub.Domain.Entities.SessionRescheduleRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("ProposedEndAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("ProposedStartAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ProposerUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid>("RecipientUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("RejectionReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime?>("RespondedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("SessionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProposerUserId");
-
-                    b.HasIndex("RecipientUserId");
-
-                    b.HasIndex("SessionId")
-                        .IsUnique()
-                        .HasFilter("\"Status\" = 'Pending'");
-
-                    b.HasIndex("SessionId", "CreatedAt");
-
-                    b.ToTable("SessionRescheduleRequests", t =>
-                        {
-                            t.HasCheckConstraint("CK_SessionRescheduleRequest_Schedule", "\"ProposedStartAt\" < \"ProposedEndAt\"");
                         });
                 });
 
@@ -1474,178 +1335,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.ToTable("StudentProfiles");
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.StudentWallet", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("AvailableBalance")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("ReservedBalance")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
-
-                    b.Property<Guid>("StudentProfileId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StudentProfileId")
-                        .IsUnique();
-
-                    b.ToTable("StudentWallets", t =>
-                        {
-                            t.HasCheckConstraint("CK_StudentWallet_NonNegativeBalances", "\"AvailableBalance\" >= 0 AND \"ReservedBalance\" >= 0");
-                        });
-                });
-
-            modelBuilder.Entity("TutorHub.Domain.Entities.StudentWalletTransaction", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
-
-                    b.Property<decimal>("BalanceAfter")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
-
-                    b.Property<decimal>("BalanceBefore")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CreatedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Direction")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid?>("ReferenceId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ReferenceType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid>("StudentWalletId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReferenceType", "ReferenceId");
-
-                    b.HasIndex("StudentWalletId", "CreatedAt");
-
-                    b.ToTable("StudentWalletTransactions");
-                });
-
-            modelBuilder.Entity("TutorHub.Domain.Entities.StudentWithdrawal", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AccountHolderName")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<string>("AccountNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
-
-                    b.Property<string>("BankCode")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("BankName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("FailureReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ProcessedByAdminId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("ProcessingStartedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ProcessingStartedByAdminId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("RequestedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<Guid>("StudentWalletId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProcessedByAdminId");
-
-                    b.HasIndex("ProcessingStartedByAdminId");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("StudentWalletId", "Status");
-
-                    b.ToTable("StudentWithdrawals", t =>
-                        {
-                            t.HasCheckConstraint("CK_StudentWithdrawal_PositiveAmount", "\"Amount\" > 0");
-                        });
-                });
-
             modelBuilder.Entity("TutorHub.Domain.Entities.Subject", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1655,8 +1344,19 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1667,8 +1367,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CategoryId");
 
+                    b.HasIndex("IsDeleted");
+
                     b.HasIndex("Name", "CategoryId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("Subjects");
                 });
@@ -1705,13 +1408,13 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
-                    b.Property<Guid>("StudentWalletId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("TransferReference")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("WalletId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -1722,7 +1425,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasIndex("TransferReference")
                         .IsUnique();
 
-                    b.HasIndex("StudentWalletId", "Status");
+                    b.HasIndex("WalletId", "Status");
 
                     b.ToTable("TopUpRequests", t =>
                         {
@@ -1743,14 +1446,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("BookingId")
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("CommissionAmount")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
-
-                    b.Property<decimal>("CommissionRate")
-                        .HasPrecision(5, 4)
-                        .HasColumnType("numeric(5,4)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1768,6 +1463,14 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("PayoutAmount")
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal>("PlatformFeeAmount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal>("PlatformFeeRate")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("numeric(5,4)");
 
                     b.Property<DateTime?>("RefundedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1911,6 +1614,16 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("UserId", "Status");
 
+                    b.HasIndex(new[] { "UserId" }, "IX_TutorApplications_UserId_Approved")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TutorApplications_OneApprovedPerUser")
+                        .HasFilter("\"Status\" = 'Approved'");
+
+                    b.HasIndex(new[] { "UserId" }, "IX_TutorApplications_UserId_Pending")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TutorApplications_OnePendingPerUser")
+                        .HasFilter("\"Status\" = 'Pending'");
+
                     b.ToTable("TutorApplications");
                 });
 
@@ -2007,7 +1720,75 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.ToTable("TutorSubjects");
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.TutorWallet", b =>
+            modelBuilder.Entity("TutorHub.Domain.Entities.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AccessFailedCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("AvatarUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("LockoutEndAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Active");
+
+                    b.Property<int>("TokenVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("Users", t =>
+                        {
+                            t.HasCheckConstraint("CK_User_NonNegativeFailedLogins", "\"AccessFailedCount\" >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.Wallet", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2017,31 +1798,45 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
 
-                    b.Property<decimal>("HeldBalance")
-                        .HasColumnType("numeric");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<decimal>("PendingBalance")
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
 
-                    b.Property<Guid>("TutorProfileId")
+                    b.Property<Guid?>("StudentProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TutorProfileId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("WithdrawingBalance")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("TutorProfileId")
+                    b.HasIndex("StudentProfileId");
+
+                    b.HasIndex("TutorProfileId");
+
+                    b.HasIndex("UserId")
                         .IsUnique();
 
                     b.ToTable("Wallets", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Wallet_NonNegativeBalances", "\"PendingBalance\" >= 0 AND \"AvailableBalance\" >= 0 AND \"HeldBalance\" >= 0 AND \"HeldBalance\" <= \"AvailableBalance\"");
+                            t.HasCheckConstraint("CK_Wallet_NonNegativeBalances", "\"PendingBalance\" >= 0 AND \"AvailableBalance\" >= 0 AND \"WithdrawingBalance\" >= 0");
                         });
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.TutorWalletTransaction", b =>
+            modelBuilder.Entity("TutorHub.Domain.Entities.WalletTransaction", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2055,6 +1850,10 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
 
+                    b.Property<decimal>("BalanceBefore")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2065,8 +1864,24 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
                     b.Property<Guid?>("DisputeId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("ReferenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReferenceType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -2085,10 +1900,13 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("WalletId", "CreatedAt");
 
-                    b.ToTable("WalletTransactions", (string)null);
+                    b.ToTable("WalletTransactions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_WalletTransaction_ValidDirection", "\"Direction\" IN ('Credit', 'Debit')");
+                        });
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.TutorWithdrawal", b =>
+            modelBuilder.Entity("TutorHub.Domain.Entities.Withdrawal", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2164,82 +1982,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.User", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("AbsentStrikes")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<int>("AccessFailedCount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<string>("AvatarUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime?>("LastAbsentAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("LockoutEndAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<string>("Phone")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasDefaultValue("Active");
-
-                    b.Property<DateTime?>("StrikeWindowStart")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Email")
-                        .IsUnique();
-
-                    b.ToTable("Users", t =>
-                        {
-                            t.HasCheckConstraint("CK_User_NonNegativeFailedLogins", "\"AccessFailedCount\" >= 0");
-
-                            t.HasCheckConstraint("CK_User_NonNegativeStrikes", "\"AbsentStrikes\" >= 0");
-                        });
-                });
-
             modelBuilder.Entity("TutorHub.Domain.Entities.AuditLog", b =>
                 {
                     b.HasOne("TutorHub.Domain.Entities.User", "User")
@@ -2250,24 +1992,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.AvailabilitySlot", b =>
-                {
-                    b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
-                        .WithMany("AvailabilitySlots")
-                        .HasForeignKey("TutorProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TutorProfile");
-                });
-
             modelBuilder.Entity("TutorHub.Domain.Entities.Booking", b =>
                 {
-                    b.HasOne("TutorHub.Domain.Entities.CustomAgreement", "CustomAgreement")
-                        .WithMany()
-                        .HasForeignKey("CustomAgreementId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("TutorHub.Domain.Entities.Service", "Service")
                         .WithMany()
                         .HasForeignKey("ServiceId")
@@ -2282,16 +2008,13 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasOne("TutorHub.Domain.Entities.Subject", "Subject")
                         .WithMany()
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
                         .WithMany()
                         .HasForeignKey("TutorProfileId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("CustomAgreement");
 
                     b.Navigation("Service");
 
@@ -2321,45 +2044,19 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("TutorProfile");
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.CustomAgreement", b =>
+            modelBuilder.Entity("TutorHub.Domain.Entities.ConversationAttachment", b =>
                 {
-                    b.HasOne("TutorHub.Domain.Entities.Conversation", "Conversation")
+                    b.HasOne("TutorHub.Domain.Entities.Conversation", null)
                         .WithMany()
                         .HasForeignKey("ConversationId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("TutorHub.Domain.Entities.Service", "Service")
-                        .WithMany()
-                        .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("TutorHub.Domain.Entities.StudentProfile", "StudentProfile")
-                        .WithMany()
-                        .HasForeignKey("StudentProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TutorHub.Domain.Entities.Subject", "Subject")
+                    b.HasOne("TutorHub.Domain.Entities.User", null)
                         .WithMany()
-                        .HasForeignKey("SubjectId")
+                        .HasForeignKey("UploadedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
-                        .WithMany()
-                        .HasForeignKey("TutorProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Conversation");
-
-                    b.Navigation("Service");
-
-                    b.Navigation("StudentProfile");
-
-                    b.Navigation("Subject");
-
-                    b.Navigation("TutorProfile");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Dispute", b =>
@@ -2430,8 +2127,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasOne("TutorHub.Domain.Entities.Service", "Service")
                         .WithMany()
                         .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TutorHub.Domain.Entities.StudentProfile", "StudentProfile")
                         .WithMany()
@@ -2442,8 +2138,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasOne("TutorHub.Domain.Entities.Subject", "Subject")
                         .WithMany()
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
                         .WithMany()
@@ -2460,6 +2155,17 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("Subject");
 
                     b.Navigation("TutorProfile");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.ExternalLogin", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.User", "User")
+                        .WithMany("ExternalLogins")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.LearningRecord", b =>
@@ -2520,17 +2226,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("TutorHub.Domain.Entities.PlatformSettingVersion", b =>
-                {
-                    b.HasOne("TutorHub.Domain.Entities.PlatformSetting", "PlatformSetting")
-                        .WithMany("Versions")
-                        .HasForeignKey("PlatformSettingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PlatformSetting");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.RefreshToken", b =>
@@ -2599,8 +2294,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasOne("TutorHub.Domain.Entities.Subject", "Subject")
                         .WithMany()
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
                         .WithMany("Services")
@@ -2624,29 +2318,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("Enrollment");
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.SessionRescheduleRequest", b =>
-                {
-                    b.HasOne("TutorHub.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("ProposerUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TutorHub.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("RecipientUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TutorHub.Domain.Entities.Session", "Session")
-                        .WithMany("RescheduleRequests")
-                        .HasForeignKey("SessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Session");
-                });
-
             modelBuilder.Entity("TutorHub.Domain.Entities.StudentProfile", b =>
                 {
                     b.HasOne("TutorHub.Domain.Entities.User", "User")
@@ -2656,53 +2327,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("TutorHub.Domain.Entities.StudentWallet", b =>
-                {
-                    b.HasOne("TutorHub.Domain.Entities.StudentProfile", "StudentProfile")
-                        .WithOne("Wallet")
-                        .HasForeignKey("TutorHub.Domain.Entities.StudentWallet", "StudentProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("StudentProfile");
-                });
-
-            modelBuilder.Entity("TutorHub.Domain.Entities.StudentWalletTransaction", b =>
-                {
-                    b.HasOne("TutorHub.Domain.Entities.StudentWallet", "StudentWallet")
-                        .WithMany("Transactions")
-                        .HasForeignKey("StudentWalletId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("StudentWallet");
-                });
-
-            modelBuilder.Entity("TutorHub.Domain.Entities.StudentWithdrawal", b =>
-                {
-                    b.HasOne("TutorHub.Domain.Entities.User", "ProcessedByAdmin")
-                        .WithMany()
-                        .HasForeignKey("ProcessedByAdminId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("TutorHub.Domain.Entities.User", "ProcessingStartedByAdmin")
-                        .WithMany()
-                        .HasForeignKey("ProcessingStartedByAdminId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("TutorHub.Domain.Entities.StudentWallet", "StudentWallet")
-                        .WithMany("Withdrawals")
-                        .HasForeignKey("StudentWalletId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ProcessedByAdmin");
-
-                    b.Navigation("ProcessingStartedByAdmin");
-
-                    b.Navigation("StudentWallet");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Subject", b =>
@@ -2723,15 +2347,15 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ProcessedByAdminId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("TutorHub.Domain.Entities.StudentWallet", "StudentWallet")
+                    b.HasOne("TutorHub.Domain.Entities.Wallet", "Wallet")
                         .WithMany("TopUpRequests")
-                        .HasForeignKey("StudentWalletId")
+                        .HasForeignKey("WalletId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("ProcessedByAdmin");
 
-                    b.Navigation("StudentWallet");
+                    b.Navigation("Wallet");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Transaction", b =>
@@ -2793,8 +2417,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.HasOne("TutorHub.Domain.Entities.Subject", "Subject")
                         .WithMany("TutorSubjects")
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
                         .WithMany("TutorSubjects")
@@ -2807,26 +2430,40 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("TutorProfile");
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.TutorWallet", b =>
+            modelBuilder.Entity("TutorHub.Domain.Entities.Wallet", b =>
                 {
+                    b.HasOne("TutorHub.Domain.Entities.StudentProfile", "StudentProfile")
+                        .WithMany()
+                        .HasForeignKey("StudentProfileId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
+                        .WithMany()
+                        .HasForeignKey("TutorProfileId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("TutorHub.Domain.Entities.User", "User")
                         .WithOne("Wallet")
-                        .HasForeignKey("TutorHub.Domain.Entities.TutorWallet", "TutorProfileId")
+                        .HasForeignKey("TutorHub.Domain.Entities.Wallet", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("StudentProfile");
+
                     b.Navigation("TutorProfile");
+
+                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.TutorWalletTransaction", b =>
+            modelBuilder.Entity("TutorHub.Domain.Entities.WalletTransaction", b =>
                 {
-                    b.HasOne("TutorHub.Domain.Entities.TutorWallet", "Wallet")
+                    b.HasOne("TutorHub.Domain.Entities.Wallet", "Wallet")
                         .WithMany("WalletTransactions")
                         .HasForeignKey("WalletId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TutorHub.Domain.Entities.TutorWithdrawal", "Withdrawal")
+                    b.HasOne("TutorHub.Domain.Entities.Withdrawal", "Withdrawal")
                         .WithMany()
                         .HasForeignKey("WithdrawalId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -2836,7 +2473,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("Withdrawal");
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.TutorWithdrawal", b =>
+            modelBuilder.Entity("TutorHub.Domain.Entities.Withdrawal", b =>
                 {
                     b.HasOne("TutorHub.Domain.Entities.User", "ProcessedByAdmin")
                         .WithMany()
@@ -2848,7 +2485,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ProcessingStartedByAdminId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("TutorHub.Domain.Entities.TutorWallet", "Wallet")
+                    b.HasOne("TutorHub.Domain.Entities.Wallet", "Wallet")
                         .WithMany("Withdrawals")
                         .HasForeignKey("WalletId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2892,30 +2529,9 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("Sessions");
                 });
 
-            modelBuilder.Entity("TutorHub.Domain.Entities.PlatformSetting", b =>
-                {
-                    b.Navigation("Versions");
-                });
-
-            modelBuilder.Entity("TutorHub.Domain.Entities.Session", b =>
-                {
-                    b.Navigation("RescheduleRequests");
-                });
-
             modelBuilder.Entity("TutorHub.Domain.Entities.StudentProfile", b =>
                 {
                     b.Navigation("Bookings");
-
-                    b.Navigation("Wallet");
-                });
-
-            modelBuilder.Entity("TutorHub.Domain.Entities.StudentWallet", b =>
-                {
-                    b.Navigation("TopUpRequests");
-
-                    b.Navigation("Transactions");
-
-                    b.Navigation("Withdrawals");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Subject", b =>
@@ -2925,24 +2541,15 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("TutorHub.Domain.Entities.TutorProfile", b =>
                 {
-                    b.Navigation("AvailabilitySlots");
-
                     b.Navigation("Services");
 
                     b.Navigation("TutorSubjects");
-
-                    b.Navigation("Wallet");
-                });
-
-            modelBuilder.Entity("TutorHub.Domain.Entities.TutorWallet", b =>
-                {
-                    b.Navigation("WalletTransactions");
-
-                    b.Navigation("Withdrawals");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.User", b =>
                 {
+                    b.Navigation("ExternalLogins");
+
                     b.Navigation("MediaUploaded");
 
                     b.Navigation("StudentProfile");
@@ -2950,6 +2557,17 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("TutorApplications");
 
                     b.Navigation("TutorProfile");
+
+                    b.Navigation("Wallet");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.Wallet", b =>
+                {
+                    b.Navigation("TopUpRequests");
+
+                    b.Navigation("WalletTransactions");
+
+                    b.Navigation("Withdrawals");
                 });
 #pragma warning restore 612, 618
         }
