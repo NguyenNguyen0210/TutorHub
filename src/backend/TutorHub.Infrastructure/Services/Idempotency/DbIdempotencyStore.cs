@@ -33,11 +33,12 @@ public class DbIdempotencyStore : IIdempotencyStore
         var now = _clock.UtcNow;
 
         var existing = await _context.IdempotencyRecords
+            .AsNoTracking()
             .FirstOrDefaultAsync(r => r.Key == key && r.UserId == userId, cancellationToken);
 
         if (existing != null)
         {
-            return EvaluateExistingRecord(existing, requestHash, now, ttl, endpoint);
+            return await EvaluateExistingRecordAsync(existing, requestHash, now, ttl, endpoint, cancellationToken);
         }
 
         // Try to insert a fresh record in 'Processing' status
@@ -74,32 +75,56 @@ public class DbIdempotencyStore : IIdempotencyStore
 
             if (concurrentRecord != null)
             {
-                return EvaluateExistingRecord(concurrentRecord, requestHash, now, ttl, endpoint);
+                return await EvaluateExistingRecordAsync(concurrentRecord, requestHash, now, ttl, endpoint, cancellationToken);
             }
 
             throw;
         }
     }
 
-    private IdempotencyAcquireResult EvaluateExistingRecord(
+    private async Task<IdempotencyAcquireResult> EvaluateExistingRecordAsync(
         IdempotencyRecord record,
         string requestHash,
         DateTime now,
         TimeSpan ttl,
-        string endpoint)
+        string endpoint,
+        CancellationToken cancellationToken)
     {
-        // 1. Check if record has expired -> allow re-acquiring
+        // Expired and failed records are re-acquired with a database compare-and-swap.
+        // Only one concurrent retry can change the row to Processing.
         if (record.HasExpired(now))
         {
-            record.Status = IdempotencyRecordStatus.Processing;
-            record.RequestHash = requestHash;
-            record.Endpoint = endpoint;
-            record.ResponseStatusCode = null;
-            record.ResponseContentType = null;
-            record.ResponseBody = null;
-            record.CreatedAt = now;
-            record.ExpiresAt = now.Add(ttl);
-            return new IdempotencyAcquireResult(IdempotencyStatus.Acquired);
+            if (!IsPostgresProvider())
+            {
+                var tracked = await _context.IdempotencyRecords.FirstAsync(r => r.Id == record.Id, cancellationToken);
+                tracked.Status = IdempotencyRecordStatus.Processing;
+                tracked.RequestHash = requestHash;
+                tracked.Endpoint = endpoint;
+                tracked.ResponseStatusCode = null;
+                tracked.ResponseContentType = null;
+                tracked.ResponseBody = null;
+                tracked.CreatedAt = now;
+                tracked.ExpiresAt = now.Add(ttl);
+                await _context.SaveChangesAsync(cancellationToken);
+                return new IdempotencyAcquireResult(IdempotencyStatus.Acquired);
+            }
+
+            var updated = await _context.IdempotencyRecords
+                .Where(r => r.Id == record.Id && r.ExpiresAt <= now)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(r => r.Status, IdempotencyRecordStatus.Processing)
+                    .SetProperty(r => r.RequestHash, requestHash)
+                    .SetProperty(r => r.Endpoint, endpoint)
+                    .SetProperty(r => r.ResponseStatusCode, (int?)null)
+                    .SetProperty(r => r.ResponseContentType, (string?)null)
+                    .SetProperty(r => r.ResponseBody, (string?)null)
+                    .SetProperty(r => r.CreatedAt, now)
+                    .SetProperty(r => r.ExpiresAt, now.Add(ttl)), cancellationToken);
+
+            if (updated == 1)
+                return new IdempotencyAcquireResult(IdempotencyStatus.Acquired);
+
+            return await ReloadAndEvaluateAsync(record.Id, requestHash, now, ttl, endpoint, cancellationToken);
         }
 
         // 2. Check if request payload hash matches
@@ -128,12 +153,46 @@ public class DbIdempotencyStore : IIdempotencyStore
                 ErrorMessage: "A request with the same Idempotency-Key is currently in progress. Please retry after it completes.");
         }
 
-        // 4. If previous attempt failed, allow client to retry with new processing lock
-        record.Status = IdempotencyRecordStatus.Processing;
-        record.CreatedAt = now;
-        record.ExpiresAt = now.Add(ttl);
-        return new IdempotencyAcquireResult(IdempotencyStatus.Acquired);
+        if (!IsPostgresProvider())
+        {
+            var tracked = await _context.IdempotencyRecords.FirstAsync(r => r.Id == record.Id, cancellationToken);
+            tracked.Status = IdempotencyRecordStatus.Processing;
+            tracked.CreatedAt = now;
+            tracked.ExpiresAt = now.Add(ttl);
+            await _context.SaveChangesAsync(cancellationToken);
+            return new IdempotencyAcquireResult(IdempotencyStatus.Acquired);
+        }
+
+        var reacquired = await _context.IdempotencyRecords
+            .Where(r => r.Id == record.Id && r.Status == IdempotencyRecordStatus.Failed && r.ExpiresAt > now)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(r => r.Status, IdempotencyRecordStatus.Processing)
+                .SetProperty(r => r.CreatedAt, now)
+                .SetProperty(r => r.ExpiresAt, now.Add(ttl)), cancellationToken);
+
+        if (reacquired == 1)
+            return new IdempotencyAcquireResult(IdempotencyStatus.Acquired);
+
+        return await ReloadAndEvaluateAsync(record.Id, requestHash, now, ttl, endpoint, cancellationToken);
     }
+
+    private async Task<IdempotencyAcquireResult> ReloadAndEvaluateAsync(
+        Guid id,
+        string requestHash,
+        DateTime now,
+        TimeSpan ttl,
+        string endpoint,
+        CancellationToken cancellationToken)
+    {
+        var current = await _context.IdempotencyRecords.AsNoTracking()
+            .FirstAsync(r => r.Id == id, cancellationToken);
+        return await EvaluateExistingRecordAsync(current, requestHash, now, ttl, endpoint, cancellationToken);
+    }
+
+    private bool IsPostgresProvider() => string.Equals(
+        _context.Database.ProviderName,
+        "Npgsql.EntityFrameworkCore.PostgreSQL",
+        StringComparison.Ordinal);
 
     public async Task SaveCompletedAsync(
         string key,
