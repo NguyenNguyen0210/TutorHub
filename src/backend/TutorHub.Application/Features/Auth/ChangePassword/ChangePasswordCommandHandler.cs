@@ -40,6 +40,7 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
         }
 
         user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
+        user.TokenVersion++;
 
 
         // Security best practice: Revoke all active refresh tokens when password changes

@@ -50,6 +50,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasDefaultValue(0);
 
+        builder.Property(u => u.TokenVersion)
+            .IsRequired()
+            .HasDefaultValue(0);
+
         builder.ToTable(t =>
         {
             t.HasCheckConstraint("CK_User_NonNegativeFailedLogins", "\"AccessFailedCount\" >= 0");
