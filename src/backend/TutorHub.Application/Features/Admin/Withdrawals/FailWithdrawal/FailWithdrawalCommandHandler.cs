@@ -89,6 +89,7 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
         withdrawal.ProcessedByAdmin = admin;
 
         // Atomic restoration of AvailableBalance
+        var availableBalanceBefore = wallet.AvailableBalance;
         wallet.ReleaseWithdrawal(withdrawal.Amount, now);
 
         // Record immutable ledger adjustment entry
@@ -98,9 +99,14 @@ public class FailWithdrawalCommandHandler : IRequestHandler<FailWithdrawalComman
             WalletId = wallet.Id,
             WithdrawalId = withdrawal.Id,
             Type = WalletTransactionType.WithdrawalFailedAdjustmentCredit,
+            Direction = FinancialDirection.Credit,
             Amount = withdrawal.Amount,
+            BalanceBefore = availableBalanceBefore,
             BalanceAfter = wallet.AvailableBalance,
+            ReferenceType = "Withdrawal",
+            ReferenceId = withdrawal.Id,
             Description = $"Refund for failed withdrawal #{withdrawal.Id}: {request.Reason.Trim()}",
+            Reason = request.Reason.Trim(),
             CreatedByUserId = admin.Id,
             CreatedAt = now
         };

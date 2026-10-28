@@ -196,6 +196,7 @@ public class AutoPayoutJob : BackgroundService
                 session.AutoComplete(now);
                 session.Enrollment.RecordCompletedSession(session.Id);
 
+                var availableBalanceBefore = wallet.AvailableBalance;
                 wallet.DebitPending(gross, now);
                 wallet.CreditAvailable(netPayout, now);
 
@@ -217,8 +218,12 @@ public class AutoPayoutJob : BackgroundService
                     Id = Guid.NewGuid(),
                     WalletId = wallet.Id,
                     Type = TutorWalletTransactionType.SessionPayoutCredit,
+                    Direction = FinancialDirection.Credit,
                     Amount = netPayout,
+                    BalanceBefore = availableBalanceBefore,
                     BalanceAfter = wallet.AvailableBalance,
+                    ReferenceType = "Session",
+                    ReferenceId = session.Id,
                     Description = $"Auto-payout for Session #{session.SessionNumber}",
                     CreatedAt = now
                 };
