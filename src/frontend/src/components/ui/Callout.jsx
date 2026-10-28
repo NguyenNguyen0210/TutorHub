@@ -34,7 +34,7 @@ export default function Callout({
     <div
       role={variant === 'danger' || variant === 'warning' ? 'alert' : 'status'}
       className={cn(
-        'flex items-start gap-3 rounded-brand-md border px-4 py-3',
+        'flex items-start gap-3 rounded-brand-lg border px-4 py-3.5',
         VARIANT_CLASS[variant] || VARIANT_CLASS.info,
         className
       )}

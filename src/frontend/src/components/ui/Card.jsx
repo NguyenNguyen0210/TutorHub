@@ -8,12 +8,20 @@ const CARD_PADDING = {
   lg: 'p-6',
 };
 
+const CARD_VARIANT = {
+  surface: 'bg-surface border border-border shadow-brand-sm',
+  outlined: 'bg-surface border border-border shadow-none',
+  raised: 'bg-surface border border-border/80 shadow-brand-md',
+  muted: 'bg-muted border border-border/80 shadow-none',
+};
+
 /**
  * Card — bề mặt nội dung chuẩn: nền trắng, viền mảnh, radius lớn, bóng rất nhẹ.
  */
 export default function Card({
   as: Component = 'div',
   padding = 'md',
+  variant = 'surface',
   hoverable = false,
   className,
   children,
@@ -22,9 +30,10 @@ export default function Card({
   return (
     <Component
       className={cn(
-        'bg-surface border border-border rounded-brand-lg shadow-brand-sm min-w-0 max-w-full',
+        'rounded-brand-lg min-w-0 max-w-full',
+        CARD_VARIANT[variant] ?? CARD_VARIANT.surface,
         CARD_PADDING[padding] ?? CARD_PADDING.md,
-        hoverable && 'transition-all duration-200 hover:shadow-brand-md hover:border-brand-primary-300 hover:-translate-y-0.5 active:translate-y-0',
+        hoverable && 'transition-[border-color,box-shadow,transform] duration-normal ease-standard hover:shadow-brand-md hover:border-brand-primary-300 hover:-translate-y-0.5 active:translate-y-0',
         className
       )}
       {...rest}

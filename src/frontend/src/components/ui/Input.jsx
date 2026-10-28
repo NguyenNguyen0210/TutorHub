@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/cn';
 
 const FIELD_BASE =
-  'w-full rounded-brand-md border bg-surface px-3 text-body-reg text-fg placeholder:text-fg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  'w-full rounded-brand-md border bg-surface px-3 text-body-reg text-fg placeholder:text-fg-muted shadow-brand-sm transition-[border-color,box-shadow,background-color] duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 disabled:bg-neutral-100 disabled:opacity-70 disabled:cursor-not-allowed';
 
 const STATE_CLASS = {
   default: 'border-border focus-visible:ring-brand-primary-600',
@@ -15,7 +15,7 @@ export function Field({ label, htmlFor, hint, error, required, children, classNa
       {label && (
         <label
           htmlFor={htmlFor}
-          className="block text-caption font-semibold text-fg-secondary mb-1.5 uppercase tracking-wide"
+          className="block text-body-reg font-medium text-fg mb-1.5"
         >
           {label}
           {required && (
@@ -45,7 +45,7 @@ const Input = React.forwardRef(function Input(
     <input
       ref={ref}
       type={type}
-      className={cn(FIELD_BASE, 'h-10', STATE_CLASS[state] || STATE_CLASS.default, className)}
+      className={cn(FIELD_BASE, 'h-11', STATE_CLASS[state] || STATE_CLASS.default, className)}
       {...rest}
     />
   );
@@ -81,7 +81,7 @@ export const Select = React.forwardRef(function Select(
       ref={ref}
       className={cn(
         FIELD_BASE,
-        'h-10 pr-8 cursor-pointer appearance-none bg-no-repeat',
+        'h-11 pr-8 cursor-pointer appearance-none bg-no-repeat',
         "bg-[url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")]",
         'bg-[length:16px] bg-[position:right_0.75rem_center]',
         STATE_CLASS[state] || STATE_CLASS.default,
@@ -100,7 +100,7 @@ export function Checkbox({ id, label, className, ...rest }) {
       <input
         id={id}
         type="checkbox"
-        className="mt-0.5 w-4 h-4 shrink-0 rounded border-border text-brand-primary-600 accent-brand-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 focus-visible:ring-offset-2 cursor-pointer"
+        className="mt-0.5 w-5 h-5 shrink-0 rounded border-border text-primary accent-brand-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
         {...rest}
       />
       {label && (
@@ -122,7 +122,7 @@ export function Radio({ id, name, value, label, checked, onChange, className, ..
         value={value}
         checked={checked}
         onChange={onChange}
-        className="mt-0.5 w-4 h-4 shrink-0 border-border text-brand-primary-600 accent-brand-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 focus-visible:ring-offset-2 cursor-pointer"
+        className="mt-0.5 w-5 h-5 shrink-0 border-border text-primary accent-brand-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
         {...rest}
       />
       {label && (

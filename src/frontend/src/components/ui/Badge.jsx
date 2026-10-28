@@ -45,7 +45,7 @@ export default function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-pill border font-semibold whitespace-nowrap',
+        'inline-flex items-center gap-1.5 rounded-pill border font-medium whitespace-nowrap',
         SIZE_CLASS[size] || SIZE_CLASS.md,
         VARIANT_CLASS[resolved] || VARIANT_CLASS.neutral,
         className

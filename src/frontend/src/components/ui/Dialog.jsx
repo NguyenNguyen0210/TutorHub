@@ -1,4 +1,13 @@
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/cn';
 import Icon from './Icon';
@@ -15,6 +24,10 @@ export function DialogProvider({ children }) {
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState('');
   const resolveRef = useRef(null);
+  const dialogPanelRef = useRef(null);
+  const cancelButtonRef = useRef(null);
+  const previousFocusRef = useRef(null);
+  const titleId = useId();
 
   const close = useCallback((result) => {
     setDialog(null);
@@ -69,6 +82,44 @@ export function DialogProvider({ children }) {
 
   const handleCancel = () => close(false);
 
+  useEffect(() => {
+    if (!dialog) return undefined;
+
+    previousFocusRef.current = document.activeElement;
+    const focusFrame = window.requestAnimationFrame(() => cancelButtonRef.current?.focus());
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        close(false);
+        return;
+      }
+
+      if (event.key !== 'Tab' || !dialogPanelRef.current) return;
+      const focusable = dialogPanelRef.current.querySelectorAll(
+        'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable.length) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener('keydown', handleKeyDown);
+      previousFocusRef.current?.focus?.();
+    };
+  }, [dialog, close]);
+
   return (
     <DialogContext.Provider value={api}>
       {children}
@@ -82,10 +133,11 @@ export function DialogProvider({ children }) {
               onClick={handleCancel}
             />
             <div
+              ref={dialogPanelRef}
               role="dialog"
               aria-modal="true"
-              aria-label={dialog.title}
-              className="relative w-full max-w-md bg-surface rounded-brand-lg border border-border shadow-brand-xl p-6 animate-fadeIn"
+              aria-labelledby={titleId}
+              className="relative w-full max-w-md bg-surface rounded-brand-xl border border-border shadow-brand-xl p-5 sm:p-6 animate-fadeIn"
             >
               <div className="flex items-start gap-3 mb-4">
                 <div
@@ -99,7 +151,7 @@ export function DialogProvider({ children }) {
                   <Icon name={dialog.danger ? 'warning' : 'info'} size="md" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-headline-3 text-fg">{dialog.title}</h2>
+                  <h2 id={titleId} className="text-headline-3 text-fg">{dialog.title}</h2>
                   {dialog.content && (
                     <div className="text-body-reg text-fg-secondary mt-1.5">{dialog.content}</div>
                   )}
@@ -110,7 +162,7 @@ export function DialogProvider({ children }) {
                 <div className="mb-4">
                   <label
                     htmlFor="dialog-reason"
-                    className="block text-caption font-semibold text-fg-secondary mb-1.5 uppercase tracking-wide"
+                    className="block text-body-reg font-medium text-fg mb-1.5"
                   >
                     {dialog.reasonLabel}
                   </label>
@@ -123,7 +175,7 @@ export function DialogProvider({ children }) {
                       if (reasonError) setReasonError('');
                     }}
                     placeholder={dialog.reasonPlaceholder}
-                    className="w-full rounded-brand-md border border-border bg-surface px-3 py-2 text-body-reg text-fg placeholder:text-fg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 resize-none"
+                    className="w-full rounded-brand-md border border-border bg-surface px-3 py-2 text-body-reg text-fg placeholder:text-fg-muted shadow-brand-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
                   />
                   {reasonError && (
                     <p className="text-caption text-danger-strong mt-1.5" role="alert">
@@ -135,9 +187,10 @@ export function DialogProvider({ children }) {
 
               <div className="flex items-center justify-end gap-3">
                 <button
+                  ref={cancelButtonRef}
                   type="button"
                   onClick={handleCancel}
-                  className="h-10 px-4 rounded-brand-md border border-border bg-surface text-body-reg font-semibold text-fg-secondary hover:bg-neutral-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600"
+                  className="h-11 px-4 rounded-brand-md border border-border bg-surface text-body-reg font-semibold text-fg-secondary hover:bg-neutral-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {dialog.cancelText}
                 </button>
@@ -145,7 +198,7 @@ export function DialogProvider({ children }) {
                   type="button"
                   onClick={handleConfirm}
                   className={cn(
-                    'h-10 px-4 rounded-brand-md text-body-reg font-semibold text-white shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                    'h-11 px-4 rounded-brand-md text-body-reg font-semibold text-white shadow-brand-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
                     dialog.danger
                       ? 'bg-danger hover:bg-danger-strong focus-visible:ring-danger'
                       : 'bg-brand-primary-600 hover:bg-brand-primary-700 focus-visible:ring-brand-primary-600'
