@@ -8,6 +8,7 @@ using TutorHub.Application.Features.Auth.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
 using RefreshTokenEntity = TutorHub.Domain.Entities.RefreshToken;
+using TutorHub.Application.Common.Concurrency;
 
 namespace TutorHub.Application.Features.Auth.Login;
 
@@ -42,6 +43,12 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
     {
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
+        await using var transaction = await PostgresAdvisoryLock.BeginTransactionAsync(_context, cancellationToken);
+
+        await PostgresAdvisoryLock.LockRowAsync(_context,
+            $"SELECT 1 FROM \"Users\" WHERE lower(\"Email\") = {normalizedEmail} FOR UPDATE",
+            cancellationToken);
+
         var user = await _context.Users
             .Include(u => u.TutorProfile)
             .Include(u => u.StudentProfile)
@@ -65,6 +72,8 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
                 // Persist BEFORE throwing: otherwise the failed attempt is silently lost
                 // and the lockout threshold could never be reached.
                 await _context.SaveChangesAsync(cancellationToken);
+                if (transaction != null)
+                    await transaction.CommitAsync(cancellationToken);
             }
 
             throw new UnauthorizedException("Invalid email or password.");
@@ -104,6 +113,8 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
 
         _context.RefreshTokens.Add(refreshTokenEntity);
         await _context.SaveChangesAsync(cancellationToken);
+        if (transaction != null)
+            await transaction.CommitAsync(cancellationToken);
         Guid? idProfile;
         if (user.Role == UserRole.Tutor)
         {
