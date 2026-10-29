@@ -1,0 +1,188 @@
+/*
+ * Marketplace V2 — Cobalt Editorial.
+ * All variables are scoped to .marketplace-v2 so other screens keep the
+ * existing TutorHub tokens. Do not move these values into tokens.css.
+ */
+.marketplace-v2 {
+  --mkt-canvas: #f7f8fa;
+  --mkt-surface: #ffffff;
+  --mkt-ink: #0f172a;
+  --mkt-body: #475569;
+  --mkt-muted: #94a3b8;
+  --mkt-line: #e2e8f0;
+  --mkt-cobalt: #1f4fd8;
+  --mkt-cobalt-hover: #1a43b8;
+  --mkt-cobalt-50: #eff3fe;
+  --mkt-cobalt-100: #dce4fb;
+  --mkt-amber: #d97706;
+  --mkt-green: #047857;
+  --mkt-danger: #b91c1c;
+  --mkt-display: 'Plus Jakarta Sans', 'Be Vietnam Pro', ui-sans-serif, system-ui, sans-serif;
+  --mkt-body-font: 'Be Vietnam Pro', Inter, ui-sans-serif, system-ui, sans-serif;
+  --mkt-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* 1240px of usable content; page-shell reads this variable. */
+  --layout-content-max: 77.5rem;
+  background-color: var(--mkt-canvas);
+  color: var(--mkt-ink);
+}
+
+/* The Drawer portal is outside the page wrapper; keep its panel white. */
+.marketplace-v2.mkt-drawer-panel {
+  background-color: var(--mkt-surface);
+}
+
+.marketplace-v2 .mkt-display {
+  font-family: var(--mkt-display);
+  font-weight: 800;
+}
+
+.marketplace-v2 .mkt-body {
+  font-family: var(--mkt-body-font);
+}
+
+.marketplace-v2 .mkt-mono {
+  font-family: var(--mkt-mono);
+}
+
+.marketplace-v2 .mkt-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.marketplace-v2 .mkt-highlight {
+  background-image: linear-gradient(transparent 62%, var(--mkt-cobalt-100) 62%);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  padding-inline: 0.04em;
+}
+
+.marketplace-v2 .mkt-card {
+  position: relative;
+  background: var(--mkt-surface);
+  border: 1px solid var(--mkt-line);
+  border-radius: 12px;
+}
+
+.marketplace-v2 .mkt-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 16px;
+  bottom: 16px;
+  width: 3px;
+  border-radius: 0 999px 999px 0;
+  background: var(--mkt-cobalt);
+  opacity: 0.35;
+  transition: opacity 180ms ease;
+}
+
+.marketplace-v2 .mkt-card:hover {
+  border-color: var(--mkt-cobalt-100);
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.06);
+  transform: translateY(-1px);
+}
+
+.marketplace-v2 .mkt-card:hover::before,
+.marketplace-v2 .mkt-card:focus-within::before {
+  opacity: 1;
+}
+
+.marketplace-v2 :focus-visible {
+  outline: 2px solid var(--mkt-cobalt);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketplace-v2 *,
+  .marketplace-v2 *::before,
+  .marketplace-v2 *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+.marketplace-v2 .mkt-btn-primary {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 8px;
+  background: var(--mkt-cobalt);
+  padding-inline: 14px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+
+.marketplace-v2 .mkt-btn-primary:hover {
+  background: var(--mkt-cobalt-hover);
+}
+
+.marketplace-v2 .mkt-btn-primary:active {
+  transform: scale(0.98);
+}
+
+.marketplace-v2 .mkt-btn-secondary {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--mkt-line);
+  border-radius: 8px;
+  background: var(--mkt-surface);
+  padding-inline: 14px;
+  color: var(--mkt-body);
+  font-size: 12px;
+  font-weight: 700;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.marketplace-v2 .mkt-btn-secondary:hover {
+  border-color: var(--mkt-cobalt-100);
+  color: var(--mkt-cobalt);
+}
+
+.marketplace-v2 .mkt-chip {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--mkt-line);
+  border-radius: 999px;
+  background: var(--mkt-surface);
+  padding-inline: 12px;
+  color: var(--mkt-body);
+  font-size: 12px;
+  font-weight: 600;
+  transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease;
+}
+
+.marketplace-v2 .mkt-chip:hover {
+  border-color: var(--mkt-cobalt-100);
+  color: var(--mkt-cobalt);
+}
+
+.marketplace-v2 .mkt-chip[aria-pressed='true'] {
+  border-color: var(--mkt-cobalt);
+  background: var(--mkt-cobalt);
+  color: #fff;
+}
+
+.marketplace-v2 .mkt-pagination [aria-current='page'] {
+  background-color: var(--mkt-cobalt);
+}
+
+.marketplace-v2 .mkt-pagination button {
+  border-radius: 8px;
+}
+
+@media (min-width: 640px) {
+  .marketplace-v2 .mkt-btn-primary,
+  .marketplace-v2 .mkt-btn-secondary,
+  .marketplace-v2 .mkt-chip {
+    min-height: 36px;
+  }
+}

@@ -140,7 +140,7 @@ export function Menu({ trigger, items = [], align = 'right', className, label })
 const DRAWER_FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function Drawer({ open, onClose, side = 'left', title, widthClass = 'w-80', footer, children }) {
+export function Drawer({ open, onClose, side = 'left', title, widthClass = 'w-80', panelClassName = '', footer, children }) {
   const panelRef = useRef(null);
   const onCloseRef = useRef(onClose);
   useEffect(() => {
@@ -207,6 +207,7 @@ export function Drawer({ open, onClose, side = 'left', title, widthClass = 'w-80
         className={cn(
           'absolute top-0 bottom-0 bg-surface shadow-brand-xl flex flex-col max-w-[85vw] focus-visible:outline-none',
           widthClass,
+          panelClassName,
           side === 'left' ? 'left-0' : 'right-0'
         )}
       >

@@ -24,7 +24,6 @@ export default function CategoryFilterBar({
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const dropdownRef = React.useRef(null);
 
-  // Close dropdown on outside click
   React.useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -35,12 +34,8 @@ export default function CategoryFilterBar({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Normalize and prioritize categories per user specification:
-  // Tất cả môn học, CNTT, Khoa học tự nhiên, Khoa học xã hội, Kinh tế & Tài chính, Kỹ năng mềm, Khác ▾
   const { mainCategories, otherCategories, activeOtherCategory } = React.useMemo(() => {
     const list = Array.isArray(categories) ? [...categories] : [];
-
-    // Priority ordering rules
     const priorityKeywords = [
       'Công nghệ thông tin',
       'Khoa học tự nhiên',
@@ -58,7 +53,6 @@ export default function CategoryFilterBar({
         cat.name.toLowerCase().includes(pk.toLowerCase())
       );
       if (isPriority && mains.length < 6) {
-        // Label display abbreviation if applicable
         const displayName = cat.name.includes('Công nghệ thông tin') ? 'CNTT' : cat.name;
         mains.push({ ...cat, displayName, icon: ICON_BY_CATEGORY_NAME[cat.name] || 'auto_stories' });
       } else {
@@ -67,75 +61,87 @@ export default function CategoryFilterBar({
     });
 
     const activeOther = others.find((c) => c.id === selectedCategoryId);
-
     return { mainCategories: mains, otherCategories: others, activeOtherCategory: activeOther };
   }, [categories, selectedCategoryId]);
 
+  const tabClass = (active) =>
+    cn(
+      'inline-flex min-h-[46px] shrink-0 items-center gap-2 border-b-2 px-2.5 text-[12.5px] font-semibold transition-colors',
+      active
+        ? 'border-[color:var(--mkt-cobalt)] text-[color:var(--mkt-cobalt)]'
+        : 'border-transparent text-[color:var(--mkt-body)] hover:text-[color:var(--mkt-ink)]'
+    );
+
   return (
-    <div className="w-full bg-surface border-b border-neutral-200/80 z-30">
+    <div
+      id="category-filter-bar"
+      className="z-30 w-full border-y border-[color:var(--mkt-line)] bg-white"
+    >
       <div className="page-shell">
         <div
-          className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-2.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-          role="tablist"
+          className="flex items-center gap-1 overflow-x-auto py-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          role="group"
           aria-label="Danh mục bộ môn"
         >
-          {/* 1. All categories tab */}
           <button
             type="button"
-            role="tab"
-            aria-selected={!selectedCategoryId}
+            id="category-tab-all"
+            aria-pressed={!selectedCategoryId}
             onClick={() => {
               onSelectCategory('');
               setDropdownOpen(false);
             }}
-            className={cn(
-              'flex items-center gap-2 px-3.5 py-1.5 min-h-[44px] rounded-lg text-[13.5px] font-medium shrink-0 transition-all cursor-pointer whitespace-nowrap',
-              !selectedCategoryId
-                ? 'bg-brand-primary-600 text-white shadow-sm font-semibold'
-                : 'bg-transparent text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
-            )}
+            className={tabClass(!selectedCategoryId)}
           >
-            <Icon name="auto_stories" size="xs" className={!selectedCategoryId ? 'text-white' : 'text-neutral-500'} />
+            <Icon
+              name="auto_stories"
+              size="xs"
+              strokeWidth={1.7}
+              className={
+                !selectedCategoryId
+                  ? 'text-[color:var(--mkt-cobalt)]'
+                  : 'text-[color:var(--mkt-muted)]'
+              }
+            />
             <span>Tất cả môn học</span>
           </button>
 
-          {/* 2. Main 6 Categories */}
           {mainCategories.map((cat) => {
             const isActive = selectedCategoryId === cat.id;
             return (
               <button
                 key={cat.id}
                 type="button"
-                role="tab"
-                aria-selected={isActive}
+                aria-pressed={isActive}
                 onClick={() => {
                   onSelectCategory(isActive ? '' : cat.id);
                   setDropdownOpen(false);
                 }}
-                className={cn(
-                  'flex items-center gap-2 px-3.5 py-1.5 min-h-[44px] rounded-lg text-[13.5px] font-medium shrink-0 transition-all cursor-pointer whitespace-nowrap',
-                  isActive
-                    ? 'bg-brand-primary-600 text-white shadow-sm font-semibold'
-                    : 'bg-transparent text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
-                )}
+                className={tabClass(isActive)}
               >
-                <Icon name={cat.icon} size="xs" className={isActive ? 'text-white' : 'text-neutral-500'} />
+                <Icon
+                  name={cat.icon}
+                  size="xs"
+                  strokeWidth={1.7}
+                  className={
+                    isActive ? 'text-[color:var(--mkt-cobalt)]' : 'text-[color:var(--mkt-muted)]'
+                  }
+                />
                 <span>{cat.displayName}</span>
               </button>
             );
           })}
 
-          {/* 3. Dropdown "Khác ▾" if more categories exist */}
           {otherCategories.length > 0 && (
             <div className="relative shrink-0" ref={dropdownRef}>
               <button
                 type="button"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
+                onClick={() => setDropdownOpen((open) => !open)}
                 className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-lg text-[13.5px] font-medium transition-all cursor-pointer whitespace-nowrap',
+                  'inline-flex min-h-[46px] shrink-0 items-center gap-1.5 border-b-2 px-2.5 text-[12.5px] font-semibold transition-colors',
                   activeOtherCategory
-                    ? 'bg-brand-primary-600 text-white shadow-sm font-semibold'
-                    : 'bg-transparent text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+                    ? 'border-[color:var(--mkt-cobalt)] text-[color:var(--mkt-cobalt)]'
+                    : 'border-transparent text-[color:var(--mkt-body)] hover:text-[color:var(--mkt-ink)]'
                 )}
                 aria-haspopup="true"
                 aria-expanded={dropdownOpen}
@@ -144,16 +150,19 @@ export default function CategoryFilterBar({
                 <Icon
                   name="expand_more"
                   size="xs"
+                  strokeWidth={1.7}
                   className={cn(
                     'transition-transform duration-150',
-                    activeOtherCategory ? 'text-white' : 'text-neutral-500',
+                    activeOtherCategory
+                      ? 'text-[color:var(--mkt-cobalt)]'
+                      : 'text-[color:var(--mkt-muted)]',
                     dropdownOpen && 'rotate-180'
                   )}
                 />
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-52 bg-surface rounded-xl shadow-brand-lg border border-neutral-200/80 py-1.5 z-50 animate-fadeIn">
+                <div className="absolute right-0 top-full z-50 mt-1.5 w-56 rounded-[10px] border border-[color:var(--mkt-line)] bg-white py-1.5 shadow-lg animate-fadeIn">
                   {otherCategories.map((cat) => {
                     const isSelected = selectedCategoryId === cat.id;
                     return (
@@ -165,15 +174,33 @@ export default function CategoryFilterBar({
                           setDropdownOpen(false);
                         }}
                         className={cn(
-                          'w-full text-left px-3.5 py-2 text-[13px] font-medium flex items-center justify-between hover:bg-neutral-50 transition-colors cursor-pointer',
-                          isSelected ? 'text-brand-primary-600 bg-brand-primary-50/60 font-semibold' : 'text-neutral-700'
+                          'flex w-full items-center justify-between px-3.5 py-2 text-left text-[12px] font-medium transition-colors hover:bg-[color:var(--mkt-canvas)]',
+                          isSelected
+                            ? 'bg-[color:var(--mkt-cobalt-50)] font-semibold text-[color:var(--mkt-cobalt)]'
+                            : 'text-[color:var(--mkt-body)]'
                         )}
                       >
-                        <div className="flex items-center gap-2 truncate">
-                          <Icon name={cat.icon} size="xs" className={isSelected ? 'text-brand-primary-600' : 'text-neutral-400'} />
+                        <div className="flex min-w-0 items-center gap-2">
+                          <Icon
+                            name={cat.icon}
+                            size="xs"
+                            strokeWidth={1.7}
+                            className={
+                              isSelected
+                                ? 'text-[color:var(--mkt-cobalt)]'
+                                : 'text-[color:var(--mkt-muted)]'
+                            }
+                          />
                           <span className="truncate">{cat.name}</span>
                         </div>
-                        {isSelected && <Icon name="check" size="xs" className="text-brand-primary-600 shrink-0" />}
+                        {isSelected && (
+                          <Icon
+                            name="check"
+                            size="xs"
+                            strokeWidth={1.7}
+                            className="shrink-0 text-[color:var(--mkt-cobalt)]"
+                          />
+                        )}
                       </button>
                     );
                   })}

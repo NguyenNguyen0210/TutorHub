@@ -74,6 +74,7 @@ export default function FilterSidebar({
   experienceRange = 'All',
   onExperienceRangeChange,
   onResetFilters,
+  footer,
   className,
 }) {
   // Normalize min/max prices
@@ -128,16 +129,18 @@ export default function FilterSidebar({
 
   return (
     <aside className={cn('w-full', className)} aria-label="Bộ lọc gia sư đa chiều">
-      <div className="filter-panel flex flex-col gap-4 rounded-brand-lg border border-border bg-surface p-4 sm:p-5 shadow-brand-sm">
-        {/* Header: gọn gàng 1 dòng không bao giờ xuống hàng */}
-        <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-brand-md bg-brand-primary-50 text-brand-primary-700">
-              <Icon name="tune" size="xs" />
-            </span>
-            <span className="font-bold text-[15px] text-neutral-900">Bộ lọc</span>
+      <div className="filter-panel flex flex-col gap-4 rounded-[14px] border border-[color:var(--mkt-line)] bg-white p-4 sm:p-5">
+        <div className="flex items-center justify-between border-b border-[color:var(--mkt-line)] pb-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <Icon
+              name="tune"
+              size="sm"
+              strokeWidth={1.7}
+              className="text-[color:var(--mkt-cobalt)]"
+            />
+            <span className="text-[12px] font-bold text-[color:var(--mkt-ink)]">Bộ lọc</span>
             {activeCount > 0 && (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-primary-600 px-1.5 text-[11px] font-bold text-white">
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[color:var(--mkt-cobalt)] px-1.5 text-[10px] font-bold text-white">
                 {activeCount}
               </span>
             )}
@@ -146,7 +149,7 @@ export default function FilterSidebar({
             <button
               type="button"
               onClick={onResetFilters}
-              className="text-[12.5px] font-semibold text-neutral-500 transition-colors hover:text-danger cursor-pointer py-1 px-1.5 rounded-md hover:bg-neutral-50"
+              className="inline-flex min-h-11 items-center rounded-[8px] px-2 text-[11px] font-semibold text-[color:var(--mkt-body)] transition-colors hover:bg-[color:var(--mkt-canvas)] hover:text-[color:var(--mkt-danger)]"
             >
               Đặt lại
             </button>
@@ -160,21 +163,23 @@ export default function FilterSidebar({
             onClick={() => toggleSection('price')}
             aria-expanded={openSections.price}
             aria-controls="filter-section-price"
-            className="flex w-full cursor-pointer items-center justify-between text-[13.5px] font-bold text-neutral-900 group"
+            className="flex min-h-11 w-full cursor-pointer items-center justify-between text-[12px] font-bold text-[color:var(--mkt-ink)] group"
           >
             <span className="flex items-center gap-1.5">
               <Icon
                 name="payments"
                 size="xs"
-                className="text-neutral-400 transition-colors group-hover:text-brand-primary-600"
+                strokeWidth={1.7}
+                className="text-[color:var(--mkt-muted)] transition-colors group-hover:text-[color:var(--mkt-cobalt)]"
               />
               <span>Giá gói học</span>
             </span>
             <Icon
               name="expand_more"
               size="sm"
+              strokeWidth={1.7}
               className={cn(
-                'text-neutral-400 transition-transform duration-200',
+                'text-[color:var(--mkt-muted)] transition-transform duration-200',
                 openSections.price ? 'rotate-180' : 'rotate-0'
               )}
             />
@@ -184,15 +189,15 @@ export default function FilterSidebar({
             <div id="filter-section-price" className="space-y-3 pt-1">
               {/* Hiển thị giá min và max rõ ràng dạng 2 ô */}
               <div className="grid grid-cols-2 gap-2 text-left">
-                <div className="rounded-brand-md border border-neutral-200/90 bg-neutral-50/70 p-2">
-                  <span className="block text-[11px] font-medium text-neutral-500">Từ</span>
-                  <span className="block font-mono text-[13px] font-bold text-neutral-900 truncate">
+                <div className="rounded-[8px] border border-[color:var(--mkt-line)] bg-[color:var(--mkt-canvas)] p-2">
+                  <span className="block text-[9.5px] font-medium text-[color:var(--mkt-muted)]">Từ</span>
+                  <span className="block mkt-mono text-[12px] font-bold text-[color:var(--mkt-ink)] truncate">
                     {formatVND(currentMinPrice)}
                   </span>
                 </div>
-                <div className="rounded-brand-md border border-neutral-200/90 bg-neutral-50/70 p-2">
-                  <span className="block text-[11px] font-medium text-neutral-500">Đến</span>
-                  <span className="block font-mono text-[13px] font-bold text-brand-primary-700 truncate">
+                <div className="rounded-[8px] border border-[color:var(--mkt-line)] bg-[color:var(--mkt-canvas)] p-2">
+                  <span className="block text-[9.5px] font-medium text-[color:var(--mkt-muted)]">Đến</span>
+                  <span className="block mkt-mono text-[12px] font-bold text-[color:var(--mkt-cobalt)] truncate">
                     {currentMaxPrice >= priceLimit ? '5.000.000 ₫' : formatVND(currentMaxPrice)}
                   </span>
                 </div>
@@ -224,10 +229,10 @@ export default function FilterSidebar({
                       type="button"
                       onClick={() => handleSliderChange([p.min, p.max])}
                       className={cn(
-                        'min-h-[36px] rounded-brand-md border px-2 py-1 text-[12px] transition-all font-medium text-center',
+                        'min-h-[36px] rounded-[8px] border px-2 py-1 text-[11.5px] transition-all font-medium text-center',
                         isExactMatch
-                          ? 'border-brand-primary-600 bg-brand-primary-50 text-brand-primary-700 font-semibold shadow-xs'
-                          : 'border-neutral-200 bg-surface text-neutral-600 hover:border-neutral-300 hover:text-neutral-900'
+                          ? 'border-[color:var(--mkt-cobalt)] bg-[color:var(--mkt-cobalt-50)] text-[color:var(--mkt-cobalt)] font-semibold'
+                          : 'border-[color:var(--mkt-line)] bg-white text-[color:var(--mkt-body)] hover:border-[color:var(--mkt-cobalt-100)] hover:text-[color:var(--mkt-ink)]'
                       )}
                     >
                       {p.label}
@@ -240,44 +245,46 @@ export default function FilterSidebar({
         </div>
 
         {/* 2. Đánh giá (Rating) */}
-        <div className="space-y-2.5 border-t border-neutral-100/80 pt-3">
+        <div className="space-y-2.5 border-t border-[color:var(--mkt-line)] pt-3">
           <button
             type="button"
             onClick={() => toggleSection('rating')}
             aria-expanded={openSections.rating}
             aria-controls="filter-section-rating"
-            className="flex w-full cursor-pointer items-center justify-between text-[13.5px] font-bold text-neutral-900 group"
+            className="flex min-h-11 w-full cursor-pointer items-center justify-between text-[12px] font-bold text-[color:var(--mkt-ink)] group"
           >
             <span className="flex items-center gap-1.5">
               <Icon
                 name="star"
                 size="xs"
-                className="text-neutral-400 transition-colors group-hover:text-brand-secondary-500"
+                strokeWidth={1.7}
+                className="text-[color:var(--mkt-muted)] transition-colors group-hover:text-[color:var(--mkt-amber)]"
               />
               <span>Đánh giá</span>
             </span>
             <Icon
               name="expand_more"
               size="sm"
+              strokeWidth={1.7}
               className={cn(
-                'text-neutral-400 transition-transform duration-200',
+                'text-[color:var(--mkt-muted)] transition-transform duration-200',
                 openSections.rating ? 'rotate-180' : 'rotate-0'
               )}
             />
           </button>
 
           {openSections.rating && (
-            <div id="filter-section-rating" className="space-y-1 pt-1 text-[13px]">
+            <div id="filter-section-rating" className="space-y-1 pt-1 text-[12px]">
               {RATING_OPTIONS.map((item) => {
                 const isSelected = minRating === item.val;
                 return (
                   <label
                     key={item.val ?? 'all'}
                     className={cn(
-                      'flex items-center gap-2.5 px-2.5 py-1.5 rounded-brand-md cursor-pointer select-none transition-colors text-[13px]',
+                      'flex min-h-11 items-center gap-2.5 rounded-[8px] px-2.5 py-1.5 text-[12px] cursor-pointer select-none transition-colors',
                       isSelected
-                        ? 'bg-brand-primary-50 text-brand-primary-700 font-semibold'
-                        : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
+                        ? 'bg-[color:var(--mkt-cobalt-50)] text-[color:var(--mkt-cobalt)] font-semibold'
+                        : 'text-[color:var(--mkt-body)] hover:bg-[color:var(--mkt-canvas)] hover:text-[color:var(--mkt-ink)]'
                     )}
                   >
                     <input
@@ -285,11 +292,11 @@ export default function FilterSidebar({
                       name="ratingFilter"
                       checked={isSelected}
                       onChange={() => onMinRatingChange?.(item.val)}
-                      className="w-4 h-4 text-brand-primary-600 border-neutral-300 focus:ring-brand-primary-600 cursor-pointer"
+                      className="h-4 w-4 cursor-pointer border-neutral-300 accent-[color:var(--mkt-cobalt)] focus:ring-[color:var(--mkt-cobalt)]"
                     />
                     <span className="flex items-center gap-1.5">
                       {item.val !== null && (
-                        <Icon name="star" size="xs" filled className="text-brand-secondary-500 h-3.5 w-3.5" />
+                        <Icon name="star" size="xs" filled className="text-[color:var(--mkt-amber)] h-3.5 w-3.5" />
                       )}
                       <span>{item.val !== null ? `${item.val} trở lên` : 'Tất cả đánh giá'}</span>
                     </span>
@@ -301,44 +308,46 @@ export default function FilterSidebar({
         </div>
 
         {/* 3. Kinh nghiệm giảng dạy (Experience) - Các khoảng ranh giới chuẩn xác */}
-        <div className="space-y-2.5 border-t border-neutral-100/80 pt-3">
+        <div className="space-y-2.5 border-t border-[color:var(--mkt-line)] pt-3">
           <button
             type="button"
             onClick={() => toggleSection('experience')}
             aria-expanded={openSections.experience}
             aria-controls="filter-section-experience"
-            className="flex w-full cursor-pointer items-center justify-between text-[13.5px] font-bold text-neutral-900 group"
+            className="flex min-h-11 w-full cursor-pointer items-center justify-between text-[12px] font-bold text-[color:var(--mkt-ink)] group"
           >
             <span className="flex items-center gap-1.5">
               <Icon
                 name="work_history"
                 size="xs"
-                className="text-neutral-400 transition-colors group-hover:text-brand-primary-600"
+                strokeWidth={1.7}
+                className="text-[color:var(--mkt-muted)] transition-colors group-hover:text-[color:var(--mkt-cobalt)]"
               />
               <span>Kinh nghiệm giảng dạy</span>
             </span>
             <Icon
               name="expand_more"
               size="sm"
+              strokeWidth={1.7}
               className={cn(
-                'text-neutral-400 transition-transform duration-200',
+                'text-[color:var(--mkt-muted)] transition-transform duration-200',
                 openSections.experience ? 'rotate-180' : 'rotate-0'
               )}
             />
           </button>
 
           {openSections.experience && (
-            <div id="filter-section-experience" className="space-y-1 pt-1 text-[13px]">
+            <div id="filter-section-experience" className="space-y-1 pt-1 text-[12px]">
               {EXPERIENCE_OPTIONS.map((exp) => {
                 const isSelected = experienceRange === exp.id;
                 return (
                   <label
                     key={exp.id}
                     className={cn(
-                      'flex items-center gap-2.5 px-2.5 py-1.5 rounded-brand-md cursor-pointer select-none transition-colors text-[13px]',
+                      'flex min-h-11 items-center gap-2.5 rounded-[8px] px-2.5 py-1.5 text-[12px] cursor-pointer select-none transition-colors',
                       isSelected
-                        ? 'bg-brand-primary-50 text-brand-primary-700 font-semibold'
-                        : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
+                        ? 'bg-[color:var(--mkt-cobalt-50)] text-[color:var(--mkt-cobalt)] font-semibold'
+                        : 'text-[color:var(--mkt-body)] hover:bg-[color:var(--mkt-canvas)] hover:text-[color:var(--mkt-ink)]'
                     )}
                   >
                     <input
@@ -346,7 +355,7 @@ export default function FilterSidebar({
                       name="experienceRange"
                       checked={isSelected}
                       onChange={() => onExperienceRangeChange?.(exp.id)}
-                      className="w-4 h-4 text-brand-primary-600 border-neutral-300 focus:ring-brand-primary-600 cursor-pointer"
+                      className="h-4 w-4 cursor-pointer border-neutral-300 accent-[color:var(--mkt-cobalt)] focus:ring-[color:var(--mkt-cobalt)]"
                     />
                     <span>{exp.label}</span>
                   </label>
@@ -357,44 +366,46 @@ export default function FilterSidebar({
         </div>
 
         {/* 4. Bằng cấp & Học vị (Degree) */}
-        <div className="space-y-2.5 border-t border-neutral-100/80 pt-3">
+        <div className="space-y-2.5 border-t border-[color:var(--mkt-line)] pt-3">
           <button
             type="button"
             onClick={() => toggleSection('degree')}
             aria-expanded={openSections.degree}
             aria-controls="filter-section-degree"
-            className="flex w-full cursor-pointer items-center justify-between text-[13.5px] font-bold text-neutral-900 group"
+            className="flex min-h-11 w-full cursor-pointer items-center justify-between text-[12px] font-bold text-[color:var(--mkt-ink)] group"
           >
             <span className="flex items-center gap-1.5">
               <Icon
                 name="school"
                 size="xs"
-                className="text-neutral-400 transition-colors group-hover:text-brand-primary-600"
+                strokeWidth={1.7}
+                className="text-[color:var(--mkt-muted)] transition-colors group-hover:text-[color:var(--mkt-cobalt)]"
               />
               <span>Bằng cấp & Học vị</span>
             </span>
             <Icon
               name="expand_more"
               size="sm"
+              strokeWidth={1.7}
               className={cn(
-                'text-neutral-400 transition-transform duration-200',
+                'text-[color:var(--mkt-muted)] transition-transform duration-200',
                 openSections.degree ? 'rotate-180' : 'rotate-0'
               )}
             />
           </button>
 
           {openSections.degree && (
-            <div id="filter-section-degree" className="space-y-1 pt-1 text-[13px]">
+            <div id="filter-section-degree" className="space-y-1 pt-1 text-[12px]">
               {DEGREE_OPTIONS.map((item) => {
                 const isSelected = degreeLevel === item.id;
                 return (
                   <label
                     key={item.id}
                     className={cn(
-                      'flex items-center justify-between px-2.5 py-1.5 rounded-brand-md cursor-pointer transition-all select-none text-[12.5px]',
+                      'flex min-h-11 items-center justify-between rounded-[8px] px-2.5 py-1.5 text-[12px] cursor-pointer transition-all select-none',
                       isSelected
-                        ? 'bg-brand-primary-50 text-brand-primary-700 font-semibold border border-brand-primary-200/80'
-                        : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 border border-transparent'
+                        ? 'bg-[color:var(--mkt-cobalt-50)] text-[color:var(--mkt-cobalt)] font-semibold border border-[color:var(--mkt-cobalt-100)]'
+                        : 'text-[color:var(--mkt-body)] hover:bg-[color:var(--mkt-canvas)] hover:text-[color:var(--mkt-ink)] border border-transparent'
                     )}
                   >
                     <div className="flex items-center gap-2">
@@ -403,7 +414,7 @@ export default function FilterSidebar({
                         name="degreeLevel"
                         checked={isSelected}
                         onChange={() => onDegreeLevelChange?.(item.id)}
-                        className="w-3.5 h-3.5 text-brand-primary-600 border-neutral-300 focus:ring-brand-primary-600 cursor-pointer"
+                        className="h-3.5 w-3.5 cursor-pointer border-neutral-300 accent-[color:var(--mkt-cobalt)] focus:ring-[color:var(--mkt-cobalt)]"
                       />
                       <span>{item.label}</span>
                     </div>
@@ -415,34 +426,36 @@ export default function FilterSidebar({
         </div>
 
         {/* 5. Trường đại học (University) */}
-        <div className="space-y-2.5 border-t border-neutral-100/80 pt-3">
+        <div className="space-y-2.5 border-t border-[color:var(--mkt-line)] pt-3">
           <button
             type="button"
             onClick={() => toggleSection('university')}
             aria-expanded={openSections.university}
             aria-controls="filter-section-university"
-            className="flex w-full cursor-pointer items-center justify-between text-[13.5px] font-bold text-neutral-900 group"
+            className="flex min-h-11 w-full cursor-pointer items-center justify-between text-[12px] font-bold text-[color:var(--mkt-ink)] group"
           >
             <span className="flex items-center gap-1.5">
               <Icon
                 name="account_balance"
                 size="xs"
-                className="text-neutral-400 transition-colors group-hover:text-brand-primary-600"
+                strokeWidth={1.7}
+                className="text-[color:var(--mkt-muted)] transition-colors group-hover:text-[color:var(--mkt-cobalt)]"
               />
               <span>Trường đại học</span>
             </span>
             <Icon
               name="expand_more"
               size="sm"
+              strokeWidth={1.7}
               className={cn(
-                'text-neutral-400 transition-transform duration-200',
+                'text-[color:var(--mkt-muted)] transition-transform duration-200',
                 openSections.university ? 'rotate-180' : 'rotate-0'
               )}
             />
           </button>
 
           {openSections.university && (
-            <div id="filter-section-university" className="space-y-2 pt-1 text-[13px]">
+            <div id="filter-section-university" className="space-y-2 pt-1 text-[12px]">
               {/* Ô tìm kiếm trường nhanh */}
               <div className="relative">
                 <input
@@ -451,13 +464,13 @@ export default function FilterSidebar({
                   placeholder="Tìm tên trường..."
                   value={uniSearch}
                   onChange={(e) => setUniSearch(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-[12px] bg-neutral-50 border border-neutral-200 rounded-brand-md focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand-primary-600"
+                  className="w-full rounded-[8px] border border-[color:var(--mkt-line)] bg-[color:var(--mkt-canvas)] px-2.5 py-1.5 text-[12px] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[color:var(--mkt-cobalt)]"
                 />
                 {uniSearch && (
                   <button
                     type="button"
                     onClick={() => setUniSearch('')}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-neutral-400 hover:text-neutral-600"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-[color:var(--mkt-muted)] hover:text-[color:var(--mkt-ink)]"
                     aria-label="Xóa từ khóa lọc trường đại học"
                   >
                     <Icon name="close" size="xs" className="w-3 h-3" />
@@ -472,10 +485,10 @@ export default function FilterSidebar({
                     <label
                       key={item.id}
                       className={cn(
-                        'flex items-center gap-2 px-2.5 py-1.5 rounded-brand-md cursor-pointer select-none transition-colors text-[12.5px]',
+                        'flex min-h-11 items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-[12px] cursor-pointer select-none transition-colors',
                         isSelected
-                          ? 'bg-brand-primary-50 text-brand-primary-700 font-semibold border border-brand-primary-200/80'
-                          : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 border border-transparent'
+                          ? 'bg-[color:var(--mkt-cobalt-50)] text-[color:var(--mkt-cobalt)] font-semibold border border-[color:var(--mkt-cobalt-100)]'
+                          : 'text-[color:var(--mkt-body)] hover:bg-[color:var(--mkt-canvas)] hover:text-[color:var(--mkt-ink)] border border-transparent'
                       )}
                     >
                       <input
@@ -483,7 +496,7 @@ export default function FilterSidebar({
                         name="university"
                         checked={isSelected}
                         onChange={() => onUniversityChange?.(item.id)}
-                        className="w-3.5 h-3.5 text-brand-primary-600 border-neutral-300 focus:ring-brand-primary-600 cursor-pointer"
+                        className="h-3.5 w-3.5 cursor-pointer border-neutral-300 accent-[color:var(--mkt-cobalt)] focus:ring-[color:var(--mkt-cobalt)]"
                       />
                       <span className="truncate">{item.label}</span>
                     </label>
@@ -495,44 +508,46 @@ export default function FilterSidebar({
         </div>
 
         {/* 6. Chứng chỉ nổi bật (Certifications) */}
-        <div className="space-y-2.5 border-t border-neutral-100/80 pt-3">
+        <div className="space-y-2.5 border-t border-[color:var(--mkt-line)] pt-3">
           <button
             type="button"
             onClick={() => toggleSection('cert')}
             aria-expanded={openSections.cert}
             aria-controls="filter-section-cert"
-            className="flex w-full cursor-pointer items-center justify-between text-[13.5px] font-bold text-neutral-900 group"
+            className="flex min-h-11 w-full cursor-pointer items-center justify-between text-[12px] font-bold text-[color:var(--mkt-ink)] group"
           >
             <span className="flex items-center gap-1.5">
               <Icon
                 name="verified"
                 size="xs"
-                className="text-neutral-400 transition-colors group-hover:text-brand-primary-600"
+                strokeWidth={1.7}
+                className="text-[color:var(--mkt-muted)] transition-colors group-hover:text-[color:var(--mkt-cobalt)]"
               />
               <span>Chứng chỉ nổi bật</span>
             </span>
             <Icon
               name="expand_more"
               size="sm"
+              strokeWidth={1.7}
               className={cn(
-                'text-neutral-400 transition-transform duration-200',
+                'text-[color:var(--mkt-muted)] transition-transform duration-200',
                 openSections.cert ? 'rotate-180' : 'rotate-0'
               )}
             />
           </button>
 
           {openSections.cert && (
-            <div id="filter-section-cert" className="space-y-1 pt-1 text-[13px]">
+            <div id="filter-section-cert" className="space-y-1 pt-1 text-[12px]">
               {CERTIFICATION_OPTIONS.map((item) => {
                 const isSelected = certification === item.id;
                 return (
                   <label
                     key={item.id}
                     className={cn(
-                      'flex items-center gap-2 px-2.5 py-1.5 rounded-brand-md cursor-pointer select-none transition-colors text-[12.5px]',
+                      'flex min-h-11 items-center gap-2 rounded-[8px] px-2.5 py-1.5 text-[12px] cursor-pointer select-none transition-colors',
                       isSelected
-                        ? 'bg-brand-primary-50 text-brand-primary-700 font-semibold border border-brand-primary-200/80'
-                        : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 border border-transparent'
+                        ? 'bg-[color:var(--mkt-cobalt-50)] text-[color:var(--mkt-cobalt)] font-semibold border border-[color:var(--mkt-cobalt-100)]'
+                        : 'text-[color:var(--mkt-body)] hover:bg-[color:var(--mkt-canvas)] hover:text-[color:var(--mkt-ink)] border border-transparent'
                     )}
                   >
                     <input
@@ -540,7 +555,7 @@ export default function FilterSidebar({
                       name="certification"
                       checked={isSelected}
                       onChange={() => onCertificationChange?.(item.id)}
-                      className="w-3.5 h-3.5 text-brand-primary-600 border-neutral-300 focus:ring-brand-primary-600 cursor-pointer"
+                      className="h-3.5 w-3.5 cursor-pointer border-neutral-300 accent-[color:var(--mkt-cobalt)] focus:ring-[color:var(--mkt-cobalt)]"
                     />
                     <span>{item.label}</span>
                   </label>
@@ -549,6 +564,12 @@ export default function FilterSidebar({
             </div>
           )}
         </div>
+
+        {footer && (
+          <div className="border-t border-[color:var(--mkt-line)] pt-3">
+            {footer}
+          </div>
+        )}
       </div>
     </aside>
   );
@@ -572,5 +593,6 @@ FilterSidebar.propTypes = {
   experienceRange: PropTypes.string,
   onExperienceRangeChange: PropTypes.func,
   onResetFilters: PropTypes.func,
+  footer: PropTypes.node,
   className: PropTypes.string,
 };

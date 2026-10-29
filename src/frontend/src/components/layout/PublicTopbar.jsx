@@ -80,69 +80,75 @@ export default function PublicTopbar() {
       : '/student/dashboard'
     : '/auth/login';
 
+  const isHome = location.pathname === '/' || location.pathname.startsWith('/tutors');
+  const navLinkClass = (active) =>
+    cn(
+      'inline-flex min-h-11 items-center border-b-2 px-3.5 py-2 text-[13.5px] font-semibold transition-colors',
+      active
+        ? 'border-brand-primary-600 text-brand-primary-700'
+        : 'border-transparent text-fg-secondary hover:border-neutral-300 hover:text-fg'
+    );
+
   return (
-    <header className="sticky top-0 z-50 bg-surface/95 backdrop-blur-md border-b border-border/80 shadow-brand-sm">
-      <div className="page-shell flex items-center justify-between h-[72px] gap-4">
+    <header className="sticky top-0 z-50 border-b border-border bg-surface">
+      <div className="page-shell grid h-[72px] grid-cols-[1fr_auto_1fr] items-center gap-4">
         {/* Brand Logo */}
         <Link
           to={isAuthenticated ? getDashboardPath(role) : '/'}
           aria-label="TutorHub — trang chủ"
-          className="shrink-0 flex items-center"
+          className="flex shrink-0 items-center justify-self-start"
         >
           <Logo variant="mark" size={36} className="sm:hidden" />
           <Logo variant="horizontal" size={36} className="hidden sm:inline-flex" />
         </Link>
 
-        {/* Center Nav Items: 14px / 500 font */}
-        <nav className="hidden md:flex items-center gap-1.5" aria-label="Điều hướng chính">
+        {/* Center nav: four guest links, centered between logo and actions */}
+        <nav className="hidden items-center justify-self-center gap-1 lg:flex" aria-label="Điều hướng chính">
           <Link
             to="/"
-            aria-current={location.pathname === '/' || location.pathname === '/tutors' ? 'page' : undefined}
-            className={cn(
-              'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
-              location.pathname === '/' || location.pathname.startsWith('/tutors')
-                ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
-            )}
+            aria-current={isHome ? 'page' : undefined}
+            className={navLinkClass(isHome)}
           >
-            Khám phá gia sư
+            Tìm gia sư
           </Link>
 
           <Link
             to="/services"
             aria-current={location.pathname.startsWith('/services') ? 'page' : undefined}
-            className={cn(
-              'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
-              location.pathname.startsWith('/services')
-                ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
-            )}
+            className={navLinkClass(location.pathname.startsWith('/services'))}
           >
-            Dịch vụ học tập
+            Dịch vụ
           </Link>
 
           {!isAuthenticated ? (
-            <Link
-              to="/how-it-works"
-              aria-current={location.pathname === '/how-it-works' ? 'page' : undefined}
-              className={cn(
-                'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
-                location.pathname === '/how-it-works'
-                  ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                  : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
-              )}
-            >
-              Cách hoạt động
-            </Link>
+            <>
+              <Link
+                to="/become-tutor"
+                aria-current={location.pathname.startsWith('/become-tutor') ? 'page' : undefined}
+                className={navLinkClass(location.pathname.startsWith('/become-tutor'))}
+              >
+                Trở thành gia sư
+              </Link>
+
+              <Link
+                to="/how-it-works"
+                aria-current={location.pathname === '/how-it-works' ? 'page' : undefined}
+                className={navLinkClass(location.pathname === '/how-it-works')}
+              >
+                Cách hoạt động
+              </Link>
+            </>
           ) : (
             <>
               <Link
                 to={schedulePath}
-                className={cn(
-                  'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
+                aria-current={
                   location.pathname.includes('/schedule') || location.pathname.includes('/sessions')
-                    ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                    : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
+                    ? 'page'
+                    : undefined
+                }
+                className={navLinkClass(
+                  location.pathname.includes('/schedule') || location.pathname.includes('/sessions')
                 )}
               >
                 Lịch học
@@ -150,23 +156,21 @@ export default function PublicTopbar() {
 
               <Link
                 to="/app/messages"
-                className={cn(
-                  'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
-                  location.pathname.startsWith('/app/messages')
-                    ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                    : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
-                )}
+                aria-current={location.pathname.startsWith('/app/messages') ? 'page' : undefined}
+                className={navLinkClass(location.pathname.startsWith('/app/messages'))}
               >
                 Tin nhắn
               </Link>
 
               <Link
                 to={myCoursesPath}
-                className={cn(
-                  'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
+                aria-current={
                   location.pathname.includes('/dashboard') || location.pathname.includes('/services')
-                    ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                    : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
+                    ? 'page'
+                    : undefined
+                }
+                className={navLinkClass(
+                  location.pathname.includes('/dashboard') || location.pathname.includes('/services')
                 )}
               >
                 Gói học của tôi
@@ -176,7 +180,7 @@ export default function PublicTopbar() {
         </nav>
 
         {/* Right actions: Notifications & User profile / Auth buttons */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex shrink-0 items-center justify-self-end gap-2.5">
           {isAuthenticated ? (
             <>
               {role === 'Tutor' && (
@@ -224,12 +228,6 @@ export default function PublicTopbar() {
           ) : (
             <div className="flex items-center gap-2 sm:gap-2.5">
               <Link
-                to="/become-tutor"
-                className="hidden lg:inline-flex text-[14px] font-medium text-fg-secondary hover:text-brand-primary-600 px-2.5 py-1.5 transition-colors"
-              >
-                Trở thành gia sư
-              </Link>
-              <Link
                 to="/auth/register"
                 className="hidden sm:inline-flex items-center justify-center h-11 px-4 rounded-brand-md border border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-700 text-[13.5px] font-medium transition-colors"
               >
@@ -250,7 +248,7 @@ export default function PublicTopbar() {
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? 'Đóng menu' : 'Mở menu'}
             aria-expanded={mobileOpen}
-            className="md:hidden w-11 h-11 rounded-brand-md hover:bg-neutral-100 flex items-center justify-center text-fg-secondary transition-colors"
+            className="lg:hidden flex h-11 w-11 items-center justify-center rounded-brand-md text-fg-secondary transition-colors hover:bg-neutral-100"
           >
             <Icon name={mobileOpen ? 'close' : 'menu'} size="md" />
           </button>
@@ -259,30 +257,43 @@ export default function PublicTopbar() {
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-border bg-surface px-4 pt-2 pb-4 space-y-1 animate-fadeIn shadow-brand-sm">
-          <Link
-            to="/"
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
-          >
-            <Icon name="explore" size="md" className="text-brand-primary-600" />
-            Khám phá gia sư
-          </Link>
-          <Link
-            to="/services"
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
-          >
-            <Icon name="local_library" size="md" className="text-brand-primary-600" />
-            Dịch vụ học tập
-          </Link>
+        <div className="lg:hidden border-t border-border bg-surface px-4 pb-4 pt-2 space-y-1 animate-fadeIn">
           {!isAuthenticated ? (
             <>
+              <Link
+                to="/"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 rounded-brand-md px-3 py-2.5 text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
+              >
+                <Icon name="search" size="md" className="text-brand-primary-600" />
+                Tìm gia sư
+              </Link>
+              <Link
+                to="/services"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 rounded-brand-md px-3 py-2.5 text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
+              >
+                <Icon name="local_library" size="md" className="text-brand-primary-600" />
+                Dịch vụ
+              </Link>
+              <Link
+                to="/become-tutor"
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  'flex items-center gap-3 rounded-brand-md px-3 py-2.5 text-body-reg font-semibold transition-colors',
+                  location.pathname.startsWith('/become-tutor')
+                    ? 'bg-brand-primary-50 text-brand-primary-600'
+                    : 'text-neutral-700 hover:bg-neutral-100'
+                )}
+              >
+                <Icon name="school" size="md" className="text-brand-primary-600" />
+                Trở thành gia sư
+              </Link>
               <Link
                 to="/how-it-works"
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold transition-colors',
+                  'flex items-center gap-3 rounded-brand-md px-3 py-2.5 text-body-reg font-semibold transition-colors',
                   location.pathname === '/how-it-works'
                     ? 'bg-brand-primary-50 text-brand-primary-600'
                     : 'text-neutral-700 hover:bg-neutral-100'
@@ -291,26 +302,18 @@ export default function PublicTopbar() {
                 <Icon name="help_outline" size="md" className="text-brand-primary-600" />
                 Cách hoạt động
               </Link>
-              <Link
-                to="/become-tutor"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100 border-t border-border pt-3"
-              >
-                <Icon name="school" size="md" className="text-brand-primary-600" />
-                Trở thành gia sư
-              </Link>
-              <div className="pt-3 border-t border-border grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2 border-t border-border pt-3">
                 <Link
                   to="/auth/login"
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-center h-11 rounded-brand-md bg-primary text-white font-semibold text-caption hover:bg-primary-hover active:scale-[0.98] transition-all shadow-brand-sm"
+                  className="flex h-11 items-center justify-center rounded-brand-md bg-primary text-caption font-semibold text-white shadow-brand-sm transition-all hover:bg-primary-hover active:scale-[0.98]"
                 >
                   Đăng nhập
                 </Link>
                 <Link
                   to="/auth/register"
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-center h-11 rounded-brand-md border border-neutral-300 bg-white text-neutral-800 font-semibold text-caption hover:bg-neutral-50 active:scale-[0.98] transition-all"
+                  className="flex h-11 items-center justify-center rounded-brand-md border border-neutral-300 bg-white text-caption font-semibold text-neutral-800 transition-all hover:bg-neutral-50 active:scale-[0.98]"
                 >
                   Đăng ký
                 </Link>
@@ -318,6 +321,22 @@ export default function PublicTopbar() {
             </>
           ) : (
             <>
+              <Link
+                to="/"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 rounded-brand-md px-3 py-2.5 text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
+              >
+                <Icon name="search" size="md" className="text-brand-primary-600" />
+                Tìm gia sư
+              </Link>
+              <Link
+                to="/services"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 rounded-brand-md px-3 py-2.5 text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
+              >
+                <Icon name="local_library" size="md" className="text-brand-primary-600" />
+                Dịch vụ
+              </Link>
               <Link
                 to={schedulePath}
                 onClick={() => setMobileOpen(false)}

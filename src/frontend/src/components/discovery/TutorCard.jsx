@@ -3,8 +3,9 @@ import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
-import Button, { IconButton } from '@/components/ui/Button';
+import { IconButton } from '@/components/ui/Button';
 import Money from '@/components/ui/Money';
+import { formatRating } from '@/utils/marketplaceHelpers';
 
 export default function TutorCard({ tutor = {} }) {
   const [isFavorite, setIsFavorite] = useState(false);
@@ -27,7 +28,6 @@ export default function TutorCard({ tutor = {} }) {
 
   const displayName = (fullName || '').trim() || 'Gia sư';
 
-  // Fallback học vấn thông minh: Major · University -> University -> Major -> Education
   const educationDisplay = useMemo(() => {
     const trimmedMajor = major?.trim();
     const trimmedUni = university?.trim();
@@ -38,14 +38,12 @@ export default function TutorCard({ tutor = {} }) {
     return null;
   }, [major, university, education]);
 
-  // Chuẩn hóa danh sách môn học
   const normalizedSubjects = useMemo(() => {
     return (subjects || [])
       .map((s) => (typeof s === 'string' ? s : s?.name ?? s?.subjectName))
       .filter(Boolean);
   }, [subjects]);
 
-  // Chuẩn hóa số liệu an toàn
   const rating = Number(ratingAvg ?? tutor.rating ?? 0);
   const reviewsCount = Number(totalReviews ?? 0);
   const yearsExp = Number(experienceYears ?? tutor.yearsOfExperience ?? 0);
@@ -56,156 +54,163 @@ export default function TutorCard({ tutor = {} }) {
       ? Number(tutor.hourlyRate)
       : null;
 
+  const visibleSubjects = normalizedSubjects.slice(0, 3);
+  const extraSubjects = normalizedSubjects.length - visibleSubjects.length;
+  const hasRating = reviewsCount > 0 && Number.isFinite(rating) && rating > 0;
+
   return (
-    <article className="group relative flex h-full flex-col justify-between overflow-hidden rounded-brand-lg border border-border bg-surface transition-[border-color,box-shadow,transform] duration-normal ease-standard hover:-translate-y-0.5 hover:border-brand-primary-300 hover:shadow-brand-md">
-      <div className="h-1 bg-brand-primary-600" aria-hidden="true" />
+    <article className="mkt-card group flex h-full flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col p-4 pl-5 sm:p-5 sm:pl-6">
+        <div className="flex items-start gap-3">
+          <Avatar
+            src={avatarUrl}
+            name={displayName}
+            size="md"
+            className="h-[42px] w-[42px] shrink-0 ring-1 ring-neutral-200/80 sm:h-12 sm:w-12"
+          />
 
-      <div className="flex flex-1 flex-col justify-between p-5 space-y-4">
-        <div className="space-y-3.5">
-          {/* Tầng 1: Header - Avatar + Tên + Badge Xác minh + Học vấn + Đánh giá & Kinh nghiệm */}
-          <div className="flex items-start gap-3.5">
-            <Avatar
-              src={avatarUrl}
-              name={displayName}
-              size="md"
-              className="h-16 w-16 shrink-0 ring-1 ring-neutral-200/80"
-            />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Link
-                  to={`/tutors/${id}`}
-                  className="truncate text-[17px] font-bold leading-snug text-neutral-900 transition-colors hover:text-brand-primary-600"
-                  title={displayName}
-                >
-                  {displayName}
-                </Link>
-                {isVerified && (
-                  <span
-                    className="inline-flex shrink-0 items-center text-success-strong"
-                    title="Đã xác minh"
-                  >
-                    <Icon
-                      name="verified"
-                      size="xs"
-                      filled
-                      className="h-4 w-4"
-                      label="Đã xác minh"
-                    />
-                  </span>
-                )}
-              </div>
-
-              {educationDisplay && (
-                <p
-                  className="mt-1 flex items-center gap-1.5 text-[12.5px] text-neutral-600 truncate"
-                  title={educationDisplay}
-                >
-                  <Icon name="school" size="xs" className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
-                  <span className="truncate">{educationDisplay}</span>
-                </p>
-              )}
-
-              <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[12.5px] text-neutral-600">
-                {reviewsCount > 0 ? (
-                  <span className="flex items-center gap-1 font-bold text-neutral-900">
-                    <Icon
-                      name="star"
-                      size="xs"
-                      filled
-                      className="h-3.5 w-3.5 text-brand-secondary-500 shrink-0"
-                    />
-                    <span>{rating.toFixed(1)}</span>
-                    <span className="font-normal text-neutral-500">({reviewsCount} đánh giá)</span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-600">
-                    Chưa có đánh giá
-                  </span>
-                )}
-                {yearsExp > 0 && (
-                  <span className="flex items-center gap-1 text-neutral-600">
-                    <span className="text-neutral-300">·</span>
-                    <span>{yearsExp} năm kinh nghiệm</span>
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Tầng 2: Môn học chuyên môn */}
-          {normalizedSubjects.length > 0 && (
-            <div className="flex flex-wrap gap-1.5" aria-label="Môn học">
-              {normalizedSubjects.slice(0, 2).map((subject) => (
-                <span
-                  key={subject}
-                  className="rounded-brand-sm bg-brand-primary-50 px-2.5 py-1 text-[12px] font-semibold text-brand-primary-700"
-                >
-                  {subject}
-                </span>
-              ))}
-              {normalizedSubjects.length > 2 && (
-                <span className="rounded-brand-sm bg-neutral-100 px-2 py-1 text-[12px] font-semibold text-neutral-600">
-                  +{normalizedSubjects.length - 2} môn
-                </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <Link
+                to={`/tutors/${id}`}
+                className="truncate text-[13.5px] font-extrabold tracking-[-0.02em] text-[color:var(--mkt-ink)] transition-colors hover:text-[color:var(--mkt-cobalt)] sm:text-[15px]"
+                title={displayName}
+              >
+                {displayName}
+              </Link>
+              {isVerified && (
+                <Icon
+                  name="verified"
+                  size="xs"
+                  filled
+                  strokeWidth={1.7}
+                  className="h-3.5 w-3.5 shrink-0 text-[color:var(--mkt-green)]"
+                  label="Đã xác minh"
+                />
               )}
             </div>
-          )}
 
-          {/* Tầng 3: Trích đoạn giới thiệu (Bio) */}
-          {bio?.trim() && (
-            <p
-              className="line-clamp-2 text-[13px] leading-relaxed text-neutral-600 min-h-[38px]"
-              title={bio.trim()}
-            >
-              &ldquo;{bio.trim()}&rdquo;
-            </p>
-          )}
-        </div>
-
-        {/* Tầng 4: Học phí gói & Nút hành động */}
-        <div className="space-y-3 border-t border-border pt-3.5 mt-auto">
-          <div>
-            <p className="text-[11.5px] font-semibold uppercase tracking-wider text-neutral-500">
-              Giá gói từ
-            </p>
-            {packagePrice && packagePrice > 0 ? (
-              <div className="mt-0.5 flex items-baseline gap-1">
-                <Money value={packagePrice} className="text-[19px] font-bold text-neutral-900" />
-                <span className="text-[12px] text-neutral-500">/ gói học</span>
-              </div>
-            ) : (
-              <p className="mt-0.5 text-[13.5px] font-semibold text-neutral-700">
-                Xem chi tiết hồ sơ
+            {educationDisplay && (
+              <p
+                className="mt-0.5 truncate text-[10.5px] text-[color:var(--mkt-body)] sm:text-[11px]"
+                title={educationDisplay}
+              >
+                {educationDisplay}
               </p>
             )}
+
+            <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10.5px] text-[color:var(--mkt-body)]">
+              {hasRating ? (
+                <span className="inline-flex items-center gap-1">
+                  <Icon
+                    name="star"
+                    size="xs"
+                    filled
+                    strokeWidth={1.7}
+                    className="h-3 w-3 text-[color:var(--mkt-amber)]"
+                  />
+                  <strong className="mkt-tabular font-bold text-[color:var(--mkt-ink)]">
+                    {formatRating(rating)}
+                  </strong>
+                  <span>({reviewsCount} đánh giá)</span>
+                </span>
+              ) : (
+                <span className="rounded-full border border-[color:var(--mkt-line)] bg-[color:var(--mkt-canvas)] px-2 py-0.5 text-[9.5px] font-semibold text-[color:var(--mkt-muted)]">
+                  Chưa có đánh giá
+                </span>
+              )}
+              {yearsExp > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <span aria-hidden="true" className="text-[color:var(--mkt-line)]">
+                    ·
+                  </span>
+                  <span>{yearsExp} năm</span>
+                </span>
+              )}
+            </div>
           </div>
+        </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              as={Link}
-              to={`/tutors/${id}`}
-              variant="primary"
-              size="md"
-              className="flex-1 justify-center"
-            >
-              <span>Xem hồ sơ</span>
-              <Icon name="arrow_forward" size="xs" className="h-3 w-3" />
-            </Button>
+        {visibleSubjects.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1" aria-label="Môn học">
+            {visibleSubjects.map((subject) => (
+              <span
+                key={subject}
+                className="border-b border-[color:var(--mkt-line)] pb-0.5 text-[10.5px] font-semibold text-[color:var(--mkt-body)]"
+              >
+                {subject}
+              </span>
+            ))}
+            {extraSubjects > 0 && (
+              <span className="text-[10px] font-medium text-[color:var(--mkt-muted)]">
+                +{extraSubjects} môn
+              </span>
+            )}
+          </div>
+        )}
 
-            <IconButton
-              label={isFavorite ? 'Bỏ lưu gia sư' : 'Lưu gia sư'}
-              variant="ghost"
-              size="md"
-              onClick={() => setIsFavorite((v) => !v)}
-              icon={
-                <Icon
-                  name="favorite"
-                  size="xs"
-                  filled={isFavorite}
-                  className={isFavorite ? 'text-danger w-4 h-4' : 'text-neutral-400 w-4 h-4'}
-                />
-              }
-            />
+        {bio?.trim() && (
+          <p
+            className="mt-2 line-clamp-2 text-[11px] leading-relaxed text-[color:var(--mkt-body)]"
+            title={bio.trim()}
+          >
+            {bio.trim()}
+          </p>
+        )}
+
+        <div className="mt-auto border-t border-[color:var(--mkt-line)] pt-3">
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="mkt-mono text-[7.5px] font-semibold uppercase tracking-[0.12em] text-[color:var(--mkt-muted)]">
+                Giá gói từ
+              </p>
+              {packagePrice && packagePrice > 0 ? (
+                <div className="mt-0.5 flex items-baseline gap-1">
+                  <Money
+                    value={packagePrice}
+                    className="mkt-tabular text-[16px] font-extrabold text-[color:var(--mkt-ink)]"
+                  />
+                  <span className="text-[8.5px] font-medium text-[color:var(--mkt-muted)]">
+                    / gói học
+                  </span>
+                </div>
+              ) : (
+                <p className="mt-0.5 text-[11px] font-semibold text-[color:var(--mkt-body)]">
+                  Xem chi tiết hồ sơ
+                </p>
+              )}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              <Link
+                to={`/tutors/${id}`}
+                className="mkt-btn-primary h-11 min-h-11 px-3 text-[11px] sm:h-9 sm:min-h-9 sm:px-3"
+              >
+                <span>Xem hồ sơ</span>
+                <Icon name="arrow_forward" size="xs" strokeWidth={1.7} />
+              </Link>
+
+              <IconButton
+                label={isFavorite ? 'Bỏ lưu gia sư' : 'Lưu gia sư'}
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsFavorite((v) => !v)}
+                className="h-11 w-11 min-h-11 sm:h-9 sm:w-9 sm:min-h-9"
+                icon={
+                  <Icon
+                    name="favorite"
+                    size="xs"
+                    filled={isFavorite}
+                    strokeWidth={1.7}
+                    className={
+                      isFavorite
+                        ? 'h-4 w-4 text-[color:var(--mkt-danger)]'
+                        : 'h-4 w-4 text-[color:var(--mkt-muted)]'
+                    }
+                  />
+                }
+              />
+            </div>
           </div>
         </div>
       </div>
