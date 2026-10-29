@@ -337,7 +337,10 @@ export default function Marketplace() {
   };
 
   const handleExploreCategories = () => {
+    setSearchKeyword('');
+    setDebouncedKeyword('');
     setSelectedCategory('');
+    setSearchParams({});
     setPageNumber(1);
     const reduceMotion =
       typeof window !== 'undefined' &&
