@@ -37,7 +37,8 @@ export default function Marketplace() {
   const [searchKeyword, setSearchKeyword] = useState(searchParams.get('q') || '');
   const [debouncedKeyword, setDebouncedKeyword] = useState(searchParams.get('q') || '');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [priceRange, setPriceRange] = useState(MAX_PRICE);
+  const [minPrice, setMinPrice] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(MAX_PRICE);
   const [degreeLevel, setDegreeLevel] = useState('All');
   const [university, setUniversity] = useState('All');
   const [certification, setCertification] = useState('All');
@@ -143,8 +144,8 @@ export default function Marketplace() {
           {
             categoryId: selectedCategory || null,
             search: debouncedKeyword.trim() || null,
-            minPrice: null,
-            maxPrice: priceRange < MAX_PRICE ? priceRange : null,
+            minPrice: minPrice > 0 ? minPrice : null,
+            maxPrice: maxPrice < MAX_PRICE ? maxPrice : null,
             degreeLevel: degreeLevel !== 'All' ? degreeLevel : null,
             university: university !== 'All' ? university : null,
             certification: certification !== 'All' ? certification : null,
@@ -205,7 +206,8 @@ export default function Marketplace() {
   }, [
     debouncedKeyword,
     selectedCategory,
-    priceRange,
+    minPrice,
+    maxPrice,
     degreeLevel,
     university,
     certification,
@@ -222,7 +224,8 @@ export default function Marketplace() {
     setSearchKeyword('');
     setDebouncedKeyword('');
     setSelectedCategory('');
-    setPriceRange(MAX_PRICE);
+    setMinPrice(0);
+    setMaxPrice(MAX_PRICE);
     setDegreeLevel('All');
     setUniversity('All');
     setCertification('All');
@@ -250,8 +253,29 @@ export default function Marketplace() {
     if (certification !== 'All') {
       list.push({ key: 'cert', label: `Chứng chỉ: ${certification}`, clear: clearAndResetPage(() => setCertification('All')) });
     }
-    if (priceRange < MAX_PRICE) {
-      list.push({ key: 'price', label: `Học phí ≤ ${formatVND(priceRange)}`, clear: clearAndResetPage(() => setPriceRange(MAX_PRICE)) });
+    if (minPrice > 0 || maxPrice < MAX_PRICE) {
+      if (minPrice > 0 && maxPrice < MAX_PRICE) {
+        list.push({
+          key: 'price',
+          label: `Học phí: ${formatVND(minPrice)} - ${formatVND(maxPrice)}`,
+          clear: clearAndResetPage(() => {
+            setMinPrice(0);
+            setMaxPrice(MAX_PRICE);
+          }),
+        });
+      } else if (minPrice > 0) {
+        list.push({
+          key: 'price',
+          label: `Học phí: từ ${formatVND(minPrice)}`,
+          clear: clearAndResetPage(() => setMinPrice(0)),
+        });
+      } else {
+        list.push({
+          key: 'price',
+          label: `Học phí: đến ${formatVND(maxPrice)}`,
+          clear: clearAndResetPage(() => setMaxPrice(MAX_PRICE)),
+        });
+      }
     }
     if (minRating !== null) {
       list.push({ key: 'rating', label: `Đánh giá: ≥ ${minRating}★`, clear: clearAndResetPage(() => setMinRating(null)) });
@@ -280,7 +304,7 @@ export default function Marketplace() {
       });
     }
     return list;
-  }, [degreeLevel, university, certification, priceRange, minRating, experienceRange, selectedCategory, categories, searchKeyword, setSearchParams]);
+  }, [degreeLevel, university, certification, minPrice, maxPrice, minRating, experienceRange, selectedCategory, categories, searchKeyword, setSearchParams]);
 
   const handlePageChange = (newPage) => {
     if (newPage < 1 || newPage > totalPages) return;
@@ -291,12 +315,15 @@ export default function Marketplace() {
   // Sidebar dùng chung cho cột trái desktop và drawer mobile (chỉ mount một nơi).
   const filterSidebar = (
     <FilterSidebar
-      priceRange={priceRange}
-      onPriceRangeChange={(val) => {
-        setPriceRange(val);
+      minPrice={minPrice}
+      maxPrice={maxPrice}
+      priceLimit={MAX_PRICE}
+      onPriceChange={({ min, max }) => {
+        setMinPrice(min);
+        setMaxPrice(max);
         setPageNumber(1);
       }}
-      maxPrice={MAX_PRICE}
+
       degreeLevel={degreeLevel}
       onDegreeLevelChange={(deg) => {
         setDegreeLevel(deg);
@@ -454,14 +481,20 @@ export default function Marketplace() {
               <span className="shrink-0 text-[13px] font-semibold text-neutral-600">Lọc nhanh:</span>
               <button
                 type="button"
-                aria-pressed={priceRange <= QUICK_PRICE_CAP}
+                aria-pressed={maxPrice <= QUICK_PRICE_CAP && minPrice === 0}
                 onClick={() => {
-                  setPriceRange(priceRange <= QUICK_PRICE_CAP ? MAX_PRICE : QUICK_PRICE_CAP);
+                  if (maxPrice <= QUICK_PRICE_CAP && minPrice === 0) {
+                    setMinPrice(0);
+                    setMaxPrice(MAX_PRICE);
+                  } else {
+                    setMinPrice(0);
+                    setMaxPrice(QUICK_PRICE_CAP);
+                  }
                   setPageNumber(1);
                 }}
                 className={cn(
                   'inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors',
-                  priceRange <= QUICK_PRICE_CAP
+                  maxPrice <= QUICK_PRICE_CAP && minPrice === 0
                     ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
                     : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
                 )}
