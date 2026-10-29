@@ -1,20 +1,21 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
 import { ApiError, generateCorrelationId } from '@/services/api';
-import { CardSkeleton } from '@/components/common/Skeleton';
+import MarketplaceCardSkeleton from '@/components/discovery/MarketplaceCardSkeleton';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
 import { Select } from '@/components/ui/Input';
 import { Pagination } from '@/components/ui/Table';
 import Icon from '@/components/ui/Icon';
-import { cn } from '@/lib/cn';
 import { formatVND } from '@/utils/formatters';
+import { getPaginationRange, formatCount } from '@/utils/marketplaceHelpers';
 import HeroSection from '@/components/discovery/HeroSection';
 import CategoryFilterBar from '@/components/discovery/CategoryFilterBar';
 import FilterSidebar from '@/components/discovery/FilterSidebar';
 import TutorCard from '@/components/discovery/TutorCard';
 import { Drawer } from '@/components/ui/Avatar';
+import '@/styles/marketplace.css';
 
 const SORT_OPTIONS = [
   { value: 'priority', label: 'Ưu tiên phù hợp' },
@@ -57,6 +58,9 @@ export default function Marketplace() {
   // Tăng mỗi lần bấm "Thử Lại" để kích hoạt refetch kể cả khi đang ở trang 1.
   const [retryKey, setRetryKey] = useState(0);
   const handleRetry = () => setRetryKey((k) => k + 1);
+
+  const resultsRef = useRef(null);
+
   // Drawer bộ lọc mobile (< lg): sidebar chỉ mount một nơi để không trùng id label.
   const [filterOpen, setFilterOpen] = useState(false);
   const [isMobileFilters, setIsMobileFilters] = useState(
@@ -65,6 +69,7 @@ export default function Marketplace() {
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(max-width: 1023.98px)').matches
   );
+
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
     const mq = window.matchMedia('(max-width: 1023.98px)');
@@ -76,6 +81,7 @@ export default function Marketplace() {
     mq.addListener(onChange);
     return () => mq.removeListener(onChange);
   }, []);
+
   useEffect(() => {
     if (!isMobileFilters) setFilterOpen(false);
   }, [isMobileFilters]);
@@ -176,6 +182,7 @@ export default function Marketplace() {
             'Yêu cầu quá thời gian (10 giây). Vui lòng kiểm tra kết nối mạng và bấm Thử Lại.',
             { status: 0, kind: 'network' }
           );
+          timeoutErr.traceId = correlationId;
           console.error('[Marketplace] Timeout tải tutors (10s):', {
             correlationId,
             error: err,
@@ -219,6 +226,7 @@ export default function Marketplace() {
   ]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const pageRange = getPaginationRange(pageNumber, pageSize, totalCount);
 
   const handleResetFilters = () => {
     setSearchKeyword('');
@@ -316,11 +324,33 @@ export default function Marketplace() {
   const handlePageChange = (newPage) => {
     if (newPage < 1 || newPage > totalPages) return;
     setPageNumber(newPage);
-    window.scrollTo({ top: 260, behavior: 'smooth' });
+    const reduceMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const behavior = reduceMotion ? 'auto' : 'smooth';
+    if (resultsRef.current) {
+      resultsRef.current.scrollIntoView({ behavior, block: 'start' });
+    } else if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior });
+    }
   };
 
-  // Sidebar dùng chung cho cột trái desktop và drawer mobile (chỉ mount một nơi).
-  const filterSidebar = (
+  const handleExploreCategories = () => {
+    setSelectedCategory('');
+    setPageNumber(1);
+    const reduceMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document
+      .getElementById('category-filter-bar')
+      ?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    document.getElementById('category-tab-all')?.focus({ preventScroll: true });
+  };
+
+  // Sidebar dùng chung cho cột trái desktop và drawer mobile.
+  const renderFilterSidebar = (extraProps = {}) => (
     <FilterSidebar
       minPrice={minPrice}
       maxPrice={maxPrice}
@@ -330,7 +360,6 @@ export default function Marketplace() {
         setMaxPrice(max);
         setPageNumber(1);
       }}
-
       degreeLevel={degreeLevel}
       onDegreeLevelChange={(deg) => {
         setDegreeLevel(deg);
@@ -357,15 +386,17 @@ export default function Marketplace() {
         setPageNumber(1);
       }}
       onResetFilters={handleResetFilters}
+      {...extraProps}
     />
   );
 
   return (
-    <div className="w-full flex-1 bg-canvas pb-12">
+    <div className="marketplace-v2 w-full flex-1 pb-12">
       {/* 1. Hero Section */}
       <HeroSection
         searchKeyword={searchKeyword}
         setSearchKeyword={setSearchKeyword}
+        totalCount={totalCount}
         onSearchSubmit={(val) => {
           setDebouncedKeyword(val);
           setPageNumber(1);
@@ -385,85 +416,153 @@ export default function Marketplace() {
       />
 
       {/* 3. Main Discovery Workspace */}
-      <main className="page-shell pt-5 sm:pt-6">
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[288px_minmax(0,1fr)]">
+      <main className="page-shell pt-7 sm:pt-8">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[272px_minmax(0,1fr)]">
           {/* Left Column: Filter Sidebar (desktop; mobile dùng drawer) */}
           {!isMobileFilters && (
-            <div className="w-full lg:sticky lg:top-[88px] z-20">
-              {filterSidebar}
+            <div className="z-20 w-full lg:sticky lg:top-[88px]">
+              {renderFilterSidebar({
+                footer: (
+                  <div className="flex items-center justify-between gap-2 text-[10.5px] text-[color:var(--mkt-body)]">
+                    <span>
+                      Đang áp dụng{' '}
+                      <strong className="font-bold text-[color:var(--mkt-ink)]">
+                        {activeFilters.length}
+                      </strong>{' '}
+                      bộ lọc
+                    </span>
+                    <span>
+                      <strong className="font-bold text-[color:var(--mkt-ink)]">
+                        {formatCount(totalCount)}
+                      </strong>{' '}
+                      kết quả
+                    </span>
+                  </div>
+                ),
+              })}
             </div>
           )}
 
           {/* Right Column: Listings & Filters */}
-          <div className="flex-1 min-w-0 space-y-4">
-            {/* Mobile filter trigger: mở drawer từ trái, badge đếm filter active */}
-            <div className="lg:hidden">
+          <div className="min-w-0 flex-1 space-y-4">
+            {/* Mobile sticky toolbar: filter + sort */}
+            <div className="sticky top-[72px] z-30 -mx-4 mb-3 flex items-center justify-between gap-3 border-b border-[color:var(--mkt-line)] bg-[color:var(--mkt-canvas)]/95 px-4 py-2.5 backdrop-blur-sm lg:hidden">
               <button
                 type="button"
                 onClick={() => setFilterOpen(true)}
                 aria-haspopup="dialog"
-                className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-brand-md border border-border bg-surface text-body-reg font-semibold text-fg shadow-sm active:scale-[0.98] transition-all"
+                className="inline-flex min-h-11 items-center gap-2 rounded-[8px] border border-[color:var(--mkt-line)] bg-white px-3.5 text-[12px] font-bold text-[color:var(--mkt-ink)] shadow-sm transition-colors hover:border-[color:var(--mkt-cobalt-100)]"
               >
-                <Icon name="tune" size="sm" className="text-brand-primary-600" />
+                <Icon
+                  name="tune"
+                  size="sm"
+                  strokeWidth={1.7}
+                  className="text-[color:var(--mkt-cobalt)]"
+                />
                 <span>Bộ lọc</span>
                 {activeFilters.length > 0 && (
                   <span
                     role="status"
                     aria-label={`${activeFilters.length} bộ lọc đang áp dụng`}
-                    className="min-w-[22px] h-[22px] px-1 rounded-full bg-brand-primary-600 text-white text-[11px] font-bold inline-flex items-center justify-center"
+                    className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[color:var(--mkt-cobalt)] px-1 text-[9px] font-bold text-white"
                   >
                     {activeFilters.length}
                   </span>
                 )}
               </button>
+
+              <div className="w-[148px] shrink-0">
+                <Select
+                  id="sort-tutors-mobile"
+                  value={sortBy}
+                  onChange={(e) => {
+                    setSortBy(e.target.value);
+                    setPageNumber(1);
+                  }}
+                  aria-label="Sắp xếp gia sư"
+                  className="min-h-11 !rounded-[8px] !border-[color:var(--mkt-line)] !bg-white !py-1.5 !text-[11px] font-semibold"
+                >
+                  {SORT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
             </div>
 
-            {/* Active Filters Bar */}
+            {/* Active Filters Bar (desktop only) */}
             {activeFilters.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 p-3 bg-brand-primary-50/70 border border-brand-primary-100/90 rounded-[14px] shadow-sm">
-                <div className="flex items-center gap-1.5 text-[12.5px] font-bold text-neutral-700">
-                  <Icon name="filter_alt" size="xs" className="text-brand-primary-600 w-3.5 h-3.5" />
+              <div className="hidden flex-wrap items-center gap-2 rounded-[10px] border border-[color:var(--mkt-line)] bg-white p-3 lg:flex">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-[color:var(--mkt-ink)]">
+                  <Icon
+                    name="filter_alt"
+                    size="xs"
+                    strokeWidth={1.7}
+                    className="h-3.5 w-3.5 text-[color:var(--mkt-cobalt)]"
+                  />
                   <span>Đang lọc:</span>
                 </div>
+
                 {activeFilters.map((af) => (
                   <span
                     key={af.key}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface text-brand-primary-600 text-[12px] font-semibold border border-brand-primary-200/90 shadow-sm hover:border-brand-primary-300 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--mkt-line)] bg-[color:var(--mkt-canvas)] px-2.5 py-1 text-[10.5px] font-semibold text-[color:var(--mkt-body)]"
                   >
                     <span>{af.label}</span>
                     <button
                       type="button"
                       onClick={af.clear}
                       aria-label={`Xóa bộ lọc ${af.label}`}
-                      className="hover:text-danger transition-colors font-bold text-[14px] leading-none cursor-pointer ml-0.5 -mr-3 -my-3 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600"
+                      className="-my-3 -mr-3 ml-0.5 inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[13px] font-bold leading-none text-[color:var(--mkt-muted)] transition-colors hover:text-[color:var(--mkt-danger)]"
                       title="Gỡ bộ lọc này"
                     >
                       ×
                     </button>
                   </span>
                 ))}
+
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className="text-[12px] font-semibold text-neutral-500 hover:text-danger-strong transition-colors ml-auto cursor-pointer flex items-center gap-1 min-h-[44px] px-2"
+                  className="ml-auto inline-flex min-h-11 items-center gap-1 px-2 text-[11px] font-semibold text-[color:var(--mkt-muted)] transition-colors hover:text-[color:var(--mkt-danger)]"
                 >
-                  <Icon name="close" size="xs" className="w-3.5 h-3.5" />
+                  <Icon name="close" size="xs" strokeWidth={1.7} className="h-3.5 w-3.5" />
                   <span>Xóa bộ lọc</span>
                 </button>
               </div>
             )}
 
             {/* Top Toolbar: Count + Sort Dropdown */}
-            <div className="flex flex-row items-center justify-between gap-3 border-b border-neutral-200/80 pb-3 pt-1">
-              <h2 className="text-[20px] font-bold tracking-tight text-neutral-900 sm:text-[22px]" aria-live="polite">
-                {loading ? 'Đang tìm kiếm gia sư...' : `${totalCount} gia sư phù hợp`}
-              </h2>
+            <div
+              ref={resultsRef}
+              className="flex scroll-mt-[88px] flex-row items-center justify-between gap-3 border-b border-[color:var(--mkt-line)] pb-3 pt-1"
+            >
+              <div>
+                <h2
+                  className="mkt-display text-[18px] font-extrabold tracking-[-0.03em] text-[color:var(--mkt-ink)] sm:text-[21px]"
+                  aria-live="polite"
+                >
+                  {loading ? 'Đang tìm kiếm gia sư...' : `${formatCount(totalCount)} gia sư phù hợp`}
+                </h2>
+                <p className="mt-0.5 hidden text-[10.5px] text-[color:var(--mkt-body)] sm:block">
+                  Xếp theo độ phù hợp với nhu cầu của bạn.
+                </p>
+                {activeFilters.length > 0 && (
+                  <p className="mt-0.5 text-[10.5px] text-[color:var(--mkt-body)] lg:hidden">
+                    Đã lọc theo {activeFilters.length} tiêu chí
+                  </p>
+                )}
+              </div>
 
-              <div className="flex shrink-0 items-center gap-2">
-                <label htmlFor="sort-tutors" className="sr-only shrink-0 text-[14px] font-semibold text-neutral-600 sm:not-sr-only">
+              <div className="hidden shrink-0 items-center gap-2 lg:flex">
+                <label
+                  htmlFor="sort-tutors"
+                  className="text-[10.5px] font-semibold text-[color:var(--mkt-body)]"
+                >
                   Sắp xếp:
                 </label>
-                <div className="w-40 sm:w-52">
+                <div className="w-52">
                   <Select
                     id="sort-tutors"
                     value={sortBy}
@@ -471,7 +570,7 @@ export default function Marketplace() {
                       setSortBy(e.target.value);
                       setPageNumber(1);
                     }}
-                    className="!py-1.5 min-h-[44px] !text-[13px] font-medium bg-surface border-neutral-200/80"
+                    className="min-h-11 !rounded-[8px] !border-[color:var(--mkt-line)] !bg-white !py-1.5 !text-[11px] font-semibold"
                   >
                     {SORT_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -484,8 +583,15 @@ export default function Marketplace() {
             </div>
 
             {/* Quick filter chips — two-way synced with sidebar */}
-            <div className="flex max-w-full flex-nowrap items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden" role="group" aria-label="Bộ lọc nhanh">
-              <span className="shrink-0 text-[13px] font-semibold text-neutral-600">Lọc nhanh:</span>
+            <div
+              className="flex max-w-full flex-nowrap items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden"
+              role="group"
+              aria-label="Bộ lọc nhanh"
+            >
+              <span className="shrink-0 text-[11px] font-semibold text-[color:var(--mkt-body)]">
+                Lọc nhanh:
+              </span>
+
               <button
                 type="button"
                 aria-pressed={maxPrice <= QUICK_PRICE_CAP && minPrice === 0}
@@ -499,16 +605,12 @@ export default function Marketplace() {
                   }
                   setPageNumber(1);
                 }}
-                className={cn(
-                  'inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors',
-                  maxPrice <= QUICK_PRICE_CAP && minPrice === 0
-                    ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
-                    : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
-                )}
+                className="mkt-chip"
               >
-                <Icon name="payments" size="xs" className="w-3.5 h-3.5" />
+                <Icon name="payments" size="xs" strokeWidth={1.7} className="h-3.5 w-3.5" />
                 <span>Dưới 1 triệu</span>
               </button>
+
               <button
                 type="button"
                 aria-pressed={minRating === QUICK_RATING}
@@ -516,21 +618,29 @@ export default function Marketplace() {
                   setMinRating(minRating === QUICK_RATING ? null : QUICK_RATING);
                   setPageNumber(1);
                 }}
-                className={cn(
-                  'inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors',
-                  minRating === QUICK_RATING
-                    ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
-                    : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
-                )}
+                className="mkt-chip"
               >
-                <Icon name="star" size="xs" className="w-3.5 h-3.5" />
+                <Icon name="star" size="xs" strokeWidth={1.7} className="h-3.5 w-3.5" />
                 <span>Đánh giá từ 4.8</span>
+              </button>
+
+              <button
+                type="button"
+                aria-pressed={experienceRange === '3-5'}
+                onClick={() => {
+                  setExperienceRange(experienceRange === '3-5' ? 'All' : '3-5');
+                  setPageNumber(1);
+                }}
+                className="mkt-chip"
+              >
+                <Icon name="work_history" size="xs" strokeWidth={1.7} className="h-3.5 w-3.5" />
+                <span>3–5 năm</span>
               </button>
             </div>
 
             {/* Content States */}
             {loading ? (
-              <CardSkeleton count={6} className="gap-4 sm:gap-5" />
+              <MarketplaceCardSkeleton count={6} />
             ) : error ? (
               <ErrorState
                 error={error}
@@ -539,35 +649,44 @@ export default function Marketplace() {
                 onRetry={handleRetry}
                 backPath="/"
                 backLabel="Về trang chủ"
+                className="!max-w-xl !border-[color:var(--mkt-line)] !bg-white"
               />
             ) : tutors.length === 0 ? (
               <EmptyState
                 icon="person_search"
                 title="Không tìm thấy gia sư phù hợp"
-                description="Bộ lọc hiện tại quá hẹp. Hãy thử nới khoảng học phí, chọn danh mục khác, hoặc gỡ bớt từng bộ lọc bên dưới để tìm kiếm rộng hơn."
+                description="Bộ lọc hiện tại quá hẹp. Hãy thử nới khoảng học phí, chọn danh mục khác, hoặc gỡ bớt từng bộ lọc bên dưới."
                 filters={activeFilters}
-                onClearAll={handleResetFilters}
+                actionLabel="Xóa bộ lọc"
+                onAction={handleResetFilters}
+                secondaryActionLabel="Khám phá danh mục"
+                onSecondaryAction={handleExploreCategories}
+                className="!max-w-xl !border-[color:var(--mkt-line)] !bg-white"
               />
             ) : (
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {tutors.map((tutor) => (
-                  <TutorCard
-                    key={tutor.id}
-                    tutor={tutor}
-                  />
+                  <TutorCard key={tutor.id} tutor={tutor} />
                 ))}
               </div>
             )}
 
             {/* Pagination */}
             {!loading && totalPages > 1 && (
-              <div className="pt-6 flex justify-center">
-                <Pagination
-                  page={pageNumber}
-                  totalPages={totalPages}
-                  onChange={handlePageChange}
-                  onPageChange={handlePageChange}
-                />
+              <div className="flex flex-col items-center justify-between gap-3 border-t border-[color:var(--mkt-line)] pt-5 sm:flex-row">
+                <p className="text-[10.5px] text-[color:var(--mkt-body)]">
+                  Hiển thị {formatCount(pageRange.start)}–{formatCount(pageRange.end)} trong{' '}
+                  {formatCount(totalCount)} gia sư
+                </p>
+                <div className="mkt-pagination">
+                  <Pagination
+                    page={pageNumber}
+                    totalPages={totalPages}
+                    onChange={handlePageChange}
+                    onPageChange={handlePageChange}
+                    className="!mt-0"
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -580,26 +699,54 @@ export default function Marketplace() {
           side="left"
           title="Bộ lọc tìm kiếm"
           widthClass="w-[320px]"
+          panelClassName="marketplace-v2 mkt-drawer-panel"
           footer={
             <>
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="flex-1 inline-flex items-center justify-center h-11 px-4 rounded-brand-md border border-border bg-surface text-body-reg font-semibold text-fg-secondary active:scale-[0.98] transition-all"
+                className="inline-flex h-11 flex-1 items-center justify-center rounded-[8px] border border-[color:var(--mkt-line)] bg-white px-4 text-[12px] font-bold text-[color:var(--mkt-body)] transition-colors hover:border-[color:var(--mkt-cobalt-100)]"
               >
                 Xóa
               </button>
               <button
                 type="button"
                 onClick={() => setFilterOpen(false)}
-                className="flex-1 inline-flex items-center justify-center h-11 px-4 rounded-brand-md bg-brand-primary-600 text-white text-body-reg font-semibold shadow-sm active:scale-[0.98] transition-all"
+                className="inline-flex h-11 flex-1 items-center justify-center rounded-[8px] bg-[color:var(--mkt-cobalt)] px-4 text-[12px] font-bold text-white transition-colors hover:bg-[color:var(--mkt-cobalt-hover)]"
               >
-                <span>{loading ? 'Đang tìm...' : `Xem ${totalCount} gia sư`}</span>
+                <span>{loading ? 'Đang tìm...' : `Xem ${formatCount(totalCount)} gia sư`}</span>
               </button>
             </>
           }
         >
-          {filterSidebar}
+          <div className="space-y-3">
+            {activeFilters.length > 0 && (
+              <div className="rounded-[10px] border border-[color:var(--mkt-cobalt-100)] bg-[color:var(--mkt-cobalt-50)] p-3">
+                <p className="text-[10.5px] font-bold text-[color:var(--mkt-ink)]">
+                  Đang áp dụng {activeFilters.length} bộ lọc
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {activeFilters.map((af) => (
+                    <span
+                      key={af.key}
+                      className="inline-flex items-center gap-1 rounded-full border border-[color:var(--mkt-cobalt-100)] bg-white px-2.5 py-1 text-[10px] font-semibold text-[color:var(--mkt-cobalt)]"
+                    >
+                      <span>{af.label}</span>
+                      <button
+                        type="button"
+                        onClick={af.clear}
+                        aria-label={`Xóa bộ lọc ${af.label}`}
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[12px] leading-none hover:bg-[color:var(--mkt-cobalt-50)]"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {renderFilterSidebar()}
+          </div>
         </Drawer>
       </main>
     </div>
