@@ -71,7 +71,7 @@ export default function TutorCard({ tutor = {} }) {
               className="h-16 w-16 shrink-0 ring-1 ring-neutral-200/80"
             />
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-1.5">
+              <div className="flex items-center gap-1.5 min-w-0">
                 <Link
                   to={`/tutors/${id}`}
                   className="truncate text-[17px] font-bold leading-snug text-neutral-900 transition-colors hover:text-brand-primary-600"
@@ -81,11 +81,16 @@ export default function TutorCard({ tutor = {} }) {
                 </Link>
                 {isVerified && (
                   <span
-                    className="inline-flex shrink-0 items-center gap-1 rounded bg-success-soft/60 px-1.5 py-0.5 text-[11px] font-semibold text-success-strong"
-                    title="Hồ sơ đã kiểm định"
+                    className="inline-flex shrink-0 items-center text-success-strong"
+                    title="Đã xác minh"
                   >
-                    <Icon name="verified" size="xs" filled className="h-3.5 w-3.5" />
-                    <span>Đã xác minh</span>
+                    <Icon
+                      name="verified"
+                      size="xs"
+                      filled
+                      className="h-4 w-4"
+                      label="Đã xác minh"
+                    />
                   </span>
                 )}
               </div>
