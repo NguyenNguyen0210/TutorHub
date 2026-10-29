@@ -152,3 +152,4 @@ DualRangeSlider.propTypes = {
   ariaLabelMin: PropTypes.string,
   ariaLabelMax: PropTypes.string,
 };
+

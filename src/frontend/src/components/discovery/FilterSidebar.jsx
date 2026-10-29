@@ -36,24 +36,24 @@ const CERTIFICATION_OPTIONS = [
 
 const PRICE_PRESETS = [
   { label: 'Tất cả', min: 0, max: 5000000 },
-  { label: '< 1 triệu', min: 0, max: 1000000 },
-  { label: '1 - 2.5 triệu', min: 1000000, max: 2500000 },
-  { label: '2.5 - 5 triệu', min: 2500000, max: 5000000 },
+  { label: 'Dưới 1 triệu', min: 0, max: 1000000 },
+  { label: '1–2,5 triệu', min: 1000000, max: 2500000 },
+  { label: '2,5–5 triệu', min: 2500000, max: 5000000 },
 ];
 
 const RATING_OPTIONS = [
-  { val: null, label: 'Tất cả' },
-  { val: 4.8, label: '4.8★ trở lên', desc: 'Xuất sắc' },
-  { val: 4.5, label: '4.5★ trở lên', desc: 'Rất tốt' },
-  { val: 4.0, label: '4.0★ trở lên', desc: 'Tốt' },
+  { val: null, label: 'Tất cả đánh giá' },
+  { val: 4.8, label: '4.8 trở lên' },
+  { val: 4.5, label: '4.5 trở lên' },
+  { val: 4.0, label: '4.0 trở lên' },
 ];
 
 const EXPERIENCE_OPTIONS = [
   { id: 'All', label: 'Tất cả' },
-  { id: '<1', label: '< 1 năm' },
-  { id: '1-3', label: '1 - 3 năm' },
-  { id: '3-5', label: '3 - 5 năm' },
-  { id: '>5', label: '> 5 năm' },
+  { id: '<1', label: 'Dưới 1 năm' },
+  { id: '1-2', label: '1–2 năm' },
+  { id: '3-5', label: '3–5 năm' },
+  { id: '>=6', label: 'Từ 6 năm' },
 ];
 
 export default function FilterSidebar({
@@ -128,14 +128,14 @@ export default function FilterSidebar({
 
   return (
     <aside className={cn('w-full', className)} aria-label="Bộ lọc gia sư đa chiều">
-      <div className="filter-panel flex flex-col gap-4 rounded-brand-lg border border-border bg-surface p-5 shadow-brand-sm">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-neutral-100 pb-3.5">
-          <div className="flex items-center gap-2 font-bold text-[15px] text-neutral-900">
-            <span className="flex h-7 w-7 items-center justify-center rounded-brand-md bg-brand-primary-50 text-brand-primary-700">
+      <div className="filter-panel flex flex-col gap-4 rounded-brand-lg border border-border bg-surface p-4 sm:p-5 shadow-brand-sm">
+        {/* Header: gọn gàng 1 dòng không bao giờ xuống hàng */}
+        <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-brand-md bg-brand-primary-50 text-brand-primary-700">
               <Icon name="tune" size="xs" />
             </span>
-            <span>Bộ lọc tìm kiếm</span>
+            <span className="font-bold text-[15px] text-neutral-900">Bộ lọc</span>
             {activeCount > 0 && (
               <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-primary-600 px-1.5 text-[11px] font-bold text-white">
                 {activeCount}
@@ -146,15 +146,14 @@ export default function FilterSidebar({
             <button
               type="button"
               onClick={onResetFilters}
-              className="min-h-11 rounded-brand-md px-2 text-[12.5px] font-semibold text-neutral-500 transition-colors hover:text-danger flex items-center gap-1"
+              className="text-[12.5px] font-semibold text-neutral-500 transition-colors hover:text-danger cursor-pointer py-1 px-1.5 rounded-md hover:bg-neutral-50"
             >
-              <Icon name="refresh" size="xs" className="w-3.5 h-3.5" />
-              <span>Đặt lại</span>
+              Đặt lại
             </button>
           )}
         </div>
 
-        {/* 1. Khoảng học phí (Dual-thumb Slider) */}
+        {/* 1. Giá gói học (Dual-thumb Range Slider) */}
         <div className="space-y-3">
           <button
             type="button"
@@ -169,7 +168,7 @@ export default function FilterSidebar({
                 size="xs"
                 className="text-neutral-400 transition-colors group-hover:text-brand-primary-600"
               />
-              <span>Khoảng học phí</span>
+              <span>Giá gói học</span>
             </span>
             <Icon
               name="expand_more"
@@ -182,21 +181,20 @@ export default function FilterSidebar({
           </button>
 
           {openSections.price && (
-            <div id="filter-section-price" className="space-y-3.5 pt-1">
-              {/* Hiển thị giá min và max */}
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center">
-                <div className="rounded-brand-md border border-neutral-200/90 bg-neutral-50/80 px-2.5 py-1.5">
-                  <p className="text-[10.5px] font-medium text-neutral-500 uppercase tracking-wider">Từ</p>
-                  <p className="font-mono text-[12.5px] font-bold text-neutral-900 truncate">
+            <div id="filter-section-price" className="space-y-3 pt-1">
+              {/* Hiển thị giá min và max rõ ràng dạng 2 ô */}
+              <div className="grid grid-cols-2 gap-2 text-left">
+                <div className="rounded-brand-md border border-neutral-200/90 bg-neutral-50/70 p-2">
+                  <span className="block text-[11px] font-medium text-neutral-500">Từ</span>
+                  <span className="block font-mono text-[13px] font-bold text-neutral-900 truncate">
                     {formatVND(currentMinPrice)}
-                  </p>
+                  </span>
                 </div>
-                <span className="text-neutral-400 font-bold">—</span>
-                <div className="rounded-brand-md border border-neutral-200/90 bg-neutral-50/80 px-2.5 py-1.5">
-                  <p className="text-[10.5px] font-medium text-neutral-500 uppercase tracking-wider">Đến</p>
-                  <p className="font-mono text-[12.5px] font-bold text-brand-primary-700 truncate">
-                    {currentMaxPrice >= priceLimit ? 'Tất cả' : formatVND(currentMaxPrice)}
-                  </p>
+                <div className="rounded-brand-md border border-neutral-200/90 bg-neutral-50/70 p-2">
+                  <span className="block text-[11px] font-medium text-neutral-500">Đến</span>
+                  <span className="block font-mono text-[13px] font-bold text-brand-primary-700 truncate">
+                    {currentMaxPrice >= priceLimit ? '5.000.000 ₫' : formatVND(currentMaxPrice)}
+                  </span>
                 </div>
               </div>
 
@@ -207,14 +205,14 @@ export default function FilterSidebar({
                 step={100000}
                 value={[currentMinPrice, currentMaxPrice]}
                 onChange={handleSliderChange}
-                ariaLabelMin="Học phí tối thiểu"
-                ariaLabelMax="Học phí tối đa"
+                ariaLabelMin="Giá gói học tối thiểu"
+                ariaLabelMax="Giá gói học tối đa"
               />
 
-              {/* Nút Preset chọn khoảng giá nhanh */}
+              {/* Nút Preset chọn khoảng giá nhanh: chỉ highlight khi khớp chính xác */}
               <div className="grid grid-cols-2 gap-1.5 pt-0.5">
                 {PRICE_PRESETS.map((p, idx) => {
-                  const isActive =
+                  const isExactMatch =
                     currentMinPrice === p.min &&
                     (p.max === priceLimit
                       ? currentMaxPrice >= priceLimit
@@ -226,8 +224,8 @@ export default function FilterSidebar({
                       type="button"
                       onClick={() => handleSliderChange([p.min, p.max])}
                       className={cn(
-                        'min-h-[38px] rounded-brand-md border px-2 py-1 text-[12px] transition-all font-medium',
-                        isActive
+                        'min-h-[36px] rounded-brand-md border px-2 py-1 text-[12px] transition-all font-medium text-center',
+                        isExactMatch
                           ? 'border-brand-primary-600 bg-brand-primary-50 text-brand-primary-700 font-semibold shadow-xs'
                           : 'border-neutral-200 bg-surface text-neutral-600 hover:border-neutral-300 hover:text-neutral-900'
                       )}
@@ -241,8 +239,8 @@ export default function FilterSidebar({
           )}
         </div>
 
-        {/* 2. Đánh giá sao (Rating) */}
-        <div className="space-y-2.5 border-t border-neutral-100 pt-3">
+        {/* 2. Đánh giá (Rating) */}
+        <div className="space-y-2.5 border-t border-neutral-100/80 pt-3">
           <button
             type="button"
             onClick={() => toggleSection('rating')}
@@ -256,7 +254,7 @@ export default function FilterSidebar({
                 size="xs"
                 className="text-neutral-400 transition-colors group-hover:text-brand-secondary-500"
               />
-              <span>Đánh giá sao</span>
+              <span>Đánh giá</span>
             </span>
             <Icon
               name="expand_more"
@@ -269,47 +267,41 @@ export default function FilterSidebar({
           </button>
 
           {openSections.rating && (
-            <div id="filter-section-rating" className="space-y-1.5 pt-1">
+            <div id="filter-section-rating" className="space-y-1 pt-1 text-[13px]">
               {RATING_OPTIONS.map((item) => {
                 const isSelected = minRating === item.val;
                 return (
-                  <button
+                  <label
                     key={item.val ?? 'all'}
-                    type="button"
-                    onClick={() => onMinRatingChange?.(item.val)}
                     className={cn(
-                      'flex w-full min-h-[38px] items-center justify-between rounded-brand-md border px-3 py-1.5 text-left text-[12.5px] transition-all',
+                      'flex items-center gap-2.5 px-2.5 py-1.5 rounded-brand-md cursor-pointer select-none transition-colors text-[13px]',
                       isSelected
-                        ? 'border-brand-secondary-400 bg-brand-secondary-50 text-brand-secondary-900 font-semibold shadow-xs'
-                        : 'border-neutral-200/80 bg-surface text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50/60'
+                        ? 'bg-brand-primary-50 text-brand-primary-700 font-semibold'
+                        : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
                     )}
                   >
-                    <div className="flex items-center gap-1.5">
-                      <Icon
-                        name="star"
-                        size="xs"
-                        filled={item.val !== null}
-                        className={cn(
-                          'w-3.5 h-3.5',
-                          item.val !== null ? 'text-brand-secondary-500' : 'text-neutral-400'
-                        )}
-                      />
-                      <span>{item.label}</span>
-                    </div>
-                    {item.desc && (
-                      <span className="text-[11px] font-normal text-neutral-500">
-                        {item.desc}
-                      </span>
-                    )}
-                  </button>
+                    <input
+                      type="radio"
+                      name="ratingFilter"
+                      checked={isSelected}
+                      onChange={() => onMinRatingChange?.(item.val)}
+                      className="w-4 h-4 text-brand-primary-600 border-neutral-300 focus:ring-brand-primary-600 cursor-pointer"
+                    />
+                    <span className="flex items-center gap-1.5">
+                      {item.val !== null && (
+                        <Icon name="star" size="xs" filled className="text-brand-secondary-500 h-3.5 w-3.5" />
+                      )}
+                      <span>{item.val !== null ? `${item.val} trở lên` : 'Tất cả đánh giá'}</span>
+                    </span>
+                  </label>
                 );
               })}
             </div>
           )}
         </div>
 
-        {/* 3. Kinh nghiệm giảng dạy (Experience) */}
-        <div className="space-y-2.5 border-t border-neutral-100 pt-3">
+        {/* 3. Kinh nghiệm giảng dạy (Experience) - Các khoảng ranh giới chuẩn xác */}
+        <div className="space-y-2.5 border-t border-neutral-100/80 pt-3">
           <button
             type="button"
             onClick={() => toggleSection('experience')}
@@ -336,31 +328,36 @@ export default function FilterSidebar({
           </button>
 
           {openSections.experience && (
-            <div id="filter-section-experience" className="grid grid-cols-2 gap-1.5 pt-1">
+            <div id="filter-section-experience" className="space-y-1 pt-1 text-[13px]">
               {EXPERIENCE_OPTIONS.map((exp) => {
                 const isSelected = experienceRange === exp.id;
                 return (
-                  <button
+                  <label
                     key={exp.id}
-                    type="button"
-                    onClick={() => onExperienceRangeChange?.(exp.id)}
                     className={cn(
-                      'min-h-[38px] rounded-brand-md border px-2.5 py-1 text-center text-[12px] transition-all font-medium',
+                      'flex items-center gap-2.5 px-2.5 py-1.5 rounded-brand-md cursor-pointer select-none transition-colors text-[13px]',
                       isSelected
-                        ? 'border-brand-primary-600 bg-brand-primary-600 text-white font-semibold shadow-xs'
-                        : 'border-neutral-200 bg-surface text-neutral-700 hover:border-neutral-300 hover:text-neutral-900'
+                        ? 'bg-brand-primary-50 text-brand-primary-700 font-semibold'
+                        : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
                     )}
                   >
-                    {exp.label}
-                  </button>
+                    <input
+                      type="radio"
+                      name="experienceRange"
+                      checked={isSelected}
+                      onChange={() => onExperienceRangeChange?.(exp.id)}
+                      className="w-4 h-4 text-brand-primary-600 border-neutral-300 focus:ring-brand-primary-600 cursor-pointer"
+                    />
+                    <span>{exp.label}</span>
+                  </label>
                 );
               })}
             </div>
           )}
         </div>
 
-        {/* 4. Học vị & Bằng cấp (Degree) */}
-        <div className="space-y-2.5 border-t border-neutral-100 pt-3">
+        {/* 4. Bằng cấp & Học vị (Degree) */}
+        <div className="space-y-2.5 border-t border-neutral-100/80 pt-3">
           <button
             type="button"
             onClick={() => toggleSection('degree')}
@@ -418,7 +415,7 @@ export default function FilterSidebar({
         </div>
 
         {/* 5. Trường đại học (University) */}
-        <div className="space-y-2.5 border-t border-neutral-100 pt-3">
+        <div className="space-y-2.5 border-t border-neutral-100/80 pt-3">
           <button
             type="button"
             onClick={() => toggleSection('university')}
@@ -498,7 +495,7 @@ export default function FilterSidebar({
         </div>
 
         {/* 6. Chứng chỉ nổi bật (Certifications) */}
-        <div className="space-y-2.5 border-t border-neutral-100 pt-3">
+        <div className="space-y-2.5 border-t border-neutral-100/80 pt-3">
           <button
             type="button"
             onClick={() => toggleSection('cert')}

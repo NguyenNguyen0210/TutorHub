@@ -47,15 +47,14 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
         }
 
         // Existential Price filter over published Services
-        if (request.MinPrice.HasValue)
+        if (request.MinPrice.HasValue || request.MaxPrice.HasValue)
         {
-            query = query.Where(t => t.Services.Any(s => s.Status == ServiceStatus.Published && s.Price >= request.MinPrice.Value));
+            query = query.Where(t => t.Services.Any(s =>
+                s.Status == ServiceStatus.Published &&
+                (!request.MinPrice.HasValue || s.Price >= request.MinPrice.Value) &&
+                (!request.MaxPrice.HasValue || s.Price <= request.MaxPrice.Value)));
         }
 
-        if (request.MaxPrice.HasValue)
-        {
-            query = query.Where(t => t.Services.Any(s => s.Status == ServiceStatus.Published && s.Price <= request.MaxPrice.Value));
-        }
 
         // Filter by Minimum Rating
         if (request.MinRating.HasValue)

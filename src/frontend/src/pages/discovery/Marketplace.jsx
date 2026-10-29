@@ -123,19 +123,19 @@ export default function Marketplace() {
         const apiSortBy = sortBy === 'priority' ? null : sortBy;
 
         const minExp =
-          experienceRange === '1-3'
+          experienceRange === '1-2'
             ? 1
             : experienceRange === '3-5'
             ? 3
-            : experienceRange === '>5'
-            ? 5
+            : experienceRange === '>=6'
+            ? 6
             : null;
 
         const maxExp =
           experienceRange === '<1'
-            ? 1
-            : experienceRange === '1-3'
-            ? 3
+            ? 0
+            : experienceRange === '1-2'
+            ? 2
             : experienceRange === '3-5'
             ? 5
             : null;
@@ -281,7 +281,14 @@ export default function Marketplace() {
       list.push({ key: 'rating', label: `Đánh giá: ≥ ${minRating}★`, clear: clearAndResetPage(() => setMinRating(null)) });
     }
     if (experienceRange !== 'All') {
-      const expLabel = experienceRange === '<1' ? '< 1 năm' : `${experienceRange} năm`;
+      const expLabel =
+        experienceRange === '<1'
+          ? 'Dưới 1 năm'
+          : experienceRange === '1-2'
+          ? '1–2 năm'
+          : experienceRange === '3-5'
+          ? '3–5 năm'
+          : 'Từ 6 năm';
       list.push({ key: 'exp', label: `Kinh nghiệm: ${expLabel}`, clear: clearAndResetPage(() => setExperienceRange('All')) });
     }
     if (selectedCategory) {
@@ -379,7 +386,7 @@ export default function Marketplace() {
 
       {/* 3. Main Discovery Workspace */}
       <main className="page-shell pt-5 sm:pt-6">
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[288px_minmax(0,1fr)]">
           {/* Left Column: Filter Sidebar (desktop; mobile dùng drawer) */}
           {!isMobileFilters && (
             <div className="w-full lg:sticky lg:top-[88px] z-20">
@@ -587,8 +594,7 @@ export default function Marketplace() {
                 onClick={() => setFilterOpen(false)}
                 className="flex-1 inline-flex items-center justify-center h-11 px-4 rounded-brand-md bg-brand-primary-600 text-white text-body-reg font-semibold shadow-sm active:scale-[0.98] transition-all"
               >
-                Áp dụng
-                {activeFilters.length > 0 ? ` (${activeFilters.length})` : ''}
+                <span>{loading ? 'Đang tìm...' : `Xem ${totalCount} gia sư`}</span>
               </button>
             </>
           }
