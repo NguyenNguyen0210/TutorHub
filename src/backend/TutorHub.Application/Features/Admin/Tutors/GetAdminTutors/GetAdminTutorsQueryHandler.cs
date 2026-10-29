@@ -59,8 +59,6 @@ public class GetAdminTutorsQueryHandler : IRequestHandler<GetAdminTutorsQuery, P
                 t.Bio,
                 t.Education,
                 t.ExperienceYears,
-                t.TeachingMode.ToString(),
-                t.Address,
                 t.User.TutorApplications
                     .OrderBy(a => a.Status == TutorApplicationStatus.Approved ? 0 : a.Status == TutorApplicationStatus.Pending ? 1 : 2)
                     .ThenByDescending(a => a.SubmittedAt)

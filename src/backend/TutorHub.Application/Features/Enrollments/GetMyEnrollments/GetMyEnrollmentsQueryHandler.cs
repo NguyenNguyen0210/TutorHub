@@ -65,7 +65,6 @@ public class GetMyEnrollmentsQueryHandler : IRequestHandler<GetMyEnrollmentsQuer
                 e.TotalSessions,
                 e.Sessions.Count(s => s.Status == SessionStatus.Completed), // Server-side SQL COUNT
                 e.SessionDurationMinutes,
-                e.TeachingMode,
                 e.Status,
                 e.CreatedAt,
                 e.CompletedAt,

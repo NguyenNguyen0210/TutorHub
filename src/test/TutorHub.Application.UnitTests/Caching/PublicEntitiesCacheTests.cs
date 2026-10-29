@@ -382,7 +382,6 @@ public class PublicEntitiesCacheTests
 
             PricePerSession: 300000m,
 
-            TeachingMode: "Online",
 
             Status: "Published",
 
@@ -405,8 +404,6 @@ public class PublicEntitiesCacheTests
                 "Computer Science",
 
                 5,
-
-                "Hanoi",
 
                 4.9m,
 
@@ -451,14 +448,6 @@ public class PublicEntitiesCacheTests
             Education: "Pedagogy",
 
             ExperienceYears: 4,
-
-            TeachingMode: "Both",
-
-            Address: "HCMC",
-
-            Latitude: null,
-
-            Longitude: null,
 
             RatingAvg: 4.8m,
 

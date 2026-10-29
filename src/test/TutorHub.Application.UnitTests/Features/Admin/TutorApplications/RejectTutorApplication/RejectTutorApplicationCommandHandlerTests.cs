@@ -38,7 +38,6 @@ public class RejectTutorApplicationCommandHandlerTests
             Bio = "Short bio",
             Education = "Incomplete degree",
             ExperienceYears = 0,
-            TeachingMode = TeachingMode.Online,
             SubmittedAt = DateTime.UtcNow
         };
 
@@ -112,7 +111,6 @@ public class RejectTutorApplicationCommandHandlerTests
             Bio = "Bio",
             Education = "Edu",
             ExperienceYears = 1,
-            TeachingMode = TeachingMode.Online,
             SubmittedAt = DateTime.UtcNow
         };
 
@@ -147,7 +145,6 @@ public class RejectTutorApplicationCommandHandlerTests
             Bio = "Bio",
             Education = "Edu",
             ExperienceYears = 5,
-            TeachingMode = TeachingMode.Online,
             SubmittedAt = DateTime.UtcNow
         };
         approvedApp.Approve(adminId);

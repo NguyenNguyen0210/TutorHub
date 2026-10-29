@@ -10,20 +10,6 @@ export default function ServiceDetailHero({ service }) {
   const tutor = service.tutor || {};
   const subject = service.subject || {};
 
-  const modeLabel =
-    service.teachingMode === 'InPerson' || service.teachingMode === 'Offline'
-      ? 'Học tại nhà / Offline'
-      : service.teachingMode === 'Both'
-      ? 'Online hoặc Tại nhà'
-      : 'Online qua Video Call';
-
-  const modeIcon =
-    service.teachingMode === 'InPerson' || service.teachingMode === 'Offline'
-      ? 'home'
-      : service.teachingMode === 'Both'
-      ? 'devices'
-      : 'videocam';
-
   // Video embed helper
   const getEmbedUrl = (url) => {
     if (!url) return null;
@@ -82,11 +68,6 @@ export default function ServiceDetailHero({ service }) {
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-brand-sm text-xs font-medium bg-brand-primary-100/80 text-brand-primary-700 border border-brand-primary-200/70">
                 <Icon name="school" size="xs" className="w-3.5 h-3.5" />
                 {subject.name || 'Môn học'}
-              </span>
-
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-success-subtle text-success-strong border border-success/30">
-                <Icon name={modeIcon} size="xs" className="w-3.5 h-3.5" />
-                {modeLabel}
               </span>
 
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-holding-subtle text-holding-strong border border-holding/30">

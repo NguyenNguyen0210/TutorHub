@@ -73,8 +73,6 @@ public class GetAdminTutorApplicationsQueryHandler
                 a.Subject,
                 a.SubjectSub,
                 a.ExperienceYears,
-                a.TeachingMode.ToString(),
-                a.Address,
                 a.Methodology,
                 a.Achievements,
                 a.DocumentsJson

@@ -25,7 +25,6 @@ public class Service
     public int TotalSessions { get; set; }
     public int SessionDurationMinutes { get; set; }
     public decimal Price { get; set; }
-    public TeachingMode TeachingMode { get; set; }
 
     // Trial Lesson & Media preview
     public string? TrialLessonUrl { get; set; }

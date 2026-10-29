@@ -35,7 +35,6 @@ public class CreateServiceCommandHandlerTests
             Bio = "Math tutor",
             Education = "B.Sc",
             ExperienceYears = 3,
-            TeachingMode = TeachingMode.Both
         };
 
         var category = new Category { Id = Guid.NewGuid(), Name = "Mathematics" };
@@ -77,7 +76,6 @@ public class CreateServiceCommandHandlerTests
             TotalSessions: 10,
             SessionDurationMinutes: 60,
             Price: 3500000m,
-            TeachingMode: TeachingMode.Online,
             TrialLessonUrl: "https://example.com/trial",
             CoverImageUrl: "https://example.com/cover.png"
         );
@@ -119,7 +117,6 @@ public class CreateServiceCommandHandlerTests
             Bio = "Math tutor",
             Education = "B.Sc",
             ExperienceYears = 3,
-            TeachingMode = TeachingMode.Both
         };
 
         var category = new Category { Id = Guid.NewGuid(), Name = "Mathematics" };
@@ -161,7 +158,6 @@ public class CreateServiceCommandHandlerTests
             TotalSessions: 10,
             SessionDurationMinutes: 60,
             Price: 3500000m,
-            TeachingMode: TeachingMode.Online,
             TrialLessonUrl: null,
             CoverImageUrl: null,
             Curriculum: new List<CurriculumItemInput>
@@ -241,7 +237,6 @@ public class CreateServiceCommandHandlerTests
             TotalSessions: 5,
             SessionDurationMinutes: 60,
             Price: 1000000m,
-            TeachingMode: TeachingMode.Online,
             TrialLessonUrl: null,
             CoverImageUrl: null
         );
@@ -274,7 +269,6 @@ public class CreateServiceCommandHandlerTests
             TotalSessions: 5,
             SessionDurationMinutes: 60,
             Price: 1000000m,
-            TeachingMode: TeachingMode.Online,
             TrialLessonUrl: null,
             CoverImageUrl: null
         );
@@ -309,7 +303,6 @@ public class CreateServiceCommandHandlerTests
             TotalSessions: 5,
             SessionDurationMinutes: 60,
             Price: 1000000m,
-            TeachingMode: TeachingMode.Online,
             TrialLessonUrl: null,
             CoverImageUrl: null
         );
@@ -348,7 +341,6 @@ public class CreateServiceCommandHandlerTests
             TotalSessions: 5,
             SessionDurationMinutes: 60,
             Price: 1000000m,
-            TeachingMode: TeachingMode.Online,
             TrialLessonUrl: null,
             CoverImageUrl: null
         );

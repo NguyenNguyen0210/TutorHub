@@ -12,7 +12,7 @@ export const STEPS = [
   { id: 1, title: 'Thông tin cá nhân', sub: 'Giới thiệu bản thân' },
   { id: 2, title: 'Học vấn & chứng chỉ', sub: 'Trình độ chuyên môn' },
   { id: 3, title: 'Kinh nghiệm giảng dạy', sub: 'Kinh nghiệm & thành tích' },
-  { id: 4, title: 'Môn học & lớp dạy', sub: 'Chọn môn và hình thức dạy' },
+  { id: 4, title: 'Môn học & lớp dạy', sub: 'Chọn môn và khối lớp' },
   { id: 5, title: 'Giáo trình & phương pháp', sub: 'Cách bạn giảng dạy' },
   { id: 6, title: 'Xem lại & gửi hồ sơ', sub: 'Hoàn tất đăng ký' },
 ];
@@ -36,12 +36,6 @@ export const GRADE_LEVELS = [
   'THPT (Lớp 10-12)',
   'Luyện thi Đại học',
   'Sinh viên & Người đi làm',
-];
-
-export const TEACHING_MODE_OPTIONS = [
-  { key: 'Online', label: 'Dạy trực tuyến', desc: 'Google Meet / Zoom' },
-  { key: 'Offline', label: 'Dạy tại nhà', desc: 'Gặp trực tiếp học viên' },
-  { key: 'Both', label: 'Cả hai hình thức', desc: 'Linh hoạt theo yêu cầu' },
 ];
 
 export const GENDER_OPTIONS = ['Nam', 'Nữ', 'Khác'];
@@ -70,7 +64,6 @@ export function createInitialFormData(user) {
     gender: 'Nam',
     phone: user?.phone || '0901234567',
     email: user?.email || '',
-    address: 'Quận Cầu Giấy, Hà Nội',
     avatarUrl: user?.avatarUrl || '',
     avatarPreview: null,
     bio: '',
@@ -88,9 +81,7 @@ export function createInitialFormData(user) {
     achievements:
       'Giúp 15+ học sinh nâng điểm từ 6 lên 8.5+ môn Toán trong kỳ thi vào 10 và THPT Quốc gia.',
 
-    // Step 4: Subjects & Modes
-    teachingMode: 'Both', // Online | Offline | Both
-    offlineArea: 'Quận Cầu Giấy, Nam Từ Liêm, Đống Đa - Hà Nội',
+    // Step 4: Subjects
     subjects: ['Toán học', 'Vật lý'],
     grades: ['THCS (Lớp 6-9)', 'THPT (Lớp 10-12)'],
 
@@ -115,9 +106,7 @@ export function mergeRejectedApplication(formData, app) {
   return {
     ...formData,
     bio: app.bio || formData.bio,
-    address: app.address || formData.address,
     experienceYears: app.experienceYears ?? formData.experienceYears,
-    teachingMode: app.teachingMode || formData.teachingMode,
   };
 }
 
@@ -130,8 +119,6 @@ export function toggleListValue(list, value) {
 }
 
 /* ── Per-step validation ──────────────────────────────────────────────────── */
-
-const OFFLINE_MODES = ['Offline', 'Both'];
 
 /**
  * Validate one wizard step. Returns the Vietnamese error message to toast, or
@@ -148,9 +135,6 @@ export function validateApplicationStep(step, formData) {
     }
     if (!formData.email.trim()) {
       return 'Vui lòng nhập địa chỉ email.';
-    }
-    if (!formData.address.trim()) {
-      return 'Vui lòng nhập địa chỉ hiện tại.';
     }
     if (!formData.bio || formData.bio.trim().length < 20) {
       return 'Vui lòng nhập phần giới thiệu bản thân tối thiểu 20 ký tự.';
@@ -176,9 +160,6 @@ export function validateApplicationStep(step, formData) {
     if (formData.subjects.length === 0) {
       return 'Vui lòng chọn ít nhất một môn học bạn có thể dạy.';
     }
-    if (OFFLINE_MODES.includes(formData.teachingMode) && !formData.offlineArea.trim()) {
-      return 'Vui lòng nhập khu vực bạn có thể đến dạy trực tiếp.';
-    }
     return null;
   }
 
@@ -190,11 +171,6 @@ export function validateApplicationStep(step, formData) {
   }
 
   return null;
-}
-
-/** Step 4 shows the offline-area field only for these teaching modes. */
-export function needsOfflineArea(teachingMode) {
-  return OFFLINE_MODES.includes(teachingMode);
 }
 
 /* ── Upload acceptance rules ──────────────────────────────────────────────── */
@@ -265,7 +241,5 @@ export function buildApplicationPayload(formData) {
     bio: buildApplicationBio(formData),
     education: buildEducationSummary(formData),
     experienceYears: Number(formData.experienceYears) || 0,
-    teachingMode: formData.teachingMode,
-    address: formData.address.trim() || null,
   };
 }

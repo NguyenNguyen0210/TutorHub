@@ -24,14 +24,6 @@ public class TutorProfileConfiguration : IEntityTypeConfiguration<TutorProfile>
         builder.Property(t => t.ExperienceYears)
             .IsRequired();
 
-        builder.Property(t => t.TeachingMode)
-            .HasConversion<string>()
-            .HasMaxLength(50)
-            .IsRequired();
-
-        builder.Property(t => t.Address)
-            .HasMaxLength(500);
-
         builder.Property(t => t.RatingAvg)
             .HasPrecision(3, 2)
             .IsRequired();

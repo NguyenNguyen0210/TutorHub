@@ -30,22 +30,6 @@ export default function TutorCard({ tutor = {} }) {
     )
     .filter(Boolean);
 
-  // Teaching modes normalization (single-line label, mirror ServiceCard)
-  const modes = Array.isArray(tutor.teachingModes)
-    ? tutor.teachingModes
-    : tutor.teachingMode
-    ? [tutor.teachingMode]
-    : ['Online'];
-  let modeLabel = 'Online';
-  let modeIcon = 'videocam';
-  if (modes.includes('Both') || modes.includes('Hybrid')) {
-    modeLabel = 'Online hoặc tại nhà';
-    modeIcon = 'devices';
-  } else if (modes.includes('InPerson') || modes.includes('Offline')) {
-    modeLabel = 'Tại nhà';
-    modeIcon = 'home';
-  }
-
   return (
     <article className="group relative flex flex-col justify-between bg-surface rounded-brand-lg border border-border hover:shadow-brand-md hover:border-brand-primary-300 hover:-translate-y-0.5 transition-[border-color,box-shadow,transform] duration-normal ease-standard overflow-hidden">
       <div className="h-1 bg-brand-primary-600" aria-hidden="true" />
@@ -117,12 +101,8 @@ export default function TutorCard({ tutor = {} }) {
             )}
           </div>
 
-          {/* Hàng 3: hình thức học và học phí, ưu tiên khả năng so sánh nhanh. */}
-          <div className="space-y-3 border-y border-border py-4 text-[14px]">
-            <div className="flex items-center gap-2 text-neutral-700">
-              <Icon name={modeIcon} size="sm" className="shrink-0 text-brand-primary-600" />
-              <span>{modeLabel}</span>
-            </div>
+          {/* Hàng 3: học phí, ưu tiên khả năng so sánh nhanh. */}
+          <div className="border-y border-border py-4 text-[14px]">
             <div>
               <p className="text-[12px] font-semibold text-neutral-500">Học phí từ</p>
               {hourlyRate > 0 ? (
@@ -184,7 +164,5 @@ TutorCard.propTypes = {
     minPrice: PropTypes.number,
     hourlyRate: PropTypes.number,
     isVerified: PropTypes.bool,
-    teachingMode: PropTypes.string,
-    teachingModes: PropTypes.arrayOf(PropTypes.string),
   }).isRequired,
 };

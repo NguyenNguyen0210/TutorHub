@@ -34,9 +34,9 @@ const FAQ_ITEMS = [
   },
   {
     id: 'faq-6',
-    question: 'TutorHub hỗ trợ những hình thức học nào?',
+    question: 'Buổi học trực tuyến diễn ra như thế nào?',
     answer:
-      'TutorHub hỗ trợ cả học Online (qua Google Meet, Zoom) và học Tại nhà (gia sư đến trực tiếp). Bạn có thể lọc theo hình thức học khi tìm kiếm gia sư hoặc dịch vụ.',
+      'TutorHub hoạt động hoàn toàn trực tuyến. Gia sư và học viên thống nhất công cụ gọi video phù hợp như Google Meet hoặc Zoom trước buổi học.',
   },
 ];
 

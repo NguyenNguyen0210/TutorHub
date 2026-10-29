@@ -159,7 +159,6 @@ public class CompleteExternalLoginCommandHandlerTests
                 Bio = "Test bio",
                 Education = "Test education",
                 ExperienceYears = 3,
-                TeachingMode = TeachingMode.Online
             })
             .Build();
 

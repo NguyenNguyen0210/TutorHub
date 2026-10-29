@@ -50,10 +50,6 @@ public class UpdateServiceCommandValidator : AbstractValidator<UpdateServiceComm
             .GreaterThan(0).WithMessage("Price must be greater than 0.")
             .When(x => x.Price.HasValue);
 
-        RuleFor(x => x.TeachingMode)
-            .IsInEnum().WithMessage("Invalid teaching mode.")
-            .When(x => x.TeachingMode.HasValue);
-
         RuleFor(x => x.TrialLessonUrl)
             .MaximumLength(1000).WithMessage("Trial lesson URL cannot exceed 1000 characters.")
             .When(x => !string.IsNullOrEmpty(x.TrialLessonUrl));

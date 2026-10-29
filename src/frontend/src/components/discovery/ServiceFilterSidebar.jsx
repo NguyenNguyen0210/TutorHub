@@ -3,13 +3,6 @@ import PropTypes from 'prop-types';
 import Icon from '@/components/ui/Icon';
 import { formatVND } from '@/utils/formatters';
 
-const TEACHING_MODES = [
-  { value: 'All', label: 'Tất cả hình thức' },
-  { value: 'Online', label: 'Online' },
-  { value: 'InPerson', label: 'Tại nhà' },
-  { value: 'Both', label: 'Online hoặc tại nhà' },
-];
-
 const RATING_OPTIONS = [
   { value: null, label: 'Tất cả đánh giá' },
   { value: 4.8, label: 'Từ 4.8★ trở lên' },
@@ -24,8 +17,6 @@ export default function ServiceFilterSidebar({
   onSelectCategory,
   selectedSubjectId,
   onSelectSubject,
-  teachingMode,
-  onTeachingModeChange,
   priceRange,
   onPriceRangeChange,
   maxPrice = 10000000,
@@ -36,7 +27,6 @@ export default function ServiceFilterSidebar({
   const [openSections, setOpenSections] = useState({
     category: true,
     subject: true,
-    mode: false,
     price: false,
     rating: false,
   });
@@ -193,53 +183,6 @@ export default function ServiceFilterSidebar({
           </div>
         )}
 
-        {/* 3. Teaching Mode Section (Hình thức học) */}
-        <div className="pt-3 border-t border-neutral-100 space-y-2">
-          <button
-            type="button"
-            onClick={() => toggleSection('mode')}
-            aria-expanded={openSections.mode}
-            aria-controls="service-filter-section-mode"
-            className="w-full flex items-center justify-between text-[13px] font-bold text-neutral-900 group cursor-pointer"
-          >
-            <span className="flex items-center gap-1.5">
-              <Icon name="devices" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
-              <span>Hình thức học</span>
-            </span>
-            <Icon
-              name="expand_more"
-              size="sm"
-              className={`text-neutral-400 transition-transform duration-200 ${
-                openSections.mode ? 'rotate-180' : 'rotate-0'
-              }`}
-            />
-          </button>
-
-          {openSections.mode && (
-            <div id="service-filter-section-mode" className="pt-0.5 space-y-1">
-              {TEACHING_MODES.map((m) => (
-                <label
-                  key={m.value}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors cursor-pointer ${
-                    teachingMode === m.value
-                      ? 'bg-brand-primary-50 text-brand-primary-600 font-bold'
-                      : 'text-neutral-700 hover:bg-neutral-50'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="service-mode"
-                    checked={teachingMode === m.value}
-                    onChange={() => onTeachingModeChange(m.value)}
-                    className="w-3.5 h-3.5 text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer"
-                  />
-                  <span>{m.label}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* 4. Price Range Section (Mức giá trọn gói) */}
         <div className="pt-3 border-t border-neutral-100 space-y-2.5">
           <button
@@ -346,8 +289,6 @@ ServiceFilterSidebar.propTypes = {
   onSelectCategory: PropTypes.func.isRequired,
   selectedSubjectId: PropTypes.string,
   onSelectSubject: PropTypes.func.isRequired,
-  teachingMode: PropTypes.string.isRequired,
-  onTeachingModeChange: PropTypes.func.isRequired,
   priceRange: PropTypes.number.isRequired,
   onPriceRangeChange: PropTypes.func.isRequired,
   maxPrice: PropTypes.number,

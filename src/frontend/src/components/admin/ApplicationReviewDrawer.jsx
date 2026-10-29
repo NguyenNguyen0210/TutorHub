@@ -267,23 +267,9 @@ export default function ApplicationReviewDrawer({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className={FIELD_CARD}>
-              <span className={FIELD_LABEL}>Hình thức dạy</span>
-              <span className={FIELD_VALUE}>
-                {applicant.teachingMode === 'Both'
-                  ? 'Online & Offline'
-                  : applicant.teachingMode}
-              </span>
-            </div>
-            <div className={FIELD_CARD}>
-              <span className={FIELD_LABEL}>Kinh nghiệm</span>
-              <span className={FIELD_VALUE}>{applicant.experienceYears} năm</span>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <span className={PROSE_LABEL}>Địa chỉ nhận dạy</span>
-            <p className="text-fg-secondary text-[12.5px]">{applicant.address}</p>
+          <div className={FIELD_CARD}>
+            <span className={FIELD_LABEL}>Kinh nghiệm</span>
+            <span className={FIELD_VALUE}>{applicant.experienceYears} năm</span>
           </div>
         </div>
       )}
@@ -386,8 +372,6 @@ ApplicationReviewDrawer.propTypes = {
     education: PropTypes.string,
     major: PropTypes.string,
     certifications: PropTypes.string,
-    teachingMode: PropTypes.string,
-    address: PropTypes.string,
     bio: PropTypes.string,
     methodology: PropTypes.string,
     achievements: PropTypes.string,

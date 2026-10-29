@@ -42,12 +42,6 @@ public class GetPublicServicesQueryHandler : IRequestHandler<GetPublicServicesQu
             query = query.Where(s => s.SubjectId == request.SubjectId.Value);
         }
 
-        // Filter by Teaching Mode
-        if (request.TeachingMode.HasValue)
-        {
-            query = query.Where(s => s.TeachingMode == request.TeachingMode.Value || s.TeachingMode == TeachingMode.Both);
-        }
-
         // Filter by Price Range
         if (request.MinPrice.HasValue)
         {
@@ -116,7 +110,6 @@ public class GetPublicServicesQueryHandler : IRequestHandler<GetPublicServicesQu
                 s.TotalSessions,
                 s.SessionDurationMinutes,
                 s.Price,
-                s.TeachingMode.ToString(),
                 !string.IsNullOrWhiteSpace(s.TrialLessonUrl),
                 s.TutorProfileId,
                 s.TutorProfile.UserId,

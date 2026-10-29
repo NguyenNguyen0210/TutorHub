@@ -96,7 +96,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 ## ⚡ Các Tính Năng & Nghiệp Vụ Cốt Lõi
 
 ### 1. Quản Lý Gói Dịch Vụ & Showcase Khóa Học
-* Gia sư chủ động tạo và quản lý các gói dịch vụ học tập với thông tin chi tiết: số buổi, thời lượng, hình thức (Online/Offline), đối tượng học viên, điều kiện tiên quyết, câu hỏi thường gặp (FAQs) và lộ trình giáo trình chi tiết (Curriculum).
+* Gia sư chủ động tạo và quản lý các gói học trực tuyến với thông tin chi tiết: số buổi, thời lượng, đối tượng học viên, điều kiện tiên quyết, câu hỏi thường gặp (FAQs) và lộ trình giáo trình chi tiết (Curriculum).
 * Vòng đời dịch vụ linh hoạt: `Draft` (Bản nháp), `Published` (Đang mở bán), `Paused` (Tạm ngưng nhận học viên mới nhưng vẫn phục vụ học viên đang học), `Unpublished` (Đóng gói).
 
 ### 2. Đặt Lịch & Giữ Chỗ Thanh Toán 15 Phút (Booking TTL Hold)

@@ -64,7 +64,6 @@ public class EnrollmentActivationService : IEnrollmentActivationService
             TotalPrice = booking.TotalPrice,
             TotalSessions = booking.TotalSessions,
             SessionDurationMinutes = booking.SessionDurationMinutes,
-            TeachingMode = booking.TeachingMode,
             PlatformFeeRate = feeRate,
             CreatedAt = now
         };

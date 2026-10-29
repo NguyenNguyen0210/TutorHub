@@ -47,9 +47,6 @@ public class CreateServiceCommandValidator : AbstractValidator<CreateServiceComm
         RuleFor(x => x.Price)
             .GreaterThan(0).WithMessage("Price must be greater than 0.");
 
-        RuleFor(x => x.TeachingMode)
-            .IsInEnum().WithMessage("Invalid teaching mode.");
-
         RuleFor(x => x.TrialLessonUrl)
             .MaximumLength(1000).WithMessage("Trial lesson URL cannot exceed 1000 characters.")
             .When(x => !string.IsNullOrEmpty(x.TrialLessonUrl));

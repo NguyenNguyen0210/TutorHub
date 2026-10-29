@@ -264,10 +264,6 @@ export default function BookingCheckout() {
                 </dd>
               </div>
               <div className="flex justify-between items-center">
-                <dt>Hình thức giảng dạy:</dt>
-                <dd className="font-bold text-fg">{booking.teachingMode || 'Online'}</dd>
-              </div>
-              <div className="flex justify-between items-center">
                 <dt>Đơn giá từng buổi học:</dt>
                 <dd className="font-bold text-brand-primary-700 tabular-nums">
                   <Money value={pricePerSession} /> / buổi

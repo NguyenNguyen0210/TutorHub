@@ -178,7 +178,6 @@ public class GetServiceDetailQueryHandler : IRequestHandler<GetServiceDetailQuer
             service.TutorProfile.Bio,
             service.TutorProfile.Education,
             service.TutorProfile.ExperienceYears,
-            service.TutorProfile.Address,
             service.TutorProfile.RatingAvg,
             service.TutorProfile.TotalReviews,
             totalStudentsTaught,
@@ -212,7 +211,6 @@ public class GetServiceDetailQueryHandler : IRequestHandler<GetServiceDetailQuer
             service.SessionDurationMinutes,
             service.Price,
             pricePerSession,
-            service.TeachingMode.ToString(),
             service.Status.ToString(),
             service.CreatedAt,
             subjectSnapshot,
@@ -319,9 +317,7 @@ public class GetServiceDetailQueryHandler : IRequestHandler<GetServiceDetailQuer
         return new List<string>
         {
             "Tinh thần chủ động học tập và hoàn thành bài tập ôn luyện sau mỗi buổi.",
-            service.TeachingMode == TeachingMode.Offline
-                ? "Không gian học tập yên tĩnh, tập trung."
-                : "Máy tính hoặc máy tính bảng kết nối internet ổn định, trang bị micro và webcam."
+            "Máy tính hoặc máy tính bảng kết nối internet ổn định và thiết bị âm thanh."
         };
     }
 

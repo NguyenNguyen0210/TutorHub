@@ -40,7 +40,6 @@ public class GetTutorServicesQueryHandlerTests
             TotalSessions = 10,
             SessionDurationMinutes = 60,
             Price = 3000000m,
-            TeachingMode = TeachingMode.Online,
             Status = ServiceStatus.Published,
             CreatedAt = DateTime.UtcNow
         };
@@ -55,7 +54,6 @@ public class GetTutorServicesQueryHandlerTests
             TotalSessions = 5,
             SessionDurationMinutes = 45,
             Price = 1000000m,
-            TeachingMode = TeachingMode.Online,
             Status = ServiceStatus.Draft,
             CreatedAt = DateTime.UtcNow
         };

@@ -50,7 +50,6 @@ public class GetMyEnrollmentsQueryHandlerTests
             TotalPrice = 1_500_000m,
             TotalSessions = totalSessions,
             SessionDurationMinutes = 60,
-            TeachingMode = TeachingMode.Online
         };
 
         for (int i = 1; i <= totalSessions; i++)

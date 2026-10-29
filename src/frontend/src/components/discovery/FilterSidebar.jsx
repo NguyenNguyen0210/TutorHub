@@ -33,13 +33,6 @@ const CERTIFICATION_OPTIONS = [
   { id: 'Kiện tướng', label: 'Kiện tướng Cờ vua QG' },
 ];
 
-const CITY_OPTIONS = [
-  { id: 'All', label: 'Tất cả khu vực' },
-  { id: 'Hà Nội', label: 'Hà Nội' },
-  { id: 'Hồ Chí Minh', label: 'TP. Hồ Chí Minh' },
-  { id: 'Đà Nẵng', label: 'Đà Nẵng' },
-];
-
 const PRICE_PRESETS = [
   { label: 'Tất cả', max: 5000000 },
   { label: '< 1 triệu', max: 1000000 },
@@ -51,10 +44,6 @@ export default function FilterSidebar({
   priceRange,
   onPriceRangeChange,
   maxPrice = 5000000,
-  teachingMode,
-  onTeachingModeChange,
-  city = 'All',
-  onCityChange,
   degreeLevel = 'All',
   onDegreeLevelChange,
   university = 'All',
@@ -73,7 +62,6 @@ export default function FilterSidebar({
     university: false,
     cert: false,
     price: true,
-    mode: true,
     rating: false,
   });
 
@@ -88,8 +76,6 @@ export default function FilterSidebar({
     const term = uniSearch.toLowerCase().trim();
     return UNIVERSITY_OPTIONS.filter((u) => u.label.toLowerCase().includes(term));
   }, [uniSearch]);
-
-  const showLocationFilter = teachingMode === 'InPerson' || teachingMode === 'Both' || teachingMode === 'Hybrid';
 
   return (
     <aside className={cn('w-full', className)} aria-label="Bộ lọc gia sư đa chiều">
@@ -293,84 +279,6 @@ export default function FilterSidebar({
           )}
         </div>
 
-        {/* 4. Teaching Mode & Location */}
-        <div className="order-2 space-y-2.5 border-t border-neutral-100 pt-3">
-          <button
-            type="button"
-            onClick={() => toggleSection('mode')}
-            aria-expanded={openSections.mode}
-            aria-controls="filter-section-mode"
-            className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
-          >
-            <span className="flex items-center gap-1.5">
-              <Icon name="home_work" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
-              <span>Hình thức & Địa bàn</span>
-            </span>
-            <Icon
-              name="expand_more"
-              size="sm"
-              className={cn(
-                'text-neutral-400 transition-transform duration-200',
-                openSections.mode ? 'rotate-180' : 'rotate-0'
-              )}
-            />
-          </button>
-
-          {openSections.mode && (
-            <div id="filter-section-mode" className="space-y-2 pt-1 text-[13px]">
-              <div className="grid grid-cols-2 gap-1.5">
-                {[
-                  { id: 'All', label: 'Tất cả' },
-                  { id: 'Online', label: 'Online' },
-                  { id: 'InPerson', label: 'Tại nhà' },
-                  { id: 'Both', label: 'Cả hai' },
-                ].map((option) => {
-                  const isSelected = teachingMode === option.id;
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => onTeachingModeChange(option.id)}
-                      className={cn(
-                        'min-h-11 rounded-lg border px-2 py-1.5 text-center text-[13px] font-medium transition-colors',
-                        isSelected
-                          ? 'border-brand-primary-600 bg-brand-primary-50 text-brand-primary-600 font-semibold shadow-sm'
-                          : 'border-neutral-200 bg-surface text-neutral-700 hover:border-neutral-300'
-                      )}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Cascading Location Filter when InPerson or Both selected */}
-              {showLocationFilter && (
-                <div className="pt-2 space-y-1.5 animate-fadeIn">
-                  <label
-                    htmlFor="filter-city"
-                    className="text-[12px] font-semibold text-neutral-600"
-                  >
-                    Tỉnh / Thành phố:
-                  </label>
-                  <select
-                    id="filter-city"
-                    value={city}
-                    onChange={(e) => onCityChange && onCityChange(e.target.value)}
-                    className="w-full text-[12.5px] px-2.5 py-1.5 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-800 focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand-primary-600 cursor-pointer"
-                  >
-                    {CITY_OPTIONS.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
         {/* 5. Price Range & Presets */}
         <div className="order-1 space-y-2.5 border-t border-neutral-100 pt-3">
           <button
@@ -538,10 +446,6 @@ FilterSidebar.propTypes = {
   priceRange: PropTypes.number.isRequired,
   onPriceRangeChange: PropTypes.func.isRequired,
   maxPrice: PropTypes.number,
-  teachingMode: PropTypes.string.isRequired,
-  onTeachingModeChange: PropTypes.func.isRequired,
-  city: PropTypes.string,
-  onCityChange: PropTypes.func,
   degreeLevel: PropTypes.string,
   onDegreeLevelChange: PropTypes.func,
   university: PropTypes.string,

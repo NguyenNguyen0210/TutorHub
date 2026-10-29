@@ -26,7 +26,6 @@ export default function ProfileAbout({ tutor }) {
   const visibleBio = expanded || !isLong ? bio : `${bio.slice(0, BIO_CLAMP_CHARS).trimEnd()}…`;
 
   const subjects = Array.isArray(tutor.subjects) ? tutor.subjects : [];
-  const modeMeta = tutor.teachingMode || null;
 
   const strengths = [];
   if (tutor.education) {
@@ -43,9 +42,6 @@ export default function ProfileAbout({ tutor }) {
       icon: 'menu_book',
       text: `Đang giảng dạy: ${subjects.map((s) => s.subjectName).filter(Boolean).join(', ')}`,
     });
-  }
-  if (modeMeta === 'Both') {
-    strengths.push({ icon: 'videocam', text: 'Linh hoạt cả học online và tại nhà học viên' });
   }
 
   return (
@@ -115,7 +111,6 @@ ProfileAbout.propTypes = {
     bio: PropTypes.string,
     education: PropTypes.string,
     experienceYears: PropTypes.number,
-    teachingMode: PropTypes.string,
     subjects: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.string,

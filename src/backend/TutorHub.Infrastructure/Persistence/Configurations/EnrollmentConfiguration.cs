@@ -23,11 +23,6 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
         builder.Property(e => e.SessionDurationMinutes)
             .IsRequired();
 
-        builder.Property(e => e.TeachingMode)
-            .HasConversion<string>()
-            .HasMaxLength(50)
-            .IsRequired();
-
         builder.Property(e => e.PlatformFeeRate)
             .HasPrecision(5, 4)
             .IsRequired();

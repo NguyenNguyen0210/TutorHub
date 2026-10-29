@@ -1,5 +1,3 @@
-import { TEACHING_MODE } from '@/config/enums';
-
 export const SHORT_DESCRIPTION_MAX = 200;
 export const DESCRIPTION_MAX = 2000;
 export const TAGS_MAX = 10;
@@ -49,7 +47,6 @@ export function createInitialFormState(subjectId = '') {
     totalSessions: 10,
     sessionDurationMinutes: 60,
     price: 2000000,
-    teachingMode: TEACHING_MODE.ONLINE,
     trialLessonUrl: '',
     tags: '',
     coverImageUrl: '',
@@ -193,7 +190,6 @@ export function buildServicePayload(formData, { mode = 'create', lockCommercialT
     payload.totalSessions = Number(formData.totalSessions);
     payload.sessionDurationMinutes = Number(formData.sessionDurationMinutes);
     payload.price = Number(formData.price);
-    payload.teachingMode = formData.teachingMode;
   }
   if (mode === 'create') {
     payload.subjectId = formData.subjectId;

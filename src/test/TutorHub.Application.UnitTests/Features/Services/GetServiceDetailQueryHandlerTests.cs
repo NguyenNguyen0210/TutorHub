@@ -38,7 +38,6 @@ public class GetServiceDetailQueryHandlerTests
             Bio = "Bio",
             Education = "Edu",
             ExperienceYears = 5,
-            TeachingMode = TeachingMode.Both,
             SubmittedAt = DateTime.UtcNow
         };
         app.Approve(Guid.NewGuid());
@@ -71,7 +70,6 @@ public class GetServiceDetailQueryHandlerTests
             TotalSessions = 10,
             SessionDurationMinutes = 90,
             Price = 2000000m,
-            TeachingMode = TeachingMode.Both,
             Status = ServiceStatus.Published,
             CreatedAt = DateTime.UtcNow
         };
@@ -129,7 +127,6 @@ public class GetServiceDetailQueryHandlerTests
             TotalSessions = 6,
             SessionDurationMinutes = 60,
             Price = 1500000m,
-            TeachingMode = TeachingMode.Online,
             Status = ServiceStatus.Draft,
             CreatedAt = DateTime.UtcNow
         };

@@ -41,7 +41,6 @@ public class GetMyServicesQueryHandlerTests
             TotalSessions = 10,
             SessionDurationMinutes = 60,
             Price = 3000000m,
-            TeachingMode = TeachingMode.Online,
             Status = ServiceStatus.Published,
             CreatedAt = DateTime.UtcNow
         };

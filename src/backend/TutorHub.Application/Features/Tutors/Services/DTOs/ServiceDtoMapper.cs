@@ -38,7 +38,6 @@ public static class ServiceDtoMapper
             TotalSessions: s.TotalSessions,
             SessionDurationMinutes: s.SessionDurationMinutes,
             Price: s.Price,
-            TeachingMode: s.TeachingMode.ToString(),
             TrialLessonUrl: s.TrialLessonUrl,
             CoverImageUrl: s.CoverImageUrl,
             Status: s.Status.ToString(),

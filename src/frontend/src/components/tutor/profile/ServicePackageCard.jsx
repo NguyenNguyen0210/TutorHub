@@ -3,10 +3,8 @@ import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
 import Icon from '@/components/ui/Icon';
 import Money from '@/components/ui/Money';
-import { getTeachingModeMeta } from '@/config/enums';
 
 /**
  * ServicePackageCard — card gói học trong hồ sơ gia sư.
@@ -19,12 +17,10 @@ export default function ServicePackageCard({ service, isBooking = false, onBook 
   const totalSessions = Number(service.totalSessions) || 0;
   const price = Number(service.price) || 0;
   const perSession = totalSessions > 0 ? Math.round(price / totalSessions) : null;
-  const modeMeta = getTeachingModeMeta(service.teachingMode);
   const hasTrial = Boolean(service.hasTrialLesson);
 
   const benefits = [
     { key: 'sessions', text: `${totalSessions} buổi học 1 kèm 1 (${service.sessionDurationMinutes} phút/buổi)` },
-    { key: 'mode', text: `Hình thức: ${modeMeta.label}` },
     { key: 'escrow', text: 'Bảo lưu 12 giờ & giải ngân an toàn từng buổi' },
     { key: 'reschedule', text: 'Được đổi lịch báo trước tối thiểu 2 giờ' },
   ];
@@ -52,9 +48,6 @@ export default function ServicePackageCard({ service, isBooking = false, onBook 
             <span className="text-[11px] font-bold text-brand-primary-700 uppercase tracking-wide truncate">
               {service.subjectName}
             </span>
-            <Badge variant={modeMeta.color} size="sm">
-              {modeMeta.label}
-            </Badge>
           </div>
           <Link
             to={`/services/${service.id}`}
@@ -130,7 +123,6 @@ ServicePackageCard.propTypes = {
     totalSessions: PropTypes.number,
     sessionDurationMinutes: PropTypes.number,
     price: PropTypes.number,
-    teachingMode: PropTypes.string,
     hasTrialLesson: PropTypes.bool,
   }).isRequired,
   isBooking: PropTypes.bool,

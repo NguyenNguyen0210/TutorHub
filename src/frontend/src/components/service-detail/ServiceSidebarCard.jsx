@@ -106,20 +106,6 @@ export default function ServiceSidebarCard({ service, onBookNow }) {
           </span>
         </div>}
 
-        <div className="flex items-center justify-between">
-          <span className="text-neutral-500 flex items-center gap-2">
-            <Icon name="laptop_chromebook" size="xs" className="w-4 h-4 text-brand-primary-600" />
-            Hình thức đào tạo:
-          </span>
-          <span className="font-bold text-fg">
-            {service.teachingMode === 'InPerson' || service.teachingMode === 'Offline'
-              ? 'Tại nhà / Offline'
-              : service.teachingMode === 'Both'
-              ? 'Online hoặc Tại nhà'
-              : 'Online 1 kèm 1'}
-          </span>
-        </div>
-
       </div>
 
       {/* Action Buttons */}

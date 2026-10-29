@@ -3,7 +3,7 @@ import { useAuthStore } from '@/store/authStore';
 import userService from '@/services/user.service';
 import Card, { CardHeader } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Input, { Textarea, Select, Field } from '@/components/ui/Input';
+import Input, { Textarea, Field } from '@/components/ui/Input';
 import Tabs from '@/components/ui/Tabs';
 import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
@@ -32,8 +32,6 @@ export default function ProfileSettings() {
   const [bio, setBio] = useState('');
   const [education, setEducation] = useState('');
   const [experienceYears, setExperienceYears] = useState(0);
-  const [teachingMode, setTeachingMode] = useState('Online');
-  const [address, setAddress] = useState('');
 
   // Password Form States
   const [currentPassword, setCurrentPassword] = useState('');
@@ -76,8 +74,6 @@ export default function ProfileSettings() {
             setBio(tutorData.bio || '');
             setEducation(tutorData.education || '');
             setExperienceYears(tutorData.experienceYears || 0);
-            setTeachingMode(tutorData.teachingMode || 'Online');
-            setAddress(tutorData.address || '');
           }
         } else {
           const userData = await userService.getMyProfile();
@@ -149,8 +145,6 @@ export default function ProfileSettings() {
           bio: bio.trim() || null,
           education: education.trim() || null,
           experienceYears: Number(experienceYears) || 0,
-          teachingMode,
-          address: address.trim() || null,
         });
 
         // Sync local authStore so topbars/avatars update immediately
@@ -274,7 +268,7 @@ export default function ProfileSettings() {
           icon={<Icon name="hourglass_top" size="sm" />}
         >
           Hồ sơ giảng dạy của bạn đang chờ Ban duyệt, nên phần hồ sơ sư phạm (tiểu sử, học
-          vấn, hình thức dạy) tạm chưa mở. Bạn vẫn cập nhật được thông tin cá nhân bên
+          vấn, thông tin chuyên môn) tạm chưa mở. Bạn vẫn cập nhật được thông tin cá nhân bên
           dưới và đổi mật khẩu ở tab bên cạnh. Xem tiến độ hồ sơ tại trang Hồ sơ xét duyệt.
         </Callout>
       )}
@@ -349,19 +343,6 @@ export default function ProfileSettings() {
             />
           </Field>
 
-          {role === 'Tutor' && !teachingProfileMissing && (
-            <Field label="Hình thức giảng dạy" htmlFor="profile-teachingMode">
-              <Select
-                id="profile-teachingMode"
-                value={teachingMode}
-                onChange={(e) => setTeachingMode(e.target.value)}
-              >
-                <option value="Online">Chỉ dạy Trực tuyến (Online)</option>
-                <option value="Offline">Chỉ dạy Trực tiếp (Offline)</option>
-                <option value="Both">Cả Trực tuyến & Trực tiếp (Both)</option>
-              </Select>
-            </Field>
-          )}
         </div>
 
         {/* Tutor professional info fields — chỉ có khi TutorProfile đã tồn tại */}
@@ -373,27 +354,16 @@ export default function ProfileSettings() {
               icon={<Icon name="school" size="sm" className="text-brand-primary-600" />}
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Số năm kinh nghiệm giảng dạy" htmlFor="profile-experience">
-                <Input
-                  id="profile-experience"
-                  type="number"
-                  min={0}
-                  max={50}
-                  value={experienceYears}
-                  onChange={(e) => setExperienceYears(Number(e.target.value))}
-                />
-              </Field>
-
-              <Field label="Khu vực / Địa chỉ dạy học" htmlFor="profile-address">
-                <Input
-                  id="profile-address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Ví dụ: Quận 1, TP. Hồ Chí Minh"
-                />
-              </Field>
-            </div>
+            <Field label="Số năm kinh nghiệm giảng dạy" htmlFor="profile-experience">
+              <Input
+                id="profile-experience"
+                type="number"
+                min={0}
+                max={50}
+                value={experienceYears}
+                onChange={(e) => setExperienceYears(Number(e.target.value))}
+              />
+            </Field>
 
             <Field label="Học vấn & Bằng cấp chuyên môn" htmlFor="profile-education">
               <Input

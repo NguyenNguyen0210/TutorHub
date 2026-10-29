@@ -26,8 +26,6 @@ public record AdminUserTutorProfileDto(
     string Bio,
     string Education,
     int ExperienceYears,
-    TeachingMode TeachingMode,
-    string? Address,
     string? LatestApplicationStatus,
     decimal RatingAvg,
     int TotalReviews,

@@ -7,14 +7,12 @@ import Icon from '@/components/ui/Icon';
 import { CardSkeleton } from '@/components/common/Skeleton';
 import ErrorState from '@/components/common/ErrorState';
 import { useToast } from '@/components/ui/Toast';
-import { getTeachingModeMeta } from '@/config/enums';
 import {
   BasicInfoFields,
   ScopeOutcomeFields,
   TrialFields,
   SubjectFields,
   PackageTermsFields,
-  ModeFields,
   CurriculumFields,
   FaqFields,
   SectionTitle,
@@ -32,9 +30,8 @@ const STEPS = [
   { id: 1, label: 'Thông tin cơ bản' },
   { id: 2, label: 'Nội dung & mục tiêu' },
   { id: 3, label: 'Gói học & học phí' },
-  { id: 4, label: 'Hình thức dạy' },
-  { id: 5, label: 'Học thử' },
-  { id: 6, label: 'Xem trước & xuất bản' },
+  { id: 4, label: 'Học thử' },
+  { id: 5, label: 'Xem trước & xuất bản' },
 ];
 
 /** Per-step gate: returns an error message or null. Final step reuses full validation. */
@@ -71,7 +68,6 @@ function validateStep(step, formData) {
 
 function WizardPreview({ formData, subjects }) {
   const subjectName = subjects.find((s) => s.id === formData.subjectId)?.name || '—';
-  const modeMeta = getTeachingModeMeta(formData.teachingMode);
   const sessions = Array.isArray(formData.sessions) ? formData.sessions : [];
   const audience = splitLines(formData.targetAudienceText);
   const prereqs = splitLines(formData.prerequisitesText);
@@ -97,7 +93,7 @@ function WizardPreview({ formData, subjects }) {
             <p className="text-body-reg text-fg-secondary mt-1">{formData.shortDescription.trim()}</p>
           )}
           <p className="text-[13px] text-fg-secondary mt-2">
-            {total} buổi · {formData.sessionDurationMinutes} phút/buổi · {modeMeta.label}
+            {total} buổi · {formData.sessionDurationMinutes} phút/buổi
           </p>
         </div>
         <div className="sm:text-right shrink-0">
@@ -383,25 +379,15 @@ export default function ServiceCreateWizard() {
         )}
 
         {step === 4 && (
-          <section className="space-y-4" aria-label="Hình thức giảng dạy">
-            <SectionTitle step={4}>Hình thức giảng dạy</SectionTitle>
-            <ModeFields formData={formData} onFieldChange={handleFieldChange} locked={false} />
-            <p className="text-caption text-fg-secondary">
-              Lịch từng buổi sẽ do bạn xếp sau khi học viên đăng ký gói học.
-            </p>
-          </section>
-        )}
-
-        {step === 5 && (
           <section className="space-y-4" aria-label="Video học thử">
-            <SectionTitle step={5}>Video học thử</SectionTitle>
+            <SectionTitle step={4}>Video học thử</SectionTitle>
             <TrialFields formData={formData} onFieldChange={handleFieldChange} />
           </section>
         )}
 
-        {step === 6 && (
+        {step === 5 && (
           <section className="space-y-4" aria-label="Xem trước và xuất bản">
-            <SectionTitle step={6}>Xem trước &amp; xuất bản</SectionTitle>
+            <SectionTitle step={5}>Xem trước &amp; xuất bản</SectionTitle>
             <p className="text-caption text-fg-secondary">
               Đây là cách học viên sẽ thấy gói học của bạn trên sàn giao dịch.
             </p>

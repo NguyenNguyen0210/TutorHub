@@ -20,8 +20,6 @@ public record AdminTutorApplicationListItemDto(
     string? Subject = null,
     string? SubjectSub = null,
     int ExperienceYears = 0,
-    string? TeachingMode = null,
-    string? Address = null,
     string? Methodology = null,
     string? Achievements = null,
     string? DocumentsJson = null

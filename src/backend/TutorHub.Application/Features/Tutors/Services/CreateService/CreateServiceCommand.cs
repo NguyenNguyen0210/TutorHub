@@ -1,6 +1,5 @@
 using MediatR;
 using TutorHub.Application.Features.Tutors.Services.DTOs;
-using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Tutors.Services.CreateService;
 
@@ -15,7 +14,6 @@ public record CreateServiceCommand(
     int TotalSessions,
     int SessionDurationMinutes,
     decimal Price,
-    TeachingMode TeachingMode,
     string? TrialLessonUrl,
     string? CoverImageUrl,
     List<CurriculumItemInput>? Curriculum = null,

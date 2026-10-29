@@ -269,10 +269,6 @@ export default function TutorApplication() {
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-fg-muted">Hình thức dạy:</dt>
-              <dd className="font-semibold text-fg-secondary">{existingApp.teachingMode}</dd>
-            </div>
-            <div className="flex justify-between">
               <dt className="text-fg-muted">Thời gian dự kiến:</dt>
               <dd className="font-semibold text-success">1 – 3 ngày làm việc</dd>
             </div>

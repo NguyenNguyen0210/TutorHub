@@ -44,7 +44,6 @@ public class TutorApprovalWalletTests : IntegrationTestBase
             Bio = "Experienced tutor",
             Education = "University",
             ExperienceYears = 2,
-            TeachingMode = TeachingMode.Online,
             SubmittedAt = DateTime.UtcNow
         };
         Db.Users.AddRange(user, admin);

@@ -106,7 +106,6 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
                 s.TotalSessions,
                 s.SessionDurationMinutes,
                 s.Price,
-                s.TeachingMode.ToString(),
                 !string.IsNullOrWhiteSpace(s.TrialLessonUrl)
             ))
             .ToList();
@@ -119,10 +118,6 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
             Bio: tutor.Bio,
             Education: tutor.Education,
             ExperienceYears: tutor.ExperienceYears,
-            TeachingMode: tutor.TeachingMode.ToString(),
-            Address: tutor.Address,
-            Latitude: tutor.Latitude,
-            Longitude: tutor.Longitude,
             RatingAvg: tutor.RatingAvg,
             TotalReviews: tutor.TotalReviews,
             Subjects: subjects,

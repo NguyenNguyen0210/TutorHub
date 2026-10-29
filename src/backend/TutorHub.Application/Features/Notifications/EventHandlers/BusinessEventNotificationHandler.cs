@@ -429,7 +429,7 @@ public class BusinessEventNotificationHandler :
             (
                 UserId: notification.StudentUserId,
                 Title: "Refund Processing Notice",
-                Message: $"Automated refund of {notification.Amount.Amount:N0} VND encountered an issue and requires administrative offline settlement. Reason: {notification.Reason}",
+                Message: $"Automated refund of {notification.Amount.Amount:N0} VND encountered an issue and requires manual administrative settlement. Reason: {notification.Reason}",
                 DeepLink: NotificationRouteRegistry.Enrollment(notification.EnrollmentId)
             )
         };

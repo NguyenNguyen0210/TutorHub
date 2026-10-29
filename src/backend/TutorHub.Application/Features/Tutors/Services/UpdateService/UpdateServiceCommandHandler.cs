@@ -59,8 +59,7 @@ public class UpdateServiceCommandHandler : IRequestHandler<UpdateServiceCommand,
             var isChangingCommercialTerms =
                 (request.TotalSessions.HasValue && request.TotalSessions.Value != service.TotalSessions) ||
                 (request.SessionDurationMinutes.HasValue && request.SessionDurationMinutes.Value != service.SessionDurationMinutes) ||
-                (request.Price.HasValue && request.Price.Value != service.Price) ||
-                (request.TeachingMode.HasValue && request.TeachingMode.Value != service.TeachingMode);
+                (request.Price.HasValue && request.Price.Value != service.Price);
 
             var isChangingShowcaseFields =
                 (request.ShortDescription != null && request.ShortDescription != service.ShortDescription) ||
@@ -100,9 +99,6 @@ public class UpdateServiceCommandHandler : IRequestHandler<UpdateServiceCommand,
 
         if (request.Price.HasValue)
             service.Price = request.Price.Value;
-
-        if (request.TeachingMode.HasValue)
-            service.TeachingMode = request.TeachingMode.Value;
 
         if (request.TrialLessonUrl != null)
             service.TrialLessonUrl = request.TrialLessonUrl;

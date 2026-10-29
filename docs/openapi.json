@@ -10706,13 +10706,6 @@
             }
           },
           {
-            "name": "teachingMode",
-            "in": "query",
-            "schema": {
-              "$ref": "#/components/schemas/TutorHub.Domain.Enums.TeachingMode"
-            }
-          },
-          {
             "name": "minPrice",
             "in": "query",
             "schema": {
@@ -12216,13 +12209,6 @@
             }
           },
           {
-            "name": "teachingMode",
-            "in": "query",
-            "schema": {
-              "$ref": "#/components/schemas/TutorHub.Domain.Enums.TeachingMode"
-            }
-          },
-          {
             "name": "minRating",
             "in": "query",
             "schema": {
@@ -12260,13 +12246,6 @@
           },
           {
             "name": "certification",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "city",
             "in": "query",
             "schema": {
               "type": "string"
@@ -20710,24 +20689,6 @@
             "type": "integer",
             "format": "int32"
           },
-          "teachingMode": {
-            "type": "string",
-            "nullable": true
-          },
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
           "methodology": {
             "type": "string",
             "nullable": true
@@ -20841,14 +20802,6 @@
             "type": "integer",
             "format": "int32"
           },
-          "teachingMode": {
-            "type": "string",
-            "nullable": true
-          },
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
           "methodology": {
             "type": "string",
             "nullable": true
@@ -20898,14 +20851,6 @@
           "experienceYears": {
             "type": "integer",
             "format": "int32"
-          },
-          "teachingMode": {
-            "type": "string",
-            "nullable": true
-          },
-          "address": {
-            "type": "string",
-            "nullable": true
           },
           "latestApplicationStatus": {
             "type": "string",
@@ -21111,13 +21056,6 @@
           "experienceYears": {
             "type": "integer",
             "format": "int32"
-          },
-          "teachingMode": {
-            "$ref": "#/components/schemas/TutorHub.Domain.Enums.TeachingMode"
-          },
-          "address": {
-            "type": "string",
-            "nullable": true
           },
           "latestApplicationStatus": {
             "type": "string",
@@ -21577,9 +21515,6 @@
             "type": "integer",
             "format": "int32"
           },
-          "teachingMode": {
-            "$ref": "#/components/schemas/TutorHub.Domain.Enums.TeachingMode"
-          },
           "enrollment": {
             "$ref": "#/components/schemas/TutorHub.Application.Features.Bookings.DTOs.EnrollmentDto"
           }
@@ -21695,9 +21630,6 @@
           "sessionDurationMinutes": {
             "type": "integer",
             "format": "int32"
-          },
-          "teachingMode": {
-            "$ref": "#/components/schemas/TutorHub.Domain.Enums.TeachingMode"
           },
           "status": {
             "$ref": "#/components/schemas/TutorHub.Domain.Enums.EnrollmentStatus"
@@ -22589,9 +22521,6 @@
             "type": "integer",
             "format": "int32"
           },
-          "teachingMode": {
-            "$ref": "#/components/schemas/TutorHub.Domain.Enums.TeachingMode"
-          },
           "status": {
             "$ref": "#/components/schemas/TutorHub.Domain.Enums.EnrollmentStatus"
           },
@@ -22744,8 +22673,7 @@
           },
           "estimatedSize": {
             "type": "integer",
-            "format": "int64",
-            "nullable": true
+            "format": "int64"
           },
           "mediaType": {
             "$ref": "#/components/schemas/TutorHub.Domain.Enums.MediaType"
@@ -23307,10 +23235,6 @@
             "type": "number",
             "format": "double"
           },
-          "teachingMode": {
-            "type": "string",
-            "nullable": true
-          },
           "hasTrialLesson": {
             "type": "boolean"
           },
@@ -23409,10 +23333,6 @@
           "pricePerSession": {
             "type": "number",
             "format": "double"
-          },
-          "teachingMode": {
-            "type": "string",
-            "nullable": true
           },
           "status": {
             "type": "string",
@@ -23565,10 +23485,6 @@
             "type": "integer",
             "format": "int32"
           },
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
           "ratingAvg": {
             "type": "number",
             "format": "double"
@@ -23651,9 +23567,6 @@
           "durationMinutes": {
             "type": "integer",
             "format": "int32"
-          },
-          "teachingMode": {
-            "$ref": "#/components/schemas/TutorHub.Domain.Enums.TeachingMode"
           },
           "status": {
             "$ref": "#/components/schemas/TutorHub.Domain.Enums.SessionStatus"
@@ -24101,24 +24014,6 @@
           "experienceYears": {
             "type": "integer",
             "format": "int32"
-          },
-          "teachingMode": {
-            "type": "string",
-            "nullable": true
-          },
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
           }
         },
         "additionalProperties": false
@@ -24173,24 +24068,6 @@
           "experienceYears": {
             "type": "integer",
             "format": "int32"
-          },
-          "teachingMode": {
-            "type": "string",
-            "nullable": true
-          },
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
           },
           "methodology": {
             "type": "string",
@@ -24273,24 +24150,6 @@
             "type": "integer",
             "format": "int32"
           },
-          "teachingMode": {
-            "type": "string",
-            "nullable": true
-          },
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
           "ratingAvg": {
             "type": "number",
             "format": "double"
@@ -24347,24 +24206,6 @@
           "experienceYears": {
             "type": "integer",
             "format": "int32"
-          },
-          "teachingMode": {
-            "type": "string",
-            "nullable": true
-          },
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
           },
           "ratingAvg": {
             "type": "number",
@@ -24464,14 +24305,6 @@
             "type": "integer",
             "format": "int32"
           },
-          "teachingMode": {
-            "type": "string",
-            "nullable": true
-          },
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
           "ratingAvg": {
             "type": "number",
             "format": "double"
@@ -24545,24 +24378,6 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
-          },
-          "teachingMode": {
-            "type": "string",
-            "nullable": true
-          },
-          "address": {
-            "type": "string",
-            "nullable": true
-          },
-          "latitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "longitude": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
           }
         },
         "additionalProperties": false
@@ -24612,10 +24427,6 @@
           "price": {
             "type": "number",
             "format": "double"
-          },
-          "teachingMode": {
-            "type": "string",
-            "nullable": true
           },
           "trialLessonUrl": {
             "type": "string",
@@ -24762,10 +24573,6 @@
             "type": "number",
             "format": "double"
           },
-          "teachingMode": {
-            "type": "string",
-            "nullable": true
-          },
           "trialLessonUrl": {
             "type": "string",
             "nullable": true
@@ -24858,10 +24665,6 @@
             "type": "number",
             "format": "double"
           },
-          "teachingMode": {
-            "type": "string",
-            "nullable": true
-          },
           "hasTrialLesson": {
             "type": "boolean"
           }
@@ -24911,10 +24714,6 @@
           "price": {
             "type": "number",
             "format": "double",
-            "nullable": true
-          },
-          "teachingMode": {
-            "type": "string",
             "nullable": true
           },
           "trialLessonUrl": {
@@ -25454,14 +25253,6 @@
           "AwaitingPayout",
           "Completed",
           "Cancelled"
-        ],
-        "type": "string"
-      },
-      "TutorHub.Domain.Enums.TeachingMode": {
-        "enum": [
-          "Online",
-          "Offline",
-          "Both"
         ],
         "type": "string"
       },

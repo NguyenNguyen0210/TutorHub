@@ -10,17 +10,10 @@ import {
   TrialFields,
   SubjectFields,
   PackageTermsFields,
-  ModeFields,
   CurriculumFields,
   FaqFields,
 } from './ServiceFormSections';
 
-// Re-exported for backward compatibility (helpers moved to ServiceFormSections / serviceFormUtils).
-export {
-  TEACHING_MODE_OPTIONS,
-  teachingModeFromPlaces,
-  placesFromTeachingMode,
-} from './ServiceFormSections';
 export { parseTags } from './serviceFormUtils';
 
 /**
@@ -75,7 +68,6 @@ export default function ServiceDrawer({
         <section className="space-y-4" aria-label="Chi tiết gói học">
           <SectionTitle step={3}>Chi tiết gói học</SectionTitle>
           <PackageTermsFields formData={formData} onFieldChange={onFieldChange} locked={isPublished} />
-          <ModeFields formData={formData} onFieldChange={onFieldChange} locked={isPublished} />
         </section>
 
         {/* ── 4. Nội dung từng buổi ─────────────────────── */}

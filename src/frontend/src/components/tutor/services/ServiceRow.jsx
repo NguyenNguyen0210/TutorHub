@@ -6,7 +6,6 @@ import Badge, { Tag } from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import { Menu } from '@/components/ui/Avatar';
-import { getTeachingModeMeta } from '@/config/enums';
 import { formatRelativeTime } from '@/utils/formatters';
 
 export function ServiceStatusBadge({ status }) {
@@ -75,13 +74,17 @@ export default function ServiceRow({
   onPause = undefined,
   onResume = undefined,
 }) {
-  const modeMeta = getTeachingModeMeta(pkg.teachingMode);
   const pricePerSession =
     pkg.totalSessions > 0 ? Math.round(pkg.price / pkg.totalSessions) : pkg.price;
   const detailHref = `/services/${pkg.id}`;
   const updatedLabel = pkg.updatedAt || pkg.createdAt
     ? `Cập nhật ${formatRelativeTime(pkg.updatedAt || pkg.createdAt)}`
     : null;
+  const serviceSignals = [
+    pkg.studentCount != null ? `${pkg.studentCount} học viên` : null,
+    pkg.averageRating != null ? `${Number(pkg.averageRating).toFixed(1)}★ (${pkg.reviewCount ?? 0})` : null,
+    pkg.trialLessonUrl ? 'Có video học thử' : null,
+  ].filter(Boolean).join(' · ');
 
   const openPublic = () => window.open(detailHref, '_blank', 'noopener,noreferrer');
 
@@ -252,12 +255,9 @@ export default function ServiceRow({
         <p className="text-[13px] text-fg-secondary leading-relaxed">
           {pkg.totalSessions} buổi · {pkg.sessionDurationMinutes} phút/buổi
         </p>
-        <p className="text-[13px] text-fg-secondary leading-relaxed">
-          {modeMeta.label}
-          {pkg.studentCount != null && ` · ${pkg.studentCount} học viên`}
-          {pkg.averageRating != null && ` · ${Number(pkg.averageRating).toFixed(1)}★ (${pkg.reviewCount ?? 0})`}
-          {pkg.trialLessonUrl && ' · Có video học thử'}
-        </p>
+        {serviceSignals && (
+          <p className="text-[13px] text-fg-secondary leading-relaxed">{serviceSignals}</p>
+        )}
         {updatedLabel && (
           <p className="text-[12px] text-fg-muted">{updatedLabel}</p>
         )}
@@ -302,7 +302,6 @@ ServiceRow.propTypes = {
     totalSessions: PropTypes.number,
     sessionDurationMinutes: PropTypes.number,
     price: PropTypes.number,
-    teachingMode: PropTypes.string,
     trialLessonUrl: PropTypes.string,
     updatedAt: PropTypes.string,
     createdAt: PropTypes.string,

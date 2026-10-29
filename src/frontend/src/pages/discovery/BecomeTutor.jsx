@@ -14,7 +14,7 @@ const MINI_BENEFITS = [
     icon: 'calendar_month',
     iconBg: 'bg-danger-subtle text-danger-strong border border-danger/20',
     title: 'Linh hoạt thời gian',
-    desc: 'Dạy online hoặc tại nhà, chủ động sắp xếp lịch',
+    desc: 'Dạy trực tuyến, chủ động sắp xếp lịch',
   },
   {
     icon: 'group',
@@ -47,7 +47,7 @@ const STEPS = [
     num: 3,
     icon: 'menu_book',
     title: 'Thiết lập dịch vụ',
-    desc: 'Tạo các gói dịch vụ học tập, đặt giá, mô tả nội dung và lựa chọn hình thức dạy.',
+    desc: 'Tạo các gói học trực tuyến, đặt giá và mô tả nội dung rõ ràng.',
   },
   {
     num: 4,

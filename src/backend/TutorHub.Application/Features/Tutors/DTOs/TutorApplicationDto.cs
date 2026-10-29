@@ -1,5 +1,4 @@
 using TutorHub.Domain.Entities;
-using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Tutors.DTOs;
 
@@ -16,10 +15,6 @@ public record TutorApplicationDto(
     string? Subject,
     string? SubjectSub,
     int ExperienceYears,
-    string TeachingMode,
-    string? Address,
-    double? Latitude,
-    double? Longitude,
     string? Methodology,
     string? Achievements,
     string? DocumentsJson,
@@ -41,10 +36,6 @@ public record TutorApplicationDto(
         a.Subject,
         a.SubjectSub,
         a.ExperienceYears,
-        a.TeachingMode.ToString(),
-        a.Address,
-        a.Latitude,
-        a.Longitude,
         a.Methodology,
         a.Achievements,
         a.DocumentsJson,

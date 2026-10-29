@@ -1,9 +1,8 @@
 import React, { useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import Input, { Textarea, Select, Field, Checkbox } from '@/components/ui/Input';
+import Input, { Textarea, Select, Field } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
-import { TEACHING_MODE } from '@/config/enums';
 import {
   SHORT_DESCRIPTION_MAX,
   DESCRIPTION_MAX,
@@ -13,34 +12,6 @@ import {
   EMPTY_SESSION,
   EMPTY_FAQ,
 } from './serviceFormUtils';
-
-export const TEACHING_MODE_OPTIONS = [
-  { value: TEACHING_MODE.ONLINE, label: 'Trực tuyến (Online)' },
-  { value: TEACHING_MODE.OFFLINE, label: 'Tại nhà học viên (Offline)' },
-  { value: TEACHING_MODE.BOTH, label: 'Cả Online & tại nhà' },
-];
-
-/**
- * Map the 3 teaching-place checkboxes to the backend TeachingMode enum:
- * only-Online → Online, only-offline-ish → Offline, mixed → Both.
- */
-export function teachingModeFromPlaces({ online, atHome, otherPlace }) {
-  if (online && !atHome && !otherPlace) return TEACHING_MODE.ONLINE;
-  if (!online && (atHome || otherPlace)) return TEACHING_MODE.OFFLINE;
-  return TEACHING_MODE.BOTH;
-}
-
-/** Reverse mapping, used to initialise the checkboxes from a stored enum value. */
-export function placesFromTeachingMode(mode) {
-  switch (mode) {
-    case TEACHING_MODE.OFFLINE:
-      return { online: false, atHome: true, otherPlace: false };
-    case TEACHING_MODE.BOTH:
-      return { online: true, atHome: true, otherPlace: false };
-    default:
-      return { online: true, atHome: false, otherPlace: false };
-  }
-}
 
 export function SectionTitle({ step, children }) {
   return (
@@ -90,7 +61,6 @@ const formDataShape = PropTypes.shape({
   totalSessions: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   sessionDurationMinutes: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   price: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  teachingMode: PropTypes.string,
   trialLessonUrl: PropTypes.string,
   tags: PropTypes.string,
   coverImageUrl: PropTypes.string,
@@ -395,7 +365,7 @@ export function PackageTermsFields({ formData, onFieldChange, locked = false }) 
       {locked && (
         <div className="p-3 bg-holding-subtle text-holding-strong rounded-brand-md text-caption" role="note">
           <strong>Khóa điều khoản thương mại:</strong> gói đang tuyển sinh không sửa
-          được số buổi, thời lượng, giá và hình thức dạy. Hãy <strong>Tạm ẩn</strong> gói
+          được số buổi, thời lượng và giá. Hãy <strong>Tạm ẩn</strong> gói
           nếu muốn đổi các thông tin này.
         </div>
       )}
@@ -453,66 +423,6 @@ export function PackageTermsFields({ formData, onFieldChange, locked = false }) 
 }
 
 PackageTermsFields.propTypes = {
-  formData: formDataShape.isRequired,
-  onFieldChange: PropTypes.func.isRequired,
-  locked: PropTypes.bool,
-};
-
-
-/* ── Teaching mode checkboxes ── */
-export function ModeFields({ formData, onFieldChange, locked = false }) {
-  const places = placesFromTeachingMode(formData.teachingMode);
-  const handlePlaceToggle = (key) => {
-    const next = { ...places, [key]: !places[key] };
-    // Keep at least one place checked so the enum mapping stays valid.
-    if (!next.online && !next.atHome && !next.otherPlace) return;
-    onFieldChange('teachingMode', teachingModeFromPlaces(next));
-  };
-
-  return (
-    /* Đây là NHÓM checkbox, không phải một control: `<label for>` chỉ trỏ được
-       tới đúng một control, nên dùng `Field` ở đây sẽ sinh ra một `<label>`
-       trỏ vào hư không. `<fieldset>` + `<legend>` là cách gom nhóm control có
-       sẵn của HTML — trình đọc màn hình đọc tên nhóm khi bước qua từng ô mà
-       không cần `role="group"` hay `aria-label` viết tay. */
-    <fieldset className="w-full">
-      <legend className="block text-caption font-semibold text-fg-secondary mb-1.5 uppercase tracking-wide">
-        Hình thức học
-        <span className="text-danger ml-0.5" aria-hidden="true">
-          *
-        </span>
-      </legend>
-      <div className="space-y-2.5" aria-describedby="service-mode-hint">
-        <Checkbox
-          id="service-mode-online"
-          label="Online"
-          checked={places.online}
-          disabled={locked}
-          onChange={() => handlePlaceToggle('online')}
-        />
-        <Checkbox
-          id="service-mode-athome"
-          label="Tại nhà học viên"
-          checked={places.atHome}
-          disabled={locked}
-          onChange={() => handlePlaceToggle('atHome')}
-        />
-        <Checkbox
-          id="service-mode-other"
-          label="Tại địa điểm khác"
-          checked={places.otherPlace}
-          disabled={locked}
-          onChange={() => handlePlaceToggle('otherPlace')}
-        />
-      </div>
-      <p id="service-mode-hint" className="text-caption text-fg-muted mt-1.5">
-        Chọn ít nhất một hình thức.
-      </p>
-    </fieldset>
-  );
-}
-
-ModeFields.propTypes = {
   formData: formDataShape.isRequired,
   onFieldChange: PropTypes.func.isRequired,
   locked: PropTypes.bool,
@@ -758,7 +668,7 @@ export function FaqFields({ formData, onFieldChange }) {
             <Input
               id={`service-faq-${i}-q`}
               maxLength={200}
-              placeholder="Ví dụ: Học online hay offline?"
+              placeholder="Ví dụ: Cần chuẩn bị gì trước buổi học?"
               value={f.question}
               onChange={(e) => updateFaq(i, 'question', e.target.value)}
             />

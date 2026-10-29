@@ -34,10 +34,6 @@ public class TutorApplication
     public string? Subject { get; set; }
     public string? SubjectSub { get; set; }
     public int ExperienceYears { get; set; }
-    public TeachingMode TeachingMode { get; set; }
-    public string? Address { get; set; }
-    public double? Latitude { get; set; }
-    public double? Longitude { get; set; }
     public string? Methodology { get; set; }
     public string? Achievements { get; set; }
     public string? DocumentsJson { get; set; }

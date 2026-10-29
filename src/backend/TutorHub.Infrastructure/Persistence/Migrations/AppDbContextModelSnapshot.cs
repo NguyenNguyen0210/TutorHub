@@ -127,11 +127,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("SubjectId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("TeachingMode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<decimal>("TotalPrice")
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
@@ -546,11 +541,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("SubjectId")
                         .HasColumnType("uuid");
-
-                    b.Property<string>("TeachingMode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
 
                     b.Property<decimal>("TotalPrice")
                         .HasPrecision(12, 2)
@@ -1194,11 +1184,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<string>("TargetAudienceJson")
                         .HasColumnType("jsonb");
 
-                    b.Property<string>("TeachingMode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1523,10 +1508,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
-                    b.Property<string>("Address")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
                     b.Property<string>("Bio")
                         .IsRequired()
                         .HasMaxLength(2000)
@@ -1550,12 +1531,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("ExperienceYears")
                         .HasColumnType("integer");
-
-                    b.Property<double?>("Latitude")
-                        .HasColumnType("double precision");
-
-                    b.Property<double?>("Longitude")
-                        .HasColumnType("double precision");
 
                     b.Property<string>("Major")
                         .HasMaxLength(255)
@@ -1590,11 +1565,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime>("SubmittedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("TeachingMode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("University")
                         .HasMaxLength(255)
@@ -1638,10 +1608,6 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<string>("Address")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
                     b.Property<string>("BankCode")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
@@ -1663,20 +1629,9 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Property<int>("ExperienceYears")
                         .HasColumnType("integer");
 
-                    b.Property<double?>("Latitude")
-                        .HasColumnType("double precision");
-
-                    b.Property<double?>("Longitude")
-                        .HasColumnType("double precision");
-
                     b.Property<decimal>("RatingAvg")
                         .HasPrecision(3, 2)
                         .HasColumnType("numeric(3,2)");
-
-                    b.Property<string>("TeachingMode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
 
                     b.Property<int>("TotalReviews")
                         .HasColumnType("integer");

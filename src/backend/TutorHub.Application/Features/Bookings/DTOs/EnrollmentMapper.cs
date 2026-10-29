@@ -21,7 +21,6 @@ public static class EnrollmentMapper
             TotalSessions: enrollment.TotalSessions,
             CompletedSessions: enrollment.CompletedSessions,
             SessionDurationMinutes: enrollment.SessionDurationMinutes,
-            TeachingMode: enrollment.TeachingMode,
             Status: enrollment.Status,
             CreatedAt: enrollment.CreatedAt,
             CompletedAt: enrollment.CompletedAt,

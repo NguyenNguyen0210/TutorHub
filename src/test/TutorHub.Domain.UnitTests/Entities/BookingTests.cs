@@ -20,7 +20,6 @@ public class BookingTests
             TotalPrice = price,
             TotalSessions = 5,
             SessionDurationMinutes = 60,
-            TeachingMode = TeachingMode.Online,
             Status = status,
             CreatedAt = DateTime.UtcNow
         };

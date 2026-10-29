@@ -10,7 +10,6 @@ public record UpdateServiceRequest(
     int? TotalSessions,
     int? SessionDurationMinutes,
     decimal? Price,
-    string? TeachingMode,
     string? TrialLessonUrl,
     string? CoverImageUrl,
     List<CurriculumItemInput>? Curriculum = null,

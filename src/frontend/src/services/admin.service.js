@@ -100,8 +100,6 @@ function normalizeTutorApplication(raw = {}) {
     subject: raw.subject || '',
     subjectSub: raw.subjectSub || '',
     experienceYears: toNumber(raw.experienceYears, 0),
-    teachingMode: raw.teachingMode || null,
-    address: raw.address || null,
     methodology: raw.methodology || '',
     achievements: raw.achievements || '',
     documentsJson: raw.documentsJson || null,

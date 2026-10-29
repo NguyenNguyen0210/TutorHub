@@ -1,6 +1,5 @@
 using MediatR;
 using TutorHub.Application.Features.Tutors.DTOs;
-using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Tutors.UpdateMyProfile;
 
@@ -10,9 +9,5 @@ public record UpdateMyProfileCommand(
     string? AvatarUrl = null,
     string? Bio = null,
     string? Education = null,
-    int? ExperienceYears = null,
-    TeachingMode? TeachingMode = null,
-    string? Address = null,
-    double? Latitude = null,
-    double? Longitude = null
+    int? ExperienceYears = null
 ) : IRequest<TutorMyProfileDto>;

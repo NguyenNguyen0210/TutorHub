@@ -57,12 +57,6 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
             query = query.Where(t => t.Services.Any(s => s.Status == ServiceStatus.Published && s.Price <= request.MaxPrice.Value));
         }
 
-        // Filter by Teaching Mode
-        if (request.TeachingMode.HasValue)
-        {
-            query = query.Where(t => t.TeachingMode == request.TeachingMode.Value || t.TeachingMode == TeachingMode.Both);
-        }
-
         // Filter by Minimum Rating
         if (request.MinRating.HasValue)
         {
@@ -114,16 +108,6 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
                   EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Education)!.ToLower(), pattern, @"\"))));
         }
 
-        // Filter by City / Address
-        if (!string.IsNullOrWhiteSpace(request.City))
-        {
-            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
-            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.City)) + "%";
-            query = query.Where(t =>
-                (t.Address != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.Address)!.ToLower(), pattern, @"\")) ||
-                t.User.TutorApplications.Any(a => a.Status == TutorApplicationStatus.Approved && a.Address != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(a.Address)!.ToLower(), pattern, @"\")));
-        }
-
         // Search by keyword (tutor full name, service title, subject name, or category name)
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -166,8 +150,6 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
                 t.Bio,
                 t.Education,
                 t.ExperienceYears,
-                t.TeachingMode.ToString(),
-                t.Address,
                 t.RatingAvg,
                 t.TotalReviews,
                 t.TutorSubjects.Where(ts => ts.IsActive).Select(ts => ts.Subject.Name).ToList(),

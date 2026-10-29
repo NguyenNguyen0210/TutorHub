@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using TutorHub.Domain.Enums;
 
 namespace TutorHub.Domain.Entities;
 
@@ -15,14 +14,6 @@ public class TutorProfile
     public string Bio { get; set; } = default!;
     public string Education { get; set; } = default!;
     public int ExperienceYears { get; set; }
-
-    // Teaching mode
-    public TeachingMode TeachingMode { get; set; }
-
-    // Offline location
-    public string? Address { get; set; }
-    public double? Latitude { get; set; }
-    public double? Longitude { get; set; }
 
     // Denormalized review statistics (mutated only via ApplyReview).
     public decimal RatingAvg { get; private set; } = 0;

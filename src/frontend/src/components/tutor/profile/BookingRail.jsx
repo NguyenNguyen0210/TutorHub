@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
-import { getTeachingModeMeta } from '@/config/enums';
 
 /**
  * BookingRail — cột phải sticky: hành động + số liệu tin cậy.
@@ -17,7 +16,6 @@ import { getTeachingModeMeta } from '@/config/enums';
 export default function BookingRail({ tutor }) {
   const ratingValue = Number(tutor.ratingAvg) || 0;
   const hasRating = ratingValue > 0;
-  const modeMeta = getTeachingModeMeta(tutor.teachingMode);
 
   const stats = [];
   if (hasRating) {
@@ -36,12 +34,6 @@ export default function BookingRail({ tutor }) {
       label: 'Kinh nghiệm giảng dạy',
       value: `${tutor.experienceYears} năm`,
     });
-  }
-  if (modeMeta.label) {
-    stats.push({ key: 'mode', icon: 'videocam', label: 'Hình thức học', value: modeMeta.label });
-  }
-  if (tutor.address) {
-    stats.push({ key: 'addr', icon: 'location_on', label: 'Khu vực', value: tutor.address });
   }
 
   return (
@@ -112,7 +104,5 @@ BookingRail.propTypes = {
     ratingAvg: PropTypes.number,
     totalReviews: PropTypes.number,
     experienceYears: PropTypes.number,
-    teachingMode: PropTypes.string,
-    address: PropTypes.string,
   }).isRequired,
 };

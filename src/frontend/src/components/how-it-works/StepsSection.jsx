@@ -13,7 +13,7 @@ const JOURNEY_CONFIG = {
     accent: 'bg-brand-primary-600',
     iconStyle: 'bg-brand-primary-50 text-brand-primary-700 border-brand-primary-100',
     steps: [
-      ['search', 'Tìm người phù hợp', 'Lọc theo môn học, mục tiêu, hình thức và học phí.'],
+      ['search', 'Tìm người phù hợp', 'Lọc theo môn học, mục tiêu và học phí.'],
       ['forum', 'Trao đổi mục tiêu', 'Xem hồ sơ thật và thống nhất kỳ vọng trước khi đăng ký.'],
       ['credit_card', 'Giữ chỗ an toàn', 'Chọn gói học; hệ thống giữ chỗ 15 phút trong lúc thanh toán.'],
       ['event_available', 'Học theo tiến độ', 'Xếp lịch từng buổi và có 12 giờ báo cáo sự cố trước giải ngân.'],

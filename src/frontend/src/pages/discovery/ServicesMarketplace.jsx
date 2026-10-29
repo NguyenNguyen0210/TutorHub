@@ -38,7 +38,6 @@ export default function ServicesMarketplace() {
   const [debouncedKeyword, setDebouncedKeyword] = useState(searchParams.get('q') || '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoryId') || '');
   const [selectedSubject, setSelectedSubject] = useState(searchParams.get('subjectId') || '');
-  const [teachingMode, setTeachingMode] = useState('All');
   const [priceRange, setPriceRange] = useState(MAX_PRICE);
   const [minRating, setMinRating] = useState(null);
   const [sortBy, setSortBy] = useState('priority');
@@ -128,7 +127,6 @@ export default function ServicesMarketplace() {
           {
             categoryId: selectedCategory || null,
             subjectId: selectedSubject || null,
-            teachingMode,
             maxPrice: priceRange < MAX_PRICE ? priceRange : null,
             minRating,
             search: debouncedKeyword,
@@ -184,7 +182,6 @@ export default function ServicesMarketplace() {
   }, [
     selectedCategory,
     selectedSubject,
-    teachingMode,
     priceRange,
     minRating,
     debouncedKeyword,
@@ -201,7 +198,6 @@ export default function ServicesMarketplace() {
     setDebouncedKeyword('');
     setSelectedCategory('');
     setSelectedSubject('');
-    setTeachingMode('All');
     setPriceRange(MAX_PRICE);
     setMinRating(null);
     setSortBy('priority');
@@ -244,19 +240,6 @@ export default function ServicesMarketplace() {
         clear: clearAndResetPage(() => setSelectedSubject('')),
       });
     }
-    if (teachingMode !== 'All') {
-      const modeLabel =
-        teachingMode === 'InPerson'
-          ? 'Tại nhà'
-          : teachingMode === 'Both'
-          ? 'Cả hai'
-          : teachingMode;
-      list.push({
-        key: 'mode',
-        label: `Hình thức: ${modeLabel}`,
-        clear: clearAndResetPage(() => setTeachingMode('All')),
-      });
-    }
     if (priceRange < MAX_PRICE) {
       list.push({
         key: 'price',
@@ -288,7 +271,6 @@ export default function ServicesMarketplace() {
     selectedSubject,
     categories,
     subjects,
-    teachingMode,
     priceRange,
     minRating,
     searchKeyword,
@@ -314,11 +296,6 @@ export default function ServicesMarketplace() {
       selectedSubjectId={selectedSubject}
       onSelectSubject={(id) => {
         setSelectedSubject(id);
-        setPageNumber(1);
-      }}
-      teachingMode={teachingMode}
-      onTeachingModeChange={(mode) => {
-        setTeachingMode(mode);
         setPageNumber(1);
       }}
       priceRange={priceRange}
@@ -455,22 +432,6 @@ export default function ServicesMarketplace() {
             {/* Quick filter chips — two-way synced with sidebar */}
             <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Bộ lọc nhanh">
               <span className="text-[12.5px] font-semibold text-neutral-500">Lọc nhanh:</span>
-              <button
-                type="button"
-                aria-pressed={teachingMode === 'Online'}
-                onClick={() => {
-                  setTeachingMode(teachingMode === 'Online' ? 'All' : 'Online');
-                  setPageNumber(1);
-                }}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer ${
-                  teachingMode === 'Online'
-                    ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
-                    : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
-                }`}
-              >
-                <Icon name="devices" size="xs" className="w-3.5 h-3.5" />
-                <span>Online</span>
-              </button>
               <button
                 type="button"
                 aria-pressed={priceRange <= QUICK_PRICE_CAP}

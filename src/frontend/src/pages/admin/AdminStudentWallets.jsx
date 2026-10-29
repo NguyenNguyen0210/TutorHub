@@ -506,7 +506,7 @@ export default function AdminStudentWallets() {
               icon={<Icon name="tune" size="sm" className="text-brand-primary-600" />}
             />
             <p className="text-caption text-fg-muted">
-              Hành động này áp dụng các nghiệp vụ đền bù hoặc xử lý offline đặc biệt. Mọi biến động được ghi vào sổ cái bất biến với dấu vết tài khoản Admin thực hiện.
+              Hành động này áp dụng các nghiệp vụ đền bù hoặc xử lý thủ công đặc biệt. Mọi biến động được ghi vào sổ cái bất biến với dấu vết tài khoản Admin thực hiện.
             </p>
 
             <form onSubmit={handleAdjustWallet} className="space-y-4 pt-2">

@@ -44,8 +44,6 @@ export function normalizeTutorSummary(raw = {}) {
     bio: raw.bio || '',
     education: raw.education || '',
     experienceYears: toNumber(raw.experienceYears, 0),
-    teachingMode: raw.teachingMode || null,
-    address: raw.address || null,
     ratingAvg: toNumber(raw.ratingAvg ?? raw.rating, 0),
     totalReviews: toNumber(raw.totalReviews, 0),
     subjects: normalizeSubjectNames(raw.subjects),
@@ -67,7 +65,6 @@ export function normalizeServiceSummary(raw = {}) {
     totalSessions: toNumber(raw.totalSessions, 0),
     sessionDurationMinutes: toNumber(raw.sessionDurationMinutes, 0),
     price: toNullableNumber(raw.price),
-    teachingMode: raw.teachingMode || null,
     hasTrialLesson: Boolean(raw.hasTrialLesson),
   };
 }
@@ -119,7 +116,6 @@ export function normalizePublicServiceItem(raw = {}) {
     totalSessions: toNumber(raw.totalSessions, 1),
     sessionDurationMinutes: toNumber(raw.sessionDurationMinutes, 60),
     price: toNumber(raw.price, 0),
-    teachingMode: raw.teachingMode || 'Online',
     hasTrialLesson: Boolean(raw.hasTrialLesson),
     tutorProfileId: raw.tutorProfileId || null,
     tutorUserId: raw.tutorUserId || null,
@@ -170,12 +166,10 @@ export const tutorService = {
       subjectId = null,
       minPrice = null,
       maxPrice = null,
-      teachingMode = null,
       minRating = null,
       degreeLevel = null,
       university = null,
       certification = null,
-      city = null,
       minExperience = null,
       maxExperience = null,
       search = '',
@@ -189,12 +183,10 @@ export const tutorService = {
     if (subjectId) params.subjectId = subjectId;
     if (minPrice != null) params.minPrice = minPrice;
     if (maxPrice != null) params.maxPrice = maxPrice;
-    if (teachingMode && teachingMode !== 'All') params.teachingMode = teachingMode;
     if (minRating != null) params.minRating = minRating;
     if (degreeLevel && degreeLevel !== 'All') params.degreeLevel = degreeLevel;
     if (university && university !== 'All') params.university = university;
     if (certification && certification !== 'All') params.certification = certification;
-    if (city && city !== 'All') params.city = city;
     if (minExperience != null) params.minExperience = minExperience;
     if (maxExperience != null) params.maxExperience = maxExperience;
     if (search && search.trim()) params.search = search.trim();
@@ -211,7 +203,6 @@ export const tutorService = {
     const {
       categoryId = null,
       subjectId = null,
-      teachingMode = null,
       minPrice = null,
       maxPrice = null,
       minRating = null,
@@ -224,7 +215,6 @@ export const tutorService = {
     const params = { pageNumber, pageSize };
     if (categoryId) params.categoryId = categoryId;
     if (subjectId) params.subjectId = subjectId;
-    if (teachingMode && teachingMode !== 'All') params.teachingMode = teachingMode;
     if (minPrice != null) params.minPrice = minPrice;
     if (maxPrice != null) params.maxPrice = maxPrice;
     if (minRating != null) params.minRating = minRating;

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
 import Money from '@/components/ui/Money';
-import { TEACHING_MODE } from '@/config/enums';
 import { CardSkeleton } from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorState from '@/components/common/ErrorState';
@@ -106,7 +105,6 @@ export default function TutorServices() {
       totalSessions: pkg.totalSessions || 10,
       sessionDurationMinutes: pkg.sessionDurationMinutes || 60,
       price: pkg.price || 0,
-      teachingMode: pkg.teachingMode || TEACHING_MODE.ONLINE,
       trialLessonUrl: pkg.trialLessonUrl || '',
       tags: Array.isArray(pkg.tags) ? pkg.tags.join(', ') : pkg.tags || '',
       coverImageUrl: pkg.coverImageUrl || '',

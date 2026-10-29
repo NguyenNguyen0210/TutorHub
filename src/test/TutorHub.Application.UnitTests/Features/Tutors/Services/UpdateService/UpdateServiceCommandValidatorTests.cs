@@ -30,7 +30,6 @@ public class UpdateServiceCommandValidatorTests
             TotalSessions: totalSessions,
             SessionDurationMinutes: null,
             Price: null,
-            TeachingMode: null,
             TrialLessonUrl: null,
             CoverImageUrl: coverImageUrl,
             Curriculum: curriculum,

@@ -71,14 +71,6 @@ public class TutorApplicationConfiguration : IEntityTypeConfiguration<TutorAppli
         builder.Property(a => a.ExperienceYears)
             .IsRequired();
 
-        builder.Property(a => a.TeachingMode)
-            .HasConversion<string>()
-            .HasMaxLength(50)
-            .IsRequired();
-
-        builder.Property(a => a.Address)
-            .HasMaxLength(500);
-
         builder.Property(a => a.Methodology)
             .HasMaxLength(2000);
 

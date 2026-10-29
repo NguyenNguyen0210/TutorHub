@@ -21,7 +21,6 @@ public class ServiceTests
             TotalSessions = 10,
             SessionDurationMinutes = 60,
             Price = 3500000m,
-            TeachingMode = TeachingMode.Online
         };
 
         // Assert

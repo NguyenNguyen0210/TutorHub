@@ -44,7 +44,6 @@ public class GetMyServiceByIdQueryHandlerTests
             TotalSessions = 10,
             SessionDurationMinutes = 60,
             Price = 3000000m,
-            TeachingMode = TeachingMode.Online,
             CoverImageUrl = "https://example.com/cover.png",
             Status = ServiceStatus.Published
         };
@@ -108,7 +107,6 @@ public class GetMyServiceByIdQueryHandlerTests
             TotalSessions = 5,
             SessionDurationMinutes = 60,
             Price = 1000000m,
-            TeachingMode = TeachingMode.Online,
             Status = ServiceStatus.Draft
         };
 

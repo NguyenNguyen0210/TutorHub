@@ -21,7 +21,7 @@ public class RefundRetryTests : IntegrationTestBase
             ServiceId = service.Id, SubjectId = service.SubjectId,
             TotalPrice = service.Price, TotalSessions = service.TotalSessions,
             SessionDurationMinutes = service.SessionDurationMinutes,
-            TeachingMode = service.TeachingMode, Status = BookingStatus.Cancelled,
+            Status = BookingStatus.Cancelled,
             CreatedAt = DateTime.UtcNow
         };
         Db.Bookings.Add(booking);

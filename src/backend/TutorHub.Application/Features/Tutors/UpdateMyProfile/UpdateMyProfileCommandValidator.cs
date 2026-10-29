@@ -20,12 +20,5 @@ public class UpdateMyProfileCommandValidator : AbstractValidator<UpdateMyProfile
             .LessThanOrEqualTo(60).When(x => x.ExperienceYears.HasValue)
             .WithMessage("Experience years cannot exceed 60.");
 
-        RuleFor(x => x.TeachingMode)
-            .IsInEnum().When(x => x.TeachingMode.HasValue)
-            .WithMessage("Valid teaching mode is required.");
-
-        RuleFor(x => x.Address)
-            .MaximumLength(500).When(x => x.Address != null)
-            .WithMessage("Address cannot exceed 500 characters.");
     }
 }

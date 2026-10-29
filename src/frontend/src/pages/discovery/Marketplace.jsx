@@ -38,8 +38,6 @@ export default function Marketplace() {
   const [debouncedKeyword, setDebouncedKeyword] = useState(searchParams.get('q') || '');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [priceRange, setPriceRange] = useState(MAX_PRICE);
-  const [teachingMode, setTeachingMode] = useState('All');
-  const [city, setCity] = useState('All');
   const [degreeLevel, setDegreeLevel] = useState('All');
   const [university, setUniversity] = useState('All');
   const [certification, setCertification] = useState('All');
@@ -147,8 +145,6 @@ export default function Marketplace() {
             search: debouncedKeyword.trim() || null,
             minPrice: null,
             maxPrice: priceRange < MAX_PRICE ? priceRange : null,
-            teachingMode: teachingMode !== 'All' ? teachingMode : null,
-            city: city !== 'All' ? city : null,
             degreeLevel: degreeLevel !== 'All' ? degreeLevel : null,
             university: university !== 'All' ? university : null,
             certification: certification !== 'All' ? certification : null,
@@ -210,8 +206,6 @@ export default function Marketplace() {
     debouncedKeyword,
     selectedCategory,
     priceRange,
-    teachingMode,
-    city,
     degreeLevel,
     university,
     certification,
@@ -229,8 +223,6 @@ export default function Marketplace() {
     setDebouncedKeyword('');
     setSelectedCategory('');
     setPriceRange(MAX_PRICE);
-    setTeachingMode('All');
-    setCity('All');
     setDegreeLevel('All');
     setUniversity('All');
     setCertification('All');
@@ -257,13 +249,6 @@ export default function Marketplace() {
     }
     if (certification !== 'All') {
       list.push({ key: 'cert', label: `Chứng chỉ: ${certification}`, clear: clearAndResetPage(() => setCertification('All')) });
-    }
-    if (teachingMode !== 'All') {
-      const modeLabel = teachingMode === 'InPerson' ? 'Tại nhà' : (teachingMode === 'Both' ? 'Cả hai' : teachingMode);
-      list.push({ key: 'mode', label: `Hình thức: ${modeLabel}`, clear: clearAndResetPage(() => setTeachingMode('All')) });
-    }
-    if (city !== 'All') {
-      list.push({ key: 'city', label: `Khu vực: ${city}`, clear: clearAndResetPage(() => setCity('All')) });
     }
     if (priceRange < MAX_PRICE) {
       list.push({ key: 'price', label: `Học phí ≤ ${formatVND(priceRange)}`, clear: clearAndResetPage(() => setPriceRange(MAX_PRICE)) });
@@ -295,7 +280,7 @@ export default function Marketplace() {
       });
     }
     return list;
-  }, [degreeLevel, university, certification, teachingMode, city, priceRange, minRating, experienceRange, selectedCategory, categories, searchKeyword, setSearchParams]);
+  }, [degreeLevel, university, certification, priceRange, minRating, experienceRange, selectedCategory, categories, searchKeyword, setSearchParams]);
 
   const handlePageChange = (newPage) => {
     if (newPage < 1 || newPage > totalPages) return;
@@ -312,16 +297,6 @@ export default function Marketplace() {
         setPageNumber(1);
       }}
       maxPrice={MAX_PRICE}
-      teachingMode={teachingMode}
-      onTeachingModeChange={(mode) => {
-        setTeachingMode(mode);
-        setPageNumber(1);
-      }}
-      city={city}
-      onCityChange={(c) => {
-        setCity(c);
-        setPageNumber(1);
-      }}
       degreeLevel={degreeLevel}
       onDegreeLevelChange={(deg) => {
         setDegreeLevel(deg);
@@ -477,23 +452,6 @@ export default function Marketplace() {
             {/* Quick filter chips — two-way synced with sidebar */}
             <div className="flex max-w-full flex-nowrap items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden" role="group" aria-label="Bộ lọc nhanh">
               <span className="shrink-0 text-[13px] font-semibold text-neutral-600">Lọc nhanh:</span>
-              <button
-                type="button"
-                aria-pressed={teachingMode === 'Online'}
-                onClick={() => {
-                  setTeachingMode(teachingMode === 'Online' ? 'All' : 'Online');
-                  setPageNumber(1);
-                }}
-                className={cn(
-                  'inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors',
-                  teachingMode === 'Online'
-                    ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
-                    : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
-                )}
-              >
-                <Icon name="devices" size="xs" className="w-3.5 h-3.5" />
-                <span>Online</span>
-              </button>
               <button
                 type="button"
                 aria-pressed={priceRange <= QUICK_PRICE_CAP}

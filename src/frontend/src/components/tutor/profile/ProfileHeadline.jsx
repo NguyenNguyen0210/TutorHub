@@ -4,7 +4,6 @@ import Badge, { Tag } from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import { useToast } from '@/components/ui/Toast';
-import { getTeachingModeMeta } from '@/config/enums';
 
 /**
  * ProfileHeadline — phần "con người + niềm tin" của hồ sơ.
@@ -19,7 +18,6 @@ export default function ProfileHeadline({ tutor }) {
 
   const services = Array.isArray(tutor.services) ? tutor.services : [];
   const subjects = Array.isArray(tutor.subjects) ? tutor.subjects : [];
-  const modeMeta = getTeachingModeMeta(tutor.teachingMode);
   const ratingValue = Number(tutor.ratingAvg);
   const hasRating = Number.isFinite(ratingValue) && ratingValue > 0;
   const firstSubject = subjects[0]?.subjectName || subjects[0]?.name || null;
@@ -112,19 +110,6 @@ export default function ProfileHeadline({ tutor }) {
           </span>
         )}
 
-        {tutor.address && (
-          <span className="inline-flex items-center gap-1.5 text-fg-secondary min-w-0">
-            <Icon name="location_on" size="sm" className="text-neutral-400 shrink-0" />
-            <span className="truncate">{tutor.address}</span>
-          </span>
-        )}
-
-        {modeMeta.label && (
-          <span className="inline-flex items-center gap-1.5 text-fg-secondary">
-            <Icon name="videocam" size="sm" className="text-neutral-400 shrink-0" />
-            {modeMeta.label}
-          </span>
-        )}
       </div>
 
       {/* Môn học */}
@@ -159,8 +144,6 @@ ProfileHeadline.propTypes = {
     isVerified: PropTypes.bool,
     education: PropTypes.string,
     experienceYears: PropTypes.number,
-    teachingMode: PropTypes.string,
-    address: PropTypes.string,
     ratingAvg: PropTypes.number,
     totalReviews: PropTypes.number,
     subjects: PropTypes.arrayOf(

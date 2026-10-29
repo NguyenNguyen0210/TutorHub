@@ -337,15 +337,6 @@ export default function ServiceDetail() {
                         {tutor.experienceYears} năm kinh nghiệm
                       </span>
                     )}
-                    {tutor.address && (
-                      <>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <Icon name="location_on" size="xs" className="w-3.5 h-3.5 text-fg-muted" />
-                          {tutor.address}
-                        </span>
-                      </>
-                    )}
                   </div>
 
                   {tutor.bio && (

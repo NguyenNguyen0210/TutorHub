@@ -71,10 +71,6 @@ public class ApproveTutorApplicationCommandHandler
             Bio = application.Bio,
             Education = application.Education,
             ExperienceYears = application.ExperienceYears,
-            TeachingMode = application.TeachingMode,
-            Address = application.Address,
-            Latitude = application.Latitude,
-            Longitude = application.Longitude,
         };
 
         _context.TutorProfiles.Add(profile);

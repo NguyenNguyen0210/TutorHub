@@ -49,7 +49,6 @@ public class GetMySessionsQueryHandlerTests
             TotalPrice = 900_000m,
             TotalSessions = 3,
             SessionDurationMinutes = 60,
-            TeachingMode = TeachingMode.Online
         };
 
         var session = new Session

@@ -9,20 +9,6 @@ import Money from '@/components/ui/Money';
 export default function ServiceCard({ service }) {
   const [isFavorite, setIsFavorite] = useState(false);
 
-  const modeLabel =
-    service.teachingMode === 'InPerson' || service.teachingMode === 'Offline'
-      ? 'Tại nhà'
-      : service.teachingMode === 'Both'
-      ? 'Online hoặc tại nhà'
-      : 'Online';
-
-  const modeIcon =
-    service.teachingMode === 'InPerson' || service.teachingMode === 'Offline'
-      ? 'home'
-      : service.teachingMode === 'Both'
-      ? 'devices'
-      : 'videocam';
-
   const totalSessions = Number(service.totalSessions) > 0 ? Number(service.totalSessions) : null;
   const sessionDuration = Number(service.sessionDurationMinutes) > 0
     ? Number(service.sessionDurationMinutes)
@@ -119,10 +105,6 @@ export default function ServiceCard({ service }) {
               {sessionDuration ? `${sessionDuration} phút` : 'Chưa cập nhật'}
             </dd>
           </div>
-          <div className="col-span-2 flex items-center gap-2 border-t border-border px-3.5 py-3 text-fg-secondary">
-            <Icon name={modeIcon} size="sm" className="text-brand-primary-600" />
-            <dd>{modeLabel}</dd>
-          </div>
         </dl>
 
         <div className="relative z-10 mt-auto pt-5">
@@ -160,7 +142,6 @@ ServiceCard.propTypes = {
     totalSessions: PropTypes.number,
     sessionDurationMinutes: PropTypes.number,
     price: PropTypes.number,
-    teachingMode: PropTypes.string,
     tutorProfileId: PropTypes.string,
     tutorName: PropTypes.string,
     tutorAvatarUrl: PropTypes.string,
