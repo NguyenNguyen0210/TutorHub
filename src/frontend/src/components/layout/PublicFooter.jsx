@@ -1,137 +1,91 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Mail } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
-import { Check } from 'lucide-react';
+
+const footerLinkClass =
+  'inline-flex min-h-10 items-center text-sm leading-5 text-slate-600 transition-colors hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50';
+
+const footerHeadingClass =
+  'mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-slate-900';
 
 export default function PublicFooter() {
   return (
-    <footer className="bg-brand-navy-950 text-neutral-300 mt-12">
-      <div className="max-w-[1200px] mx-auto px-5 sm:px-6 pt-10 sm:pt-14 pb-7">
-        {/* Main 4-Column Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr] gap-x-6 gap-y-9 lg:gap-12">
-          {/* Column 1: Brand & Trust Block */}
-          <div className="col-span-2 lg:col-span-1 space-y-4">
+    <footer className="relative mt-12 border-t border-slate-200/80 bg-gradient-to-b from-[#F0F7FF]/60 via-[#F8FAFC] to-[#F8FAFC] text-slate-600 sm:mt-16">
+      <div className="mx-auto max-w-[1280px] px-5 py-10 sm:px-8 sm:py-12">
+        <div className="grid grid-cols-2 gap-x-7 gap-y-8 border-b border-slate-200/80 pb-9 md:grid-cols-4 lg:grid-cols-12 lg:gap-7">
+          {/* Cột 1: Logo và mô tả thương hiệu */}
+          <div className="col-span-2 md:col-span-4 lg:col-span-4 lg:pr-6">
             <Link to="/" className="inline-flex" aria-label="TutorHub — trang chủ">
-              <Logo variant="horizontal" size={34} tone="light" showSubtitle={false} />
+              <Logo variant="horizontal" size={34} tone="color" showSubtitle={false} />
             </Link>
-
-            <p className="text-[13.5px] text-neutral-400 leading-relaxed max-w-sm">
-              Kết nối học viên với gia sư chất lượng.
-              <br />
-              Thanh toán an toàn, minh bạch xuyên suốt quá trình học.
+            <p className="mt-3 max-w-sm text-sm leading-6 text-slate-600">
+              Kết nối học viên với gia sư chất lượng trong một hành trình học tập minh bạch và an toàn.
             </p>
-
-            <div className="space-y-2 pt-1">
-              <div className="flex items-center gap-2 text-[13px] text-success font-medium">
-                <Check className="w-4 h-4 shrink-0 text-success" strokeWidth={2.5} />
-                <span>Thanh toán được bảo vệ</span>
-              </div>
-              <div className="flex items-center gap-2 text-[13px] text-success font-medium">
-                <Check className="w-4 h-4 shrink-0 text-success" strokeWidth={2.5} />
-                <span>Đối soát hai chiều</span>
-              </div>
-            </div>
           </div>
 
-          {/* Column 2: Khám phá */}
-          <div className="space-y-3">
-            <span className="text-[13px] font-semibold text-neutral-50 uppercase tracking-wider block">
-              Khám phá
-            </span>
-            <ul className="space-y-2 text-[13px]">
-              <li>
-                <Link to="/" className="text-neutral-400 hover:text-white transition-colors leading-[2]">
-                  Tìm gia sư
-                </Link>
-              </li>
-              <li>
-                <Link to="/services" className="text-neutral-400 hover:text-white transition-colors leading-[2]">
-                  Dịch vụ học tập
-                </Link>
-              </li>
-              <li>
-                <Link to="/auth/register" className="text-neutral-400 hover:text-white transition-colors leading-[2]">
-                  Trở thành gia sư
-                </Link>
-              </li>
+          {/* Cột 2: Khám phá */}
+          <nav className="col-span-1 md:col-span-1 lg:col-span-2" aria-labelledby="footer-discover">
+            <h3 id="footer-discover" className={footerHeadingClass}>Khám phá</h3>
+            <ul className="space-y-1">
+              <li><Link to="/" className={footerLinkClass}>Tìm gia sư</Link></li>
+              <li><Link to="/services" className={footerLinkClass}>Dịch vụ học tập</Link></li>
+              <li><Link to="/become-tutor" className={footerLinkClass}>Trở thành gia sư</Link></li>
             </ul>
-          </div>
+          </nav>
 
-          {/* Column 3: Hỗ trợ */}
-          <div className="space-y-3">
-            <span className="text-[13px] font-semibold text-neutral-50 uppercase tracking-wider block">
-              Hỗ trợ
-            </span>
-            <ul className="space-y-2 text-[13px]">
-              <li>
-                <Link to="/how-it-works" className="text-neutral-400 hover:text-white transition-colors leading-[2]">
-                  Cách hoạt động
-                </Link>
-              </li>
-              <li>
-                <Link to="/" className="text-neutral-400 hover:text-white transition-colors leading-[2]">
-                  Thanh toán & bảo chứng
-                </Link>
-              </li>
-              <li>
-                <Link to="/" className="text-neutral-400 hover:text-white transition-colors leading-[2]">
-                  Hoàn tiền
-                </Link>
-              </li>
-              <li>
-                <Link to="/" className="text-neutral-400 hover:text-white transition-colors leading-[2]">
-                  Tranh chấp
-                </Link>
-              </li>
+          {/* Cột 3: Hỗ trợ */}
+          <nav className="col-span-1 md:col-span-1 lg:col-span-2" aria-labelledby="footer-support">
+            <h3 id="footer-support" className={footerHeadingClass}>Hỗ trợ</h3>
+            <ul className="space-y-1">
+              <li><Link to="/how-it-works" className={footerLinkClass}>Cách hoạt động</Link></li>
+              <li><Link to="/how-it-works" className={footerLinkClass}>Hỗ trợ học viên</Link></li>
+              <li><Link to="/how-it-works" className={footerLinkClass}>Hoàn tiền &amp; tranh chấp</Link></li>
             </ul>
-          </div>
+          </nav>
 
-          {/* Column 4: TutorHub */}
-          <div className="col-span-2 sm:col-span-1 space-y-3">
-            <span className="text-[13px] font-semibold text-neutral-50 uppercase tracking-wider block">
-              TutorHub
-            </span>
-            <ul className="space-y-2 text-[13px]">
+          {/* Cột 4: Về TutorHub */}
+          <nav className="col-span-1 md:col-span-1 lg:col-span-2" aria-labelledby="footer-about">
+            <h3 id="footer-about" className={footerHeadingClass}>Về TutorHub</h3>
+            <ul className="space-y-1">
+              <li><Link to="/how-it-works" className={footerLinkClass}>Về chúng tôi</Link></li>
+              <li><Link to="/become-tutor" className={footerLinkClass}>Cộng đồng gia sư</Link></li>
+              <li><Link to="/services" className={footerLinkClass}>Dịch vụ nổi bật</Link></li>
+            </ul>
+          </nav>
+
+          {/* Cột 5: Liên hệ */}
+          <section className="col-span-1 md:col-span-1 lg:col-span-2" aria-labelledby="footer-contact">
+            <h3 id="footer-contact" className={footerHeadingClass}>Liên hệ</h3>
+            <a
+              href="mailto:support@tutorhub.vn"
+              className="inline-flex min-h-10 max-w-full items-center gap-2 text-sm text-slate-600 transition-colors hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
+              <Mail className="h-4 w-4 shrink-0 text-blue-600" aria-hidden="true" />
+              <span className="break-all font-medium">support@tutorhub.vn</span>
+            </a>
+            <p className="mt-2 text-xs leading-5 text-slate-500">
+              Hỗ trợ học viên &amp; gia sư từ 8:00 đến 21:00 hàng ngày.
+            </p>
+          </section>
+        </div>
+
+        <div className="flex flex-col gap-3 pt-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+          <p>© 2026 TutorHub. Bảo lưu mọi quyền.</p>
+          <nav aria-label="Thông tin pháp lý">
+            <ul className="flex flex-wrap items-center gap-x-6 gap-y-3">
               <li>
-                <Link to="/" className="text-neutral-400 hover:text-white transition-colors leading-[2]">
-                  Về chúng tôi
-                </Link>
-              </li>
-              <li>
-                <Link to="/" className="text-neutral-400 hover:text-white transition-colors leading-[2]">
+                <Link to="/terms" className="transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                   Điều khoản sử dụng
                 </Link>
               </li>
               <li>
-                <Link to="/" className="text-neutral-400 hover:text-white transition-colors leading-[2]">
+                <Link to="/privacy" className="transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                   Chính sách bảo mật
                 </Link>
               </li>
-              <li>
-                <a href="mailto:support@tutorhub.vn" className="text-neutral-400 hover:text-white transition-colors leading-[2]">
-                  Liên hệ
-                </a>
-              </li>
             </ul>
-          </div>
-        </div>
-
-        {/* Bottom Bar */}
-        <div className="mt-9 pt-5 border-t border-brand-navy-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left text-[12.5px] text-neutral-400">
-          <span>© 2026 TutorHub Platform. All rights reserved.</span>
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-            <Link to="/" className="hover:text-white transition-colors">
-              Điều khoản
-            </Link>
-            <span>·</span>
-            <Link to="/" className="hover:text-white transition-colors">
-              Chính sách bảo mật
-            </Link>
-            <span>·</span>
-            <a href="mailto:support@tutorhub.vn" className="hover:text-white transition-colors">
-              Liên hệ
-            </a>
-          </div>
+          </nav>
         </div>
       </div>
     </footer>
