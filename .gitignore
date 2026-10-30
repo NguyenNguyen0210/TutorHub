@@ -121,5 +121,7 @@ __pycache__/
 /scripts/generate-seed-data.py
 
 .worktrees/
+.superpowers/
+.opencode/
 
 !.env.production.example

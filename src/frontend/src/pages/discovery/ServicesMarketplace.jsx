@@ -38,7 +38,10 @@ export default function ServicesMarketplace() {
   const [debouncedKeyword, setDebouncedKeyword] = useState(searchParams.get('q') || '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoryId') || '');
   const [selectedSubject, setSelectedSubject] = useState(searchParams.get('subjectId') || '');
-  const [priceRange, setPriceRange] = useState(MAX_PRICE);
+  const [minPrice, setMinPrice] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(MAX_PRICE);
+  const [debouncedMinPrice, setDebouncedMinPrice] = useState(0);
+  const [debouncedMaxPrice, setDebouncedMaxPrice] = useState(MAX_PRICE);
   const [minRating, setMinRating] = useState(null);
   const [sortBy, setSortBy] = useState('priority');
   const [pageNumber, setPageNumber] = useState(1);
@@ -85,6 +88,15 @@ export default function ServicesMarketplace() {
     return () => clearTimeout(timer);
   }, [searchKeyword]);
 
+  // Debounce khoảng giá: kéo slider không bắn request mỗi bước, chỉ gọi API khi ngừng kéo.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedMinPrice(minPrice);
+      setDebouncedMaxPrice(maxPrice);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [minPrice, maxPrice]);
+
   // Load Categories & Subjects on Mount
   useEffect(() => {
     let cancelled = false;
@@ -127,7 +139,8 @@ export default function ServicesMarketplace() {
           {
             categoryId: selectedCategory || null,
             subjectId: selectedSubject || null,
-            maxPrice: priceRange < MAX_PRICE ? priceRange : null,
+            minPrice: debouncedMinPrice > 0 ? debouncedMinPrice : null,
+            maxPrice: debouncedMaxPrice < MAX_PRICE ? debouncedMaxPrice : null,
             minRating,
             search: debouncedKeyword,
             sortBy: apiSortBy,
@@ -182,7 +195,8 @@ export default function ServicesMarketplace() {
   }, [
     selectedCategory,
     selectedSubject,
-    priceRange,
+    debouncedMinPrice,
+    debouncedMaxPrice,
     minRating,
     debouncedKeyword,
     sortBy,
@@ -198,7 +212,10 @@ export default function ServicesMarketplace() {
     setDebouncedKeyword('');
     setSelectedCategory('');
     setSelectedSubject('');
-    setPriceRange(MAX_PRICE);
+    setMinPrice(0);
+    setMaxPrice(MAX_PRICE);
+    setDebouncedMinPrice(0);
+    setDebouncedMaxPrice(MAX_PRICE);
     setMinRating(null);
     setSortBy('priority');
     setPageNumber(1);
@@ -240,12 +257,29 @@ export default function ServicesMarketplace() {
         clear: clearAndResetPage(() => setSelectedSubject('')),
       });
     }
-    if (priceRange < MAX_PRICE) {
-      list.push({
-        key: 'price',
-        label: `Học phí ≤ ${formatVND(priceRange)}`,
-        clear: clearAndResetPage(() => setPriceRange(MAX_PRICE)),
-      });
+    if (minPrice > 0 || maxPrice < MAX_PRICE) {
+      if (minPrice > 0 && maxPrice < MAX_PRICE) {
+        list.push({
+          key: 'price',
+          label: `Học phí: ${formatVND(minPrice)} – ${formatVND(maxPrice)}`,
+          clear: clearAndResetPage(() => {
+            setMinPrice(0);
+            setMaxPrice(MAX_PRICE);
+          }),
+        });
+      } else if (minPrice > 0) {
+        list.push({
+          key: 'price',
+          label: `Học phí: từ ${formatVND(minPrice)}`,
+          clear: clearAndResetPage(() => setMinPrice(0)),
+        });
+      } else {
+        list.push({
+          key: 'price',
+          label: `Học phí: đến ${formatVND(maxPrice)}`,
+          clear: clearAndResetPage(() => setMaxPrice(MAX_PRICE)),
+        });
+      }
     }
     if (minRating !== null) {
       list.push({
@@ -271,7 +305,8 @@ export default function ServicesMarketplace() {
     selectedSubject,
     categories,
     subjects,
-    priceRange,
+    minPrice,
+    maxPrice,
     minRating,
     searchKeyword,
     setSearchParams,
@@ -298,9 +333,12 @@ export default function ServicesMarketplace() {
         setSelectedSubject(id);
         setPageNumber(1);
       }}
-      priceRange={priceRange}
-      onPriceRangeChange={(val) => {
-        setPriceRange(val);
+      minPrice={minPrice}
+      maxPrice={maxPrice}
+      priceLimit={MAX_PRICE}
+      onPriceChange={({ min, max }) => {
+        setMinPrice(min);
+        setMaxPrice(max);
         setPageNumber(1);
       }}
       minRating={minRating}
@@ -360,7 +398,21 @@ export default function ServicesMarketplace() {
                   </span>
                 )}
               </button>
+<<<<<<< HEAD
               <span className="text-sm font-semibold text-[color:var(--mkt-body)]">{totalCount} kết quả</span>
+=======
+
+              {activeFilters.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="inline-flex min-h-10 items-center gap-1 text-xs font-semibold text-slate-600 transition-colors hover:text-rose-600"
+                >
+                  <Icon name="close" size="xs" className="h-3.5 w-3.5" />
+                  <span>Xóa lọc ({activeFilters.length})</span>
+                </button>
+              )}
+>>>>>>> develop
             </div>
 
             {/* Active Filters Bar */}
@@ -403,7 +455,15 @@ export default function ServicesMarketplace() {
               <div>
                 <span className="text-xs font-bold uppercase tracking-[0.08em] text-blue-600">Danh sách dịch vụ</span>
                 <h2 className="mt-1 text-[22px] font-bold tracking-[-0.02em] text-[color:var(--mkt-ink)] sm:text-[26px]">
+<<<<<<< HEAD
                   {loading ? 'Đang tìm kiếm dịch vụ...' : `${totalCount} dịch vụ phù hợp`}
+=======
+                  {loading
+                    ? 'Đang tìm kiếm dịch vụ...'
+                    : totalCount === 0
+                      ? 'Không tìm thấy dịch vụ phù hợp'
+                      : `${totalCount} dịch vụ phù hợp`}
+>>>>>>> develop
                 </h2>
                 <p className="mt-1 text-sm font-medium text-[color:var(--mkt-body)]">
                   So sánh lộ trình, gia sư và học phí trọn gói.
@@ -439,13 +499,19 @@ export default function ServicesMarketplace() {
               <span className="mr-1 text-sm font-semibold text-slate-600">Lọc nhanh:</span>
               <button
                 type="button"
-                aria-pressed={priceRange <= QUICK_PRICE_CAP}
+                aria-pressed={minPrice === 0 && maxPrice <= QUICK_PRICE_CAP}
                 onClick={() => {
-                  setPriceRange(priceRange <= QUICK_PRICE_CAP ? MAX_PRICE : QUICK_PRICE_CAP);
+                  if (minPrice === 0 && maxPrice <= QUICK_PRICE_CAP) {
+                    setMinPrice(0);
+                    setMaxPrice(MAX_PRICE);
+                  } else {
+                    setMinPrice(0);
+                    setMaxPrice(QUICK_PRICE_CAP);
+                  }
                   setPageNumber(1);
                 }}
                 className={`inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 text-sm font-bold transition-colors ${
-                  priceRange <= QUICK_PRICE_CAP
+                  minPrice === 0 && maxPrice <= QUICK_PRICE_CAP
                     ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
                     : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700'
                 }`}

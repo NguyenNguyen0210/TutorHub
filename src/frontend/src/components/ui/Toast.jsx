@@ -45,6 +45,8 @@ export function ToastProvider({ children }) {
       warning: (msg, d) => push('warning', msg, d),
       info: (msg, d) => push('info', msg, d),
       open: (msg, d) => push('info', msg, d),
+      showToast: ({ message, content, type = 'info', duration } = {}) =>
+        push(type, message || content, duration),
       dismiss,
     }),
     [push, dismiss]
@@ -97,6 +99,7 @@ const NOOP_TOAST = {
   warning: () => {},
   info: () => {},
   open: () => {},
+  showToast: () => {},
   dismiss: () => {},
 };
 

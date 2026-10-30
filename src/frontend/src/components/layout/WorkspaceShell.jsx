@@ -78,6 +78,12 @@ export default function WorkspaceShell({ userRole: role, children }) {
             label: <span className="font-semibold text-body-reg">Ví học viên & Nạp/Rút</span>,
             onClick: () => navigate('/student/wallet'),
           },
+          {
+            key: 'wishlist',
+            icon: <Icon name="favorite" size="sm" />,
+            label: <span className="font-semibold text-body-reg">Danh sách đã lưu</span>,
+            onClick: () => navigate('/student/wishlist'),
+          },
         ]
       : []),
     ...(role === 'Tutor'

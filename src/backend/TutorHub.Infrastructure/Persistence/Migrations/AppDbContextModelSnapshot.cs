@@ -1858,6 +1858,47 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TutorHub.Domain.Entities.WishlistItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ItemType")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ServiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TutorProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceId");
+
+                    b.HasIndex("TutorProfileId");
+
+                    b.HasIndex("UserId", "ServiceId")
+                        .IsUnique()
+                        .HasFilter("\"ServiceId\" IS NOT NULL");
+
+                    b.HasIndex("UserId", "TutorProfileId")
+                        .IsUnique()
+                        .HasFilter("\"TutorProfileId\" IS NOT NULL");
+
+                    b.ToTable("wishlist_items", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_wishlist_items_type_target", "(\"ItemType\" = 1 AND \"TutorProfileId\" IS NOT NULL AND \"ServiceId\" IS NULL) OR (\"ItemType\" = 2 AND \"ServiceId\" IS NOT NULL AND \"TutorProfileId\" IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("TutorHub.Domain.Entities.Withdrawal", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2425,6 +2466,31 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("Withdrawal");
                 });
 
+            modelBuilder.Entity("TutorHub.Domain.Entities.WishlistItem", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.Service", "Service")
+                        .WithMany("WishlistItems")
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("TutorHub.Domain.Entities.TutorProfile", "TutorProfile")
+                        .WithMany("WishlistItems")
+                        .HasForeignKey("TutorProfileId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("TutorHub.Domain.Entities.User", "User")
+                        .WithMany("WishlistItems")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Service");
+
+                    b.Navigation("TutorProfile");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("TutorHub.Domain.Entities.Withdrawal", b =>
                 {
                     b.HasOne("TutorHub.Domain.Entities.User", "ProcessedByAdmin")
@@ -2481,6 +2547,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("Sessions");
                 });
 
+            modelBuilder.Entity("TutorHub.Domain.Entities.Service", b =>
+                {
+                    b.Navigation("WishlistItems");
+                });
+
             modelBuilder.Entity("TutorHub.Domain.Entities.StudentProfile", b =>
                 {
                     b.Navigation("Bookings");
@@ -2496,6 +2567,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("Services");
 
                     b.Navigation("TutorSubjects");
+
+                    b.Navigation("WishlistItems");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.User", b =>
@@ -2511,6 +2584,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                     b.Navigation("TutorProfile");
 
                     b.Navigation("Wallet");
+
+                    b.Navigation("WishlistItems");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Wallet", b =>

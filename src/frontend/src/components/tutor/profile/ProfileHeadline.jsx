@@ -4,6 +4,7 @@ import Badge, { Tag } from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import { useToast } from '@/components/ui/Toast';
+import { useWishlist } from '@/hooks/useWishlist';
 
 /**
  * ProfileHeadline — phần "con người + niềm tin" của hồ sơ.
@@ -15,6 +16,9 @@ import { useToast } from '@/components/ui/Toast';
 export default function ProfileHeadline({ tutor }) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
+  const { isFavorited, toggle } = useWishlist();
+  const tutorId = tutor?.id || tutor?.tutorProfileId;
+  const isFavorite = isFavorited('Tutor', tutorId);
 
   const services = Array.isArray(tutor.services) ? tutor.services : [];
   const subjects = Array.isArray(tutor.subjects) ? tutor.subjects : [];
@@ -123,8 +127,16 @@ export default function ProfileHeadline({ tutor }) {
         </div>
       )}
 
-      {/* Hành động phụ: chia sẻ (V1). Lưu gia sư là V2 — cần endpoint bookmark. */}
-      <div className="pt-1">
+      {/* Hành động phụ: Lưu gia sư & Chia sẻ */}
+      <div className="flex flex-wrap items-center gap-2.5 pt-1">
+        <Button
+          variant={isFavorite ? 'primary' : 'outline'}
+          size="md"
+          onClick={() => toggle('Tutor', tutorId)}
+          icon={<Icon name="favorite" size="xs" filled={isFavorite} />}
+        >
+          {isFavorite ? 'Đã lưu gia sư' : 'Lưu gia sư'}
+        </Button>
         <Button
           variant="outline"
           size="md"

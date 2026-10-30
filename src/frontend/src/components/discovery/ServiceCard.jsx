@@ -1,12 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
 import { formatRating } from '@/utils/marketplaceHelpers';
+import { useWishlist } from '@/hooks/useWishlist';
 
 export default function ServiceCard({ service }) {
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { isFavorited, toggle } = useWishlist();
+  const serviceId = service?.id || service?.serviceId;
+  const isFavorite = isFavorited('Service', serviceId);
+
   const totalSessions = Number(service.totalSessions) > 0 ? Number(service.totalSessions) : null;
   const sessionDuration = Number(service.sessionDurationMinutes) > 0 ? Number(service.sessionDurationMinutes) : null;
   const price = Number(service.price) || 0;
@@ -65,7 +69,7 @@ export default function ServiceCard({ service }) {
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            setIsFavorite((value) => !value);
+            toggle('Service', serviceId);
           }}
           aria-label={isFavorite ? 'Bỏ lưu dịch vụ' : 'Lưu dịch vụ'}
           aria-pressed={isFavorite}

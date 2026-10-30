@@ -1,12 +1,15 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
 import { formatRating } from '@/utils/marketplaceHelpers';
+import { useWishlist } from '@/hooks/useWishlist';
 
 export default function TutorCard({ tutor = {} }) {
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { isFavorited, toggle } = useWishlist();
+  const tutorId = tutor?.id || tutor?.tutorProfileId;
+  const isFavorite = isFavorited('Tutor', tutorId);
   const {
     id, fullName = 'Gia sư', avatarUrl, bio = '', education = '', university = '', major = '',
     experienceYears = 0, ratingAvg = 0, totalReviews = 0, subjects = [], minPrice = null,
@@ -67,7 +70,7 @@ export default function TutorCard({ tutor = {} }) {
               aria-pressed={isFavorite}
               onClick={(e) => {
                 e.stopPropagation();
-                setIsFavorite((value) => !value);
+                toggle('Tutor', tutorId);
               }}
             >
               <Icon name="favorite" size="sm" filled={isFavorite} />

@@ -29,6 +29,7 @@ function DockLink({ to, icon, label, active, external }) {
 const SHORT_LABEL = {
   '/': 'Khám phá',
   '/student/dashboard': 'Bàn học',
+  '/student/wishlist': 'Đã lưu',
   '/tutors': 'Tìm gia sư',
   '/app/messages': 'Hộp thư',
   '/app/notifications': 'Thông báo',

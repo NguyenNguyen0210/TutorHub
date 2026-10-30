@@ -13,6 +13,8 @@ public class Service
     public Guid SubjectId { get; set; }
     public Subject Subject { get; set; } = default!;
 
+    public ICollection<WishlistItem> WishlistItems { get; set; } = new List<WishlistItem>();
+
     // Content & Scope
     public string Title { get; set; } = default!;
     public string Description { get; set; } = default!;

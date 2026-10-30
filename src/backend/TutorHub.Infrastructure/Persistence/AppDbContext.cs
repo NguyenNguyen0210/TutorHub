@@ -51,6 +51,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Media> Media => Set<Media>();
+    public DbSet<WishlistItem> WishlistItems => Set<WishlistItem>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<ConversationAttachment> ConversationAttachments => Set<ConversationAttachment>();
     public DbSet<Message> Messages => Set<Message>();

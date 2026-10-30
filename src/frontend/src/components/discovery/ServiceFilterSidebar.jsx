@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import Icon from '@/components/ui/Icon';
-import { formatVND } from '@/utils/formatters';
+import PriceRangeFilter from '@/components/discovery/PriceRangeFilter';
+
+const PRICE_STEP = 100000;
 
 const RATING_OPTIONS = [
   { value: null, label: 'Tất cả đánh giá' },
-  { value: 4.8, label: 'Từ 4.8★ trở lên' },
-  { value: 4.5, label: 'Từ 4.5★ trở lên' },
-  { value: 4.0, label: 'Từ 4.0★ trở lên' },
+  { value: 4.8, label: 'Từ 4.8 sao trở lên' },
+  { value: 4.5, label: 'Từ 4.5 sao trở lên' },
+  { value: 4.0, label: 'Từ 4.0 sao trở lên' },
+];
+
+const buildPricePresets = (limit) => [
+  { label: 'Tất cả', min: 0, max: limit },
+  { label: 'Dưới 1 triệu', min: 0, max: 1000000 },
+  { label: '1 – 2 triệu', min: 1000000, max: 2000000 },
+  { label: 'Trên 2 triệu', min: 2000000, max: limit },
 ];
 
 export default function ServiceFilterSidebar({
@@ -17,270 +26,178 @@ export default function ServiceFilterSidebar({
   onSelectCategory,
   selectedSubjectId,
   onSelectSubject,
-  priceRange,
-  onPriceRangeChange,
+  minPrice = 0,
   maxPrice = 10000000,
+  priceLimit = 10000000,
+  onPriceChange,
   minRating,
   onMinRatingChange,
+  activeCount = 0,
+  onReset,
+  sticky = true,
   className = '',
 }) {
-  const [openSections, setOpenSections] = useState({
-    category: true,
-    subject: true,
-    price: false,
-    rating: false,
-  });
-
-  const toggleSection = (section) => {
-    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
-  };
-
-  // Filter subjects belonging to selected category if any
+  const [openSections, setOpenSections] = useState({ category: true, subject: true, price: true, rating: false });
   const availableSubjects = selectedCategoryId
-    ? subjects.filter((s) => s.categoryId === selectedCategoryId)
+    ? subjects.filter((subject) => subject.categoryId === selectedCategoryId)
     : subjects;
+  const toggle = (section) => setOpenSections((current) => ({ ...current, [section]: !current[section] }));
+  const handlePriceChange = (val) => {
+    if (!onPriceChange) return;
+    if (Array.isArray(val)) {
+      onPriceChange({ min: val[0], max: val[1] });
+    } else {
+      onPriceChange(val);
+    }
+  };
 
   return (
     <aside className={`w-full ${className}`} aria-label="Bộ lọc dịch vụ học tập">
-      <div className="filter-panel p-4 sm:p-5 space-y-4 border border-border rounded-brand-lg bg-surface sticky top-[88px]">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
-          <div className="flex items-center gap-2 font-bold text-[14.5px] text-neutral-900">
-            <Icon name="tune" size="sm" className="text-brand-primary-600" />
-            <span>Bộ lọc tìm kiếm</span>
-          </div>
-        </div>
-
-        {/* 1. Category Section (Danh mục dịch vụ) */}
-        <div className="space-y-2">
-          <button
-            type="button"
-            onClick={() => toggleSection('category')}
-            aria-expanded={openSections.category}
-            aria-controls="service-filter-section-category"
-            className="w-full flex items-center justify-between text-[13px] font-bold text-neutral-900 group cursor-pointer"
-          >
-            <span className="flex items-center gap-1.5">
-              <Icon name="category" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
-              <span>Danh mục dịch vụ</span>
-            </span>
-            <Icon
-              name="expand_more"
-              size="sm"
-              className={`text-neutral-400 transition-transform duration-200 ${
-                openSections.category ? 'rotate-180' : 'rotate-0'
-              }`}
-            />
-          </button>
-
-          {openSections.category && (
-            <div id="service-filter-section-category" className="pt-0.5 space-y-1">
-              <label
-                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors cursor-pointer ${
-                  !selectedCategoryId ? 'bg-brand-primary-50 text-brand-primary-600 font-bold' : 'text-neutral-700 hover:bg-neutral-50'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="service-category"
-                  checked={!selectedCategoryId}
-                  onChange={() => {
-                    onSelectCategory('');
-                    onSelectSubject('');
-                  }}
-                  className="w-3.5 h-3.5 text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer"
-                />
-                <span>Tất cả danh mục</span>
-              </label>
-
-              {categories.map((cat) => (
-                <label
-                  key={cat.id}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors cursor-pointer ${
-                    selectedCategoryId === cat.id
-                      ? 'bg-brand-primary-50 text-brand-primary-600 font-bold'
-                      : 'text-neutral-700 hover:bg-neutral-50'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="service-category"
-                    checked={selectedCategoryId === cat.id}
-                    onChange={() => {
-                      onSelectCategory(cat.id);
-                      onSelectSubject('');
-                    }}
-                    className="w-3.5 h-3.5 text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer"
-                  />
-                  <span className="line-clamp-1">{cat.name}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* 2. Subject Section (Môn học) */}
-        {availableSubjects.length > 0 && (
-          <div className="pt-3 border-t border-neutral-100 space-y-2">
-            <button
-              type="button"
-              onClick={() => toggleSection('subject')}
-              aria-expanded={openSections.subject}
-              aria-controls="service-filter-section-subject"
-              className="w-full flex items-center justify-between text-[13px] font-bold text-neutral-900 group cursor-pointer"
-            >
-              <span className="flex items-center gap-1.5">
-                <Icon name="menu_book" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
-                <span>Môn học / Kỹ năng</span>
-              </span>
-              <Icon
-                name="expand_more"
-                size="sm"
-                className={`text-neutral-400 transition-transform duration-200 ${
-                  openSections.subject ? 'rotate-180' : 'rotate-0'
-                }`}
-              />
-            </button>
-
-            {openSections.subject && (
-              <div id="service-filter-section-subject" className="pt-0.5 space-y-1 max-h-[220px] overflow-y-auto pr-0.5">
-                <label
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors cursor-pointer ${
-                    !selectedSubjectId ? 'bg-brand-primary-50 text-brand-primary-600 font-bold' : 'text-neutral-700 hover:bg-neutral-50'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="service-subject"
-                    checked={!selectedSubjectId}
-                    onChange={() => onSelectSubject('')}
-                    className="w-3.5 h-3.5 text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer"
-                  />
-                  <span>Tất cả môn học</span>
-                </label>
-
-                {availableSubjects.map((sub) => (
-                  <label
-                    key={sub.id}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors cursor-pointer ${
-                      selectedSubjectId === sub.id
-                        ? 'bg-brand-primary-50 text-brand-primary-600 font-bold'
-                        : 'text-neutral-700 hover:bg-neutral-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="service-subject"
-                      checked={selectedSubjectId === sub.id}
-                      onChange={() => onSelectSubject(sub.id)}
-                      className="w-3.5 h-3.5 text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer"
-                    />
-                    <span className="line-clamp-1">{sub.name}</span>
-                  </label>
-                ))}
+      <div className={`filter-panel overflow-hidden rounded-[20px] border border-[color:var(--mkt-line)] bg-white shadow-[0_14px_38px_-22px_rgba(15,23,42,0.25)] ${sticky ? 'sticky top-[88px]' : ''}`}>
+        <div className="border-b border-blue-100 bg-blue-50/80 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-base font-bold text-slate-950">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white">
+                  <Icon name="tune" size="sm" />
+                </span>
+                Bộ lọc dịch vụ
+                {activeCount > 0 && (
+                  <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-blue-600 px-2 py-0.5 text-xs font-bold text-white" aria-label={`${activeCount} bộ lọc đang áp dụng`}>
+                    {activeCount}
+                  </span>
+                )}
               </div>
+              <p className="mt-2 text-sm leading-5 text-slate-600">Thu hẹp kết quả theo nhu cầu học.</p>
+            </div>
+            {onReset && (
+              <button
+                type="button"
+                onClick={onReset}
+                disabled={activeCount === 0}
+                className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 ${
+                  activeCount === 0 ? 'invisible pointer-events-none' : ''
+                }`}
+                aria-label="Đặt lại bộ lọc"
+                title="Đặt lại bộ lọc"
+              >
+                <Icon name="refresh" size="sm" />
+              </button>
             )}
           </div>
-        )}
-
-        {/* 4. Price Range Section (Mức giá trọn gói) */}
-        <div className="pt-3 border-t border-neutral-100 space-y-2.5">
-          <button
-            type="button"
-            onClick={() => toggleSection('price')}
-            aria-expanded={openSections.price}
-            aria-controls="service-filter-section-price"
-            className="w-full flex items-center justify-between text-[13px] font-bold text-neutral-900 group cursor-pointer"
-          >
-            <span className="flex items-center gap-1.5">
-              <Icon name="payments" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
-              <span>Khoảng giá</span>
-            </span>
-            <Icon
-              name="expand_more"
-              size="sm"
-              className={`text-neutral-400 transition-transform duration-200 ${
-                openSections.price ? 'rotate-180' : 'rotate-0'
-              }`}
-            />
-          </button>
-
-          {openSections.price && (
-            <div id="service-filter-section-price" className="pt-0.5 space-y-2.5">
-              <div className="flex items-center justify-between text-[12px]">
-                <span className="text-neutral-500 font-medium">Học phí tối đa:</span>
-                <span className="font-extrabold text-brand-primary-600">{formatVND(priceRange)}</span>
-              </div>
-
-              <input
-                type="range"
-                min="500000"
-                max={maxPrice}
-                step="500000"
-                value={priceRange}
-                onChange={(e) => onPriceRangeChange(Number(e.target.value))}
-                className="w-full h-1.5 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-brand-primary-600"
-                aria-label="Thanh kéo chọn mức giá học phí"
-              />
-
-              <div className="flex items-center justify-between text-[11px] text-neutral-400 font-semibold">
-                <span>0 đ</span>
-                <span>{formatVND(maxPrice)}</span>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* 5. Rating Section (Đánh giá gia sư) */}
-        <div className="pt-3 border-t border-neutral-100 space-y-2">
-          <button
-            type="button"
-            onClick={() => toggleSection('rating')}
-            aria-expanded={openSections.rating}
-            aria-controls="service-filter-section-rating"
-            className="w-full flex items-center justify-between text-[13px] font-bold text-neutral-900 group cursor-pointer"
-          >
-            <span className="flex items-center gap-1.5">
-              <Icon name="star" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
-              <span>Đánh giá gia sư</span>
-            </span>
-            <Icon
-              name="expand_more"
-              size="sm"
-              className={`text-neutral-400 transition-transform duration-200 ${
-                openSections.rating ? 'rotate-180' : 'rotate-0'
-              }`}
+        <FilterSection title="Danh mục dịch vụ" icon="category" section="category" open={openSections.category} onToggle={toggle}>
+          <RadioOption
+            name="service-category"
+            checked={!selectedCategoryId}
+            onChange={() => { onSelectCategory(''); onSelectSubject(''); }}
+            label="Tất cả danh mục"
+          />
+          {categories.map((category) => (
+            <RadioOption
+              key={category.id}
+              name="service-category"
+              checked={selectedCategoryId === category.id}
+              onChange={() => { onSelectCategory(category.id); onSelectSubject(''); }}
+              label={category.name}
             />
-          </button>
+          ))}
+        </FilterSection>
 
-          {openSections.rating && (
-            <div id="service-filter-section-rating" className="pt-0.5 space-y-1">
-              {RATING_OPTIONS.map((opt) => (
-                <label
-                  key={String(opt.value)}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors cursor-pointer ${
-                    minRating === opt.value
-                      ? 'bg-brand-primary-50 text-brand-primary-600 font-bold'
-                      : 'text-neutral-700 hover:bg-neutral-50'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="service-rating"
-                    checked={minRating === opt.value}
-                    onChange={() => onMinRatingChange(opt.value)}
-                    className="w-3.5 h-3.5 text-brand-primary-600 focus:ring-brand-primary-600 border-neutral-300 cursor-pointer"
-                  />
-                  <span>{opt.label}</span>
-                </label>
+        {availableSubjects.length > 0 && (
+          <FilterSection title="Môn học / Kỹ năng" icon="menu_book" section="subject" open={openSections.subject} onToggle={toggle}>
+            <div className="max-h-[240px] space-y-1 overflow-y-auto pr-1">
+              <RadioOption name="service-subject" checked={!selectedSubjectId} onChange={() => onSelectSubject('')} label="Tất cả môn học" />
+              {availableSubjects.map((subject) => (
+                <RadioOption
+                  key={subject.id}
+                  name="service-subject"
+                  checked={selectedSubjectId === subject.id}
+                  onChange={() => onSelectSubject(subject.id)}
+                  label={subject.name}
+                />
               ))}
             </div>
-          )}
-        </div>
+          </FilterSection>
+        )}
+
+        <FilterSection title="Học phí trọn gói" icon="payments" section="price" open={openSections.price} onToggle={toggle}>
+          <div>
+            <PriceRangeFilter
+              min={minPrice}
+              max={maxPrice}
+              limit={priceLimit}
+              step={PRICE_STEP}
+              presets={buildPricePresets(priceLimit)}
+              onChange={handlePriceChange}
+              ariaLabelMin="Giá dịch vụ tối thiểu"
+              ariaLabelMax="Giá dịch vụ tối đa"
+              ariaLabelMinInput="Nhập giá dịch vụ tối thiểu"
+              ariaLabelMaxInput="Nhập giá dịch vụ tối đa"
+            />
+          </div>
+        </FilterSection>
+
+        <FilterSection title="Đánh giá gia sư" icon="star" section="rating" open={openSections.rating} onToggle={toggle}>
+          {RATING_OPTIONS.map((option) => (
+            <RadioOption
+              key={String(option.value)}
+              name="service-rating"
+              checked={minRating === option.value}
+              onChange={() => onMinRatingChange(option.value)}
+              label={option.label}
+            />
+          ))}
+        </FilterSection>
       </div>
     </aside>
   );
 }
+
+function FilterSection({ title, icon, section, open, onToggle, children }) {
+  const contentId = `service-filter-${section}`;
+  return (
+    <div className="border-t border-slate-200 px-4 py-3.5 first:border-t-0">
+      <button
+        type="button"
+        onClick={() => onToggle(section)}
+        aria-expanded={open}
+        aria-controls={contentId}
+        className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg text-left text-sm font-bold text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      >
+        <span className="flex items-center gap-2"><Icon name={icon} size="sm" className="text-blue-600" />{title}</span>
+        <Icon name="expand_more" size="sm" className={`text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div id={contentId} className="mt-2 space-y-1">{children}</div>}
+    </div>
+  );
+}
+
+function RadioOption({ name, checked, onChange, label }) {
+  return (
+    <label className={`flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-2.5 text-sm transition ${checked ? 'bg-blue-50 font-bold text-blue-700' : 'font-medium text-slate-700 hover:bg-slate-50'}`}>
+      <input type="radio" name={name} checked={checked} onChange={onChange} className="h-4 w-4 cursor-pointer border-slate-300 text-blue-600 focus:ring-blue-500" />
+      <span className="line-clamp-2">{label}</span>
+    </label>
+  );
+}
+
+FilterSection.propTypes = {
+  title: PropTypes.string.isRequired,
+  icon: PropTypes.string.isRequired,
+  section: PropTypes.string.isRequired,
+  open: PropTypes.bool.isRequired,
+  onToggle: PropTypes.func.isRequired,
+  children: PropTypes.node.isRequired,
+};
+
+RadioOption.propTypes = {
+  name: PropTypes.string.isRequired,
+  checked: PropTypes.bool.isRequired,
+  onChange: PropTypes.func.isRequired,
+  label: PropTypes.string.isRequired,
+};
 
 ServiceFilterSidebar.propTypes = {
   categories: PropTypes.array,
@@ -289,10 +206,14 @@ ServiceFilterSidebar.propTypes = {
   onSelectCategory: PropTypes.func.isRequired,
   selectedSubjectId: PropTypes.string,
   onSelectSubject: PropTypes.func.isRequired,
-  priceRange: PropTypes.number.isRequired,
-  onPriceRangeChange: PropTypes.func.isRequired,
+  minPrice: PropTypes.number,
   maxPrice: PropTypes.number,
+  priceLimit: PropTypes.number,
+  onPriceChange: PropTypes.func.isRequired,
   minRating: PropTypes.number,
   onMinRatingChange: PropTypes.func.isRequired,
+  activeCount: PropTypes.number,
+  onReset: PropTypes.func,
+  sticky: PropTypes.bool,
   className: PropTypes.string,
 };
