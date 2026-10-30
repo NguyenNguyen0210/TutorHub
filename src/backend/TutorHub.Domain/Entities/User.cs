@@ -42,6 +42,9 @@ public class User
     // Media
     public ICollection<Media> MediaUploaded { get; set; } = new List<Media>();
 
+    // Wishlist
+    public ICollection<WishlistItem> WishlistItems { get; set; } = new List<WishlistItem>();
+
     // ── State transition methods ──────────────────────────────────────
     // These enforce transition validity only.
     // Admin invariants (self-lockout, last-admin, token revocation, audit)

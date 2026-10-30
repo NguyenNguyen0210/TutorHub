@@ -26,6 +26,7 @@ public interface IAppDbContext
     DbSet<Report> Reports { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<Media> Media { get; }
+    DbSet<WishlistItem> WishlistItems { get; }
 
     // Backward-compatibility aliases
     DbSet<Wallet> TutorWallets => Wallets;

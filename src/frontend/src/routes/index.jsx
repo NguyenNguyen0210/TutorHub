@@ -65,6 +65,7 @@ import StudentWalletWithdraw from '../pages/student/StudentWalletWithdraw';
 import EnrollmentDetail from '../pages/student/EnrollmentDetail';
 import SessionDetail from '../pages/student/SessionDetail';
 import DisputeNew from '../pages/student/DisputeNew';
+import StudentWishlist from '../pages/student/StudentWishlist';
 
 // Tutor Space & Wallet Screens
 import TutorDashboard from '../pages/tutor/TutorDashboard';
@@ -155,6 +156,7 @@ export default function AppRoutes() {
         <Route path="enrollments/:id" element={<EnrollmentDetail />} />
         <Route path="sessions/:id" element={<SessionDetail />} />
         <Route path="disputes/new" element={<DisputeNew />} />
+        <Route path="wishlist" element={<StudentWishlist />} />
         <Route path="settings" element={<ProfileSettings />} />
         <Route path="profile" element={<Navigate to="/student/settings" replace />} />
       </Route>

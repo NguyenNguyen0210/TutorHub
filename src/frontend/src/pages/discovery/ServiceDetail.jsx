@@ -15,18 +15,28 @@ import Money from '@/components/ui/Money';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/components/ui/Toast';
 import bookingService from '@/services/booking.service';
+import { useWishlist } from '@/hooks/useWishlist';
 
 export default function ServiceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
   const { isAuthenticated, role } = useAuthStore();
+  const { isFavorited, toggle } = useWishlist();
 
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [bookingLoading, setBookingLoading] = useState(false);
+
+  const serviceId = service?.id || id;
+  const isFavorite = isFavorited('Service', serviceId);
+  const handleToggleFavorite = () => {
+    if (serviceId) {
+      toggle('Service', serviceId);
+    }
+  };
 
   const handleBookNow = async () => {
     if (!service) return;
@@ -372,29 +382,46 @@ export default function ServiceDetail() {
 
           {/* Right Column (30% - 4 Cols - Sticky Sidebar) */}
           <div className="lg:col-span-4">
-            <ServiceSidebarCard service={service} onBookNow={handleBookNow} />
+            <ServiceSidebarCard
+              service={service}
+              onBookNow={handleBookNow}
+              isFavorite={isFavorite}
+              onToggleFavorite={handleToggleFavorite}
+            />
           </div>
         </div>
       </div>
 
       {/* 4. Mobile Sticky Bottom CTA Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-neutral-200 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg flex items-center justify-between gap-4">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-neutral-200 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg flex items-center justify-between gap-3">
         <div>
           <span className="text-[11px] text-neutral-500 block">Học phí trọn gói:</span>
           <Money value={service.price} className="text-xl font-extrabold text-brand-primary-600" />
         </div>
 
-        <Button
-          type="button"
-          variant="primary"
-          size="md"
-          loading={bookingLoading}
-          onClick={handleBookNow}
-          className="!rounded-xl px-5 py-2.5 min-h-[44px] text-sm font-bold shadow-brand-sm"
-        >
-          <span>Đăng ký học</span>
-          <Icon name="arrow_forward" size="xs" className="w-3.5 h-3.5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant={isFavorite ? 'primary' : 'outline'}
+            size="md"
+            onClick={handleToggleFavorite}
+            aria-label={isFavorite ? 'Bỏ lưu dịch vụ' : 'Lưu dịch vụ'}
+            className={`!rounded-xl px-3 min-h-[44px] ${isFavorite ? 'text-danger bg-danger-subtle' : ''}`}
+          >
+            <Icon name="favorite" size="sm" filled={isFavorite} />
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            loading={bookingLoading}
+            onClick={handleBookNow}
+            className="!rounded-xl px-5 py-2.5 min-h-[44px] text-sm font-bold shadow-brand-sm"
+          >
+            <span>Đăng ký học</span>
+            <Icon name="arrow_forward" size="xs" className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -7,12 +7,23 @@ import Icon from '@/components/ui/Icon';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/components/ui/Toast';
 import bookingService from '@/services/booking.service';
+import { useWishlist } from '@/hooks/useWishlist';
 
-export default function ServiceSidebarCard({ service, onBookNow }) {
+export default function ServiceSidebarCard({
+  service,
+  onBookNow,
+  isFavorite: isFavoriteProp,
+  onToggleFavorite: onToggleFavoriteProp,
+}) {
   const navigate = useNavigate();
   const toast = useToast();
   const { isAuthenticated, role } = useAuthStore();
+  const { isFavorited, toggle } = useWishlist();
   const [bookingLoading, setBookingLoading] = useState(false);
+
+  const serviceId = service?.id || service?.serviceId;
+  const isFavorite = isFavoriteProp !== undefined ? isFavoriteProp : isFavorited('Service', serviceId);
+  const handleToggleFavorite = onToggleFavoriteProp || (() => toggle('Service', serviceId));
 
   const tutor = service.tutor || {};
   const totalSessions = Number(service.totalSessions) > 0 ? Number(service.totalSessions) : null;
@@ -110,17 +121,35 @@ export default function ServiceSidebarCard({ service, onBookNow }) {
 
       {/* Action Buttons */}
       <div className="flex flex-col gap-2.5">
-        <Button
-          type="button"
-          variant="primary"
-          size="lg"
-          loading={bookingLoading}
-          onClick={handlePrimaryAction}
-          className="w-full !rounded-xl !py-3.5 text-base font-bold shadow-brand-sm hover:shadow-brand-md gap-2"
-        >
-          <span>Đăng ký học ngay</span>
-          <Icon name="arrow_forward" size="sm" className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="primary"
+            size="lg"
+            loading={bookingLoading}
+            onClick={handlePrimaryAction}
+            className="flex-1 !rounded-xl !py-3.5 text-base font-bold shadow-brand-sm hover:shadow-brand-md gap-2"
+          >
+            <span>Đăng ký học ngay</span>
+            <Icon name="arrow_forward" size="sm" className="w-4 h-4" />
+          </Button>
+
+          <Button
+            type="button"
+            variant={isFavorite ? 'primary' : 'outline'}
+            size="lg"
+            onClick={handleToggleFavorite}
+            aria-label={isFavorite ? 'Bỏ lưu dịch vụ' : 'Lưu dịch vụ'}
+            title={isFavorite ? 'Bỏ lưu dịch vụ' : 'Lưu dịch vụ'}
+            className={`!rounded-xl !p-3.5 shrink-0 ${
+              isFavorite
+                ? 'text-danger bg-danger-subtle border-danger/30'
+                : 'text-neutral-600 border-neutral-300 hover:text-danger hover:border-danger/40'
+            }`}
+          >
+            <Icon name="favorite" size="md" filled={isFavorite} />
+          </Button>
+        </div>
 
         <Button
           type="button"
@@ -168,4 +197,6 @@ export default function ServiceSidebarCard({ service, onBookNow }) {
 ServiceSidebarCard.propTypes = {
   service: PropTypes.object.isRequired,
   onBookNow: PropTypes.func,
+  isFavorite: PropTypes.bool,
+  onToggleFavorite: PropTypes.func,
 };

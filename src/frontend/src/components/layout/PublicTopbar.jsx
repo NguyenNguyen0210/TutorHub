@@ -47,6 +47,16 @@ export default function PublicTopbar() {
                 : '/admin/settings'
             ),
         },
+        ...(role === 'Student'
+          ? [
+              {
+                key: 'wishlist',
+                icon: <Icon name="favorite" size="sm" />,
+                label: <span className="font-semibold text-body-reg">Danh sách đã lưu</span>,
+                onClick: () => navigate('/student/wishlist'),
+              },
+            ]
+          : []),
         ...(role === 'Tutor'
           ? [
               {
@@ -83,7 +93,7 @@ export default function PublicTopbar() {
   const isHome = location.pathname === '/' || location.pathname.startsWith('/tutors');
   const navLinkClass = (active) =>
     cn(
-      'inline-flex min-h-11 items-center border-b-2 px-3.5 py-2 text-[13.5px] font-semibold transition-colors',
+      'inline-flex min-h-11 items-center border-b-2 px-3.5 py-2 text-[14px] font-semibold transition-colors',
       active
         ? 'border-brand-primary-600 text-brand-primary-700'
         : 'border-transparent text-fg-secondary hover:border-neutral-300 hover:text-fg'
@@ -198,6 +208,29 @@ export default function PublicTopbar() {
                 </Link>
               )}
 
+              {role === 'Student' && (
+                <Button
+                  as={Link}
+                  to="/student/wishlist"
+                  variant="ghost"
+                  aria-label="Danh sách đã lưu"
+                  title="Danh sách đã lưu"
+                  icon={
+                    <Icon
+                      name="favorite"
+                      size="md"
+                      className={cn(
+                        'transition-colors',
+                        location.pathname.startsWith('/student/wishlist')
+                          ? 'text-brand-danger-600 fill-brand-danger-600'
+                          : 'text-fg-secondary hover:text-brand-danger-600'
+                      )}
+                    />
+                  }
+                  className="w-9 h-9 !px-0 rounded-full hover:bg-neutral-100"
+                />
+              )}
+
               <Button
                 as={Link}
                 to="/app/notifications"
@@ -229,13 +262,13 @@ export default function PublicTopbar() {
             <div className="flex items-center gap-2 sm:gap-2.5">
               <Link
                 to="/auth/register"
-                className="hidden sm:inline-flex items-center justify-center h-11 px-4 rounded-brand-md border border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-700 text-[13.5px] font-medium transition-colors"
+                className="hidden sm:inline-flex items-center justify-center h-11 px-4 rounded-brand-md border border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-700 text-[14px] font-medium transition-colors"
               >
                 Đăng ký
               </Link>
               <Link
                 to="/auth/login"
-                className="inline-flex items-center justify-center h-11 px-4 rounded-brand-md bg-primary hover:bg-primary-hover active:scale-[0.98] text-white text-[13px] sm:text-[13.5px] font-semibold transition-all shadow-brand-sm"
+                className="inline-flex items-center justify-center h-11 px-4 rounded-brand-md bg-primary hover:bg-primary-hover active:scale-[0.98] text-white text-[14px] font-semibold transition-all shadow-brand-sm"
               >
                 Đăng nhập
               </Link>
@@ -361,6 +394,16 @@ export default function PublicTopbar() {
                 <Icon name="auto_stories" size="md" className="text-brand-primary-600" />
                 Gói học của tôi
               </Link>
+              {role === 'Student' && (
+                <Link
+                  to="/student/wishlist"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
+                >
+                  <Icon name="favorite" size="md" className="text-brand-primary-600" />
+                  Danh sách đã lưu
+                </Link>
+              )}
             </>
           )}
         </div>

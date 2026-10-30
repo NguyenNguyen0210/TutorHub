@@ -63,6 +63,9 @@ public class TutorProfile
     public ICollection<Service> Services { get; set; }
         = new List<Service>();
 
+    public ICollection<WishlistItem> WishlistItems { get; set; }
+        = new List<WishlistItem>();
+
     [NotMapped]
     public Wallet? Wallet => User?.Wallet;
 }
