@@ -9,7 +9,7 @@ export default function MarketplaceCardSkeleton({ count = 6 }) {
     <div
       role="status"
       aria-label="Đang tải danh sách gia sư..."
-      className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"
+      className="grid grid-cols-1 gap-5 md:grid-cols-2"
     >
       {Array.from({ length: count }).map((_, index) => (
         <div

@@ -18,7 +18,7 @@ import { Drawer } from '@/components/ui/Avatar';
 import '@/styles/marketplace.css';
 
 const SORT_OPTIONS = [
-  { value: 'priority', label: 'Ưu tiên phù hợp' },
+  { value: 'priority', label: 'Phù hợp nhất' },
   { value: 'rating_desc', label: 'Đánh giá cao nhất' },
   { value: 'price_asc', label: 'Học phí thấp đến cao' },
   { value: 'price_desc', label: 'Học phí cao đến thấp' },
@@ -94,6 +94,18 @@ export default function Marketplace() {
     return () => clearTimeout(timer);
   }, [searchKeyword]);
 
+  // Debounce khoảng giá: kéo slider không bắn request mỗi bước, chỉ gọi API khi ngừng kéo.
+  const [debouncedMinPrice, setDebouncedMinPrice] = useState(0);
+  const [debouncedMaxPrice, setDebouncedMaxPrice] = useState(MAX_PRICE);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedMinPrice(minPrice);
+      setDebouncedMaxPrice(maxPrice);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [minPrice, maxPrice]);
+
   // Query Categories directly from API
   useEffect(() => {
     let cancelled = false;
@@ -150,8 +162,8 @@ export default function Marketplace() {
           {
             categoryId: selectedCategory || null,
             search: debouncedKeyword.trim() || null,
-            minPrice: minPrice > 0 ? minPrice : null,
-            maxPrice: maxPrice < MAX_PRICE ? maxPrice : null,
+            minPrice: debouncedMinPrice > 0 ? debouncedMinPrice : null,
+            maxPrice: debouncedMaxPrice < MAX_PRICE ? debouncedMaxPrice : null,
             degreeLevel: degreeLevel !== 'All' ? degreeLevel : null,
             university: university !== 'All' ? university : null,
             certification: certification !== 'All' ? certification : null,
@@ -213,8 +225,8 @@ export default function Marketplace() {
   }, [
     debouncedKeyword,
     selectedCategory,
-    minPrice,
-    maxPrice,
+    debouncedMinPrice,
+    debouncedMaxPrice,
     degreeLevel,
     university,
     certification,
@@ -234,6 +246,8 @@ export default function Marketplace() {
     setSelectedCategory('');
     setMinPrice(0);
     setMaxPrice(MAX_PRICE);
+    setDebouncedMinPrice(0);
+    setDebouncedMaxPrice(MAX_PRICE);
     setDegreeLevel('All');
     setUniversity('All');
     setCertification('All');
@@ -399,7 +413,6 @@ export default function Marketplace() {
       <HeroSection
         searchKeyword={searchKeyword}
         setSearchKeyword={setSearchKeyword}
-        totalCount={totalCount}
         onSearchSubmit={(val) => {
           setDebouncedKeyword(val);
           setPageNumber(1);
@@ -419,30 +432,12 @@ export default function Marketplace() {
       />
 
       {/* 3. Main Discovery Workspace */}
-      <main className="page-shell pt-7 sm:pt-8">
-        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[272px_minmax(0,1fr)]">
+      <main className="page-shell pt-9 sm:pt-12">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[304px_minmax(0,1fr)] lg:gap-10">
           {/* Left Column: Filter Sidebar (desktop; mobile dùng drawer) */}
           {!isMobileFilters && (
             <div className="z-20 w-full lg:sticky lg:top-[88px]">
-              {renderFilterSidebar({
-                footer: (
-                  <div className="flex items-center justify-between gap-2 text-[10.5px] text-[color:var(--mkt-body)]">
-                    <span>
-                      Đang áp dụng{' '}
-                      <strong className="font-bold text-[color:var(--mkt-ink)]">
-                        {activeFilters.length}
-                      </strong>{' '}
-                      bộ lọc
-                    </span>
-                    <span>
-                      <strong className="font-bold text-[color:var(--mkt-ink)]">
-                        {formatCount(totalCount)}
-                      </strong>{' '}
-                      kết quả
-                    </span>
-                  </div>
-                ),
-              })}
+              {renderFilterSidebar()}
             </div>
           )}
 
@@ -467,7 +462,7 @@ export default function Marketplace() {
                   <span
                     role="status"
                     aria-label={`${activeFilters.length} bộ lọc đang áp dụng`}
-                    className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[color:var(--mkt-cobalt)] px-1 text-[9px] font-bold text-white"
+                    className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[color:var(--mkt-cobalt)] px-1.5 text-[12px] font-bold text-white"
                   >
                     {activeFilters.length}
                   </span>
@@ -483,7 +478,7 @@ export default function Marketplace() {
                     setPageNumber(1);
                   }}
                   aria-label="Sắp xếp gia sư"
-                  className="min-h-11 !rounded-[8px] !border-[color:var(--mkt-line)] !bg-white !py-1.5 !text-[11px] font-semibold"
+                  className="min-h-11 !rounded-[10px] !border-[color:var(--mkt-line)] !bg-white !py-1.5 !text-[13px] font-semibold"
                 >
                   {SORT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -497,7 +492,7 @@ export default function Marketplace() {
             {/* Active Filters Bar (desktop only) */}
             {activeFilters.length > 0 && (
               <div className="hidden flex-wrap items-center gap-2 rounded-[10px] border border-[color:var(--mkt-line)] bg-white p-3 lg:flex">
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-[color:var(--mkt-ink)]">
+                <div className="flex items-center gap-1.5 text-[12px] font-bold text-[color:var(--mkt-ink)]">
                   <Icon
                     name="filter_alt"
                     size="xs"
@@ -510,7 +505,7 @@ export default function Marketplace() {
                 {activeFilters.map((af) => (
                   <span
                     key={af.key}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--mkt-line)] bg-[color:var(--mkt-canvas)] px-2.5 py-1 text-[10.5px] font-semibold text-[color:var(--mkt-body)]"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--mkt-line)] bg-[color:var(--mkt-canvas)] px-3 py-1.5 text-[12px] font-semibold text-[color:var(--mkt-body)]"
                   >
                     <span>{af.label}</span>
                     <button
@@ -528,7 +523,7 @@ export default function Marketplace() {
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className="ml-auto inline-flex min-h-11 items-center gap-1 px-2 text-[11px] font-semibold text-[color:var(--mkt-muted)] transition-colors hover:text-[color:var(--mkt-danger)]"
+                  className="ml-auto inline-flex min-h-11 items-center gap-1 px-2 text-[12px] font-semibold text-[color:var(--mkt-muted)] transition-colors hover:text-[color:var(--mkt-danger)]"
                 >
                   <Icon name="close" size="xs" strokeWidth={1.7} className="h-3.5 w-3.5" />
                   <span>Xóa bộ lọc</span>
@@ -543,17 +538,22 @@ export default function Marketplace() {
             >
               <div>
                 <h2
-                  className="mkt-display text-[18px] font-extrabold tracking-[-0.03em] text-[color:var(--mkt-ink)] sm:text-[21px]"
+                  className="mkt-display text-[22px] font-extrabold leading-[1.25] tracking-[-0.02em] text-[color:var(--mkt-ink)] sm:text-[26px]"
                   aria-live="polite"
                 >
-                  {loading ? 'Đang tìm kiếm gia sư...' : `${formatCount(totalCount)} gia sư phù hợp`}
+                  {loading
+                    ? 'Đang tìm kiếm gia sư...'
+                    : totalCount === 0
+                      ? 'Không tìm thấy gia sư phù hợp'
+                      : `${formatCount(totalCount)} gia sư phù hợp`}
                 </h2>
-                <p className="mt-0.5 hidden text-[10.5px] text-[color:var(--mkt-body)] sm:block">
-                  Xếp theo độ phù hợp với nhu cầu của bạn.
-                </p>
-                {activeFilters.length > 0 && (
-                  <p className="mt-0.5 text-[10.5px] text-[color:var(--mkt-body)] lg:hidden">
-                    Đã lọc theo {activeFilters.length} tiêu chí
+                {searchKeyword.trim() ? (
+                  <p className="mt-1 text-[12px] text-[color:var(--mkt-body)]">
+                    Kết quả tìm kiếm cho &ldquo;{searchKeyword.trim()}&rdquo;
+                  </p>
+                ) : (
+                  <p className="mt-1 hidden text-[12px] text-[color:var(--mkt-body)] sm:block">
+                    Kết nối trực tiếp với gia sư hàng đầu được kiểm duyệt.
                   </p>
                 )}
               </div>
@@ -561,7 +561,7 @@ export default function Marketplace() {
               <div className="hidden shrink-0 items-center gap-2 lg:flex">
                 <label
                   htmlFor="sort-tutors"
-                  className="text-[10.5px] font-semibold text-[color:var(--mkt-body)]"
+                  className="text-[12px] font-semibold text-[color:var(--mkt-body)]"
                 >
                   Sắp xếp:
                 </label>
@@ -573,7 +573,7 @@ export default function Marketplace() {
                       setSortBy(e.target.value);
                       setPageNumber(1);
                     }}
-                    className="min-h-11 !rounded-[8px] !border-[color:var(--mkt-line)] !bg-white !py-1.5 !text-[11px] font-semibold"
+                    className="min-h-11 !rounded-[10px] !border-[color:var(--mkt-line)] !bg-white !py-1.5 !text-[13px] font-semibold"
                   >
                     {SORT_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -591,7 +591,7 @@ export default function Marketplace() {
               role="group"
               aria-label="Bộ lọc nhanh"
             >
-              <span className="shrink-0 text-[11px] font-semibold text-[color:var(--mkt-body)]">
+              <span className="shrink-0 text-[12px] font-semibold text-[color:var(--mkt-body)]">
                 Lọc nhanh:
               </span>
 
@@ -667,7 +667,7 @@ export default function Marketplace() {
                 className="!max-w-xl !border-[color:var(--mkt-line)] !bg-white"
               />
             ) : (
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 {tutors.map((tutor) => (
                   <TutorCard key={tutor.id} tutor={tutor} />
                 ))}
@@ -677,7 +677,7 @@ export default function Marketplace() {
             {/* Pagination */}
             {!loading && totalPages > 1 && (
               <div className="flex flex-col items-center justify-between gap-3 border-t border-[color:var(--mkt-line)] pt-5 sm:flex-row">
-                <p className="text-[10.5px] text-[color:var(--mkt-body)]">
+                <p className="text-[12px] text-[color:var(--mkt-body)]">
                   Hiển thị {formatCount(pageRange.start)}–{formatCount(pageRange.end)} trong{' '}
                   {formatCount(totalCount)} gia sư
                 </p>
@@ -725,14 +725,14 @@ export default function Marketplace() {
           <div className="space-y-3">
             {activeFilters.length > 0 && (
               <div className="rounded-[10px] border border-[color:var(--mkt-cobalt-100)] bg-[color:var(--mkt-cobalt-50)] p-3">
-                <p className="text-[10.5px] font-bold text-[color:var(--mkt-ink)]">
-                  Đang áp dụng {activeFilters.length} bộ lọc
+                <p className="text-[12px] font-bold text-[color:var(--mkt-ink)]">
+                  Đang lọc ({activeFilters.length}):
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {activeFilters.map((af) => (
                     <span
                       key={af.key}
-                      className="inline-flex items-center gap-1 rounded-full border border-[color:var(--mkt-cobalt-100)] bg-white px-2.5 py-1 text-[10px] font-semibold text-[color:var(--mkt-cobalt)]"
+                      className="inline-flex items-center gap-1 rounded-full border border-[color:var(--mkt-cobalt-100)] bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[color:var(--mkt-cobalt)]"
                     >
                       <span>{af.label}</span>
                       <button
