@@ -67,7 +67,9 @@ fi
 
 # 4. Thực thi nạp Data.sql
 echo "⏳ Đang nạp dữ liệu từ Data.sql vào database '$POSTGRES_DB'..."
-docker exec -i "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -q < "$SQL_FILE"
+docker cp "$SQL_FILE" "${CONTAINER_NAME}:/tmp/Data.sql"
+docker exec "$CONTAINER_NAME" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -q -f /tmp/Data.sql
+docker exec "$CONTAINER_NAME" rm -f /tmp/Data.sql
 
 echo "✅ Nạp dữ liệu mẫu thành công!"
 echo "🔑 Mật khẩu mặc định cho tất cả tài khoản test: Test@123"
