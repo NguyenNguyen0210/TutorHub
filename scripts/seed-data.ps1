@@ -70,10 +70,17 @@ if (-not $Force) {
 
 # 4. Thuc thi nap Data.sql
 Write-Host "Dang nap du lieu tu Data.sql vao database '$postgresDb'..." -ForegroundColor Cyan
-Get-Content -LiteralPath $sqlFile -Raw -Encoding UTF8 | docker exec -i $containerName psql -U $postgresUser -d $postgresDb -v ON_ERROR_STOP=1 -q
+docker cp $sqlFile "${containerName}:/tmp/Data.sql"
+if ($LASTEXITCODE -ne 0) {
+    throw "Sao chep Data.sql vao container that bai."
+}
+
+docker exec $containerName psql -U $postgresUser -d $postgresDb -v ON_ERROR_STOP=1 -q -f /tmp/Data.sql
 if ($LASTEXITCODE -ne 0) {
     throw "Nap seed data that bai; PostgreSQL da rollback transaction."
 }
+
+docker exec $containerName rm -f /tmp/Data.sql
 
 Write-Host "Nap du lieu mau thanh cong!" -ForegroundColor Green
 Write-Host "Mat khau mac dinh cho tat ca tai khoan: Test@123" -ForegroundColor Green
