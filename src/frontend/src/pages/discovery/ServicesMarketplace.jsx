@@ -398,7 +398,6 @@ export default function ServicesMarketplace() {
                   </span>
                 )}
               </button>
-
               {activeFilters.length > 0 && (
                 <button
                   type="button"
@@ -541,8 +540,8 @@ export default function ServicesMarketplace() {
               />
             )}
 
-            {/* Loading Skeletons */}
-            {loading && <CardSkeleton count={6} className="gap-5 lg:!grid-cols-2 xl:!grid-cols-3" label="Đang tải danh sách dịch vụ..." />}
+            {/* Loading Skeletons (2 Columns đồng bộ với Tutor Grid) */}
+            {loading && <CardSkeleton count={6} className="gap-5 md:!grid-cols-2 lg:!grid-cols-2" label="Đang tải danh sách dịch vụ..." />}
 
             {/* Empty State */}
             {!loading && !error && services.length === 0 && (
@@ -555,10 +554,10 @@ export default function ServicesMarketplace() {
               />
             )}
 
-            {/* Services Grid (3 Columns on Desktop) */}
+            {/* Services Grid (2 Columns, đồng bộ với Tutor Grid) */}
             {!loading && !error && services.length > 0 && (
               <>
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                   {services.map((service) => (
                     <ServiceCard
                       key={service.id}
