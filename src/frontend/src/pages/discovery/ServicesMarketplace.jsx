@@ -398,10 +398,6 @@ export default function ServicesMarketplace() {
                   </span>
                 )}
               </button>
-<<<<<<< HEAD
-              <span className="text-sm font-semibold text-[color:var(--mkt-body)]">{totalCount} kết quả</span>
-=======
-
               {activeFilters.length > 0 && (
                 <button
                   type="button"
@@ -412,7 +408,6 @@ export default function ServicesMarketplace() {
                   <span>Xóa lọc ({activeFilters.length})</span>
                 </button>
               )}
->>>>>>> develop
             </div>
 
             {/* Active Filters Bar */}
@@ -455,15 +450,11 @@ export default function ServicesMarketplace() {
               <div>
                 <span className="text-xs font-bold uppercase tracking-[0.08em] text-blue-600">Danh sách dịch vụ</span>
                 <h2 className="mt-1 text-[22px] font-bold tracking-[-0.02em] text-[color:var(--mkt-ink)] sm:text-[26px]">
-<<<<<<< HEAD
-                  {loading ? 'Đang tìm kiếm dịch vụ...' : `${totalCount} dịch vụ phù hợp`}
-=======
                   {loading
                     ? 'Đang tìm kiếm dịch vụ...'
                     : totalCount === 0
                       ? 'Không tìm thấy dịch vụ phù hợp'
                       : `${totalCount} dịch vụ phù hợp`}
->>>>>>> develop
                 </h2>
                 <p className="mt-1 text-sm font-medium text-[color:var(--mkt-body)]">
                   So sánh lộ trình, gia sư và học phí trọn gói.
