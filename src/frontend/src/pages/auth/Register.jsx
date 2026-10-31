@@ -338,43 +338,47 @@ export default function Register() {
 
             {/* Illustration with Dynamic Live Floating Badges */}
             <div className="relative mt-5 sm:mt-6 max-w-[520px] w-full select-none">
-              <img
-                src={isTutor ? '/images/hero-become-tutor-cutout.png' : '/images/transparent-student-clean.png'}
-                alt={isTutor ? 'Gia sư TutorHub chuyên nghiệp' : 'Học viên TutorHub học tập hiệu quả'}
-                className="w-full h-auto object-contain select-none pointer-events-none transition-all duration-300"
-                loading="eager"
-              />
+              {isTutor ? (
+                <div className="relative w-full aspect-[16/10] sm:aspect-[4/3] rounded-2xl overflow-hidden border border-neutral-200/80 shadow-brand-md">
+                  <img
+                    src="/images/hero-become-tutor.jpg"
+                    alt="Gia sư TutorHub giảng dạy chuyên nghiệp"
+                    className="w-full h-full object-cover object-center select-none pointer-events-none transition-all duration-300"
+                    loading="eager"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent pointer-events-none" />
+                </div>
+              ) : (
+                <img
+                  src="/images/hero-become-tutor-cutout.png"
+                  alt="Hành trình học tập cùng TutorHub"
+                  className="w-full h-auto object-contain select-none pointer-events-none transition-all duration-300"
+                  loading="eager"
+                />
+              )}
 
               {/* Floating Badge 1: Top Right */}
-              <div
-                className="absolute top-4 sm:top-5 right-2 sm:right-3 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-[16px] sm:rounded-[18px] shadow-brand-md border border-white/80 max-w-[145px] sm:max-w-[160px] text-left z-20 animate-float"
-                style={{ animationDuration: '5s' }}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <div
-                    className={cn(
-                      'w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center',
-                      isTutor ? 'bg-emerald-50 text-emerald-600' : 'bg-brand-primary-50 text-brand-primary-600'
-                    )}
-                  >
-                    {isTutor ? <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+              {isTutor ? (
+                <div
+                  className="absolute top-4 sm:top-5 right-2 sm:right-3 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-[16px] sm:rounded-[18px] shadow-brand-md border border-white/80 max-w-[145px] sm:max-w-[160px] text-left z-20 animate-float"
+                  style={{ animationDuration: '5s' }}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                      <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-[9px] sm:text-[10px] font-bold">
+                      ✓
+                    </div>
                   </div>
-                  <div
-                    className={cn(
-                      'w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-bold',
-                      isTutor ? 'bg-emerald-50 text-emerald-600' : 'bg-brand-primary-50 text-brand-primary-600'
-                    )}
-                  >
-                    ✓
-                  </div>
+                  <p className="text-[12px] sm:text-[13px] font-bold text-fg leading-tight mt-1">
+                    Thu nhập linh hoạt
+                  </p>
+                  <p className="text-[9.5px] sm:text-[10.5px] text-neutral-500 leading-snug mt-0.5">
+                    Tự định giá & nhận giải ngân minh bạch 12h
+                  </p>
                 </div>
-                <p className="text-[12px] sm:text-[13px] font-bold text-fg leading-tight mt-1">
-                  {isTutor ? 'Thu nhập linh hoạt' : 'Bảo chứng an toàn'}
-                </p>
-                <p className="text-[9.5px] sm:text-[10.5px] text-neutral-500 leading-snug mt-0.5">
-                  {isTutor ? 'Tự định giá & nhận giải ngân minh bạch 12h' : 'Học phí được bảo vệ qua Escrow từng buổi'}
-                </p>
-              </div>
+              ) : null}
 
               {/* Floating Badge 2: Bottom Left */}
               {isTutor ? (
@@ -395,7 +399,7 @@ export default function Register() {
               ) : (
                 <Link
                   to="/"
-                  className="absolute bottom-4 sm:bottom-6 left-2 sm:left-3 bg-white/95 backdrop-blur-md p-2 sm:p-2.5 sm:px-3.5 rounded-xl sm:rounded-2xl shadow-brand-md border border-white/80 flex items-center gap-2 sm:gap-3 z-20 group hover:shadow-brand-lg transition-all animate-float cursor-pointer"
+                  className="absolute -bottom-3 sm:-bottom-4 left-2 sm:left-3 bg-white/95 backdrop-blur-md p-2 sm:p-2.5 sm:px-3.5 rounded-xl sm:rounded-2xl shadow-brand-md border border-white/80 flex items-center gap-2 sm:gap-3 z-20 group hover:shadow-brand-lg transition-all animate-float cursor-pointer"
                   style={{ animationDuration: '4.5s', animationDelay: '0.8s' }}
                   title="Khám phá danh sách gia sư chất lượng"
                 >
@@ -481,16 +485,16 @@ export default function Register() {
                     onClick={() => setSelectedRole('Student')}
                     onKeyDown={handleRoleKeyDown}
                     className={cn(
-                      'p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600',
+                      'p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600',
                       selectedRole === 'Student'
                         ? 'border-2 border-brand-primary-600 bg-brand-primary-50'
                         : 'border-border bg-white hover:border-neutral-300'
                     )}
                   >
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0">
                       <GraduationCap
                         className={cn(
-                          'w-5 h-5 transition-colors',
+                          'w-4 h-4 sm:w-5 sm:h-5 transition-colors',
                           selectedRole === 'Student' ? 'text-brand-primary-600' : 'text-neutral-500'
                         )}
                       />
@@ -498,13 +502,13 @@ export default function Register() {
                     <div className="min-w-0 flex-1 leading-snug">
                       <span
                         className={cn(
-                          'font-bold text-[13px] block truncate',
+                          'font-bold text-[12px] sm:text-[13px] block whitespace-nowrap',
                           selectedRole === 'Student' ? 'text-brand-primary-600' : 'text-fg'
                         )}
                       >
                         Tôi là học viên
                       </span>
-                      <span className="text-[10.5px] text-neutral-500 block mt-0.5 truncate">
+                      <span className="text-[10px] sm:text-[10.5px] text-neutral-500 block mt-0.5 truncate">
                         Tìm gia sư, mua khoá học
                       </span>
                     </div>
@@ -519,16 +523,16 @@ export default function Register() {
                     onClick={() => setSelectedRole('Tutor')}
                     onKeyDown={handleRoleKeyDown}
                     className={cn(
-                      'p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600',
+                      'p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600',
                       selectedRole === 'Tutor'
                         ? 'border-2 border-brand-primary-600 bg-brand-primary-50'
                         : 'border-border bg-white hover:border-neutral-300'
                     )}
                   >
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0">
                       <User
                         className={cn(
-                          'w-5 h-5 transition-colors',
+                          'w-4 h-4 sm:w-5 sm:h-5 transition-colors',
                           selectedRole === 'Tutor' ? 'text-brand-primary-600' : 'text-neutral-500'
                         )}
                       />
@@ -536,13 +540,13 @@ export default function Register() {
                     <div className="min-w-0 flex-1 leading-snug">
                       <span
                         className={cn(
-                          'font-bold text-[13px] block truncate',
+                          'font-bold text-[12px] sm:text-[13px] block whitespace-nowrap',
                           selectedRole === 'Tutor' ? 'text-brand-primary-600' : 'text-fg'
                         )}
                       >
                         Tôi là gia sư
                       </span>
-                      <span className="text-[10.5px] text-neutral-500 block mt-0.5 truncate">
+                      <span className="text-[10px] sm:text-[10.5px] text-neutral-500 block mt-0.5 truncate">
                         Mở lớp và tạo gói học
                       </span>
                     </div>
