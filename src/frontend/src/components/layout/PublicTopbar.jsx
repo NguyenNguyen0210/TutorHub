@@ -23,6 +23,12 @@ export default function PublicTopbar() {
     navigate('/auth/login');
   };
 
+  const handleNavClick = (path) => {
+    if (location.pathname === path) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const displayName =
     user?.fullName || user?.name || user?.email?.split('@')[0] || (isAuthenticated ? 'Tài khoản' : '');
 
@@ -106,6 +112,12 @@ export default function PublicTopbar() {
         <Link
           to={isAuthenticated ? getDashboardPath(role) : '/'}
           aria-label="TutorHub — trang chủ"
+          onClick={() => {
+            const homePath = isAuthenticated ? getDashboardPath(role) : '/';
+            if (location.pathname === homePath) {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
           className="flex shrink-0 items-center justify-self-start"
         >
           <Logo variant="mark" size={36} className="sm:hidden" />
@@ -117,6 +129,7 @@ export default function PublicTopbar() {
           <Link
             to="/"
             aria-current={isHome ? 'page' : undefined}
+            onClick={() => handleNavClick('/')}
             className={navLinkClass(isHome)}
           >
             Tìm gia sư
@@ -125,6 +138,7 @@ export default function PublicTopbar() {
           <Link
             to="/services"
             aria-current={location.pathname.startsWith('/services') ? 'page' : undefined}
+            onClick={() => handleNavClick('/services')}
             className={navLinkClass(location.pathname.startsWith('/services'))}
           >
             Dịch vụ
@@ -135,6 +149,7 @@ export default function PublicTopbar() {
               <Link
                 to="/become-tutor"
                 aria-current={location.pathname.startsWith('/become-tutor') ? 'page' : undefined}
+                onClick={() => handleNavClick('/become-tutor')}
                 className={navLinkClass(location.pathname.startsWith('/become-tutor'))}
               >
                 Trở thành gia sư
@@ -143,6 +158,7 @@ export default function PublicTopbar() {
               <Link
                 to="/how-it-works"
                 aria-current={location.pathname === '/how-it-works' ? 'page' : undefined}
+                onClick={() => handleNavClick('/how-it-works')}
                 className={navLinkClass(location.pathname === '/how-it-works')}
               >
                 Cách hoạt động

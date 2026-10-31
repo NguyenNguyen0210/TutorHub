@@ -10,9 +10,16 @@ import { getNavForRole } from './navConfig';
  * Tối đa 4 mục, gắn sát cạnh dưới và chừa safe-area để không che nội dung.
  */
 function DockLink({ to, icon, label, active, external }) {
+  const handleClick = () => {
+    if (active) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   return (
     <Link
       to={to}
+      onClick={handleClick}
       aria-current={active ? 'page' : undefined}
       {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
       className={cn(

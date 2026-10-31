@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import AppRoutes from './routes';
+import ScrollToTop from './components/common/ScrollToTop';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { ToastProvider } from './components/ui/Toast';
 import { DialogProvider } from './components/ui/Dialog';
@@ -28,6 +29,7 @@ export default function App() {
         <DialogProvider>
           <QueryClientProvider client={queryClient}>
             <BrowserRouter>
+              <ScrollToTop />
               <AppRoutes />
             </BrowserRouter>
           </QueryClientProvider>

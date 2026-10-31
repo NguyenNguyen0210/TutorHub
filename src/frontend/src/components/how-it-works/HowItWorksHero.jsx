@@ -58,7 +58,7 @@ export default function HowItWorksHero() {
         <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(420px,0.92fr)] lg:gap-14">
           <div className="max-w-[680px]">
             {/* Tiêu đề 2 màu chuẩn hóa: Dòng 1 đen mực, Dòng 2 xanh dương nổi bật */}
-            <h1 className="mkt-display text-[38px] leading-[1.12] tracking-[-0.025em] text-[color:var(--mkt-ink)] sm:text-[48px] lg:text-[56px]">
+            <h1 className="mkt-display text-[38px] leading-[1.1] tracking-[-0.025em] text-[color:var(--mkt-ink)] sm:text-[48px] lg:text-[54px]">
               Một hành trình học tập.
               <span className="block text-[color:var(--mkt-cobalt)]">Rõ ràng từ đầu đến cuối.</span>
             </h1>

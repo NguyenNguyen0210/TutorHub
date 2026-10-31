@@ -9,7 +9,6 @@ import FAQSection from '@/components/how-it-works/FAQSection';
 export default function HowItWorks() {
   useEffect(() => {
     document.title = 'Cách hoạt động — TutorHub';
-    window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
 
   return (
