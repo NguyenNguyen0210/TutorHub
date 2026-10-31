@@ -7,8 +7,6 @@ import {
   EyeOff,
   ArrowRight,
   ArrowLeft,
-  ShieldCheck,
-  KeyRound,
   RotateCcw,
   Check,
   CheckCircle2,
@@ -199,76 +197,10 @@ export default function ForgotPassword() {
       {/* Minimal Focused Auth Header */}
       <AuthHeader mode="login" />
 
-      {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-[1360px] mx-auto px-6 sm:px-10 pt-4 sm:pt-6 pb-10 flex items-center">
-        <div className="w-full grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-8 lg:gap-12 items-center">
-          {/* Left Column: Brand & Security Guarantee */}
-          <section className="flex flex-col justify-center">
-            {/* Tag Pill */}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-primary-50 text-brand-primary-700 text-[11px] sm:text-[11.5px] font-semibold mb-3.5 border border-brand-primary-100/60 w-fit">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Bảo vệ tài khoản an toàn</span>
-            </div>
-
-            {/* Headline */}
-            <h1 className="text-[36px] sm:text-[42px] font-bold text-fg leading-[1.14] tracking-[-1px]">
-              Khôi phục quyền truy cập, <br />
-              <span className="text-brand-primary-600">an tâm & bảo mật</span>
-            </h1>
-
-            {/* Description */}
-            <p className="mt-3 text-[14px] sm:text-[14.5px] text-neutral-500 max-w-lg leading-relaxed">
-              TutorHub áp dụng quy trình xác minh qua mã OTP 6 số gửi trực tiếp vào hộp thư bảo mật của bạn. Mọi phiên đăng nhập cũ sẽ tự động được thu hồi khi mật khẩu mới được kích hoạt.
-            </p>
-
-            {/* Illustration with Floating Badges */}
-            <div className="relative mt-5 max-w-[520px] w-full select-none">
-              <img
-                src="/images/transparent-student-clean.png"
-                alt="TutorHub Security"
-                className="w-full h-auto object-contain select-none pointer-events-none"
-                loading="eager"
-              />
-
-              {/* Floating Badge 1: Top Right */}
-              <div
-                className="absolute top-4 sm:top-5 right-2 sm:right-3 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-[16px] sm:rounded-[18px] shadow-brand-md border border-white/80 max-w-[155px] text-left z-20 animate-float"
-                style={{ animationDuration: '5s' }}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center">
-                    <KeyRound className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </div>
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-success-subtle text-success-strong flex items-center justify-center text-[9px] sm:text-[10px] font-bold">
-                    ✓
-                  </div>
-                </div>
-                <p className="text-[12px] sm:text-[13px] font-bold text-fg leading-tight mt-1">Xác thực OTP</p>
-                <p className="text-[9.5px] sm:text-[10.5px] text-neutral-500 leading-snug mt-0.5">
-                  Mã xác minh 6 số gửi tới email chính chủ
-                </p>
-              </div>
-
-              {/* Floating Badge 2: Bottom Left */}
-              <div
-                className="absolute bottom-4 sm:bottom-6 left-2 sm:left-3 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-xl sm:rounded-2xl shadow-brand-md border border-white/80 flex items-center gap-3 z-20 animate-float"
-                style={{ animationDuration: '4.5s', animationDelay: '0.8s' }}
-              >
-                <div className="w-8 h-8 rounded-full bg-info-subtle text-info flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div className="leading-tight text-left">
-                  <p className="text-[12.5px] font-bold text-fg">Thu hồi phiên cũ</p>
-                  <p className="text-[11px] text-neutral-500 mt-0.5">Tự động ngắt kết nối các thiết bị lạ</p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Right Column: Step Card */}
-          <section className="flex justify-center lg:justify-end">
-            <div className="w-full max-w-[480px] bg-white rounded-brand-xl p-7 sm:px-[34px] sm:py-[32px] border border-neutral-100 shadow-brand-lg">
-              {/* Stepper Progress Indicator */}
+      {/* Main Content Area: Centered Card */}
+      <main className="flex-1 w-full max-w-[500px] mx-auto px-4 sm:px-6 pt-4 sm:pt-8 pb-12 flex flex-col items-center justify-center">
+        <div className="w-full bg-white rounded-brand-xl p-7 sm:px-[34px] sm:py-[32px] border border-neutral-100 shadow-brand-lg">
+          {/* Stepper Progress Indicator */}
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-neutral-100">
                 {[
                   { num: 1, label: 'Email' },
@@ -587,8 +519,6 @@ export default function ForgotPassword() {
                 </div>
               )}
             </div>
-          </section>
-        </div>
       </main>
     </div>
   );
