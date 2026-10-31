@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   GraduationCap,
-  BarChart3,
   User,
   Mail,
   Phone,
@@ -307,14 +306,13 @@ export default function Register() {
               />
 
               {isTutor ? (
-                <div className="relative z-10 w-full aspect-[16/10] sm:aspect-[4/3] rounded-2xl overflow-hidden shadow-brand-md">
+                <div className="relative z-10 w-full flex items-center justify-center">
                   <img
-                    src="/images/hero-become-tutor.jpg"
-                    alt="Gia sư TutorHub giảng dạy chuyên nghiệp"
-                    className="w-full h-full object-cover object-center select-none pointer-events-none transition-all duration-300"
+                    src="/images/auth-tutor-classroom.png"
+                    alt="Trở thành gia sư chuyên nghiệp cùng TutorHub"
+                    className="pointer-events-none relative h-auto w-full select-none object-contain transition-all duration-300"
                     loading="eager"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
                 </div>
               ) : (
                 <div className="relative z-10 w-full flex items-center justify-center">
@@ -325,46 +323,6 @@ export default function Register() {
                     loading="eager"
                   />
                 </div>
-              )}
-
-              {/* Floating Badges for Tutor Role */}
-              {isTutor && (
-                <>
-                  <div
-                    className="absolute top-4 sm:top-5 right-2 sm:right-3 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-[16px] sm:rounded-[18px] shadow-brand-md border border-white/80 max-w-[145px] sm:max-w-[160px] text-left z-20 animate-float"
-                    style={{ animationDuration: '5s' }}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                        <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      </div>
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-[9px] sm:text-[10px] font-bold">
-                        ✓
-                      </div>
-                    </div>
-                    <p className="text-[12px] sm:text-[13px] font-bold text-fg leading-tight mt-1">
-                      Thu nhập linh hoạt
-                    </p>
-                    <p className="text-[9.5px] sm:text-[10.5px] text-neutral-500 leading-snug mt-0.5">
-                      Tự định giá & nhận giải ngân minh bạch 12h
-                    </p>
-                  </div>
-
-                  <div
-                    className="absolute bottom-4 sm:bottom-6 left-2 sm:left-3 bg-white/95 backdrop-blur-md p-2 sm:p-2.5 sm:px-3.5 rounded-xl sm:rounded-2xl shadow-brand-md border border-white/80 flex items-center gap-2 sm:gap-3 z-20 animate-float"
-                    style={{ animationDuration: '4.5s', animationDelay: '0.8s' }}
-                  >
-                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                      <GraduationCap className="w-4 h-4" />
-                    </div>
-                    <div className="leading-tight text-left pr-0.5">
-                      <p className="text-[12px] sm:text-[13px] font-bold text-fg">
-                        1,000+ học viên
-                      </p>
-                      <p className="text-[10px] sm:text-[10.5px] text-neutral-500 mt-0.5">Đang tìm kiếm gia sư phù hợp</p>
-                    </div>
-                  </div>
-                </>
               )}
             </div>
           </section>
