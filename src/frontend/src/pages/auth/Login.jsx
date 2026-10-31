@@ -1,20 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
-  GraduationCap,
   Mail,
   Lock,
   Eye,
   EyeOff,
   ArrowRight,
-  ChevronRight,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-import Avatar from '@/components/ui/Avatar';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/services/api';
 import { externalAuthService } from '@/services/externalAuth.service';
-import tutorService from '@/services/tutor.service';
 import AuthHeader from '@/components/layout/AuthHeader';
 
 function GoogleSvg() {
@@ -53,39 +49,6 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(false);
-
-  // Truy vấn dữ liệu gia sư thật từ Database (PostgreSQL)
-  const [tutorStats, setTutorStats] = useState({
-    totalCount: 0,
-    topTutors: [],
-    loading: true,
-  });
-
-  useEffect(() => {
-    let isMounted = true;
-    api
-      .get('/tutors?pageSize=3')
-      .then((res) => {
-        if (!isMounted) return;
-        const items = res?.items || res?.data?.items || [];
-        const count = res?.totalCount ?? res?.data?.totalCount ?? 0;
-        setTutorStats({
-          totalCount: count,
-          topTutors: items,
-          loading: false,
-        });
-      })
-      .catch((err) => {
-        console.warn('Lỗi kết nối API gia sư cho trang đăng nhập:', err);
-        if (isMounted) {
-          setTutorStats((prev) => ({ ...prev, loading: false }));
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -178,72 +141,14 @@ export default function Login() {
               TutorHub là nền tảng kết nối học viên với những gia sư chất lượng, giúp việc học hiệu quả hơn, dễ dàng hơn và an toàn hơn.
             </p>
 
-            {/* 4. Illustration with DYNAMIC Live Floating Badges (100% borderless) */}
-            <div className="relative mt-5 max-w-[540px] w-full select-none">
-              {/* 3D Realistic Tutoring Workspace Illustration */}
+            {/* 4. 3D Seamless Illustration without borders */}
+            <div className="relative mt-5 max-w-[560px] w-full select-none">
               <img
                 src="/images/auth-classroom-workspace.png"
                 alt="Không gian học trực tuyến 1 kèm 1 TutorHub"
-                className="w-full h-auto object-contain select-none pointer-events-none"
+                className="w-full h-auto object-contain select-none pointer-events-none mix-blend-multiply"
                 loading="eager"
               />
-
-              {/* Dynamic PostgreSQL Tutor Stats Badge */}
-              <Link
-                to="/"
-                className="absolute -bottom-3 sm:-bottom-4 left-2 sm:left-4 bg-white/95 backdrop-blur-md p-2 sm:p-2.5 sm:px-3.5 rounded-xl sm:rounded-2xl shadow-brand-md border border-white/80 flex items-center gap-2 sm:gap-3 z-20 group hover:shadow-brand-lg transition-all animate-float cursor-pointer"
-                style={{ animationDuration: '4.5s', animationDelay: '0.8s' }}
-                title="Khám phá danh sách gia sư chất lượng"
-              >
-                {tutorStats.loading ? (
-                  <>
-                    <div className="flex -space-x-2 overflow-hidden py-0.5 pl-0.5">
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-neutral-200 animate-pulse ring-2 ring-white shrink-0" />
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-neutral-200 animate-pulse ring-2 ring-white shrink-0" />
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-neutral-200 animate-pulse ring-2 ring-white shrink-0" />
-                    </div>
-                    <div className="leading-tight text-left pr-0.5 space-y-1">
-                      <div className="h-3 w-24 bg-neutral-200 rounded animate-pulse" />
-                      <div className="h-2.5 w-32 bg-neutral-100 rounded animate-pulse" />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Real Database Tutor Avatars */}
-                    <div className="flex -space-x-2 overflow-hidden py-0.5 pl-0.5">
-                      {tutorStats.topTutors.length > 0 ? (
-                        tutorStats.topTutors.slice(0, 3).map((tutor, idx) => (
-                          <Avatar
-                            key={tutor.id || idx}
-                            src={tutor.avatarUrl}
-                            name={tutor.fullName}
-                            size="sm"
-                            title={tutor.fullName}
-                            className="inline-block h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-white shrink-0"
-                          />
-                        ))
-                      ) : (
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-primary-100 text-brand-primary-600 flex items-center justify-center shrink-0">
-                          <GraduationCap className="w-4 h-4" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="leading-tight text-left pr-0.5">
-                      <p className="text-[12px] sm:text-[13px] font-bold text-fg group-hover:text-brand-primary-600 transition-colors">
-                        {tutorStats.totalCount > 0
-                          ? `${tutorStats.totalCount}+ gia sư chất lượng`
-                          : 'Đội ngũ gia sư chất lượng'}
-                      </p>
-                      <p className="text-[10px] sm:text-[10.5px] text-neutral-500 mt-0.5">Sẵn sàng đồng hành cùng bạn</p>
-                    </div>
-                  </>
-                )}
-
-                <span className="w-5 h-5 rounded-full bg-neutral-100 text-fg-muted flex items-center justify-center group-hover:bg-brand-primary-50 group-hover:text-brand-primary-600 transition-colors shrink-0">
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </span>
-              </Link>
             </div>
           </section>
 
