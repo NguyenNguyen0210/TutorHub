@@ -84,21 +84,31 @@ const TOOLKIT = [
 const TESTIMONIALS = [
   {
     quote:
-      '“TutorHub giúp mình kết nối với nhiều học viên phù hợp, quản lý lịch dạy rất thuận tiện và thanh toán minh bạch. Đây là nơi tuyệt vời để phát triển sự nghiệp giảng dạy.”',
-    name: 'Nguyễn Thị Mai Anh',
-    role: 'Gia sư Tiếng Anh · 3 năm kinh nghiệm',
+      'TutorHub giúp mình tiếp cận đúng những học viên thực sự có mục tiêu học tập rõ ràng. Cơ chế tự động giải ngân sau 12 giờ và lịch dạy được đồng bộ minh bạch giúp mình an tâm giảng dạy mà không bao giờ phải lo vấn đề công nợ học phí.',
+    name: 'Nguyễn Mai Chi',
+    role: 'Gia sư IELTS & Tiếng Anh · 5 năm kinh nghiệm',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&auto=format&fit=crop&q=80',
   },
   {
     quote:
-      '“Hồ sơ xét duyệt rõ ràng, tạo gói học chỉ mất vài phút. Học viên nghiêm túc nhờ cơ chế bảo chứng, mình yên tâm dạy và nhận thu nhập đúng hẹn.”',
-    name: 'Trần Văn Khoa',
-    role: 'Gia sư Toán THPT · 5 năm kinh nghiệm',
+      'Cơ chế ví ký quỹ bảo chứng Escrow trên TutorHub giải quyết triệt để bài toán bùng lịch. Học viên tin tưởng vì tiền được bảo đảm an toàn, còn gia sư như mình hoàn toàn chủ động thiết lập mức học phí và lộ trình khóa học chuyên sâu.',
+    name: 'ThS. Đặng Hoàng Nam',
+    role: 'Thủ khoa Toán Bách Khoa · 6 năm kinh nghiệm',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
   },
   {
     quote:
-      '“Lịch rảnh linh hoạt, nhắn tin trao đổi trước khi nhận lớp rất tiện. Đội ngũ hỗ trợ phản hồi nhanh mỗi khi mình cần.”',
-    name: 'Phạm Thu Trang',
-    role: 'Gia sư IELTS · 4 năm kinh nghiệm',
+      'Mình đặc biệt thích tính năng xây dựng giáo trình chi tiết theo từng buổi học. Phụ huynh và học viên nhìn vào là nắm rõ lộ trình, giúp tỷ lệ đăng ký gói học trọn khóa tăng lên rõ rệt so với các kênh truyền thống.',
+    name: 'Cô Đỗ Quỳnh Nga',
+    role: 'Thủ khoa Bắc Kinh · 6 năm kinh nghiệm',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=600&auto=format&fit=crop&q=80',
+  },
+  {
+    quote:
+      'Giao diện quản lý buổi học và lịch rảnh rất trực quan, thao tác thuận tiện trên mọi thiết bị. Đội ngũ hỗ trợ của TutorHub luôn lắng nghe và phản hồi kịp thời, tạo môi trường sư phạm rất văn minh và chuyên nghiệp.',
+    name: 'TS. Trần Quốc Huy',
+    role: 'Giảng viên Vật lý & Bồi dưỡng HSG · 7 năm kinh nghiệm',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=600&auto=format&fit=crop&q=80',
   },
 ];
 
@@ -196,21 +206,33 @@ export default function BecomeTutor() {
       <section id="quy-trinh" className="py-6 sm:py-8 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="rounded-brand-xl border border-brand-primary-100 bg-brand-primary-50/50 p-6 sm:p-8">
-            <div className="flex items-start gap-3 pb-6 border-b border-border/60">
-              <div className="w-11 h-11 rounded-brand-lg bg-brand-primary-100 text-brand-primary-600 flex items-center justify-center shrink-0">
-                <Icon name="description" size="md" />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-border/60">
+              <div className="flex items-start gap-3">
+                <div className="w-11 h-11 rounded-brand-lg bg-brand-primary-100 text-brand-primary-600 flex items-center justify-center shrink-0">
+                  <Icon name="description" size="md" />
+                </div>
+                <div>
+                  <h2 className="text-headline-2 text-fg">Quy trình trở thành gia sư</h2>
+                  <p className="text-body-reg text-fg-secondary mt-0.5">
+                    Chỉ với 4 bước đơn giản, bạn có thể bắt đầu hành trình giảng dạy trên TutorHub.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-headline-2 text-fg">Quy trình trở thành gia sư</h2>
-                <p className="text-body-reg text-fg-secondary mt-0.5">
-                  Chỉ với 4 bước đơn giản, bạn có thể bắt đầu hành trình giảng dạy trên TutorHub.
-                </p>
-              </div>
+              <Button
+                as={Link}
+                to="/tutor/application"
+                variant="primary"
+                size="md"
+                iconRight={<Icon name="arrow_forward" size="sm" />}
+                className="shrink-0 self-start sm:self-auto"
+              >
+                Tạo hồ sơ ngay
+              </Button>
             </div>
 
             <ol className="pt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-              {STEPS.map((s, idx) => (
-                <li key={s.num} className="relative flex items-stretch">
+              {STEPS.map((s) => (
+                <li key={s.num} className="flex items-stretch">
                   <div className="w-full bg-surface rounded-brand-lg p-5 sm:p-6 border border-border shadow-brand-sm flex flex-col">
                     <div className="flex items-center justify-between">
                       <span className="w-7 h-7 rounded-full bg-brand-primary-600 text-white flex items-center justify-center text-caption font-bold shrink-0">
@@ -223,11 +245,6 @@ export default function BecomeTutor() {
                     <h3 className="text-[15px] font-bold text-fg mt-4 mb-1.5 leading-snug">{s.title}</h3>
                     <p className="text-body-reg text-fg-secondary leading-relaxed">{s.desc}</p>
                   </div>
-                  {idx < STEPS.length - 1 && (
-                    <div className="hidden lg:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10 text-brand-primary-500 pointer-events-none" aria-hidden="true">
-                      <Icon name="arrow_forward" size="sm" />
-                    </div>
-                  )}
                 </li>
               ))}
             </ol>
@@ -256,50 +273,69 @@ export default function BecomeTutor() {
             </div>
           </div>
 
-          <div className="bg-brand-primary-50/60 border border-brand-primary-100 rounded-brand-xl p-6 sm:p-7 flex flex-col sm:flex-row gap-5 overflow-hidden">
-            <div className="flex-1 min-w-0">
-              <h2 className="text-headline-2 text-fg">
-                Gia sư nói gì về <span className="text-brand-primary-600">TutorHub?</span>
-              </h2>
-              <div className="mt-4 min-h-[132px]" aria-live="polite">
-                <p className="text-body-reg text-fg leading-relaxed">{t.quote}</p>
-                <p className="text-body-reg font-bold text-fg mt-3">{t.name}</p>
-                <p className="text-caption text-fg-secondary">{t.role}</p>
-                <div className="flex items-center gap-0.5 mt-1.5 text-brand-secondary-500" role="img" aria-label="Đánh giá 5 trên 5 sao">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Icon key={i} name="star" size="xs" />
-                  ))}
+          <div className="flex flex-col">
+            <h2 className="text-headline-2 text-fg">
+              Gia sư nói gì về <span className="text-brand-primary-600">TutorHub?</span>
+            </h2>
+            <p className="text-body-reg text-fg-secondary mt-1 mb-5">
+              Lắng nghe chia sẻ thực tế từ cộng đồng gia sư đang đồng hành cùng chúng tôi.
+            </p>
+            <div className="flex-1 bg-brand-primary-50/60 border border-brand-primary-100 rounded-brand-xl p-6 sm:p-7 flex flex-col sm:flex-row gap-5 overflow-hidden">
+              <div className="flex-1 min-w-0 flex flex-col justify-between">
+                <div>
+                  <p className="text-body-reg text-fg leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
+                  <div className="flex items-center gap-3 mt-4">
+                    <img
+                      src={t.avatar}
+                      alt={t.name}
+                      className="sm:hidden w-11 h-11 rounded-full object-cover object-top border border-border shrink-0 shadow-sm"
+                      loading="lazy"
+                    />
+                    <div>
+                      <p className="text-body-reg font-bold text-fg">{t.name}</p>
+                      <p className="text-caption text-fg-secondary">{t.role}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 mt-2 text-amber-400" role="img" aria-label="Đánh giá 5 trên 5 sao">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Icon key={i} name="star" size="xs" filled className="text-amber-400 fill-amber-400" />
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-6">
+                  <button
+                    type="button"
+                    onClick={prev}
+                    aria-label="Xem đánh giá trước"
+                    className="w-10 h-10 rounded-full bg-surface border border-border flex items-center justify-center text-fg-secondary hover:text-fg hover:bg-neutral-50 transition-colors cursor-pointer shadow-sm"
+                  >
+                    <Icon name="arrow_back" size="sm" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={next}
+                    aria-label="Xem đánh giá tiếp theo"
+                    className="w-10 h-10 rounded-full bg-surface border border-border flex items-center justify-center text-fg-secondary hover:text-fg hover:bg-neutral-50 transition-colors cursor-pointer shadow-sm"
+                  >
+                    <Icon name="arrow_forward" size="sm" />
+                  </button>
+                  <span className="text-caption font-medium text-fg-secondary ml-1">
+                    {active + 1} / {TESTIMONIALS.length}
+                  </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 mt-4">
-                <button
-                  type="button"
-                  onClick={prev}
-                  aria-label="Xem đánh giá trước"
-                  className="w-11 h-11 rounded-full bg-surface border border-border flex items-center justify-center text-fg-secondary hover:text-fg hover:bg-neutral-50 transition-colors cursor-pointer"
-                >
-                  <Icon name="arrow_back" size="sm" />
-                </button>
-                <button
-                  type="button"
-                  onClick={next}
-                  aria-label="Xem đánh giá tiếp theo"
-                  className="w-11 h-11 rounded-full bg-surface border border-border flex items-center justify-center text-fg-secondary hover:text-fg hover:bg-neutral-50 transition-colors cursor-pointer"
-                >
-                  <Icon name="arrow_forward" size="sm" />
-                </button>
-                <span className="text-caption text-fg-secondary ml-1">
-                  {active + 1} / {TESTIMONIALS.length}
-                </span>
+              <div className="hidden sm:block shrink-0 w-36 lg:w-44 self-center">
+                <div className="relative aspect-[3/4] w-full overflow-hidden rounded-brand-lg border border-border/80 shadow-brand-sm bg-surface">
+                  <img
+                    key={t.name}
+                    src={t.avatar}
+                    alt={t.name}
+                    className="h-full w-full object-cover object-top select-none transition-opacity duration-200"
+                    loading="lazy"
+                  />
+                </div>
               </div>
             </div>
-            <img
-              src="/images/hero-become-tutor.jpg"
-              alt=""
-              aria-hidden="true"
-              className="hidden sm:block w-40 lg:w-48 aspect-[3/4] object-cover self-center rounded-brand-lg pointer-events-none select-none"
-              loading="lazy"
-            />
           </div>
         </div>
       </section>
