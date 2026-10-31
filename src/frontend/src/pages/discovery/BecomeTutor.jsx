@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
 import Button from '@/components/ui/Button';
+import '@/styles/become-tutor.css';
 
 const MINI_BENEFITS = [
   {
@@ -116,35 +117,25 @@ export default function BecomeTutor() {
   return (
     <div className="min-h-screen bg-canvas">
       {/* ── 1. Hero ─────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-brand-primary-50 border-b border-brand-primary-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-            <div className="lg:col-span-6 space-y-5">
-              <nav className="flex items-center gap-1.5 text-caption font-medium text-fg-secondary" aria-label="Breadcrumb">
-                <Link to="/" className="hover:text-brand-primary-600 transition-colors">
-                  Trang chủ
-                </Link>
-                <span className="text-neutral-300" aria-hidden="true">
-                  ›
-                </span>
-                <span className="text-brand-primary-600 font-semibold" aria-current="page">
-                  Trở thành gia sư
-                </span>
-              </nav>
-
-              <h1 className="text-display-hero text-fg tracking-tight">
+      <section className="become-tutor-hero" aria-labelledby="become-tutor-heading">
+        <div className="page-shell relative z-10">
+          <div className="grid items-center gap-10 py-10 lg:min-h-[460px] lg:grid-cols-[minmax(0,1.05fr)_minmax(440px,.95fr)] lg:gap-12 lg:py-10">
+            <div className="max-w-[680px]">
+              <h1
+                id="become-tutor-heading"
+                className="become-tutor-display text-[40px] leading-[1.12] tracking-[-0.02em] sm:text-[52px] lg:text-[62px]"
+              >
                 Biến kiến thức của bạn
-                <br />
-                <span className="text-brand-primary-600">thành giá trị thực</span>
+                <span className="block text-brand-primary-600">thành giá trị thực</span>
               </h1>
 
-              <p className="text-body-lg text-fg-secondary max-w-xl">
+              <p className="mt-6 max-w-[600px] text-[15px] leading-7 text-fg-secondary sm:text-[17px]">
                 Trở thành gia sư trên TutorHub để chia sẻ kiến thức, truyền cảm hứng và tạo thu
                 nhập linh hoạt theo lịch của bạn. Chúng tôi hỗ trợ bạn từ bước đăng ký, xác minh
                 đến quản lý lớp học và thanh toán.
               </p>
 
-              <div className="flex flex-wrap items-center gap-3 pt-1">
+              <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Button as={Link} to="/tutor/application" variant="primary" size="lg" iconRight={<Icon name="arrow_forward" size="sm" />}>
                   Đăng ký trở thành gia sư
                 </Button>
@@ -153,87 +144,51 @@ export default function BecomeTutor() {
                 </Button>
               </div>
 
-              <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                {MINI_BENEFITS.map((b) => (
-                  <div key={b.title} className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${b.iconBg}`}>
-                      <Icon name={b.icon} size="sm" />
-                    </div>
-                    <div>
-                      <p className="text-body-reg font-bold text-fg leading-tight">{b.title}</p>
-                      <p className="text-caption text-fg-secondary font-medium mt-0.5">{b.desc}</p>
-                    </div>
-                  </div>
-                ))}
+              <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] font-semibold text-fg-secondary sm:text-[13px]">
+                <span>Đặc quyền:</span>
+                <span className="text-fg">Tự đặt giá</span>
+                <span className="text-brand-primary-300" aria-hidden="true">•</span>
+                <span className="text-fg">Linh hoạt lịch</span>
+                <span className="text-brand-primary-300" aria-hidden="true">•</span>
+                <span className="text-fg">Bảo vệ thanh toán</span>
               </div>
             </div>
 
-            <div className="lg:col-span-6 relative flex items-center justify-center">
-              <div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] bg-brand-primary-100/60 rounded-full blur-3xl -z-0 pointer-events-none"
-                aria-hidden="true"
-              />
-              <p aria-hidden="true" className="hidden md:block absolute top-0 left-2 -rotate-6 text-body-reg font-semibold italic text-brand-primary-700 leading-tight">
-                Teach
-                <br />
-                Share
-                <br />
-                Inspire
-                <br />
-                Grow.
-              </p>
-
-              <div className="relative w-full max-w-[480px] select-none">
-                {/* Floating person cutout, same as main hero */}
-                <img
-                  src="/images/transparent-student-clean.png"
-                  alt="Học viên TutorHub học tập hiệu quả cùng gia sư"
-                  className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-sm"
-                  loading="eager"
+            <div className="hidden lg:flex h-full items-center justify-center self-center">
+              <div className="relative flex w-full max-w-[680px] select-none items-center justify-center">
+                <div
+                  className="pointer-events-none absolute left-1/2 top-1/2 -z-0 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-primary-100/70 blur-3xl"
+                  aria-hidden="true"
                 />
-
-                <div className="absolute top-2 -right-1 sm:right-0 bg-surface/95 backdrop-blur-md px-3 py-2.5 rounded-brand-lg shadow-brand-md border border-border flex items-center gap-2.5 animate-float">
-                  <div className="w-8 h-8 rounded-brand-md bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center shrink-0">
-                    <Icon name="group" size="sm" />
-                  </div>
-                  <div>
-                    <p className="text-body-reg font-bold text-fg leading-tight">500+</p>
-                    <p className="text-caption text-fg-secondary">Học viên đã tin tưởng</p>
-                  </div>
-                </div>
-
-                <div className="absolute top-1/3 -right-1 sm:right-2 bg-surface/95 backdrop-blur-md px-3 py-2.5 rounded-brand-lg shadow-brand-md border border-border flex items-center gap-2.5 animate-float" style={{ animationDelay: '0.8s' }}>
-                  <div className="w-8 h-8 rounded-brand-md bg-brand-secondary-50 text-brand-secondary-600 flex items-center justify-center shrink-0">
-                    <Icon name="star" size="sm" />
-                  </div>
-                  <div>
-                    <p className="text-body-reg font-bold text-fg leading-tight">4.9/5</p>
-                    <p className="text-caption text-fg-secondary">Đánh giá trung bình</p>
-                  </div>
-                </div>
-
-                <div className="absolute bottom-6 -left-2 sm:left-0 bg-surface/95 backdrop-blur-md px-3 py-2.5 rounded-brand-lg shadow-brand-md border border-border flex items-center gap-2.5 animate-float" style={{ animationDelay: '1.4s' }}>
-                  <div className="w-8 h-8 rounded-brand-md bg-info-subtle text-info flex items-center justify-center shrink-0">
-                    <Icon name="timeline" size="sm" />
-                  </div>
-                  <div>
-                    <p className="text-body-reg font-bold text-fg leading-tight">Thu nhập linh hoạt</p>
-                    <p className="text-caption text-fg-secondary">Theo thời gian của bạn</p>
-                  </div>
+                <div className="relative z-10 flex w-full items-center justify-center scale-[1.22] origin-center">
+                  <img
+                    src="/images/hero-become-tutor-cutout.png"
+                    alt="Không gian học tập trực tuyến TutorHub với lộ trình rõ ràng và gói học linh hoạt"
+                    width="1774"
+                    height="887"
+                    className="pointer-events-none relative h-auto w-full select-none object-contain animate-float"
+                    loading="eager"
+                  />
                 </div>
               </div>
-
-              <p aria-hidden="true" className="hidden md:block absolute bottom-2 right-0 rotate-6 text-body-reg font-semibold italic text-brand-primary-700 leading-tight text-right">
-                Better
-                <br />
-                Learning
-                <br />
-                Brighter
-                <br />
-                Future.
-              </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="border-b border-border bg-surface" aria-label="Đặc quyền dành cho gia sư">
+        <div className="page-shell grid grid-cols-1 gap-4 py-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6 lg:py-7">
+          {MINI_BENEFITS.map((benefit) => (
+            <div key={benefit.title} className="flex items-start gap-3">
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${benefit.iconBg}`}>
+                <Icon name={benefit.icon} size="sm" />
+              </div>
+              <div>
+                <h2 className="text-body-reg font-bold leading-tight text-fg">{benefit.title}</h2>
+                <p className="mt-0.5 text-caption font-medium text-fg-secondary">{benefit.desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
