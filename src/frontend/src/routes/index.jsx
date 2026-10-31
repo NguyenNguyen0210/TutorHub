@@ -43,6 +43,7 @@ import WorkspaceLayout from '../layouts/WorkspaceLayout';
 // Auth & Onboarding Screens
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
+import ForgotPassword from '../pages/auth/ForgotPassword';
 import OAuthCallback from '../pages/auth/OAuthCallback';
 import TutorApplication from '../pages/tutor/TutorApplication';
 
@@ -138,6 +139,8 @@ export default function AppRoutes() {
       <Route path="/auth/login" element={<GuestGuard><Login /></GuestGuard>} />
       <Route path="/login" element={<Navigate to="/auth/login" replace />} />
       <Route path="/auth/register" element={<GuestGuard><Register /></GuestGuard>} />
+      <Route path="/auth/forgot-password" element={<GuestGuard><ForgotPassword /></GuestGuard>} />
+      <Route path="/forgot-password" element={<Navigate to="/auth/forgot-password" replace />} />
       <Route path="/auth/oauth/callback" element={<GuestGuard><OAuthCallback /></GuestGuard>} />
       <Route path="/register" element={<Navigate to="/auth/register" replace />} />
 

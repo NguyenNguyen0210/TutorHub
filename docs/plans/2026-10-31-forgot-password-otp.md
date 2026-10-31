@@ -42,21 +42,21 @@
 - Create: `src/backend/TutorHub.Infrastructure/Authentication/PasswordResetOtpStore.cs`
 - Modify: `src/backend/TutorHub.Infrastructure/InfrastructureServiceCollectionExtensions.cs`
 
-- [ ] **Step 1: Tạo interface `IPasswordResetOtpStore`**
+- [x] **Step 1: Tạo interface `IPasswordResetOtpStore`**
   Định nghĩa các phương thức async:
   - `SetOtpAsync(string email, string otp, TimeSpan expiry, CancellationToken ct)`
   - `VerifyAndConsumeOtpAsync(string email, string otp, CancellationToken ct)` (trả về enum hoặc model: `Success`, `InvalidOtp`, `ExpiredOrNotFound`, `MaxAttemptsExceeded`)
   - `SetResetTokenAsync(string email, string resetToken, TimeSpan expiry, CancellationToken ct)`
   - `ValidateAndConsumeResetTokenAsync(string email, string resetToken, CancellationToken ct)`
 
-- [ ] **Step 2: Cài đặt `PasswordResetOtpStore` sử dụng Redis**
+- [x] **Step 2: Cài đặt `PasswordResetOtpStore` sử dụng Redis**
   Thực thi giao diện trên thông qua `IConnectionMultiplexer` của StackExchange.Redis.
   Key định dạng:
   - OTP: `auth:otp:forgot-password:{email.ToLowerInvariant()}`
   - Token: `auth:token:reset-password:{email.ToLowerInvariant()}`
   Quản lý số lần nhập sai: `attempts` lưu trong JSON string `{ "otp": "...", "attempts": 0 }`.
 
-- [ ] **Step 3: Đăng ký DI trong `InfrastructureServiceCollectionExtensions.cs`**
+- [x] **Step 3: Đăng ký DI trong `InfrastructureServiceCollectionExtensions.cs`**
   Thêm `services.AddSingleton<IPasswordResetOtpStore, PasswordResetOtpStore>();`.
 
 ---
@@ -68,7 +68,7 @@
 - Create: `src/backend/TutorHub.Application/Features/Auth/VerifyResetOtp/*`
 - Create: `src/backend/TutorHub.Application/Features/Auth/ResetPassword/*`
 
-- [ ] **Step 1: Slice `ForgotPassword`**
+- [x] **Step 1: Slice `ForgotPassword`**
   - Command: `ForgotPasswordCommand(string Email) : IRequest<bool>`
   - Validator: Email format kiểm tra bằng FluentValidation.
   - Handler:
@@ -79,7 +79,7 @@
     - Gửi email qua `_emailSender` (nếu có cấu hình).
     - Log trực tiếp ra console: `[DEV AUTH] OTP cho email {Email}: {Otp}`.
 
-- [ ] **Step 2: Slice `VerifyResetOtp`**
+- [x] **Step 2: Slice `VerifyResetOtp`**
   - Command: `VerifyResetOtpCommand(string Email, string Otp) : IRequest<string>` (trả về `resetToken`)
   - Validator: Email và Otp (6 chữ số).
   - Handler:
@@ -89,7 +89,7 @@
     - Lưu `_otpStore.SetResetTokenAsync(email, resetToken, TimeSpan.FromMinutes(10))`.
     - Trả về `resetToken`.
 
-- [ ] **Step 3: Slice `ResetPassword`**
+- [x] **Step 3: Slice `ResetPassword`**
   - Command: `ResetPasswordCommand(string Email, string ResetToken, string NewPassword) : IRequest<bool>`
   - Validator: ResetToken không rỗng; NewPassword tuân thủ chính sách mật khẩu (tối thiểu 8 ký tự, hoa, thường, số/ký tự đặc biệt).
   - Handler:
@@ -106,11 +106,11 @@
 **Files:**
 - Modify: `src/backend/TutorHub.Api/Controllers/AuthController.cs`
 
-- [ ] **Step 1: Thêm 3 Action methods vào `AuthController`**
+- [x] **Step 1: Thêm 3 Action methods vào `AuthController`**
   - `POST /api/v1/auth/forgot-password` (gọi `ForgotPasswordCommand`)
   - `POST /api/v1/auth/verify-reset-otp` (gọi `VerifyResetOtpCommand`)
   - `POST /api/v1/auth/reset-password` (gọi `ResetPasswordCommand`)
-- [ ] **Step 2: Kiểm tra biên dịch backend**
+- [x] **Step 2: Kiểm tra biên dịch backend**
   Chạy `dotnet build src/backend/TutorHub.sln` để đảm bảo 0 lỗi.
 
 ---
@@ -122,14 +122,14 @@
 - Create: `src/frontend/src/pages/auth/ForgotPassword.jsx`
 - Modify: `src/frontend/src/routes/index.jsx`
 
-- [ ] **Step 1: Tạo `forgotPassword.service.js`**
+- [x] **Step 1: Tạo `forgotPassword.service.js`**
   Xuất 3 hàm:
   - `requestResetOtp(email)`
   - `verifyResetOtp(email, otp)`
   - `resetPassword(email, resetToken, newPassword)`
   Sử dụng `apiClient` hiện tại của hệ thống.
 
-- [ ] **Step 2: Tạo màn hình `ForgotPassword.jsx`**
+- [x] **Step 2: Tạo màn hình `ForgotPassword.jsx`**
   Bố cục trang chia 2 cột đồng bộ với `Login.jsx` & `Register.jsx`:
   - Cột trái: Tiêu đề "Khôi phục mật khẩu an toàn", hình minh họa học viên + thẻ bảo chứng.
   - Cột phải: Thẻ form 3 bước (`step 1 | 2 | 3`):
@@ -138,10 +138,10 @@
     - **Bước 3 (Đặt mật khẩu mới):** Input mật khẩu mới + xác nhận mật khẩu (mắt ẩn/hiện), checklist độ mạnh mật khẩu, nút "Cập nhật mật khẩu".
   - Hiển thị Toast thông báo trạng thái rõ ràng qua `useToast()`.
 
-- [ ] **Step 3: Đăng ký route trong `src/frontend/src/routes/index.jsx`**
+- [x] **Step 3: Đăng ký route trong `src/frontend/src/routes/index.jsx`**
   Thêm:
   `<Route path="/auth/forgot-password" element={<GuestGuard><ForgotPassword /></GuestGuard>} />`
   `<Route path="/forgot-password" element={<Navigate to="/auth/forgot-password" replace />} />`
 
-- [ ] **Step 4: Kiểm tra build & lint frontend**
+- [x] **Step 4: Kiểm tra build & lint frontend**
   Chạy `npm --prefix src/frontend run lint` và `npm --prefix src/frontend run build`.

@@ -94,7 +94,7 @@ let isRefreshing = false;
 let failedQueue = [];
 
 // 401 ở chính các endpoint thông tin đăng nhập là sai thông tin, không phải token hết hạn.
-const CREDENTIAL_URL_PATTERN = /^(?:\/api\/v1)?\/?auth\/(login|register|refresh|logout|oauth)/i;
+const CREDENTIAL_URL_PATTERN = /^(?:\/api\/v1)?\/?auth\/(login|register|refresh|logout|oauth|forgot-password|verify-reset-otp|reset-password)/i;
 
 const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
