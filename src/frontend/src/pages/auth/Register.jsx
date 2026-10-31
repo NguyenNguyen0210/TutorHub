@@ -350,8 +350,8 @@ export default function Register() {
                 </div>
               ) : (
                 <img
-                  src="/images/hero-become-tutor-cutout.png"
-                  alt="Hành trình học tập cùng TutorHub"
+                  src="/images/auth-student-classroom.png"
+                  alt="Hành trình học tập 1 kèm 1 cùng TutorHub"
                   className="w-full h-auto object-contain select-none pointer-events-none transition-all duration-300"
                   loading="eager"
                 />
