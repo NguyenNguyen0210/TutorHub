@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Logo from '@/components/ui/Logo';
 import Icon from '@/components/ui/Icon';
 
-export default function AuthHeader({ mode = 'login' }) {
+export default function AuthHeader({ mode = 'login', showAction = true }) {
   const isLogin = mode === 'login';
 
   return (
@@ -24,19 +24,21 @@ export default function AuthHeader({ mode = 'login' }) {
       </div>
 
       {/* Right: Auth Flow Switch Action */}
-      <div className="text-[13px] sm:text-[13.5px] text-fg-secondary font-medium">
-        {!isLogin && (
-          <>
-            <span className="hidden sm:inline">Đã có tài khoản?</span>{' '}
-            <Link
-              to="/auth/login"
-              className="text-brand-primary-600 font-semibold hover:underline transition-colors ml-1"
-            >
-              Đăng nhập ngay
-            </Link>
-          </>
-        )}
-      </div>
+      {showAction && (
+        <div className="text-[13px] sm:text-[13.5px] text-fg-secondary font-medium">
+          {!isLogin && (
+            <>
+              <span className="hidden sm:inline">Đã có tài khoản?</span>{' '}
+              <Link
+                to="/auth/login"
+                className="text-brand-primary-600 font-semibold hover:underline transition-colors ml-1"
+              >
+                Đăng nhập ngay
+              </Link>
+            </>
+          )}
+        </div>
+      )}
     </header>
   );
 }

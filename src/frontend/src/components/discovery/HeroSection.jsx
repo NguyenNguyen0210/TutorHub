@@ -16,7 +16,7 @@ export default function HeroSection({ searchKeyword, setSearchKeyword, onSearchS
       <div className="page-shell relative z-10">
         <div className="grid items-center gap-10 py-10 lg:min-h-[450px] lg:grid-cols-[minmax(0,1.05fr)_minmax(420px,.95fr)] lg:gap-14 lg:py-8">
           <div className="max-w-[720px]">
-            <h1 id="marketplace-heading" className="mkt-display text-[40px] leading-[1.12] tracking-[-0.02em] sm:text-[52px] lg:text-[62px]">
+            <h1 id="marketplace-heading" className="mkt-display text-[38px] leading-[1.1] tracking-[-0.025em] text-[color:var(--mkt-ink)] sm:text-[48px] lg:text-[54px]">
               Đúng người dạy.
               <span className="block text-[color:var(--mkt-cobalt)]">Đúng cách bạn học.</span>
             </h1>
