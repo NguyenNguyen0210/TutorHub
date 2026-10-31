@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   GraduationCap,
-  BarChart3,
   Mail,
   Lock,
   Eye,
@@ -180,38 +179,19 @@ export default function Login() {
             </p>
 
             {/* 4. Illustration with DYNAMIC Live Floating Badges (100% borderless) */}
-            <div className="relative mt-5 max-w-[520px] w-full select-none">
-              {/* Clean Transparent Illustration without any rectangular borders */}
+            <div className="relative mt-5 max-w-[540px] w-full select-none">
+              {/* 3D Realistic Tutoring Workspace Illustration */}
               <img
-                src="/images/transparent-student-clean.png"
-                alt="TutorHub Student Illustration"
+                src="/images/auth-classroom-workspace.png"
+                alt="Không gian học trực tuyến 1 kèm 1 TutorHub"
                 className="w-full h-auto object-contain select-none pointer-events-none"
                 loading="eager"
               />
 
-              {/* Floating Badge 1: Top Right - trust message */}
-              <div
-                className="absolute top-4 sm:top-5 right-2 sm:right-3 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-[16px] sm:rounded-[18px] shadow-brand-md border border-white/80 max-w-[140px] sm:max-w-[155px] text-left z-20 animate-float"
-                style={{ animationDuration: '5s' }}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center">
-                    <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </div>
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center text-[9px] sm:text-[10px] font-bold">
-                    ↗
-                  </div>
-                </div>
-                <p className="text-[12px] sm:text-[13px] font-bold text-fg leading-tight mt-1">Học có bảo chứng</p>
-                <p className="text-[9.5px] sm:text-[10.5px] text-neutral-500 leading-snug mt-0.5">
-                  Khoản thanh toán được giữ an toàn qua Escrow
-                </p>
-              </div>
-
-              {/* Floating Badge 2: Bottom Left - Dynamic PostgreSQL Query */}
+              {/* Dynamic PostgreSQL Tutor Stats Badge */}
               <Link
                 to="/"
-                className="absolute bottom-4 sm:bottom-6 left-2 sm:left-3 bg-white/95 backdrop-blur-md p-2 sm:p-2.5 sm:px-3.5 rounded-xl sm:rounded-2xl shadow-brand-md border border-white/80 flex items-center gap-2 sm:gap-3 z-20 group hover:shadow-brand-lg transition-all animate-float cursor-pointer"
+                className="absolute -bottom-3 sm:-bottom-4 left-2 sm:left-4 bg-white/95 backdrop-blur-md p-2 sm:p-2.5 sm:px-3.5 rounded-xl sm:rounded-2xl shadow-brand-md border border-white/80 flex items-center gap-2 sm:gap-3 z-20 group hover:shadow-brand-lg transition-all animate-float cursor-pointer"
                 style={{ animationDuration: '4.5s', animationDelay: '0.8s' }}
                 title="Khám phá danh sách gia sư chất lượng"
               >
