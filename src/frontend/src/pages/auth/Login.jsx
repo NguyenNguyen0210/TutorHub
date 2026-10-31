@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   GraduationCap,
-  ShieldCheck,
   BarChart3,
   Mail,
   Lock,
@@ -180,44 +179,8 @@ export default function Login() {
               TutorHub là nền tảng kết nối học viên với những gia sư chất lượng, giúp việc học hiệu quả hơn, dễ dàng hơn và an toàn hơn.
             </p>
 
-            {/* 4. 3 Benefits Row */}
-            <div className="mt-5 flex flex-wrap sm:flex-nowrap items-center gap-4 sm:gap-6">
-              {/* Benefit 1 */}
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-info-subtle text-info flex items-center justify-center shrink-0">
-                  <GraduationCap className="w-5 h-5" />
-                </div>
-                <div className="leading-tight">
-                  <p className="text-[13px] font-bold text-fg">Gia sư chất lượng</p>
-                  <p className="text-[11px] text-neutral-500 mt-0.5">Được xác thực kỹ càng</p>
-                </div>
-              </div>
-
-              {/* Benefit 2 */}
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-success-subtle text-success-strong flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div className="leading-tight">
-                  <p className="text-[13px] font-bold text-fg">Thanh toán an toàn</p>
-                  <p className="text-[11px] text-neutral-500 mt-0.5">Bảo chứng qua Escrow</p>
-                </div>
-              </div>
-
-              {/* Benefit 3 */}
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center shrink-0">
-                  <BarChart3 className="w-5 h-5" />
-                </div>
-                <div className="leading-tight">
-                  <p className="text-[13px] font-bold text-fg">Học tập hiệu quả</p>
-                  <p className="text-[11px] text-neutral-500 mt-0.5">Đúng người, đúng mục tiêu</p>
-                </div>
-              </div>
-            </div>
-
-            {/* 5. Illustration with DYNAMIC Live Floating Badges (100% borderless) */}
-            <div className="relative mt-4 max-w-[520px] w-full select-none">
+            {/* 4. Illustration with DYNAMIC Live Floating Badges (100% borderless) */}
+            <div className="relative mt-5 max-w-[520px] w-full select-none">
               {/* Clean Transparent Illustration without any rectangular borders */}
               <img
                 src="/images/transparent-student-clean.png"
@@ -370,8 +333,8 @@ export default function Login() {
                   </div>
                 </div>
 
-                {/* 3. Remember session */}
-                <div className="flex items-center pt-0.5">
+                {/* 3. Remember session & Forgot Password */}
+                <div className="flex items-center justify-between pt-0.5">
                   <label className="flex items-center gap-2 cursor-pointer select-none text-[12.5px] text-fg-secondary">
                     <input
                       type="checkbox"
@@ -383,6 +346,12 @@ export default function Login() {
                     <span>Ghi nhớ đăng nhập</span>
                   </label>
 
+                  <Link
+                    to="/auth/forgot-password"
+                    className="text-[12.5px] font-semibold text-brand-primary-600 hover:text-brand-primary-700 hover:underline transition-colors select-none"
+                  >
+                    Quên mật khẩu?
+                  </Link>
                 </div>
 
                 {/* 4. Primary CTA Button */}

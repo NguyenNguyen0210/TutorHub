@@ -159,6 +159,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IJwtService, JwtService>();
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
         services.AddSingleton<IRefreshTokenHasher, RefreshTokenHasher>();
+        services.AddSingleton<IPasswordResetOtpStore, PasswordResetOtpStore>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         // VNPay Payment Gateway Services

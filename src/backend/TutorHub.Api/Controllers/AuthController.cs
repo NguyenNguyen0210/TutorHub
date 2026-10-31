@@ -6,11 +6,14 @@ using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Auth.ChangePassword;
 using TutorHub.Application.Features.Auth.DTOs;
 using TutorHub.Application.Features.Auth.ExternalLogin;
+using TutorHub.Application.Features.Auth.ForgotPassword;
 using TutorHub.Application.Features.Auth.GetMe;
 using TutorHub.Application.Features.Auth.Login;
 using TutorHub.Application.Features.Auth.Logout;
 using TutorHub.Application.Features.Auth.RefreshToken;
 using TutorHub.Application.Features.Auth.Register;
+using TutorHub.Application.Features.Auth.ResetPassword;
+using TutorHub.Application.Features.Auth.VerifyResetOtp;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Api.Controllers;
@@ -97,6 +100,43 @@ public class AuthController : ControllerBase
         var result = await _sender.Send(command, cancellationToken);
 
         return Ok(ApiResponse<bool>.SuccessResult(result, "Password changed successfully."));
+    }
+
+    /// <summary>
+    /// Request a 6-digit OTP code to reset password via email.
+    /// </summary>
+    [HttpPost("forgot-password")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<bool>.SuccessResult(result, "Nếu email tồn tại trong hệ thống, mã xác nhận OTP đã được gửi đến hộp thư của bạn."));
+    }
+
+    /// <summary>
+    /// Verify the 6-digit OTP code and obtain a single-use reset token.
+    /// </summary>
+    [HttpPost("verify-reset-otp")]
+    [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> VerifyResetOtp([FromBody] VerifyResetOtpCommand command, CancellationToken cancellationToken)
+    {
+        var resetToken = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<string>.SuccessResult(resetToken, "Xác thực mã OTP thành công."));
+    }
+
+    /// <summary>
+    /// Reset the user password using a valid reset token.
+    /// </summary>
+    [HttpPost("reset-password")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(ApiResponse<bool>.SuccessResult(result, "Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập bằng mật khẩu mới."));
     }
 
     /// <summary>

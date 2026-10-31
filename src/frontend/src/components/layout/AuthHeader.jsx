@@ -26,19 +26,9 @@ export default function AuthHeader({ mode = 'login', showAction = true }) {
       {/* Right: Auth Flow Switch Action */}
       {showAction && (
         <div className="text-[13px] sm:text-[13.5px] text-fg-secondary font-medium">
-          {isLogin ? (
+          {!isLogin && (
             <>
-              <span className="hidden xs:inline">Chưa có tài khoản?</span>{' '}
-              <Link
-                to="/auth/register"
-                className="text-brand-primary-600 font-semibold hover:underline transition-colors ml-1"
-              >
-                Đăng ký ngay
-              </Link>
-            </>
-          ) : (
-            <>
-              <span className="hidden xs:inline">Đã có tài khoản?</span>{' '}
+              <span className="hidden sm:inline">Đã có tài khoản?</span>{' '}
               <Link
                 to="/auth/login"
                 className="text-brand-primary-600 font-semibold hover:underline transition-colors ml-1"
