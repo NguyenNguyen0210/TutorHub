@@ -70,7 +70,7 @@ public class PaymentsController : ControllerBase
     }
 
     /// <summary>
-    /// VNPay browser return URL redirect handler (Presentation / Read-Only).
+    /// Confirm the signed browser callback through the same idempotent settlement path as IPN.
     /// </summary>
     [AllowAnonymous]
     [HttpGet("vnpay/return")]
@@ -79,13 +79,10 @@ public class PaymentsController : ControllerBase
     {
         var parameters = ExtractQueryParameters();
 
-        // For TOPUP transactions on development/localhost where VNPay IPN cannot reach local machine,
-        // execute the webhook handler to credit the wallet idempotently upon verified return callback.
-        if (parameters.TryGetValue("vnp_TxnRef", out var txnRef) &&
-            txnRef.StartsWith("TOPUP", StringComparison.OrdinalIgnoreCase))
-        {
-            await _sender.Send(new HandlePaymentWebhookCommand(parameters), cancellationToken);
-        }
+        // The server-to-server IPN may arrive later or cannot reach localhost.
+        // The canonical handler verifies signature, merchant, amount and saved attempt,
+        // then settles atomically. Repeated return/IPN callbacks cannot activate twice.
+        await _sender.Send(new HandlePaymentWebhookCommand(parameters), cancellationToken);
 
         var query = new GetPaymentResultQuery(parameters);
         var result = await _sender.Send(query, cancellationToken);

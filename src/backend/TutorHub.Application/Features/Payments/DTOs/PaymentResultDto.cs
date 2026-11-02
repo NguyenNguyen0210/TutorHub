@@ -6,5 +6,6 @@ public record PaymentResultDto(
     Guid BookingId,
     string MerchantReference,
     string? TransactionNo,
-    decimal Amount
+    decimal Amount,
+    string Status = "Failed"
 );

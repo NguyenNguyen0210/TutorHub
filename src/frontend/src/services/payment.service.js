@@ -3,7 +3,7 @@
  *
  * Contract (PaymentsController + PaymentRedirectDto/PaymentResultDto):
  * - POST /payments/vnpay/create-url  body { bookingId: Guid } → PaymentRedirectDto
- * - GET  /payments/vnpay/return      → PaymentResultDto (đọc-only, không mutate trạng thái)
+ * - GET  /payments/vnpay/return      → PaymentResultDto (verified, idempotent settlement)
  * - POST /dev/payments/simulate-ipn  body { bookingId, success } → SimulatedPaymentDto (chỉ ở Development)
  */
 import { api } from './api';
@@ -19,6 +19,10 @@ function normalizeRedirect(raw = {}) {
 }
 
 export const paymentService = {
+  /** Booking payment attempts only; refunds and payouts stay outside this history. */
+  async getMyCoursePayments({ pageNumber = 1, pageSize = 15 } = {}) {
+    return api.get('/transactions/me', { params: { type: 'BookingPayment', pageNumber, pageSize } });
+  },
   /**
    * POST /payments/vnpay/create-url → PaymentRedirectDto
    */
@@ -39,8 +43,8 @@ export const paymentService = {
 
   /**
    * GET /payments/vnpay/return → PaymentResultDto
-   * { success, message, bookingId, merchantReference, transactionNo, amount }
-   * VNPay redirect về kèm query params; backend tự verify chữ ký và trả kết quả thật.
+   * { success, status, message, bookingId, merchantReference, transactionNo, amount }
+   * Backend verifies and settles the signed callback; success requires committed activation.
    */
   async processPaymentReturn(searchParams) {
     const params = Object.fromEntries(searchParams.entries());
