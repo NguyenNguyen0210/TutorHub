@@ -1,5 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import enrollmentService from '@/services/enrollment.service';
+import chatService from '@/services/chat.service';
+import tutorService from '@/services/tutor.service';
+import Avatar, { Menu } from '@/components/ui/Avatar';
 import sessionService from '@/services/session.service';
 import GracePeriodCard from '@/components/feedback/GracePeriodCard';
 import { formatDateTime } from '@/utils/formatters';
@@ -8,29 +12,28 @@ import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/Dialog';
 import ErrorState from '@/components/common/ErrorState';
-import { DetailSkeleton } from '@/components/common/Skeleton';
-import Card, { CardHeader } from '@/components/ui/Card';
+import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
 import Input, { Textarea, Field } from '@/components/ui/Input';
 import StateBadge from '@/components/common/StateBadge';
-import StatStrip from '@/components/common/StatStrip';
 import dayjs from 'dayjs';
 
-/**
- * SessionDetail — `/student/sessions/:id` và `/tutor/sessions/:id` (cùng component,
- * phân nhánh theo `isTutor`).
- *
- * Thứ tự khối: identity → hạn chót báo cáo sự cố → cửa sổ bảo vệ 12 giờ →
- * nhật ký buổi học → thanh action ở chân trang. Hành động không còn chen giữa
- * header và khối đối soát — khối quan trọng nhất phải nằm ngay dưới hạn chót.
- *
- * Quản lý ví & giao dịch: số ở `StatStrip` phẳng, màu = trạng thái, tiền qua
- * `<Money>` (tabular, không `font-mono`), chỉ timestamp mới dùng mono.
- */
+/** Chi tiết một buổi học; hành động theo trạng thái và quyền hiện có. */
 export default function SessionDetail() {
   const toast = useToast();
+  const navigate = useNavigate();
+  const loadVersion = useRef(0);
+  const [enrollment, setEnrollment] = useState(null);
+  const [recordError, setRecordError] = useState(null);
+  const [openingChat, setOpeningChat] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
   const confirm = useConfirm();
   const { id } = useParams();
   const { user } = useAuthStore();
@@ -66,38 +69,62 @@ export default function SessionDetail() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showRescheduleModal]);
 
-  // Load all session details and records
   const loadSessionData = useCallback(async () => {
     if (!id) return;
+    const request = ++loadVersion.current;
     try {
       setLoading(true);
-      const [sessionData, recordData] = await Promise.allSettled([
+      const [sessionResult, recordResult] = await Promise.allSettled([
         sessionService.getSessionById(id),
         sessionService.getLearningRecord(id),
       ]);
+      if (request !== loadVersion.current) return;
+      if (sessionResult.status === 'rejected') throw sessionResult.reason;
+      const data = sessionResult.value;
+      setSession(data);
+      setError(null);
+      setLearningRecord(recordResult.status === 'fulfilled' ? recordResult.value : null);
+      setRecordError(recordResult.status === 'rejected' ? recordResult.reason : null);
 
-      if (sessionData.status === 'fulfilled') {
-        setSession(sessionData.value);
-        setError(null);
-      } else {
-        setError(sessionData.reason);
-      }
-
-      if (recordData.status === 'fulfilled' && recordData.value) {
-        setLearningRecord(recordData.value);
-      } else {
-        setLearningRecord(null);
-      }
+      // Existing contract endpoints provide the planned duration and tutor metadata.
+      const [contractResult, summariesResult] = await Promise.allSettled([
+        enrollmentService.getEnrollmentById(data.enrollmentId),
+        enrollmentService.getAllMyEnrollments(),
+      ]);
+      if (request !== loadVersion.current) return;
+      const summary = summariesResult.status === 'fulfilled'
+        ? summariesResult.value.items.find(item => item.id === data.enrollmentId) : null;
+      const contract = contractResult.status === 'fulfilled' ? contractResult.value : null;
+      setEnrollment(contract || summary ? { ...summary, ...contract } : null);
     } catch (err) {
-      setError(err);
+      if (request === loadVersion.current) setError(err);
     } finally {
-      setLoading(false);
+      if (request === loadVersion.current) setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
+    setShowRescheduleModal(false);
+    setRecordInput('');
     loadSessionData();
+    return () => { loadVersion.current += 1; };
   }, [loadSessionData]);
+
+  const messageTutor = async () => {
+    if (openingChat) return;
+    setOpeningChat(true);
+    try {
+      const contract = enrollment || await enrollmentService.getEnrollmentById(session.enrollmentId);
+      const tutorUserId = contract.tutorUserId
+        || (await tutorService.getTutorById(contract.tutorProfileId)).userId;
+      if (!tutorUserId) throw new Error('Không thể mở cuộc trò chuyện với gia sư.');
+      const conversation = await chatService.getOrCreateConversation(tutorUserId);
+      if (!conversation?.id) throw new Error('Không thể mở cuộc trò chuyện với gia sư.');
+      navigate(`/app/messages?conversationId=${conversation.id}`);
+    } catch (err) {
+      toast.error(err?.message || 'Không thể mở tin nhắn. Vui lòng thử lại.');
+    } finally { setOpeningChat(false); }
+  };
 
   // Handle Issue Report from GracePeriodCard
   const handleIssueReported = async (reason, description) => {
@@ -116,6 +143,7 @@ export default function SessionDetail() {
       setSubmittingRecord(true);
       const res = await sessionService.createLearningRecord(id, recordInput.trim());
       setLearningRecord(res);
+      setRecordError(null);
       toast.success('Đã lưu nhật ký buổi học thành công.');
       setRecordInput('');
     } catch (err) {
@@ -168,9 +196,10 @@ export default function SessionDetail() {
 
   // Handle Cancel Session (Student or Tutor)
   const handleCancelSession = async () => {
+    if (actionLoading) return;
     let cancelReason = '';
     const ok = await confirm({
-      title: 'Hủy buổi học đơn lẻ',
+      title: 'Hủy buổi học này?',
       content: (
         <div className="space-y-3 text-caption text-fg-secondary">
           <p>
@@ -179,9 +208,9 @@ export default function SessionDetail() {
           <div className="bg-holding-subtle text-holding-strong p-3 rounded-brand-md text-caption space-y-1">
             <strong className="block font-semibold">Quy định hoàn tiền học phí:</strong>
             <p className="text-xs m-0">
-              Phần tiền học phí tương ứng (
+              Khi hủy thành công, học phí buổi học (
               <strong className="tabular-nums">{(session.sessionPrice ?? session.earningAmount)?.toLocaleString('vi-VN')} ₫</strong>
-              ) sẽ được trừ khỏi két ký quỹ của gia sư và hoàn trả đầy đủ cho học viên.
+              ) được hoàn vào Ví học viên.
             </p>
           </div>
           <p className="text-[11px] text-danger-strong font-medium">
@@ -218,15 +247,33 @@ export default function SessionDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6">
-        <DetailSkeleton />
+      <div role="status" aria-label="Đang tải chi tiết buổi học" className="mx-auto max-w-[1100px] space-y-6">
+        <div className="h-5 w-48 rounded bg-neutral-200 motion-safe:animate-pulse" />
+        <Card padding="lg" className="space-y-4 rounded-2xl shadow-none">
+          <div className="h-4 w-2/3 rounded bg-neutral-100 motion-safe:animate-pulse" />
+          <div className="h-9 w-1/2 rounded bg-neutral-100 motion-safe:animate-pulse" />
+          <div className="h-10 w-52 rounded bg-neutral-100 motion-safe:animate-pulse" />
+        </Card>
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)]">
+          <div className="space-y-6">
+            <Card padding="lg" className="space-y-5 rounded-2xl shadow-none">
+              {[0, 1, 2, 3].map(key => <div key={key} className="h-8 rounded bg-neutral-100 motion-safe:animate-pulse" />)}
+            </Card>
+            <Card padding="lg" className="h-48 rounded-2xl shadow-none"><div className="h-5 w-1/2 rounded bg-neutral-100 motion-safe:animate-pulse" /></Card>
+          </div>
+          <Card padding="lg" className="space-y-5 rounded-2xl shadow-none">
+            <div className="h-6 w-3/4 rounded bg-neutral-100 motion-safe:animate-pulse" />
+            <div className="h-16 rounded bg-neutral-100 motion-safe:animate-pulse" />
+            <div className="h-11 rounded bg-neutral-100 motion-safe:animate-pulse" />
+          </Card>
+        </div>
       </div>
     );
   }
 
   if (error || !session) {
     return (
-      <div className="max-w-4xl mx-auto py-12">
+      <div className="mx-auto max-w-[1100px] py-12">
         <ErrorState
           error={error || new Error('Không tìm thấy thông tin buổi học.')}
           title="Không thể tải chi tiết buổi học"
@@ -241,152 +288,128 @@ export default function SessionDetail() {
   const isCancelled = session.status === 'Cancelled';
   const isCompleted = session.status === 'Completed';
   const isScheduled = session.status === 'Scheduled';
-  const isFutureScheduled = isScheduled && session.startAt && dayjs(session.startAt).isAfter(dayjs());
-  const canCancel = (isScheduled || session.status === 'Unscheduled') && !isCancelled && !isCompleted;
-  const canTutorReschedule = isTutor && isFutureScheduled;
+  const isUnscheduled = session.status === 'Unscheduled';
+  const isAwaitingPayout = session.status === 'AwaitingPayout';
+  const isActiveEnrollment = enrollment?.status === 'Active';
+  const isFutureScheduled = isScheduled && session.startAt && dayjs(session.startAt).isAfter(dayjs(now));
+  const hasMinimumNotice = isFutureScheduled && !dayjs(session.startAt).isBefore(dayjs(now).add(2, 'hour'));
+  const canCancel = ['Student', 'Tutor'].includes(user?.role) && isActiveEnrollment && (isUnscheduled || hasMinimumNotice);
+  const canTutorSchedule = isTutor && isActiveEnrollment && (isUnscheduled || hasMinimumNotice);
+  const isReportWindowOpen = isAwaitingPayout && session.gracePeriodEndsAt
+    && dayjs(session.gracePeriodEndsAt).isAfter(dayjs(now));
+  const enrollmentPath = session.enrollmentId ? `/${isTutor ? 'tutor' : 'student'}/enrollments/${session.enrollmentId}` : backPath;
+  const courseTitle = enrollment?.serviceTitle || enrollment?.subjectName || session.subjectName || 'Lộ trình học tập';
+  const tutorName = enrollment?.tutorName || session.tutorName;
+  const number = session.sessionNumber != null ? String(session.sessionNumber).padStart(2, '0') : '—';
+  const scheduledDuration = session.startAt && session.endAt
+    ? dayjs(session.endAt).diff(dayjs(session.startAt), 'minute') : 0;
+  const plannedDuration = Number(enrollment?.sessionDurationMinutes) || scheduledDuration;
+  const siblings = [...(Array.isArray(enrollment?.sessions) ? enrollment.sessions : [])]
+    .sort((a, b) => a.sessionNumber - b.sessionNumber);
+  const sessionIndex = siblings.findIndex(item => item.id === session.id);
+  const previousSession = sessionIndex > 0 ? siblings[sessionIndex - 1] : null;
+  const nextSession = sessionIndex >= 0 ? siblings[sessionIndex + 1] : null;
+  const feeStatus = session.isPayoutReleased ? 'Đã giải ngân'
+    : isAwaitingPayout && session.hasIssueReport ? 'Đang xử lý sự cố'
+    : isAwaitingPayout ? 'Chờ giải ngân'
+    : session.isPayoutReleased === false ? 'Chưa giải ngân' : 'Chưa có thông tin';
+  const showProtection = isAwaitingPayout && (session.hasIssueReport || isReportWindowOpen);
 
-  // Chênh lệch giữa hai mốc ISO nên độc lập múi giờ; chỉ dùng để hiện số phút.
-  const durationMinutes =
-    session.startAt && session.endAt
-      ? dayjs(session.endAt).diff(dayjs(session.startAt), 'minute')
-      : 0;
-
-  // Màu = trạng thái: đã quyết toán → neutral, đã hoàn → muted,
-  // còn nằm trong két ký quỹ → holding.
-  const ledgerFigures = [
-    {
-      key: 'session-fee',
-      label: 'Học phí buổi này',
-      value: <Money value={session.sessionPrice ?? session.earningAmount ?? 0} />,
-      tone: isCompleted ? 'default' : isCancelled ? 'muted' : 'holding',
-    },
-    {
-      key: 'session-duration',
-      label: 'Thời lượng buổi học',
-      value: durationMinutes > 0 ? `${durationMinutes} phút` : '—',
-      tone: 'default',
-    },
-  ];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Top Back Navigation */}
-      <Link
-        to={backPath}
-        className="inline-flex items-center gap-1.5 rounded-brand-md text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 focus-visible:ring-offset-2 transition-colors"
-      >
-        <Icon name="arrow_back" size="sm" />
-        {backLabel}
-      </Link>
+    <div className="mx-auto max-w-[1100px] space-y-6">
+      <nav aria-label="Đường dẫn buổi học">
+        <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-fg-secondary">
+          <li><Link to={backPath} className="hover:text-primary focus-visible:underline">{isTutor ? 'Bảng điều hành' : 'Bàn học'}</Link></li>
+          <li aria-hidden="true">/</li>
+          <li className="min-w-0"><Link to={enrollmentPath} className="break-words hover:text-primary focus-visible:underline">{courseTitle}</Link></li>
+          <li aria-hidden="true">/</li>
+          <li aria-current="page" className="font-medium text-fg">Buổi #{number}</li>
+        </ol>
+      </nav>
 
-      {/* 1 · Identity — ai, môn gì, lúc nào, trạng thái */}
-      <Card padding="lg">
-        <div className="flex flex-wrap items-center gap-2 mb-2">
-          {/* "#N" là số thứ tự buổi học, không phải mã kỹ thuật → chữ thường, không mono. */}
-          <span className="text-caption font-bold text-fg-secondary">
-            Buổi học #{session.sessionNumber || 1}
-          </span>
+      <Card as="header" padding="lg" variant="outlined" className="rounded-2xl">
+        <p className="mb-2 text-body-reg text-fg-secondary break-words">{courseTitle}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-headline-1 font-bold text-fg">Buổi học #{number}</h1>
           <StateBadge status={session.status} domain="session" size="md" />
         </div>
-
-        <h1 className="text-headline-1 text-fg m-0">
-          {session.subjectName || 'Nội dung buổi học'}
-        </h1>
-
-        <p className="text-body-reg text-fg-secondary mt-2 mb-0">
-          {session.tutorName ? `Gia sư: ${session.tutorName}` : 'Chưa phân công gia sư'}
-          {session.startAt && (
-            <>
-              <span aria-hidden="true"> · </span>
-              {/* Timestamp là phần tử mono duy nhất trên trang. */}
-              <span className="font-mono tabular-nums">
-                {formatDateTime(session.startAt)}
-                {session.endAt ? ` – ${formatDateTime(session.endAt, 'HH:mm')}` : ''}
-              </span>
-            </>
-          )}
-          {!session.startAt && ' · Chưa xếp lịch'}
-        </p>
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
+          <Avatar key={enrollment?.tutorAvatarUrl || tutorName} src={enrollment?.tutorAvatarUrl} name={tutorName} />
+          <div className="min-w-0 flex-1">
+            <p className="text-caption text-fg-secondary">Gia sư phụ trách</p>
+            <p className="text-body-reg font-semibold text-fg break-words">{tutorName || 'Chưa có thông tin gia sư'}</p>
+          </div>
+          {!isTutor && <Button variant="outline" size="sm" onClick={messageTutor} loading={openingChat} icon={<Icon name="chat" size="xs" />}>Nhắn tin</Button>}
+        </div>
       </Card>
 
-      {/* Cancellation Notice if Cancelled */}
       {isCancelled && (
-        <Callout
-          variant="danger"
-          title="Buổi học đã bị hủy"
-          icon={<Icon name="cancel" size="md" />}
-        >
-          {session.cancellationReason ? (
-            <p className="m-0">
-              Lý do: <strong>{session.cancellationReason}</strong>
-            </p>
-          ) : (
-            <p className="m-0">Buổi học đã được hủy và tiền ký quỹ đã hoàn trả cho học viên.</p>
-          )}
-          {session.cancelledAt && (
-            <p className="m-0 mt-1">
-              Thời gian hủy:{' '}
-              <span className="font-mono tabular-nums">
-                {formatDateTime(session.cancelledAt)}
-              </span>
-            </p>
-          )}
+        <Callout variant="neutral" icon={<Icon name="cancel" size="sm" />}>
+          <p className="font-semibold">Buổi học đã hủy{session.cancelledAt ? ` · ${formatDateTime(session.cancelledAt)}` : ''}</p>
+          <p className="mt-1">Buổi học này không còn trong lịch học của bạn. Bạn có thể xem lịch sử ví để kiểm tra giao dịch liên quan.</p>
         </Callout>
       )}
 
-      {/* 2 · Deadline banner — hạn chót phải thấy TRƯỚC khi học viên bắt đầu thao tác */}
-      {session.gracePeriodEndsAt && !isCancelled && !isCompleted && (
-        <Callout
-          variant="holding"
-          title="Cửa sổ bảo vệ 12 giờ"
-          icon={<Icon name="timer" size="md" />}
-        >
-          Hạn chót báo cáo sự cố:{' '}
-          <strong className="font-mono tabular-nums">
-            {formatDateTime(session.gracePeriodEndsAt)}
-          </strong>{' '}
-          — Nếu không có báo cáo, tiền sẽ tự động chuyển cho gia sư.
-        </Callout>
-      )}
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)]">
+        <div className="min-w-0 space-y-6">
+          <Card as="section" padding="lg" variant="outlined" className="rounded-2xl" aria-labelledby="session-info-title">
+            <h2 id="session-info-title" className="mb-2 text-headline-3 font-semibold text-fg">Thông tin buổi học</h2>
+            <dl className="divide-y divide-border text-body-reg">
+              <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-4">
+                <dt className="text-fg-secondary">Ngày học</dt>
+                <dd className="font-medium text-fg">{session.startAt ? dayjs(session.startAt).format('DD/MM/YYYY') : 'Chưa xếp lịch'}</dd>
+              </div>
+              {session.startAt && session.endAt && (
+                <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-4">
+                  <dt className="text-fg-secondary">Khung giờ</dt>
+                  <dd className="font-medium tabular-nums text-fg">{dayjs(session.startAt).format('HH:mm')} – {dayjs(session.endAt).format('HH:mm')}</dd>
+                </div>
+              )}
+              <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-4">
+                <dt className="text-fg-secondary">Thời lượng dự kiến</dt>
+                <dd className="font-medium text-fg">{plannedDuration > 0 ? `${plannedDuration} phút` : 'Chưa có thông tin'}</dd>
+              </div>
+              <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-4">
+                <dt className="text-fg-secondary">Học phí buổi học</dt>
+                <dd className="font-semibold text-fg"><Money value={session.sessionPrice ?? session.earningAmount} /></dd>
+              </div>
+              <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-4">
+                <dt className="text-fg-secondary">Trạng thái học phí</dt>
+                <dd className="font-medium">
+                  {isCancelled ? <Link to={isTutor ? '/tutor/wallet' : '/student/wallet'} className="text-primary hover:underline">Xem lịch sử ví →</Link>
+                    : <span className={session.isPayoutReleased ? 'text-success-strong' : isAwaitingPayout ? 'text-holding-strong' : 'text-fg'}>{feeStatus}</span>}
+                </dd>
+              </div>
+            </dl>
+          </Card>
 
-      {/* Hai số cứng của buổi học: tiền và thời lượng. Số là nhân vật chính. */}
-      <StatStrip figures={ledgerFigures} columns={2} />
+          {showProtection && (
+            <section id="session-protection" className="scroll-mt-24" aria-label="Bảo vệ học phí">
+              <GracePeriodCard key={session.id} session={session} onIssueReported={handleIssueReported} isTutor={isTutor} />
+            </section>
+          )}
 
-      {/* 3 · Cửa sổ bảo vệ 12 giờ — khối quan trọng nhất của màn */}
-      {!isCancelled && (
-        <GracePeriodCard
-          session={session}
-          onIssueReported={handleIssueReported}
-          isTutor={isTutor}
-        />
-      )}
-
-      {/* 4 · Learning Record / Notes */}
-      <Card padding="lg">
-        <CardHeader
-          title="Nhật ký buổi học"
-          subtitle="Nội dung do gia sư ghi lại sau buổi học."
-          icon={<Icon name="menu_book" size="sm" />}
-        />
-        {learningRecord ? (
-          <div className="text-body-reg text-fg-secondary leading-relaxed bg-neutral-50 p-4 rounded-brand-md border border-border space-y-2">
-            <p className="m-0 whitespace-pre-line">{learningRecord.content}</p>
-            {learningRecord.createdAt && (
-              <p className="m-0 text-caption text-fg-muted">
-                Ghi nhận lúc:{' '}
-                <span className="font-mono tabular-nums">
-                  {formatDateTime(learningRecord.createdAt)}
-                </span>
-              </p>
+          <Card as="section" id="session-record" padding="lg" variant="outlined" className="scroll-mt-24 rounded-2xl" aria-labelledby="session-record-title">
+            <h2 id="session-record-title" className="text-headline-3 font-semibold text-fg">Nhật ký buổi học</h2>
+            {recordError ? (
+              <div className="mt-5 space-y-3">
+                <p className="text-body-reg text-fg-secondary">Chưa tải được nhật ký buổi học. Vui lòng thử lại.</p>
+                <Button variant="outline" size="sm" onClick={loadSessionData}>Thử lại</Button>
+              </div>
+            ) : learningRecord ? (
+              <div className="mt-5">
+                <p className="whitespace-pre-wrap break-words text-body-reg leading-relaxed text-fg">{learningRecord.content}</p>
+                {learningRecord.createdAt && <p className="mt-4 text-caption text-fg-secondary">Cập nhật {formatDateTime(learningRecord.createdAt)}</p>}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center px-2 py-8 text-center">
+                <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100 text-fg-secondary"><Icon name="menu_book" size="md" /></span>
+                <p className="font-semibold text-fg">Chưa có nội dung buổi học</p>
+                <p className="mt-2 max-w-sm text-body-reg leading-relaxed text-fg-secondary">Nội dung giảng dạy và ghi chú sẽ xuất hiện tại đây sau khi gia sư cập nhật.</p>
+              </div>
             )}
-          </div>
-        ) : (
-          <p className="m-0 text-body-reg text-fg-muted bg-neutral-50 border border-dashed border-border rounded-brand-md p-4">
-            Chưa có nhật ký học tập nào được ghi nhận cho buổi học này.
-          </p>
-        )}
-
-        {isTutor && !learningRecord && !isCancelled && (
+            {isTutor && isCompleted && !learningRecord && !recordError && (
           <form
             onSubmit={handleCreateLearningRecord}
             className="space-y-3 pt-5 mt-5 border-t border-border"
@@ -414,42 +437,63 @@ export default function SessionDetail() {
               Lưu nhật ký buổi học
             </Button>
           </form>
-        )}
-      </Card>
 
-      {/* 5 · Footer action bar — luôn nằm sau nội dung, không chen giữa các khối.
-          `danger-outline` (B-1) cho hủy buổi: hành động phá hủy nhưng không phải
-          hành động chính, nên viền đỏ chứ không phải nút đỏ đặc. */}
-      {(canTutorReschedule || canCancel) && (
-        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 rounded-brand-lg border border-border bg-surface shadow-brand-sm px-5 py-4">
-          <p className="m-0 text-caption text-fg-muted">
-            Các hành động dưới đây chỉ áp dụng cho riêng buổi học này.
-          </p>
-          <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-2">
-            {canTutorReschedule && (
-              <Button
-                variant="outline"
-                size="md"
-                onClick={() => setShowRescheduleModal(true)}
-                icon={<Icon name="edit_calendar" size="xs" />}
-              >
-                Đổi lịch học
-              </Button>
             )}
-
-            {canCancel && (
-              <Button
-                variant="danger-outline"
-                size="md"
-                loading={actionLoading}
-                onClick={handleCancelSession}
-                icon={<Icon name="cancel" size="xs" />}
-              >
-                Hủy buổi học này
-              </Button>
-            )}
-          </div>
+          </Card>
         </div>
+
+        <Card as="aside" padding="lg" variant="outlined" className="rounded-2xl lg:sticky lg:top-24" aria-labelledby="session-action-title">
+          <h2 id="session-action-title" className="text-headline-3 font-semibold text-fg">Hành động tiếp theo</h2>
+          <div className="mt-5 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-primary-50 text-primary">
+            <Icon name={isCancelled ? 'description' : isCompleted || isAwaitingPayout ? 'menu_book' : 'calendar_month'} size="md" />
+          </div>
+          <h3 className="mt-4 text-body-reg font-semibold text-fg">
+            {isCancelled ? 'Xem lại lộ trình học'
+              : isCompleted ? 'Buổi học đã hoàn thành'
+              : isAwaitingPayout ? (session.hasIssueReport ? 'Báo cáo sự cố đang được xử lý' : 'Kiểm tra nội dung buổi học')
+              : isUnscheduled ? 'Buổi học chưa được lên lịch'
+              : 'Thời gian học đã được xác nhận'}
+          </h3>
+          <p className="mt-2 text-body-reg leading-relaxed text-fg-secondary">
+            {isCancelled ? 'Theo dõi các buổi còn lại và tiếp tục kế hoạch học tập của bạn.'
+              : isCompleted ? 'Xem nội dung và ghi chú gia sư đã cập nhật trong nhật ký buổi học.'
+              : isAwaitingPayout ? (session.hasIssueReport ? 'Theo dõi thông tin báo cáo và tình trạng xử lý học phí bên dưới.'
+                : isReportWindowOpen ? 'Xem nhật ký và gửi báo cáo nếu buổi học gặp sự cố trong thời hạn bảo vệ học phí.' : 'Xem lại nội dung đã học trong nhật ký buổi học.')
+              : isUnscheduled ? (isTutor ? 'Thống nhất thời gian với học viên trước khi xác nhận lịch học.' : 'Hãy trao đổi với gia sư để thống nhất thời gian học phù hợp.')
+              : session.startAt ? formatDateTime(session.startAt) : 'Xem thông tin lịch học và trao đổi khi cần hỗ trợ.'}
+          </p>
+          <div className="mt-5 space-y-3">
+            {isCancelled ? (
+              <Button as={Link} to={enrollmentPath} fullWidth icon={<Icon name="menu_book" size="sm" />}>Xem lộ trình học</Button>
+            ) : isAwaitingPayout && showProtection ? (
+              <Button as="a" href="#session-protection" fullWidth icon={<Icon name="shield" size="sm" />}>{session.hasIssueReport ? 'Xem báo cáo sự cố' : isTutor ? 'Xem bảo vệ học phí' : 'Kiểm tra buổi học'}</Button>
+            ) : isCompleted || isAwaitingPayout ? (
+              <Button as="a" href="#session-record" fullWidth icon={<Icon name="menu_book" size="sm" />}>Xem nhật ký</Button>
+            ) : canTutorSchedule ? (
+              <Button onClick={() => setShowRescheduleModal(true)} fullWidth icon={<Icon name="calendar_month" size="sm" />}>{isUnscheduled ? 'Xếp lịch buổi học' : 'Đổi lịch học'}</Button>
+            ) : !isTutor && (isUnscheduled || isScheduled) ? (
+              <Button onClick={messageTutor} loading={openingChat} fullWidth icon={<Icon name="chat" size="sm" />}>Nhắn tin gia sư</Button>
+            ) : null}
+            {!isCancelled && <Button as={Link} to={enrollmentPath} variant="outline" fullWidth>Quay lại lộ trình</Button>}
+          </div>
+          {canCancel && (
+            <div className="mt-5 flex justify-end border-t border-border pt-4">
+              {actionLoading ? <p role="status" className="text-caption text-fg-secondary">Đang hủy buổi học…</p> : (
+                <Menu label="Thêm thao tác" align="right"
+                  trigger={<span className="inline-flex min-h-10 items-center gap-2 px-3 text-caption font-medium text-fg-secondary hover:text-fg">Thêm thao tác<Icon name="more_vert" size="sm" /></span>}
+                  items={[{ key: 'cancel', label: 'Hủy buổi học', danger: true, icon: <Icon name="cancel" size="sm" />, onClick: handleCancelSession }]}
+                />
+              )}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {(previousSession || nextSession) && (
+        <nav aria-label="Điều hướng buổi học" className="flex flex-wrap justify-between gap-4 border-t border-border pt-5">
+          {previousSession ? <Link to={`/${isTutor ? 'tutor' : 'student'}/sessions/${previousSession.id}`} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-body-reg font-medium text-primary hover:bg-brand-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Icon name="arrow_back" size="sm" />Buổi trước · #{String(previousSession.sessionNumber).padStart(2, '0')}</Link> : <span />}
+          {nextSession && <Link to={`/${isTutor ? 'tutor' : 'student'}/sessions/${nextSession.id}`} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-body-reg font-medium text-primary hover:bg-brand-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Buổi tiếp theo · #{String(nextSession.sessionNumber).padStart(2, '0')}<Icon name="arrow_forward" size="sm" /></Link>}
+        </nav>
       )}
 
       {/* Modal: Direct Reschedule (Tutor Only) */}
@@ -458,7 +502,7 @@ export default function SessionDetail() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="reschedule-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 animate-fadeIn motion-reduce:animate-none"
         >
           <button
             type="button"
@@ -472,7 +516,7 @@ export default function SessionDetail() {
               <div className="flex items-center gap-2.5">
                 <Icon name="calendar_month" size="md" className="text-brand-primary-600" />
                 <h3 id="reschedule-modal-title" className="text-headline-3 text-fg font-bold m-0">
-                  Đổi lịch học
+                  {isUnscheduled ? 'Xếp lịch buổi học' : 'Đổi lịch học'}
                 </h3>
               </div>
               <button
@@ -538,7 +582,7 @@ export default function SessionDetail() {
                   loading={submittingReschedule}
                   icon={<Icon name="check" size="xs" />}
                 >
-                  Lưu lịch mới
+                  Lưu lịch học
                 </Button>
               </div>
             </form>

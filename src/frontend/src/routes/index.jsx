@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import DisputeDetail from '../pages/shared/DisputeDetail';
 
 // Deep link redirect helpers for notifications and external URLs
 function EnrollmentRedirect() {
@@ -67,6 +68,9 @@ import EnrollmentDetail from '../pages/student/EnrollmentDetail';
 import SessionDetail from '../pages/student/SessionDetail';
 import DisputeNew from '../pages/student/DisputeNew';
 import StudentWishlist from '../pages/student/StudentWishlist';
+import StudentSchedule from '../pages/student/StudentSchedule';
+import StudentBookings from '../pages/student/StudentBookings';
+import StudentDisputes from '../pages/student/StudentDisputes';
 
 // Tutor Space & Wallet Screens
 import TutorDashboard from '../pages/tutor/TutorDashboard';
@@ -133,6 +137,7 @@ export default function AppRoutes() {
       }>
         <Route path="messages" element={<Messages />} />
         <Route path="notifications" element={<Notifications />} />
+        <Route path="disputes/:id" element={<DisputeDetail />} />
       </Route>
 
       {/* 2. Auth Routes */}
@@ -153,6 +158,9 @@ export default function AppRoutes() {
         </RequireAuth>
       }>
         <Route path="dashboard" element={<StudentDashboard />} />
+        <Route path="schedule" element={<StudentSchedule />} />
+        <Route path="bookings" element={<StudentBookings />} />
+        <Route path="disputes" element={<StudentDisputes />} />
         <Route path="wallet" element={<StudentWallet />} />
         <Route path="wallet/topup" element={<StudentWalletTopUp />} />
         <Route path="wallet/withdraw" element={<StudentWalletWithdraw />} />

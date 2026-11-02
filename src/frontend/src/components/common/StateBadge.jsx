@@ -30,6 +30,8 @@ const TOPUP_STATUS_META = {
 };
 
 const RESOLVERS = {
+  booking: (v) => ({ Holding: { label: 'Chờ thanh toán', color: 'holding' }, Paid: { label: 'Đã thanh toán', color: 'success' }, Cancelled: { label: 'Đã hủy', color: 'neutral' }, Expired: { label: 'Đã hết hạn', color: 'neutral' } }[v] || { label: 'Đang cập nhật', color: 'neutral' }),
+  dispute: (v) => ({ Open: { label: 'Đã tiếp nhận', color: 'holding' }, UnderReview: { label: 'Đang xem xét', color: 'holding' }, Resolved: { label: 'Đã giải quyết', color: 'success' }, Dismissed: { label: 'Đã bác bỏ', color: 'neutral' }, RequiresAdminFinancialIntervention: { label: 'Chờ xử lý tài chính', color: 'holding' }, RequiresAdminRefundSettlement: { label: 'Chờ xử lý hoàn tiền', color: 'holding' } }[v] || { label: 'Đang xử lý', color: 'neutral' }),
   session: (v) => SESSION_STATUS_META[v] || { label: v, color: 'neutral' },
   enrollment: (v) => ENROLLMENT_STATUS_META[v] || { label: v, color: 'neutral' },
   withdrawal: (v) => WITHDRAWAL_STATUS_META[v] || { label: v, color: 'neutral' },
@@ -61,6 +63,8 @@ export default function StateBadge({ status, domain = 'session', size = 'sm', cl
 StateBadge.propTypes = {
   status: PropTypes.string,
   domain: PropTypes.oneOf([
+    'booking',
+    'dispute',
     'session',
     'enrollment',
     'withdrawal',

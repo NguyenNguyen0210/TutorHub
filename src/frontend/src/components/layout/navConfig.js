@@ -38,8 +38,11 @@ export const NAV = {
 
   Student: [
     { path: '/student/dashboard', label: 'Bàn học của tôi', icon: 'space_dashboard', match: (p) => p.startsWith('/student/dashboard') || p.startsWith('/student/enrollments/') || p.startsWith('/student/sessions/') },
+    { path: '/student/schedule', label: 'Lịch học', icon: 'calendar_month', match: (p) => p.startsWith('/student/schedule') },
+    { path: '/student/bookings', label: 'Đơn đặt chỗ', icon: 'receipt_long', match: (p) => p === '/student/bookings' },
     { path: '/student/wallet', label: 'Ví học viên', icon: 'account_balance_wallet', match: (p) => p.startsWith('/student/wallet') },
     { path: '/student/wishlist', label: 'Đã lưu', icon: 'favorite', match: (p) => p.startsWith('/student/wishlist') },
+    { path: '/student/disputes', label: 'Khiếu nại', icon: 'shield', match: (p) => p.startsWith('/student/disputes') || p.startsWith('/app/disputes/') },
     { path: '/', label: 'Khám phá gia sư', icon: 'explore', match: () => false },
     { path: '/app/messages', label: 'Tin nhắn', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
     { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },

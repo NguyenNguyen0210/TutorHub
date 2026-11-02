@@ -18,6 +18,7 @@ public class GetMyEnrollmentsQueryHandlerTests
 
     public GetMyEnrollmentsQueryHandlerTests()
     {
+        _contextMock.Setup(c => c.Transactions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Transaction>()).Object);
         _handler = new GetMyEnrollmentsQueryHandler(_contextMock.Object, _currentUser);
     }
 

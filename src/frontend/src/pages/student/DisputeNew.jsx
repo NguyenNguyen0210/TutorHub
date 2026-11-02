@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { cn } from '@/lib/cn';
 import disputeService from '@/services/dispute.service';
@@ -60,6 +61,7 @@ function StepHeading({ step, title, id, aside }) {
 }
 
 export default function DisputeNew() {
+  const client = useQueryClient();
   const toast = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -207,8 +209,9 @@ export default function DisputeNew() {
         }
       }
 
+      await client.invalidateQueries({ queryKey: ['student-disputes'] });
       toast.success('Đã gửi đơn khiếu nại thành công! Tiền học buổi này đã được bảo chứng trong Escrow.');
-      navigate('/student/dashboard');
+      navigate(created?.id ? `/app/disputes/${created.id}` : '/student/disputes');
     } catch (err) {
       toast.error(err?.message || 'Không thể gửi đơn khiếu nại. Vui lòng kiểm tra lại thông tin.');
     } finally {
