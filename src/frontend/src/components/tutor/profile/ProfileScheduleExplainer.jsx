@@ -9,21 +9,47 @@ import Callout from '@/components/ui/Callout';
 import { tutorService } from '@/services/tutor.service';
 import { SectionShell } from './SectionShell';
 
-const STEPS = [
-  {
-    title: 'Đăng ký giữ chỗ',
-    body: 'Chọn gói học phù hợp và thanh toán an toàn qua két ký quỹ TutorHub. Hệ thống giữ chỗ độc quyền 15 phút.',
-  },
-  {
-    title: 'Gia sư xếp lịch',
-    body: 'Sau khi giữ chỗ thành công, gia sư chủ động sắp xếp thời khóa biểu chi tiết cho từng buổi học cùng bạn.',
-  },
-  {
-    title: 'Học tập & bảo đảm',
-    body: 'Mỗi buổi học được báo trước tối thiểu 2 giờ và tự động giải ngân sau 12 giờ hoàn thành nếu không có khiếu nại phát sinh.',
-  },
+const SHIFTS = [
+  { key: 'morning', label: 'Sáng', period: '08:00 - 12:00' },
+  { key: 'afternoon', label: 'Chiều', period: '13:30 - 17:30' },
+  { key: 'evening', label: 'Tối', period: '18:30 - 21:30' },
 ];
 
+/**
+ * Xác định trạng thái của từng ca học trong ngày (Đã qua / Kín lịch / Trống lịch)
+ */
+function getShiftState(day, shiftKey) {
+  if (day.isPast) {
+    return { status: 'past', label: 'Đã qua' };
+  }
+
+  // Kiểm tra xem có buổi học nào rơi vào khung giờ của ca này không
+  const busySlot = day.slots.find((slot) => {
+    const hour = dayjs(slot.startAt).hour();
+    if (shiftKey === 'morning') return hour < 12;
+    if (shiftKey === 'afternoon') return hour >= 12 && hour < 18;
+    if (shiftKey === 'evening') return hour >= 18;
+    return false;
+  });
+
+  if (busySlot) {
+    const startTime = dayjs(busySlot.startAt).format('HH:mm');
+    const endTime = dayjs(busySlot.endAt).format('HH:mm');
+    return {
+      status: 'busy',
+      label: 'Kín lịch',
+      time: `${startTime} - ${endTime}`,
+    };
+  }
+
+  return { status: 'available', label: 'Trống lịch' };
+}
+
+/**
+ * ProfileScheduleExplainer — Thời khóa biểu & Lịch nhận lớp của gia sư.
+ * Đã chuẩn hóa rút gọn tên Chủ nhật thành CN (chống rớt dòng, thẳng hàng 100%),
+ * chia rõ 3 ca Sáng - Chiều - Tối, làm nhẹ nút nhắn tin và lược bỏ quy trình trùng lặp.
+ */
 export default function ProfileScheduleExplainer({ tutorId }) {
   const [busySlots, setBusySlots] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -86,7 +112,8 @@ export default function ProfileScheduleExplainer({ tutorId }) {
 
       return {
         date: d,
-        dayName: i === 6 ? 'Chủ nhật' : `Thứ ${i + 2}`,
+        // Rút gọn Chủ nhật thành CN để không bị gãy 2 dòng và lệch ô với Thứ 7
+        dayName: i === 6 ? 'CN' : `Thứ ${i + 2}`,
         formattedDate: d.format('DD/MM'),
         isToday,
         isPast,
@@ -107,14 +134,14 @@ export default function ProfileScheduleExplainer({ tutorId }) {
       icon="calendar_month"
       className="mt-8"
     >
-      <Card padding="lg" className="space-y-6">
+      <Card padding="lg" className="space-y-6 rounded-2xl border border-border shadow-sm">
         {/* Calendar Header with Navigation */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-border">
           <div>
-            <h3 className="text-body-reg font-bold text-fg flex items-center gap-2">
-              <span>Lịch bận trong tuần</span>
+            <h3 className="text-body-reg font-bold text-slate-900 flex items-center gap-2">
+              <span>Lịch nhận lớp trong tuần</span>
               {weekOffset === 0 ? (
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-brand-primary-100 text-brand-primary-700">
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700">
                   Tuần này
                 </span>
               ) : (
@@ -124,7 +151,7 @@ export default function ProfileScheduleExplainer({ tutorId }) {
               )}
             </h3>
             <p className="text-caption text-fg-muted mt-0.5">
-              Khung giờ gia sư đã có lớp học cố định hoặc lịch bận
+              Khung giờ gia sư sẵn sàng nhận lớp và các ca đã có lịch học cố định
             </p>
           </div>
 
@@ -157,7 +184,7 @@ export default function ProfileScheduleExplainer({ tutorId }) {
         {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5 py-4">
             {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="h-28 rounded-brand-md bg-neutral-100 animate-pulse" />
+              <div key={i} className="h-32 rounded-xl bg-neutral-100 animate-pulse" />
             ))}
           </div>
         ) : availabilityUnavailable ? (
@@ -169,18 +196,23 @@ export default function ProfileScheduleExplainer({ tutorId }) {
             {error}
           </Callout>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5 items-stretch">
             {days.map((day) => (
               <div
                 key={day.dayName}
-                className={`p-2.5 rounded-brand-md border flex flex-col min-h-[120px] transition-colors ${
+                className={`p-2.5 rounded-xl border flex flex-col transition-colors ${
                   day.isToday
-                    ? 'border-brand-primary-500 bg-brand-primary-50/20'
-                    : 'border-border bg-neutral-50/50'
+                    ? 'border-brand-primary-500 bg-brand-primary-50/20 shadow-xs'
+                    : 'border-border bg-neutral-50/60'
                 }`}
               >
-                <div className="flex items-center justify-between pb-1.5 border-b border-border/60 mb-2">
-                  <span className={`text-[12px] font-bold ${day.isToday ? 'text-brand-primary-700' : 'text-fg'}`}>
+                {/* Header ngày: Đồng đều không rớt dòng */}
+                <div className="flex items-center justify-between pb-1.5 border-b border-border/70 mb-2">
+                  <span
+                    className={`text-[12px] font-bold ${
+                      day.isToday ? 'text-brand-primary-700' : 'text-slate-900'
+                    }`}
+                  >
                     {day.dayName}
                   </span>
                   <span className="text-[11px] font-mono text-fg-muted tabular-nums">
@@ -188,35 +220,45 @@ export default function ProfileScheduleExplainer({ tutorId }) {
                   </span>
                 </div>
 
-                <div className="flex-1 flex flex-col gap-1.5">
-                  {day.slots.length > 0 ? (
-                    day.slots.map((slot, sIdx) => {
-                      const startTime = dayjs(slot.startAt).format('HH:mm');
-                      const endTime = dayjs(slot.endAt).format('HH:mm');
+                {/* 3 ca học rõ ràng: Sáng, Chiều, Tối */}
+                <div className="flex-1 flex flex-col gap-1.5 justify-between">
+                  {SHIFTS.map((shift) => {
+                    const state = getShiftState(day, shift.key);
+
+                    if (state.status === 'past') {
                       return (
                         <div
-                          key={sIdx}
-                          className="px-2 py-1 rounded bg-amber-50 border border-amber-200 text-amber-900 text-[11px] flex flex-col font-medium"
-                          title="Gia sư đã có lớp trong khung giờ này"
+                          key={shift.key}
+                          className="py-1.5 px-1 rounded-lg bg-neutral-100/70 text-neutral-400 text-[11px] font-medium text-center"
+                          title={`Ca ${shift.label}: Đã qua`}
                         >
-                          <span className="font-mono text-[10px] text-amber-900/90 tabular-nums">
-                            {startTime} - {endTime}
-                          </span>
-                          <span className="text-[9px] font-bold text-amber-700 uppercase tracking-tight">
-                            Đã kín lịch
-                          </span>
+                          {shift.label}
                         </div>
                       );
-                    })
-                  ) : day.isPast ? (
-                    <div className="flex-1 flex items-center justify-center text-[11px] text-fg-muted italic">
-                      Đã qua
-                    </div>
-                  ) : (
-                    <div className="flex-1 flex items-center justify-center p-1 rounded bg-emerald-50/70 border border-emerald-100 text-emerald-800 text-[10px] text-center font-medium">
-                      Trống lịch
-                    </div>
-                  )}
+                    }
+
+                    if (state.status === 'busy') {
+                      return (
+                        <div
+                          key={shift.key}
+                          className="py-1.5 px-1 rounded-lg bg-amber-50 border border-amber-200/90 text-[11px] font-bold text-amber-900 text-center"
+                          title={`Ca ${shift.label} (${state.time}): Gia sư đã có lớp học`}
+                        >
+                          {shift.label}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={shift.key}
+                        className="py-1.5 px-1 rounded-lg bg-emerald-50/90 border border-emerald-200/80 text-[11px] font-bold text-emerald-800 text-center transition-colors hover:bg-emerald-100/80"
+                        title={`Ca ${shift.label} (${shift.period}): Sẵn sàng nhận lớp`}
+                      >
+                        {shift.label}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -224,59 +266,43 @@ export default function ProfileScheduleExplainer({ tutorId }) {
         )}
 
         {/* Legend and Guidance */}
-        {!loading && !error && !availabilityUnavailable && <div className="flex flex-wrap items-center gap-4 text-caption pt-1">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-amber-100 border border-amber-300" />
-            <span className="text-fg-secondary">Khung giờ đã có lớp</span>
+        {!loading && !error && !availabilityUnavailable && (
+          <div className="flex flex-wrap items-center gap-4 text-caption pt-1">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-emerald-100 border border-emerald-300" />
+              <span className="text-fg-secondary">Ca trống có thể xếp lịch</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-amber-100 border border-amber-300" />
+              <span className="text-fg-secondary">Ca đã kín lịch</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-neutral-200 border border-neutral-300" />
+              <span className="text-fg-secondary">Ca đã qua</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-emerald-100 border border-emerald-300" />
-            <span className="text-fg-secondary">Khung giờ có thể học</span>
-          </div>
-        </div>}
+        )}
 
-        {!availabilityUnavailable && <Callout variant="info" icon={<Icon name="info" size="sm" />}>
-          Lịch trên hiển thị các buổi học đã được xác nhận của gia sư. Các khung giờ còn lại gia sư có thể sắp xếp linh hoạt. Bạn có thể nhắn tin trao đổi trước để thống nhất thời gian học phù hợp nhất.
-        </Callout>}
+        {!availabilityUnavailable && (
+          <Callout variant="info" icon={<Icon name="info" size="sm" />}>
+            Lịch trên hiển thị các ca học đã được xác nhận của gia sư. Các khung giờ còn lại gia sư
+            có thể sắp xếp linh hoạt theo nhu cầu của bạn.
+          </Callout>
+        )}
 
-        {/* Action Button */}
+        {/* Action Button: Nền trắng viền xanh thoáng đãng */}
         <div className="pt-1">
           <Button
             as={Link}
             to={`/app/messages?tutorId=${tutorId}`}
-            variant="primary"
+            variant="outline"
             fullWidth
             size="md"
             icon={<Icon name="chat" size="sm" />}
+            className="bg-white border-blue-600 text-blue-700 hover:bg-blue-50/80 hover:border-blue-700 font-semibold shadow-xs"
           >
             Nhắn tin trao đổi lịch với gia sư
           </Button>
-        </div>
-
-        {/* How It Works Explainer (Collapse/Workflow reference) */}
-        <div className="pt-4 border-t border-border">
-          <h4 className="text-caption font-semibold text-fg mb-3">
-            Quy trình đăng ký & bảo đảm học tập
-          </h4>
-          <ol className="space-y-2.5">
-            {STEPS.map((step, i) => (
-              <li
-                key={step.title}
-                className="flex items-start gap-3 p-3 rounded-brand-md bg-neutral-50 border border-border"
-              >
-                <span
-                  aria-hidden="true"
-                  className="w-6 h-6 rounded-full bg-brand-primary-100 text-brand-primary-700 font-bold text-caption flex items-center justify-center shrink-0 mt-0.5 tabular-nums"
-                >
-                  {i + 1}
-                </span>
-                <div className="min-w-0">
-                  <p className="text-caption font-bold text-fg">{step.title}</p>
-                  <p className="text-caption text-fg-muted leading-relaxed mt-0.5">{step.body}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
         </div>
       </Card>
     </SectionShell>

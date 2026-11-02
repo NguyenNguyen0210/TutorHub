@@ -53,7 +53,7 @@ export default function ServiceDetail() {
       setBookingLoading(true);
       const booking = await bookingService.createBooking(service.id);
       if (booking?.id) {
-        toast.success('Đã giữ chỗ thành công 15 phút! Đang chuyển đến cổng thanh toán...');
+        toast.success('Đã khóa giữ chỗ trong 15 phút. Vui lòng hoàn tất thanh toán bên dưới.');
         navigate(`/student/bookings/${booking.id}/checkout`);
       }
     } catch (err) {
@@ -73,6 +73,9 @@ export default function ServiceDetail() {
         const data = await tutorService.getServiceById(id);
         if (!cancelled) {
           setService(data);
+          if (data?.title) {
+            document.title = data.title;
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -99,11 +102,41 @@ export default function ServiceDetail() {
     setActiveTab(tabKey);
     const element = document.getElementById(sectionId);
     if (element) {
-      const yOffset = -90;
+      const yOffset = -120;
       const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
   };
+
+  useEffect(() => {
+    if (!service) return;
+    const sectionMap = [
+      { key: 'overview', id: 'overview' },
+      { key: 'outcomes', id: 'outcomes' },
+      { key: 'syllabus', id: 'syllabus' },
+      { key: 'tutor', id: 'tutor-info' },
+      { key: 'reviews', id: 'reviews' },
+      { key: 'faqs', id: 'faqs' },
+    ];
+
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const threshold = 140;
+      for (let i = sectionMap.length - 1; i >= 0; i--) {
+        const el = document.getElementById(sectionMap[i].id);
+        if (el) {
+          const top = el.offsetTop - threshold;
+          if (scrollY >= top) {
+            setActiveTab(sectionMap[i].key);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [service]);
 
   if (loading) {
     return (
@@ -153,9 +186,8 @@ export default function ServiceDetail() {
   const tutor = service.tutor || {};
   const targetAudience = Array.isArray(service.targetAudience) ? service.targetAudience : [];
   const prerequisites = Array.isArray(service.prerequisites) ? service.prerequisites : [];
-  const expectedOutcomes = service.expectedOutcome
-    ? service.expectedOutcome.split('. ').filter(Boolean)
-    : [];
+  const expectedOutcomes = (service.expectedOutcome || '').split(/(?<=[.!?])\s+/).filter(Boolean).map(description => ({ title: '', description }));
+  const resolvedLearningScope = service.learningScope || '';
 
   const tabs = [
     { key: 'overview', label: 'Tổng quan', sectionId: 'overview' },
@@ -172,30 +204,38 @@ export default function ServiceDetail() {
       <ServiceDetailHero service={service} />
 
       {/* 2. Sticky Tab Navigation Bar */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-200/90 shadow-sm">
+      <div className="sticky top-[64px] z-30 bg-surface/95 backdrop-blur-sm border-b border-border shadow-xs">
         <div className="page-shell">
-          <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto py-2.5 no-scrollbar">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => scrollToSection(tab.sectionId, tab.key)}
-                className={`min-h-11 px-3.5 py-1.5 rounded-brand-md text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors ${
-                  activeTab === tab.key
-                    ? 'bg-brand-primary-600 text-white shadow-sm'
-                    : 'text-fg-secondary hover:text-brand-primary-600 hover:bg-neutral-100'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div
+            role="tablist"
+            className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  role="tab"
+                  type="button"
+                  aria-selected={isActive}
+                  onClick={() => scrollToSection(tab.sectionId, tab.key)}
+                  className={`group inline-flex items-center gap-2 px-4 py-3 border-b-2 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-500 focus-visible:ring-offset-2 cursor-pointer ${
+                    isActive
+                      ? 'border-brand-primary-600 text-brand-primary-700'
+                      : 'border-transparent text-fg-secondary hover:text-fg hover:border-neutral-300'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
       {/* 3. Main Content: 2-Column Golden Ratio Layout */}
       <div className="page-shell pt-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column (70% - 8 Cols) */}
           <div className="lg:col-span-8 flex flex-col gap-8">
             {/* Section: Overview & Target Audience */}
@@ -207,91 +247,128 @@ export default function ServiceDetail() {
                 </h2>
               </div>
 
-              {service.learningScope && (
-                <div className="p-4 bg-brand-primary-50/50 rounded-xl border border-brand-primary-100/70 text-neutral-700 text-sm leading-relaxed">
-                  <strong className="text-brand-primary-800 block mb-1">Phạm vi kiến thức trọng tâm:</strong>
-                  {service.learningScope}
+              {/* Hộp tóm tắt các chủ đề chuyên môn trọng tâm sẽ học (tránh lặp với đối tượng học viên) */}
+              {resolvedLearningScope && (
+                <div className="p-4 bg-blue-50/60 rounded-xl border border-blue-200/80 text-neutral-700 text-sm leading-relaxed">
+                  <div className="flex items-center gap-2 mb-1.5 text-blue-900 font-bold">
+                    <Icon name="menu_book" size="xs" className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span>Phạm vi kiến thức trọng tâm:</span>
+                  </div>
+                  <p className="text-neutral-700 text-xs sm:text-sm leading-relaxed m-0">
+                    {resolvedLearningScope}
+                  </p>
                 </div>
               )}
 
-              {/* Target Audience */}
-              {targetAudience.length > 0 && <div>
-                <h3 className="text-sm font-semibold text-fg mb-3">
-                  Khóa học này dành cho ai?
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {targetAudience.map((aud, i) => (
-                    <div
-                      key={i}
-                      className="p-3.5 bg-neutral-50/80 rounded-xl border border-neutral-100 flex items-start gap-3"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-brand-primary-100 text-brand-primary-700 flex items-center justify-center shrink-0 mt-0.5">
-                        <Icon name="person" size="xs" className="w-3.5 h-3.5" />
+              {/* Target Audience: 3 cột đều nhau lấp đầy khoảng trống */}
+              {targetAudience.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-fg mb-3">
+                    Khóa học này dành cho ai?
+                  </h3>
+                  <div
+                    className={`grid gap-3 ${
+                      targetAudience.length === 3
+                        ? 'grid-cols-1 sm:grid-cols-3'
+                        : targetAudience.length === 2
+                        ? 'grid-cols-1 sm:grid-cols-2'
+                        : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+                    }`}
+                  >
+                    {targetAudience.map((aud, i) => (
+                      <div
+                        key={i}
+                        className="p-3.5 bg-neutral-50/80 rounded-xl border border-neutral-200/80 flex items-start gap-3 transition-colors hover:border-blue-200 hover:bg-neutral-50"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-brand-primary-100 text-brand-primary-700 flex items-center justify-center shrink-0 mt-0.5">
+                          <Icon name="person" size="xs" className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-xs sm:text-sm text-neutral-700 leading-snug font-medium">
+                          {aud}
+                        </span>
                       </div>
-                      <span className="text-xs sm:text-sm text-neutral-700 leading-snug">
-                        {aud}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>}
+              )}
 
-              {/* Prerequisites */}
-              {prerequisites.length > 0 && <div>
-                <h3 className="text-sm font-semibold text-fg mb-3">
-                  Yêu cầu chuẩn bị trước khi học
-                </h3>
-                <ul className="flex flex-col gap-2.5">
-                  {prerequisites.map((pre, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-neutral-700">
-                      <Icon
-                        name="task_alt"
-                        size="xs"
-                        className="w-4 h-4 text-success-strong shrink-0 mt-0.5"
-                      />
-                      <span>{pre}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>}
+              {/* Prerequisites: Dàn 2 cột ngang tiết kiệm chiều cao */}
+              {prerequisites.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-fg mb-3">
+                    Yêu cầu chuẩn bị trước khi học
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {prerequisites.map((pre, i) => (
+                      <div
+                        key={i}
+                        className="p-3 bg-neutral-50/80 rounded-xl border border-neutral-200/80 flex items-center gap-2.5 text-xs sm:text-sm text-neutral-700 transition-colors hover:border-emerald-200 hover:bg-neutral-50"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                          <Icon
+                            name="task_alt"
+                            size="xs"
+                            className="w-3.5 h-3.5 text-emerald-600"
+                          />
+                        </div>
+                        <span className="font-medium leading-snug">{pre}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
 
             {/* Section: Expected Outcomes */}
-            {expectedOutcomes.length > 0 && <section id="outcomes" className="bg-white rounded-brand-lg border border-border p-6 sm:p-8">
-              <div className="flex items-center gap-2 mb-6">
-                <span className="w-2.5 h-2.5 rounded-full bg-success" />
-                <h2 className="text-xl sm:text-2xl font-bold text-fg tracking-tight">
-                  Bạn sẽ đạt được những gì sau khóa học?
-                </h2>
-              </div>
+            {expectedOutcomes.length > 0 && (
+              <section id="outcomes" className="bg-white rounded-brand-lg border border-border p-6 sm:p-8">
+                <div className="flex items-center gap-2 mb-6">
+                  <span className="w-2.5 h-2.5 rounded-full bg-success" />
+                  <h2 className="text-xl sm:text-2xl font-bold text-fg tracking-tight">
+                    Bạn sẽ đạt được những gì sau khóa học?
+                  </h2>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {expectedOutcomes.map((item, i) => (
-                  <div
-                    key={i}
-                    className="p-4 rounded-xl border border-success/30 bg-success-subtle/30 flex items-start gap-3.5"
-                  >
-                    <div className="w-7 h-7 rounded-full bg-success-subtle text-success-strong flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                      <Icon name="check" size="xs" className="w-4 h-4 font-bold" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-bold text-fg block mb-0.5">
-                        Mục tiêu {i + 1}
-                      </span>
-                      <p className="text-xs sm:text-sm text-fg-secondary leading-relaxed">
-                        {item}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>}
+                <div
+                  className={`grid gap-4 ${
+                    expectedOutcomes.length === 1
+                      ? 'grid-cols-1'
+                      : 'grid-cols-1 sm:grid-cols-2'
+                  }`}
+                >
+                  {expectedOutcomes.map((item, i) => {
+                    const title = typeof item === 'object' && item.title ? item.title : `Mục tiêu ${i + 1}`;
+                    const description = typeof item === 'object' && item.description ? item.description : item;
+                    return (
+                      <div
+                        key={i}
+                        className="p-4 rounded-xl border border-success/30 bg-success-subtle/30 flex items-start gap-3.5 transition-all hover:border-success/50 hover:bg-success-subtle/40"
+                      >
+                        <div className="w-7 h-7 rounded-full bg-success-subtle text-success-strong flex items-center justify-center shrink-0 mt-0.5 shadow-xs border border-success/20">
+                          <Icon name="check" size="xs" className="w-4 h-4 font-bold" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-sm font-bold text-fg block mb-1">
+                            {title}
+                          </span>
+                          <p className="text-xs sm:text-sm text-fg-secondary leading-relaxed">
+                            {description}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
             {/* Section: Syllabus (Accordion) */}
             <ServiceSyllabus
               curriculum={service.curriculum}
               totalSessions={service.totalSessions}
               sessionDurationMinutes={service.sessionDurationMinutes}
+              serviceTitle={service.title}
+              subjectName={service.subject?.name}
             />
 
             {/* Section: Tutor Detailed Profile Card */}
@@ -333,11 +410,11 @@ export default function ServiceDetail() {
 
                   <div className="flex items-center gap-4 text-xs text-fg-secondary mt-1 flex-wrap">
                     {Number(tutor.ratingAvg) > 0 && (
-                      <span className="flex items-center gap-1 font-bold text-brand-primary-700">
-                        <Icon name="star" size="xs" filled className="w-4 h-4 text-brand-primary-600" />
-                        {Number(tutor.ratingAvg).toFixed(1)}
+                      <span className="flex items-center gap-1 font-bold text-slate-900">
+                        <Icon name="star" size="xs" filled className="w-4 h-4 text-amber-500 fill-amber-500" />
+                        <span className="tabular-nums">{Number(tutor.ratingAvg).toFixed(1)}</span>
                         {Number(tutor.totalReviews) > 0 && (
-                          <span className="text-fg-muted font-normal">({tutor.totalReviews} đánh giá)</span>
+                          <span className="text-fg-muted font-normal">({tutor.totalReviews} đánh giá gia sư)</span>
                         )}
                       </span>
                     )}
@@ -370,10 +447,12 @@ export default function ServiceDetail() {
 
             {/* Section: Student Reviews */}
             <ServiceReviews
-              reviews={service.recentReviews}
-              ratingAvg={tutor.ratingAvg}
-              totalReviews={tutor.totalReviews}
+              reviews={service.reviews || service.recentReviews || []}
+              ratingAvg={service.ratingAvg}
+              totalReviews={service.totalReviews}
+              ratingDistribution={service.ratingDistribution}
               satisfactionRate={service.metrics?.satisfactionRate}
+              serviceTitle={service.title}
             />
 
             {/* Section: FAQs */}
@@ -381,14 +460,16 @@ export default function ServiceDetail() {
           </div>
 
           {/* Right Column (30% - 4 Cols - Sticky Sidebar) */}
-          <div className="lg:col-span-4">
-            <ServiceSidebarCard
-              service={service}
-              onBookNow={handleBookNow}
-              isFavorite={isFavorite}
-              onToggleFavorite={handleToggleFavorite}
-            />
-          </div>
+          <aside className="lg:col-span-4 relative">
+            <div className="lg:sticky lg:top-[124px] space-y-4">
+              <ServiceSidebarCard
+                service={service}
+                onBookNow={handleBookNow}
+                isFavorite={isFavorite}
+                onToggleFavorite={handleToggleFavorite}
+              />
+            </div>
+          </aside>
         </div>
       </div>
 

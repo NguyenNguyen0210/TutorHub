@@ -64,7 +64,7 @@ export default function ServiceSidebarCard({
       setBookingLoading(true);
       const booking = await bookingService.createBooking(service.id);
       if (booking?.id) {
-        toast.success('Đã giữ chỗ thành công 15 phút! Đang chuyển đến cổng thanh toán...');
+        toast.success('Đã khóa giữ chỗ trong 15 phút. Vui lòng hoàn tất thanh toán bên dưới.');
         navigate(`/student/bookings/${booking.id}/checkout`);
       }
     } catch (err) {
@@ -75,7 +75,7 @@ export default function ServiceSidebarCard({
   };
 
   return (
-    <div className="sticky top-24 bg-white rounded-brand-xl border border-neutral-200/90 shadow-brand-md p-6 flex flex-col gap-6">
+    <div className="w-full bg-white rounded-brand-xl border border-neutral-200/90 shadow-brand-md p-6 flex flex-col gap-6">
       {/* Price Header */}
       <div>
         <span className="text-xs font-medium text-neutral-500 block mb-1">
@@ -186,7 +186,7 @@ export default function ServiceSidebarCard({
         <div className="flex items-start gap-2.5 text-xs text-fg-secondary">
           <Icon name="schedule" size="xs" className="w-4 h-4 text-holding shrink-0 mt-0.5" />
           <span>
-            <strong className="text-fg">Grace period 12 giờ:</strong> Học viên có thời gian báo cáo sự cố trước khi buổi học tự động giải ngân.
+            <strong className="text-fg">12 giờ xác nhận buổi học:</strong> Học viên có thời gian kiểm tra chất lượng và khiếu nại nếu có sự cố trước khi buổi học tự động giải ngân.
           </span>
         </div>
       </div>

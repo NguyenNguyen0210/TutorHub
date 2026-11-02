@@ -12,11 +12,9 @@ const BIO_CLAMP_CHARS = 420;
 const NO_BIO = 'Chưa có thông tin giới thiệu chi tiết từ gia sư.';
 
 /**
- * ProfileAbout — phần "Giới thiệu về tôi" + môn học + 3 lớp bảo chứng.
- *
- * "Điểm mạnh giảng dạy" chỉ hiện những gì suy ra được từ dữ liệu thật
- * (học vấn + số năm + môn đang dạy). Không có dữ liệu thì ẩn hẳn khối, không
- * dựng câu chữ bịa.
+ * ProfileAbout — Phần "Giới thiệu về tôi".
+ * Thể hiện trọn vẹn câu chuyện, phong cách đào tạo và chuyên môn giảng dạy của gia sư
+ * được gộp chung trong một khung gọn gàng, liền mạch.
  */
 export default function ProfileAbout({ tutor }) {
   const [expanded, setExpanded] = useState(false);
@@ -27,90 +25,50 @@ export default function ProfileAbout({ tutor }) {
 
   const subjects = Array.isArray(tutor.subjects) ? tutor.subjects : [];
 
-  const strengths = [];
-  if (tutor.education) {
-    strengths.push({ icon: 'school', text: `Đào tạo nền: ${tutor.education}` });
-  }
-  if (tutor.experienceYears > 0) {
-    strengths.push({
-      icon: 'history_edu',
-      text: `${tutor.experienceYears} năm kinh nghiệm giảng dạy thực chiến`,
-    });
-  }
-  if (subjects.length > 0) {
-    strengths.push({
-      icon: 'menu_book',
-      text: `Đang giảng dạy: ${subjects.map((s) => s.subjectName).filter(Boolean).join(', ')}`,
-    });
-  }
-
   return (
-    <>
-      <SectionShell id="gioi-thieu" title="Giới thiệu về tôi" icon="article">
-        <Card padding="lg" className="space-y-4">
-          <p
-            className={cn(
-              'text-body-reg text-fg-secondary leading-relaxed whitespace-pre-line',
-              isLong && !expanded && 'line-clamp-6'
-            )}
-          >
-            {visibleBio || NO_BIO}
-          </p>
+    <SectionShell id="gioi-thieu" title="Giới thiệu về tôi" icon="article">
+      <Card padding="lg" className="space-y-4 shadow-sm border border-border">
+        <p
+          className={cn(
+            'text-body-reg text-fg-secondary leading-relaxed whitespace-pre-line',
+            isLong && !expanded && 'line-clamp-6'
+          )}
+        >
+          {visibleBio || NO_BIO}
+        </p>
 
-          {isLong && (
+        {isLong && (
+          <div>
             <Button variant="ghost" size="sm" onClick={() => setExpanded((v) => !v)}>
               {expanded ? 'Thu gọn' : 'Xem thêm'}
             </Button>
-          )}
-
-          {strengths.length > 0 && (
-            <div className="p-4 rounded-brand-lg bg-brand-primary-50/70 border border-brand-primary-100">
-              <p className="text-caption font-bold text-fg mb-2.5 flex items-center gap-1.5">
-                <Icon name="psychology" size="xs" className="text-brand-primary-600" />
-                Điểm mạnh giảng dạy
-              </p>
-              <ul className="space-y-2">
-                {strengths.map((s) => (
-                  <li key={s.text} className="flex items-start gap-2 text-caption text-fg-secondary">
-                    <Icon
-                      name={s.icon}
-                      size="xs"
-                      className="text-brand-primary-600 shrink-0 mt-0.5"
-                    />
-                    <span className="min-w-0">{s.text}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </Card>
-      </SectionShell>
-
-      {subjects.length > 0 && (
-        <SectionShell
-          id="mon-hoc"
-          title="Môn học & chuyên môn"
-          icon="menu_book"
-          className="mt-8"
-        >
-          <div className="flex flex-wrap gap-1.5">
-            {subjects.map((subject, i) => (
-              <Tag key={subject.id || subject.subjectId || `${subject.subjectName}-${i}`}>
-                {subject.subjectName}
-              </Tag>
-            ))}
           </div>
-        </SectionShell>
-      )}
-    </>
+        )}
+
+        {/* Gộp chuyên môn đào tạo vào cùng khung để trang gọn gàng hơn */}
+        {subjects.length > 0 && (
+          <div className="pt-4 border-t border-border flex flex-wrap items-center gap-2">
+            <span className="text-[13px] font-semibold text-fg-muted flex items-center gap-1.5 mr-1">
+              <Icon name="local_library" size="xs" className="text-brand-primary-600" />
+              Chuyên môn đào tạo:
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {subjects.map((subject, i) => (
+                <Tag key={subject.id || subject.subjectId || `${subject.subjectName}-${i}`}>
+                  {subject.subjectName}
+                </Tag>
+              ))}
+            </div>
+          </div>
+        )}
+      </Card>
+    </SectionShell>
   );
 }
 
 ProfileAbout.propTypes = {
   tutor: PropTypes.shape({
     bio: PropTypes.string,
-    education: PropTypes.string,
-    experienceYears: PropTypes.number,
     subjects: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.string,

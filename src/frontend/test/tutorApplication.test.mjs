@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildApplicationPayload, createInitialFormData, mergeRejectedApplication } from '../src/components/tutor/application/applicationFormUtils.js';
+import { LEARNING_FAQS } from '../src/content/learningFaqs.js';
+import { BECOME_TUTOR_TESTIMONIALS } from '../src/content/becomeTutorTestimonials.js';
 
 test('new applications do not prefill invented qualifications or achievements', () => {
   const form = createInitialFormData({ fullName: 'Applicant', email: 'applicant@test.local' });
@@ -25,4 +27,11 @@ test('submission preserves independent education fields and uploaded media IDs',
   });
   assert.equal(restored.university, form.university);
   assert.equal(restored.degreeFiles[0].mediaId, 'owned-media-id');
+});
+
+test('shared policy FAQs and marketing content are available without a backend request', () => {
+  assert.equal(LEARNING_FAQS.length, 3);
+  assert.equal(BECOME_TUTOR_TESTIMONIALS.length, 4);
+  assert.ok(LEARNING_FAQS.every(f => f.question && f.answer));
+  assert.ok(BECOME_TUTOR_TESTIMONIALS.every(t => t.quote && t.name));
 });

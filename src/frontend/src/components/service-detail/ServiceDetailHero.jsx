@@ -91,24 +91,26 @@ export default function ServiceDetailHero({ service }) {
             {/* Quick Metrics Bar */}
             {hasQuickMetrics && <div className="flex items-center gap-4 sm:gap-6 py-2 border-y border-neutral-200/70 flex-wrap text-sm text-fg-secondary">
               {rating && (
-                <div className="flex items-center gap-1.5 font-semibold text-brand-primary-700">
-                  <Icon name="star" size="sm" filled className="w-4 h-4 text-brand-primary-600" />
-                  <span className="text-fg font-extrabold text-base">{rating.toFixed(1)}</span>
+                <div className="flex items-center gap-1.5 font-semibold text-slate-900">
+                  <Icon name="star" size="sm" filled className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  <span className="text-fg font-extrabold text-base tabular-nums">{rating.toFixed(1)}</span>
                   {totalReviews > 0 && (
-                    <span className="text-neutral-500 text-xs font-normal">({totalReviews} đánh giá)</span>
+                    <span className="text-neutral-500 text-xs font-normal">
+                      ({totalReviews} đánh giá gia sư)
+                    </span>
                   )}
                 </div>
               )}
 
               {enrolledCount > 0 && <div className="flex items-center gap-1.5">
                 <Icon name="group" size="sm" className="w-4 h-4 text-brand-primary-600" />
-                <span className="text-fg font-semibold">{enrolledCount}</span>
-                <span className="text-neutral-500 text-xs">học viên đã học</span>
+                <span className="text-fg font-semibold tabular-nums">{enrolledCount}</span>
+                <span className="text-neutral-500 text-xs">học viên đã học khóa này</span>
               </div>}
 
               {totalSessions > 0 && <div className="flex items-center gap-1.5">
                 <Icon name="schedule" size="sm" className="w-4 h-4 text-fg-muted" />
-                <span className="text-fg font-semibold">{totalSessions} buổi</span>
+                <span className="text-fg font-semibold tabular-nums">{totalSessions} buổi</span>
                 {sessionDuration > 0 && <span className="text-neutral-500 text-xs">({sessionDuration} phút/buổi)</span>}
               </div>}
             </div>}

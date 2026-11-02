@@ -66,12 +66,16 @@ export function normalizeServiceSummary(raw = {}) {
     sessionDurationMinutes: toNumber(raw.sessionDurationMinutes, 0),
     price: toNullableNumber(raw.price),
     hasTrialLesson: Boolean(raw.hasTrialLesson),
+    learningScope: raw.learningScope || null,
+    expectedOutcome: raw.expectedOutcome || null,
   };
 }
 
 export function normalizeTutorProfile(raw = {}) {
   return {
     ...normalizeTutorSummary(raw),
+    credentials: Array.isArray(raw.credentials) ? raw.credentials : [],
+    ratingDistribution: raw.ratingDistribution || [0, 0, 0, 0, 0],
     latitude: toNullableNumber(raw.latitude),
     longitude: toNullableNumber(raw.longitude),
     subjects: Array.isArray(raw.subjects)
@@ -87,16 +91,19 @@ export function normalizeTutorProfile(raw = {}) {
 }
 
 export function normalizeTutorReview(raw = {}) {
+  const comment = raw.comment || '';
+  const tutorReply = raw.tutorReply || null;
+
   return {
     id: raw.id,
     enrollmentId: raw.enrollmentId ?? null,
     studentName: raw.studentName || 'Học viên ẩn danh',
     studentAvatarUrl: raw.studentAvatarUrl || null,
-    rating: toNumber(raw.rating, 5),
-    comment: raw.comment || '',
+    rating: toNumber(raw.rating, 0),
+    comment,
     // Backend TutorPublicReviewDto có trả 2 field này; thiếu khai báo ở đây
     // khiến phần "phản hồi từ gia sư" không bao giờ hiển thị.
-    tutorReply: raw.tutorReply || null,
+    tutorReply,
     tutorRepliedAt: raw.tutorRepliedAt ?? null,
     createdAt: raw.createdAt ?? null,
   };
@@ -123,7 +130,7 @@ export function normalizePublicServiceItem(raw = {}) {
     tutorUserId: raw.tutorUserId || null,
     tutorName: raw.tutorName || '',
     tutorAvatarUrl: raw.tutorAvatarUrl || null,
-    tutorRating: toNumber(raw.tutorRating, 5),
+    tutorRating: toNumber(raw.tutorRating, 0),
     tutorTotalReviews: toNumber(raw.tutorTotalReviews, 0),
     totalStudents: toNumber(raw.totalStudents, 0),
     createdAt: raw.createdAt || null,
