@@ -48,7 +48,7 @@ jobs:
         run: dotnet build src/backend/TutorHub.sln --no-restore --configuration Release /p:TreatWarningsAsErrors=true
 
       - name: Run All Backend Tests
-        run: bash scripts/test-backend.sh --no-build
+        run: dotnet test src/backend/TutorHub.sln --configuration Release --no-build
 
   frontend-build-lint:
     name: Frontend Lint & Build

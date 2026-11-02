@@ -234,29 +234,56 @@ cp .env.example .env
 # 4. Khởi động cụm dịch vụ (PostgreSQL, Redis, Seq, Backend API)
 docker compose up -d --build
 
-# 5. Nạp dữ liệu mẫu nếu cần; script sẽ TRUNCATE dữ liệu hiện có và yêu cầu xác nhận.
+# 5. Tiện ích nạp dữ liệu cục bộ (nếu đã có scripts/ trên máy).
+# scripts/ không được đưa vào Git; bản clone mới có thể nạp Data.sql bằng psql như hướng dẫn bên dưới.
+# Script sẽ TRUNCATE dữ liệu hiện có và yêu cầu xác nhận.
 ./scripts/seed-data.sh     # Linux/macOS/Git Bash
 # hoặc trên Windows PowerShell:
 .\scripts\seed-data.ps1
 ```
 
-Seed dùng dữ liệu nhân vật và giao dịch **giả lập** nhưng nhất quán: 10 gia sư đã duyệt,
-2 hồ sơ đang chờ/từ chối, 24 học viên, 20 gói học, 48 booking và các buổi học,
-ví, đánh giá, hội thoại tương ứng. Mọi tài khoản được seed dùng mật khẩu `Test@123`.
-Ví dụ đăng nhập: `admin@tutorhub.test`, `gia-su01@tutorhub.test`,
-`hoc-vien01@tutorhub.test`. Seed không tạo email đã gửi, refresh token,
-tệp đính kèm hay lệnh thanh toán thật.
+Seed hiện có 12 gia sư đã duyệt, 24 học viên, 15 gói học, 12 hợp đồng và
+9 đánh giá gắn với hợp đồng đã hoàn thành. Nhân vật, văn bằng, chia sẻ và giao dịch
+đều là dữ liệu **minh họa**, không phải thông tin người thật hay thanh toán thật.
+Mật khẩu tài khoản demo là `Test@123`; ví dụ `admin@tutorhub.vn`,
+`hocvien.thaovy@tutorhub.vn`. Đồng bộ không đổi mật khẩu các tài khoản có sẵn.
 
-`src/backend/seedData.sql` đã chứa toàn bộ các câu `INSERT` và có thể chép riêng
+`Data.sql` đã chứa toàn bộ các câu `INSERT` và có thể chép riêng
 sang máy khác để nạp; máy đích chỉ cần PostgreSQL với schema đã áp dụng đủ EF migrations.
 Không cần Python hay script generator khi nạp dữ liệu. Ví dụ nạp trực tiếp bằng `psql`
 (thay tên user/database theo máy đích):
 
 ```bash
-psql -U tutorhub -d tutorhub -v ON_ERROR_STOP=1 -f src/backend/seedData.sql
+psql -U tutorhub -d tutorhub -v ON_ERROR_STOP=1 -f Data.sql
 ```
 
 Lệnh nạp sẽ thay thế toàn bộ dữ liệu nghiệp vụ hiện có trong database đích.
+
+Để cập nhật nội dung demo trên DB đang sử dụng, áp dụng migrations rồi dùng
+`Data.sync.sql`. Bản này không TRUNCATE, không sửa tài khoản, ví, đơn hàng hay
+giao dịch đã có; nó cập nhật nội dung hồ sơ/gói học, bổ sung dữ liệu demo còn thiếu
+và tính lại số sao từ Reviews. Các đánh giá bổ sung dùng tài khoản demo riêng.
+
+```powershell
+dotnet ef database update --project src/backend/TutorHub.Infrastructure --startup-project src/backend/TutorHub.Api
+python scripts/generate-data-sql.py
+python scripts/generate-data-sql.py --sync
+.\scripts\seed-data.ps1 -SyncContent
+# Linux/macOS/Git Bash: ./scripts/seed-data.sh --sync-content
+```
+
+Các tiện ích generator và `scripts/seed-content.json` chỉ lưu trên máy phát triển, không nằm trong Git. `Data.sql` và `Data.sync.sql` là đầu ra để chia sẻ và nạp dữ liệu trên máy khác.
+FAQ chính sách chung và chia sẻ trên trang giới thiệu là nội dung tĩnh trong
+`src/frontend/src/content`, không cần bảng hay API riêng. FAQ riêng từng gói,
+giáo trình và đánh giá vẫn lấy từ API; không tự sinh đánh giá khi API rỗng hoặc lỗi.
+Văn bằng công khai lấy từ học vấn/chứng chỉ trong hồ sơ đã được admin duyệt.
+Trường học, chuyên ngành, chứng chỉ, phương pháp và thành tích được gửi riêng
+trong API nộp/gửi lại hồ sơ. Tệp chứng chỉ tải qua Media API; hồ sơ chỉ lưu mã
+và metadata tài liệu, không lưu URL tải tạm thời. API kiểm tra người sở hữu tệp;
+admin lấy URL mới khi mở tài liệu. Nhãn “Đã duyệt hồ sơ” phản ánh việc xét duyệt,
+không khẳng định một quy trình xác minh văn bằng độc lập.
+Sau khi đồng bộ lúc API đang chạy, đợi cache hồ sơ/gói học hết hạn (tối đa 15 phút)
+hoặc xóa đúng các key `tutor:profile:v3:*` và `service:detail:v3:*` trong Redis.
 
 Sau khi khởi chạy thành công:
 * **Backend API:** `http://localhost:8080`
@@ -334,12 +361,13 @@ Project có unit test cho Domain, Application và Infrastructure, integration te
 ### Chạy Toàn Bộ Test Suite Backend
 ```powershell
 # Windows: build và chạy toàn bộ unit + integration test bằng Release
-.\scripts\test-backend.ps1
+$env:POSTGRES_PASSWORD = '<mật khẩu PostgreSQL local>'
+dotnet test src/backend/TutorHub.sln --configuration Release
 ```
 
 ```bash
 # Linux/macOS/CI
-bash scripts/test-backend.sh
+dotnet test src/backend/TutorHub.sln --configuration Release
 ```
 
 ### Chạy Kiểm Thử Từng Dự Án
@@ -358,14 +386,16 @@ dotnet test src/test/TutorHub.Api.IntegrationTests
 ```
 
 ### Chạy Kiểm Thử Giao Diện Đầu-Cuối (Playwright E2E)
-```bash
-# Cài đặt dependency kịch bản test
-pip install playwright pytest
-playwright install chromium
 
-# Thực thi bộ test kịch bản tự động giải ngân và khiếu nại
-python scripts/e2e_grace_period.py
+Toàn bộ thư mục `scripts/` chỉ dùng cục bộ và không được đưa vào Git. Các regression test trong `src/test` và `src/frontend/test` vẫn được quản lý phiên bản; CI gọi `dotnet test` trực tiếp.
+
+```bash
+# Chuẩn bị trình duyệt khi cần chạy kịch bản Playwright cục bộ
+python -m pip install playwright
+python -m playwright install chromium
 ```
+
+Lưu plan tại `C:\Users\Nguyen Nguyen\Documents\TutorHub-local\plans` và báo cáo, ảnh chụp, trace, trạng thái kiểm thử tại `C:\Users\Nguyen Nguyen\Documents\TutorHub-local\testing`, bên ngoài project. Không dùng database development cho kịch bản có thao tác thanh toán, hủy hoặc hoàn tiền.
 
 ### Cập nhật bản OpenAPI
 

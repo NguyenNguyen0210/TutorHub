@@ -102,10 +102,12 @@ Desktop.ini
 # =====================
 .commandcode/
 .kombai/
-design.md
 .playwright-mcp/
 playwright-report/
 test-results/
+.pytest_cache/
+blob-report/
+playwright/.auth/
 .git_commit_msg*.txt
 
 
@@ -117,8 +119,15 @@ __pycache__/
 *.py[cod]
 *.class
 
-# Local seed generator; the generated SQL is the portable seed artifact.
-/scripts/generate-seed-data.py
+# Local utilities are kept on this machine, outside the Git index.
+/scripts/
+
+# SQL files are local-only; retain schema migrations written in C#.
+*.[sS][qQ][lL]
+
+# Plans and generated testing documents belong in the user's local TutorHub folder.
+/docs/plans/
+/docs/testing/
 
 .worktrees/
 .superpowers/

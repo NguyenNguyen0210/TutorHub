@@ -20,6 +20,12 @@ The user's Codex skills are installed outside this repository. Use the available
 
 `template-skill` is an unconfigured example. Do not use it as project guidance. Skills that do not match a TutorHub task remain available for future requests but need no project setup.
 
+## Local plans and testing artifacts
+
+Store implementation plans, design-work notes, per-run test reports, screenshots, Playwright traces, and test-session state outside this repository in `C:/Users/Nguyen Nguyen/Documents/TutorHub-local/`. Use `plans/` for plans and `testing/` for test reports and artifacts. Do not create these documents in the project, even under an ignored folder.
+
+The entire `scripts/` directory is local-only and ignored by Git. Do not add it back to the index. Store new ad hoc test runners in the external `testing/runners/` folder. Shared automated regression test source in `src/test` and `src/frontend/test` remains part of the repository. CI must use direct commands rather than depend on local scripts.
+
 ## Verification
 
 For code changes, run checks that exercise the changed behavior. Backend projects use `dotnet build src/backend/TutorHub.sln` and targeted `dotnet test`; frontend uses `npm run lint` and `npm run build` from `src/frontend` when relevant. API integration tests need the PostgreSQL test database described in `README.md`. Do not claim a test passed unless it ran in the current work.
