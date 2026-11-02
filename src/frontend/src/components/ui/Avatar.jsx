@@ -15,8 +15,8 @@ const SIZE_CLASS = {
  * Avatar — ảnh đại diện với fallback chữ cái đầu khi ảnh lỗi/không có.
  */
 export default function Avatar({ src, name, size = 'md', className, ...rest }) {
-  const [broken, setBroken] = useState(false);
-  const showImage = src && !broken;
+  const [brokenSrc, setBrokenSrc] = useState(null);
+  const showImage = src && brokenSrc !== src;
   const initial = (name || '?').trim().charAt(0).toUpperCase();
 
   return (
@@ -38,7 +38,7 @@ export default function Avatar({ src, name, size = 'md', className, ...rest }) {
           src={src}
           alt={name || 'Ảnh đại diện'}
           className="w-full h-full object-cover"
-          onError={() => setBroken(true)}
+          onError={() => setBrokenSrc(src)}
         />
       ) : (
         <span aria-hidden="true">{initial}</span>
@@ -51,7 +51,7 @@ export default function Avatar({ src, name, size = 'md', className, ...rest }) {
  * Menu — dropdown tuỳ biến, đóng khi click ngoài / nhấn Escape.
  * `items`: [{ key, label, icon?, danger?, onClick } | { type: 'divider' }]
  */
-export function Menu({ trigger, items = [], align = 'right', className, label, header, triggerClassName }) {
+export function Menu({ trigger, items = [], align = 'right', className, label, header, triggerClassName, current = false }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
@@ -109,6 +109,7 @@ export function Menu({ trigger, items = [], align = 'right', className, label, h
         }}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-current={current ? 'page' : undefined}
         className={cn('inline-flex rounded-brand-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2', triggerClassName)}
       >
         {trigger}

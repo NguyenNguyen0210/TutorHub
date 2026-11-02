@@ -28,4 +28,6 @@ The entire `scripts/` directory is local-only and ignored by Git. Do not add it 
 
 ## Verification
 
+After completing a task and running the relevant checks, create a focused Git commit for that task. Do not include unrelated changes or push to a remote unless requested.
+
 For code changes, run checks that exercise the changed behavior. Backend projects use `dotnet build src/backend/TutorHub.sln` and targeted `dotnet test`; frontend uses `npm run lint` and `npm run build` from `src/frontend` when relevant. API integration tests need the PostgreSQL test database described in `README.md`. Do not claim a test passed unless it ran in the current work.

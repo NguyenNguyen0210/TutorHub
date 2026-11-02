@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import userService from '@/services/user.service';
+import { mediaService } from '@/services/media.service';
+import { profilePayload, profileValues, validateProfile } from '@/utils/profileSettings';
+import AvatarPicker from '@/components/settings/AvatarPicker';
 import Card, { CardHeader } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Field } from '@/components/ui/Input';
 import Tabs from '@/components/ui/Tabs';
-import Avatar from '@/components/ui/Avatar';
 import Badge from '@/components/ui/Badge';
 import Icon from '@/components/ui/Icon';
 import Callout from '@/components/ui/Callout';
@@ -14,501 +16,187 @@ import { useToast } from '@/components/ui/Toast';
 import { DetailSkeleton } from '@/components/common/Skeleton';
 import ErrorState from '@/components/common/ErrorState';
 
+function PasswordField({ id, label, value, onChange, onBlur, error, autoComplete, disabled }) {
+  const [visible, setVisible] = useState(false);
+  return <Field label={label} htmlFor={id} required error={error}>
+    <div className="relative"><Input id={id} type={visible ? 'text' : 'password'} autoComplete={autoComplete}
+      value={value} onChange={onChange} onBlur={onBlur} disabled={disabled} required
+      aria-invalid={Boolean(error)} state={error ? 'error' : 'default'} className="pr-12" />
+      <button type="button" onClick={() => setVisible(value => !value)} aria-pressed={visible}
+        aria-label={`${visible ? 'Ẩn' : 'Hiện'} ${label.toLowerCase()}`} disabled={disabled}
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-fg-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Icon name={visible ? 'visibility_off' : 'visibility'} size="sm" />
+      </button>
+    </div>
+  </Field>;
+}
+
 export default function ProfileSettings() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const toast = useToast();
-  const { user, role, login, accessToken, refreshToken } = useAuthStore();
-
+  const { user, role } = useAuthStore();
+  const userId = user?.id;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [changingPassword, setChangingPassword] = useState(false);
-
-  // Profile Form States
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
-
-  // Tutor-specific Profile Form States
-  const [bio, setBio] = useState('');
-  const [education, setEducation] = useState('');
-  const [experienceYears, setExperienceYears] = useState(0);
-
-  // Password Form States
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-
-  /**
-   * Gia sư chỉ có `TutorProfile` sau khi hồ sơ được duyệt. Giai đoạn Pending/Rejected,
-   * `GET /tutors/me` trả 404 ("You may need to submit an application first"), nên trước
-   * đây cả trang Cài đặt chết — kể cả tab Đổi mật khẩu vốn không cần hồ sơ giảng dạy.
-   * Nay fallback sang `GET /users/me` (luôn tồn tại) để thông tin cá nhân và mật khẩu vẫn
-   * dùng được, đồng thời hiện lưu ý rằng phần sư phạm sẽ mở sau khi được duyệt.
-   */
+  const [retry, setRetry] = useState(0);
+  const [draft, setDraft] = useState(() => profileValues());
+  const [saved, setSaved] = useState(() => profileValues());
+  const [touched, setTouched] = useState({});
   const [teachingProfileMissing, setTeachingProfileMissing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [pendingAvatar, setPendingAvatar] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const uploaded = useRef(null);
+  const savingRef = useRef(false);
+  const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
+  const [passwordTouched, setPasswordTouched] = useState({});
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const changingRef = useRef(false);
+  const teaching = role === 'Tutor' && !teachingProfileMissing;
+
+  useEffect(() => {
+    if (!pendingAvatar) { setPreview(null); return; }
+    const url = URL.createObjectURL(pendingAvatar);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [pendingAvatar]);
 
   useEffect(() => {
     let cancelled = false;
-    async function loadData() {
+    const load = async () => {
+      setLoading(true); setError(null);
       try {
-        setLoading(true);
-        setError(null);
-        setTeachingProfileMissing(false);
-
+        let missing = false;
+        let data;
         if (role === 'Tutor') {
-          let tutorData = null;
-          try {
-            tutorData = await userService.getMyTutorProfile();
-          } catch (tutorErr) {
-            // 404 = chưa có TutorProfile. Lỗi khác (mạng, 500) thì vẫn phải hiện lỗi.
-            const status = tutorErr?.response?.status ?? tutorErr?.status;
-            if (status !== 404) throw tutorErr;
-            tutorData = await userService.getMyProfile();
-            if (!cancelled) setTeachingProfileMissing(true);
+          try { data = await userService.getMyTutorProfile(); }
+          catch (err) {
+            if ((err?.status ?? err?.response?.status) !== 404) throw err;
+            missing = true;
+            data = await userService.getMyProfile();
           }
-          if (!cancelled && tutorData) {
-            setFullName(tutorData.fullName || '');
-            setEmail(tutorData.email || user?.email || '');
-            setPhone(tutorData.phone || '');
-            setAvatarUrl(tutorData.avatarUrl || user?.avatarUrl || '');
-            setBio(tutorData.bio || '');
-            setEducation(tutorData.education || '');
-            setExperienceYears(tutorData.experienceYears || 0);
-          }
-        } else {
-          const userData = await userService.getMyProfile();
-          if (!cancelled && userData) {
-            setFullName(userData.fullName || '');
-            setEmail(userData.email || user?.email || '');
-            setPhone(userData.phone || '');
-            setAvatarUrl(userData.avatarUrl || user?.avatarUrl || '');
-          }
-        }
-      } catch (err) {
+        } else data = await userService.getMyProfile();
         if (!cancelled) {
-          setError(err);
+          const values = profileValues(data);
+          setDraft(values); setSaved(values); setTeachingProfileMissing(missing);
+          setPendingAvatar(null); setTouched({}); setSaveError('');
         }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    loadData();
-    return () => {
-      cancelled = true;
+      } catch (err) { if (!cancelled) setError(err); }
+      finally { if (!cancelled) setLoading(false); }
     };
-  }, [role, user]);
+    load();
+    return () => { cancelled = true; };
+  }, [role, userId, retry]);
 
-  const handleSaveProfile = async (e) => {
-    e.preventDefault();
-    if (!fullName.trim()) {
-      toast.error('Vui lòng nhập họ và tên.');
-      return;
-    }
+  const dirty = Boolean(pendingAvatar) || JSON.stringify(profilePayload(draft, teaching)) !== JSON.stringify(profilePayload(saved, teaching));
+  const errors = validateProfile(draft, teaching);
+  const change = (key, value) => { setDraft(previous => ({ ...previous, [key]: value })); setSaveError(''); };
+  const fieldError = key => touched[key] ? errors[key] : undefined;
+  const blur = key => setTouched(previous => ({ ...previous, [key]: true }));
+  const reset = () => { setDraft({ ...saved }); setPendingAvatar(null); uploaded.current = null; setTouched({}); setSaveError(''); };
+  const chooseAvatar = file => { setPendingAvatar(file); uploaded.current = null; change('avatarUrl', saved.avatarUrl); };
 
+  const saveProfile = async event => {
+    event.preventDefault();
+    if (savingRef.current || !dirty) return;
+    setTouched(Object.fromEntries(Object.keys(draft).map(key => [key, true])));
+    if (Object.keys(errors).length) return;
+    savingRef.current = true; setSaving(true); setSaveError('');
     try {
-      setSavingProfile(true);
-
-      // Chưa có TutorProfile thì chỉ lưu được 3 trường ở cấp tài khoản; endpoint
-      // hồ sơ giảng dạy (`PATCH /tutors/me`) cũng sẽ 404 theo.
-      if (role === 'Tutor' && teachingProfileMissing) {
-        const updated = await userService.updateMyProfile({
-          fullName: fullName.trim(),
-          phone: phone.trim() || null,
-          avatarUrl: avatarUrl.trim() || null,
-        });
-
-        if (user && login && accessToken) {
-          login(
-            {
-              ...user,
-              name: updated.fullName || user.name,
-              fullName: updated.fullName || user.fullName,
-              phone: updated.phone || user.phone,
-              avatarUrl: updated.avatarUrl || user.avatarUrl,
-            },
-            { accessToken, refreshToken }
-          );
-        }
-
-        toast.success(
-          'Đã cập nhật thông tin tài khoản! Phần hồ sơ sư phạm sẽ mở sau khi hồ sơ được duyệt.'
-        );
-        return;
+      let avatarUrl = draft.avatarUrl;
+      if (pendingAvatar) {
+        if (uploaded.current?.file !== pendingAvatar) uploaded.current = { file: pendingAvatar, url: await mediaService.uploadAvatar(pendingAvatar) };
+        avatarUrl = uploaded.current.url;
       }
-
-      if (role === 'Tutor') {
-        const updated = await userService.updateMyTutorProfile({
-          fullName: fullName.trim(),
-          phone: phone.trim() || null,
-          avatarUrl: avatarUrl.trim() || null,
-          bio: bio.trim() || null,
-          education: education.trim() || null,
-          experienceYears: Number(experienceYears) || 0,
-        });
-
-        // Sync local authStore so topbars/avatars update immediately
-        if (user && login && accessToken) {
-          login(
-            {
-              ...user,
-              name: updated.fullName || user.name,
-              fullName: updated.fullName || user.fullName,
-              phone: updated.phone || user.phone,
-              avatarUrl: updated.avatarUrl || user.avatarUrl,
-            },
-            { accessToken, refreshToken }
-          );
-        }
-      } else {
-        const updated = await userService.updateMyProfile({
-          fullName: fullName.trim(),
-          phone: phone.trim() || null,
-          avatarUrl: avatarUrl.trim() || null,
-        });
-
-        // Sync local authStore
-        if (user && login && accessToken) {
-          login(
-            {
-              ...user,
-              name: updated.fullName || user.name,
-              fullName: updated.fullName || user.fullName,
-              phone: updated.phone || user.phone,
-              avatarUrl: updated.avatarUrl || user.avatarUrl,
-            },
-            { accessToken, refreshToken }
-          );
-        }
-      }
-
-      toast.success('Đã cập nhật thông tin hồ sơ thành công!');
-    } catch (err) {
-      toast.error(err?.message || 'Không thể cập nhật hồ sơ. Vui lòng thử lại.');
-    } finally {
-      setSavingProfile(false);
-    }
+      const payload = profilePayload({ ...draft, avatarUrl }, teaching);
+      const updated = teaching ? await userService.updateMyTutorProfile(payload) : await userService.updateMyProfile(payload);
+      const values = profileValues({ ...draft, ...updated, avatarUrl: updated.avatarUrl ?? '' });
+      setDraft(values); setSaved(values); setPendingAvatar(null); uploaded.current = null; setTouched({});
+      const auth = useAuthStore.getState();
+      if (auth.user?.id === userId && auth.accessToken) auth.login({ ...auth.user,
+        name: values.fullName, fullName: values.fullName, phone: values.phone || null, avatarUrl: values.avatarUrl || null,
+      }, { accessToken: auth.accessToken, refreshToken: auth.refreshToken }, auth.rememberMe);
+      toast.success('Cập nhật hồ sơ thành công.');
+    } catch {
+      setSaveError('Chưa thể lưu hồ sơ. Thông tin bạn nhập vẫn được giữ lại, vui lòng thử lại.');
+    } finally { savingRef.current = false; setSaving(false); }
   };
 
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-
-    if (!currentPassword) {
-      toast.error('Vui lòng nhập mật khẩu hiện tại.');
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      toast.error('Mật khẩu mới phải có tối thiểu 8 ký tự.');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      toast.error('Mật khẩu xác nhận không khớp với mật khẩu mới.');
-      return;
-    }
-
+  const passwordErrors = {
+    ...(!passwords.current ? { current: 'Nhập mật khẩu hiện tại.' } : {}),
+    ...(passwords.next.length < 8 ? { next: 'Mật khẩu mới cần ít nhất 8 ký tự.' }
+      : passwords.next === passwords.current ? { next: 'Mật khẩu mới cần khác mật khẩu hiện tại.' } : {}),
+    ...(passwords.confirm !== passwords.next || !passwords.confirm ? { confirm: 'Mật khẩu xác nhận chưa khớp.' } : {}),
+  };
+  const changePassword = async event => {
+    event.preventDefault();
+    if (changingRef.current) return;
+    setPasswordTouched({ current: true, next: true, confirm: true });
+    if (Object.keys(passwordErrors).length) return;
+    changingRef.current = true; setChangingPassword(true); setPasswordError('');
     try {
-      setChangingPassword(true);
-      await userService.changePassword(currentPassword, newPassword);
-      toast.success('Đổi mật khẩu thành công! Email thông báo bảo mật đã được gửi tới hòm thư của bạn.');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      await userService.changePassword(passwords.current, passwords.next);
+      await useAuthStore.getState().logout();
+      toast.success('Đổi mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.');
+      navigate('/auth/login', { replace: true, state: { returnUrl: location.pathname + location.search } });
     } catch (err) {
-      toast.error(err?.message || 'Không thể đổi mật khẩu. Vui lòng kiểm tra lại mật khẩu cũ.');
-    } finally {
-      setChangingPassword(false);
-    }
+      setPasswordError(err?.status === 401 ? 'Mật khẩu hiện tại chưa đúng hoặc phiên đăng nhập đã hết hạn. Vui lòng kiểm tra lại.' : 'Chưa thể đổi mật khẩu. Vui lòng thử lại.');
+    } finally { changingRef.current = false; setChangingPassword(false); }
   };
 
-  // Lý do chặn hiện ngay cạnh nút bấm thay vì chỉ bắt người dùng bấm xong mới
-  // thấy toast. Cùng pattern với form rút tiền học viên / gia sư.
-  const passwordBlocker = useMemo(() => {
-    if (!currentPassword) {
-      return 'Vui lòng nhập mật khẩu hiện tại.';
-    }
-    if (newPassword.length < 8) {
-      return 'Mật khẩu mới phải có tối thiểu 8 ký tự.';
-    }
-    if (newPassword !== confirmPassword) {
-      return 'Mật khẩu xác nhận không khớp với mật khẩu mới.';
-    }
-    return null;
-  }, [currentPassword, newPassword, confirmPassword]);
+  if (loading) return <div className="mx-auto max-w-3xl py-6"><DetailSkeleton /></div>;
+  if (error) return <div className="mx-auto max-w-3xl py-6"><ErrorState error={error} title="Không tải được thông tin tài khoản" onRetry={() => setRetry(value => value + 1)} /></div>;
 
-  if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto space-y-6 py-6">
-        <DetailSkeleton />
-      </div>
-    );
-  }
+  const profileForm = <form onSubmit={saveProfile} noValidate className="space-y-5">
+    {teachingProfileMissing && <Callout variant="neutral" title="Chưa có hồ sơ giảng dạy">Bạn có thể cập nhật thông tin cá nhân và theo dõi xét duyệt trong menu tài khoản.</Callout>}
+    <Card padding="lg" className="space-y-6 rounded-2xl border border-border shadow-none">
+      <AvatarPicker src={preview || draft.avatarUrl} name={draft.fullName} disabled={saving} onChoose={chooseAvatar}
+        onDefault={() => { setPendingAvatar(null); uploaded.current = null; change('avatarUrl', ''); }} />
+      <section aria-labelledby="personal-info-title" className="space-y-5">
+        <div><h2 id="personal-info-title" className="text-lg font-semibold text-fg">Thông tin cá nhân</h2><p className="mt-1 text-sm text-fg-secondary">Cập nhật thông tin hiển thị trên TutorHub.</p></div>
+        <Field label="Họ và tên hiển thị" htmlFor="profile-fullName" required error={fieldError('fullName')}>
+          <Input id="profile-fullName" autoComplete="name" maxLength={100} required value={draft.fullName} disabled={saving}
+            onChange={event => change('fullName', event.target.value)} onBlur={() => blur('fullName')} state={fieldError('fullName') ? 'error' : 'default'} aria-invalid={Boolean(fieldError('fullName'))} />
+        </Field>
+        <Field label="Email đăng nhập" htmlFor="profile-email" hint="Email đăng nhập không thể chỉnh sửa tại đây.">
+          <div className="relative"><Input id="profile-email" type="email" autoComplete="email" readOnly value={draft.email} className="bg-neutral-50 pr-11 text-fg-secondary" /><Icon name="lock" size="sm" className="pointer-events-none absolute right-3 top-3 text-fg-muted" /></div>
+        </Field>
+        <Field label="Số điện thoại liên hệ" htmlFor="profile-phone" error={fieldError('phone')} hint="Dùng để liên hệ khi cần hỗ trợ lớp học.">
+          <Input id="profile-phone" type="tel" autoComplete="tel" maxLength={30} value={draft.phone} disabled={saving}
+            onChange={event => change('phone', event.target.value)} onBlur={() => blur('phone')} state={fieldError('phone') ? 'error' : 'default'} aria-invalid={Boolean(fieldError('phone'))} placeholder="Ví dụ: 0912345678" />
+        </Field>
+      </section>
+      <details className="border-t border-border pt-4"><summary className="w-fit cursor-pointer rounded text-sm font-medium text-fg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Tùy chọn nâng cao</summary>
+        <div className="mt-4"><Field label="Đường dẫn ảnh đại diện" htmlFor="profile-avatarUrl" error={fieldError('avatarUrl')} hint="Bạn cũng có thể dùng đường dẫn ảnh có sẵn."><Input id="profile-avatarUrl" type="url" maxLength={500} value={draft.avatarUrl} disabled={saving} onChange={event => { setPendingAvatar(null); uploaded.current = null; change('avatarUrl', event.target.value); }} onBlur={() => blur('avatarUrl')} aria-invalid={Boolean(fieldError('avatarUrl'))} placeholder="https://…" /></Field></div>
+      </details>
+      {teaching && <section className="space-y-5 border-t border-border pt-5">
+        <CardHeader title="Hồ sơ giảng dạy" subtitle="Thông tin chuyên môn hiển thị trong hồ sơ gia sư." />
+        <Field label="Số năm kinh nghiệm" htmlFor="profile-experience" error={fieldError('experienceYears')}><Input id="profile-experience" type="number" min={0} max={60} disabled={saving} value={draft.experienceYears} onChange={event => change('experienceYears', event.target.value)} onBlur={() => blur('experienceYears')} /></Field>
+        <Field label="Học vấn & Bằng cấp chuyên môn" htmlFor="profile-education"><Input id="profile-education" maxLength={1000} value={draft.education} disabled={saving} onChange={event => change('education', event.target.value)} /></Field>
+        <Field label="Giới thiệu và phương pháp giảng dạy" htmlFor="profile-bio"><Textarea id="profile-bio" maxLength={2000} rows={4} value={draft.bio} disabled={saving} onChange={event => change('bio', event.target.value)} /></Field>
+      </section>}
+      {saveError && <p role="alert" className="rounded-xl bg-danger-subtle p-3 text-sm text-danger-strong">{saveError}</p>}
+      <div className="flex flex-wrap justify-end gap-3 border-t border-border pt-5"><Button variant="outline" onClick={reset} disabled={!dirty || saving}>Hủy thay đổi</Button><Button type="submit" loading={saving} disabled={!dirty || saving} icon={<Icon name="check" size="sm" />}>{saveError ? 'Thử lưu lại' : 'Lưu thay đổi'}</Button></div>
+    </Card>
+  </form>;
 
-  if (error) {
-    return (
-      <div className="max-w-4xl mx-auto py-8">
-        <ErrorState
-          error={error}
-          title="Không tải được thông tin tài khoản"
-          onRetry={() => window.location.reload()}
-          backPath={role === 'Tutor' ? '/tutor/dashboard' : '/student/dashboard'}
-          backLabel="Quay lại bàn điều hành"
-        />
-      </div>
-    );
-  }
+  const passwordForm = <form onSubmit={changePassword} noValidate><Card padding="lg" className="space-y-6 rounded-2xl border border-border shadow-none">
+    <div><h2 className="text-lg font-semibold text-fg">Đổi mật khẩu</h2><p className="mt-2 text-sm leading-relaxed text-fg-secondary">Dùng ít nhất 8 ký tự và khác mật khẩu hiện tại. Sau khi đổi, bạn cần đăng nhập lại trên các thiết bị.</p></div>
+    <div className="max-w-lg space-y-5">{[['current', 'curr-password', 'Mật khẩu hiện tại'], ['next', 'new-password', 'Mật khẩu mới'], ['confirm', 'confirm-password', 'Xác nhận mật khẩu mới']].map(([key, id, label]) => <PasswordField key={key} id={id} label={label} value={passwords[key]} disabled={changingPassword}
+      autoComplete={key === 'current' ? 'current-password' : 'new-password'} error={passwordTouched[key] ? passwordErrors[key] : undefined}
+      onChange={event => { setPasswords(previous => ({ ...previous, [key]: event.target.value })); setPasswordError(''); }}
+      onBlur={() => setPasswordTouched(previous => ({ ...previous, [key]: true }))} />)}</div>
+    {passwordError && <p role="alert" className="rounded-xl bg-danger-subtle p-3 text-sm text-danger-strong">{passwordError}</p>}
+    <div className="flex justify-end border-t border-border pt-5"><Button type="submit" loading={changingPassword} disabled={changingPassword || Boolean(Object.keys(passwordErrors).length)} icon={<Icon name="lock" size="sm" />}>Cập nhật mật khẩu</Button></div>
+  </Card></form>;
 
-  const profileForm = (
-    <form onSubmit={handleSaveProfile} className="space-y-6">
-      {teachingProfileMissing && (
-        <Callout
-          variant="holding"
-          title="Hồ sơ giảng dạy chưa được duyệt"
-          icon={<Icon name="hourglass_top" size="sm" />}
-        >
-          Hồ sơ giảng dạy của bạn đang chờ Ban duyệt, nên phần hồ sơ sư phạm (tiểu sử, học
-          vấn, thông tin chuyên môn) tạm chưa mở. Bạn vẫn cập nhật được thông tin cá nhân bên
-          dưới và đổi mật khẩu ở tab bên cạnh. Xem tiến độ hồ sơ tại trang Hồ sơ xét duyệt.
-        </Callout>
-      )}
-      <Card padding="lg" className="space-y-6">
-        <CardHeader
-          title="Thông tin cơ bản"
-          subtitle="Thông tin này hiển thị trên nền tảng và các lớp học bạn tham gia"
-          icon={<Icon name="badge" size="sm" className="text-brand-primary-600" />}
-        />
-
-        {/* Avatar Section */}
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 p-4 rounded-brand-md bg-neutral-50 border border-border">
-          <Avatar
-            src={avatarUrl}
-            name={fullName || user?.name}
-            size="xl"
-            className="w-20 h-20 shadow-brand-sm shrink-0 border-2 border-surface"
-          />
-          <div className="space-y-2 flex-1 w-full text-center sm:text-left">
-            <span className="font-bold text-caption text-fg block">Ảnh đại diện</span>
-            <Input
-              type="url"
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://example.com/avatar.png"
-              aria-label="Đường dẫn ảnh đại diện"
-            />
-            <p className="text-[11px] text-fg-muted m-0">
-              Dán đường dẫn ảnh thật. Ảnh này hiển thị trên hồ sơ công khai và trong khung
-              nhắn tin; để trống hệ thống sẽ dùng chữ cái đầu tên.
-            </p>
-          </div>
-        </div>
-
-        {/* Basic fields grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Họ và tên hiển thị" htmlFor="profile-fullName" required>
-            <Input
-              id="profile-fullName"
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Ví dụ: Nguyễn Hoàng Nam"
-            />
-          </Field>
-
-          {/* Badge "Đã xác thực" cũ đã bị gỡ: backend không có field trạng thái
-              xác thực email (đã grep toàn repo, 0 kết quả), nên badge khẳng định
-              sai sự thật với người dùng. Đừng thêm lại trừ khi API thực sự trả
-              trạng thái xác thực — khi đó mới hiển thị được badge. */}
-          <Field
-            label="Địa chỉ Email (Định danh tài khoản)"
-            htmlFor="profile-email"
-            hint="Email là định danh đăng nhập của tài khoản nên không thay đổi được tại đây."
-          >
-            <Input
-              id="profile-email"
-              type="email"
-              disabled
-              value={email}
-              className="bg-neutral-100/70 text-fg-muted cursor-not-allowed"
-            />
-          </Field>
-
-          <Field label="Số điện thoại liên hệ" htmlFor="profile-phone">
-            <Input
-              id="profile-phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Ví dụ: 0912345678"
-            />
-          </Field>
-
-        </div>
-
-        {/* Tutor professional info fields — chỉ có khi TutorProfile đã tồn tại */}
-        {role === 'Tutor' && !teachingProfileMissing && (
-          <div className="space-y-4 pt-4 border-t border-border">
-            <CardHeader
-              title="Hồ sơ sư phạm & Chuyên môn"
-              subtitle="Thông tin giúp học viên tin tưởng và lựa chọn gói học phù hợp"
-              icon={<Icon name="school" size="sm" className="text-brand-primary-600" />}
-            />
-
-            <Field label="Số năm kinh nghiệm giảng dạy" htmlFor="profile-experience">
-              <Input
-                id="profile-experience"
-                type="number"
-                min={0}
-                max={50}
-                value={experienceYears}
-                onChange={(e) => setExperienceYears(Number(e.target.value))}
-              />
-            </Field>
-
-            <Field label="Học vấn & Bằng cấp chuyên môn" htmlFor="profile-education">
-              <Input
-                id="profile-education"
-                value={education}
-                onChange={(e) => setEducation(e.target.value)}
-                placeholder="Ví dụ: Cử nhân Sư phạm Toán — ĐH Sư phạm Hà Nội (GPA 3.8/4.0)"
-              />
-            </Field>
-
-            <Field label="Tiểu sử & Giới thiệu phương pháp sư phạm" htmlFor="profile-bio">
-              <Textarea
-                id="profile-bio"
-                rows={4}
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="Giới thiệu phong cách giảng dạy, kinh nghiệm bồi dưỡng học sinh giỏi hoặc luyện thi chứng chỉ..."
-              />
-            </Field>
-          </div>
-        )}
-
-        <div className="flex justify-end pt-2 border-t border-border">
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            loading={savingProfile}
-            icon={<Icon name="check" size="sm" />}
-          >
-            Lưu thay đổi hồ sơ
-          </Button>
-        </div>
-      </Card>
-    </form>
-  );
-
-  const passwordForm = (
-    <form onSubmit={handleChangePassword} className="space-y-6">
-      <Card padding="lg" className="space-y-5">
-        <CardHeader
-          title="Đổi mật khẩu tài khoản"
-          subtitle="Để bảo đảm an toàn cho tài khoản và số dư ví bảo chứng, vui lòng sử dụng mật khẩu mạnh"
-          icon={<Icon name="verified_user" size="sm" className="text-brand-primary-600" />}
-        />
-
-        <Callout variant="info" icon={<Icon name="info" size="sm" />}>
-          Mật khẩu mới phải có tối thiểu 8 ký tự. Sau khi đổi mật khẩu, hệ thống sẽ bảo vệ phiên đăng nhập hiện tại.
-        </Callout>
-
-        <div className="space-y-4 max-w-md">
-          <Field label="Mật khẩu hiện tại" htmlFor="curr-password" required>
-            <Input
-              id="curr-password"
-              type="password"
-              required
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Nhập mật khẩu hiện tại..."
-            />
-          </Field>
-
-          <Field label="Mật khẩu mới (tối thiểu 8 ký tự)" htmlFor="new-password" required>
-            <Input
-              id="new-password"
-              type="password"
-              required
-              minLength={8}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Nhập mật khẩu mới..."
-            />
-          </Field>
-
-          <Field label="Xác nhận mật khẩu mới" htmlFor="confirm-password" required>
-            <Input
-              id="confirm-password"
-              type="password"
-              required
-              minLength={8}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Nhập lại mật khẩu mới..."
-            />
-          </Field>
-        </div>
-
-        <div className="pt-2 border-t border-border space-y-3">
-          {passwordBlocker && (
-            <p className="text-caption text-danger-strong m-0" role="status">
-              {passwordBlocker}
-            </p>
-          )}
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            loading={changingPassword}
-            disabled={Boolean(passwordBlocker)}
-            icon={<Icon name="lock" size="sm" />}
-          >
-            Cập nhật mật khẩu mới
-          </Button>
-        </div>
-      </Card>
-    </form>
-  );
-
-  return (
-    <div className="max-w-4xl mx-auto space-y-6 py-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-headline-page text-fg tracking-tight">Hồ sơ & Cài đặt tài khoản</h1>
-          <p className="text-caption text-fg-muted mt-1">
-            Quản lý thông tin định danh cá nhân, ảnh đại diện và bảo mật mật khẩu
-          </p>
-        </div>
-        {/* Đỏ là xung đột trong bảng màu này, không phải nhãn vai trò:
-            Quản trị viên dùng `neutral`, gia sư `primary`, học viên `info`. */}
-        <Badge variant={role === 'Tutor' ? 'primary' : role === 'Admin' ? 'neutral' : 'info'} size="md">
-          {role === 'Tutor' ? 'Gia sư chuyên môn' : role === 'Admin' ? 'Quản trị viên' : 'Học viên'}
-        </Badge>
-      </div>
-
-      <Tabs
-        value={searchParams.get('tab') === 'password' ? 'password' : 'profile'}
-        onChange={tab => setSearchParams({ tab }, { replace: true })}
-        tabs={[
-          {
-            key: 'profile',
-            label: 'Thông tin cá nhân',
-            icon: <Icon name="person" size="sm" />,
-            content: profileForm,
-          },
-          {
-            key: 'password',
-            label: 'Đổi mật khẩu & Bảo mật',
-            icon: <Icon name="lock" size="sm" />,
-            content: passwordForm,
-          },
-        ]}
-      />
-    </div>
-  );
+  return <div className="mx-auto max-w-3xl space-y-6 py-2 sm:py-4">
+    <header className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-headline-page text-fg">Cài đặt tài khoản</h1><p className="mt-2 text-body-reg text-fg-secondary">Quản lý hồ sơ cá nhân và bảo mật tài khoản.</p></div><Badge variant="neutral">{role === 'Tutor' ? 'Gia sư' : role === 'Admin' ? 'Quản trị viên' : 'Học viên'}</Badge></header>
+    <Tabs value={searchParams.get('tab') === 'password' ? 'password' : 'profile'} onChange={tab => setSearchParams(previous => { const next = new URLSearchParams(previous); next.set('tab', tab); return next; }, { replace: true })}
+      tabs={[{ key: 'profile', label: 'Hồ sơ cá nhân', icon: <Icon name="person" size="sm" />, content: profileForm }, { key: 'password', label: 'Đổi mật khẩu', icon: <Icon name="lock" size="sm" />, content: passwordForm }]} />
+  </div>;
 }

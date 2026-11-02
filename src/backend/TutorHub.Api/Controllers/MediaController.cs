@@ -10,6 +10,7 @@ using TutorHub.Application.Features.Media.GenerateUploadUrl;
 using TutorHub.Application.Features.Media.GetMediaUrl;
 using TutorHub.Application.Features.Media.UploadMedia;
 using TutorHub.Domain.Enums;
+using TutorHub.Application.Features.Media.GetPublicAvatar;
 
 namespace TutorHub.Api.Controllers;
 
@@ -22,6 +23,16 @@ public class MediaController : ControllerBase
     public MediaController(ISender sender)
     {
         _sender = sender;
+    }
+
+    /// <summary>Stable public avatar URL. Private documents are never served here.</summary>
+    [AllowAnonymous]
+    [HttpGet("{id:guid}/avatar")]
+    public async Task<IActionResult> GetPublicAvatar(Guid id, CancellationToken cancellationToken)
+    {
+        var url = await _sender.Send(new GetPublicAvatarQuery(id), cancellationToken);
+        Response.Headers.CacheControl = "no-store";
+        return Redirect(url);
     }
 
     /// <summary>

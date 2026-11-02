@@ -24,6 +24,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
   const activity = useWorkspaceActivity(isAuthenticated ? user?.id || user?.userId : null, location.pathname);
   const roleLabel = role === 'Student' ? 'Học viên' : role === 'Tutor' ? 'Gia sư' : 'Quản trị viên';
   const settingsPath = role === 'Tutor' ? '/tutor/settings' : role === 'Admin' ? '/admin/settings' : '/student/settings';
+  const settingsActive = location.pathname === settingsPath;
   const fullName = user?.fullName || user?.name || 'Tài khoản';
 
   useEffect(() => { setDrawerOpen(false); }, [location.pathname, location.search]);
@@ -35,7 +36,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
   const goTo = path => { setDrawerOpen(false); navigate(path); };
   const userMenuItems = [
     { key: 'profile', icon: <Icon name="person" size="sm" />, label: 'Hồ sơ cá nhân', onClick: () => goTo(`${settingsPath}?tab=profile`) },
-    { key: 'settings', icon: <Icon name="settings" size="sm" />, label: 'Cài đặt & bảo mật', onClick: () => goTo(`${settingsPath}?tab=password`) },
+    { key: 'settings', icon: <Icon name="lock" size="sm" />, label: 'Đổi mật khẩu', onClick: () => goTo(`${settingsPath}?tab=password`) },
     ...(role === 'Tutor' ? [
       { key: 'application', icon: <Icon name="verified_user" size="sm" />, label: 'Hồ sơ xét duyệt', onClick: () => goTo('/tutor/application') },
       ...(profileId ? [{ key: 'public-profile', icon: <Icon name="school" size="sm" />, label: 'Xem hồ sơ công khai', onClick: () => goTo(`/tutors/${profileId}`) }] : []),
@@ -107,7 +108,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
           <Icon name="contact_support" size="sm" />
           {!compact && <><span className="flex-1">Cần hỗ trợ?</span><Icon name="arrow_forward" size="xs" /></>}
         </Link>
-        {!mobile && <Menu items={userMenuItems} header={accountHeader} label={`${fullName} · ${roleLabel} — Mở menu tài khoản`} align="top" className="w-full" triggerClassName="w-full"
+        {!mobile && <Menu current={settingsActive} items={userMenuItems} header={accountHeader} label={`${fullName} · ${roleLabel} — Mở menu tài khoản`} align="top" className="w-full" triggerClassName="w-full"
           trigger={<span className={cn('workspace-nav-account flex min-h-14 w-full items-center rounded-xl border border-white/10 bg-white/[0.04] transition-colors duration-150 hover:bg-white/[0.08]', compact ? 'justify-center p-1' : 'gap-3 px-2.5 py-2')}>
             <Avatar src={user?.avatarUrl} name={fullName} size="sm" className="workspace-nav-avatar border-white/10" />
             {!compact && <><span className="min-w-0 flex-1 text-left"><span className="workspace-nav-name block truncate text-xs font-semibold text-white">{fullName}</span><span className="workspace-nav-muted mt-0.5 block text-[11px] text-neutral-400">{roleLabel}</span></span><Icon name="expand_more" size="xs" className="workspace-nav-muted text-neutral-400" /></>}
@@ -135,7 +136,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
               <Logo variant="horizontal" size={32} />
             </Link>
             <div className="ml-auto flex items-center gap-2 sm:gap-3">
-              <Menu items={userMenuItems} header={accountHeader} label="Mở menu tài khoản"
+              <Menu current={settingsActive} items={userMenuItems} header={accountHeader} label="Mở menu tài khoản" triggerClassName={settingsActive ? 'bg-brand-primary-50 ring-1 ring-brand-primary-200' : undefined}
                 trigger={<span className="flex min-h-11 items-center gap-2 rounded-xl p-1 transition-colors duration-150 hover:bg-neutral-100">
                   <Avatar src={user?.avatarUrl} name={fullName} size="sm" />
                   <Icon name="expand_more" size="xs" className="hidden text-fg-muted sm:block" />

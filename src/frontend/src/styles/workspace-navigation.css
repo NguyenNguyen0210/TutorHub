@@ -54,6 +54,15 @@
   background-color: rgb(var(--student-nav-hover));
 }
 
+[aria-current='page'] > .workspace-nav-account {
+  border-color: rgb(var(--brand-primary-400));
+}
+
+.workspace-navigation-light [aria-current='page'] > .workspace-nav-account {
+  background-color: rgb(var(--student-nav-active));
+  border-color: rgb(var(--brand-primary-200));
+}
+
 .workspace-navigation-light .workspace-nav-name {
   color: rgb(var(--text-primary));
 }

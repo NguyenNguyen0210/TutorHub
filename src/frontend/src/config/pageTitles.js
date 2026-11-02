@@ -31,7 +31,7 @@ const STATIC_TITLES = {
   '/student/wallet/withdraw': 'Rút tiền ví',
   '/student/wishlist': 'Gia sư & Dịch vụ đã lưu',
   '/student/disputes/new': 'Tạo khiếu nại',
-  '/student/settings': 'Hồ sơ & Cài đặt',
+  '/student/settings': 'Cài đặt tài khoản',
 
   // Tutor Space
   '/tutor/dashboard': 'Bàn làm việc gia sư',
@@ -40,7 +40,7 @@ const STATIC_TITLES = {
   '/tutor/services/new': 'Tạo gói dịch vụ mới',
   '/tutor/wallet': 'Ví thu nhập Escrow',
   '/tutor/wallet/withdraw': 'Yêu cầu rút tiền',
-  '/tutor/settings': 'Hồ sơ & Cài đặt',
+  '/tutor/settings': 'Cài đặt tài khoản',
 
   // Admin Space
   '/admin/dashboard': 'Tổng quan quản trị',
@@ -50,7 +50,7 @@ const STATIC_TITLES = {
   '/admin/tutor-applications': 'Duyệt hồ sơ gia sư',
   '/admin/users': 'Quản lý người dùng',
   '/admin/audit-logs': 'Nhật ký kiểm toán',
-  '/admin/settings': 'Hồ sơ & Cài đặt',
+  '/admin/settings': 'Cài đặt tài khoản',
 };
 
 /**

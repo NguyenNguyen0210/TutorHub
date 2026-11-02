@@ -1,5 +1,6 @@
 using FluentValidation;
 using TutorHub.Application.Common.Files;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Media.UploadMedia;
 
@@ -10,6 +11,10 @@ public class UploadMediaCommandValidator : AbstractValidator<UploadMediaCommand>
 
     public UploadMediaCommandValidator()
     {
+        RuleFor(x => x.OriginalFileName)
+            .Must(name => new[] { ".jpg", ".jpeg", ".png", ".webp" }.Contains(Path.GetExtension(name ?? "").ToLowerInvariant()))
+            .When(x => x.MediaType == MediaType.Avatar)
+            .WithMessage("Avatars must be JPG, PNG or WebP images.");
         RuleFor(x => x.Stream)
             .NotNull()
             .WithMessage("File stream cannot be null.");
