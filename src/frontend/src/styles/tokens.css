@@ -7,7 +7,7 @@
  * space-separated so Tailwind opacity modifiers continue to work.
  */
 
-.student-workspace {
+.workspace-friendly {
   --canvas: 247 249 252;
   --color-background: 247 249 252;
   --text-primary: 23 43 77;
@@ -15,12 +15,12 @@
   --text-secondary: 83 101 123;
   --brand-navy-900: 20 33 61;
   --semantic-success-strong: 21 128 61;
-  --student-nav-bg: 241 245 251;
-  --student-nav-hover: 230 238 249;
-  --student-nav-active: 219 234 254;
-  --student-nav-active-text: 29 78 216;
-  --student-nav-text: 83 101 123;
-  --student-nav-label: 100 116 139;
+  --workspace-nav-bg: 241 245 251;
+  --workspace-nav-hover: 230 238 249;
+  --workspace-nav-active: 219 234 254;
+  --workspace-nav-active-text: 29 78 216;
+  --workspace-nav-text: 83 101 123;
+  --workspace-nav-label: 100 116 139;
 }
 
 :root {

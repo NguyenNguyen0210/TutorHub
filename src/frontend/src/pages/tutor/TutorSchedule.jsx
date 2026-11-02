@@ -13,6 +13,7 @@ import Icon from '@/components/ui/Icon';
 import Tabs from '@/components/ui/Tabs';
 import { useToast } from '@/components/ui/Toast';
 import StateBadge from '@/components/common/StateBadge';
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 
 /**
  * Lịch dạy của gia sư — Lịch dạy của gia sư.
@@ -234,13 +235,8 @@ export default function TutorSchedule() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-headline-page text-fg tracking-tight">Lịch dạy</h1>
-        <p className="text-body-reg text-fg-secondary mt-1">
-          Xếp lịch buổi dạy cho các lớp học. Quy tắc báo trước tối thiểu 2 giờ.
-        </p>
-      </div>
+    <div className="space-y-6 lg:space-y-8">
+      <WorkspacePageHeader title="Lịch dạy" description="Theo dõi buổi dạy sắp tới và xếp lịch cho các lớp học của bạn." />
 
       <Tabs tabs={tabs} value={activeTab} onChange={handleTabChange} />
 

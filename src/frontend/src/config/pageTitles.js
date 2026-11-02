@@ -10,7 +10,7 @@ const STATIC_TITLES = {
   '/become-tutor': 'Trở thành gia sư',
   '/terms': 'Điều khoản sử dụng',
   '/privacy': 'Chính sách bảo mật',
-  '/tutor/application': 'Đăng ký làm gia sư',
+  '/tutor/application': 'Hồ sơ giảng dạy',
 
   // Authentication
   '/auth/login': 'Đăng nhập',
@@ -34,11 +34,11 @@ const STATIC_TITLES = {
   '/student/settings': 'Cài đặt tài khoản',
 
   // Tutor Space
-  '/tutor/dashboard': 'Bàn làm việc gia sư',
+  '/tutor/dashboard': 'Không gian giảng dạy',
   '/tutor/schedule': 'Lịch dạy',
-  '/tutor/services': 'Dịch vụ của tôi',
-  '/tutor/services/new': 'Tạo gói dịch vụ mới',
-  '/tutor/wallet': 'Ví thu nhập Escrow',
+  '/tutor/services': 'Gói học của tôi',
+  '/tutor/services/new': 'Tạo gói học',
+  '/tutor/wallet': 'Ví gia sư',
   '/tutor/wallet/withdraw': 'Yêu cầu rút tiền',
   '/tutor/settings': 'Cài đặt tài khoản',
 

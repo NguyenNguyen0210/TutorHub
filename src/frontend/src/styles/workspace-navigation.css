@@ -1,9 +1,9 @@
-/* Student navigation only; applies to the desktop rail and portalled mobile drawer. */
-.student-workspace .workspace-navigation-light,
-.student-workspace.workspace-navigation-light {
-  background-color: rgb(var(--student-nav-bg));
+/* Shared student/tutor navigation, including the portalled mobile drawer. */
+.workspace-friendly .workspace-navigation-light,
+.workspace-friendly.workspace-navigation-light {
+  background-color: rgb(var(--workspace-nav-bg));
   border-color: rgb(var(--border));
-  color: rgb(var(--student-nav-text));
+  color: rgb(var(--workspace-nav-text));
 }
 
 .workspace-navigation-light .workspace-nav-divider {
@@ -12,23 +12,23 @@
 
 .workspace-navigation-light .workspace-nav-label,
 .workspace-navigation-light .workspace-nav-muted {
-  color: rgb(var(--student-nav-label));
+  color: rgb(var(--workspace-nav-label));
 }
 
 .workspace-navigation-light .workspace-nav-item,
 .workspace-navigation-light .workspace-nav-control {
-  color: rgb(var(--student-nav-text));
+  color: rgb(var(--workspace-nav-text));
 }
 
 .workspace-navigation-light .workspace-nav-item:hover,
 .workspace-navigation-light .workspace-nav-control:hover {
-  background-color: rgb(var(--student-nav-hover));
+  background-color: rgb(var(--workspace-nav-hover));
   color: rgb(var(--text-primary));
 }
 
 .workspace-navigation-light .workspace-nav-item[aria-current='page'] {
-  background-color: rgb(var(--student-nav-active));
-  color: rgb(var(--student-nav-active-text));
+  background-color: rgb(var(--workspace-nav-active));
+  color: rgb(var(--workspace-nav-active-text));
 }
 
 .workspace-navigation-light .workspace-nav-item[aria-current='page']::before {
@@ -51,7 +51,7 @@
 }
 
 .workspace-navigation-light .workspace-nav-account:hover {
-  background-color: rgb(var(--student-nav-hover));
+  background-color: rgb(var(--workspace-nav-hover));
 }
 
 [aria-current='page'] > .workspace-nav-account {
@@ -59,7 +59,7 @@
 }
 
 .workspace-navigation-light [aria-current='page'] > .workspace-nav-account {
-  background-color: rgb(var(--student-nav-active));
+  background-color: rgb(var(--workspace-nav-active));
   border-color: rgb(var(--brand-primary-200));
 }
 
@@ -72,5 +72,5 @@
 }
 
 .workspace-navigation-light .workspace-nav-count {
-  --tw-ring-color: rgb(var(--student-nav-bg));
+  --tw-ring-color: rgb(var(--workspace-nav-bg));
 }

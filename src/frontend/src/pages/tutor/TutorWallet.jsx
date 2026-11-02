@@ -13,6 +13,7 @@ import StatStrip from '@/components/common/StatStrip';
 import DataTable from '@/components/common/DataTable';
 import SignedAmount from '@/components/common/SignedAmount';
 import StateBadge from '@/components/common/StateBadge';
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 
 const WITHDRAW_COLUMNS = [
   { key: 'time', label: 'Thời gian yêu cầu' },
@@ -133,18 +134,10 @@ export default function TutorWallet() {
   const canWithdraw = withdrawable >= 50000;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:space-y-8">
       {/* Page title row — 1 CTA duy nhất của trang */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <h1 className="text-headline-page text-fg tracking-tight">
-            Trung tâm tài chính &amp; Ví bảo chứng gia sư
-          </h1>
-          <p className="text-body-reg text-fg-secondary mt-1">
-            Quản trị minh bạch dòng tiền bảo chứng, thu nhập từng buổi học và hạn mức rút tiền.
-          </p>
-        </div>
-        {canWithdraw ? (
+      <WorkspacePageHeader title="Ví gia sư" description="Theo dõi thu nhập, học phí chờ giải ngân và các yêu cầu rút tiền."
+        actions={canWithdraw ? (
           <Button
             as={Link}
             to="/tutor/wallet/withdraw"
@@ -153,7 +146,7 @@ export default function TutorWallet() {
             icon={<Icon name="payments" size="sm" />}
             className="shrink-0"
           >
-            Yêu cầu rút tiền về ngân hàng
+            Rút tiền
           </Button>
         ) : (
           <Button
@@ -164,26 +157,28 @@ export default function TutorWallet() {
             icon={<Icon name="payments" size="sm" />}
             className="shrink-0"
           >
-            Hạn mức rút dưới 50.000 ₫
+            Rút tiền
           </Button>
-        )}
-      </div>
+        )} />
 
       {/* 4 số dư — hàng sổ cái phẳng, số là nhân vật chính */}
       <div>
         <StatStrip
+          appearance="soft"
           columns={3}
           figures={[
             {
               key: 'pending',
-              label: 'Chờ giải ngân (Pending)',
+              label: 'Chờ giải ngân',
+              icon: 'shield',
               value: <Money value={wallet.pendingBalance} />,
               hint: 'Tạm giữ an toàn trong Escrow các hợp đồng đang học',
               tone: 'holding',
             },
             {
               key: 'available',
-              label: 'Số dư khả dụng / Được rút',
+              label: 'Số dư khả dụng',
+              icon: 'account_balance_wallet',
               value: <Money value={withdrawable} />,
               hint: 'Thu nhập các buổi học đã xong (sau trừ phí sàn)',
               tone: 'success',
@@ -191,6 +186,7 @@ export default function TutorWallet() {
             {
               key: 'pendingWithdrawal',
               label: 'Đang xử lý rút',
+              icon: 'payments',
               value: <Money value={wallet.pendingWithdrawal} />,
               hint: 'Lệnh rút đang chờ phê duyệt/đối soát',
               tone: 'muted',
@@ -208,18 +204,18 @@ export default function TutorWallet() {
       </div>
 
       {/* Escrow Flow Explainer Banner — 3 bước ngang có spine */}
-      <section className="p-4 rounded-brand-lg bg-surface border border-border shadow-brand-sm">
-        <h2 className="flex items-center gap-2 text-caption font-bold text-fg uppercase tracking-wider">
+      <section className="p-5 sm:p-6 rounded-2xl bg-surface border border-border">
+        <h2 className="flex items-center gap-2 text-body-reg font-semibold text-fg">
           <Icon name="info" size="xs" className="text-brand-primary-600" />
-          <span>Quy trình vận hành dòng tiền Escrow minh bạch</span>
+          <span>Học phí được giải ngân như thế nào?</span>
         </h2>
         <ol className="grid grid-cols-1 gap-y-3 mt-3.5 md:grid-cols-3 md:gap-y-0 md:divide-x md:divide-border">
           {ESCROW_STEPS.map((step) => (
             <li key={step.title} className="md:px-5 md:first:pl-0 md:last:pr-0">
-              <p className={`text-[11px] font-bold uppercase tracking-wide ${step.titleClass}`}>
+              <p className={`text-caption font-semibold ${step.titleClass}`}>
                 {step.title}
               </p>
-              <p className="text-[11px] leading-relaxed text-fg-secondary mt-1">
+              <p className="text-caption leading-relaxed text-fg-secondary mt-2">
                 {step.body}
               </p>
             </li>
@@ -228,10 +224,10 @@ export default function TutorWallet() {
       </section>
 
       {/* Withdrawal History Table */}
-      <Card padding="lg" className="space-y-4">
-        <div className="flex items-center justify-between gap-3 pb-2 border-b border-border">
+      <Card padding="lg" variant="outlined" className="space-y-4 rounded-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-border">
           <h2 className="text-[20px] font-semibold text-fg tracking-tight">
-            Lịch sử lệnh rút tiền về ngân hàng
+            Lịch sử rút tiền
           </h2>
           <span className="text-caption text-fg-muted tabular-nums whitespace-nowrap">
             {withdrawals.length} giao dịch gần nhất

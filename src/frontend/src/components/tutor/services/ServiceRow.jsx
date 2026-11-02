@@ -223,7 +223,7 @@ export default function ServiceRow({
   };
 
   return (
-    <article className="bg-surface border border-border rounded-brand-lg p-4 sm:p-5 flex flex-col sm:flex-row gap-4 hover:border-brand-primary-300 transition-colors">
+    <article className="bg-surface border border-border rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row gap-5 shadow-[var(--learning-card-shadow)] hover:border-brand-primary-300 transition-colors">
       <div className="sm:w-44 shrink-0">
         <ServiceThumb
           title={pkg.title}

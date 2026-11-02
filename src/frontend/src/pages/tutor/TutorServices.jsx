@@ -14,6 +14,7 @@ import ServiceRow from '@/components/tutor/services/ServiceRow';
 import ServiceFilterBar from '@/components/tutor/services/ServiceFilterBar';
 import ServiceDrawer from '@/components/tutor/services/ServiceDrawer';
 import StatStrip from '@/components/common/StatStrip';
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import {
   createInitialFormState,
   validateServiceForm,
@@ -372,32 +373,26 @@ export default function TutorServices() {
   }, [services, activeTab, subjectFilter, search]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6 lg:space-y-8">
       {/* Title row */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <h1 className="text-headline-page text-fg tracking-tight">Dịch vụ của tôi</h1>
-          <p className="text-body-reg text-fg-secondary mt-1">
-            Quản lý các gói học bạn đang cung cấp
-          </p>
-        </div>
-        <Button
+      <WorkspacePageHeader title="Gói học của tôi" description="Quản lý nội dung, học phí và trạng thái tuyển sinh của các gói học."
+        actions={<Button
           variant="primary"
           size="md"
           onClick={handleOpenCreate}
           icon={<Icon name="add" size="sm" />}
           className="shrink-0"
         >
-          Tạo dịch vụ mới
-        </Button>
-      </div>
+          Tạo gói học
+        </Button>} />
 
       <StatStrip
+        appearance="soft"
         figures={[
-          { key: 'total', label: 'Tổng dịch vụ', value: <span>{stats.total}</span> },
-          { key: 'published', label: 'Đang tuyển sinh', value: <span>{stats.published}</span> },
-          { key: 'draft', label: 'Bản nháp', value: <span>{stats.draft}</span>, tone: 'muted' },
-          { key: 'paused', label: 'Tạm dừng', value: <span>{stats.paused}</span>, tone: 'holding' },
+          { key: 'total', label: 'Tổng gói học', icon: 'menu_book', value: <span>{stats.total}</span> },
+          { key: 'published', label: 'Đang tuyển sinh', icon: 'school', value: <span>{stats.published}</span> },
+          { key: 'draft', label: 'Bản nháp', icon: 'edit', value: <span>{stats.draft}</span>, tone: 'muted' },
+          { key: 'paused', label: 'Tạm dừng', icon: 'pause_circle', value: <span>{stats.paused}</span>, tone: 'holding' },
         ]}
       />
 

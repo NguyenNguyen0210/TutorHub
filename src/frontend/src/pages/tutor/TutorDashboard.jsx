@@ -237,12 +237,12 @@ export default function TutorDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="text-headline-page text-fg tracking-tight">
-              {user?.fullName || user?.name || 'Gia sư'}
+              Không gian giảng dạy
             </h1>
             {application ? (
               <StateBadge status={application.status} domain="application" size="md" />
@@ -253,7 +253,7 @@ export default function TutorDashboard() {
             )}
           </div>
           <p className="text-body-reg text-fg-secondary mt-1">
-            Quản trị giảng dạy, theo dõi lịch dạy và doanh thu đối soát theo từng buổi học
+            Xin chào {user?.fullName || user?.name || 'bạn'}. Theo dõi lớp học, lịch dạy và thu nhập của bạn.
           </p>
         </div>
         <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
@@ -264,7 +264,7 @@ export default function TutorDashboard() {
             size="md"
             icon={<Icon name="add" size="sm" />}
           >
-            Tạo gói dịch vụ
+            Tạo gói học
           </Button>
           <Button
             as={Link}
@@ -373,18 +373,30 @@ export default function TutorDashboard() {
         </Callout>
       )}
 
-      <ActionQueue items={queue} />
+      <ActionQueue items={queue.slice(0, 3)} />
+      {queue.length > 3 && (
+        <details className="rounded-2xl border border-border bg-surface p-5">
+          <summary className="w-fit cursor-pointer rounded text-sm font-medium text-brand-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            Xem thêm {queue.length - 3} việc cần theo dõi
+          </summary>
+          <ActionQueue items={queue.slice(3)} title="Các việc còn lại" className="mt-4" />
+        </details>
+      )}
 
       <StatStrip
+        appearance="soft"
+        columns={3}
         figures={[
           {
             key: 'students',
+            icon: 'school',
             label: 'Học viên đang dạy',
             value: <span>{activeStudents}</span>,
             hint: `${sessions.length} buổi học ghi nhận`,
           },
           {
             key: 'pending',
+            icon: 'shield',
             label: 'Ký quỹ chờ giải ngân',
             value: <Money value={wallet?.pendingBalance || 0} />,
             hint: 'Đang bảo toàn trong Escrow',
@@ -392,6 +404,8 @@ export default function TutorDashboard() {
           },
           {
             key: 'available',
+            icon: 'account_balance_wallet',
+            tone: 'success',
             label: 'Thu nhập khả dụng',
             value: <Money value={wallet?.availableBalance || 0} />,
             hint: 'Đã giải ngân vào ví (trừ 10% phí)',
@@ -399,9 +413,9 @@ export default function TutorDashboard() {
         ]}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.8fr)_minmax(280px,1fr)]">
         {/* ── Sổ buổi dạy: dòng sổ ──────────────────────────────── */}
-        <section className="lg:col-span-2 space-y-3" aria-labelledby="session-ledger-title">
+        <section className="min-w-0 space-y-4" aria-labelledby="session-ledger-title">
           <div className="flex items-center justify-between gap-3">
             <h2
               id="session-ledger-title"
@@ -439,7 +453,8 @@ export default function TutorDashboard() {
                     as={Link}
                     to={`/tutor/sessions/${s.id}`}
                     padding="md"
-                    className="interactive-card block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    variant="outlined"
+                    className="interactive-card block rounded-2xl shadow-[var(--learning-card-shadow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -464,7 +479,7 @@ export default function TutorDashboard() {
         {/* ── Rail: buổi dạy kế tiếp trong ngày ──────────────────── */}
         <aside className="space-y-4">
           <div className="lg:sticky lg:top-24 space-y-4">
-            <Card padding="md" className={nextSession ? 'interactive-card space-y-2' : 'space-y-2'}>
+            <Card padding="lg" variant="outlined" className={`rounded-2xl space-y-3 ${nextSession ? 'interactive-card' : ''}`}>
               <h2 className="text-[15px] font-semibold text-fg">
                 Buổi dạy tiếp theo
               </h2>

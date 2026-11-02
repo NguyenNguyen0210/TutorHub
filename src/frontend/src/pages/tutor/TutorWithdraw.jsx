@@ -13,6 +13,7 @@ import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
 import Input, { Field } from '@/components/ui/Input';
 import StateBadge from '@/components/common/StateBadge';
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 
 const MIN_WITHDRAW = 50000;
 
@@ -150,22 +151,14 @@ export default function TutorWithdraw() {
           className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
         >
           <Icon name="arrow_back" size="sm" />
-          Quay lại ví bảo chứng
+          Quay lại ví gia sư
         </Link>
       </nav>
 
-      <div>
-        <h1 className="text-headline-page text-fg tracking-tight">
-          Yêu cầu rút tiền về tài khoản ngân hàng
-        </h1>
-        <p className="text-body-reg text-fg-secondary mt-1">
-          Chỉ được rút từ Số dư khả dụng (Available) sau khi trừ đi các khoản tiền đang
-          bị phong tỏa tranh chấp (Held)
-        </p>
-      </div>
+      <WorkspacePageHeader title="Rút tiền về ngân hàng" description="Tạo yêu cầu rút tiền từ số dư khả dụng trong ví gia sư." />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card padding="lg" className="lg:col-span-2 space-y-5">
+        <Card padding="lg" variant="outlined" className="lg:col-span-2 space-y-5 rounded-2xl">
           {/* Callout trung tính: hạn mức là số liệu tham chiếu, không phải
               "đã quyết toán" — xanh lá là sai ngữ nghĩa tiền. */}
           <Callout variant="neutral" title="Hạn mức được phép rút hiện tại">
@@ -243,7 +236,7 @@ export default function TutorWithdraw() {
           </form>
         </Card>
 
-        <Card padding="md" className="space-y-4">
+        <Card padding="lg" variant="outlined" className="space-y-4 rounded-2xl">
           <CardHeader title="Lệnh rút gần đây" icon={<Icon name="history" size="sm" />} />
 
           {withdrawals.length === 0 ? (

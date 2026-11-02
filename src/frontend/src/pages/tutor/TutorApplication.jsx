@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Callout from '@/components/ui/Callout';
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import ApplicationStepper, { SupportCard } from '@/components/tutor/application/ApplicationStepper';
 import {
   PersonalInfoStep,
@@ -261,8 +262,8 @@ export default function TutorApplication() {
 
   if (existingApp && existingApp.status === 'Pending') {
     return (
-      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Card padding="none" className="p-8 sm:p-10 text-center space-y-6 border-brand-primary-100">
+      <div className="w-full max-w-3xl mx-auto">
+        <Card padding="none" variant="outlined" className="rounded-2xl p-6 sm:p-8 text-center space-y-6">
           <span className="w-16 h-16 rounded-full bg-brand-primary-50 border border-brand-primary-200 text-brand-primary-600 ring-1 ring-inset ring-brand-primary-200 flex items-center justify-center mx-auto">
             <Icon name="hourglass_top" size="xl" />
           </span>
@@ -272,7 +273,7 @@ export default function TutorApplication() {
               <span aria-hidden="true" className="w-2 h-2 rounded-full bg-holding animate-pulse" />
               Đang chờ kiểm duyệt
             </Badge>
-            <h1 className="text-headline-1 font-bold text-fg">Hồ sơ của bạn đang được xét duyệt</h1>
+            <h1 className="text-headline-page text-fg">Hồ sơ đang được xét duyệt</h1>
             <p className="text-body-reg text-fg-secondary leading-relaxed">
               Cảm ơn bạn đã gửi hồ sơ đăng ký trở thành gia sư tại TutorHub. Ban quản trị đang thẩm định văn bằng và thông tin giảng dạy của bạn.
             </p>
@@ -314,8 +315,8 @@ export default function TutorApplication() {
 
   if (existingApp && existingApp.status === 'Approved') {
     return (
-      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Card padding="none" className="p-8 sm:p-10 text-center space-y-6 border-success/20">
+      <div className="w-full max-w-3xl mx-auto">
+        <Card padding="none" variant="outlined" className="rounded-2xl p-6 sm:p-8 text-center space-y-6">
           <span className="w-16 h-16 rounded-full bg-success-subtle border border-success/25 text-success ring-1 ring-inset ring-success/25 flex items-center justify-center mx-auto">
             <Icon name="verified" size="xl" />
           </span>
@@ -324,7 +325,7 @@ export default function TutorApplication() {
             <Badge variant="success" icon={<Icon name="check" size="xs" />}>
               Đã phê duyệt
             </Badge>
-            <h1 className="text-headline-1 font-bold text-fg">Chúc mừng! Bạn đã là Gia sư TutorHub</h1>
+            <h1 className="text-headline-page text-fg">Hồ sơ giảng dạy đã được duyệt</h1>
             <p className="text-body-reg text-fg-secondary leading-relaxed">
               Hồ sơ giảng dạy của bạn đã được kiểm duyệt thành công. Bạn đã có thể thiết lập lịch rảnh và mở các gói khóa học trên sàn.
             </p>
@@ -332,10 +333,10 @@ export default function TutorApplication() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Button as={Link} to="/tutor/dashboard" variant="primary" size="lg">
-              Đến Bảng điều khiển Gia sư →
+              Về không gian giảng dạy
             </Button>
             <Button as={Link} to="/tutor/services" variant="outline" size="lg">
-              Tạo gói dịch vụ dạy học
+              Quản lý gói học
             </Button>
           </div>
         </Card>
@@ -346,8 +347,8 @@ export default function TutorApplication() {
   /* ── 4. Default: 6-step wizard (stepper · step body · perks rail) ─────── */
 
   return (
-    <div className="w-full bg-canvas min-h-screen py-8">
-      <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="w-full">
+      <div className="space-y-6 lg:space-y-8">
         {/* Top action */}
         <button
           type="button"
@@ -359,14 +360,7 @@ export default function TutorApplication() {
         </button>
 
         {/* Page title & subtitle */}
-        <div className="mb-8">
-          <h1 className="text-headline-page font-extrabold text-fg tracking-tight">
-            Đăng ký hồ sơ giảng dạy TutorHub
-          </h1>
-          <p className="text-body-reg sm:text-body-lg text-fg-muted mt-1.5 max-w-3xl leading-relaxed">
-            Chia sẻ thông tin của bạn để trở thành gia sư trên TutorHub. Sau khi gửi hồ sơ, đội ngũ của chúng tôi sẽ xét duyệt và phản hồi trong 1–3 ngày làm việc.
-          </p>
-        </div>
+        <WorkspacePageHeader title="Hồ sơ giảng dạy" description="Chia sẻ thông tin cá nhân, chuyên môn và phương pháp giảng dạy để TutorHub xét duyệt hồ sơ của bạn." />
 
         {/* Rejection alert if resubmitting */}
         {existingApp && existingApp.status === 'Rejected' && (

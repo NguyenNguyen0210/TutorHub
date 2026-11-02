@@ -12,6 +12,7 @@ import UnreadBadge from './UnreadBadge';
 import '@/styles/workspace-navigation.css';
 
 export default function WorkspaceShell({ userRole: role, children }) {
+  const friendly = role === 'Student' || role === 'Tutor';
   const { user, isAuthenticated, logout } = useAuthStore();
   const profileId = user?.idProfile || user?.tutorProfileId;
   const location = useLocation();
@@ -24,7 +25,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
   const activity = useWorkspaceActivity(isAuthenticated ? user?.id || user?.userId : null, location.pathname);
   const roleLabel = role === 'Student' ? 'Học viên' : role === 'Tutor' ? 'Gia sư' : 'Quản trị viên';
   const settingsPath = role === 'Tutor' ? '/tutor/settings' : role === 'Admin' ? '/admin/settings' : '/student/settings';
-  const settingsActive = location.pathname === settingsPath;
+  const settingsActive = location.pathname === settingsPath || (role === 'Tutor' && location.pathname === '/tutor/application');
   const fullName = user?.fullName || user?.name || 'Tài khoản';
 
   useEffect(() => { setDrawerOpen(false); }, [location.pathname, location.search]);
@@ -65,7 +66,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
         <Link to={getDashboardPath(role)} onClick={() => setDrawerOpen(false)}
           aria-label="TutorHub — về trang tổng quan" className="workspace-nav-focus flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
           <Logo variant="mark" size={34} />
-          {!compact && <Logo variant="wordmark" size={28} tone={role === 'Student' ? 'color' : 'light'} />}
+          {!compact && <Logo variant="wordmark" size={28} tone={friendly ? 'color' : 'light'} />}
         </Link>
         {mobile && <button type="button" aria-label="Đóng menu điều hướng" onClick={() => setDrawerOpen(false)}
           className="workspace-nav-control workspace-nav-focus flex h-9 w-9 items-center justify-center rounded-lg text-neutral-300 hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white">
@@ -95,7 +96,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
               <Icon name={item.icon} size="md" className="shrink-0" />
               {!compact && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
               {compact && unread > 0 ? <span className="workspace-nav-count absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-primary-600 px-1 text-[9px] font-bold text-white ring-2 ring-brand-navy-900" aria-label={`${unread} ${unreadLabel}`}>{unread > 99 ? '99+' : unread}</span> :
-                <UnreadBadge count={unread} label={unreadLabel} className={role === 'Student' ? 'bg-brand-primary-100 text-brand-primary-700' : undefined} />}
+                <UnreadBadge count={unread} label={unreadLabel} className={friendly ? 'bg-brand-primary-100 text-brand-primary-700' : undefined} />}
             </Link>;
           })}
         </div>)}
@@ -119,13 +120,13 @@ export default function WorkspaceShell({ userRole: role, children }) {
   );
 
   return (
-    <div className={cn('flex min-h-screen bg-canvas text-fg antialiased', role === 'Student' && 'student-workspace')}>
-      <aside id="workspace-sidebar" className={cn('sticky top-0 z-50 hidden h-screen shrink-0 flex-col border-r border-brand-navy-800 bg-brand-navy-900 text-white transition-[width] duration-200 motion-reduce:transition-none lg:flex', collapsed ? 'w-[68px]' : 'w-[232px]', role === 'Student' && 'workspace-navigation-light')}>
+    <div className={cn('flex min-h-screen bg-canvas text-fg antialiased', friendly && 'workspace-friendly', role === 'Student' && 'student-workspace')}>
+      <aside id="workspace-sidebar" className={cn('sticky top-0 z-50 hidden h-screen shrink-0 flex-col border-r border-brand-navy-800 bg-brand-navy-900 text-white transition-[width] duration-200 motion-reduce:transition-none lg:flex', collapsed ? 'w-[68px]' : 'w-[232px]', friendly && 'workspace-navigation-light')}>
         {sidebar(collapsed)}
       </aside>
 
       <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Menu điều hướng" hideHeader
-        widthClass="w-72" panelClassName={cn('bg-brand-navy-900 text-white', role === 'Student' && 'student-workspace workspace-navigation-light')} contentClassName="p-0">
+        widthClass="w-72" panelClassName={cn('bg-brand-navy-900 text-white', friendly && 'workspace-friendly workspace-navigation-light')} contentClassName="p-0">
         {sidebar(false, true)}
       </Drawer>
 

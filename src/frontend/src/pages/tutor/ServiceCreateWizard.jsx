@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import { CardSkeleton } from '@/components/common/Skeleton';
 import ErrorState from '@/components/common/ErrorState';
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import { useToast } from '@/components/ui/Toast';
 import {
   BasicInfoFields,
@@ -290,7 +291,7 @@ export default function ServiceCreateWizard() {
     : null;
 
   return (
-    <div className="max-w-[880px] mx-auto space-y-5">
+    <div className="max-w-[880px] mx-auto space-y-6 lg:space-y-8">
       {/* Header */}
       <div>
         <Link
@@ -298,11 +299,9 @@ export default function ServiceCreateWizard() {
           className="inline-flex items-center gap-1.5 text-caption font-medium text-fg-secondary hover:text-brand-primary-600 transition-colors"
         >
           <Icon name="arrow_back" size="xs" />
-          Quay lại danh sách dịch vụ
+          Quay lại gói học của tôi
         </Link>
-        <h1 className="text-headline-page text-fg tracking-tight mt-2">
-          Tạo dịch vụ mới
-        </h1>
+        <div className="mt-4"><WorkspacePageHeader title="Tạo gói học" /></div>
         <p className="text-body-reg text-fg-secondary mt-1">
           Hoàn thành {STEPS.length} bước để thiết kế gói học của bạn.
         </p>
@@ -353,7 +352,7 @@ export default function ServiceCreateWizard() {
       </ol>
 
       {/* Step body */}
-      <div className="bg-surface border border-border rounded-brand-lg shadow-brand-sm p-4 sm:p-6">
+      <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
         {step === 1 && (
           <section className="space-y-4" aria-label="Thông tin cơ bản">
             <SectionTitle step={1}>Thông tin cơ bản</SectionTitle>

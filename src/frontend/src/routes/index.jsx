@@ -125,9 +125,6 @@ export default function AppRoutes() {
         <Route path="/payment/return" element={
           <RequireAuth><PaymentReturn /></RequireAuth>
         } />
-        <Route path="/tutor/application" element={
-          <RequireAuth><TutorApplication /></RequireAuth>
-        } />
         <Route path="/tutor/onboarding" element={<Navigate to="/tutor/application" replace />} />
       </Route>
 
@@ -175,6 +172,11 @@ export default function AppRoutes() {
         <Route path="wishlist" element={<StudentWishlist />} />
         <Route path="settings" element={<ProfileSettings />} />
         <Route path="profile" element={<Navigate to="/student/settings" replace />} />
+      </Route>
+
+      {/* Applications retain the signed-in role's workspace, including first-time applicants. */}
+      <Route path="/tutor/application" element={<RequireAuth><WorkspaceLayout /></RequireAuth>}>
+        <Route index element={<TutorApplication />} />
       </Route>
 
       {/* 4. Tutor Routes (auth + Tutor role) */}

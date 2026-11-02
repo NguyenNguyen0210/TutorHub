@@ -56,12 +56,11 @@ export const NAV = {
     { path: '/tutor/dashboard', label: 'Tổng quan', icon: 'space_dashboard', match: (p) => p === '/tutor/dashboard' },
     { path: '/tutor/schedule', label: 'Lịch dạy', icon: 'calendar_month', match: (p) => p.startsWith('/tutor/schedule') },
     // TODO(mockup): mục "Học viên" — chưa có trang danh sách học viên cho gia sư, bổ sung khi có route.
-    { path: '/tutor/services', label: 'Dịch vụ của tôi', icon: 'inventory_2', match: (p) => p.startsWith('/tutor/services') },
+    { path: '/tutor/services', label: 'Gói học của tôi', icon: 'inventory_2', match: (p) => p.startsWith('/tutor/services') },
     { path: '/', label: 'Khám phá gia sư', icon: 'explore', match: () => false },
     { path: '/app/messages', label: 'Tin nhắn', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
-    { path: '/tutor/wallet', label: 'Ví & Thanh toán', icon: 'account_balance_wallet', match: (p) => p.startsWith('/tutor/wallet') },
+    { path: '/tutor/wallet', label: 'Ví gia sư', icon: 'account_balance_wallet', match: (p) => p.startsWith('/tutor/wallet') },
     // TODO(mockup): mục "Đánh giá" — chưa có trang đánh giá dành cho gia sư, bổ sung khi có route.
-    { path: '/tutor/settings', label: 'Cài đặt', icon: 'settings', match: (p) => p.startsWith('/tutor/settings') },
     { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },
   ],
 
