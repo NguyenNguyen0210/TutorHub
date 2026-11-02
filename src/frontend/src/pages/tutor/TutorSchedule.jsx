@@ -15,6 +15,7 @@ import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import TeachingSessionCard from '@/components/tutor/TeachingSessionCard';
 import TeachingWeek from '@/components/tutor/TeachingWeek';
 import UnscheduledClassGroup from '@/components/tutor/UnscheduledClassGroup';
+import { scheduleConflicts } from '@/utils/recurringSchedule';
 
 export default function TutorSchedule() {
   const [params, setParams] = useSearchParams();
@@ -77,6 +78,8 @@ export default function TutorSchedule() {
       if (!items.length) throw new Error('Vui lòng chọn thời gian cho ít nhất một buổi học.');
       const notice = items.map(item => assertMinNotice(item.startAt)).find(Boolean);
       if (notice) throw new Error(notice);
+      const conflicts = scheduleConflicts(items, sessions);
+      if (Object.keys(conflicts).length) throw new Error(Object.values(conflicts)[0]);
     } catch (err) { toast.error(err.message); return; }
     submitting.current = true; setBusyKey(key);
     try {
@@ -117,7 +120,7 @@ export default function TutorSchedule() {
       {enrollmentFilter && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4"><p className="text-caption text-fg-secondary">Đang xem các buổi chưa xếp lịch của lớp đã chọn.</p><Button size="sm" variant="ghost" onClick={() => change({ enrollmentId: null, group: null })}>Xem tất cả lớp</Button></div>}
       <p className="flex items-start gap-2 rounded-xl bg-brand-primary-50 p-4 text-caption leading-relaxed text-fg-secondary"><Icon name="info" size="sm" className="mt-0.5 shrink-0 text-primary" />Xếp lịch trước giờ bắt đầu ít nhất 2 giờ. Không cần xếp tất cả buổi cùng lúc. Giờ nhập theo Việt Nam (UTC+7).</p>
       {groups.length ? groups.map(enrollment => <UnscheduledClassGroup key={enrollment.id} enrollment={enrollment} open={expandedGroup === enrollment.id} onToggle={open => change({ group: open ? enrollment.id : '' }, true)}
-        values={values} min={minTeachingStart(now)} busy={Boolean(busyKey)} busyKey={busyKey} returnTo={returnTo}
+        values={values} min={minTeachingStart(now)} busy={Boolean(busyKey)} busyKey={busyKey} returnTo={returnTo} existing={sessions}
         onChange={(id, value) => setValues(previous => ({ ...previous, [id]: value }))}
         onSingle={(session, duration) => save(session.id, [session], duration)}
         onBatch={item => save(item.id, item.unscheduledSessions, item.sessionDurationMinutes, true)} />)
