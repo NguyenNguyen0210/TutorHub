@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import sessionService from '@/services/session.service';
@@ -33,6 +33,8 @@ export default function TutorSchedule() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const enrollmentFilter = searchParams.get('enrollmentId');
+  const loadVersion = useRef(0);
 
   const activeTab =
     searchParams.get('tab') ||
@@ -51,11 +53,13 @@ export default function TutorSchedule() {
   const minNoticeString = useMemo(() => getMinNoticeDateTimeLocal(), []);
 
   const loadData = useCallback(async () => {
+    const version = ++loadVersion.current;
     try {
       setLoading(true);
       setError(null);
 
       const sessions = await sessionService.getMySessions();
+      if (version !== loadVersion.current) return;
       const sessionList = Array.isArray(sessions) ? sessions : [];
 
       const now = Date.now();
@@ -77,12 +81,10 @@ export default function TutorSchedule() {
         sessionList.filter((s) => s.status === 'Unscheduled').map((s) => s.enrollmentId)
       );
 
-      const enrollmentsPaged = await enrollmentService.getMyEnrollments({
-        status: 'Active',
-        pageSize: 20,
-      });
+      const enrollmentsPaged = await enrollmentService.getAllMyEnrollments();
       const enrollments = (enrollmentsPaged?.items || []).filter((e) =>
-        enrollmentIdsWithUnscheduled.has(e.id)
+        e.status === 'Active' && enrollmentIdsWithUnscheduled.has(e.id)
+        && (!enrollmentFilter || e.id === enrollmentFilter)
       );
 
       const detailedEnrollments = await Promise.all(
@@ -94,6 +96,7 @@ export default function TutorSchedule() {
           }
         })
       );
+      if (version !== loadVersion.current) return;
 
       setEnrollmentsWithUnscheduled(
         detailedEnrollments
@@ -107,14 +110,15 @@ export default function TutorSchedule() {
           .filter((e) => e.unscheduledSessions.length > 0)
       );
     } catch (err) {
-      setError(err);
+      if (version === loadVersion.current) setError(err);
     } finally {
-      setLoading(false);
+      if (version === loadVersion.current) setLoading(false);
     }
-  }, []);
+  }, [enrollmentFilter]);
 
   useEffect(() => {
     loadData();
+    return () => { loadVersion.current += 1; };
   }, [loadData]);
 
   const handleTabChange = (tabId) => {
@@ -122,6 +126,7 @@ export default function TutorSchedule() {
       const next = new URLSearchParams(prev);
       next.set('tab', tabId);
       next.delete('filter');
+      if (tabId !== 'unscheduled') next.delete('enrollmentId');
       return next;
     });
   };
@@ -239,6 +244,10 @@ export default function TutorSchedule() {
       <WorkspacePageHeader title="Lịch dạy" description="Theo dõi buổi dạy sắp tới và xếp lịch cho các lớp học của bạn." />
 
       <Tabs tabs={tabs} value={activeTab} onChange={handleTabChange} />
+      {enrollmentFilter && activeTab === 'unscheduled' && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3">
+        <p className="text-caption text-fg-secondary">Đang xem các buổi chưa xếp lịch của lớp đã chọn.</p>
+        <Button variant="ghost" size="sm" onClick={() => setSearchParams(previous => { const next = new URLSearchParams(previous); next.delete('enrollmentId'); return next; })}>Xem tất cả lớp</Button>
+      </div>}
 
       {loading && (
         <div className="space-y-4">
@@ -352,8 +361,8 @@ export default function TutorSchedule() {
           {enrollmentsWithUnscheduled.length === 0 ? (
             <EmptyState
               icon="check_circle"
-              title="Tất cả buổi học đã được xếp lịch"
-              description="Hiện tại không có buổi học nào cần xếp lịch."
+              title={enrollmentFilter ? 'Không có buổi cần xếp lịch trong lớp này' : 'Không có buổi học nào cần xếp lịch'}
+              description={enrollmentFilter ? 'Bạn có thể xem các lớp khác hoặc quay lại chi tiết lớp học.' : 'Các lớp có buổi học chưa được lên lịch sẽ hiển thị tại đây.'}
             />
           ) : (
             <>

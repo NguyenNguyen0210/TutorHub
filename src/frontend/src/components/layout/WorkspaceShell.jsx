@@ -39,6 +39,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
     { key: 'profile', icon: <Icon name="person" size="sm" />, label: 'Hồ sơ cá nhân', onClick: () => goTo(`${settingsPath}?tab=profile`) },
     { key: 'settings', icon: <Icon name="lock" size="sm" />, label: 'Đổi mật khẩu', onClick: () => goTo(`${settingsPath}?tab=password`) },
     ...(role === 'Tutor' ? [
+      { type: 'divider' },
       { key: 'application', icon: <Icon name="verified_user" size="sm" />, label: 'Hồ sơ xét duyệt', onClick: () => goTo('/tutor/application') },
       ...(profileId ? [{ key: 'public-profile', icon: <Icon name="school" size="sm" />, label: 'Xem hồ sơ công khai', onClick: () => goTo(`/tutors/${profileId}`) }] : []),
     ] : []),

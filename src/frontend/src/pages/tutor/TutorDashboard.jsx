@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import dayjs from 'dayjs';
 import sessionService from '@/services/session.service';
 import walletService from '@/services/wallet.service';
 import tutorService from '@/services/tutor.service';
+import enrollmentService from '@/services/enrollment.service';
 import { useAuthStore } from '@/store/authStore';
 import { formatDateTime } from '@/utils/formatters';
+import { buildTeachingSummary } from '@/utils/tutorDashboard';
 import Money from '@/components/ui/Money';
 import { StatsSkeleton } from '@/components/common/Skeleton';
 import ErrorState from '@/components/common/ErrorState';
@@ -15,504 +16,116 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
-import ActionQueue from '@/components/common/ActionQueue';
 import StatStrip from '@/components/common/StatStrip';
 import StateBadge from '@/components/common/StateBadge';
-import StretchedCardLink from '@/components/ui/StretchedCardLink';
+import TeachingClassCard from '@/components/tutor/TeachingClassCard';
 
-/**
- * Bảng điều hành gia sư — Tổng quan lịch dạy & công việc.
- *
- * Mirror của Bàn học Học viên nhưng ưu tiên khác: gia sư bán thời gian, nên việc
- * chờ nằm ở tiền hợp đồng đang ký quỹ (buổi chưa xếp lịch, buổi chờ giải ngân)
- * chứ không phải ở hợp đồng. Action Queue dùng chung component,
- * cùng một cách render với vùng Học viên.
- *
- * Nguồn dữ liệu: `GET /sessions` trả về SessionCalendarDto phẳng cho tutor —
- * đã gồm cả buổi `Unscheduled`, nên phần lớn hàng việc chờ chỉ cần MỘT request,
- * không cần gọi `getEnrollmentById` theo từng enrollment như `TutorSchedule`.
- *
- * Lưu ý quan trọng: `SessionCalendarDto` **không có** `gracePeriodEndsAt`
- * hay `hasIssueReport` (những field này chỉ nằm ở `GET /sessions/{id}`).
- * Ta hydrate riêng các buổi có trạng thái AwaitingPayout.
- */
+/** Teaching overview uses contract identities, real progress and the tutor's own calendar. */
 export default function TutorDashboard() {
   const { user } = useAuthStore();
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [wallet, setWallet] = useState(null);
   const [sessions, setSessions] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
   const [application, setApplication] = useState(null);
-
+  const [applicationUnavailable, setApplicationUnavailable] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const [now, setNow] = useState(Date.now);
   useEffect(() => {
-    let isMounted = true;
-    async function loadTutorData() {
-      try {
-        setLoading(true);
-        const [walletData, sessionList, appData] = await Promise.all([
-          walletService.getMyWallet(),
-          sessionService.getMySessions(),
-          tutorService.getMyTutorApplication().catch(() => null),
-        ]);
-        if (!isMounted) return;
-
-        const calendar = Array.isArray(sessionList) ? sessionList : [];
-        setWallet(walletData);
-        setApplication(appData);
-        setError(null);
-
-        // Chỉ hydrate các buổi chờ giải ngân (AwaitingPayout) để lấy field gracePeriodEndsAt.
-        const candidates = calendar.filter((s) => s.status === 'AwaitingPayout');
-        if (candidates.length === 0) {
-          setSessions(calendar);
-          return;
-        }
-        const details = await Promise.all(
-          candidates.map((s) => sessionService.getSessionById(s.id).catch(() => null))
-        );
-        if (isMounted) {
-          const byId = new Map();
-          details.filter(Boolean).forEach((d) => byId.set(d.id, d));
-          setSessions(calendar.map((s) => ({ ...s, ...(byId.get(s.id) || {}) })));
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err);
-        }
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-
-    loadTutorData();
-    return () => {
-      isMounted = false;
-    };
+    const timer = window.setInterval(() => setNow(Date.now()), 60000);
+    return () => window.clearInterval(timer);
   }, []);
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true); setError(null);
+      try {
+        const [funds, calendar, contracts, review] = await Promise.all([
+          walletService.getMyWallet(), sessionService.getMySessions(), enrollmentService.getAllMyEnrollments(),
+          tutorService.getMyTutorApplication().then(data => ({ data })).catch(err => err.status === 404 ? { data: null } : { unavailable: true }),
+        ]);
+        if (!cancelled) {
+          setWallet(funds); setSessions(Array.isArray(calendar) ? calendar : []);
+          setEnrollments(contracts.items); setApplication(review.data || null); setApplicationUnavailable(Boolean(review.unavailable));
+          setNow(Date.now());
+        }
+      } catch (err) { if (!cancelled) setError(err); }
+      finally { if (!cancelled) setLoading(false); }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [retry]);
+  const summary = useMemo(() => buildTeachingSummary(enrollments, sessions, now), [enrollments, sessions, now]);
+  const next = summary.upcoming[0];
+  const greetingName = (user?.fullName || user?.name || '').trim().split(/\s+/).slice(-2).join(' ') || 'bạn';
 
-  const now = useMemo(() => dayjs(), []);
+  if (loading) return <div role="status" aria-label="Đang tải tổng quan giảng dạy" className="space-y-6"><div className="h-16 rounded-xl bg-neutral-100 motion-safe:animate-pulse" /><StatsSkeleton count={3} /><div className="h-64 rounded-2xl bg-neutral-100 motion-safe:animate-pulse" /></div>;
+  if (error) return <ErrorState error={error} title="Chưa tải được tổng quan giảng dạy" onRetry={() => setRetry(value => value + 1)} />;
 
-  const upcomingSessions = useMemo(
-    () =>
-      sessions
-        .filter((s) => s.status === 'Scheduled' && s.startAt && dayjs(s.startAt).isAfter(now))
-        .sort((a, b) => dayjs(a.startAt).valueOf() - dayjs(b.startAt).valueOf()),
-    [sessions, now]
-  );
-  const nextSession = upcomingSessions[0] || null;
-
-  const activeStudents = useMemo(
-    () => new Set(sessions.map((s) => s.studentName).filter(Boolean)).size,
-    [sessions]
-  );
-
-  /**
-   * Hàng việc chờ — thứ tự ưu tiên:
-   *   1. Buổi chưa xếp lịch — tiền hợp đồng đang ký quỹ, học viên đang chờ.
-   *   2. Buổi chờ giải ngân tự động — thông tin đếm ngược cho gia sư.
-   *   3. Buổi sắp tới.
-   * `ActionQueue` tự sắp xếp tăng dần theo `deadlineAt` — chỉ cần đưa đúng hạn.
-   */
-  const queue = useMemo(() => {
-    const items = [];
-
-    // (1) Buổi chưa xếp lịch — học viên đang chờ, tiền vẫn nằm trong Escrow.
-    sessions
-      .filter((s) => s.status === 'Unscheduled')
-      .forEach((s) => {
-        items.push({
-          key: `unscheduled-${s.id}`,
-          title: `Buổi #${s.sessionNumber}${s.subjectName ? ` · ${s.subjectName}` : ''} chưa có lịch`,
-          detail: s.studentName
-            ? `Học viên ${s.studentName} đang chờ. Tiền buổi học chưa được giải ngân.`
-            : 'Tiền buổi học chưa được giải ngân, cần xếp lịch để bắt đầu.',
-          // `startAt` null nên không có deadline; `priority` giữ nó ở đầu hàng đợi
-          // theo thay vì bị đẩy xuống cuối.
-          priority: 0,
-          deadlineAt: undefined,
-          icon: 'calendar_month',
-          tone: 'holding',
-          action: (
-            <Button
-              as={Link}
-              to="/tutor/schedule?tab=unscheduled"
-              variant="primary"
-              size="sm"
-              className="whitespace-nowrap"
-            >
-              Xếp lịch
-            </Button>
-          ),
-        });
-      });
-
-    // (2) Buổi chờ giải ngân tự động — thông tin đếm ngược cho gia sư (không cần thao tác)
-    sessions
-      .filter((s) => s.status === 'AwaitingPayout')
-      .forEach((s) => {
-        const payoutTime = s.gracePeriodEndsAt
-          ? formatDateTime(s.gracePeriodEndsAt, 'HH:mm DD/MM/YYYY')
-          : 'hết thời gian chờ';
-        items.push({
-          key: `payout-${s.id}`,
-          title: `Buổi #${s.sessionNumber}${s.subjectName ? ` · ${s.subjectName}` : ''}`,
-          detail: `Tiền sẽ được giải ngân vào ${payoutTime}`,
-          priority: 1,
-          deadlineAt: s.gracePeriodEndsAt ?? undefined,
-          icon: 'timer',
-          tone: 'holding',
-          action: (
-            <Button
-              as={Link}
-              to={`/tutor/sessions/${s.id}`}
-              variant="outline"
-              size="sm"
-              className="whitespace-nowrap"
-            >
-              Chi tiết
-            </Button>
-          ),
-        });
-      });
-
-    // (3) Buổi sắp tới — giữ cho gia sư nhìn thấy ngay kẻ tiếp theo trong ngày.
-    if (nextSession) {
-      items.push({
-        key: `next-${nextSession.id}`,
-        title: `Buổi #${nextSession.sessionNumber}${
-          nextSession.subjectName ? ` · ${nextSession.subjectName}` : ''
-        } sắp bắt đầu`,
-        detail: nextSession.studentName ? `Học viên: ${nextSession.studentName}` : undefined,
-        priority: 2,
-        deadlineAt: nextSession.startAt,
-        icon: 'calendar_clock',
-        tone: 'info',
-        action: (
-          <Button
-            as={Link}
-            to={`/tutor/sessions/${nextSession.id}`}
-            variant="outline"
-            size="sm"
-            className="whitespace-nowrap"
-          >
-            Xem buổi dạy
-          </Button>
-        ),
-      });
-    }
-
-    return items;
-  }, [sessions, nextSession]);
-
-  /** Sổ buổi dạy — 5 buổi sắp tới gần nhất, sớm nhất lên đầu. */
-  const ledgerSessions = useMemo(
-    () =>
-      sessions
-        .filter((s) => s.status === 'Scheduled' && s.startAt)
-        .sort((a, b) => dayjs(a.startAt).valueOf() - dayjs(b.startAt).valueOf())
-        .slice(0, 5),
-    [sessions]
-  );
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="h-16 bg-neutral-200 rounded-brand-md animate-pulse" />
-        <StatsSkeleton count={3} />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="py-12">
-        <ErrorState
-          error={error}
-          title="Không thể tải Bảng điều hành gia sư"
-          onRetry={() => window.location.reload()}
-        />
-      </div>
-    );
-  }
-
+  const classCards = items => items.map(enrollment => <TeachingClassCard key={enrollment.id} enrollment={enrollment} />);
   return (
     <div className="space-y-6 lg:space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-headline-page text-fg tracking-tight">
-              Không gian giảng dạy
-            </h1>
-            {application ? (
-              <StateBadge status={application.status} domain="application" size="md" />
-            ) : (
-              <Badge variant="neutral" size="md">
-                Chưa nộp hồ sơ
-              </Badge>
-            )}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-[28px] font-semibold leading-tight text-fg">Chào {greetingName}! <span aria-hidden="true">👋</span></h1>
+            {application && <StateBadge status={application.status} domain="application" />}
           </div>
-          <p className="text-body-reg text-fg-secondary mt-1">
-            Xin chào {user?.fullName || user?.name || 'bạn'}. Theo dõi lớp học, lịch dạy và thu nhập của bạn.
-          </p>
+          <p className="mt-2 text-body-reg leading-relaxed text-fg-secondary">Quản lý lớp học và theo dõi lịch giảng dạy của bạn.</p>
         </div>
-        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-          <Button
-            as={Link}
-            to="/tutor/services/new"
-            variant="primary"
-            size="md"
-            icon={<Icon name="add" size="sm" />}
-          >
-            Tạo gói học
-          </Button>
-          <Button
-            as={Link}
-            to="/tutor/schedule"
-            variant="outline"
-            size="md"
-            icon={<Icon name="calendar_month" size="sm" />}
-          >
-            Lịch dạy
-          </Button>
-          <Button
-            as={Link}
-            to="/tutor/wallet/withdraw"
-            variant="outline"
-            size="md"
-            icon={<Icon name="payments" size="sm" />}
-          >
-            Rút tiền ví
-          </Button>
-        </div>
-      </div>
+        <Button as={Link} to="/tutor/services/new" icon={<Icon name="add" size="sm" />}>Tạo gói học</Button>
+      </header>
 
-      {/* Onboarding — dựng lại bằng token: Callout thay cho div gradient + hex. */}
-      {!application && (
-        <Callout
-          variant="info"
-          icon={<Icon name="verified_user" size="md" />}
-          className="items-center gap-4"
-          action={
-            <Button
-              as={Link}
-              to="/tutor/application"
-              variant="primary"
-              size="md"
-              className="whitespace-nowrap"
-              icon={<Icon name="arrow_forward" size="sm" />}
-            >
-              Nộp hồ sơ ngay
-            </Button>
-          }
-        >
-          <span className="inline-flex items-center gap-1.5 text-caption font-semibold text-brand-primary-700 bg-brand-primary-50 border border-brand-primary-100 px-2 py-0.5 rounded-pill">
-            Bước quan trọng tiếp theo
-          </span>
-          <p className="text-[15px] font-semibold text-fg leading-snug mt-1.5">
-            Hoàn tất hồ sơ đăng ký giảng dạy TutorHub
-          </p>
-          <p className="text-caption text-fg-secondary mt-1 max-w-2xl">
-            Tài khoản của bạn chưa nộp hồ sơ giảng dạy. Vui lòng hoàn thành 6 bước kê khai
-            thông tin, văn bằng và môn học để được cấp huy hiệu <strong>Verified Tutor</strong>{' '}
-            và mở lớp nhận học viên.
-          </p>
-        </Callout>
-      )}
+      <StatStrip appearance="soft" columns={3} figures={[
+        { key: 'students', icon: 'school', label: 'Học viên đang học', value: summary.activeStudentCount, hint: `${summary.classes.length} lớp đang hoạt động` },
+        { key: 'today', icon: 'calendar_month', label: 'Buổi dạy hôm nay', value: summary.todayCount, hint: next ? `Buổi tiếp theo: ${formatDateTime(next.startAt, 'HH:mm DD/MM')}` : 'Chưa có lịch dạy sắp tới' },
+        { key: 'available', icon: 'account_balance_wallet', label: 'Số dư khả dụng', value: <Money value={wallet.availableBalance} />, hint: 'Thu nhập có thể rút về ngân hàng', tone: 'success' },
+      ]} />
 
-      {application && application.status === 'Pending' && (
-        <Callout
-          variant="warning"
-          icon={<Icon name="hourglass_top" size="md" />}
-          className="items-center"
-          action={
-            <Button
-              as={Link}
-              to="/tutor/application"
-              variant="outline"
-              size="sm"
-              className="whitespace-nowrap"
-            >
-              Xem tiến độ hồ sơ
-            </Button>
-          }
-        >
-          <p className="text-[15px] font-semibold text-fg leading-snug">
-            Hồ sơ gia sư của bạn đang chờ kiểm duyệt
-          </p>
-          <p className="text-caption text-fg-secondary mt-0.5">
-            Đội ngũ TutorHub đang thẩm định văn bằng và sẽ phản hồi trong 1–3 ngày làm việc.
-          </p>
-        </Callout>
-      )}
+      {applicationUnavailable ? <Callout variant="neutral" title="Chưa tải được trạng thái hồ sơ" action={<Button as={Link} to="/tutor/application" variant="outline" size="sm">Xem hồ sơ</Button>}>Bạn có thể xem lại hồ sơ giảng dạy trong menu tài khoản.</Callout>
+        : (!application || application.status !== 'Approved') && <Callout variant={application?.status === 'Rejected' ? 'danger' : 'neutral'}
+          title={!application ? 'Hoàn tất hồ sơ giảng dạy' : application.status === 'Pending' ? 'Hồ sơ giảng dạy đang được xét duyệt' : 'Cập nhật hồ sơ giảng dạy'}
+          action={<Button as={Link} to="/tutor/application" variant="outline" size="sm">{application?.status === 'Rejected' ? 'Cập nhật hồ sơ' : 'Xem hồ sơ'}</Button>}>
+          {!application ? 'Bổ sung thông tin chuyên môn để TutorHub xét duyệt và mở gói học.' : application.status === 'Rejected' ? application.rejectionReason || 'Xem nội dung cần bổ sung trước khi gửi lại hồ sơ.' : 'Theo dõi kết quả xét duyệt trong hồ sơ của bạn.'}
+        </Callout>}
 
-      {application && application.status === 'Rejected' && (
-        <Callout
-          variant="danger"
-          icon={<Icon name="error" size="md" />}
-          className="items-center"
-          action={
-            <Button
-              as={Link}
-              to="/tutor/application"
-              variant="danger-outline"
-              size="sm"
-              className="whitespace-nowrap"
-            >
-              Cập nhật &amp; Nộp lại
-            </Button>
-          }
-        >
-          <p className="text-[15px] font-semibold text-danger-strong leading-snug">
-            Hồ sơ bị từ chối xét duyệt:{' '}
-            {application.rejectionReason || 'Cần bổ sung thông tin'}
-          </p>
-          <p className="text-caption text-fg-secondary mt-0.5">
-            Bạn có thể cập nhật lại văn bằng, kinh nghiệm và nộp lại hồ sơ để được phê duyệt.
-          </p>
-        </Callout>
-      )}
+      {summary.pendingClasses.length > 0 && <section aria-labelledby="scheduling-title" className="flex flex-col gap-4 rounded-2xl bg-[rgb(var(--learning-soft-blue))] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="flex items-start gap-3"><Icon name="calendar_month" size="lg" className="mt-0.5 shrink-0 text-primary" /><div>
+          <h2 id="scheduling-title" className="text-[18px] font-semibold text-fg">{summary.pendingClasses.length} lớp có buổi học chưa xếp lịch</h2>
+          <p className="mt-2 text-body-reg leading-relaxed text-fg-secondary">Trao đổi với học viên và ưu tiên lên lịch buổi tiếp theo. Bạn có thể xếp dần {summary.unscheduledCount} buổi còn lại.</p>
+        </div></div>
+        <Button as={Link} to="/tutor/schedule?tab=unscheduled" variant="outline" className="shrink-0">Xem các buổi cần xếp lịch</Button>
+      </section>}
 
-      <ActionQueue items={queue.slice(0, 3)} />
-      {queue.length > 3 && (
-        <details className="rounded-2xl border border-border bg-surface p-5">
-          <summary className="w-fit cursor-pointer rounded text-sm font-medium text-brand-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            Xem thêm {queue.length - 3} việc cần theo dõi
-          </summary>
-          <ActionQueue items={queue.slice(3)} title="Các việc còn lại" className="mt-4" />
-        </details>
-      )}
-
-      <StatStrip
-        appearance="soft"
-        columns={3}
-        figures={[
-          {
-            key: 'students',
-            icon: 'school',
-            label: 'Học viên đang dạy',
-            value: <span>{activeStudents}</span>,
-            hint: `${sessions.length} buổi học ghi nhận`,
-          },
-          {
-            key: 'pending',
-            icon: 'shield',
-            label: 'Ký quỹ chờ giải ngân',
-            value: <Money value={wallet?.pendingBalance || 0} />,
-            hint: 'Đang bảo toàn trong Escrow',
-            tone: 'holding',
-          },
-          {
-            key: 'available',
-            icon: 'account_balance_wallet',
-            tone: 'success',
-            label: 'Thu nhập khả dụng',
-            value: <Money value={wallet?.availableBalance || 0} />,
-            hint: 'Đã giải ngân vào ví (trừ 10% phí)',
-          },
-        ]}
-      />
-
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.8fr)_minmax(280px,1fr)]">
-        {/* ── Sổ buổi dạy: dòng sổ ──────────────────────────────── */}
-        <section className="min-w-0 space-y-4" aria-labelledby="session-ledger-title">
-          <div className="flex items-center justify-between gap-3">
-            <h2
-              id="session-ledger-title"
-              className="text-[20px] font-semibold text-fg tracking-tight"
-            >
-              Sổ buổi dạy
-            </h2>
-            <div className="flex items-center gap-3">
-              <span className="text-caption text-fg-muted tabular-nums">
-                {ledgerSessions.length} buổi sắp tới
-              </span>
-              <Link
-                to="/tutor/schedule"
-                className="inline-flex items-center gap-0.5 text-caption font-semibold text-brand-primary-700 hover:text-brand-primary-800"
-              >
-                Lịch dạy
-                <Icon name="chevron_right" size="sm" />
-              </Link>
-            </div>
-          </div>
-
-          {ledgerSessions.length === 0 ? (
-            <EmptyState
-              icon="event_available"
-              title="Không có buổi dạy nào trong thời gian tới"
-              description="Vào mục Lịch dạy để sắp xếp thời khóa biểu cho các lớp học."
-              actionLabel="Mở Lịch dạy"
-              actionPath="/tutor/schedule"
-            />
-          ) : (
-            <ul className="space-y-2.5">
-              {ledgerSessions.map((s) => (
-                <li key={s.id}>
-                  <Card
-                    as={Link}
-                    to={`/tutor/sessions/${s.id}`}
-                    padding="md"
-                    variant="outlined"
-                    className="interactive-card block rounded-2xl shadow-[var(--learning-card-shadow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[15px] font-semibold text-fg leading-snug truncate">
-                          Buổi #{s.sessionNumber}
-                          {s.subjectName ? ` · ${s.subjectName}` : ''}
-                        </p>
-                        <p className="text-caption text-fg-muted mt-0.5 truncate tabular-nums">
-                          {formatDateTime(s.startAt, 'DD/MM/YYYY · HH:mm')}
-                          {s.studentName ? ` · ${s.studentName}` : ''}
-                        </p>
-                      </div>
-                      <StateBadge status={s.status} domain="session" />
-                    </div>
-                  </Card>
-                </li>
-              ))}
-            </ul>
-          )}
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.8fr)_minmax(280px,1fr)]">
+        <section aria-labelledby="teaching-classes-title" className="min-w-0 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3"><h2 id="teaching-classes-title" className="text-[18px] font-semibold text-fg">Lớp học đang quản lý</h2><span className="text-caption text-fg-secondary">{summary.classes.length} lớp đang học</span></div>
+          {summary.classes.length ? <>
+            {classCards(summary.classes.slice(0, 4))}
+            {summary.classes.length > 4 && <details className="rounded-2xl border border-border bg-surface p-5"><summary className="cursor-pointer rounded text-sm font-medium text-primary focus-visible:ring-2 focus-visible:ring-ring">Xem thêm {summary.classes.length - 4} lớp đang học</summary><div className="mt-5 space-y-4">{classCards(summary.classes.slice(4))}</div></details>}
+          </> : <EmptyState icon="school" title="Chưa có lớp đang học" description="Các lớp sẽ xuất hiện tại đây khi học viên đăng ký và hợp đồng được kích hoạt." actionLabel="Xem gói học của tôi" actionPath="/tutor/services" className="max-w-none rounded-2xl shadow-none" />}
+          {summary.pastClasses.length > 0 && <details className="rounded-2xl border border-border bg-surface p-5"><summary className="cursor-pointer rounded text-sm font-medium text-fg-secondary focus-visible:ring-2 focus-visible:ring-ring">Xem {summary.pastClasses.length} lớp đã kết thúc</summary><div className="mt-5 space-y-4">{classCards(summary.pastClasses)}</div></details>}
         </section>
 
-        {/* ── Rail: buổi dạy kế tiếp trong ngày ──────────────────── */}
-        <aside className="space-y-4">
-          <div className="lg:sticky lg:top-24 space-y-4">
-            <Card padding="lg" variant="outlined" className={`rounded-2xl space-y-3 ${nextSession ? 'interactive-card' : ''}`}>
-              <h2 className="text-[15px] font-semibold text-fg">
-                Buổi dạy tiếp theo
-              </h2>
-              {nextSession ? (
-                <>
-                  <StretchedCardLink to={`/tutor/sessions/${nextSession.id}`} label={`Xem buổi dạy ${nextSession.subjectName || `#${nextSession.sessionNumber}`}`} />
-                  <p className="text-[15px] font-semibold text-fg">
-                    {nextSession.subjectName || `Buổi #${nextSession.sessionNumber}`}
-                  </p>
-                  <p className="text-caption text-fg-secondary tabular-nums">
-                    {formatDateTime(nextSession.startAt, 'DD/MM/YYYY · HH:mm')}
-                  </p>
-                  {nextSession.studentName && (
-                    <p className="text-caption text-fg-muted">
-                      Học viên {nextSession.studentName}
-                    </p>
-                  )}
-                  <Button
-                    as="span"
-                    aria-hidden="true"
-                    variant="ghost"
-                    size="sm"
-                    fullWidth
-                    className="whitespace-nowrap"
-                  >
-                    Chi tiết buổi dạy
-                  </Button>
-                </>
-              ) : (
-                <p className="text-caption text-fg-muted">Chưa có buổi dạy nào đã xếp lịch.</p>
-              )}
-            </Card>
-          </div>
+        <aside className="min-w-0 space-y-6">
+          <Card padding="lg" variant="outlined" className="space-y-5 rounded-2xl">
+            <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-[18px] font-semibold text-fg">Lịch dạy sắp tới</h2><Link to="/tutor/schedule" className="inline-flex min-h-11 items-center text-caption font-medium text-primary">Xem lịch dạy</Link></div>
+            {summary.upcoming.length ? <ul className="space-y-3">{summary.upcoming.slice(0, 4).map(session => <li key={session.id}>
+              <Link to={`/tutor/sessions/${session.id}`} className="block space-y-2 rounded-xl border border-border p-4 transition-colors hover:border-brand-primary-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <p className="text-caption font-semibold text-primary">{formatDateTime(session.startAt, 'HH:mm · DD/MM/YYYY')}</p>
+                <p className="text-body-reg font-semibold text-fg">{session.subjectName || 'Buổi dạy'} · Buổi #{session.sessionNumber}</p>
+                <p className="text-caption text-fg-secondary">{session.studentName || 'Học viên'}</p>
+                <Badge variant="primary">{new Date(session.startAt).getTime() <= now ? 'Theo lịch hiện tại' : 'Đã lên lịch'}</Badge>
+              </Link>
+            </li>)}</ul> : <div className="rounded-xl bg-neutral-50 p-4"><p className="font-medium text-fg">Chưa có lịch dạy</p><p className="mt-2 text-caption leading-relaxed text-fg-secondary">Các buổi học đã được xếp lịch sẽ xuất hiện tại đây.</p></div>}
+          </Card>
+          <Card padding="lg" variant="outlined" className="space-y-4 rounded-2xl">
+            <div className="flex items-center gap-2"><Icon name="account_balance_wallet" size="md" className="text-primary" /><h2 className="text-[18px] font-semibold text-fg">Học phí và thu nhập</h2></div>
+            <dl className="space-y-3 text-body-reg"><div className="flex flex-wrap justify-between gap-2"><dt className="text-fg-secondary">Chờ giải ngân</dt><dd className="font-semibold text-holding-strong"><Money value={wallet.pendingBalance} /></dd></div><div className="flex flex-wrap justify-between gap-2"><dt className="text-fg-secondary">Đang xử lý rút</dt><dd className="font-medium text-fg"><Money value={wallet.pendingWithdrawal} /></dd></div></dl>
+            <p className="border-t border-border pt-4 text-caption leading-relaxed text-fg-secondary">Theo dõi giải ngân sau buổi học và yêu cầu rút tiền trong Ví gia sư.</p>
+            <Button as={Link} to="/tutor/wallet" variant="outline" fullWidth>Xem ví gia sư</Button>
+          </Card>
         </aside>
       </div>
     </div>

@@ -119,7 +119,7 @@ export function Menu({ trigger, items = [], align = 'right', className, label, h
         <div
           role="menu"
           className={cn(
-            'workspace-popover absolute z-50 min-w-[240px] max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-xl shadow-brand-lg py-1.5',
+            'workspace-popover absolute z-50 min-w-[240px] max-w-[calc(100vw-2rem)] max-h-[min(480px,calc(100dvh-6rem))] overflow-y-auto overscroll-contain bg-surface border border-border rounded-xl shadow-brand-lg py-1.5',
             align === 'top' ? 'bottom-full left-0 mb-2' : 'top-full mt-2',
             align === 'right' ? 'right-0' : 'left-0'
           )}
