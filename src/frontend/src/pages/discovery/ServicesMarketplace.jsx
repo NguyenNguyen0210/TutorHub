@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
+import useDiscoveryQueryState, { readDiscoveryQuery } from '@/hooks/useDiscoveryQueryState';
 import { ApiError, generateCorrelationId } from '@/services/api';
 import ServiceHeroSection from '@/components/discovery/ServiceHeroSection';
 import ServiceFilterSidebar from '@/components/discovery/ServiceFilterSidebar';
@@ -33,18 +34,20 @@ const REQUEST_TIMEOUT_MS = 10000;
 export default function ServicesMarketplace() {
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const initialQuery = readDiscoveryQuery(searchParams, 'services');
+
   // Filter States
-  const [searchKeyword, setSearchKeyword] = useState(searchParams.get('q') || '');
-  const [debouncedKeyword, setDebouncedKeyword] = useState(searchParams.get('q') || '');
-  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoryId') || '');
-  const [selectedSubject, setSelectedSubject] = useState(searchParams.get('subjectId') || '');
-  const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(MAX_PRICE);
-  const [debouncedMinPrice, setDebouncedMinPrice] = useState(0);
-  const [debouncedMaxPrice, setDebouncedMaxPrice] = useState(MAX_PRICE);
-  const [minRating, setMinRating] = useState(null);
-  const [sortBy, setSortBy] = useState('priority');
-  const [pageNumber, setPageNumber] = useState(1);
+  const [searchKeyword, setSearchKeyword] = useState(initialQuery.q);
+  const [debouncedKeyword, setDebouncedKeyword] = useState(initialQuery.q);
+  const [selectedCategory, setSelectedCategory] = useState(initialQuery.categoryId);
+  const [selectedSubject, setSelectedSubject] = useState(initialQuery.subjectId);
+  const [minPrice, setMinPrice] = useState(initialQuery.minPrice);
+  const [maxPrice, setMaxPrice] = useState(initialQuery.maxPrice);
+  const [debouncedMinPrice, setDebouncedMinPrice] = useState(initialQuery.minPrice);
+  const [debouncedMaxPrice, setDebouncedMaxPrice] = useState(initialQuery.maxPrice);
+  const [minRating, setMinRating] = useState(initialQuery.minRating);
+  const [sortBy, setSortBy] = useState(initialQuery.sort);
+  const [pageNumber, setPageNumber] = useState(initialQuery.page);
   const pageSize = 12;
 
   // Real Data States from Backend API
@@ -96,6 +99,19 @@ export default function ServicesMarketplace() {
     }, 300);
     return () => clearTimeout(timer);
   }, [minPrice, maxPrice]);
+
+
+  useDiscoveryQueryState({
+    searchParams, setSearchParams, kind: 'services',
+    values: { q: debouncedKeyword, categoryId: selectedCategory, minPrice: debouncedMinPrice, maxPrice: debouncedMaxPrice, minRating, sort: sortBy, page: pageNumber, subjectId: selectedSubject },
+    setters: {
+      q: value => { setSearchKeyword(value); setDebouncedKeyword(value); },
+      categoryId: setSelectedCategory,
+      minPrice: value => { setMinPrice(value); setDebouncedMinPrice(value); },
+      maxPrice: value => { setMaxPrice(value); setDebouncedMaxPrice(value); },
+      minRating: setMinRating, sort: setSortBy, page: setPageNumber, subjectId: setSelectedSubject,
+    },
+  });
 
   // Load Categories & Subjects on Mount
   useEffect(() => {
@@ -219,7 +235,6 @@ export default function ServicesMarketplace() {
     setMinRating(null);
     setSortBy('priority');
     setPageNumber(1);
-    setSearchParams({});
   };
 
   // Popular Tag click in Hero
@@ -295,7 +310,6 @@ export default function ServicesMarketplace() {
         clear: clearAndResetPage(() => {
           setSearchKeyword('');
           setDebouncedKeyword('');
-          setSearchParams({});
         }),
       });
     }
@@ -309,7 +323,6 @@ export default function ServicesMarketplace() {
     maxPrice,
     minRating,
     searchKeyword,
-    setSearchParams,
   ]);
 
   const handlePageChange = (newPage) => {
@@ -353,7 +366,7 @@ export default function ServicesMarketplace() {
   );
 
   return (
-    <div className="marketplace-v2 w-full flex-1 bg-[color:var(--mkt-canvas)] pb-4 sm:pb-6">
+    <div data-discovery-loading={loading ? 'true' : 'false'} className="marketplace-v2 w-full flex-1 bg-[color:var(--mkt-canvas)] pb-4 sm:pb-6">
       {/* 1. Hero Section */}
       <ServiceHeroSection
         searchKeyword={searchKeyword}

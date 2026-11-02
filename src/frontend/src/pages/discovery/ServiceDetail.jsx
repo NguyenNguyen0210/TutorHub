@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { discoveryReturn } from '@/utils/discoveryReturn';
 import tutorService from '@/services/tutor.service';
 import ServiceDetailHero from '@/components/service-detail/ServiceDetailHero';
 import ServiceSyllabus from '@/components/service-detail/ServiceSyllabus';
@@ -19,6 +20,7 @@ import { useWishlist } from '@/hooks/useWishlist';
 
 export default function ServiceDetail() {
   const { id } = useParams();
+  const listingContext = discoveryReturn(useLocation());
   const navigate = useNavigate();
   const toast = useToast();
   const { isAuthenticated, role } = useAuthStore();
@@ -200,6 +202,7 @@ export default function ServiceDetail() {
 
   return (
     <div className="min-h-screen bg-canvas pb-28 lg:pb-20">
+      {listingContext && <div className="page-shell pt-4"><Link to={listingContext.listingReturn} state={{ restoreScrollKey: listingContext.listingKey }} className="inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-brand-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Icon name="arrow_back" size="sm" />Quay lại danh sách trước đó</Link></div>}
       {/* 1. Top Hero Section */}
       <ServiceDetailHero service={service} />
 

@@ -18,6 +18,7 @@ import Icon from '@/components/ui/Icon';
 import ActionQueue from '@/components/common/ActionQueue';
 import StatStrip from '@/components/common/StatStrip';
 import StateBadge from '@/components/common/StateBadge';
+import StretchedCardLink from '@/components/ui/StretchedCardLink';
 
 /**
  * Bảng điều hành gia sư — Tổng quan lịch dạy & công việc.
@@ -438,7 +439,7 @@ export default function TutorDashboard() {
                     as={Link}
                     to={`/tutor/sessions/${s.id}`}
                     padding="md"
-                    className="block hover:border-brand-primary-300 transition-colors"
+                    className="interactive-card block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -463,12 +464,13 @@ export default function TutorDashboard() {
         {/* ── Rail: buổi dạy kế tiếp trong ngày ──────────────────── */}
         <aside className="space-y-4">
           <div className="lg:sticky lg:top-24 space-y-4">
-            <Card padding="md" className="space-y-2">
+            <Card padding="md" className={nextSession ? 'interactive-card space-y-2' : 'space-y-2'}>
               <h2 className="text-[15px] font-semibold text-fg">
                 Buổi dạy tiếp theo
               </h2>
               {nextSession ? (
                 <>
+                  <StretchedCardLink to={`/tutor/sessions/${nextSession.id}`} label={`Xem buổi dạy ${nextSession.subjectName || `#${nextSession.sessionNumber}`}`} />
                   <p className="text-[15px] font-semibold text-fg">
                     {nextSession.subjectName || `Buổi #${nextSession.sessionNumber}`}
                   </p>
@@ -481,8 +483,8 @@ export default function TutorDashboard() {
                     </p>
                   )}
                   <Button
-                    as={Link}
-                    to={`/tutor/sessions/${nextSession.id}`}
+                    as="span"
+                    aria-hidden="true"
                     variant="ghost"
                     size="sm"
                     fullWidth

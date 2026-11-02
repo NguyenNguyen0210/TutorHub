@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { discoveryReturn } from '@/utils/discoveryReturn';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
@@ -40,6 +41,7 @@ export default function TutorProfile() {
   const { id } = useParams();
   const location = useLocation();
   const { hash } = location;
+  const listingContext = discoveryReturn(location);
   const navigate = useNavigate();
   const toast = useToast();
   const { isAuthenticated, role } = useAuthStore();
@@ -182,6 +184,7 @@ export default function TutorProfile() {
     <div className="pb-24 lg:pb-0">
       <div className="page-shell pt-6">
         {/* Breadcrumb */}
+        {listingContext && <Link to={listingContext.listingReturn} state={{ restoreScrollKey: listingContext.listingKey }} className="mb-4 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-caption font-semibold text-primary hover:bg-brand-primary-50 focus-visible:ring-2 focus-visible:ring-ring"><Icon name="arrow_back" size="sm" />Quay lại danh sách trước đó</Link>}
         <nav aria-label="Breadcrumb">
           <ol className="flex items-center gap-1.5 text-caption text-fg-muted">
             <li>

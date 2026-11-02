@@ -86,7 +86,7 @@ StatStrip.propTypes = {
       key: PropTypes.string.isRequired,
       label: PropTypes.string.isRequired,
       value: PropTypes.node.isRequired,
-      hint: PropTypes.string,
+      hint: PropTypes.node,
       tone: PropTypes.oneOf(['default', 'holding', 'danger', 'muted']),
     })
   ).isRequired,

@@ -1,125 +1,94 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useId } from 'react';
 import PropTypes from 'prop-types';
-import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
+import Button from '@/components/ui/Button';
+import Money from '@/components/ui/Money';
 import { formatRating } from '@/utils/marketplaceHelpers';
-import { useWishlist } from '@/hooks/useWishlist';
+import WishlistButton from './WishlistButton';
+import StretchedCardLink from '@/components/ui/StretchedCardLink';
+
+function ApprovedProfileBadge() {
+  const [open, setOpen] = useState(false);
+  const tooltipId = useId();
+  return <span className="relative z-20 inline-flex">
+    <button type="button" aria-describedby={tooltipId}
+      onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)} onBlur={() => setOpen(false)} onClick={() => setOpen(true)}
+      onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); } }}
+      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-brand-primary-100 bg-brand-primary-50 px-2.5 py-1 text-caption font-medium text-brand-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+      <Icon name="verified" size="sm" />Đã duyệt hồ sơ
+    </button>
+    <span id={tooltipId} role="tooltip" className={`pointer-events-none absolute bottom-full left-0 z-30 mb-2 w-[min(18rem,calc(100vw-4rem))] rounded-xl border border-border bg-surface p-3 text-caption font-normal leading-relaxed text-fg shadow-brand-md ${open ? 'block' : 'hidden'}`}>
+      TutorHub đã phê duyệt hồ sơ đăng ký gia sư. Trạng thái này không đồng nghĩa mọi chứng chỉ hoặc trình độ đều đã được xác thực độc lập.
+    </span>
+  </span>;
+}
 
 export default function TutorCard({ tutor = {} }) {
-  const { isFavorited, toggle } = useWishlist();
-  const tutorId = tutor?.id || tutor?.tutorProfileId;
-  const isFavorite = isFavorited('Tutor', tutorId);
+  const tutorId = tutor.id || tutor.tutorProfileId;
   const {
-    id, fullName = 'Gia sư', avatarUrl, bio = '', education = '', university = '', major = '',
-    experienceYears = 0, ratingAvg = 0, totalReviews = 0, subjects = [], minPrice = null,
-    isVerified = false, isFeatured = false,
+    fullName = 'Gia sư', avatarUrl, bio = '', education = '', university = '', major = '',
+    experienceYears, ratingAvg, totalReviews = 0, subjects = [], minPrice = null,
+    isVerified = false,
   } = tutor;
 
-  const displayName = fullName.trim() || 'Gia sư';
+  const displayName = fullName?.trim() || 'Gia sư';
   const educationDisplay = useMemo(() => {
     if (major?.trim() && university?.trim()) return `${major.trim()} · ${university.trim()}`;
-    return university?.trim() || major?.trim() || education?.trim() || 'Gia sư độc lập';
+    return university?.trim() || major?.trim() || education?.trim() || '';
   }, [major, university, education]);
-  const normalizedSubjects = useMemo(() => subjects
-    .map((subject) => typeof subject === 'string' ? subject : subject?.name ?? subject?.subjectName)
-    .filter(Boolean), [subjects]);
-
+  const normalizedSubjects = useMemo(() => [...new Set((Array.isArray(subjects) ? subjects : [])
+    .map(subject => typeof subject === 'string' ? subject : subject?.name ?? subject?.subjectName)
+    .filter(Boolean))], [subjects]);
   const rating = Number(ratingAvg ?? tutor.rating ?? 0);
-  const reviewsCount = Number(totalReviews ?? 0);
+  const reviewsCount = Number(totalReviews);
   const yearsExp = Number(experienceYears ?? tutor.yearsOfExperience ?? 0);
-  const packagePrice = minPrice != null ? Number(minPrice) : Number(tutor.hourlyRate ?? 0);
+  // Only a package minimum can be labelled "Gói học từ"; hourlyRate is a different unit.
+  const packagePrice = minPrice != null && Number(minPrice) > 0 ? Number(minPrice) : null;
   const hasRating = reviewsCount > 0 && rating > 0;
-  const formattedPrice = useMemo(() => {
-    if (!packagePrice || packagePrice <= 0) return null;
-    return new Intl.NumberFormat('vi-VN').format(packagePrice);
-  }, [packagePrice]);
+  const profilePath = `/tutors/${tutorId}`;
 
   return (
-    <article className={`mkt-card mkt-tutor-card group${isFeatured ? ' is-featured' : ''}`}>
-      {/* Full-card clickable overlay — keeps card accessible and supports middle-click / new-tab */}
-      <Link
-        to={`/tutors/${id}`}
-        aria-hidden="true"
-        tabIndex={-1}
-        className="absolute inset-0 z-10"
-      />
-
-      <div className="flex items-start gap-4">
-        <Avatar src={avatarUrl} name={displayName} size="lg" className="mkt-tutor-avatar relative z-20" />
+    <article className="interactive-card flex h-full min-w-0 flex-col rounded-2xl border border-border bg-surface p-5 shadow-[var(--learning-card-shadow)] sm:p-6">
+      <StretchedCardLink to={profilePath} label={`Xem hồ sơ ${displayName}`} />
+      <div className="flex items-start gap-3 sm:gap-4">
+        <Avatar key={avatarUrl || displayName} src={avatarUrl} name={displayName} size="lg" />
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <Link to={`/tutors/${id}`} className="mkt-tutor-name relative z-20" title={displayName}>{displayName}</Link>
-                {isVerified && (
-                  <Icon
-                    name="verified"
-                    size="sm"
-                    className="shrink-0 text-blue-600"
-                    label="Đã xác minh"
-                  />
-                )}
-              </div>
-              <p className="mt-1 truncate text-[12px] text-[color:var(--mkt-body)]" title={educationDisplay}>{educationDisplay}</p>
-            </div>
-            <button
-              type="button"
-              className="mkt-favorite relative z-20"
-              aria-label={isFavorite ? 'Bỏ lưu gia sư' : 'Lưu gia sư'}
-              aria-pressed={isFavorite}
-              onClick={(e) => {
-                e.stopPropagation();
-                toggle('Tutor', tutorId);
-              }}
-            >
-              <Icon name="favorite" size="sm" filled={isFavorite} />
-            </button>
-          </div>
-
-          <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[12px]">
-            {hasRating ? (
-              <span className="mkt-rating">
-                <Icon name="star" size="xs" filled />
-                <strong>{formatRating(rating)}</strong><span>({reviewsCount})</span>
-              </span>
-            ) : <span className="mkt-new-badge">Mới</span>}
-            {yearsExp > 0 && <span className="mkt-experience"><Icon name="work_history" size="xs" /> {yearsExp} năm kinh nghiệm</span>}
-          </div>
-
-          {normalizedSubjects.length > 0 && (
-            <div className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Môn học">
-              {normalizedSubjects.slice(0, 3).map((subject) => (
-                <span key={subject} className="mkt-subject">{subject}</span>
-              ))}
-              {normalizedSubjects.length > 3 && (
-                <span className="mkt-subject">+{normalizedSubjects.length - 3}</span>
-              )}
-            </div>
-          )}
+          <h3 className="text-[17px] font-semibold leading-snug text-fg">
+            {displayName}
+          </h3>
+          {educationDisplay && <p className="mt-1 line-clamp-2 text-caption leading-relaxed text-fg-secondary" title={educationDisplay}>{educationDisplay}</p>}
         </div>
+        <WishlistButton itemType="Tutor" itemId={tutorId} />
       </div>
 
-      <p className="mt-3.5 line-clamp-2 min-h-[44px] text-[13px] leading-[1.65] text-[color:var(--mkt-body)]">
-        {bio?.trim() || 'Sẵn sàng thiết kế lộ trình học phù hợp với mục tiêu và nhịp độ riêng của bạn.'}
-      </p>
-
-      <div className="mt-5 flex items-end justify-between gap-4 border-t border-[color:var(--mkt-line)] pt-4">
-        <div>
-          <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-[color:var(--mkt-muted)]">Gói học từ</span>
-          {formattedPrice ? (
-            <div className="mt-1 flex items-baseline gap-1.5">
-              <span className="mkt-tabular text-[19px] font-bold text-[color:var(--mkt-ink)]">
-                {formattedPrice}₫
-              </span>
-              <span className="text-[12px] text-[color:var(--mkt-muted)]">/ gói</span>
-            </div>
-          ) : <span className="mt-1 block text-[13px] font-bold text-[color:var(--mkt-ink)]">Xem trong hồ sơ</span>}
+      {(isVerified || yearsExp > 0 || hasRating) && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-caption">
+          {isVerified && <ApprovedProfileBadge />}
+          {yearsExp > 0 && <span className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[rgb(var(--edtech-violet-border))] bg-[rgb(var(--edtech-violet-subtle))] px-2.5 py-1 font-medium text-[rgb(var(--edtech-violet-strong))]"><Icon name="work_history" size="sm" />{yearsExp} năm kinh nghiệm</span>}
+          {hasRating && <span className="inline-flex flex-wrap items-center gap-1.5 py-1 text-fg-secondary"><Icon name="star" size="xs" className="text-brand-secondary-500" filled /><strong className="font-semibold text-[rgb(var(--course-rating-strong))]">{formatRating(rating)}</strong><span>({reviewsCount} đánh giá)</span></span>}
         </div>
-        <Link to={`/tutors/${id}`} className="mkt-card-cta relative z-20">
-          <span>Xem hồ sơ</span>
-          <Icon name="arrow_forward" size="sm" className="mkt-card-cta-arrow" />
-        </Link>
+      )}
+
+      {normalizedSubjects.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2" aria-label="Môn học">
+          {normalizedSubjects.slice(0, 3).map(subject => <span key={subject} className="max-w-full rounded-lg border border-brand-primary-100 bg-brand-primary-50 px-2.5 py-1 text-caption font-medium text-brand-primary-700 break-words">{subject}</span>)}
+          {normalizedSubjects.length > 3 && <span title={normalizedSubjects.slice(3).join(', ')} className="rounded-lg bg-neutral-100 px-2.5 py-1 text-caption text-fg-secondary">+{normalizedSubjects.length - 3} môn</span>}
+        </div>
+      )}
+
+      {bio?.trim() && <p className="my-4 line-clamp-3 text-body-reg leading-relaxed text-fg-secondary">{bio.trim()}</p>}
+
+      <div className="mt-auto pt-5">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-t border-border pt-4">
+          <div className="min-w-0">
+            <p className="text-caption text-fg-secondary">{packagePrice ? 'Gói học từ' : 'Thông tin gói học'}</p>
+            {packagePrice ? <p className="mt-1 text-[22px] font-semibold text-fg"><Money value={packagePrice} /><span className="ml-1 text-caption font-normal text-fg-secondary">/ gói</span></p>
+              : <p className="mt-1 text-body-reg font-medium text-fg">Xem trong hồ sơ</p>}
+          </div>
+          <Button as="span" aria-hidden="true" iconRight={<Icon name="arrow_forward" size="sm" />}>Xem hồ sơ</Button>
+        </div>
       </div>
     </article>
   );
@@ -128,6 +97,7 @@ export default function TutorCard({ tutor = {} }) {
 TutorCard.propTypes = {
   tutor: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    tutorProfileId: PropTypes.string,
     fullName: PropTypes.string, avatarUrl: PropTypes.string, bio: PropTypes.string,
     education: PropTypes.string, university: PropTypes.string, major: PropTypes.string,
     ratingAvg: PropTypes.number, rating: PropTypes.number, totalReviews: PropTypes.number,

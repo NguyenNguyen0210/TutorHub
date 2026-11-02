@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
+import useDiscoveryQueryState, { readDiscoveryQuery } from '@/hooks/useDiscoveryQueryState';
 import { ApiError, generateCorrelationId } from '@/services/api';
 import MarketplaceCardSkeleton from '@/components/discovery/MarketplaceCardSkeleton';
 import EmptyState from '@/components/common/EmptyState';
@@ -34,19 +35,21 @@ const REQUEST_TIMEOUT_MS = 10000;
 export default function Marketplace() {
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const initialQuery = readDiscoveryQuery(searchParams, 'tutors');
+
   // Filter States
-  const [searchKeyword, setSearchKeyword] = useState(searchParams.get('q') || '');
-  const [debouncedKeyword, setDebouncedKeyword] = useState(searchParams.get('q') || '');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(MAX_PRICE);
-  const [degreeLevel, setDegreeLevel] = useState('All');
-  const [university, setUniversity] = useState('All');
-  const [certification, setCertification] = useState('All');
-  const [minRating, setMinRating] = useState(null);
-  const [experienceRange, setExperienceRange] = useState('All');
-  const [sortBy, setSortBy] = useState('priority');
-  const [pageNumber, setPageNumber] = useState(1);
+  const [searchKeyword, setSearchKeyword] = useState(initialQuery.q);
+  const [debouncedKeyword, setDebouncedKeyword] = useState(initialQuery.q);
+  const [selectedCategory, setSelectedCategory] = useState(initialQuery.categoryId);
+  const [minPrice, setMinPrice] = useState(initialQuery.minPrice);
+  const [maxPrice, setMaxPrice] = useState(initialQuery.maxPrice);
+  const [degreeLevel, setDegreeLevel] = useState(initialQuery.degree);
+  const [university, setUniversity] = useState(initialQuery.university);
+  const [certification, setCertification] = useState(initialQuery.certification);
+  const [minRating, setMinRating] = useState(initialQuery.minRating);
+  const [experienceRange, setExperienceRange] = useState(initialQuery.experience);
+  const [sortBy, setSortBy] = useState(initialQuery.sort);
+  const [pageNumber, setPageNumber] = useState(initialQuery.page);
   const pageSize = 12;
 
   // Real Data States from Backend API
@@ -95,8 +98,8 @@ export default function Marketplace() {
   }, [searchKeyword]);
 
   // Debounce khoảng giá: kéo slider không bắn request mỗi bước, chỉ gọi API khi ngừng kéo.
-  const [debouncedMinPrice, setDebouncedMinPrice] = useState(0);
-  const [debouncedMaxPrice, setDebouncedMaxPrice] = useState(MAX_PRICE);
+  const [debouncedMinPrice, setDebouncedMinPrice] = useState(initialQuery.minPrice);
+  const [debouncedMaxPrice, setDebouncedMaxPrice] = useState(initialQuery.maxPrice);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -105,6 +108,19 @@ export default function Marketplace() {
     }, 300);
     return () => clearTimeout(timer);
   }, [minPrice, maxPrice]);
+
+
+  useDiscoveryQueryState({
+    searchParams, setSearchParams, kind: 'tutors',
+    values: { q: debouncedKeyword, categoryId: selectedCategory, minPrice: debouncedMinPrice, maxPrice: debouncedMaxPrice, minRating, sort: sortBy, page: pageNumber, degree: degreeLevel, university, certification, experience: experienceRange },
+    setters: {
+      q: value => { setSearchKeyword(value); setDebouncedKeyword(value); },
+      categoryId: setSelectedCategory,
+      minPrice: value => { setMinPrice(value); setDebouncedMinPrice(value); },
+      maxPrice: value => { setMaxPrice(value); setDebouncedMaxPrice(value); },
+      minRating: setMinRating, sort: setSortBy, page: setPageNumber, degree: setDegreeLevel, university: setUniversity, certification: setCertification, experience: setExperienceRange,
+    },
+  });
 
   // Query Categories directly from API
   useEffect(() => {
@@ -255,7 +271,6 @@ export default function Marketplace() {
     setExperienceRange('All');
     setSortBy('priority');
     setPageNumber(1);
-    setSearchParams({});
   };
 
   // Xóa 1 chip lọc + quay về trang 1 (tránh kẹt trang sâu sau khi nới lọc).
@@ -328,12 +343,11 @@ export default function Marketplace() {
         clear: clearAndResetPage(() => {
           setSearchKeyword('');
           setDebouncedKeyword('');
-          setSearchParams({});
         }),
       });
     }
     return list;
-  }, [degreeLevel, university, certification, minPrice, maxPrice, minRating, experienceRange, selectedCategory, categories, searchKeyword, setSearchParams]);
+  }, [degreeLevel, university, certification, minPrice, maxPrice, minRating, experienceRange, selectedCategory, categories, searchKeyword]);
 
   const handlePageChange = (newPage) => {
     if (newPage < 1 || newPage > totalPages) return;
@@ -354,7 +368,6 @@ export default function Marketplace() {
     setSearchKeyword('');
     setDebouncedKeyword('');
     setSelectedCategory('');
-    setSearchParams({});
     setPageNumber(1);
     const reduceMotion =
       typeof window !== 'undefined' &&
@@ -408,7 +421,7 @@ export default function Marketplace() {
   );
 
   return (
-    <div className="marketplace-v2 w-full flex-1 pb-12">
+    <div data-discovery-loading={loading ? 'true' : 'false'} className="marketplace-v2 w-full flex-1 pb-12">
       {/* 1. Hero Section */}
       <HeroSection
         searchKeyword={searchKeyword}
@@ -416,8 +429,6 @@ export default function Marketplace() {
         onSearchSubmit={(val) => {
           setDebouncedKeyword(val);
           setPageNumber(1);
-          if (val) setSearchParams({ q: val });
-          else setSearchParams({});
         }}
       />
 

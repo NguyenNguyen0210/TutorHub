@@ -1,54 +1,87 @@
-import { useLayoutEffect, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLayoutEffect, useEffect, useRef } from 'react';
+import { useLocation, useNavigationType } from 'react-router-dom';
+import { getTitleForPathname } from '@/config/pageTitles';
 
-/**
- * ScrollToTop — Đưa viewport về đầu trang (0, 0) ngay lập tức khi chuyển route.
- *
- * Giải quyết triệt để lỗi:
- * 1. Khi người dùng cuộn ở trang trước rồi bấm link sang trang mới, trang mới bị giữ
- *    nguyên vị trí cuộn cũ hoặc bị trượt (smooth-scroll) xuống một đoạn.
- * 2. Vô hiệu hóa tạm thời `scroll-behavior: smooth` trên <html> khi chuyển route để
- *    tránh hiệu ứng trượt màn hình giật cục.
- * 3. Đặt `history.scrollRestoration = 'manual'` để ngăn browser tự ý khôi phục vị trí cuộn cũ.
- * 4. Nếu URL có hash (#id), tự động cuộn mượt tới đúng phần tử mục tiêu.
- */
+const positions = new Map();
+const scrollTo = (top) => {
+  const root = document.documentElement;
+  const previous = root.style.scrollBehavior;
+  root.style.scrollBehavior = 'auto';
+  window.scrollTo({ top, left: 0, behavior: 'instant' });
+  root.style.scrollBehavior = previous;
+};
+
 export default function ScrollToTop() {
-  const { pathname, hash } = useLocation();
+  const location = useLocation();
+  const navigationType = useNavigationType();
+  const previousPath = useRef(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
-      window.history.scrollRestoration = 'manual';
-    }
+    const previous = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+    return () => { window.history.scrollRestoration = previous; };
   }, []);
 
   useLayoutEffect(() => {
-    // Nếu có hash (ví dụ: #quy-trinh), chờ một nhịp để DOM mount rồi cuộn tới
-    if (hash) {
-      const id = decodeURIComponent(hash.replace('#', ''));
-      const element = document.getElementById(id);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
+    const { pathname, hash, key, state } = location;
+    const title = getTitleForPathname(pathname);
+    if (title) document.title = title;
+    const samePage = previousPath.current === pathname;
+    previousPath.current = pathname;
+    const restoreKey = state?.restoreScrollKey || (navigationType === 'POP' ? key : null);
+    const target = restoreKey ? positions.get(restoreKey) : undefined;
+    let restoring = target !== undefined || Boolean(hash);
+    let timer;
+    let observer;
+    let resizeObserver;
+    const save = () => {
+      if (restoring) return;
+      positions.set(key, window.scrollY);
+      if (positions.size > 100) positions.delete(positions.keys().next().value);
+    };
+    const stop = () => {
+      restoring = false;
+      observer?.disconnect();
+      resizeObserver?.disconnect();
+      clearTimeout(timer);
+    };
+    const restore = () => {
+      if (!restoring) return;
+      if (hash) {
+        let id;
+        try { id = decodeURIComponent(hash.slice(1)); } catch { id = hash.slice(1); }
+        const element = document.getElementById(id);
+        if (element) { element.scrollIntoView({ behavior: 'instant' }); stop(); }
         return;
       }
-    }
+      if (document.querySelector('[data-discovery-loading="true"]')) return;
+      scrollTo(target);
+      if (Math.abs(window.scrollY - target) < 2) stop();
+    };
+    if (restoring) {
+      observer = new MutationObserver(restore);
+      observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-discovery-loading'] });
+      resizeObserver = new ResizeObserver(restore);
+      resizeObserver.observe(document.body);
+      timer = setTimeout(stop, 8000);
+      restore();
+    } else if (!samePage) scrollTo(0);
 
-    // Khi chuyển trang (pathname thay đổi):
-    // Tạm tắt scroll-behavior trên root để cuộn tức thì về (0,0) trước khi browser paint
-    if (typeof window !== 'undefined') {
-      const root = document.documentElement;
-      const prevBehavior = root.style.scrollBehavior;
-      root.style.scrollBehavior = 'auto';
-
-      window.scrollTo({
-        top: 0,
-        left: 0,
-        behavior: 'instant',
-      });
-
-      // Khôi phục thuộc tính scroll-behavior ban đầu
-      root.style.scrollBehavior = prevBehavior;
-    }
-  }, [pathname, hash]);
+    window.addEventListener('scroll', save, { passive: true });
+    window.addEventListener('pagehide', save);
+    window.addEventListener('wheel', stop, { passive: true });
+    window.addEventListener('touchstart', stop, { passive: true });
+    window.addEventListener('keydown', stop);
+    save();
+    return () => {
+      stop();
+      window.removeEventListener('scroll', save);
+      window.removeEventListener('pagehide', save);
+      window.removeEventListener('wheel', stop);
+      window.removeEventListener('touchstart', stop);
+      window.removeEventListener('keydown', stop);
+    };
+  }, [location, navigationType]);
 
   return null;
 }

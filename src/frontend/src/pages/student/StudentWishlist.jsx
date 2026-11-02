@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { cn } from '@/lib/cn';
 import Icon from '@/components/ui/Icon';
 import Tabs from '@/components/ui/Tabs';
 import { Pagination } from '@/components/ui/Table';
@@ -19,13 +19,13 @@ function ServiceCardSkeleton({ count = 6 }) {
     <div
       role="status"
       aria-label="Đang tải danh sách dịch vụ đã lưu..."
-      className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
+      className="grid grid-cols-1 gap-6 md:grid-cols-2"
     >
       {Array.from({ length: count }).map((_, idx) => (
         <div
           key={idx}
           aria-hidden="true"
-          className="mkt-card relative flex flex-col p-5 sm:p-6 bg-white animate-pulse"
+          className="relative flex min-h-[340px] flex-col rounded-2xl border border-border bg-surface p-5 motion-safe:animate-pulse sm:p-6"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="h-6 w-28 rounded-full bg-neutral-200/80" />
@@ -46,7 +46,7 @@ function ServiceCardSkeleton({ count = 6 }) {
             <div className="h-8 rounded bg-neutral-200/60" />
             <div className="h-8 rounded bg-neutral-200/60" />
           </div>
-          <div className="mt-auto flex items-end justify-between border-t border-[color:var(--mkt-line)] pt-5">
+          <div className="mt-auto flex items-end justify-between border-t border-border pt-5">
             <div className="space-y-1">
               <div className="h-3 w-16 rounded bg-neutral-200/80" />
               <div className="h-5 w-24 rounded bg-neutral-200/80" />
@@ -85,6 +85,11 @@ export default function StudentWishlist() {
   const totalCount = Number(data?.totalCount ?? 0);
   const totalPages = Math.ceil(totalCount / PAGE_SIZE) || 1;
 
+  // Removing the last item on a page must return to an existing page.
+  useEffect(() => {
+    if (data && !isLoading && page > totalPages) setPage(totalPages);
+  }, [data, isLoading, page, totalPages]);
+
   // Real-time counter badges using lightweight IDs cache with fallback to query totalCount
   const tutorCount =
     activeTab === 'Tutor' && data?.totalCount != null
@@ -103,12 +108,7 @@ export default function StudentWishlist() {
         <span className="flex items-center gap-2">
           <span>Gia sư đã lưu</span>
           <span
-            className={cn(
-              'inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] font-bold tabular-nums transition-colors',
-              activeTab === 'Tutor'
-                ? 'bg-brand-primary-100 text-brand-primary-700'
-                : 'bg-neutral-100 text-fg-muted'
-            )}
+            className="inline-flex min-w-5 h-5 items-center justify-center rounded-full bg-neutral-100 px-1.5 text-[11px] font-medium tabular-nums text-fg-secondary"
           >
             {tutorCount}
           </span>
@@ -122,12 +122,7 @@ export default function StudentWishlist() {
         <span className="flex items-center gap-2">
           <span>Dịch vụ đã lưu</span>
           <span
-            className={cn(
-              'inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] font-bold tabular-nums transition-colors',
-              activeTab === 'Service'
-                ? 'bg-brand-primary-100 text-brand-primary-700'
-                : 'bg-neutral-100 text-fg-muted'
-            )}
+            className="inline-flex min-w-5 h-5 items-center justify-center rounded-full bg-neutral-100 px-1.5 text-[11px] font-medium tabular-nums text-fg-secondary"
           >
             {serviceCount}
           </span>
@@ -138,7 +133,10 @@ export default function StudentWishlist() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-[1200px] space-y-6">
+      <nav aria-label="Đường dẫn danh sách đã lưu" className="text-caption text-fg-secondary">
+        <ol className="flex items-center gap-2"><li><Link to="/student/dashboard" className="hover:text-primary focus-visible:underline">Bàn học</Link></li><li aria-hidden="true">/</li><li aria-current="page" className="font-medium text-fg">Đã lưu</li></ol>
+      </nav>
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
@@ -156,7 +154,7 @@ export default function StudentWishlist() {
 
       {/* Content Area */}
       <div>
-        {isLoading ? (
+        {isLoading || (data && !isError && page > totalPages) ? (
           activeTab === 'Tutor' ? (
             <MarketplaceCardSkeleton count={6} />
           ) : (
@@ -175,7 +173,7 @@ export default function StudentWishlist() {
               'Đã có lỗi xảy ra khi kết nối máy chủ. Vui lòng nhấn thử lại.'
             }
             onRetry={() => refetch()}
-            className="!border-[color:var(--mkt-line)] !bg-white"
+            className="border-border bg-surface shadow-none"
           />
         ) : items.length === 0 ? (
           <EmptyState
@@ -187,19 +185,19 @@ export default function StudentWishlist() {
             }
             description={
               activeTab === 'Tutor'
-                ? 'Khám phá các gia sư giàu kinh nghiệm, xem đánh giá và lưu lại hồ sơ ưng ý.'
+                ? 'Khám phá gia sư, xem hồ sơ và nhấn trái tim để lưu lại những người phù hợp với bạn.'
                 : 'Khám phá các dịch vụ và gói học chuyên sâu phù hợp với lộ trình học của bạn.'
             }
             actionLabel={
               activeTab === 'Tutor' ? 'Khám phá gia sư' : 'Xem danh mục dịch vụ'
             }
-            actionPath={activeTab === 'Tutor' ? '/' : '/services'}
-            className="!border-[color:var(--mkt-line)] !bg-white"
+            actionPath={activeTab === 'Tutor' ? '/tutors' : '/services'}
+            className="rounded-2xl border-border bg-surface shadow-none [&_p]:text-fg-secondary"
           />
         ) : (
           <div className="space-y-6">
             {activeTab === 'Tutor' ? (
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {items.map((item) => {
                   const tutor = {
                     ...item,
@@ -219,7 +217,7 @@ export default function StudentWishlist() {
                 })}
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {items.map((item) => {
                   const service = {
                     ...item,

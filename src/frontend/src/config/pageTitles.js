@@ -1,0 +1,86 @@
+/**
+ * Bảng ánh xạ tiêu đề tab trình duyệt theo từng trang / route.
+ * Chuẩn hóa gọn gàng: Chỉ hiển thị nội dung chính của trang, không kèm hậu tố "| TutorHub".
+ */
+const STATIC_TITLES = {
+  // Discovery & Public
+  '/': 'Tìm gia sư',
+  '/services': 'Dịch vụ học tập',
+  '/how-it-works': 'Cách hoạt động',
+  '/become-tutor': 'Trở thành gia sư',
+  '/terms': 'Điều khoản sử dụng',
+  '/privacy': 'Chính sách bảo mật',
+  '/tutor/application': 'Đăng ký làm gia sư',
+
+  // Authentication
+  '/auth/login': 'Đăng nhập',
+  '/auth/register': 'Đăng ký tài khoản',
+  '/payment/return': 'Kết quả thanh toán',
+
+  // Shared
+  '/app/messages': 'Tin nhắn',
+  '/app/notifications': 'Thông báo',
+
+  // Student Space
+  '/student/dashboard': 'Bàn học của tôi',
+  '/student/schedule': 'Lịch học của tôi',
+  '/student/bookings': 'Đơn đặt chỗ của tôi',
+  '/student/disputes': 'Khiếu nại của tôi',
+  '/student/wallet': 'Ví học viên',
+  '/student/wallet/topup': 'Nạp tiền ví',
+  '/student/wallet/withdraw': 'Rút tiền ví',
+  '/student/wishlist': 'Gia sư & Dịch vụ đã lưu',
+  '/student/disputes/new': 'Tạo khiếu nại',
+  '/student/settings': 'Hồ sơ & Cài đặt',
+
+  // Tutor Space
+  '/tutor/dashboard': 'Bàn làm việc gia sư',
+  '/tutor/schedule': 'Lịch dạy',
+  '/tutor/services': 'Dịch vụ của tôi',
+  '/tutor/services/new': 'Tạo gói dịch vụ mới',
+  '/tutor/wallet': 'Ví thu nhập Escrow',
+  '/tutor/wallet/withdraw': 'Yêu cầu rút tiền',
+  '/tutor/settings': 'Hồ sơ & Cài đặt',
+
+  // Admin Space
+  '/admin/dashboard': 'Tổng quan quản trị',
+  '/admin/student-wallets': 'Quản lý ví học viên',
+  '/admin/withdrawals': 'Quản lý rút tiền',
+  '/admin/disputes': 'Quản lý tranh chấp',
+  '/admin/tutor-applications': 'Duyệt hồ sơ gia sư',
+  '/admin/users': 'Quản lý người dùng',
+  '/admin/audit-logs': 'Nhật ký kiểm toán',
+  '/admin/settings': 'Hồ sơ & Cài đặt',
+};
+
+/**
+ * Trả về tiêu đề tab tương ứng với đường dẫn pathname.
+ * Hỗ trợ fallback cho các đường dẫn động có chứa tham số ID.
+ */
+export function getTitleForPathname(pathname) {
+  if (STATIC_TITLES[pathname]) {
+    return STATIC_TITLES[pathname];
+  }
+
+  // Fallback cho các đường dẫn động
+  if (pathname.startsWith('/services/') || pathname.startsWith('/service/')) {
+    return 'Chi tiết dịch vụ';
+  }
+  if (pathname.startsWith('/tutors/')) {
+    return 'Hồ sơ gia sư';
+  }
+  if (pathname.includes('/enrollments/')) {
+    return 'Chi tiết gói học';
+  }
+  if (pathname.includes('/sessions/')) {
+    return 'Chi tiết buổi học';
+  }
+  if (pathname.includes('/bookings/') && pathname.includes('/checkout')) {
+    return 'Thanh toán giữ chỗ';
+  }
+  if (pathname.startsWith('/admin/disputes/') || pathname.startsWith('/app/disputes/')) {
+    return 'Chi tiết tranh chấp';
+  }
+
+  return 'TutorHub';
+}
