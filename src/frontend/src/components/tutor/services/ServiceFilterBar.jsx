@@ -24,8 +24,8 @@ export default function ServiceFilterBar({
         </span>
         <Input
           type="search"
-          placeholder="Tìm theo tên dịch vụ, môn học..."
-          aria-label="Tìm kiếm gói dịch vụ"
+          placeholder="Tìm tên gói học, môn học…"
+          aria-label="Tìm kiếm gói học"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           className="pl-9"

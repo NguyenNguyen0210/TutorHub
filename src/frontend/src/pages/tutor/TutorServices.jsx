@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
 import Money from '@/components/ui/Money';
 import { CardSkeleton } from '@/components/common/Skeleton';
@@ -12,17 +12,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/Dialog';
 import ServiceRow from '@/components/tutor/services/ServiceRow';
 import ServiceFilterBar from '@/components/tutor/services/ServiceFilterBar';
-import ServiceDrawer from '@/components/tutor/services/ServiceDrawer';
-import StatStrip from '@/components/common/StatStrip';
 import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
-import {
-  createInitialFormState,
-  validateServiceForm,
-  collectFaqs,
-  buildServicePayload,
-} from '@/components/tutor/services/serviceFormUtils';
-
-const INITIAL_FORM_STATE = createInitialFormState();
 
 const STATUS_TABS = [
   { id: 'All', label: 'Tất cả' },
@@ -36,6 +26,9 @@ export default function TutorServices() {
   const toast = useToast();
   const confirm = useConfirm();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [params, setParams] = useSearchParams();
+  const editState = { serviceReturn: { path: location.pathname + location.search, key: location.key } };
 
   const [services, setServices] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -43,20 +36,19 @@ export default function TutorServices() {
   const [error, setError] = useState(null);
 
   // Tabs & Filters
-  const [activeTab, setActiveTab] = useState('All');
-  const [search, setSearch] = useState('');
-  const [subjectFilter, setSubjectFilter] = useState('All');
+  const activeTab = STATUS_TABS.some(tab => tab.id === params.get('status')) ? params.get('status') : 'All';
+  const search = params.get('search') || '';
+  const subjectFilter = params.get('subject') || 'All';
+  const changeFilters = useCallback(changes => setParams(previous => {
+    const next = new URLSearchParams(previous);
+    Object.entries(changes).forEach(([key, value]) => !value || value === 'All' ? next.delete(key) : next.set(key, value));
+    return next;
+  }, { replace: true }), [setParams]);
+  const setActiveTab = value => changeFilters({ status: value });
+  const setSearch = value => changeFilters({ search: value });
+  const setSubjectFilter = value => changeFilters({ subject: value });
 
-  // Drawer State (Create / Edit)
-  const [showDrawer, setShowDrawer] = useState(false);
-  const [editingService, setEditingService] = useState(null);
-  const [formData, setFormData] = useState(INITIAL_FORM_STATE);
-  const [submitting, setSubmitting] = useState(false);
   const [actionInProgressId, setActionInProgressId] = useState(null);
-
-  useEffect(() => {
-    document.title = 'Dịch vụ của tôi';
-  }, []);
 
   // Fetch Services & Subjects
   const loadData = useCallback(async () => {
@@ -93,96 +85,10 @@ export default function TutorServices() {
     navigate('/tutor/services/new');
   };
 
-  // Open Edit Drawer
-  const handleOpenEdit = (pkg) => {
-    setEditingService(pkg);
-    setFormData({
-      subjectId: pkg.subjectId || '',
-      title: pkg.title || '',
-      shortDescription: pkg.shortDescription || '',
-      description: pkg.description || '',
-      learningScope: pkg.learningScope || '',
-      expectedOutcome: pkg.expectedOutcome || '',
-      totalSessions: pkg.totalSessions || 10,
-      sessionDurationMinutes: pkg.sessionDurationMinutes || 60,
-      price: pkg.price || 0,
-      trialLessonUrl: pkg.trialLessonUrl || '',
-      tags: Array.isArray(pkg.tags) ? pkg.tags.join(', ') : pkg.tags || '',
-      coverImageUrl: pkg.coverImageUrl || '',
-      // Hydrate backend shapes (arrays) into the editors' local shapes.
-      sessions: Array.isArray(pkg.curriculum)
-        ? pkg.curriculum.map((c) => ({
-          title: c.title || '',
-          description: c.description || '',
-          keyTopicsText: Array.isArray(c.keyTopics) ? c.keyTopics.join(', ') : '',
-          durationMinutes: c.durationMinutes ?? '',
-        }))
-        : [],
-      targetAudienceText: Array.isArray(pkg.targetAudience)
-        ? pkg.targetAudience.join('\n')
-        : '',
-      prerequisitesText: Array.isArray(pkg.prerequisites)
-        ? pkg.prerequisites.join('\n')
-        : '',
-      faqs: Array.isArray(pkg.faqs)
-        ? pkg.faqs.map((f) => ({ question: f.question || '', answer: f.answer || '' }))
-        : [],
-    });
-    setShowDrawer(true);
-  };
-
-  const handleFieldChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  // Form Submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    const validationError = validateServiceForm(formData, editingService ? 'update' : 'create');
-    if (validationError) {
-      toast.error(validationError);
-      return;
-    }
-    const { error: faqError } = collectFaqs(formData);
-    if (faqError) {
-      toast.error(faqError);
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-
-      if (editingService) {
-        // PATCH update (commercial terms locked while Published)
-        const payload = buildServicePayload(formData, {
-          mode: 'update',
-          lockCommercialTerms: editingService.status === 'Published',
-        });
-
-        await tutorService.updateService(editingService.id, payload);
-        toast.success('Đã cập nhật gói dịch vụ thành công.');
-      } else {
-        // POST create
-        const payload = buildServicePayload(formData, { mode: 'create' });
-
-        await tutorService.createService(payload);
-        toast.success('Đã tạo gói dịch vụ mới ở trạng thái Bản nháp (Draft).');
-      }
-
-      setShowDrawer(false);
-      await loadData();
-    } catch (err) {
-      toast.error(err?.message || 'Không thể lưu gói dịch vụ.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   // Publish Action
   const handlePublish = async (pkg) => {
     const ok = await confirm({
-      title: 'Xuất bản gói dịch vụ',
+      title: 'Xuất bản gói học',
       content: (
         <div className="space-y-2 text-caption text-fg-secondary">
           <p>
@@ -215,10 +121,10 @@ export default function TutorServices() {
     try {
       setActionInProgressId(pkg.id);
       await tutorService.publishService(pkg.id);
-      toast.success('Gói dịch vụ đã được xuất bản công khai.');
+      toast.success('Gói học đã được xuất bản công khai.');
       await loadData();
     } catch (err) {
-      toast.error(err?.message || 'Không thể xuất bản gói dịch vụ.');
+      toast.error(err?.message || 'Không thể xuất bản gói học.');
     } finally {
       setActionInProgressId(null);
     }
@@ -227,18 +133,18 @@ export default function TutorServices() {
   // Unpublish Action
   const handleUnpublish = async (pkg) => {
     const ok = await confirm({
-      title: 'Tạm ẩn gói dịch vụ',
+      title: 'Gỡ xuất bản gói học',
       content: (
         <div className="space-y-2 text-caption text-fg-secondary">
           <p>
-            Tạm ẩn gói học <strong>&ldquo;{pkg.title}&rdquo;</strong> khỏi hồ sơ công khai của bạn?
+            Gỡ gói học <strong>&ldquo;{pkg.title}&rdquo;</strong> khỏi hồ sơ công khai của bạn?
           </p>
           <p className="text-xs text-fg-muted">
             Học viên sẽ không thể đặt chỗ gói này nữa. Các hợp đồng đã thanh toán trước đó vẫn tiếp tục học bình thường.
           </p>
         </div>
       ),
-      confirmText: 'Tạm ẩn gói',
+      confirmText: 'Gỡ xuất bản',
       cancelText: 'Hủy',
       danger: true,
     });
@@ -248,10 +154,10 @@ export default function TutorServices() {
     try {
       setActionInProgressId(pkg.id);
       await tutorService.unpublishService(pkg.id);
-      toast.success('Đã tạm ẩn gói dịch vụ.');
+      toast.success('Đã gỡ xuất bản gói học.');
       await loadData();
     } catch (err) {
-      toast.error(err?.message || 'Không thể tạm ẩn gói dịch vụ.');
+      toast.error(err?.message || 'Không thể tạm ẩn gói học.');
     } finally {
       setActionInProgressId(null);
     }
@@ -282,10 +188,10 @@ export default function TutorServices() {
     try {
       setActionInProgressId(pkg.id);
       await tutorService.pauseService(pkg.id);
-      toast.success('Đã tạm dừng tuyển sinh gói dịch vụ.');
+      toast.success('Đã tạm dừng tuyển sinh gói học.');
       await loadData();
     } catch (err) {
-      toast.error(err?.message || 'Không thể tạm dừng gói dịch vụ.');
+      toast.error(err?.message || 'Không thể tạm dừng gói học.');
     } finally {
       setActionInProgressId(null);
     }
@@ -296,10 +202,10 @@ export default function TutorServices() {
     try {
       setActionInProgressId(pkg.id);
       await tutorService.resumeService(pkg.id);
-      toast.success('Đã tiếp tục tuyển sinh gói dịch vụ.');
+      toast.success('Đã tiếp tục tuyển sinh gói học.');
       await loadData();
     } catch (err) {
-      toast.error(err?.message || 'Không thể tiếp tục gói dịch vụ.');
+      toast.error(err?.message || 'Không thể tiếp tục gói học.');
     } finally {
       setActionInProgressId(null);
     }
@@ -333,30 +239,27 @@ export default function TutorServices() {
 
   // Clear search + dropdown filters (keeps the active status tab)
   const handleClearFilters = useCallback(() => {
-    setSearch('');
-    setSubjectFilter('All');
-  }, []);
+    changeFilters({ search: null, subject: null });
+  }, [changeFilters]);
 
   // Clear everything including the status tab
   const handleClearAll = useCallback(() => {
-    setSearch('');
-    setSubjectFilter('All');
-    setActiveTab('All');
-  }, []);
+    changeFilters({ search: null, subject: null, status: null });
+  }, [changeFilters]);
 
   // Active filter chips (search keyword + dropdowns)
   const activeChips = useMemo(() => {
     const chips = [];
     const keyword = search.trim();
     if (keyword) {
-      chips.push({ key: 'search', label: `Từ khóa: ${keyword}`, clear: () => setSearch('') });
+      chips.push({ key: 'search', label: `Từ khóa: ${keyword}`, clear: () => changeFilters({ search: null }) });
     }
     if (subjectFilter !== 'All') {
       const name = subjects.find((s) => s.id === subjectFilter)?.name || 'Môn học';
-      chips.push({ key: 'subject', label: name, clear: () => setSubjectFilter('All') });
+      chips.push({ key: 'subject', label: name, clear: () => changeFilters({ subject: null }) });
     }
     return chips;
-  }, [search, subjectFilter, subjects]);
+  }, [search, subjectFilter, subjects, changeFilters]);
 
   // Filtered services
   const filteredServices = useMemo(() => {
@@ -373,7 +276,7 @@ export default function TutorServices() {
   }, [services, activeTab, subjectFilter, search]);
 
   return (
-    <div className="space-y-6 lg:space-y-8">
+    <div className="space-y-6 lg:space-y-8" data-discovery-loading={loading}>
       {/* Title row */}
       <WorkspacePageHeader title="Gói học của tôi" description="Quản lý nội dung, học phí và trạng thái tuyển sinh của các gói học."
         actions={<Button
@@ -386,15 +289,9 @@ export default function TutorServices() {
           Tạo gói học
         </Button>} />
 
-      <StatStrip
-        appearance="soft"
-        figures={[
-          { key: 'total', label: 'Tổng gói học', icon: 'menu_book', value: <span>{stats.total}</span> },
-          { key: 'published', label: 'Đang tuyển sinh', icon: 'school', value: <span>{stats.published}</span> },
-          { key: 'draft', label: 'Bản nháp', icon: 'edit', value: <span>{stats.draft}</span>, tone: 'muted' },
-          { key: 'paused', label: 'Tạm dừng', icon: 'pause_circle', value: <span>{stats.paused}</span>, tone: 'holding' },
-        ]}
-      />
+      {!loading && !error && <dl aria-label="Tóm tắt gói học" className="flex flex-wrap gap-x-8 gap-y-4 rounded-2xl border border-border bg-surface px-5 py-4 sm:px-6">
+        {[[stats.total, 'Tổng gói học'], [stats.published, 'Đang tuyển sinh'], [stats.draft, 'Bản nháp'], [stats.paused, 'Tạm dừng']].map(([value, label]) => <div key={label} className="flex items-baseline gap-2"><dt className="text-caption text-fg-secondary">{label}</dt><dd className="text-xl font-semibold text-fg">{value}</dd></div>)}
+      </dl>}
 
       {/* Status tabs with counts */}
       <Tabs
@@ -448,7 +345,7 @@ export default function TutorServices() {
       {error && (
         <ErrorState
           error={error}
-          title="Không thể tải danh sách gói dịch vụ"
+          title="Không thể tải danh sách gói học"
           onRetry={loadData}
         />
       )}
@@ -458,17 +355,17 @@ export default function TutorServices() {
           icon="inventory_2"
           title={
             search || subjectFilter !== 'All'
-              ? 'Không tìm thấy gói dịch vụ phù hợp'
+              ? 'Không tìm thấy gói học phù hợp'
               : activeTab !== 'All'
-                ? `Chưa có gói dịch vụ nào ở trạng thái ${
+                ? `Chưa có gói học nào ở trạng thái ${
                     STATUS_TABS.find((t) => t.id === activeTab)?.label
                   }`
-                : 'Chưa có gói dịch vụ nào'
+                : 'Bạn chưa tạo gói học nào'
           }
           description={
             search || subjectFilter !== 'All'
               ? 'Hãy thử thay đổi từ khóa hoặc bộ lọc.'
-              : 'Hãy bắt đầu thiết kế gói học đầu tiên của bạn để thu hút học viên đăng ký trên TutorHub.'
+              : activeTab === 'All' ? 'Tạo gói học đầu tiên để giới thiệu lộ trình của bạn tới học viên.' : 'Chọn trạng thái khác để xem các gói học của bạn.'
           }
           actionLabel={!search && activeTab === 'All' && subjectFilter === 'All' ? 'Tạo gói học ngay' : undefined}
           onAction={!search && activeTab === 'All' && subjectFilter === 'All' ? handleOpenCreate : undefined}
@@ -482,7 +379,8 @@ export default function TutorServices() {
               key={pkg.id}
               pkg={pkg}
               isActing={actionInProgressId === pkg.id}
-              onEdit={handleOpenEdit}
+              editState={editState}
+              disabled={Boolean(actionInProgressId)}
               onPublish={handlePublish}
               onUnpublish={handleUnpublish}
               onPause={handlePause}
@@ -492,19 +390,6 @@ export default function TutorServices() {
         </div>
       )}
 
-      {/* Edit Drawer (creation moved to /tutor/services/new) */}
-
-      {/* Create / Edit Drawer */}
-      <ServiceDrawer
-        open={showDrawer}
-        onClose={() => setShowDrawer(false)}
-        editingService={editingService}
-        subjects={subjects}
-        formData={formData}
-        onFieldChange={handleFieldChange}
-        onSubmit={handleSubmit}
-        submitting={submitting}
-      />
     </div>
   );
 }

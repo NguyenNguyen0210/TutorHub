@@ -71,7 +71,7 @@ const formDataShape = PropTypes.shape({
 });
 
 /* ── Basic info: title, short description, rich description, cover ── */
-export function BasicInfoFields({ formData, onFieldChange }) {
+export function BasicInfoFields({ formData, onFieldChange, locked = false }) {
   const description = formData.description || '';
   const shortDescription = formData.shortDescription || '';
   const coverImageUrl = (formData.coverImageUrl || '').trim();
@@ -112,7 +112,7 @@ export function BasicInfoFields({ formData, onFieldChange }) {
 
   return (
     <>
-      <Field label="Tên dịch vụ" htmlFor="service-title" required>
+      <Field label="Tên gói học" htmlFor="service-title" required>
         <Input
           id="service-title"
           maxLength={120}
@@ -126,6 +126,7 @@ export function BasicInfoFields({ formData, onFieldChange }) {
       <Field label="Mô tả ngắn" htmlFor="service-short">
         <Input
           id="service-short"
+          disabled={locked}
           maxLength={SHORT_DESCRIPTION_MAX}
           placeholder="Tóm tắt gói học trong một câu ngắn…"
           value={formData.shortDescription}
@@ -209,6 +210,7 @@ export function BasicInfoFields({ formData, onFieldChange }) {
           )}
           <Input
             id="service-cover"
+            disabled={locked}
             type="url"
             inputMode="url"
             placeholder="https://..."
@@ -222,6 +224,7 @@ export function BasicInfoFields({ formData, onFieldChange }) {
 }
 
 BasicInfoFields.propTypes = {
+  locked: PropTypes.bool,
   formData: formDataShape.isRequired,
   onFieldChange: PropTypes.func.isRequired,
 };
@@ -281,7 +284,7 @@ TrialFields.propTypes = {
 };
 
 /* ── Subject: select (create) or locked box (edit) + category + tags ── */
-export function SubjectFields({ formData, onFieldChange, subjects, editingService = null }) {
+export function SubjectFields({ formData, onFieldChange, subjects, editingService = null, locked = false }) {
   const selectedSubject = subjects.find((s) => s.id === formData.subjectId);
   const categoryName =
     selectedSubject?.categoryName || editingService?.categoryName || '';
@@ -332,6 +335,7 @@ export function SubjectFields({ formData, onFieldChange, subjects, editingServic
       >
         <Input
           id="service-tags"
+          disabled={locked}
           placeholder="Thêm thẻ (ví dụ: IELTS, Giao tiếp, THPT...)"
           value={formData.tags}
           onChange={(e) => onFieldChange('tags', e.target.value)}
@@ -342,6 +346,7 @@ export function SubjectFields({ formData, onFieldChange, subjects, editingServic
 }
 
 SubjectFields.propTypes = {
+  locked: PropTypes.bool,
   formData: formDataShape.isRequired,
   onFieldChange: PropTypes.func.isRequired,
   subjects: PropTypes.arrayOf(
@@ -364,13 +369,12 @@ export function PackageTermsFields({ formData, onFieldChange, locked = false }) 
     <>
       {locked && (
         <div className="p-3 bg-holding-subtle text-holding-strong rounded-brand-md text-caption" role="note">
-          <strong>Khóa điều khoản thương mại:</strong> gói đang tuyển sinh không sửa
-          được số buổi, thời lượng và giá. Hãy <strong>Tạm ẩn</strong> gói
-          nếu muốn đổi các thông tin này.
+          Gói đang tuyển sinh giữ nguyên học phí, số buổi và thời lượng.
+          Tạm dừng tuyển sinh hoặc gỡ xuất bản trước khi thay đổi các thông tin này.
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Số buổi học" htmlFor="service-sessions" required>
           <SuffixInput
             id="service-sessions"

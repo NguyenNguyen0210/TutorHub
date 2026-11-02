@@ -63,6 +63,7 @@ export function getTitleForPathname(pathname) {
   }
 
   // Fallback cho các đường dẫn động
+  if (/^\/tutor\/services\/[^/]+\/edit$/.test(pathname)) return 'Chỉnh sửa gói học';
   if (pathname.startsWith('/services/') || pathname.startsWith('/service/')) {
     return 'Chi tiết dịch vụ';
   }

@@ -270,6 +270,11 @@ export const tutorService = {
     return [];
   },
 
+  /** Private details include drafts and paused packages, with owner authorization. */
+  async getMyServiceById(serviceId) {
+    return api.get(`/tutors/me/services/${serviceId}`);
+  },
+
   /** POST /tutors/me/services → ServiceDto */
   async createService(data) {
     const res = await api.post('/tutors/me/services', data);
