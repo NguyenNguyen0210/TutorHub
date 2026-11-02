@@ -16,18 +16,22 @@ import { useToast } from '@/components/ui/Toast';
 import { DetailSkeleton } from '@/components/common/Skeleton';
 import ErrorState from '@/components/common/ErrorState';
 
-function PasswordField({ id, label, value, onChange, onBlur, error, autoComplete, disabled }) {
+function PasswordField({ id, label, value, onChange, onBlur, error, hint, autoComplete, disabled }) {
   const [visible, setVisible] = useState(false);
-  return <Field label={label} htmlFor={id} required error={error}>
+  const visibilityLabel = `${visible ? 'Ẩn' : 'Hiện'} ${label.toLowerCase()}`;
+  const describedBy = [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ') || undefined;
+  return <Field label={label} htmlFor={id} required>
     <div className="relative"><Input id={id} type={visible ? 'text' : 'password'} autoComplete={autoComplete}
       value={value} onChange={onChange} onBlur={onBlur} disabled={disabled} required
-      aria-invalid={Boolean(error)} state={error ? 'error' : 'default'} className="pr-12" />
+      aria-invalid={Boolean(error)} aria-describedby={describedBy} state={error ? 'error' : 'default'} className="rounded-[10px] pr-12" />
       <button type="button" onClick={() => setVisible(value => !value)} aria-pressed={visible}
-        aria-label={`${visible ? 'Ẩn' : 'Hiện'} ${label.toLowerCase()}`} disabled={disabled}
+        aria-label={visibilityLabel} title={visibilityLabel} disabled={disabled}
         className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-fg-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <Icon name={visible ? 'visibility_off' : 'visibility'} size="sm" />
       </button>
     </div>
+    {hint && <p id={`${id}-hint`} className="mt-2 text-caption leading-relaxed text-fg-secondary">{hint}</p>}
+    {error && <p id={`${id}-error`} role="alert" className="mt-1.5 text-caption text-danger-strong">{error}</p>}
   </Field>;
 }
 
@@ -55,8 +59,14 @@ export default function ProfileSettings() {
   const [passwordTouched, setPasswordTouched] = useState({});
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  const [currentPasswordError, setCurrentPasswordError] = useState('');
+  const [passwordFormVersion, setPasswordFormVersion] = useState(0);
   const changingRef = useRef(false);
   const teaching = role === 'Tutor' && !teachingProfileMissing;
+
+  useEffect(() => {
+    if (currentPasswordError && !changingPassword) document.getElementById('curr-password')?.focus();
+  }, [currentPasswordError, changingPassword]);
 
   useEffect(() => {
     if (!pendingAvatar) { setPreview(null); return; }
@@ -132,19 +142,37 @@ export default function ProfileSettings() {
       : passwords.next === passwords.current ? { next: 'Mật khẩu mới cần khác mật khẩu hiện tại.' } : {}),
     ...(passwords.confirm !== passwords.next || !passwords.confirm ? { confirm: 'Mật khẩu xác nhận chưa khớp.' } : {}),
   };
+  const resetPasswords = () => {
+    setPasswords({ current: '', next: '', confirm: '' });
+    setPasswordTouched({});
+    setPasswordError('');
+    setCurrentPasswordError('');
+    setPasswordFormVersion(version => version + 1);
+  };
+  const passwordDirty = Object.values(passwords).some(Boolean);
   const changePassword = async event => {
     event.preventDefault();
     if (changingRef.current) return;
     setPasswordTouched({ current: true, next: true, confirm: true });
-    if (Object.keys(passwordErrors).length) return;
-    changingRef.current = true; setChangingPassword(true); setPasswordError('');
+    if (Object.keys(passwordErrors).length) {
+      const firstInvalid = passwordErrors.current ? 'curr-password' : passwordErrors.next ? 'new-password' : 'confirm-password';
+      document.getElementById(firstInvalid)?.focus();
+      return;
+    }
+    changingRef.current = true; setChangingPassword(true); setPasswordError(''); setCurrentPasswordError('');
     try {
       await userService.changePassword(passwords.current, passwords.next);
+      resetPasswords();
       await useAuthStore.getState().logout();
-      toast.success('Đổi mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.');
+      toast.success('Mật khẩu đã được cập nhật. Vui lòng đăng nhập lại bằng mật khẩu mới.');
       navigate('/auth/login', { replace: true, state: { returnUrl: location.pathname + location.search } });
     } catch (err) {
-      setPasswordError(err?.status === 401 ? 'Mật khẩu hiện tại chưa đúng hoặc phiên đăng nhập đã hết hạn. Vui lòng kiểm tra lại.' : 'Chưa thể đổi mật khẩu. Vui lòng thử lại.');
+      const incorrectPassword = err?.status === 401 && [err.message, ...(err.errors || [])].includes('Current password is incorrect.');
+      if (incorrectPassword) {
+        setCurrentPasswordError('Mật khẩu hiện tại chưa đúng. Vui lòng nhập lại.');
+      } else {
+        setPasswordError(err?.status === 401 ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để đổi mật khẩu.' : 'Chưa thể đổi mật khẩu. Vui lòng thử lại.');
+      }
     } finally { changingRef.current = false; setChangingPassword(false); }
   };
 
@@ -184,15 +212,43 @@ export default function ProfileSettings() {
     </Card>
   </form>;
 
-  const passwordForm = <form onSubmit={changePassword} noValidate><Card padding="lg" className="space-y-6 rounded-2xl border border-border shadow-none">
-    <div><h2 className="text-lg font-semibold text-fg">Đổi mật khẩu</h2><p className="mt-2 text-sm leading-relaxed text-fg-secondary">Dùng ít nhất 8 ký tự và khác mật khẩu hiện tại. Sau khi đổi, bạn cần đăng nhập lại trên các thiết bị.</p></div>
-    <div className="max-w-lg space-y-5">{[['current', 'curr-password', 'Mật khẩu hiện tại'], ['next', 'new-password', 'Mật khẩu mới'], ['confirm', 'confirm-password', 'Xác nhận mật khẩu mới']].map(([key, id, label]) => <PasswordField key={key} id={id} label={label} value={passwords[key]} disabled={changingPassword}
-      autoComplete={key === 'current' ? 'current-password' : 'new-password'} error={passwordTouched[key] ? passwordErrors[key] : undefined}
-      onChange={event => { setPasswords(previous => ({ ...previous, [key]: event.target.value })); setPasswordError(''); }}
-      onBlur={() => setPasswordTouched(previous => ({ ...previous, [key]: true }))} />)}</div>
-    {passwordError && <p role="alert" className="rounded-xl bg-danger-subtle p-3 text-sm text-danger-strong">{passwordError}</p>}
-    <div className="flex justify-end border-t border-border pt-5"><Button type="submit" loading={changingPassword} disabled={changingPassword || Boolean(Object.keys(passwordErrors).length)} icon={<Icon name="lock" size="sm" />}>Cập nhật mật khẩu</Button></div>
-  </Card></form>;
+  const passwordForm = (
+    <form onSubmit={changePassword} noValidate aria-labelledby="password-form-title" aria-busy={changingPassword} className="mx-auto w-full max-w-[680px]">
+      <Card padding="lg" className="space-y-6 rounded-2xl border border-border shadow-none sm:p-7">
+        <div>
+          <h2 id="password-form-title" className="text-lg font-semibold text-fg">Đổi mật khẩu</h2>
+          <p className="mt-2 text-sm text-fg-secondary">Bảo vệ tài khoản TutorHub của bạn.</p>
+        </div>
+        <div className="w-full space-y-5">
+          {[
+            ['current', 'curr-password', 'Mật khẩu hiện tại'],
+            ['next', 'new-password', 'Mật khẩu mới'],
+            ['confirm', 'confirm-password', 'Xác nhận mật khẩu mới'],
+          ].map(([key, id, label]) => (
+            <PasswordField key={`${passwordFormVersion}-${key}`} id={id} label={label} value={passwords[key]} disabled={changingPassword}
+              autoComplete={key === 'current' ? 'current-password' : 'new-password'}
+              hint={key === 'next' ? 'Ít nhất 8 ký tự, khác mật khẩu hiện tại. Ưu tiên cụm từ dài, khó đoán và chưa dùng ở nơi khác.' : undefined}
+              error={key === 'current' && currentPasswordError ? currentPasswordError : passwordTouched[key] ? passwordErrors[key] : undefined}
+              onChange={event => {
+                setPasswords(previous => ({ ...previous, [key]: event.target.value }));
+                setPasswordError('');
+                if (key === 'current') setCurrentPasswordError('');
+              }}
+              onBlur={() => setPasswordTouched(previous => ({ ...previous, [key]: true }))} />
+          ))}
+        </div>
+        <p className="flex items-start gap-2 rounded-xl bg-neutral-50 px-3 py-3 text-caption leading-relaxed text-fg-secondary">
+          <Icon name="lock" size="sm" className="mt-0.5 shrink-0 text-brand-primary-600" />
+          Sau khi đổi mật khẩu, bạn cần đăng nhập lại trên tất cả thiết bị.
+        </p>
+        {passwordError && <p role="alert" className="rounded-xl bg-danger-subtle p-3 text-sm text-danger-strong">{passwordError}</p>}
+        <div className="flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:justify-end">
+          <Button variant="outline" disabled={!passwordDirty || changingPassword} onClick={resetPasswords}>Đặt lại</Button>
+          <Button type="submit" loading={changingPassword} disabled={changingPassword || Boolean(Object.keys(passwordErrors).length)}>Cập nhật mật khẩu</Button>
+        </div>
+      </Card>
+    </form>
+  );
 
   return <div className="mx-auto max-w-3xl space-y-6 py-2 sm:py-4">
     <header className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-headline-page text-fg">Cài đặt tài khoản</h1><p className="mt-2 text-body-reg text-fg-secondary">Quản lý hồ sơ cá nhân và bảo mật tài khoản.</p></div><Badge variant="neutral">{role === 'Tutor' ? 'Gia sư' : role === 'Admin' ? 'Quản trị viên' : 'Học viên'}</Badge></header>
