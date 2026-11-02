@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import enrollmentService from '@/services/enrollment.service';
 import chatService from '@/services/chat.service';
 import tutorService from '@/services/tutor.service';
@@ -19,11 +19,13 @@ import Icon from '@/components/ui/Icon';
 import Input, { Textarea, Field } from '@/components/ui/Input';
 import StateBadge from '@/components/common/StateBadge';
 import dayjs from 'dayjs';
+import { scheduleReturn, TEACHING_ZONE } from '@/utils/tutorSchedule';
 
 /** Chi tiết một buổi học; hành động theo trạng thái và quyền hiện có. */
 export default function SessionDetail() {
   const toast = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const loadVersion = useRef(0);
   const [enrollment, setEnrollment] = useState(null);
   const [recordError, setRecordError] = useState(null);
@@ -56,8 +58,9 @@ export default function SessionDetail() {
   const [actionLoading, setActionLoading] = useState(false);
 
   const isTutor = user?.role === 'Tutor';
-  const backPath = isTutor ? '/tutor/dashboard' : '/student/dashboard';
-  const backLabel = isTutor ? 'Quay lại bàn điều hành' : 'Quay lại bàn học';
+  const scheduleContext = isTutor ? scheduleReturn(location.state) : null;
+  const backPath = scheduleContext || (isTutor ? '/tutor/dashboard' : '/student/dashboard');
+  const backLabel = scheduleContext ? 'Quay lại lịch dạy' : isTutor ? 'Quay lại bàn điều hành' : 'Quay lại bàn học';
 
   // Modal tự đóng bằng Escape, khớp hành vi `Dialog` dùng chung.
   useEffect(() => {
@@ -161,8 +164,8 @@ export default function SessionDetail() {
       return;
     }
 
-    const startDateTime = dayjs(`${rescheduleDate}T${rescheduleStartTime}:00`);
-    const endDateTime = dayjs(`${rescheduleDate}T${rescheduleEndTime}:00`);
+    const startDateTime = dayjs.tz(`${rescheduleDate}T${rescheduleStartTime}:00`, TEACHING_ZONE);
+    const endDateTime = dayjs.tz(`${rescheduleDate}T${rescheduleEndTime}:00`, TEACHING_ZONE);
 
     if (!endDateTime.isAfter(startDateTime)) {
       toast.error('Giờ kết thúc phải sau giờ bắt đầu.');
@@ -291,8 +294,8 @@ export default function SessionDetail() {
   const isUnscheduled = session.status === 'Unscheduled';
   const isAwaitingPayout = session.status === 'AwaitingPayout';
   const isActiveEnrollment = enrollment?.status === 'Active';
-  const isFutureScheduled = isScheduled && session.startAt && dayjs(session.startAt).isAfter(dayjs(now));
-  const hasMinimumNotice = isFutureScheduled && !dayjs(session.startAt).isBefore(dayjs(now).add(2, 'hour'));
+  const isFutureScheduled = isScheduled && session.startAt && dayjs.utc(session.startAt).isAfter(dayjs(now));
+  const hasMinimumNotice = isFutureScheduled && !dayjs.utc(session.startAt).isBefore(dayjs(now).add(2, 'hour'));
   const canCancel = ['Student', 'Tutor'].includes(user?.role) && isActiveEnrollment && (isUnscheduled || hasMinimumNotice);
   const canTutorSchedule = isTutor && isActiveEnrollment && (isUnscheduled || hasMinimumNotice);
   const isReportWindowOpen = isAwaitingPayout && session.gracePeriodEndsAt
@@ -302,7 +305,7 @@ export default function SessionDetail() {
   const tutorName = enrollment?.tutorName || session.tutorName;
   const number = session.sessionNumber != null ? String(session.sessionNumber).padStart(2, '0') : '—';
   const scheduledDuration = session.startAt && session.endAt
-    ? dayjs(session.endAt).diff(dayjs(session.startAt), 'minute') : 0;
+    ? dayjs.utc(session.endAt).diff(dayjs.utc(session.startAt), 'minute') : 0;
   const plannedDuration = Number(enrollment?.sessionDurationMinutes) || scheduledDuration;
   const siblings = [...(Array.isArray(enrollment?.sessions) ? enrollment.sessions : [])]
     .sort((a, b) => a.sessionNumber - b.sessionNumber);
@@ -318,9 +321,10 @@ export default function SessionDetail() {
 
   return (
     <div className="mx-auto max-w-[1100px] space-y-6">
+      {scheduleContext && <Button as={Link} to={scheduleContext} variant="ghost" icon={<Icon name="arrow_back" size="sm" />}>Quay lại lịch dạy</Button>}
       <nav aria-label="Đường dẫn buổi học">
         <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-fg-secondary">
-          <li><Link to={backPath} className="hover:text-primary focus-visible:underline">{isTutor ? 'Bảng điều hành' : 'Bàn học'}</Link></li>
+          <li><Link to={backPath} className="hover:text-primary focus-visible:underline">{scheduleContext ? 'Lịch giảng dạy' : isTutor ? 'Bảng điều hành' : 'Bàn học'}</Link></li>
           <li aria-hidden="true">/</li>
           <li className="min-w-0"><Link to={enrollmentPath} className="break-words hover:text-primary focus-visible:underline">{courseTitle}</Link></li>
           <li aria-hidden="true">/</li>
@@ -358,12 +362,12 @@ export default function SessionDetail() {
             <dl className="divide-y divide-border text-body-reg">
               <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-4">
                 <dt className="text-fg-secondary">Ngày học</dt>
-                <dd className="font-medium text-fg">{session.startAt ? dayjs(session.startAt).format('DD/MM/YYYY') : 'Chưa xếp lịch'}</dd>
+                <dd className="font-medium text-fg">{session.startAt ? formatDateTime(session.startAt, 'DD/MM/YYYY') : 'Chưa xếp lịch'}</dd>
               </div>
               {session.startAt && session.endAt && (
                 <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-4">
                   <dt className="text-fg-secondary">Khung giờ</dt>
-                  <dd className="font-medium tabular-nums text-fg">{dayjs(session.startAt).format('HH:mm')} – {dayjs(session.endAt).format('HH:mm')}</dd>
+                  <dd className="font-medium tabular-nums text-fg">{formatDateTime(session.startAt, 'HH:mm')} – {formatDateTime(session.endAt, 'HH:mm')} (UTC+7)</dd>
                 </div>
               )}
               <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-4">
@@ -491,8 +495,8 @@ export default function SessionDetail() {
 
       {(previousSession || nextSession) && (
         <nav aria-label="Điều hướng buổi học" className="flex flex-wrap justify-between gap-4 border-t border-border pt-5">
-          {previousSession ? <Link to={`/${isTutor ? 'tutor' : 'student'}/sessions/${previousSession.id}`} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-body-reg font-medium text-primary hover:bg-brand-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Icon name="arrow_back" size="sm" />Buổi trước · #{String(previousSession.sessionNumber).padStart(2, '0')}</Link> : <span />}
-          {nextSession && <Link to={`/${isTutor ? 'tutor' : 'student'}/sessions/${nextSession.id}`} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-body-reg font-medium text-primary hover:bg-brand-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Buổi tiếp theo · #{String(nextSession.sessionNumber).padStart(2, '0')}<Icon name="arrow_forward" size="sm" /></Link>}
+          {previousSession ? <Link to={`/${isTutor ? 'tutor' : 'student'}/sessions/${previousSession.id}`} state={scheduleContext ? { scheduleReturn: scheduleContext } : undefined} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-body-reg font-medium text-primary hover:bg-brand-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Icon name="arrow_back" size="sm" />Buổi trước · #{String(previousSession.sessionNumber).padStart(2, '0')}</Link> : <span />}
+          {nextSession && <Link to={`/${isTutor ? 'tutor' : 'student'}/sessions/${nextSession.id}`} state={scheduleContext ? { scheduleReturn: scheduleContext } : undefined} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-body-reg font-medium text-primary hover:bg-brand-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Buổi tiếp theo · #{String(nextSession.sessionNumber).padStart(2, '0')}<Icon name="arrow_forward" size="sm" /></Link>}
         </nav>
       )}
 
@@ -539,14 +543,14 @@ export default function SessionDetail() {
                   id="reschedule-date"
                   type="date"
                   value={rescheduleDate}
-                  min={dayjs().format('YYYY-MM-DD')}
+                  min={dayjs().tz(TEACHING_ZONE).format('YYYY-MM-DD')}
                   onChange={(e) => setRescheduleDate(e.target.value)}
                   required
                 />
               </Field>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Giờ bắt đầu" htmlFor="reschedule-start" required>
+                <Field label="Giờ bắt đầu (UTC+7)" htmlFor="reschedule-start" required>
                   <Input
                     id="reschedule-start"
                     type="time"
@@ -555,7 +559,7 @@ export default function SessionDetail() {
                     required
                   />
                 </Field>
-                <Field label="Giờ kết thúc" htmlFor="reschedule-end" required>
+                <Field label="Giờ kết thúc (UTC+7)" htmlFor="reschedule-end" required>
                   <Input
                     id="reschedule-end"
                     type="time"
