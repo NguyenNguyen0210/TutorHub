@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import adminService from '@/services/admin.service';
 import { WITHDRAWAL_STATUS, getWithdrawalStatusMeta } from '@/config/enums';
 import { formatDateTime, formatRelativeTime } from '@/utils/formatters';
@@ -26,6 +27,17 @@ const STATUS_TABS = [
 
 export default function AdminWithdrawals() {
   const toast = useToast();
+  const [searchParams] = useSearchParams();
+  const requestedWithdrawalId = searchParams.get('withdrawalId');
+  useEffect(() => {
+    if (!requestedWithdrawalId) return undefined;
+    let cancelled = false;
+    setSelectedWithdrawal(null);
+    adminService.getWithdrawalById(requestedWithdrawalId)
+      .then(item => { if (!cancelled) setSelectedWithdrawal(item); })
+      .catch(() => { if (!cancelled) toast.error('Không thể mở lệnh rút tiền được liên kết.'); });
+    return () => { cancelled = true; };
+  }, [requestedWithdrawalId, toast]);
   const confirm = useConfirm();
 
   const [withdrawals, setWithdrawals] = useState([]);

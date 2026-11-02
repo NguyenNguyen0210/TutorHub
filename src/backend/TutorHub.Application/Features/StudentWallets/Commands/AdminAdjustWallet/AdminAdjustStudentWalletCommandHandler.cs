@@ -32,7 +32,7 @@ public class AdminAdjustStudentWalletCommandHandler : IRequestHandler<AdminAdjus
         {
             // Row-level lock on student wallet
             var wallet = await _context.StudentWallets
-                .FromSqlInterpolated($"SELECT * FROM \"StudentWallets\" WHERE \"Id\" = {request.StudentWalletId} FOR UPDATE")
+                .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"Id\" = {request.StudentWalletId} FOR UPDATE")
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (wallet == null)

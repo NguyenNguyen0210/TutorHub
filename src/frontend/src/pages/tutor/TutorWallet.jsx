@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import walletService from '@/services/wallet.service';
 import { formatCurrency, formatDateTime } from '@/utils/formatters';
 import Money from '@/components/ui/Money';
@@ -61,6 +61,8 @@ const ESCROW_STEPS = [
  * - Hạn mức tối thiểu tạo lệnh rút: 50.000 ₫.
  */
 export default function TutorWallet() {
+  const [searchParams] = useSearchParams();
+  const recordId = searchParams.get('recordId');
   const [wallet, setWallet] = useState(null);
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,9 +77,16 @@ export default function TutorWallet() {
           walletService.getMyWallet(),
           walletService.getWithdrawals({ pageSize: 15 }),
         ]);
+        const items = [...(withdrawalRes?.items || [])];
+        let result = withdrawalRes;
+        let page = 1;
+        while (isMounted && recordId && !items.some(item => item.id === recordId) && result.hasNextPage) {
+          result = await walletService.getWithdrawals({ pageNumber: ++page, pageSize: 15 });
+          items.push(...result.items);
+        }
         if (isMounted) {
           setWallet(walletData);
-          setWithdrawals(withdrawalRes?.items || []);
+          setWithdrawals(items);
           setError(null);
         }
       } catch (err) {
@@ -93,7 +102,10 @@ export default function TutorWallet() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [recordId]);
+  useEffect(() => {
+    if (recordId && !loading) document.getElementById(`tutor-withdrawal-${recordId}`)?.scrollIntoView({ block: 'center', behavior: 'auto' });
+  }, [recordId, loading, withdrawals]);
 
   if (loading) {
     return (
@@ -226,6 +238,7 @@ export default function TutorWallet() {
           </span>
         </div>
 
+        {recordId && !withdrawals.some(item => item.id === recordId) && <p role="status" className="text-caption text-fg-secondary">Không tìm thấy lệnh rút tiền được liên kết trong danh sách của bạn.</p>}
         {withdrawals.length === 0 ? (
           <EmptyState
             icon="history"
@@ -239,7 +252,7 @@ export default function TutorWallet() {
             minWidth={680}
           >
             {withdrawals.map((row) => (
-              <tr key={row.id} className="hover:bg-neutral-50/60 transition-colors">
+              <tr key={row.id} id={`tutor-withdrawal-${row.id}`} className={row.id === recordId ? 'bg-brand-primary-50 ring-1 ring-inset ring-brand-primary-200' : 'hover:bg-neutral-50/60 transition-colors'}>
                 <td className="px-4 py-2.5 font-mono text-fg-muted whitespace-nowrap text-[12px]">
                   {formatDateTime(row.requestedAt)}
                 </td>

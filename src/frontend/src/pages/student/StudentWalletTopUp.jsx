@@ -6,6 +6,7 @@ import { formatCurrency } from '@/utils/formatters';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
+import Money from '@/components/ui/Money';
 import Input, { Field } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
 
@@ -25,17 +26,15 @@ export default function StudentWalletTopUp() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    document.title = 'Nạp tiền — TutorHub';
-    return () => {
-      document.title = 'TutorHub — Nền Tảng Kết Nối Gia Sư & Học Viên';
-    };
+    document.title = 'Nạp tiền ví';
   }, []);
 
   const finalAmount = customTopUpInput ? Number(customTopUpInput) : Number(topUpAmount);
-  const belowMinimum = !finalAmount || finalAmount < MIN_TOP_UP;
+  const belowMinimum = !Number.isFinite(finalAmount) || finalAmount < MIN_TOP_UP;
 
   const handleRequestTopUp = async () => {
-    if (!finalAmount || finalAmount < MIN_TOP_UP) {
+    if (submitting) return;
+    if (belowMinimum) {
       toast.error('Số tiền nạp tối thiểu là 10.000 ₫');
       return;
     }
@@ -44,10 +43,9 @@ export default function StudentWalletTopUp() {
       setSubmitting(true);
       const res = await studentWalletService.createVnPayTopUp({ amount: finalAmount });
       if (res?.paymentUrl) {
-        toast.info('Đang chuyển hướng đến Cổng thanh toán VNPay Sandbox...');
         window.location.href = res.paymentUrl;
       } else {
-        toast.error('Không nhận được liên kết thanh toán từ VNPay.');
+        toast.error('Chưa thể mở trang nạp tiền. Vui lòng thử lại.');
       }
     } catch (err) {
       toast.error(err?.message || 'Không thể tạo yêu cầu nạp tiền.');
@@ -72,9 +70,10 @@ export default function StudentWalletTopUp() {
         <h1 className="text-headline-page text-fg tracking-tight">
           Nạp tiền vào ví
         </h1>
+        <p className="mt-2 text-body-reg text-fg-secondary">Chọn số tiền và tiếp tục thanh toán qua VNPAY.</p>
       </div>
 
-      <Card padding="lg" className="space-y-5">
+      <Card padding="lg" variant="outlined" className="space-y-6 rounded-2xl">
         <div>
           <span className="text-caption font-semibold text-fg-secondary block mb-2">
             Chọn nhanh mệnh giá nạp
@@ -106,7 +105,9 @@ export default function StudentWalletTopUp() {
           </div>
         </div>
 
-        <Field label="Hoặc nhập số tiền tùy chọn (VND)" htmlFor="topup-amount">
+        <Field label="Hoặc nhập số tiền tùy chọn (VND)" htmlFor="topup-amount"
+          hint="Nạp tối thiểu 10.000 ₫."
+          error={customTopUpInput !== '' && belowMinimum ? 'Số tiền nạp tối thiểu là 10.000 ₫.' : undefined}>
           <Input
             id="topup-amount"
             type="number"
@@ -116,14 +117,28 @@ export default function StudentWalletTopUp() {
             onChange={(e) => setCustomTopUpInput(e.target.value)}
             min={MIN_TOP_UP}
             step="10000"
+            state={customTopUpInput !== '' && belowMinimum ? 'error' : 'default'}
+            aria-invalid={customTopUpInput !== '' && belowMinimum || undefined}
           />
         </Field>
 
-
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-border">
-
-          <div className="flex items-center gap-2.5 ml-auto">
-            <Button as={Link} to="/student/wallet" variant="outline" size="md">
+        <section aria-label="Thông tin thanh toán" className="space-y-4 border-t border-border pt-5">
+          <div className="flex items-center gap-3">
+            <Icon name="lock" size="md" className="shrink-0 text-primary" />
+            <div>
+              <h2 className="font-semibold text-fg">Cổng thanh toán VNPAY</h2>
+              <p className="mt-1 text-caption text-fg-secondary">Số dư ví được cập nhật sau khi thanh toán được xác nhận.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-neutral-50 p-4">
+            <span className="text-body-reg text-fg-secondary">Số tiền nạp vào ví</span>
+            <span className="text-headline-3 font-semibold text-fg"><Money value={belowMinimum ? 0 : finalAmount} /></span>
+          </div>
+        </section>
+        <div className="flex flex-col gap-3 border-t border-border pt-5">
+          <p className="text-caption leading-relaxed text-fg-secondary">Bạn sẽ được chuyển đến VNPAY để xác nhận thanh toán.</p>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button as={Link} to="/student/wallet" variant="outline" size="md" disabled={submitting}>
               Hủy bỏ
             </Button>
             <Button
@@ -134,7 +149,7 @@ export default function StudentWalletTopUp() {
               onClick={handleRequestTopUp}
               icon={!submitting && <Icon name="payments" size="sm" />}
             >
-              Thanh toán {formatCurrency(finalAmount || 0)}
+              {submitting ? 'Đang mở VNPAY…' : 'Tiếp tục đến VNPAY'}
             </Button>
           </div>
         </div>

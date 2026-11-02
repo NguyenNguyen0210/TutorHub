@@ -53,7 +53,7 @@ public class GetMyStudentWithdrawalsQueryHandler
 
         var query = _context.StudentWithdrawals
             .AsNoTracking()
-            .Where(w => w.StudentWalletId == wallet.Id);
+            .Where(w => w.WalletId == wallet.Id);
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -65,7 +65,7 @@ public class GetMyStudentWithdrawalsQueryHandler
             .Select(w => new StudentWithdrawalDto
             {
                 Id = w.Id,
-                StudentWalletId = w.StudentWalletId,
+                StudentWalletId = w.WalletId,
                 Amount = w.Amount,
                 Status = w.Status,
                 BankName = w.BankName,
