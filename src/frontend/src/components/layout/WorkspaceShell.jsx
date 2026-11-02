@@ -25,7 +25,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
   const activity = useWorkspaceActivity(isAuthenticated ? user?.id || user?.userId : null, location.pathname);
   const roleLabel = role === 'Student' ? 'Học viên' : role === 'Tutor' ? 'Gia sư' : 'Quản trị viên';
   const settingsPath = role === 'Tutor' ? '/tutor/settings' : role === 'Admin' ? '/admin/settings' : '/student/settings';
-  const settingsActive = location.pathname === settingsPath || (role === 'Tutor' && location.pathname === '/tutor/application');
+  const settingsActive = location.pathname === settingsPath;
   const fullName = user?.fullName || user?.name || 'Tài khoản';
 
   useEffect(() => { setDrawerOpen(false); }, [location.pathname, location.search]);
@@ -38,10 +38,9 @@ export default function WorkspaceShell({ userRole: role, children }) {
   const userMenuItems = [
     { key: 'profile', icon: <Icon name="person" size="sm" />, label: 'Hồ sơ cá nhân', onClick: () => goTo(`${settingsPath}?tab=profile`) },
     { key: 'settings', icon: <Icon name="lock" size="sm" />, label: 'Đổi mật khẩu', onClick: () => goTo(`${settingsPath}?tab=password`) },
-    ...(role === 'Tutor' ? [
+    ...(role === 'Tutor' && profileId ? [
       { type: 'divider' },
-      { key: 'application', icon: <Icon name="verified_user" size="sm" />, label: 'Hồ sơ xét duyệt', onClick: () => goTo('/tutor/application') },
-      ...(profileId ? [{ key: 'public-profile', icon: <Icon name="school" size="sm" />, label: 'Xem hồ sơ công khai', onClick: () => goTo(`/tutors/${profileId}`) }] : []),
+      { key: 'public-profile', icon: <Icon name="school" size="sm" />, label: 'Xem hồ sơ công khai', onClick: () => goTo(`/tutors/${profileId}`) },
     ] : []),
     { type: 'divider' },
     { key: 'logout', icon: <Icon name="logout" size="sm" />, label: 'Đăng xuất', danger: true,
