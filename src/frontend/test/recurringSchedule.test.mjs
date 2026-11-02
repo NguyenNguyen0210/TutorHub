@@ -15,3 +15,13 @@ test('conflict checks catch overlaps within a batch and against confirmed sessio
   assert.deepEqual(scheduleConflicts([a], [{ id:'x', status:'Scheduled', startAt:a.endAt, endAt:b.endAt }], now), {});
   assert.ok(scheduleConflicts([a], [], Date.parse(a.startAt) - 3600000).a);
 });
+
+test('drafts from other contracts conflict without blocking adjacent times or the same session', () => {
+  const now = Date.parse('2026-11-01T00:00:00Z');
+  const first = { sessionId: 'class-a-1', startAt: '2026-11-03T11:00:00Z', endAt: '2026-11-03T12:30:00Z' };
+  const other = { sessionId: 'class-b-1', startAt: '2026-11-03T12:00:00Z', endAt: '2026-11-03T13:30:00Z' };
+  assert.ok(scheduleConflicts([first], [], now, [other])[first.sessionId]);
+  assert.ok(scheduleConflicts([other], [], now, [first])[other.sessionId]);
+  assert.deepEqual(scheduleConflicts([first], [], now, [first]), {});
+  assert.deepEqual(scheduleConflicts([first], [], now, [{ ...other, startAt: first.endAt }]), {});
+});

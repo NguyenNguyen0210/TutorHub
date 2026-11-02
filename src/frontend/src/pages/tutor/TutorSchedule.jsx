@@ -31,6 +31,7 @@ export default function TutorSchedule() {
   const [error, setError] = useState(null);
   const [now, setNow] = useState(Date.now);
   const [values, setValues] = useState({});
+  const [saveErrors, setSaveErrors] = useState({});
   const [busyKey, setBusyKey] = useState(null);
   const submitting = useRef(false);
   const loadVersion = useRef(0);
@@ -56,6 +57,11 @@ export default function TutorSchedule() {
   }, { replace });
   const calendar = useMemo(() => classifyTeachingSessions(sessions, now), [sessions, now]);
   const allGroups = useMemo(() => unscheduledGroups(enrollments, sessions), [enrollments, sessions]);
+  const drafts = useMemo(() => allGroups.flatMap(enrollment => enrollment.unscheduledSessions.flatMap(session => {
+    if (!values[session.id]) return [];
+    try { return [schedulingItem(session.id, values[session.id], enrollment.sessionDurationMinutes)]; }
+    catch { return []; }
+  })), [allGroups, values]);
   const groups = enrollmentFilter ? allGroups.filter(enrollment => enrollment.id === enrollmentFilter) : allGroups;
   const totalUnscheduled = allGroups.reduce((sum, enrollment) => sum + enrollment.unscheduledSessions.length, 0);
   const filteredUnscheduled = groups.reduce((sum, enrollment) => sum + enrollment.unscheduledSessions.length, 0);
@@ -78,18 +84,23 @@ export default function TutorSchedule() {
       if (!items.length) throw new Error('Vui lòng chọn thời gian cho ít nhất một buổi học.');
       const notice = items.map(item => assertMinNotice(item.startAt)).find(Boolean);
       if (notice) throw new Error(notice);
-      const conflicts = scheduleConflicts(items, sessions);
+      const conflicts = scheduleConflicts(items, sessions, Date.now(), drafts);
       if (Object.keys(conflicts).length) throw new Error(Object.values(conflicts)[0]);
     } catch (err) { toast.error(err.message); return; }
     submitting.current = true; setBusyKey(key);
+    setSaveErrors(previous => { const next = { ...previous }; items.forEach(item => delete next[item.sessionId]); return next; });
     try {
       if (batch) await sessionService.scheduleSessionsBatch(items);
       else await sessionService.scheduleSession(items[0].sessionId, items[0].startAt, items[0].endAt);
       setValues(previous => { const next = { ...previous }; items.forEach(item => delete next[item.sessionId]); return next; });
       toast.success(`Đã xếp lịch ${items.length} buổi học.`);
       await loadData();
-    } catch {
-      toast.error('Chưa thể xếp lịch. Vui lòng kiểm tra thời gian trùng lịch hoặc thử lại.');
+    } catch (err) {
+      const message = err?.status === 409 || err?.response?.status === 409
+        ? 'Khung giờ này không còn khả dụng hoặc buổi học vừa được cập nhật. Chọn giờ khác hoặc tải lại lịch để kiểm tra.'
+        : 'Chưa lưu được lịch học. Thời gian bạn chọn vẫn được giữ lại. Vui lòng thử lại.';
+      setSaveErrors(previous => ({ ...previous, ...Object.fromEntries(items.map(item => [item.sessionId, message])) }));
+      toast.error(message);
     } finally { submitting.current = false; setBusyKey(null); }
   };
 
@@ -118,10 +129,10 @@ export default function TutorSchedule() {
     {!loading && !error && activeTab === 'unscheduled' && <section aria-labelledby="unscheduled-title" className="space-y-5">
       <div><h2 id="unscheduled-title" className="text-[18px] font-semibold text-fg">Buổi học cần xếp lịch</h2><p className="mt-2 text-body-reg leading-relaxed text-fg-secondary">Nhóm theo học viên và hợp đồng. Chọn một lớp để xem các buổi chưa có lịch.</p></div>
       {enrollmentFilter && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4"><p className="text-caption text-fg-secondary">Đang xem các buổi chưa xếp lịch của lớp đã chọn.</p><Button size="sm" variant="ghost" onClick={() => change({ enrollmentId: null, group: null })}>Xem tất cả lớp</Button></div>}
-      <p className="flex items-start gap-2 rounded-xl bg-brand-primary-50 p-4 text-caption leading-relaxed text-fg-secondary"><Icon name="info" size="sm" className="mt-0.5 shrink-0 text-primary" />Xếp lịch trước giờ bắt đầu ít nhất 2 giờ. Không cần xếp tất cả buổi cùng lúc. Giờ nhập theo Việt Nam (UTC+7).</p>
+      <p className="flex items-start gap-2 rounded-xl bg-brand-primary-50 p-4 text-caption leading-relaxed text-fg-secondary"><Icon name="info" size="sm" className="mt-0.5 shrink-0 text-primary" />Xếp lịch trước giờ bắt đầu ít nhất 2 giờ và không trùng với các buổi dạy khác. Giờ Việt Nam (UTC+7).</p>
       {groups.length ? groups.map(enrollment => <UnscheduledClassGroup key={enrollment.id} enrollment={enrollment} open={expandedGroup === enrollment.id} onToggle={open => change({ group: open ? enrollment.id : '' }, true)}
-        values={values} min={minTeachingStart(now)} busy={Boolean(busyKey)} busyKey={busyKey} returnTo={returnTo} existing={sessions}
-        onChange={(id, value) => setValues(previous => ({ ...previous, [id]: value }))}
+        values={values} min={minTeachingStart(now)} busy={Boolean(busyKey)} busyKey={busyKey} returnTo={returnTo} existing={sessions} drafts={drafts} saveErrors={saveErrors}
+        onChange={(id, value) => { setValues(previous => ({ ...previous, [id]: value })); setSaveErrors(previous => { const next = { ...previous }; delete next[id]; return next; }); }}
         onSingle={(session, duration) => save(session.id, [session], duration)}
         onBatch={item => save(item.id, item.unscheduledSessions, item.sessionDurationMinutes, true)} />)
         : <EmptyState icon="calendar_month" title={enrollmentFilter ? 'Không có buổi cần xếp lịch trong lớp này' : 'Không có buổi học nào cần xếp lịch'} description="Các lớp có buổi học chưa được lên lịch sẽ hiển thị tại đây." className="max-w-none rounded-2xl shadow-none" />}

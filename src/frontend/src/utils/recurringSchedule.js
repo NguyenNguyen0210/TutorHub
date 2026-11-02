@@ -12,7 +12,7 @@ export function recurringDates(startDay, time, weekdays, count) {
   return result;
 }
 
-export function scheduleConflicts(items, existing, now = Date.now()) {
+export function scheduleConflicts(items, existing, now = Date.now(), drafts = []) {
   const errors = {};
   const overlap = (a, b) => sessionTime(a.startAt) < sessionTime(b.endAt) && sessionTime(b.startAt) < sessionTime(a.endAt);
   const display = value => new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(sessionTime(value));
@@ -20,7 +20,7 @@ export function scheduleConflicts(items, existing, now = Date.now()) {
     if (sessionTime(item.startAt) < now + 2 * 3600000) { errors[item.sessionId] = 'Lịch học phải bắt đầu sau ít nhất 2 giờ.'; continue; }
     const conflict = existing.find(session => session.status === 'Scheduled' && session.id !== item.sessionId && overlap(item, session));
     if (conflict) { errors[item.sessionId] = `Bạn đã có lịch từ ${display(conflict.startAt)} đến ${display(conflict.endAt)}. Vui lòng chọn thời gian khác.`; continue; }
-    if (items.some(other => other.sessionId !== item.sessionId && overlap(item, other))) errors[item.sessionId] = 'Thời gian bị trùng với một buổi khác trong lịch đang chọn.';
+    if ([...items, ...drafts].some(other => other.sessionId !== item.sessionId && overlap(item, other))) errors[item.sessionId] = 'Thời gian bị trùng với một buổi khác trong lịch đang chọn. Kiểm tra cả các lớp khác đang nhập lịch.';
   }
   return errors;
 }

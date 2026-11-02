@@ -5,7 +5,7 @@ import { recurringDates, scheduleConflicts } from '@/utils/recurringSchedule';
 import { schedulingItem, vietnamDay } from '@/utils/tutorSchedule';
 import { formatDateTime } from '@/utils/formatters';
 
-export default function RecurringSchedulePlanner({ enrollment, existing, busy, onApply }) {
+export default function RecurringSchedulePlanner({ enrollment, existing, drafts = [], busy, onApply }) {
   const [days, setDays] = useState([2, 5]);
   const [start, setStart] = useState(vietnamDay());
   const [time, setTime] = useState('18:00');
@@ -20,7 +20,9 @@ export default function RecurringSchedulePlanner({ enrollment, existing, busy, o
   };
   const items = [], invalid = {};
   (preview || []).forEach(session => { try { items.push(schedulingItem(session.id, session.local, enrollment.sessionDurationMinutes)); } catch { invalid[session.id] = 'Chọn ngày giờ hợp lệ.'; } });
-  const conflicts = { ...scheduleConflicts(items, existing), ...invalid };
+  // Generated dates replace only their own drafts; other classes still reserve their selected time.
+  const otherDrafts = drafts.filter(item => !(preview || []).some(session => session.id === item.sessionId));
+  const conflicts = { ...scheduleConflicts(items, existing, Date.now(), otherDrafts), ...invalid };
   return <div className="space-y-5 rounded-xl border border-border bg-surface p-4 sm:p-5">
     <div><h3 className="font-semibold text-fg">Lịch lặp hàng tuần</h3><p className="mt-2 text-caption leading-relaxed text-fg-secondary">Tạo lịch dự kiến, kiểm tra từng buổi rồi xác nhận. Các buổi đã xếp lịch không bị thay đổi.</p></div>
     <fieldset disabled={busy} className="space-y-4"><legend className="mb-3 text-sm font-medium text-fg">Ngày học trong tuần</legend><div className="flex flex-wrap gap-2">{['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((label, index) => <Button key={label} variant={days.includes(index+1) ? 'primary' : 'outline'} aria-pressed={days.includes(index+1)} onClick={() => { setDays(previous => previous.includes(index+1) ? previous.filter(day => day !== index+1) : [...previous, index+1]); setPreview(null); }}>{label}</Button>)}</div>
