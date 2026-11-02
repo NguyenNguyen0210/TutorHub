@@ -10,6 +10,7 @@
 import api from './api';
 import { HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
 import { useAuthStore } from '@/store/authStore';
+import { notifyWorkspaceActivityChanged } from '@/utils/workspaceActivity';
 
 /**
  * Tạo kết nối SignalR realtime tới /hubs/notifications.
@@ -54,6 +55,29 @@ function normalizeCursorPaged(raw) {
 }
 
 export const notificationService = {
+  async getById(id) {
+    try {
+      return normalizeNotification(await api.get(`/notifications/${encodeURIComponent(id)}`));
+    } catch (error) {
+      if (error?.status !== 404) throw error;
+      // Rolling frontend/API updates: older APIs expose the owned feed but not
+      // the detail route. Resolve the exact ID from that feed, never from another user.
+      const userId = useAuthStore.getState().user?.id || useAuthStore.getState().user?.userId;
+      const seenCursors = new Set();
+      let cursor;
+      do {
+        const page = await notificationService.getNotifications({ cursor, pageSize: 100 });
+        const currentUser = useAuthStore.getState().user;
+        if ((currentUser?.id || currentUser?.userId) !== userId) throw error;
+        const item = page.items.find(value => String(value.id).toLowerCase() === String(id).toLowerCase());
+        if (item) return item;
+        if (!page.hasMore || !page.nextCursor || seenCursors.has(page.nextCursor)) break;
+        cursor = page.nextCursor;
+        seenCursors.add(cursor);
+      } while (cursor);
+      throw error;
+    }
+  },
   /**
    * GET /notifications → CursorPagedResult<NotificationDto>
    */
@@ -76,6 +100,7 @@ export const notificationService = {
    */
   async markAsRead(id) {
     const res = await api.patch(`/notifications/${id}/read`);
+    notifyWorkspaceActivityChanged();
     return res?.success ?? true;
   },
 
@@ -84,6 +109,7 @@ export const notificationService = {
    */
   async markAllAsRead() {
     const res = await api.patch('/notifications/read-all');
+    notifyWorkspaceActivityChanged();
     return Number(res?.markedCount) || 0;
   },
 };

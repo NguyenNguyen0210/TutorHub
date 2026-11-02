@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import NotificationTarget from '../pages/shared/NotificationTarget';
 import DisputeDetail from '../pages/shared/DisputeDetail';
 
 // Deep link redirect helpers for notifications and external URLs
@@ -137,6 +138,7 @@ export default function AppRoutes() {
       }>
         <Route path="messages" element={<Messages />} />
         <Route path="notifications" element={<Notifications />} />
+        <Route path="notifications/:id" element={<NotificationTarget />} />
         <Route path="disputes/:id" element={<DisputeDetail />} />
       </Route>
 

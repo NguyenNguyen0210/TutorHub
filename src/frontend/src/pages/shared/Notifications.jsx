@@ -1,264 +1,180 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
 import notificationService from '@/services/notification.service';
-import { formatRelativeTime } from '@/utils/formatters';
-import { ListSkeleton } from '@/components/common/Skeleton';
-import EmptyState from '@/components/common/EmptyState';
+import { formatRelativeTime, formatDateTime } from '@/utils/formatters';
+import { presentNotification } from '@/utils/notificationPresentation';
+import { WORKSPACE_ACTIVITY_CHANGED } from '@/utils/workspaceActivity';
 import { useToast } from '@/components/ui/Toast';
 import Card from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
 import Button, { IconButton } from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import Tabs from '@/components/ui/Tabs';
 import { useAuthStore } from '@/store/authStore';
 
-function resolveDeepLink(link, role) {
-  if (!link) return null;
-  if (link.startsWith('/enrollments/')) {
-    return `/student${link}`;
-  }
-  if (link.startsWith('/sessions/')) {
-    return role === 'Tutor' ? `/tutor${link}` : `/student${link}`;
-  }
-  if (link.startsWith('/bookings/')) {
-    return `/student${link}/checkout`;
-  }
-  if (link.startsWith('/chat/') || link.startsWith('/chat')) {
-    return '/app/messages';
-  }
-  return link;
+function NotificationSkeleton() {
+  return <div role="status" aria-label="Đang tải thông báo" className="space-y-3">
+    {[0, 1, 2, 3].map(key => <Card key={key} padding="md" variant="outlined" className="flex gap-4 rounded-xl" aria-hidden="true">
+      <div className="h-10 w-10 shrink-0 rounded-xl bg-neutral-100 motion-safe:animate-pulse" />
+      <div className="flex-1 space-y-3"><div className="h-4 w-2/3 rounded bg-neutral-100 motion-safe:animate-pulse" /><div className="h-3 rounded bg-neutral-100 motion-safe:animate-pulse" /><div className="h-3 w-1/3 rounded bg-neutral-100 motion-safe:animate-pulse" /></div>
+    </Card>)}
+  </div>;
 }
-
-/**
- * Phân loại thông báo — SUY ĐOÁN, không phải dữ liệu thật.
- *
- * DTO `Notification` từ API KHÔNG có field `category` (đã grep toàn repo: 0 kết quả),
- * nên hàm dưới đoán nhóm bằng cách tìm chuỗi trong `type`. Hệ quả đã ghi ở/§6:
- * một type mới từ backend có thể rơi nhầm nhóm mà không ai báo lỗi. Sửa đúng là thêm
- * `category` vào DTO backend — không tự bịa bản phân loại ở file này.
- *
- * THỨ TỰ KIỂM TRA LÀ HỢP ĐỒNG, không phải tình cờ. Một type có thể khớp nhiều nhóm và
- * nhóm đứng trước thắng. `Dispute` đứng trước để bắt `SessionIssueReported`,
- * `Financial` đứng tiếp theo để `SessionPayoutCredit` về nhóm Tài chính,
- * và `GracePeriod` bắt các thông báo `GracePeriodStarted` và session còn lại.
- */
-const CATEGORY_RULES = [
-  ['Dispute', ['dispute', 'sessionissuereported', 'issue']],
-  ['Financial', ['payment', 'earning', 'refund', 'wallet', 'payout']],
-  ['GracePeriod', ['graceperiod', 'grace', 'graceperiodstarted', 'session']],
-];
-
-function getCategoryFromType(type) {
-  if (!type) return 'System';
-  const lower = type.toLowerCase();
-  for (const [category, keywords] of CATEGORY_RULES) {
-    if (keywords.some((keyword) => lower.includes(keyword))) return category;
-  }
-  return 'System';
-}
-
-/**
- * Thanh bên trái + icon của từng nhóm.
- *
- * Mọi tên icon ở đây PHẢI có thật trong `lib/iconMap.js` — tên lạ sẽ fallback
- * `CircleHelp`, tức là nhóm Tài chính (nhóm quan trọng nhất) lại mang icon hỏng
- * (bug B-9: `payment` không tồn tại, đã đổi thành `payments` → Banknote).
- *
- * `System` dùng `text-fg-secondary` thay vì `text-fg-muted`: icon là nội dung
- * phi văn bản có ý nghĩa nên cần ≥ 3:1, còn `text-fg-muted` trên nền trắng chỉ
- * khoảng 2.6:1.
- */
-const CATEGORY_STYLE = {
-  Financial: { bar: 'border-l-brand-primary-600', icon: 'payments', iconCls: 'text-brand-primary-600' },
-  GracePeriod: { bar: 'border-l-holding', icon: 'schedule', iconCls: 'text-holding' },
-  Dispute: { bar: 'border-l-danger', icon: 'gavel', iconCls: 'text-danger' },
-  System: { bar: 'border-l-neutral-400', icon: 'info', iconCls: 'text-fg-secondary' },
-};
 
 export default function Notifications() {
   const toast = useToast();
-  const { role } = useAuthStore();
-  const [activeTab, setActiveTab] = useState('All');
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { role: storedRole, user } = useAuthStore();
+  const role = user?.role || storedRole;
+  const userId = user?.id || user?.userId;
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  const rootKey = useMemo(() => ['notifications', userId], [userId]);
+  const feedKey = useMemo(() => [...rootKey, 'feed', unreadOnly], [rootKey, unreadOnly]);
+  const countKey = useMemo(() => [...rootKey, 'unread-count'], [rootKey]);
 
+  const feed = useInfiniteQuery({
+    queryKey: feedKey,
+    enabled: Boolean(userId),
+    initialPageParam: null,
+    queryFn: ({ pageParam }) => notificationService.getNotifications({ unreadOnly: unreadOnly ? true : null, cursor: pageParam, pageSize: 20 }),
+    getNextPageParam: page => page.hasMore ? page.nextCursor : undefined,
+    refetchInterval: 30000,
+  });
+  const countQuery = useQuery({
+    queryKey: countKey,
+    enabled: Boolean(userId),
+    queryFn: () => notificationService.getUnreadCount(),
+    refetchInterval: 30000,
+  });
   useEffect(() => {
-    let cancelled = false;
-    async function loadNotifications() {
-      try {
-        setLoading(true);
-        const res = await notificationService.getNotifications({ pageSize: 50 });
-        if (!cancelled) setNotifications(res?.items || []);
-      } catch (err) {
-        if (!cancelled) toast.error(err?.message || 'Không thể tải danh sách thông báo.');
-      } finally {
-        if (!cancelled) setLoading(false);
+    const refresh = () => { queryClient.invalidateQueries({ queryKey: rootKey }); };
+    window.addEventListener(WORKSPACE_ACTIVITY_CHANGED, refresh);
+    return () => window.removeEventListener(WORKSPACE_ACTIVITY_CHANGED, refresh);
+  }, [queryClient, rootKey]);
+
+  const applyRead = async id => {
+    await queryClient.cancelQueries({ queryKey: rootKey });
+    queryClient.setQueriesData({ queryKey: [...rootKey, 'feed'] }, previous => previous ? {
+      ...previous, pages: previous.pages.map(page => ({
+        ...page, items: page.items.map(item => !id || item.id === id ? { ...item, isRead: true } : item),
+      })),
+    } : previous);
+    queryClient.setQueryData(countKey, previous => typeof previous === 'number' ? id ? Math.max(0, previous - 1) : 0 : previous);
+    queryClient.invalidateQueries({ queryKey: rootKey });
+  };
+  const markOne = useMutation({
+    mutationFn: async ({ item }) => {
+      if (!item.isRead) {
+        const succeeded = await notificationService.markAsRead(item.id);
+        if (!succeeded) throw new Error('Không thể đánh dấu thông báo đã đọc.');
       }
-    }
-
-    loadNotifications();
-    return () => {
-      cancelled = true;
-    };
-  }, [toast]);
-
-  const handleMarkAsRead = async (id, isRead) => {
-    if (isRead) return;
-    try {
-      await notificationService.markAsRead(id);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-      );
-    } catch (err) {
-      toast.error(err?.message || 'Không thể đánh dấu đã đọc.');
-    }
+    },
+    onSuccess: async (_, { item, destination }) => {
+      if (!item.isRead) await applyRead(item.id);
+      if (destination) navigate(destination);
+    },
+    onError: () => toast.error('Chưa thể cập nhật trạng thái đã đọc. Vui lòng thử lại.'),
+  });
+  const markAll = useMutation({
+    mutationFn: () => notificationService.markAllAsRead(),
+    onSuccess: async () => {
+      await applyRead();
+      toast.success('Đã đọc tất cả thông báo.');
+    },
+    onError: () => toast.error('Chưa thể đánh dấu tất cả đã đọc. Vui lòng thử lại.'),
+  });
+  const busy = markOne.isPending || markAll.isPending;
+  const unreadCount = countQuery.data;
+  const notifications = [...new Map((feed.data?.pages.flatMap(page => page.items) || []).map(item => [item.id, item])).values()]
+    .filter(item => !unreadOnly || !item.isRead)
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  const today = formatDateTime(Date.now(), 'DD/MM/YYYY');
+  const yesterday = formatDateTime(Date.now() - 86400000, 'DD/MM/YYYY');
+  const group = item => {
+    if (notifications.length < 5) return 'Thông báo gần đây';
+    const date = formatDateTime(item.createdAt, 'DD/MM/YYYY');
+    return date === today ? 'Hôm nay' : date === yesterday ? 'Hôm qua' : 'Trước đó';
   };
-
-  const handleMarkAllRead = async () => {
-    try {
-      await notificationService.markAllAsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      toast.success('Đã đánh dấu tất cả thông báo là đã đọc');
-    } catch (err) {
-      toast.error(err?.message || 'Không thể đánh dấu tất cả đã đọc.');
-    }
-  };
-
-  const filtered = activeTab === 'All'
-    ? notifications
-    : notifications.filter((n) => getCategoryFromType(n.type) === activeTab);
-
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const dashboardPath = role === 'Tutor' ? '/tutor/dashboard' : role === 'Admin' ? '/admin/dashboard' : '/student/dashboard';
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5">
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-headline-page text-fg tracking-tight">
-              Trung tâm thông báo & Cảnh báo hệ thống
-            </h1>
-            {/* "Còn N mới" là trạng thái đọc, không phải tín hiệu nguy hiểm —
-                đỏ (danger) theo dành cho xung đột / tranh chấp. */}
-            {unreadCount > 0 && (
-              <Badge variant="primary" size="sm" dot>
-                {unreadCount} mới
-              </Badge>
-            )}
-          </div>
-          <p className="text-body-reg text-fg-secondary mt-2">
-            Theo dõi tức thời các biến động tài chính, thời gian chờ giải ngân 12h và cập nhật hợp đồng
-          </p>
+    <div className="mx-auto max-w-[880px] space-y-6">
+      <nav aria-label="Đường dẫn thông báo" className="text-caption text-fg-secondary"><ol className="flex items-center gap-2"><li><Link to={dashboardPath} className="hover:text-primary focus-visible:underline">{role === 'Student' ? 'Bàn học' : 'Bảng điều hành'}</Link></li><li aria-hidden="true">/</li><li aria-current="page" className="font-medium text-fg">Thông báo</li></ol></nav>
+      <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+        <div>
+          <h1 className="text-[28px] font-semibold leading-tight text-fg">Thông báo</h1>
+          <p className="mt-2 text-body-reg leading-relaxed text-fg-secondary">Cập nhật hoạt động học tập, thanh toán và tài khoản.</p>
         </div>
-        {unreadCount > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleMarkAllRead}
-            icon={<Icon name="done_all" size="sm" />}
-            className="self-start shrink-0"
-          >
-            Đánh dấu tất cả đã đọc
-          </Button>
-        )}
+        <Button variant="outline" onClick={() => markAll.mutate()} loading={markAll.isPending} disabled={busy || !unreadCount || countQuery.isError}
+          icon={<Icon name="done_all" size="sm" />} className="self-start shrink-0">Đọc tất cả</Button>
       </header>
-
-      <Tabs
-        value={activeTab}
-        onChange={setActiveTab}
-        tabs={[
-          { key: 'All', label: 'Tất cả' },
-          { key: 'Financial', label: 'Tài chính & Ký quỹ' },
-          { key: 'GracePeriod', label: 'Grace Period' },
-          { key: 'Dispute', label: 'Tranh chấp' },
-        ]}
-      />
-
-      <div className="space-y-3">
-        {loading ? (
-          <ListSkeleton count={4} />
-        ) : filtered.length === 0 ? (
-          <EmptyState
-            icon="notifications_off"
-            title="Không có thông báo nào"
-            description={
-              activeTab === 'All'
-                ? 'Bạn đã xem hết toàn bộ thông báo.'
-                : 'Chưa có thông báo nào thuộc danh mục này.'
-            }
-          />
-        ) : (
-          filtered.map((item) => {
-            const category = getCategoryFromType(item.type);
-            const style = CATEGORY_STYLE[category] || CATEGORY_STYLE.System;
-            const isRead = Boolean(item.isRead);
-
-            return (
-              <Card
-                key={item.id}
-                padding="md"
-                className={cn(
-                  'w-full text-left border-l-4 space-y-2 hover:shadow-brand-md',
-                  style.bar,
-                  // Trạng thái đọc phân biệt bằng bề mặt + chấm, KHÔNG bằng hạ
-                  // opacity: hạ opacity cả thẻ kéo chữ xuống dưới ngưỡng WCAG.
-                  isRead ? 'bg-surface' : 'bg-brand-primary-50/20'
-                )}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Icon name={style.icon} size="sm" className={style.iconCls} />
-                    <h3 className="font-bold text-body-reg text-fg m-0 truncate">
-                      {item.title}
-                    </h3>
-                    {/* Chấm + nền là tín hiệu thị giác; screen reader cần chữ.
-                        `sr-only` nên không dịch được hàng (absolute) — tiêu đề và
-                        nội dung vẫn thẳng hàng ở pl-6. */}
-                    {!isRead && <span className="sr-only">Chưa đọc</span>}
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {!isRead && (
-                      <span
-                        aria-hidden="true"
-                        className="w-2 h-2 rounded-full bg-brand-primary-600 shrink-0"
-                      />
-                    )}
-                    <span className="text-[11px] text-fg-secondary font-mono whitespace-nowrap">
-                      {item.createdAt ? formatRelativeTime(item.createdAt) : ''}
-                    </span>
-                    {!isRead && (
-                      <IconButton
-                        label={`Đánh dấu đã đọc: ${item.title}`}
-                        size="sm"
-                        onClick={() => handleMarkAsRead(item.id, item.isRead)}
-                        icon={<Icon name="check" size="sm" />}
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <p className="text-caption text-fg-secondary leading-relaxed m-0 pl-6">
-                  {item.message}
-                </p>
-
-                {item.deepLink && (
-                  <div className="pl-6 pt-1">
-                    <Link
-                      to={resolveDeepLink(item.deepLink, role)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-caption font-semibold text-brand-primary-700 hover:underline inline-flex items-center gap-1"
-                    >
-                      Xem chi tiết
-                      <Icon name="arrow_forward" size="sm" />
-                    </Link>
-                  </div>
-                )}
-              </Card>
-            );
-          })
-        )}
+      <div>
+        <Tabs value={unreadOnly ? 'unread' : 'all'} onChange={key => setUnreadOnly(key === 'unread')}
+          tabs={[{ key: 'all', label: 'Tất cả' }, { key: 'unread', label: <span className="inline-flex items-center gap-2">Chưa đọc{typeof unreadCount === 'number' && !countQuery.isError && unreadCount > 0 && <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] tabular-nums text-fg-secondary">{unreadCount}</span>}</span> }]} />
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-caption text-fg-secondary">
+          <p>Thông báo mới nhất được hiển thị trước.</p>
+          {!feed.isPending && !feed.isError && <p>Đang hiển thị {notifications.length} thông báo{unreadOnly ? ' chưa đọc' : ''}.</p>}
+        </div>
+        {countQuery.isError && <button type="button" onClick={() => countQuery.refetch()} className="mt-2 min-h-11 rounded text-caption text-primary focus-visible:ring-2 focus-visible:ring-ring">Chưa tải được số thông báo chưa đọc · Thử lại</button>}
       </div>
+
+      {feed.isPending || (feed.isFetching && notifications.length === 0) ? <NotificationSkeleton /> : feed.isError && !feed.data ? (
+        <Card padding="lg" variant="outlined" className="rounded-2xl text-center">
+          <h2 className="text-headline-3 font-semibold text-fg">Chưa tải được thông báo</h2>
+          <p className="mt-2 text-body-reg text-fg-secondary">Vui lòng thử lại để xem các cập nhật mới nhất.</p>
+          <Button variant="outline" className="mt-5" onClick={() => feed.refetch()} loading={feed.isFetching}>Thử lại</Button>
+        </Card>
+      ) : (
+        <>
+          {feed.isError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-caption text-fg-secondary"><p>Chưa tải được cập nhật mới. Các thông báo đã tải vẫn được giữ lại.</p><Button variant="ghost" onClick={() => feed.refetch()} loading={feed.isFetching}>Thử lại</Button></div>}
+          {notifications.length === 0 ? (
+            <Card padding="lg" variant="outlined" className="rounded-2xl py-12 text-center">
+              <Icon name={unreadOnly ? 'done_all' : 'notifications_off'} size="xl" className="mx-auto mb-4 text-primary" />
+              <h2 className="text-headline-3 font-semibold text-fg">{unreadOnly ? 'Không có thông báo chưa đọc' : 'Chưa có thông báo'}</h2>
+              <p className="mx-auto mt-3 max-w-md text-body-reg leading-relaxed text-fg-secondary">{unreadOnly ? 'Bạn đã đọc hết các cập nhật. Bạn có thể xem lại trong mục Tất cả.' : 'Các cập nhật về lớp học, thanh toán và tài khoản sẽ xuất hiện tại đây.'}</p>
+              {unreadOnly && <Button variant="outline" className="mt-5" onClick={() => setUnreadOnly(false)}>Xem tất cả thông báo</Button>}
+            </Card>
+          ) : (
+            <ol className="space-y-3">
+              {notifications.map((item, index) => {
+                const content = presentNotification(item, role);
+                const groupTitle = group(item);
+                const startGroup = index === 0 || groupTitle !== group(notifications[index - 1]);
+                const updating = markOne.isPending && markOne.variables?.item.id === item.id;
+                return <li key={item.id}>
+                  {startGroup && <h2 className={cn('mb-3 text-caption font-semibold text-fg-secondary', index > 0 && 'pt-4')}>{groupTitle}</h2>}
+                  <Card as="article" padding="none" variant="outlined" className={cn('relative rounded-xl transition-colors hover:border-brand-primary-300', item.isRead ? 'bg-surface' : 'bg-brand-primary-50/50')}>
+                    <Link to={`/app/notifications/${item.id}`} aria-disabled={busy || undefined}
+                      onClick={event => {
+                        if (busy) { event.preventDefault(); return; }
+                        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) { markOne.mutate({ item }); return; }
+                        event.preventDefault(); markOne.mutate({ item, destination: `/app/notifications/${item.id}` });
+                      }} className="flex items-start gap-3 rounded-xl p-5 pr-16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:gap-4">
+                    <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', item.isCritical ? 'bg-holding-subtle text-holding-strong' : 'border border-border bg-surface text-primary')}><Icon name={content.icon} size="md" /></span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <h3 className={cn('break-words text-body-reg leading-relaxed text-fg', item.isRead ? 'font-normal' : 'font-semibold')}>{content.title}</h3>
+                        {!item.isRead && <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-brand-primary-700"><span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />Chưa đọc</span>}
+                        {item.isCritical && <span className="rounded-md bg-holding-subtle px-2 py-0.5 text-[11px] font-medium text-holding-strong">Quan trọng</span>}
+                      </div>
+                      {content.message && <p className="mt-1 break-words text-body-reg leading-relaxed text-fg-secondary">{content.message}</p>}
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                        <span className="inline-flex min-h-11 items-center gap-1.5 text-caption font-semibold text-primary">{content.destination ? content.action : 'Xem thông báo'}<Icon name="arrow_forward" size="sm" /></span>
+                        {item.createdAt && <time dateTime={item.createdAt} title={formatDateTime(item.createdAt)} className="text-caption text-fg-secondary">{formatRelativeTime(item.createdAt)}</time>}
+                      </div>
+                    </div>
+                    </Link>
+                    {!item.isRead && <IconButton label={updating ? 'Đang cập nhật thông báo' : `Đánh dấu đã đọc: ${content.title}`} title="Đánh dấu đã đọc" disabled={busy} onClick={() => markOne.mutate({ item })} variant="ghost" icon={<Icon name={updating ? 'schedule' : 'check'} size="sm" />} className="absolute right-2 top-3 text-fg-secondary" />}
+                  </Card>
+                </li>;
+              })}
+            </ol>
+          )}
+          {feed.hasNextPage && <div className="text-center"><Button variant="outline" onClick={() => feed.fetchNextPage()} loading={feed.isFetchingNextPage} disabled={feed.isFetching && !feed.isFetchingNextPage}>Xem thông báo trước</Button></div>}
+        </>
+      )}
     </div>
   );
 }
