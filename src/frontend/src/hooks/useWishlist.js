@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { wishlistService } from '../services/wishlistService.js';
 import { useAuthStore } from '../store/authStore';
 import { useToast } from '../components/ui/Toast';
+import { createElement } from 'react';
+import WishlistUndoAction from '@/components/discovery/WishlistUndoAction';
 
 export function useWishlist() {
   const queryClient = useQueryClient();
@@ -56,7 +58,13 @@ export function useWishlist() {
     },
     onError: (err, variables, context) => {
       if (context?.previousIds) {
-        queryClient.setQueryData(['wishlist', 'ids'], context.previousIds);
+        const field = variables.itemType === 'Tutor' ? 'tutorIds' : 'serviceIds';
+        const sameId = (id) => String(id).toLowerCase() === String(variables.itemId).toLowerCase();
+        const wasSaved = (context.previousIds[field] || []).some(sameId);
+        queryClient.setQueryData(['wishlist', 'ids'], (current = context.previousIds) => ({
+          ...current,
+          [field]: [...(current[field] || []).filter(id => !sameId(id)), ...(wasSaved ? [variables.itemId] : [])],
+        }));
       }
       const message =
         err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật danh sách yêu thích.';
@@ -66,8 +74,18 @@ export function useWishlist() {
         toast.showToast({ title: 'Thao tác không thành công', message, type: 'error' });
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (data, { itemType, itemId }) => {
       queryClient.invalidateQueries({ queryKey: ['wishlist', 'items'] });
+      queryClient.invalidateQueries({ queryKey: ['wishlist', 'ids'] });
+      if (typeof data?.isFavorited === 'boolean') {
+        let notificationId;
+        notificationId = toast.success(createElement(WishlistUndoAction, {
+          itemType, itemId, saved: data.isFavorited,
+          userId: useAuthStore.getState().user?.id,
+          dismiss: () => toast.dismiss(notificationId),
+        }), 10000);
+        return;
+      }
       const message =
         data?.message ||
         (data?.isFavorited ? 'Đã lưu vào danh sách yêu thích.' : 'Đã bỏ lưu khỏi danh sách yêu thích.');
@@ -80,6 +98,7 @@ export function useWishlist() {
   });
 
   const toggle = (itemType, itemId) => {
+    if (toggleMutation.isPending || !itemId) return;
     if (!isAuthenticated) {
       const message = 'Vui lòng đăng nhập để lưu vào danh sách yêu thích.';
       if (typeof toast?.info === 'function') {

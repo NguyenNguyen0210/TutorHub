@@ -25,16 +25,16 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <ToastProvider>
-        <DialogProvider>
-          <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <DialogProvider>
             <BrowserRouter>
               <ScrollToTop />
               <AppRoutes />
             </BrowserRouter>
-          </QueryClientProvider>
-        </DialogProvider>
-      </ToastProvider>
+          </DialogProvider>
+        </ToastProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }
