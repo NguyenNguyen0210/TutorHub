@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import chatService from '@/services/chat.service';
 import tutorService from '@/services/tutor.service';
 import { summarizeTuition } from '@/utils/studentDashboard';
@@ -26,6 +26,7 @@ import StretchedCardLink from '@/components/ui/StretchedCardLink';
 import { useConfirm } from '@/components/ui/Dialog';
 import { useQueryClient } from '@tanstack/react-query';
 import disputeService from '@/services/dispute.service';
+import { scheduleReturn } from '@/utils/tutorSchedule';
 
 /** Lộ trình học tập — dùng trạng thái và thao tác hiện có của hợp đồng. */
 const TONE_CLASS = {
@@ -82,7 +83,10 @@ export default function EnrollmentDetail() {
   const { id } = useParams();
   const { role } = useAuthStore();
   const isTutor = role === 'Tutor';
-  const backPath = isTutor ? '/tutor/schedule' : '/student/dashboard';
+  const location = useLocation();
+  const scheduleContext = isTutor ? scheduleReturn(location.state) : null;
+  const sessionLinkState = scheduleContext ? { scheduleReturn: scheduleContext } : undefined;
+  const backPath = scheduleContext || (isTutor ? '/tutor/schedule' : '/student/dashboard');
   const backLabel = isTutor ? 'Quay lại lịch dạy' : 'Quay lại bàn học';
 
   const [enrollment, setEnrollment] = useState(null);
@@ -568,7 +572,7 @@ export default function EnrollmentDetail() {
               <ul className="mt-4 space-y-3">
                 {sessionRows.map(row => (
                   <li key={row.id} className="interactive-card overflow-hidden rounded-xl border border-border bg-surface">
-                    <StretchedCardLink to={isTutor ? `/tutor/sessions/${row.id}` : `/student/sessions/${row.id}`} label={`Xem chi tiết buổi học ${row.number}`} />
+                    <StretchedCardLink to={isTutor ? `/tutor/sessions/${row.id}` : `/student/sessions/${row.id}`} state={sessionLinkState} label={`Xem chi tiết buổi học ${row.number}`} />
                     <div className="flex min-h-24 items-center gap-3 rounded-xl p-4">
                       <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-semibold tabular-nums', row.tone.chip)}>{String(row.number).padStart(2, '0')}</span>
                       <div className="min-w-0 flex-1">
@@ -767,7 +771,7 @@ export default function EnrollmentDetail() {
                 <p className="mt-1 text-sm text-fg-secondary">{formatDateTime(nextSession.startAt, 'DD/MM/YYYY')}</p>
                 <p className="mt-4 text-sm font-medium text-fg">Buổi học {nextSession.sessionNumber}</p>
                 <p className="mt-1 text-xs text-fg-muted">{durationMinutes} phút · Gia sư {tutorName}</p>
-                <Button as={Link} to={isTutor ? `/tutor/sessions/${nextSession.id}` : `/student/sessions/${nextSession.id}`}
+                <Button as={Link} to={isTutor ? `/tutor/sessions/${nextSession.id}` : `/student/sessions/${nextSession.id}`} state={sessionLinkState}
                   variant="primary" size="md" fullWidth className="mt-5" iconRight={<Icon name="arrow_forward" size="sm" />}>Xem buổi học</Button>
               </div>
             ) : (

@@ -50,6 +50,7 @@ export default function SessionDetail() {
   const [recordSaveError, setRecordSaveError] = useState('');
   const recordSubmitting = useRef(false);
   const rescheduleSubmitting = useRef(false);
+  const reschedulePanel = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -75,14 +76,38 @@ export default function SessionDetail() {
     }
   }, [recordEditorOpen]);
 
-  // Modal tự đóng bằng Escape, khớp hành vi `Dialog` dùng chung.
+  // Keep keyboard navigation inside the schedule dialog and restore its trigger.
   useEffect(() => {
     if (!showRescheduleModal) return undefined;
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const frame = window.requestAnimationFrame(() => document.getElementById('reschedule-date')?.focus());
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setShowRescheduleModal(false);
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (!rescheduleSubmitting.current) setShowRescheduleModal(false);
+      }
+      if (e.key !== 'Tab') return;
+      const fields = reschedulePanel.current?.querySelectorAll('button:not([disabled]), input:not([disabled])');
+      if (!fields?.length) return;
+      const first = fields[0];
+      const last = fields[fields.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.cancelAnimationFrame(frame);
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
   }, [showRescheduleModal]);
 
   const loadSessionData = useCallback(async () => {
@@ -373,7 +398,7 @@ export default function SessionDetail() {
         <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-fg-secondary">
           <li><Link to={backPath} className="hover:text-primary focus-visible:underline">{scheduleContext ? 'Lịch giảng dạy' : isTutor ? 'Bảng điều hành' : 'Bàn học'}</Link></li>
           <li aria-hidden="true">/</li>
-          <li className="min-w-0"><Link to={enrollmentPath} className="break-words hover:text-primary focus-visible:underline">{courseTitle}</Link></li>
+          <li className="min-w-0"><Link to={enrollmentPath} state={scheduleContext ? { scheduleReturn: scheduleContext } : undefined} className="break-words hover:text-primary focus-visible:underline">{courseTitle}</Link></li>
           <li aria-hidden="true">/</li>
           <li aria-current="page" className="font-medium text-fg">Buổi #{number}</li>
         </ol>
@@ -576,10 +601,10 @@ export default function SessionDetail() {
             type="button"
             aria-label="Đóng cửa sổ"
             className="fixed inset-0 w-full h-full bg-brand-navy-950/50 backdrop-blur-sm cursor-default"
-            onClick={() => setShowRescheduleModal(false)}
+            onClick={() => { if (!rescheduleSubmitting.current) setShowRescheduleModal(false); }}
             tabIndex={-1}
           />
-          <div className="relative bg-surface rounded-brand-lg shadow-brand-xl border border-border w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto flex flex-col z-10">
+          <div ref={reschedulePanel} className="relative bg-surface rounded-brand-lg shadow-brand-xl border border-border w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto flex flex-col z-10">
             <div className="p-6 pb-4 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <Icon name="calendar_month" size="md" className="text-brand-primary-600" />
@@ -590,6 +615,7 @@ export default function SessionDetail() {
               <button
                 type="button"
                 onClick={() => setShowRescheduleModal(false)}
+                disabled={submittingReschedule}
                 aria-label="Đóng"
                 className="text-fg-muted hover:text-fg p-1 rounded-brand-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600"
               >
@@ -640,6 +666,7 @@ export default function SessionDetail() {
                   variant="outline"
                   size="md"
                   onClick={() => setShowRescheduleModal(false)}
+                  disabled={submittingReschedule}
                 >
                   Hủy bỏ
                 </Button>

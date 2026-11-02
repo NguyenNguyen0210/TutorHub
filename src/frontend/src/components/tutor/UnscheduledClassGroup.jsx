@@ -30,7 +30,7 @@ export default function UnscheduledClassGroup({ enrollment, open, onToggle, valu
       </span>
     </summary>
     <div className="space-y-4 border-t border-border p-4 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3"><p className="max-w-md text-caption leading-relaxed text-fg-secondary">Ưu tiên buổi #{enrollment.unscheduledSessions[0]?.sessionNumber}. Bạn có thể xếp từng buổi hoặc chỉ những buổi đã chọn thời gian.</p><Button variant="outline" as={Link} to={`/tutor/enrollments/${enrollment.id}`} size="sm">Xem lớp học</Button></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><p className="max-w-md text-caption leading-relaxed text-fg-secondary">Ưu tiên buổi #{enrollment.unscheduledSessions[0]?.sessionNumber}. Bạn có thể xếp từng buổi hoặc chỉ những buổi đã chọn thời gian.</p><Button variant="outline" as={Link} to={`/tutor/enrollments/${enrollment.id}`} state={{ scheduleReturn: returnTo }} size="sm">Xem lớp học</Button></div>
       <div className="flex flex-wrap gap-2" aria-label="Cách xếp lịch">{[['single', 'Xếp từng buổi'], ['weekly', 'Lịch lặp hàng tuần']].map(([key, label]) => <Button key={key} variant={mode === key ? 'primary' : 'outline'} aria-pressed={mode === key} disabled={busy} onClick={() => setMode(key)}>{label}</Button>)}</div>
       {mode === 'weekly' && <RecurringSchedulePlanner enrollment={enrollment} existing={existing} busy={busy} onApply={preview => { preview.forEach(item => onChange(item.id, item.local)); setMode('single'); setShowAll(true); }} />}
       {mode === 'single' && <>
