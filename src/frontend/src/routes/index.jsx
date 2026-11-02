@@ -72,6 +72,7 @@ import StudentWishlist from '../pages/student/StudentWishlist';
 import StudentSchedule from '../pages/student/StudentSchedule';
 import StudentBookings from '../pages/student/StudentBookings';
 import StudentDisputes from '../pages/student/StudentDisputes';
+import LegalPolicy from '../pages/shared/LegalPolicy';
 
 // Tutor Space & Wallet Screens
 import TutorDashboard from '../pages/tutor/TutorDashboard';
@@ -113,6 +114,8 @@ export default function AppRoutes() {
         <Route path="/service" element={<Navigate to="/services" replace />} />
         <Route path="/service/:id" element={<ServiceDetail />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/terms" element={<LegalPolicy kind="terms" />} />
+        <Route path="/privacy" element={<LegalPolicy kind="privacy" />} />
         <Route path="/become-tutor" element={<BecomeTutor />} />
 
         {/* Protected: requires login */}
