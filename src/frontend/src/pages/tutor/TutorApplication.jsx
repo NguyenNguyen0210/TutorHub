@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
+import { mediaService } from '@/services/media.service';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/components/ui/Toast';
 import Icon from '@/components/ui/Icon';
@@ -214,9 +215,25 @@ export default function TutorApplication() {
 
     try {
       setSubmitting(true);
-      const payload = buildApplicationPayload(formData);
-
-      await tutorService.submitTutorApplication(payload);
+      const documentIds = [];
+      for (const document of formData.degreeFiles) {
+        if (document.mediaId) {
+          documentIds.push(document.mediaId);
+        } else {
+          const uploaded = await mediaService.uploadCertificate(document.file);
+          if (!uploaded?.id) throw new Error('Không thể tải tài liệu lên. Vui lòng thử lại.');
+          // Preserve successful uploads if the next file or submission fails.
+          setFormData(prev => ({ ...prev, degreeFiles: prev.degreeFiles.map(item =>
+            item.id === document.id ? { ...item, mediaId: uploaded.id } : item) }));
+          documentIds.push(uploaded.id);
+        }
+      }
+      const payload = buildApplicationPayload(formData, documentIds);
+      if (existingApp?.status === 'Rejected') {
+        await tutorService.resubmitTutorApplication(payload);
+      } else {
+        await tutorService.submitTutorApplication(payload);
+      }
 
       toast.success('Nộp hồ sơ gia sư thành công! Ban quản trị sẽ xét duyệt trong 1–3 ngày làm việc.');
       // Refresh status

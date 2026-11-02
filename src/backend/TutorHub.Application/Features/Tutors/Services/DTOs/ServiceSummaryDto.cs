@@ -7,5 +7,7 @@ public record ServiceSummaryDto(
     int TotalSessions,
     int SessionDurationMinutes,
     decimal Price,
-    bool HasTrialLesson
+    bool HasTrialLesson,
+    string? LearningScope = null,
+    string? ExpectedOutcome = null
 );

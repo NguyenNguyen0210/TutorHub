@@ -13,5 +13,8 @@ public record TutorProfileDto(
     decimal RatingAvg,
     int TotalReviews,
     List<TutorSubjectDto> Subjects,
-    List<ServiceSummaryDto> Services
+    List<ServiceSummaryDto> Services,
+    bool IsVerified = true,
+    List<TutorCredentialDto>? Credentials = null,
+    List<int>? RatingDistribution = null
 );

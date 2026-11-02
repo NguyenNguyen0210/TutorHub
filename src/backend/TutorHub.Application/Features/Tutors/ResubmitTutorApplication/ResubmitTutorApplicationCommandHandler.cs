@@ -77,7 +77,8 @@ public class ResubmitTutorApplicationCommandHandler
             ExperienceYears = request.ExperienceYears,
             Methodology = request.Methodology?.Trim(),
             Achievements = request.Achievements?.Trim(),
-            DocumentsJson = request.DocumentsJson,
+            DocumentsJson = await ApplicationDocuments.ResolveAsync(_context, userId,
+                request.DocumentIds, request.DocumentsJson, cancellationToken),
             SubmittedAt = _clock.UtcNow
         };
 

@@ -51,7 +51,9 @@ public class GetTutorServicesQueryHandler : IRequestHandler<GetTutorServicesQuer
                 TotalSessions: s.TotalSessions,
                 SessionDurationMinutes: s.SessionDurationMinutes,
                 Price: s.Price,
-                HasTrialLesson: !string.IsNullOrWhiteSpace(s.TrialLessonUrl)
+                HasTrialLesson: !string.IsNullOrWhiteSpace(s.TrialLessonUrl),
+                LearningScope: s.LearningScope,
+                ExpectedOutcome: s.ExpectedOutcome
             ))
             .ToList();
     }

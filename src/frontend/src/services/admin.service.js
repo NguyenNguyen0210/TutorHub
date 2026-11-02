@@ -67,18 +67,7 @@ function normalizeTutorApplication(raw = {}) {
     }
   }
 
-  if (!Array.isArray(parsedDocuments) || parsedDocuments.length === 0) {
-    parsedDocuments = [
-      {
-        id: `doc-${raw.id}-1`,
-        title: 'Bằng tốt nghiệp đại học / Chứng chỉ',
-        institution: raw.university || raw.education || 'Đại học Sư phạm',
-        format: 'PDF • 2.1 MB',
-        verified: raw.status === 'Approved',
-        previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
-      },
-    ];
-  }
+  if (!Array.isArray(parsedDocuments)) parsedDocuments = [];
 
   return {
     id: raw.id,
@@ -194,6 +183,9 @@ export const adminService = {
     if (search) params.search = search;
     const res = await api.get('/admin/tutor-applications', { params });
     return normalizePaged(res, normalizeTutorApplication);
+  },
+  async getApplicationDocumentUrl(mediaId) {
+    return api.get(`/media/${mediaId}/download-url`);
   },
 
   /** GET /admin/disputes → PagedResult<DisputeDto> */

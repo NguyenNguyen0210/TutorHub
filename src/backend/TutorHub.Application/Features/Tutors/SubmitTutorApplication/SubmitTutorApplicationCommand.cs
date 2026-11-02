@@ -15,5 +15,6 @@ public record SubmitTutorApplicationCommand(
     string? SubjectSub = null,
     string? Methodology = null,
     string? Achievements = null,
-    string? DocumentsJson = null
+    string? DocumentsJson = null,
+    List<Guid>? DocumentIds = null
 ) : IRequest<TutorApplicationDto>;

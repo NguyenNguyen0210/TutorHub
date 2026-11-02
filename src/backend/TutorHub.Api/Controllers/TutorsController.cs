@@ -146,7 +146,10 @@ public class TutorsController : ControllerBase
         var command = new SubmitTutorApplicationCommand(
             Bio: request.Bio,
             Education: request.Education,
-            ExperienceYears: request.ExperienceYears
+            ExperienceYears: request.ExperienceYears,
+            University: request.University, Major: request.Major, DegreeLevel: request.DegreeLevel,
+            Certifications: request.Certifications, Subject: request.Subject, SubjectSub: request.SubjectSub,
+            Methodology: request.Methodology, Achievements: request.Achievements, DocumentIds: request.DocumentIds
         );
 
         var result = await _sender.Send(command, cancellationToken);
@@ -170,7 +173,10 @@ public class TutorsController : ControllerBase
         var command = new ResubmitTutorApplicationCommand(
             Bio: request.Bio,
             Education: request.Education,
-            ExperienceYears: request.ExperienceYears
+            ExperienceYears: request.ExperienceYears,
+            University: request.University, Major: request.Major, DegreeLevel: request.DegreeLevel,
+            Certifications: request.Certifications, Subject: request.Subject, SubjectSub: request.SubjectSub,
+            Methodology: request.Methodology, Achievements: request.Achievements, DocumentIds: request.DocumentIds
         );
 
         var result = await _sender.Send(command, cancellationToken);

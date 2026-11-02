@@ -29,11 +29,11 @@ export default function ApplicationDocumentModal({ doc, onClose }) {
         </div>
 
         <div className="relative rounded-xl overflow-hidden bg-neutral-100 flex items-center justify-center max-h-[460px]">
-          <img
+          {doc.format === 'application/pdf' ? <iframe title={doc.title} src={doc.previewUrl} className="w-full h-[460px]" /> : <img
             src={doc.previewUrl}
             alt={doc.title}
             className="w-full h-auto object-contain max-h-[460px]"
-          />
+          />}
         </div>
 
         <div className="flex items-center justify-between pt-2">

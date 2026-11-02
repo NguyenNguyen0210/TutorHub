@@ -470,7 +470,7 @@ export function EducationStep({
             icon="cloud_upload"
             iconSize="xl"
             primary="Chọn tệp văn bằng hoặc kéo thả vào đây"
-            secondary="Hỗ trợ PDF, JPG, PNG tối đa 10MB mỗi tệp"
+            secondary="Hỗ trợ PDF, JPG, PNG tối đa 5MB mỗi tệp"
           />
           <input
             ref={degreeInputRef}

@@ -82,8 +82,10 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
             throw new NotFoundException("TutorProfile", tutorProfileId);
         }
 
-        var isApproved = await _context.TutorApplications
-            .AnyAsync(a => a.UserId == tutor.UserId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
+        var approvedApplication = await _context.TutorApplications.AsNoTracking()
+            .Where(a => a.UserId == tutor.UserId && a.Status == TutorApplicationStatus.Approved)
+            .OrderByDescending(a => a.ReviewedAt).FirstOrDefaultAsync(cancellationToken);
+        var isApproved = approvedApplication is not null;
 
         var isEligible = isApproved && tutor.User.Status == AccountStatus.Active;
 
@@ -106,10 +108,13 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
                 s.TotalSessions,
                 s.SessionDurationMinutes,
                 s.Price,
-                !string.IsNullOrWhiteSpace(s.TrialLessonUrl)
+                !string.IsNullOrWhiteSpace(s.TrialLessonUrl), s.LearningScope, s.ExpectedOutcome
             ))
             .ToList();
 
+        var ratings = await _context.Reviews.AsNoTracking()
+            .Where(r => !r.IsRemoved && r.Enrollment.TutorProfileId == tutor.Id)
+            .Select(r => r.Rating).ToListAsync(cancellationToken);
         return new TutorProfileDto(
             Id: tutor.Id,
             UserId: tutor.UserId,
@@ -118,10 +123,13 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
             Bio: tutor.Bio,
             Education: tutor.Education,
             ExperienceYears: tutor.ExperienceYears,
-            RatingAvg: tutor.RatingAvg,
-            TotalReviews: tutor.TotalReviews,
+            RatingAvg: ratings.Count == 0 ? 0 : Math.Round((decimal)ratings.Average(), 2),
+            TotalReviews: ratings.Count,
             Subjects: subjects,
-            Services: services
+            Services: services,
+            IsVerified: isApproved,
+            Credentials: TutorCredentialDto.FromApplication(approvedApplication),
+            RatingDistribution: Enumerable.Range(1, 5).Select(star => ratings.Count(r => r == star)).ToList()
         );
     }
 }
