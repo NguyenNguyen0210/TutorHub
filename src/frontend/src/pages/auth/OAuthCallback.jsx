@@ -2,14 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { externalAuthService } from '@/services/externalAuth.service';
-import tutorService from '@/services/tutor.service';
+import { getPostAuthDestination } from '@/services/authRedirect.service';
 import AuthHeader from '@/components/layout/AuthHeader';
-
-function roleHome(role) {
-  if (role === 'Admin') return '/admin/dashboard';
-  if (role === 'Tutor') return '/tutor/dashboard';
-  return '/student/dashboard';
-}
 
 export default function OAuthCallback() {
   const navigate = useNavigate();
@@ -25,27 +19,20 @@ export default function OAuthCallback() {
     const state = searchParams.get('state');
     const providerError = searchParams.get('error');
     if (providerError || !code || !state) {
-      setErrorMsg('Liên kết đăng nhập thiếu code hoặc đã hết hạn. Hãy bấm đăng nhập Google lại từ trang đăng nhập.');
+      setErrorMsg('Không thể hoàn tất đăng nhập bằng Google. Vui lòng quay lại trang đăng nhập để thử lại.');
       return;
     }
     (async () => {
       try {
         const authResponse = await externalAuthService.completeGoogleCallback(code, state);
         const { user } = await loginWithExternal(authResponse);
-        if (user.role === 'Tutor') {
-          try {
-            const app = await tutorService.getMyTutorApplication();
-            if (!app) {
-              navigate('/tutor/application', { replace: true });
-              return;
-            }
-          } catch {
-            // fallback to dashboard if API fails (same as Login.jsx)
-          }
-        }
-        navigate(roleHome(user.role), { replace: true });
-      } catch (err) {
-        setErrorMsg(err?.message || 'Đăng nhập Google thất bại. Link có thể đã hết hạn hoặc đã dùng — hãy bắt đầu lại.');
+        const storageKey = `tutorhub_oauth_return:${state}`;
+        const returnUrl = sessionStorage.getItem(storageKey);
+        sessionStorage.removeItem(storageKey);
+        const destination = await getPostAuthDestination(user.role, returnUrl);
+        if (useAuthStore.getState().isAuthenticated) navigate(destination, { replace: true });
+      } catch {
+        setErrorMsg('Không thể hoàn tất đăng nhập bằng Google. Vui lòng quay lại trang đăng nhập để thử lại.');
       }
     })();
   }, [searchParams, loginWithExternal, navigate]);

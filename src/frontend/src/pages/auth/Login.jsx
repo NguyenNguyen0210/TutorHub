@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import {
   Mail,
   Lock,
@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/components/ui/Toast';
-import { api } from '@/services/api';
+import { getAuthReturnUrl } from '@/utils/authRedirect';
 import { externalAuthService } from '@/services/externalAuth.service';
 import AuthHeader from '@/components/layout/AuthHeader';
 
@@ -38,8 +38,8 @@ function GoogleSvg() {
 
 
 export default function Login() {
-  const navigate = useNavigate();
   const location = useLocation();
+  const authLinkState = { returnUrl: getAuthReturnUrl(location) };
   const toast = useToast();
   const { loginWithCredentials } = useAuthStore();
 
@@ -68,28 +68,7 @@ export default function Login() {
 
       toast.success(`Đăng nhập thành công! Chào mừng ${user.fullName || user.email}.`);
 
-      const redirectPath = location.state?.from?.pathname;
-      if (redirectPath) {
-        navigate(redirectPath, { replace: true });
-        return;
-      }
-
-      if (user.role === 'Admin') {
-        navigate('/admin/dashboard', { replace: true });
-      } else if (user.role === 'Tutor') {
-        try {
-          const app = await tutorService.getMyTutorApplication();
-          if (!app) {
-            navigate('/tutor/application', { replace: true });
-            return;
-          }
-        } catch {
-          // fallback to dashboard if API fails
-        }
-        navigate('/tutor/dashboard', { replace: true });
-      } else {
-        navigate('/student/dashboard', { replace: true });
-      }
+      // GuestGuard owns the redirect after authentication, avoiding competing navigations.
     } catch (err) {
       const displayError = err.message || 'Email hoặc mật khẩu không chính xác.';
       toast.error(displayError);
@@ -101,15 +80,10 @@ export default function Login() {
   const handleSocialLogin = async () => {
     try {
       setSocialLoading(true);
-      const { authorizeUrl } = await externalAuthService.startGoogleLogin();
+      const { authorizeUrl } = await externalAuthService.startGoogleLogin(authLinkState.returnUrl);
       window.location.href = authorizeUrl;
-    } catch (err) {
-      const msg = err?.message || '';
-      if (msg.includes('not configured') || msg.includes('client id')) {
-        toast.error('Tính năng đăng nhập qua Google chưa được cấu hình Client ID / Secret trong file .env.');
-      } else {
-        toast.error(msg || 'Không khởi tạo được đăng nhập Google.');
-      }
+    } catch {
+      toast.error('Đăng nhập bằng Google tạm thời chưa khả dụng. Vui lòng đăng nhập bằng email và mật khẩu.');
     } finally {
       setSocialLoading(false);
     }
@@ -281,7 +255,7 @@ export default function Login() {
               {/* 7. Bottom Register Link */}
               <p className="text-[13px] text-fg-secondary text-center mt-4">
                 Chưa có tài khoản?{' '}
-                <Link to="/auth/register" className="text-brand-primary-600 font-bold hover:underline ml-1">
+                <Link to="/auth/register" state={authLinkState} className="text-brand-primary-600 font-bold hover:underline ml-1">
                   Đăng ký ngay
                 </Link>
               </p>

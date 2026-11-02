@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import {
   GraduationCap,
   User,
@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/store/authStore';
 import { externalAuthService } from '@/services/externalAuth.service';
 import AuthHeader from '@/components/layout/AuthHeader';
+import { getAuthReturnUrl } from '@/utils/authRedirect';
 
 function GoogleSvg() {
   return (
@@ -42,7 +43,8 @@ function GoogleSvg() {
 
 export default function Register() {
   const toast = useToast();
-  const navigate = useNavigate();
+  const location = useLocation();
+  const authLinkState = { returnUrl: getAuthReturnUrl(location) };
   const { registerWithCredentials } = useAuthStore();
 
   const [selectedRole, setSelectedRole] = useState('Student');
@@ -163,11 +165,7 @@ export default function Register() {
 
       toast.success(`Đăng ký thành công! Chào mừng ${normalizedName} gia nhập TutorHub.`);
 
-      if (selectedRole === 'Tutor') {
-        navigate('/tutor/application', { replace: true });
-      } else {
-        navigate('/student/dashboard', { replace: true });
-      }
+      // Auto-login is followed by the same redirect policy in GuestGuard.
     } catch (err) {
       console.error('Đăng ký tài khoản thất bại:', err);
 
@@ -232,16 +230,11 @@ export default function Register() {
 
     try {
       setSocialLoading(true);
-      const { authorizeUrl } = await externalAuthService.startGoogleLogin();
+      const { authorizeUrl } = await externalAuthService.startGoogleLogin(authLinkState.returnUrl);
       window.location.href = authorizeUrl;
     } catch (err) {
       console.error('Khởi tạo đăng ký qua Google thất bại:', err);
-      const msg = err?.message || '';
-      if (msg.includes('not configured') || msg.includes('client id')) {
-        toast.error('Tính năng đăng ký qua Google chưa được cấu hình Client ID / Secret trong hệ thống.');
-      } else {
-        toast.error('Không thể khởi tạo đăng nhập Google vào lúc này. Vui lòng thử lại sau.');
-      }
+      toast.error('Đăng ký bằng Google tạm thời chưa khả dụng. Vui lòng đăng ký bằng email.');
     } finally {
       setSocialLoading(false);
     }
@@ -673,7 +666,7 @@ export default function Register() {
               {/* Bottom Login Link */}
               <p className="text-[13px] text-fg-secondary text-center mt-3.5">
                 Đã có tài khoản?{' '}
-                <Link to="/auth/login" className="text-brand-primary-600 font-bold hover:underline ml-1">
+                <Link to="/auth/login" state={authLinkState} className="text-brand-primary-600 font-bold hover:underline ml-1">
                   Đăng nhập ngay
                 </Link>
               </p>

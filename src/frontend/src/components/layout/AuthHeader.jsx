@@ -1,10 +1,12 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { getAuthReturnUrl } from '@/utils/authRedirect';
 import Logo from '@/components/ui/Logo';
 import Icon from '@/components/ui/Icon';
 
 export default function AuthHeader({ mode = 'login', showAction = true }) {
   const isLogin = mode === 'login';
+  const location = useLocation();
 
   return (
     <header className="w-full max-w-[1360px] h-16 mx-auto px-6 sm:px-10 flex items-center justify-between">
@@ -31,6 +33,7 @@ export default function AuthHeader({ mode = 'login', showAction = true }) {
               <span className="hidden sm:inline">Đã có tài khoản?</span>{' '}
               <Link
                 to="/auth/login"
+                state={{ returnUrl: getAuthReturnUrl(location) }}
                 className="text-brand-primary-600 font-semibold hover:underline transition-colors ml-1"
               >
                 Đăng nhập ngay

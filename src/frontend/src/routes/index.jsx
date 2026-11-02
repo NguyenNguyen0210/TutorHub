@@ -141,7 +141,7 @@ export default function AppRoutes() {
       <Route path="/auth/register" element={<GuestGuard><Register /></GuestGuard>} />
       <Route path="/auth/forgot-password" element={<GuestGuard><ForgotPassword /></GuestGuard>} />
       <Route path="/forgot-password" element={<Navigate to="/auth/forgot-password" replace />} />
-      <Route path="/auth/oauth/callback" element={<GuestGuard><OAuthCallback /></GuestGuard>} />
+      <Route path="/auth/oauth/callback" element={<OAuthCallback />} />
       <Route path="/register" element={<Navigate to="/auth/register" replace />} />
 
       {/* 3. Student Routes (auth + Student role) */}
