@@ -26,5 +26,7 @@ public record EnrollmentSummaryDto(
     string? TutorAvatarUrl = null,
     Guid? TutorUserId = null,
     decimal ReleasedAmount = 0,
-    decimal RefundedAmount = 0
+    decimal RefundedAmount = 0,
+    Guid? StudentUserId = null,
+    string? StudentAvatarUrl = null
 );

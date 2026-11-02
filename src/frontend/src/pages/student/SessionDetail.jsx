@@ -20,6 +20,8 @@ import Input, { Textarea, Field } from '@/components/ui/Input';
 import StateBadge from '@/components/common/StateBadge';
 import dayjs from 'dayjs';
 import { scheduleReturn, TEACHING_ZONE } from '@/utils/tutorSchedule';
+import { tutorSessionPermissions } from '@/utils/tutorSessionDetail';
+import TutorSessionActions from '@/components/tutor/TutorSessionActions';
 
 /** Chi tiết một buổi học; hành động theo trạng thái và quyền hiện có. */
 export default function SessionDetail() {
@@ -44,6 +46,10 @@ export default function SessionDetail() {
   const [learningRecord, setLearningRecord] = useState(null);
   const [recordInput, setRecordInput] = useState('');
   const [submittingRecord, setSubmittingRecord] = useState(false);
+  const [recordEditorOpen, setRecordEditorOpen] = useState(false);
+  const [recordSaveError, setRecordSaveError] = useState('');
+  const recordSubmitting = useRef(false);
+  const rescheduleSubmitting = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -61,6 +67,13 @@ export default function SessionDetail() {
   const scheduleContext = isTutor ? scheduleReturn(location.state) : null;
   const backPath = scheduleContext || (isTutor ? '/tutor/dashboard' : '/student/dashboard');
   const backLabel = scheduleContext ? 'Quay lại lịch dạy' : isTutor ? 'Quay lại bàn điều hành' : 'Quay lại bàn học';
+
+  useEffect(() => {
+    if (recordEditorOpen) {
+      document.getElementById('session-record')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      document.getElementById('learning-record-input')?.focus();
+    }
+  }, [recordEditorOpen]);
 
   // Modal tự đóng bằng Escape, khớp hành vi `Dialog` dùng chung.
   useEffect(() => {
@@ -109,23 +122,25 @@ export default function SessionDetail() {
   useEffect(() => {
     setShowRescheduleModal(false);
     setRecordInput('');
+    setRecordEditorOpen(false);
+    setRecordSaveError('');
     loadSessionData();
     return () => { loadVersion.current += 1; };
   }, [loadSessionData]);
 
-  const messageTutor = async () => {
+  const messageParticipant = async () => {
     if (openingChat) return;
     setOpeningChat(true);
     try {
       const contract = enrollment || await enrollmentService.getEnrollmentById(session.enrollmentId);
-      const tutorUserId = contract.tutorUserId
+      const targetUserId = isTutor ? contract.studentUserId : contract.tutorUserId
         || (await tutorService.getTutorById(contract.tutorProfileId)).userId;
-      if (!tutorUserId) throw new Error('Không thể mở cuộc trò chuyện với gia sư.');
-      const conversation = await chatService.getOrCreateConversation(tutorUserId);
+      if (!targetUserId) throw new Error();
+      const conversation = await chatService.getOrCreateConversation(targetUserId);
       if (!conversation?.id) throw new Error('Không thể mở cuộc trò chuyện với gia sư.');
       navigate(`/app/messages?conversationId=${conversation.id}`);
-    } catch (err) {
-      toast.error(err?.message || 'Không thể mở tin nhắn. Vui lòng thử lại.');
+    } catch {
+      toast.error('Chưa thể mở cuộc trò chuyện. Vui lòng thử lại.');
     } finally { setOpeningChat(false); }
   };
 
@@ -138,20 +153,27 @@ export default function SessionDetail() {
   // Handle Learning Record creation (Tutor only)
   const handleCreateLearningRecord = async (e) => {
     e.preventDefault();
+    if (recordSubmitting.current) return;
     if (!recordInput.trim() || recordInput.trim().length < 10) {
       toast.error('Nội dung nhật ký buổi học cần tối thiểu 10 ký tự.');
       return;
     }
+    recordSubmitting.current = true;
+    const requestVersion = loadVersion.current;
+    setRecordSaveError('');
     try {
       setSubmittingRecord(true);
       const res = await sessionService.createLearningRecord(id, recordInput.trim());
+      if (requestVersion !== loadVersion.current) return;
       setLearningRecord(res);
       setRecordError(null);
       toast.success('Đã lưu nhật ký buổi học thành công.');
       setRecordInput('');
-    } catch (err) {
-      toast.error(err?.message || 'Không thể lưu nhật ký buổi học.');
+      setRecordEditorOpen(false);
+    } catch {
+      if (requestVersion === loadVersion.current) setRecordSaveError('Chưa thể lưu nhật ký. Nội dung của bạn vẫn được giữ lại, vui lòng thử lại.');
     } finally {
+      recordSubmitting.current = false;
       setSubmittingRecord(false);
     }
   };
@@ -159,6 +181,7 @@ export default function SessionDetail() {
   // Handle Direct Reschedule (Tutor)
   const handleDirectReschedule = async (e) => {
     e.preventDefault();
+    if (rescheduleSubmitting.current) return;
     if (!rescheduleDate || !rescheduleStartTime || !rescheduleEndTime) {
       toast.error('Vui lòng chọn đầy đủ ngày, giờ bắt đầu và giờ kết thúc.');
       return;
@@ -177,13 +200,20 @@ export default function SessionDetail() {
       toast.error('Lịch mới phải được xếp trước giờ bắt đầu ít nhất 2 giờ.');
       return;
     }
+    if (enrollment?.sessionDurationMinutes && endDateTime.diff(startDateTime, 'minute') !== enrollment.sessionDurationMinutes) {
+      toast.error(`Buổi học cần đúng ${enrollment.sessionDurationMinutes} phút theo gói học.`);
+      return;
+    }
 
+    rescheduleSubmitting.current = true;
+    const requestVersion = loadVersion.current;
     try {
       setSubmittingReschedule(true);
       const proposedStartAt = startDateTime.toDate().toISOString();
       const proposedEndAt = endDateTime.toDate().toISOString();
 
       await sessionService.scheduleSession(id, proposedStartAt, proposedEndAt);
+      if (requestVersion !== loadVersion.current) return;
       toast.success('Đã cập nhật lịch học mới thành công.');
       setShowRescheduleModal(false);
       setRescheduleDate('');
@@ -191,8 +221,9 @@ export default function SessionDetail() {
       setRescheduleEndTime('');
       await loadSessionData();
     } catch (err) {
-      toast.error(err?.response?.data?.message || err?.message || 'Không thể cập nhật lịch học.');
+      toast.error(err?.status === 409 ? 'Khung giờ này không khả dụng hoặc buổi học vừa được cập nhật. Vui lòng kiểm tra và chọn lại.' : 'Chưa thể cập nhật lịch học. Vui lòng thử lại.');
     } finally {
+      rescheduleSubmitting.current = false;
       setSubmittingReschedule(false);
     }
   };
@@ -317,6 +348,22 @@ export default function SessionDetail() {
     : isAwaitingPayout ? 'Chờ giải ngân'
     : session.isPayoutReleased === false ? 'Chưa giải ngân' : 'Chưa có thông tin';
   const showProtection = isAwaitingPayout && (session.hasIssueReport || isReportWindowOpen);
+  const permissions = tutorSessionPermissions(session, enrollment, learningRecord, now);
+  const addRecord = () => {
+    setRecordEditorOpen(true);
+    window.requestAnimationFrame(() => {
+      document.getElementById('session-record')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      document.getElementById('learning-record-input')?.focus();
+    });
+  };
+  const openSchedule = () => {
+    setRescheduleDate(session.startAt ? formatDateTime(session.startAt, 'YYYY-MM-DD') : '');
+    setRescheduleStartTime(session.startAt ? formatDateTime(session.startAt, 'HH:mm') : '');
+    setRescheduleEndTime(session.endAt ? formatDateTime(session.endAt, 'HH:mm') : '');
+    setShowRescheduleModal(true);
+  };
+  const participantName = isTutor ? enrollment?.studentName : tutorName;
+  const participantAvatar = isTutor ? enrollment?.studentAvatarUrl : enrollment?.tutorAvatarUrl;
 
 
   return (
@@ -337,29 +384,38 @@ export default function SessionDetail() {
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-headline-1 font-bold text-fg">Buổi học #{number}</h1>
           <StateBadge status={session.status} domain="session" size="md" />
+          {isTutor && canCancel && <div className="ml-auto">{actionLoading ? <span role="status" className="text-caption text-fg-secondary">Đang hủy buổi học…</span> : <Menu label="Thêm thao tác" trigger={<span className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm text-fg-secondary hover:bg-neutral-50">Thêm thao tác<Icon name="more_vert" size="sm" /></span>} items={[{ key: 'cancel', label: 'Hủy buổi học', danger: true, icon: <Icon name="cancel" size="sm" />, onClick: handleCancelSession }]} />}</div>}
         </div>
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
-          <Avatar key={enrollment?.tutorAvatarUrl || tutorName} src={enrollment?.tutorAvatarUrl} name={tutorName} />
+          <Avatar key={participantAvatar || participantName} src={participantAvatar} name={participantName} />
           <div className="min-w-0 flex-1">
-            <p className="text-caption text-fg-secondary">Gia sư phụ trách</p>
-            <p className="text-body-reg font-semibold text-fg break-words">{tutorName || 'Chưa có thông tin gia sư'}</p>
+            <p className="text-caption text-fg-secondary">{isTutor ? 'Học viên' : 'Gia sư phụ trách'}</p>
+            <p className="text-body-reg font-semibold text-fg break-words">{participantName || (isTutor ? 'Học viên của lớp' : 'Chưa có thông tin gia sư')}</p>
           </div>
-          {!isTutor && <Button variant="outline" size="sm" onClick={messageTutor} loading={openingChat} icon={<Icon name="chat" size="xs" />}>Nhắn tin</Button>}
+          <Button variant="outline" size="sm" className={isTutor ? 'w-full sm:w-auto' : undefined} disabled={isTutor && !enrollment?.studentUserId} onClick={messageParticipant} loading={openingChat} icon={<Icon name="chat" size="xs" />}>{isTutor ? 'Nhắn tin học viên' : 'Nhắn tin'}</Button>
         </div>
       </Card>
 
       {isCancelled && (
-        <Callout variant="neutral" icon={<Icon name="cancel" size="sm" />}>
+        <Callout id="session-cancellation" className="scroll-mt-24" variant="neutral" icon={<Icon name="cancel" size="sm" />}>
           <p className="font-semibold">Buổi học đã hủy{session.cancelledAt ? ` · ${formatDateTime(session.cancelledAt)}` : ''}</p>
           <p className="mt-1">Buổi học này không còn trong lịch học của bạn. Bạn có thể xem lịch sử ví để kiểm tra giao dịch liên quan.</p>
+          {session.cancellationReason && <p className="mt-2 whitespace-pre-wrap break-words">Lý do hủy: {session.cancellationReason}</p>}
         </Callout>
       )}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)]">
-        <div className="min-w-0 space-y-6">
-          <Card as="section" padding="lg" variant="outlined" className="rounded-2xl" aria-labelledby="session-info-title">
-            <h2 id="session-info-title" className="mb-2 text-headline-3 font-semibold text-fg">Thông tin buổi học</h2>
+        <div className={isTutor ? 'contents' : 'min-w-0 space-y-6'}>
+          <Card as="section" id="session-info" padding="lg" variant="outlined" className={`scroll-mt-24 rounded-2xl ${isTutor ? 'order-1 min-w-0 lg:col-start-1' : ''}`} aria-labelledby="session-info-title">
+            <h2 id="session-info-title" className="mb-2 text-headline-3 font-semibold text-fg">{isTutor ? 'Lịch giảng dạy' : 'Thông tin buổi học'}</h2>
+            {isTutor && <div className="my-5 flex items-center gap-4 rounded-2xl bg-brand-primary-50 p-4 sm:gap-5 sm:p-5">
+              {session.startAt ? <>
+                <div aria-hidden="true" className="flex w-20 shrink-0 flex-col items-center rounded-xl bg-surface px-2 py-3 text-brand-primary-700"><span className="text-caption font-medium">{formatDateTime(session.startAt, 'ddd')}</span><span className="my-1 text-3xl font-semibold">{formatDateTime(session.startAt, 'DD')}</span><span className="text-[11px]">{formatDateTime(session.startAt, 'MM/YYYY')}</span></div>
+                <div className="min-w-0 space-y-2"><p className="text-xl font-semibold tabular-nums text-fg sm:text-2xl">{formatDateTime(session.startAt, 'HH:mm')}{session.endAt ? ` – ${formatDateTime(session.endAt, 'HH:mm')}` : ''}</p><p className="text-caption text-fg-secondary">{formatDateTime(session.startAt, 'DD/MM/YYYY')} · Giờ Việt Nam (UTC+7)</p>{plannedDuration > 0 && <p className="text-caption font-medium text-brand-primary-700">{plannedDuration} phút/buổi</p>}</div>
+              </> : <div className="space-y-2"><p className="font-semibold text-fg">Chưa xếp lịch học</p><p className="text-caption leading-relaxed text-fg-secondary">Thống nhất ngày giờ với học viên để bắt đầu{plannedDuration > 0 ? ` buổi học ${plannedDuration} phút` : ' buổi học'}.</p></div>}
+            </div>}
             <dl className="divide-y divide-border text-body-reg">
+              {!isTutor && <>
               <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-4">
                 <dt className="text-fg-secondary">Ngày học</dt>
                 <dd className="font-medium text-fg">{session.startAt ? formatDateTime(session.startAt, 'DD/MM/YYYY') : 'Chưa xếp lịch'}</dd>
@@ -374,6 +430,7 @@ export default function SessionDetail() {
                 <dt className="text-fg-secondary">Thời lượng dự kiến</dt>
                 <dd className="font-medium text-fg">{plannedDuration > 0 ? `${plannedDuration} phút` : 'Chưa có thông tin'}</dd>
               </div>
+              </>}
               <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-4">
                 <dt className="text-fg-secondary">Học phí buổi học</dt>
                 <dd className="font-semibold text-fg"><Money value={session.sessionPrice ?? session.earningAmount} /></dd>
@@ -389,12 +446,12 @@ export default function SessionDetail() {
           </Card>
 
           {showProtection && (
-            <section id="session-protection" className="scroll-mt-24" aria-label="Bảo vệ học phí">
+            <section id="session-protection" className={`scroll-mt-24 ${isTutor ? 'order-3 min-w-0 lg:col-start-1' : ''}`} aria-label="Bảo vệ học phí">
               <GracePeriodCard key={session.id} session={session} onIssueReported={handleIssueReported} isTutor={isTutor} />
             </section>
           )}
 
-          <Card as="section" id="session-record" padding="lg" variant="outlined" className="scroll-mt-24 rounded-2xl" aria-labelledby="session-record-title">
+          <Card as="section" id="session-record" padding="lg" variant="outlined" className={`scroll-mt-24 rounded-2xl ${isTutor ? 'order-3 min-w-0 lg:col-start-1' : ''}`} aria-labelledby="session-record-title">
             <h2 id="session-record-title" className="text-headline-3 font-semibold text-fg">Nhật ký buổi học</h2>
             {recordError ? (
               <div className="mt-5 space-y-3">
@@ -406,14 +463,15 @@ export default function SessionDetail() {
                 <p className="whitespace-pre-wrap break-words text-body-reg leading-relaxed text-fg">{learningRecord.content}</p>
                 {learningRecord.createdAt && <p className="mt-4 text-caption text-fg-secondary">Cập nhật {formatDateTime(learningRecord.createdAt)}</p>}
               </div>
-            ) : (
+            ) : !(isTutor && recordEditorOpen) && (
               <div className="flex flex-col items-center px-2 py-8 text-center">
                 <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100 text-fg-secondary"><Icon name="menu_book" size="md" /></span>
-                <p className="font-semibold text-fg">Chưa có nội dung buổi học</p>
-                <p className="mt-2 max-w-sm text-body-reg leading-relaxed text-fg-secondary">Nội dung giảng dạy và ghi chú sẽ xuất hiện tại đây sau khi gia sư cập nhật.</p>
+                <p className="font-semibold text-fg">{isTutor ? 'Chưa có nhật ký buổi học' : 'Chưa có nội dung buổi học'}</p>
+                <p className="mt-2 max-w-sm text-body-reg leading-relaxed text-fg-secondary">{isTutor ? isCancelled ? 'Buổi học đã hủy nên không thể bổ sung nhật ký.' : permissions.canCreateRecord ? 'Ghi lại nội dung đã giảng dạy để theo dõi quá trình học của học viên.' : 'Bạn có thể cập nhật nhật ký sau khi buổi học hoàn thành.' : 'Nội dung giảng dạy và ghi chú sẽ xuất hiện tại đây sau khi gia sư cập nhật.'}</p>
+                {isTutor && permissions.canCreateRecord && <Button className="mt-4" onClick={addRecord} icon={<Icon name="edit" size="sm" />}>Thêm nhật ký</Button>}
               </div>
             )}
-            {isTutor && isCompleted && !learningRecord && !recordError && (
+            {isTutor && permissions.canCreateRecord && recordEditorOpen && !recordError && (
           <form
             onSubmit={handleCreateLearningRecord}
             className="space-y-3 pt-5 mt-5 border-t border-border"
@@ -421,16 +479,20 @@ export default function SessionDetail() {
             <Field
               label="Ghi nhận tiến độ và nội dung bài học (dành cho gia sư)"
               htmlFor="learning-record-input"
-              hint="Tối thiểu 10 ký tự. Học viên đọc nội dung này ngay sau buổi học."
+              hint="Từ 10 đến 2.000 ký tự. Học viên sẽ đọc được nhật ký sau khi bạn lưu."
             >
               <Textarea
                 id="learning-record-input"
                 rows={4}
+                maxLength={2000}
+                disabled={submittingRecord}
                 value={recordInput}
                 onChange={(e) => setRecordInput(e.target.value)}
                 placeholder="Tóm tắt nội dung đã dạy, mức độ tiếp thu của học viên và bài tập về nhà..."
               />
             </Field>
+            {recordSaveError && <p role="alert" className="text-caption text-danger-strong">{recordSaveError}</p>}
+            <div className="flex flex-wrap gap-3">
             <Button
               type="submit"
               variant="primary"
@@ -440,13 +502,15 @@ export default function SessionDetail() {
             >
               Lưu nhật ký buổi học
             </Button>
+            <Button variant="outline" disabled={submittingRecord} onClick={() => { setRecordEditorOpen(false); setRecordInput(''); setRecordSaveError(''); }}>Hủy</Button>
+            </div>
           </form>
 
             )}
           </Card>
         </div>
 
-        <Card as="aside" padding="lg" variant="outlined" className="rounded-2xl lg:sticky lg:top-24" aria-labelledby="session-action-title">
+        {isTutor ? <TutorSessionActions session={session} permissions={permissions} record={learningRecord} recordError={recordError} onSchedule={openSchedule} onAddRecord={addRecord} showProtection={showProtection} /> : <Card as="aside" padding="lg" variant="outlined" className="rounded-2xl lg:sticky lg:top-24" aria-labelledby="session-action-title">
           <h2 id="session-action-title" className="text-headline-3 font-semibold text-fg">Hành động tiếp theo</h2>
           <div className="mt-5 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-primary-50 text-primary">
             <Icon name={isCancelled ? 'description' : isCompleted || isAwaitingPayout ? 'menu_book' : 'calendar_month'} size="md" />
@@ -476,7 +540,7 @@ export default function SessionDetail() {
             ) : canTutorSchedule ? (
               <Button onClick={() => setShowRescheduleModal(true)} fullWidth icon={<Icon name="calendar_month" size="sm" />}>{isUnscheduled ? 'Xếp lịch buổi học' : 'Đổi lịch học'}</Button>
             ) : !isTutor && (isUnscheduled || isScheduled) ? (
-              <Button onClick={messageTutor} loading={openingChat} fullWidth icon={<Icon name="chat" size="sm" />}>Nhắn tin gia sư</Button>
+              <Button onClick={messageParticipant} loading={openingChat} fullWidth icon={<Icon name="chat" size="sm" />}>Nhắn tin gia sư</Button>
             ) : null}
             {!isCancelled && <Button as={Link} to={enrollmentPath} variant="outline" fullWidth>Quay lại lộ trình</Button>}
           </div>
@@ -490,7 +554,7 @@ export default function SessionDetail() {
               )}
             </div>
           )}
-        </Card>
+        </Card>}
       </div>
 
       {(previousSession || nextSession) && (
@@ -515,7 +579,7 @@ export default function SessionDetail() {
             onClick={() => setShowRescheduleModal(false)}
             tabIndex={-1}
           />
-          <div className="relative bg-surface rounded-brand-lg shadow-brand-xl border border-border w-full max-w-md flex flex-col z-10">
+          <div className="relative bg-surface rounded-brand-lg shadow-brand-xl border border-border w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto flex flex-col z-10">
             <div className="p-6 pb-4 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <Icon name="calendar_month" size="md" className="text-brand-primary-600" />
@@ -534,8 +598,8 @@ export default function SessionDetail() {
             </div>
 
             <form onSubmit={handleDirectReschedule} className="p-6 pt-5 space-y-4 text-caption">
-              <div className="p-3 bg-holding-subtle rounded-brand-md border border-holding/30 text-xs text-holding-strong">
-                <strong>Quy định đổi lịch:</strong> Lịch học mới phải cách thời điểm hiện tại ít nhất 2 giờ. Lịch học sẽ được cập nhật trực tiếp trên hệ thống ngay sau khi lưu.
+              <div className="rounded-xl bg-brand-primary-50 p-3 text-caption leading-relaxed text-fg-secondary">
+                Lịch mới phải cách hiện tại ít nhất 2 giờ{plannedDuration > 0 ? ` và có thời lượng ${plannedDuration} phút` : ''}. Hãy trao đổi với học viên trước khi lưu. Hệ thống sẽ kiểm tra trùng lịch và cập nhật lịch học sau khi xác nhận thành công.
               </div>
 
               <Field label="Ngày học mới" htmlFor="reschedule-date" required>

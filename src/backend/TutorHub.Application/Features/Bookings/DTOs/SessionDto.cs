@@ -20,7 +20,8 @@ public record SessionDto(
     string? IssueReportReason = null,
     DateTime? IssueReportedAt = null,
     string? TutorName = null,
-    string? SubjectName = null
+    string? SubjectName = null,
+    string? CancellationReason = null
 )
 {
     public decimal EarningAmount => SessionPrice;

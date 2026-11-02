@@ -75,7 +75,9 @@ public class GetMyEnrollmentsQueryHandler : IRequestHandler<GetMyEnrollmentsQuer
                 _context.Transactions.Where(t => t.BookingId == e.BookingId
                     && t.Type == TransactionType.StudentRefund
                     && (t.Status == TransactionStatus.Succeeded || t.Status == TransactionStatus.Refunded))
-                    .Sum(t => (decimal?)t.Amount) ?? 0
+                    .Sum(t => (decimal?)t.Amount) ?? 0,
+                e.StudentProfile.UserId,
+                e.StudentProfile.User.AvatarUrl
             ))
             .ToListAsync(cancellationToken);
 
