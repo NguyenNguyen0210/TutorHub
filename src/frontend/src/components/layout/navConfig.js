@@ -3,15 +3,33 @@
  * `icon` là tên Material Symbols cũ, được `Icon` tự map sang Lucide.
  * `match(path)` quyết định trạng thái active (prefix match).
  *
- * `external: true` = trang nằm ngoài khung sàn (PublicLayout). Điều hướng trong
- * tab sẽ thay sidebar bằng topbar công khai, nên các mục này mở tab mới và luôn
- * `match: () => false` — sidebar không tồn tại ở trang public nên không thể hiện
- * trạng thái active, để sáng luôn sẽ gây hiểu nhầm.
+ * Khám phá dùng PublicLayout; công cụ của từng role dùng WorkspaceShell.
+ * Chuyển giữa hai khu vực trong cùng tab qua mục Khám phá / nút không gian riêng.
  *
  * Toàn bộ phần public gộp thành MỘT mục "Khám phá" → `/` (trang chủ sàn, từ đó
  * đi tới danh sách gia sư và sàn dịch vụ). Hồ sơ công khai của gia sư không
  * chiếm chỗ ở sidebar — nó nằm trong menu tài khoản.
  */
+
+const DISCOVERY_LINKS = [
+  { path: '/', label: 'Tìm gia sư', icon: 'person_search', match: (p) => p === '/' || p.startsWith('/tutors') },
+  { path: '/services', label: 'Gói học', icon: 'local_library', match: (p) => p.startsWith('/services') },
+];
+
+const DISCOVERY_INFO_LINKS = [
+  { path: '/become-tutor', label: 'Trở thành gia sư', icon: 'school', match: (p) => p.startsWith('/become-tutor') },
+  { path: '/how-it-works', label: 'Cách hoạt động', icon: 'help_outline', match: (p) => p.startsWith('/how-it-works') },
+];
+
+export function getDiscoveryNav() {
+  return [...DISCOVERY_LINKS, ...DISCOVERY_INFO_LINKS];
+}
+
+export function getWorkspaceEntry(role) {
+  if (role === 'Admin') return { path: '/admin/dashboard', label: 'Quản trị', shortLabel: 'Quản trị', icon: 'verified_user' };
+  if (role === 'Tutor') return { path: '/tutor/dashboard', label: 'Không gian gia sư', shortLabel: 'Gia sư', icon: 'space_dashboard' };
+  return { path: '/student/dashboard', label: 'Bàn học của tôi', shortLabel: 'Bàn học', icon: 'space_dashboard' };
+}
 
 export const NAV = {
   guest: [
@@ -19,11 +37,11 @@ export const NAV = {
   ],
 
   Student: [
-    { path: '/student/dashboard', label: 'Bàn học của tôi', icon: 'space_dashboard', match: (p) => p.startsWith('/student/dashboard') },
+    { path: '/student/dashboard', label: 'Bàn học của tôi', icon: 'space_dashboard', match: (p) => p.startsWith('/student/dashboard') || p.startsWith('/student/enrollments/') || p.startsWith('/student/sessions/') },
     { path: '/student/wallet', label: 'Ví học viên', icon: 'account_balance_wallet', match: (p) => p.startsWith('/student/wallet') },
     { path: '/student/wishlist', label: 'Đã lưu', icon: 'favorite', match: (p) => p.startsWith('/student/wishlist') },
-    { path: '/', label: 'Khám phá', icon: 'explore', match: () => false, external: true },
-    { path: '/app/messages', label: 'Hộp thư & Hợp đồng', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
+    { path: '/', label: 'Khám phá gia sư', icon: 'explore', match: () => false },
+    { path: '/app/messages', label: 'Tin nhắn', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
     { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },
   ],
 
@@ -36,11 +54,12 @@ export const NAV = {
     { path: '/tutor/schedule', label: 'Lịch dạy', icon: 'calendar_month', match: (p) => p.startsWith('/tutor/schedule') },
     // TODO(mockup): mục "Học viên" — chưa có trang danh sách học viên cho gia sư, bổ sung khi có route.
     { path: '/tutor/services', label: 'Dịch vụ của tôi', icon: 'inventory_2', match: (p) => p.startsWith('/tutor/services') },
-    { path: '/', label: 'Khám phá', icon: 'explore', match: () => false, external: true },
-    { path: '/app/messages', label: 'Hộp thư', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
+    { path: '/', label: 'Khám phá gia sư', icon: 'explore', match: () => false },
+    { path: '/app/messages', label: 'Tin nhắn', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
     { path: '/tutor/wallet', label: 'Ví & Thanh toán', icon: 'account_balance_wallet', match: (p) => p.startsWith('/tutor/wallet') },
     // TODO(mockup): mục "Đánh giá" — chưa có trang đánh giá dành cho gia sư, bổ sung khi có route.
     { path: '/tutor/settings', label: 'Cài đặt', icon: 'settings', match: (p) => p.startsWith('/tutor/settings') },
+    { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },
   ],
 
   Admin: [
@@ -51,6 +70,8 @@ export const NAV = {
     { path: '/admin/disputes', label: 'Tranh chấp', icon: 'gavel', match: (p) => p.startsWith('/admin/disputes') },
     { path: '/admin/users', label: 'Người dùng', icon: 'group', match: (p) => p.startsWith('/admin/users') },
     { path: '/admin/audit-logs', label: 'Sổ kiểm toán', icon: 'history', match: (p) => p.startsWith('/admin/audit-logs') },
+    { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },
+    { path: '/', label: 'Khám phá gia sư', icon: 'explore', match: () => false },
   ],
 };
 
@@ -60,9 +81,7 @@ export function getNavForRole(role, isAuthenticated) {
 }
 
 export function getDashboardPath(role) {
-  if (role === 'Admin') return '/admin/dashboard';
-  if (role === 'Tutor') return '/tutor/dashboard';
-  return '/student/dashboard';
+  return getWorkspaceEntry(role).path;
 }
 
 export const ROLE_SUBTITLE = {

@@ -3,331 +3,152 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import Icon from '@/components/ui/Icon';
 import Logo from '@/components/ui/Logo';
-import Avatar, { Menu } from '@/components/ui/Avatar';
-import Button from '@/components/ui/Button';
+import Avatar, { Menu, Drawer } from '@/components/ui/Avatar';
 import { useAuthStore } from '@/store/authStore';
-import { chatService } from '@/services/chat.service';
+import { useWorkspaceActivity } from '@/hooks/useWorkspaceActivity';
 import { getNavForRole, getDashboardPath } from './navConfig';
-import MobileFloatingDock from './MobileFloatingDock';
+import WorkspaceMobileNav from './WorkspaceMobileNav';
+import UnreadBadge from './UnreadBadge';
+import '@/styles/workspace-navigation.css';
 
-/**
- * WorkspaceShell — khung làm việc chuẩn cho Student / Tutor / Admin.
- * Sidebar navy 240px + canvas porcelain sáng;
- * < 1024px sidebar thành drawer.
- */
 export default function WorkspaceShell({ userRole: role, children }) {
   const { user, isAuthenticated, logout } = useAuthStore();
-  // UserDto.IdProfile = TutorProfile.Id / StudentProfile.Id, đã có sẵn trong
-  // authStore nên "Hồ sơ công khai" không cần gọi API thêm.
-  const profileId = user?.idProfile || user?.tutorProfileId || null;
+  const profileId = user?.idProfile || user?.tutorProfileId;
   const location = useLocation();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  // Tổng tin nhắn chưa đọc thật từ /conversations (0 / lỗi → ẩn badge, không số giả).
-  const [unreadMessages, setUnreadMessages] = useState(0);
-
-  useEffect(() => {
-    setDrawerOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadUnread() {
-      if (!isAuthenticated) {
-        setUnreadMessages(0);
-        return;
-      }
-      try {
-        const page = await chatService.getConversations({ pageSize: 50 });
-        const total = (page?.items || []).reduce((sum, c) => sum + (Number(c.unreadCount) || 0), 0);
-        if (!cancelled) setUnreadMessages(total);
-      } catch {
-        if (!cancelled) setUnreadMessages(0);
-      }
-    }
-    loadUnread();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated, location.pathname]);
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/auth/login');
-  };
-
-  const navItems = getNavForRole(role, isAuthenticated);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('tutorhub_sidebar_collapsed') === '1'; }
+    catch { return false; }
+  });
+  const activity = useWorkspaceActivity(isAuthenticated ? user?.id || user?.userId : null, location.pathname);
   const roleLabel = role === 'Student' ? 'Học viên' : role === 'Tutor' ? 'Gia sư' : 'Quản trị viên';
+  const settingsPath = role === 'Tutor' ? '/tutor/settings' : role === 'Admin' ? '/admin/settings' : '/student/settings';
+  const fullName = user?.fullName || user?.name || 'Tài khoản';
 
+  useEffect(() => { setDrawerOpen(false); }, [location.pathname, location.search]);
+  useEffect(() => {
+    try { localStorage.setItem('tutorhub_sidebar_collapsed', collapsed ? '1' : '0'); }
+    catch { /* Navigation still works when browser storage is unavailable. */ }
+  }, [collapsed]);
+
+  const goTo = path => { setDrawerOpen(false); navigate(path); };
   const userMenuItems = [
-    {
-      key: 'dashboard',
-      icon: <Icon name="space_dashboard" size="sm" />,
-      label: (
-        <span className="font-semibold text-body-reg">
-          {role === 'Student' ? 'Bàn học của tôi' : role === 'Tutor' ? 'Bảng điều hành' : 'Tổng quan sàn'}
-        </span>
-      ),
-      onClick: () => navigate(getDashboardPath(role)),
-    },
-    ...(role === 'Student'
-      ? [
-          {
-            key: 'wallet',
-            icon: <Icon name="account_balance_wallet" size="sm" />,
-            label: <span className="font-semibold text-body-reg">Ví học viên & Nạp/Rút</span>,
-            onClick: () => navigate('/student/wallet'),
-          },
-          {
-            key: 'wishlist',
-            icon: <Icon name="favorite" size="sm" />,
-            label: <span className="font-semibold text-body-reg">Danh sách đã lưu</span>,
-            onClick: () => navigate('/student/wishlist'),
-          },
-        ]
-      : []),
-    ...(role === 'Tutor'
-      ? [
-          {
-            key: 'application',
-            icon: <Icon name="verified_user" size="sm" />,
-            label: <span className="font-semibold text-body-reg">Hồ sơ xét duyệt</span>,
-            onClick: () => navigate('/tutor/application'),
-          },
-          // Chỉ hiện khi đã có hồ sơ công khai; gia sư đang chờ duyệt thì chưa có
-          // TutorProfile nên không có trang nào để mở.
-          ...(profileId
-            ? [
-                {
-                  key: 'public-profile',
-                  icon: <Icon name="person" size="sm" />,
-                  label: <span className="font-semibold text-body-reg">Xem hồ sơ công khai</span>,
-                  onClick: () => navigate(`/tutors/${profileId}`),
-                },
-              ]
-            : []),
-          {
-            key: 'wallet',
-            icon: <Icon name="account_balance_wallet" size="sm" />,
-            label: <span className="font-semibold text-body-reg">Ví Escrow & Rút tiền</span>,
-            onClick: () => navigate('/tutor/wallet'),
-          },
-        ]
-      : []),
-    {
-      key: 'settings',
-      icon: <Icon name="settings" size="sm" />,
-      label: <span className="font-semibold text-body-reg">Cài đặt tài khoản</span>,
-      onClick: () => navigate(role === 'Tutor' ? '/tutor/settings' : role === 'Student' ? '/student/settings' : '/admin/settings'),
-    },
+    { key: 'profile', icon: <Icon name="person" size="sm" />, label: 'Hồ sơ cá nhân', onClick: () => goTo(`${settingsPath}?tab=profile`) },
+    { key: 'settings', icon: <Icon name="settings" size="sm" />, label: 'Cài đặt & bảo mật', onClick: () => goTo(`${settingsPath}?tab=password`) },
+    ...(role === 'Tutor' ? [
+      { key: 'application', icon: <Icon name="verified_user" size="sm" />, label: 'Hồ sơ xét duyệt', onClick: () => goTo('/tutor/application') },
+      ...(profileId ? [{ key: 'public-profile', icon: <Icon name="school" size="sm" />, label: 'Xem hồ sơ công khai', onClick: () => goTo(`/tutors/${profileId}`) }] : []),
+    ] : []),
     { type: 'divider' },
-    {
-      key: 'logout',
-      icon: <Icon name="logout" size="sm" />,
-      label: <span className="font-semibold text-body-reg">Đăng xuất</span>,
-      danger: true,
-      onClick: handleLogout,
-    },
+    { key: 'logout', icon: <Icon name="logout" size="sm" />, label: 'Đăng xuất', danger: true,
+      onClick: async () => { await logout(); navigate('/auth/login'); } },
   ];
+  const accountHeader = <div className="min-w-0"><p className="truncate text-sm font-semibold text-fg">{fullName}</p><p className="mt-1 text-xs text-fg-muted">{roleLabel}</p></div>;
+  const navItems = getNavForRole(role, isAuthenticated);
+  const primaryPaths = [getDashboardPath(role), role === 'Admin' ? '/admin/disputes' : '/app/messages', '/app/notifications'];
+  const mobilePrimary = primaryPaths.map(path => navItems.find(item => item.path === path)).filter(Boolean)
+    .map(item => ({ ...item, shortLabel: item.path === getDashboardPath(role) ? role === 'Student' ? 'Bàn học' : 'Tổng quan' : item.label }));
+  const navGroups = [
+    { label: role === 'Student' ? 'Học tập' : role === 'Tutor' ? 'Giảng dạy' : 'Quản lý', items: navItems.filter(item => !item.path.startsWith('/app/') && item.path !== '/') },
+    { label: 'Trao đổi', items: navItems.filter(item => item.path.startsWith('/app/')) },
+    { label: 'Khám phá', items: navItems.filter(item => item.path === '/') },
+  ].filter(group => group.items.length > 0);
+  const mobileGroups = navGroups.map(group => ({ ...group, items: group.items.filter(item => !primaryPaths.includes(item.path) && item.path !== settingsPath) }))
+    .filter(group => group.items.length > 0);
+  const moreActive = mobileGroups.some(group => group.items.some(item => item.match(location.pathname)));
 
-  const sidebarBody = (
-    <div className="flex flex-col h-full">
-      <Link
-        to={getDashboardPath(role)}
-        className="flex items-center gap-2.5 px-5 h-16 shrink-0 border-b border-white/10"
-        aria-label="TutorHub — về trang tổng quan"
-      >
-        <Logo variant="mark" size={36} />
-        <Logo variant="wordmark" size={30} tone="light" />
-      </Link>
+  const sidebar = (compact = false, mobile = false) => (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className={cn('flex h-16 shrink-0 items-center workspace-nav-divider border-b border-white/10', compact ? 'justify-center px-2' : 'justify-between px-5')}>
+        <Link to={getDashboardPath(role)} onClick={() => setDrawerOpen(false)}
+          aria-label="TutorHub — về trang tổng quan" className="workspace-nav-focus flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
+          <Logo variant="mark" size={34} />
+          {!compact && <Logo variant="wordmark" size={28} tone={role === 'Student' ? 'color' : 'light'} />}
+        </Link>
+        {mobile && <button type="button" aria-label="Đóng menu điều hướng" onClick={() => setDrawerOpen(false)}
+          className="workspace-nav-control workspace-nav-focus flex h-9 w-9 items-center justify-center rounded-lg text-neutral-300 hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white">
+          <Icon name="close" size="sm" />
+        </button>}
+        {!mobile && !compact && <button type="button" onClick={() => setCollapsed(true)} aria-label="Thu gọn thanh điều hướng" title="Thu gọn thanh điều hướng" aria-controls="workspace-sidebar" aria-expanded="true"
+          className="workspace-nav-control workspace-nav-focus flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-neutral-300 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"><Icon name="chevron_left" size="md" /></button>}
+      </div>
+      {!mobile && compact && <div className="flex justify-center pt-3"><button type="button" onClick={() => setCollapsed(false)} aria-label="Mở rộng thanh điều hướng" title="Mở rộng thanh điều hướng" aria-controls="workspace-sidebar" aria-expanded="false"
+        className="workspace-nav-control workspace-nav-focus flex h-10 w-10 items-center justify-center rounded-xl text-neutral-300 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"><Icon name="chevron_right" size="md" /></button></div>}
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1" aria-label={`${role} navigation`}>
-        {navItems.map((item) => {
-          const isActive = item.match(location.pathname);
-          const showMsgBadge = item.path === '/app/messages' && unreadMessages > 0;
-          // `external` = trang nằm ngoài khung sàn (PublicLayout). Mở tab mới để
-          // người dùng không mất sidebar đang mở — điều hướng trong tab sẽ làm
-          // khung công khai hiện lên, đúng lỗi đã gặp ở Hộp thư.
-          const externalProps = item.external
-            ? { target: '_blank', rel: 'noopener noreferrer' }
-            : {};
-          return (
-            <Link
-              key={`${item.path}__${item.label}`}
-              to={item.path}
-              aria-current={isActive ? 'page' : undefined}
-              title={item.external ? `${item.label} (mở tab mới)` : undefined}
-              className={cn(
-                'flex min-h-11 items-center gap-3 px-3.5 py-2.5 rounded-brand-md text-body-reg font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
-                isActive
-                  ? 'bg-brand-primary-600 text-white shadow-brand-sm'
-                  : 'text-neutral-300 hover:text-white hover:bg-white/10'
-              )}
-              {...externalProps}
-            >
-              <Icon name={item.icon} size="md" />
-              <span className="flex-1 min-w-0 truncate">{item.label}</span>
-              {item.external && (
-                <Icon
-                  name="open_in_new"
-                  size="xs"
-                  className="text-neutral-400 shrink-0"
-                  aria-hidden="true"
-                />
-              )}
-              {showMsgBadge && (
-                <span
-                  aria-label={`${unreadMessages} tin nhắn chưa đọc`}
-                  className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-danger text-white text-[11px] font-bold flex items-center justify-center"
-                >
-                  {unreadMessages > 99 ? '99+' : unreadMessages}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+      <nav id={mobile ? 'workspace-more-navigation' : undefined} className={cn('min-h-0 flex-1 space-y-5 overflow-y-auto py-5', compact ? 'px-2' : 'px-3')} aria-label={mobile ? 'Điều hướng bổ sung' : 'Điều hướng không gian làm việc'}>
+        {(mobile ? mobileGroups : navGroups).map(group => <div key={group.label} className="space-y-1">
+          {compact ? <div className="mx-2 mb-3 workspace-nav-divider border-t border-white/10" /> :
+            <p className="workspace-nav-label mb-2 px-3 text-[11px] font-medium text-neutral-300">{group.label}</p>}
+          {group.items.map(item => {
+            const active = item.match(location.pathname);
+            const unread = item.path === '/app/messages' ? activity.conversations : item.path === '/app/notifications' ? activity.notifications : 0;
+            const unreadLabel = item.path === '/app/messages' ? 'cuộc trò chuyện chưa đọc' : 'thông báo chưa đọc';
+            return <Link key={item.path} to={item.path} onClick={() => setDrawerOpen(false)}
+              title={compact ? `${item.label}${unread > 0 ? `, ${unread} ${unreadLabel}` : ''}` : undefined}
+              aria-label={compact ? `${item.label}${unread > 0 ? `, ${unread} ${unreadLabel}` : ''}` : undefined}
+              aria-current={active ? 'page' : undefined}
+              className={cn('workspace-nav-item workspace-nav-focus relative flex min-h-11 items-center rounded-xl text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
+                compact ? 'justify-center px-2' : 'gap-3 px-3 py-2.5',
+                active ? 'bg-brand-primary-600 text-white' : 'text-neutral-300 hover:bg-white/[0.08] hover:text-white')}>
+              <Icon name={item.icon} size="md" className="shrink-0" />
+              {!compact && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
+              {compact && unread > 0 ? <span className="workspace-nav-count absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-primary-600 px-1 text-[9px] font-bold text-white ring-2 ring-brand-navy-900" aria-label={`${unread} ${unreadLabel}`}>{unread > 99 ? '99+' : unread}</span> :
+                <UnreadBadge count={unread} label={unreadLabel} className={role === 'Student' ? 'bg-brand-primary-100 text-brand-primary-700' : undefined} />}
+            </Link>;
+          })}
+        </div>)}
       </nav>
 
-      <div className="p-3 border-t border-white/10 space-y-3">
-        <div className="rounded-brand-md bg-white/[0.06] border border-white/10 p-3.5">
-          <div className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-              <Icon name="contact_support" size="sm" className="text-brand-primary-300" />
-            </span>
-            <p className="text-body-reg font-bold text-white">Cần hỗ trợ?</p>
-          </div>
-          <p className="mt-2 text-caption text-neutral-400 leading-relaxed">
-            Xem hướng dẫn sử dụng và câu hỏi thường gặp.
-          </p>
-          <Link
-            to="/how-it-works"
-            className="mt-2.5 flex min-h-10 items-center justify-center gap-1.5 w-full px-3 py-2 rounded-brand-md bg-white/10 border border-white/10 text-white text-body-reg font-bold hover:bg-white/15 transition-colors"
-          >
-            Trung tâm trợ giúp
-            <Icon name="arrow_forward" size="sm" />
-          </Link>
-        </div>
-        {/* Khối này trước đây là <Link> trỏ thẳng /tutor/settings nhưng hiển thị tên
-            người dùng → người dùng tưởng là "Hồ sơ cá nhân" và bấm nhầm, ra Cài đặt.
-            Nay nó là trigger của menu tài khoản (giống avatar ở header), nên
-            không còn đường nào mang tên mà điều hướng sai chỗ. */}
-        <Menu
-          items={userMenuItems}
-          align="top"
-          trigger={
-            <div className="w-full flex min-h-11 items-center justify-between gap-2 px-2.5 py-2 rounded-brand-md bg-white/[0.06] border border-white/10 hover:bg-white/10 transition-colors group cursor-pointer">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="w-2 h-2 rounded-full bg-success shrink-0" aria-hidden="true" />
-                <div className="min-w-0">
-                  <p className="text-caption font-semibold text-white truncate">
-                    {user?.fullName || user?.name || 'Tài khoản'}
-                  </p>
-                  <p className="text-[11px] text-neutral-400">{roleLabel}</p>
-                </div>
-              </div>
-              <Icon
-                name="expand_more"
-                size="xs"
-                className="text-neutral-400 group-hover:text-white transition-colors shrink-0"
-              />
-            </div>
-          }
-        />
+      <div className="space-y-3 workspace-nav-divider border-t border-white/10 p-3">
+        <Link to="/how-it-works" onClick={() => setDrawerOpen(false)} title={compact ? 'Trung tâm trợ giúp' : undefined}
+          aria-label="Trung tâm trợ giúp"
+          className={cn('workspace-nav-control workspace-nav-focus flex min-h-10 items-center rounded-xl text-sm text-neutral-300 transition-colors duration-150 hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70', compact ? 'justify-center' : 'gap-3 px-3')}>
+          <Icon name="contact_support" size="sm" />
+          {!compact && <><span className="flex-1">Cần hỗ trợ?</span><Icon name="arrow_forward" size="xs" /></>}
+        </Link>
+        {!mobile && <Menu items={userMenuItems} header={accountHeader} label={`${fullName} · ${roleLabel} — Mở menu tài khoản`} align="top" className="w-full" triggerClassName="w-full"
+          trigger={<span className={cn('workspace-nav-account flex min-h-14 w-full items-center rounded-xl border border-white/10 bg-white/[0.04] transition-colors duration-150 hover:bg-white/[0.08]', compact ? 'justify-center p-1' : 'gap-3 px-2.5 py-2')}>
+            <Avatar src={user?.avatarUrl} name={fullName} size="sm" className="workspace-nav-avatar border-white/10" />
+            {!compact && <><span className="min-w-0 flex-1 text-left"><span className="workspace-nav-name block truncate text-xs font-semibold text-white">{fullName}</span><span className="workspace-nav-muted mt-0.5 block text-[11px] text-neutral-400">{roleLabel}</span></span><Icon name="expand_more" size="xs" className="workspace-nav-muted text-neutral-400" /></>}
+          </span>}
+        />}
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen flex bg-canvas text-fg antialiased">
-      <aside className="hidden lg:flex w-60 shrink-0 bg-brand-navy-900 text-white border-r border-brand-navy-800 sticky top-0 h-screen flex-col">
-        {sidebarBody}
+    <div className={cn('flex min-h-screen bg-canvas text-fg antialiased', role === 'Student' && 'student-workspace')}>
+      <aside id="workspace-sidebar" className={cn('sticky top-0 z-50 hidden h-screen shrink-0 flex-col border-r border-brand-navy-800 bg-brand-navy-900 text-white transition-[width] duration-200 motion-reduce:transition-none lg:flex', collapsed ? 'w-[68px]' : 'w-[232px]', role === 'Student' && 'workspace-navigation-light')}>
+        {sidebar(collapsed)}
       </aside>
 
-      {drawerOpen && (
-        <div className="lg:hidden fixed inset-0 z-[100]">
-          <button
-            type="button"
-            aria-label="Đóng menu điều hướng"
-            className="absolute inset-0 bg-brand-navy-950/60 backdrop-blur-sm cursor-default"
-            onClick={() => setDrawerOpen(false)}
-          />
-          <aside className="absolute left-0 top-0 bottom-0 w-72 max-w-[85vw] bg-brand-navy-900 text-white border-r border-brand-navy-800 shadow-brand-xl">
-            {sidebarBody}
-          </aside>
-        </div>
-      )}
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Menu điều hướng" hideHeader
+        widthClass="w-72" panelClassName={cn('bg-brand-navy-900 text-white', role === 'Student' && 'student-workspace workspace-navigation-light')} contentClassName="p-0">
+        {sidebar(false, true)}
+      </Drawer>
 
-      <div className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-40 glass-surface border-b border-border">
-          <div className="flex items-center gap-3 px-4 sm:px-6 lg:px-8 h-16">
-            <button
-              type="button"
-              onClick={() => setDrawerOpen(true)}
-              aria-label="Mở menu điều hướng"
-              className="lg:hidden w-10 h-10 rounded-brand-md flex items-center justify-center text-fg-secondary hover:bg-neutral-100 transition-colors"
-            >
-              <Icon name="menu" size="md" />
-            </button>
-
-            <Link to={getDashboardPath(role)} className="lg:hidden" aria-label="TutorHub">
-              <Logo variant="mark" size={32} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur-md lg:hidden">
+          <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-8">
+            <Link to={getDashboardPath(role)} className="rounded-lg focus-visible:ring-2 focus-visible:ring-brand-primary-500 lg:hidden" aria-label="TutorHub">
+              <Logo variant="horizontal" size={32} />
             </Link>
-
-            <div className="flex-1 min-w-0 hidden sm:block">
-              <p className="text-caption text-fg-muted truncate">
-                {role === 'Student' && 'Không gian học tập của bạn'}
-                {role === 'Tutor' && 'Không gian giảng dạy của bạn'}
-                {role === 'Admin' && 'Bảng điều hành sàn giao dịch'}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 ml-auto">
-              <Button
-                as={Link}
-                to="/app/notifications"
-                variant="ghost"
-                size="md"
-                aria-label="Thông báo"
-                icon={<Icon name="notifications" size="md" />}
-                className="w-10 h-10 !px-0"
-              />
-              <Button
-                as={Link}
-                to="/app/messages"
-                variant="ghost"
-                size="md"
-                aria-label="Tin nhắn"
-                icon={<Icon name="chat" size="md" />}
-                className="w-10 h-10 !px-0"
-              />
-              <Menu
-                items={userMenuItems}
-                trigger={
-                  <span className="flex items-center gap-2 cursor-pointer rounded-brand-md px-1.5 py-1 hover:bg-neutral-100 transition-colors">
-                    <Avatar
-                      src={user?.avatarUrl}
-                      name={user?.fullName || user?.name}
-                      size="md"
-                    />
-                    <Icon name="expand_more" size="sm" className="text-fg-muted hidden sm:block" />
-                  </span>
-                }
+            <div className="ml-auto flex items-center gap-2 sm:gap-3">
+              <Menu items={userMenuItems} header={accountHeader} label="Mở menu tài khoản"
+                trigger={<span className="flex min-h-11 items-center gap-2 rounded-xl p-1 transition-colors duration-150 hover:bg-neutral-100">
+                  <Avatar src={user?.avatarUrl} name={fullName} size="sm" />
+                  <Icon name="expand_more" size="xs" className="hidden text-fg-muted sm:block" />
+                </span>}
               />
             </div>
           </div>
         </header>
-
-        <main
-          className={cn(
-            'flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 lg:pb-10',
-            role === 'Admin' ? 'max-w-[1600px]' : 'max-w-7xl'
-          )}
-        >
+        <main className={cn('mx-auto w-full flex-1 px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 lg:p-8', role === 'Admin' ? 'max-w-[1600px]' : location.pathname.startsWith('/app/messages') ? 'max-w-[1280px]' : 'max-w-[1120px]')}>
           {children}
         </main>
       </div>
-
-      <MobileFloatingDock />
+      <WorkspaceMobileNav items={mobilePrimary} activity={activity} moreActive={moreActive} moreOpen={drawerOpen} onMore={() => setDrawerOpen(true)} />
     </div>
   );
 }

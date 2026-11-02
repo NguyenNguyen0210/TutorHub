@@ -54,7 +54,7 @@ export default function TutorServices() {
   const [actionInProgressId, setActionInProgressId] = useState(null);
 
   useEffect(() => {
-    document.title = 'Dịch vụ của tôi — TutorHub';
+    document.title = 'Dịch vụ của tôi';
   }, []);
 
   // Fetch Services & Subjects

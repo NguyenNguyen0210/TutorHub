@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import userService from '@/services/user.service';
 import Card, { CardHeader } from '@/components/ui/Card';
@@ -14,6 +15,7 @@ import { DetailSkeleton } from '@/components/common/Skeleton';
 import ErrorState from '@/components/common/ErrorState';
 
 export default function ProfileSettings() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const toast = useToast();
   const { user, role, login, accessToken, refreshToken } = useAuthStore();
 
@@ -490,6 +492,8 @@ export default function ProfileSettings() {
       </div>
 
       <Tabs
+        value={searchParams.get('tab') === 'password' ? 'password' : 'profile'}
+        onChange={tab => setSearchParams({ tab }, { replace: true })}
         tabs={[
           {
             key: 'profile',

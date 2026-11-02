@@ -199,7 +199,7 @@ export default function ServiceCreateWizard() {
   const [reached, setReached] = useState(1);
 
   useEffect(() => {
-    document.title = 'Tạo dịch vụ mới — TutorHub';
+    document.title = 'Tạo gói dịch vụ mới';
   }, []);
 
   useEffect(() => {
