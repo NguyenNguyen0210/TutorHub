@@ -70,6 +70,9 @@ export default function TutorApplication() {
 
   // Form State
   const [formData, setFormData] = useState(() => createInitialFormData(user));
+  useEffect(() => () => {
+    if (formData.avatarPreview?.startsWith('blob:')) URL.revokeObjectURL(formData.avatarPreview);
+  }, [formData.avatarPreview]);
 
   const hydratedApplication = useRef(null);
   useEffect(() => {
@@ -86,7 +89,7 @@ export default function TutorApplication() {
   /* ── Avatar file handling ─────────────────────────────────────────────── */
 
   const processAvatarFile = (file) => {
-    if (!file) return;
+    if (!file || submittingRef.current) return;
 
     const rejected = avatarFileError(file);
     if (rejected) {
@@ -94,15 +97,7 @@ export default function TutorApplication() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setFormData((prev) => ({
-        ...prev,
-        avatarPreview: event.target.result,
-        avatarFile: file,
-      }));
-    };
-    reader.readAsDataURL(file);
+    setFormData(prev => ({ ...prev, avatarPreview: URL.createObjectURL(file), avatarFile: file }));
   };
 
   const handleAvatarChange = (e) => {
@@ -126,7 +121,7 @@ export default function TutorApplication() {
   /* ── Degree / Certificate file handling ───────────────────────────────── */
 
   const processDegreeFiles = (files) => {
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || submittingRef.current) return;
 
     const newFiles = [];
     Array.from(files).forEach((file) => {
@@ -315,7 +310,7 @@ export default function TutorApplication() {
 
           {/* MIDDLE: step body */}
           <section className="lg:col-span-6" aria-label="Thông tin hồ sơ gia sư">
-            <Card padding="none" className="p-6 sm:p-8 space-y-6">
+            <Card as="fieldset" disabled={submitting} padding="none" className="p-6 sm:p-8 space-y-6">
               {currentStep === 1 && (
                 <PersonalInfoStep
                   formData={formData}
