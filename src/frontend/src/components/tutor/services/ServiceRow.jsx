@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Money from '@/components/ui/Money';
 import Badge, { Tag } from '@/components/ui/Badge';
+import StatusIndicator from '@/components/ui/StatusIndicator';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import { Menu } from '@/components/ui/Avatar';
@@ -14,7 +15,8 @@ export function ServiceStatusBadge({ status }) {
     Published: ['success', 'Đang tuyển sinh'], Draft: ['neutral', 'Bản nháp'],
     Paused: ['holding', 'Tạm dừng tuyển sinh'], Unpublished: ['neutral', 'Đã gỡ xuất bản'],
   }[status] || ['neutral', 'Chưa có trạng thái'];
-  return <Badge variant={meta[0]} size="sm" dot>{meta[1]}</Badge>;
+  return status === 'Paused' ? <Badge variant={meta[0]} size="sm" dot>{meta[1]}</Badge>
+    : <StatusIndicator variant={status === 'Published' ? 'success' : 'neutral'} icon={status === 'Published' ? 'check_circle' : 'description'}>{meta[1]}</StatusIndicator>;
 }
 
 /** Workspace variant: status and management actions take priority over marketing copy. */
@@ -51,7 +53,7 @@ export default function ServiceRow({ pkg, isActing, disabled, editState, onPubli
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <ServiceLessonChips totalSessions={pkg.totalSessions} sessionDurationMinutes={pkg.sessionDurationMinutes} />
-            {pkg.studentCount != null && <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-neutral-50 px-2.5 py-1.5 text-caption text-fg-secondary"><Icon name="group" size="sm" className="text-primary" />{pkg.studentCount} học viên</span>}
+            {pkg.studentCount != null && <span className="inline-flex items-center gap-1.5 py-1 text-caption text-fg-secondary"><Icon name="group" size="sm" />{pkg.studentCount} học viên</span>}
             {pkg.trialLessonUrl && <ServiceTrialBadge />}
           </div>
         </div>

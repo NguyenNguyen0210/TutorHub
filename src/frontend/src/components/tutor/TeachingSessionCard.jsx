@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { formatDateTime } from '@/utils/formatters';
 import { sessionTime } from '@/utils/tutorSchedule';
 import Badge from '@/components/ui/Badge';
+import StatusIndicator from '@/components/ui/StatusIndicator';
 import Icon from '@/components/ui/Icon';
 
 export default function TeachingSessionCard({ session, returnTo, now, past = false }) {
@@ -24,7 +25,7 @@ export default function TeachingSessionCard({ session, returnTo, now, past = fal
       </div>
     </div>
     <div className="flex flex-wrap items-center justify-between gap-3 sm:ml-auto sm:shrink-0 sm:flex-col sm:items-end">
-      <Badge variant={past ? 'holding' : 'primary'}>{past ? 'Đã qua giờ học' : current ? 'Theo lịch hiện tại' : 'Đã xếp lịch'}</Badge>
+      {past ? <Badge variant="holding">Đã qua giờ học</Badge> : <StatusIndicator variant="primary" icon="event_available">{current ? 'Theo lịch hiện tại' : 'Đã xếp lịch'}</StatusIndicator>}
       <span className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary">Xem buổi học<Icon name="arrow_forward" size="sm" /></span>
     </div>
   </Link>;

@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Badge from '@/components/ui/Badge';
+import StatusIndicator from '@/components/ui/StatusIndicator';
 import {
   SESSION_STATUS,
   SESSION_STATUS_META,
@@ -53,6 +54,18 @@ export function getStateMeta(domain, value) {
  */
 export default function StateBadge({ status, domain = 'session', size = 'sm', className }) {
   const { label, color } = getStateMeta(domain, status);
+  const quietStates = {
+    application: { Approved: null },
+    session: { Scheduled: 'event_available', Completed: 'check_circle' },
+    enrollment: { Active: 'menu_book', Completed: 'check_circle' },
+    withdrawal: { Completed: 'check_circle' },
+    topup: { Confirmed: 'check_circle' },
+    booking: { Paid: 'check_circle' },
+    dispute: { Resolved: 'check_circle' },
+  };
+  if (Object.hasOwn(quietStates[domain] || {}, status)) {
+    return <StatusIndicator variant={color} icon={quietStates[domain][status]} dot={domain === 'application'} size={size} className={className}>{label}</StatusIndicator>;
+  }
   return (
     <Badge variant={color} size={size} className={className}>
       {label}

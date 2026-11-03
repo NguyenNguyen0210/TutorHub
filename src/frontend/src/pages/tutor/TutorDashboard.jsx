@@ -13,7 +13,7 @@ import ErrorState from '@/components/common/ErrorState';
 import EmptyState from '@/components/common/EmptyState';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
+import StatusIndicator from '@/components/ui/StatusIndicator';
 import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
 import StatStrip from '@/components/common/StatStrip';
@@ -116,7 +116,7 @@ export default function TutorDashboard() {
                 <p className="text-caption font-semibold text-primary">{formatDateTime(session.startAt, 'HH:mm · DD/MM/YYYY')}</p>
                 <p className="text-body-reg font-semibold text-fg">{session.subjectName || 'Buổi dạy'} · Buổi #{session.sessionNumber}</p>
                 <p className="text-caption text-fg-secondary">{session.studentName || 'Học viên'}</p>
-                <Badge variant="primary">{new Date(session.startAt).getTime() <= now ? 'Theo lịch hiện tại' : 'Đã lên lịch'}</Badge>
+                <StatusIndicator variant="primary" icon="event_available">{new Date(session.startAt).getTime() <= now ? 'Theo lịch hiện tại' : 'Đã lên lịch'}</StatusIndicator>
               </Link>
             </li>)}</ul> : <div className="rounded-xl bg-neutral-50 p-4"><p className="font-medium text-fg">Chưa có lịch dạy</p><p className="mt-2 text-caption leading-relaxed text-fg-secondary">Các buổi học đã được xếp lịch sẽ xuất hiện tại đây.</p></div>}
           </Card>

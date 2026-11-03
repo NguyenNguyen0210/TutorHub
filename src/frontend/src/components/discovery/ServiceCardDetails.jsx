@@ -11,9 +11,9 @@ export function ServiceTrialBadge() {
 export function ServiceLessonChips({ totalSessions, sessionDurationMinutes }) {
   const sessions = Number(totalSessions);
   const duration = Number(sessionDurationMinutes);
-  return <div className="flex flex-wrap gap-2 text-caption text-fg-secondary">
-    {sessions > 0 && Number.isFinite(sessions) && <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-neutral-50 px-2.5 py-1.5"><Icon name="calendar_month" size="sm" className="text-primary" />{sessions} buổi</span>}
-    {duration > 0 && Number.isFinite(duration) && <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-neutral-50 px-2.5 py-1.5"><Icon name="schedule" size="sm" className="text-primary" />{duration} phút/buổi</span>}
+  return <div className="flex flex-wrap gap-x-4 gap-y-2 text-caption text-fg-secondary">
+    {sessions > 0 && Number.isFinite(sessions) && <span className="inline-flex items-center gap-1.5 py-1"><Icon name="calendar_month" size="sm" />{sessions} buổi</span>}
+    {duration > 0 && Number.isFinite(duration) && <span className="inline-flex items-center gap-1.5 py-1"><Icon name="schedule" size="sm" />{duration} phút/buổi</span>}
   </div>;
 }
 

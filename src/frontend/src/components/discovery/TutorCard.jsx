@@ -11,15 +11,15 @@ import StretchedCardLink from '@/components/ui/StretchedCardLink';
 function ApprovedProfileBadge() {
   const [open, setOpen] = useState(false);
   const tooltipId = useId();
-  return <span className="relative z-20 inline-flex">
-    <button type="button" aria-describedby={tooltipId}
+  return <span className="inline-flex align-middle">
+    <button type="button" aria-describedby={tooltipId} aria-label="Hồ sơ đã được TutorHub phê duyệt"
       onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
       onFocus={() => setOpen(true)} onBlur={() => setOpen(false)} onClick={() => setOpen(true)}
       onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); } }}
-      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-brand-primary-100 bg-brand-primary-50 px-2.5 py-1 text-caption font-medium text-brand-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-      <Icon name="verified" size="sm" />Đã duyệt hồ sơ
+      className="relative z-20 inline-flex h-8 w-8 items-center justify-center rounded-md text-brand-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+      <Icon name="check_circle" size="sm" />
     </button>
-    <span id={tooltipId} role="tooltip" className={`pointer-events-none absolute bottom-full left-0 z-30 mb-2 w-[min(18rem,calc(100vw-4rem))] rounded-xl border border-border bg-surface p-3 text-caption font-normal leading-relaxed text-fg shadow-brand-md ${open ? 'block' : 'hidden'}`}>
+    <span id={tooltipId} role="tooltip" className={`pointer-events-none absolute left-0 right-0 top-full z-30 mt-2 rounded-xl border border-border bg-surface p-3 text-caption font-normal leading-relaxed text-fg shadow-brand-md ${open ? 'block' : 'hidden'}`}>
       TutorHub đã phê duyệt hồ sơ đăng ký gia sư. Trạng thái này không đồng nghĩa mọi chứng chỉ hoặc trình độ đều đã được xác thực độc lập.
     </span>
   </span>;
@@ -52,21 +52,20 @@ export default function TutorCard({ tutor = {} }) {
   return (
     <article className="interactive-card flex h-full min-w-0 flex-col rounded-2xl border border-border bg-surface p-5 shadow-[var(--learning-card-shadow)] sm:p-6">
       <StretchedCardLink to={profilePath} label={`Xem hồ sơ ${displayName}`} />
-      <div className="flex items-start gap-3 sm:gap-4">
+      <div className="relative flex items-start gap-3 sm:gap-4">
         <Avatar key={avatarUrl || displayName} src={avatarUrl} name={displayName} size="lg" />
         <div className="min-w-0 flex-1">
-          <h3 className="text-[17px] font-semibold leading-snug text-fg">
-            {displayName}
+          <h3 className="flex items-start gap-1 text-[17px] font-semibold leading-snug text-fg">
+            <span className="min-w-0">{displayName}</span>{isVerified && <ApprovedProfileBadge />}
           </h3>
           {educationDisplay && <p className="mt-1 line-clamp-2 text-caption leading-relaxed text-fg-secondary" title={educationDisplay}>{educationDisplay}</p>}
         </div>
         <WishlistButton itemType="Tutor" itemId={tutorId} />
       </div>
 
-      {(isVerified || yearsExp > 0 || hasRating) && (
+      {(yearsExp > 0 || hasRating) && (
         <div className="mt-4 flex flex-wrap items-center gap-2 text-caption">
-          {isVerified && <ApprovedProfileBadge />}
-          {yearsExp > 0 && <span className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[rgb(var(--edtech-violet-border))] bg-[rgb(var(--edtech-violet-subtle))] px-2.5 py-1 font-medium text-[rgb(var(--edtech-violet-strong))]"><Icon name="work_history" size="sm" />{yearsExp} năm kinh nghiệm</span>}
+          {yearsExp > 0 && <span className="inline-flex items-center gap-1.5 py-1 text-fg-secondary"><Icon name="work_history" size="sm" />{yearsExp} năm kinh nghiệm</span>}
           {hasRating && <span className="inline-flex flex-wrap items-center gap-1.5 py-1 text-fg-secondary"><Icon name="star" size="xs" className="text-brand-secondary-500" filled /><strong className="font-semibold text-[rgb(var(--course-rating-strong))]">{formatRating(rating)}</strong><span>({reviewsCount} đánh giá)</span></span>}
         </div>
       )}

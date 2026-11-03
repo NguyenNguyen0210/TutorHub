@@ -6,6 +6,7 @@ import Icon from '@/components/ui/Icon';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
+import StatusIndicator from '@/components/ui/StatusIndicator';
 import { formatDateTime } from '@/utils/formatters';
 import { accountStatusLabel, applicationManagementAction } from '@/utils/tutorApplicationStatus';
 
@@ -40,7 +41,8 @@ export default function ApplicationStatusPage({ application, onEdit, onRefresh, 
   return <div className="mx-auto max-w-[880px] space-y-6">
     <header><h1 className="text-[28px] font-semibold tracking-tight text-fg">Hồ sơ giảng dạy</h1><p className="mt-2 text-body-reg leading-relaxed text-fg-secondary">Theo dõi trạng thái xét duyệt và quản lý hồ sơ gia sư.</p></header>
     <Card as="section" padding="lg" variant="outlined" className="rounded-2xl" aria-labelledby="application-status-title">
-      <div className="flex items-start gap-4"><span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${status.tone}`}><Icon name={status.icon} size="lg" /></span><div className="min-w-0"><Badge variant={status.variant} dot>{status.label}</Badge><h2 id="application-status-title" className="mt-3 text-xl font-semibold text-fg">{status.title}</h2></div></div>
+      {approved ? <div><StatusIndicator variant="success" icon="check_circle">Hồ sơ đã duyệt</StatusIndicator><h2 id="application-status-title" className="mt-3 text-xl font-semibold text-fg">{status.title}</h2></div>
+        : <div className="flex items-start gap-4"><span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${status.tone}`}><Icon name={status.icon} size="lg" /></span><div className="min-w-0"><Badge variant={status.variant} dot>{status.label}</Badge><h2 id="application-status-title" className="mt-3 text-xl font-semibold text-fg">{status.title}</h2></div></div>}
       <p className="mt-4 text-body-reg leading-relaxed text-fg-secondary">{status.description}</p>
       {hasDetails && <dl className="mt-6 grid gap-4 border-t border-border pt-5 text-body-reg sm:grid-cols-2">
         {application.submittedAt && <div><dt className="text-fg-secondary">Ngày gửi hồ sơ</dt><dd className="mt-1 font-medium text-fg">{formatDateTime(application.submittedAt)}</dd></div>}
