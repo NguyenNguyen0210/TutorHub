@@ -31,6 +31,11 @@ public class RevenueChartTests
         var previousMonth = Row(TransactionType.BookingPayment, TransactionStatus.Held, 9_000_000m);
         previousMonth.CreatedAt = new DateTime(2026, 10, 31, 16, 59, 59, DateTimeKind.Utc);
         transactions.Add(previousMonth);
+        var legacyPayout = Row(TransactionType.SessionPayoutCredit, TransactionStatus.Succeeded, 200_000m, 20_000m, 180_000m);
+        legacyPayout.ReleasedAt = now;
+        transactions.Add(legacyPayout);
+        // A generic success without evidence of release must not become tutor income.
+        transactions.Add(Row(TransactionType.SessionPayoutCredit, TransactionStatus.Succeeded, 500_000m, 50_000m, 450_000m));
         var context = new Mock<IAppDbContext>();
         context.Setup(c => c.Transactions).Returns(MockDbSetHelper.CreateMockDbSet(transactions).Object);
         context.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(new List<Booking>()).Object);
@@ -40,7 +45,7 @@ public class RevenueChartTests
         point.Month.Should().Be("2026-11");
         point.TotalGmv.Should().Be(3_000_000m);
         point.NetGmv.Should().Be(2_900_000m);
-        point.PlatformRevenue.Should().Be(-100_000m);
-        point.TutorPayouts.Should().Be(900_000m);
+        point.PlatformRevenue.Should().Be(-80_000m);
+        point.TutorPayouts.Should().Be(1_080_000m);
     }
 }

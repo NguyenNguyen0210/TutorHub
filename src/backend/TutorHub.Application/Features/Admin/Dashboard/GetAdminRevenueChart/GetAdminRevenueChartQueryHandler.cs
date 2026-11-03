@@ -46,6 +46,7 @@ public class GetAdminRevenueChartQueryHandler : IRequestHandler<GetAdminRevenueC
             .Select(t => new
             {
                 t.CreatedAt,
+                t.ReleasedAt,
                 t.Status,
                 t.Type,
                 t.Amount,
@@ -72,7 +73,8 @@ public class GetAdminRevenueChartQueryHandler : IRequestHandler<GetAdminRevenueC
             var monthTx = rawTransactions.Where(t => t.CreatedAt.AddHours(7).ToString("yyyy-MM") == month).ToList();
             var monthBk = rawBookings.Where(b => b.CreatedAt.AddHours(7).ToString("yyyy-MM") == month).ToList();
 
-            var releasedTx = monthTx.Where(t => t.Type == TransactionType.SessionPayoutCredit && t.Status == TransactionStatus.Released).ToList();
+            var releasedTx = monthTx.Where(t => t.Type == TransactionType.SessionPayoutCredit
+                && (t.Status == TransactionStatus.Released || (t.Status == TransactionStatus.Succeeded && t.ReleasedAt != null))).ToList();
             var refundedTx = monthTx.Where(t => t.Type == TransactionType.StudentRefund && (t.Status == TransactionStatus.Succeeded || t.Status == TransactionStatus.Refunded)).ToList();
             var bookingPayments = monthTx.Where(t => t.Type == TransactionType.BookingPayment
                 && (t.Status == TransactionStatus.Held || t.Status == TransactionStatus.Succeeded || t.Status == TransactionStatus.Released)).ToList();

@@ -89,19 +89,19 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
         );
 
         // 4. Financial & GMV Metrics
-        var transactionGroup = await _context.Transactions
+        var releasedTx = await _context.Transactions
             .AsNoTracking()
-            .GroupBy(t => t.Status)
+            .Where(t => t.Type == TransactionType.SessionPayoutCredit
+                && (t.Status == TransactionStatus.Released
+                    || (t.Status == TransactionStatus.Succeeded && t.ReleasedAt != null)))
+            .GroupBy(t => 1)
             .Select(g => new
             {
-                Status = g.Key,
                 TotalAmount = g.Sum(t => t.Amount),
                 TotalPlatformFee = g.Sum(t => t.PlatformFeeAmount),
                 TotalPayoutAmount = g.Sum(t => t.PayoutAmount)
             })
-            .ToListAsync(cancellationToken);
-
-        var releasedTx = transactionGroup.FirstOrDefault(g => g.Status == TransactionStatus.Released);
+            .FirstOrDefaultAsync(cancellationToken);
 
         // GMV is computed from real paid bookings to prevent double-counting
         // with per-session payout releases (P1-1).

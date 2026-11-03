@@ -1533,7 +1533,10 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasFilter("\"SessionId\" IS NOT NULL AND \"Type\" = 'SessionPayoutCredit'");
 
-                    b.ToTable("Transactions");
+                    b.ToTable("Transactions", t =>
+                        {
+                            t.HasCheckConstraint("CK_Transactions_Status", "\"Status\" IN ('Held', 'Released', 'Refunded', 'Pending', 'Succeeded', 'Failed')");
+                        });
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.TutorApplication", b =>

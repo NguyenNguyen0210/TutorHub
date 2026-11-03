@@ -8,6 +8,8 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
 {
     public void Configure(EntityTypeBuilder<Transaction> builder)
     {
+        builder.ToTable(table => table.HasCheckConstraint("CK_Transactions_Status",
+            "\"Status\" IN ('Held', 'Released', 'Refunded', 'Pending', 'Succeeded', 'Failed')"));
         builder.HasKey(t => t.Id);
 
         builder.Ignore("CommissionRate");
