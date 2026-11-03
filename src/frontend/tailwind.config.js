@@ -179,6 +179,11 @@ export default {
           DEFAULT: 'rgb(var(--semantic-info) / <alpha-value>)',
           subtle: 'rgb(var(--semantic-info-subtle) / <alpha-value>)',
         },
+        insight: {
+          strong: 'rgb(var(--semantic-insight-strong) / <alpha-value>)',
+          subtle: 'rgb(var(--semantic-insight-subtle) / <alpha-value>)',
+          border: 'rgb(var(--semantic-insight-border) / <alpha-value>)',
+        },
 
         /* ── Migration aliases: legacy financial-* ───────────────────── */
         'financial-available': 'rgb(var(--semantic-success) / <alpha-value>)',
