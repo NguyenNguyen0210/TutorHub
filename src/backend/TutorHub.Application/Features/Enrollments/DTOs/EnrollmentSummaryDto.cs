@@ -19,9 +19,14 @@ public record EnrollmentSummaryDto(
     int TotalSessions,
     int CompletedSessions,
     int SessionDurationMinutes,
-    TeachingMode TeachingMode,
     EnrollmentStatus Status,
     DateTime CreatedAt,
     DateTime? CompletedAt,
-    DateTime? CancelledAt
+    DateTime? CancelledAt,
+    string? TutorAvatarUrl = null,
+    Guid? TutorUserId = null,
+    decimal ReleasedAmount = 0,
+    decimal RefundedAmount = 0,
+    Guid? StudentUserId = null,
+    string? StudentAvatarUrl = null
 );

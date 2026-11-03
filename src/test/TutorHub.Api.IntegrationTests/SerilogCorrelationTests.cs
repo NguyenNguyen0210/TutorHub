@@ -16,8 +16,7 @@ namespace TutorHub.Api.IntegrationTests;
 /// Serilog boot + correlation enrichment. The middleware log-context
 /// assertions run on <see cref="DefaultHttpContext"/> with a local in-memory
 /// Serilog sink (no static logger, no Docker); the boot cases prove the API
-/// serves traffic with Seq disabled and with Seq unreachable (the Seq sink
-/// batches in the background and must never block startup).
+/// serves traffic with console logging enabled.
 /// </summary>
 public class SerilogCorrelationTests : IDisposable
 {
@@ -60,12 +59,10 @@ public class SerilogCorrelationTests : IDisposable
             .WhoseValue.Should().BeEquivalentTo(new ScalarValue(responseId));
     }
 
-    [Theory]
-    [InlineData("")] // Seq disabled: console-only logging.
-    [InlineData("http://127.0.0.1:59999")] // Seq down: batching sink must not block boot.
-    public async Task Boot_WithSeqDisabledOrDown_ServesTraffic(string seqUrl)
+    [Fact]
+    public async Task Boot_WithConsoleLogging_ServesTraffic()
     {
-        using var factory = new SerilogBootFactory(seqUrl);
+        using var factory = new SerilogBootFactory();
         using var client = factory.CreateClient();
 
         using var response = await client.GetAsync("/health/live");
@@ -129,28 +126,19 @@ public class SerilogCorrelationTests : IDisposable
     }
 
     /// <summary>
-    /// Full app with only the Seq URL varied. Redis stays disabled (default),
+    /// Full app with console logging. Redis remains registered, but
     /// <c>/health/live</c> runs zero health checks, so no Postgres, Redis, or
     /// Docker is needed. Background jobs are removed for determinism, like the
     /// shared integration factory.
     /// </summary>
     private sealed class SerilogBootFactory : WebApplicationFactory<Program>
     {
-        private readonly string _seqUrl;
-
-        public SerilogBootFactory(string seqUrl)
-        {
-            _seqUrl = seqUrl;
-        }
-
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.ConfigureAppConfiguration((_, config) =>
             {
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["Seq:ServerUrl"] = _seqUrl,
-
                     // Test-only dummy secrets: this sandbox sets no real secret
                     // env vars (CI/dev machines do), and the app refuses to boot
                     // without them (ValidateOnStart). Values are random-looking

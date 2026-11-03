@@ -46,7 +46,6 @@ public static class SeedHelper
             Bio = "Integration bio",
             Education = "Integration edu",
             ExperienceYears = 3,
-            TeachingMode = TeachingMode.Online
         };
 
         var wallet = new Wallet
@@ -115,7 +114,6 @@ public static class SeedHelper
             Bio = "Integration bio",
             Education = "Integration edu",
             ExperienceYears = 3,
-            TeachingMode = TeachingMode.Online,
             SubmittedAt = DateTime.UtcNow
         };
         application.Approve(reviewedByAdminId ?? Guid.NewGuid());
@@ -130,7 +128,6 @@ public static class SeedHelper
             TotalSessions = 3,
             SessionDurationMinutes = 60,
             Price = 900_000m,
-            TeachingMode = TeachingMode.Online,
             Status = ServiceStatus.Published,
             CreatedAt = DateTime.UtcNow
         };

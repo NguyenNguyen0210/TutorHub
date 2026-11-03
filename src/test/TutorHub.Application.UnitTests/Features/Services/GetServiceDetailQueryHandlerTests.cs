@@ -38,7 +38,6 @@ public class GetServiceDetailQueryHandlerTests
             Bio = "Bio",
             Education = "Edu",
             ExperienceYears = 5,
-            TeachingMode = TeachingMode.Both,
             SubmittedAt = DateTime.UtcNow
         };
         app.Approve(Guid.NewGuid());
@@ -71,7 +70,6 @@ public class GetServiceDetailQueryHandlerTests
             TotalSessions = 10,
             SessionDurationMinutes = 90,
             Price = 2000000m,
-            TeachingMode = TeachingMode.Both,
             Status = ServiceStatus.Published,
             CreatedAt = DateTime.UtcNow
         };
@@ -90,7 +88,14 @@ public class GetServiceDetailQueryHandlerTests
         result.Price.Should().Be(2000000m);
         result.PricePerSession.Should().Be(200000m);
         result.TotalSessions.Should().Be(10);
-        result.Curriculum.Should().HaveCount(10);
+        result.Curriculum.Should().BeEmpty();
+        result.Faqs.Should().BeEmpty();
+        result.TargetAudience.Should().BeEmpty();
+        result.Prerequisites.Should().BeEmpty();
+        result.TotalReviews.Should().Be(0);
+        result.RatingAvg.Should().Be(0);
+        result.RatingDistribution.Should().Equal(0, 0, 0, 0, 0);
+        result.Metrics.SatisfactionRate.Should().Be(0);
         result.Tutor.FullName.Should().Be(user.FullName);
         result.Subject.Name.Should().Be("Algebra 10");
     }
@@ -129,7 +134,6 @@ public class GetServiceDetailQueryHandlerTests
             TotalSessions = 6,
             SessionDurationMinutes = 60,
             Price = 1500000m,
-            TeachingMode = TeachingMode.Online,
             Status = ServiceStatus.Draft,
             CreatedAt = DateTime.UtcNow
         };

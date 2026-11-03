@@ -54,11 +54,9 @@ services:
       ASPNETCORE_URLS: http://+:8080
       AllowedHosts: ${ALLOWED_HOSTS:?ALLOWED_HOSTS is required}
       Database__MigrateOnStartup: "true"
-      BackgroundJobs__Enabled: "true"
 
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-tutorhub};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD}"
-      Redis__Enabled: "true"
       Redis__InstanceName: "${REDIS_INSTANCE_NAME:-tutorhub:}"
 
       Jwt__Secret: ${JWT_SECRET:?JWT_SECRET is required}
@@ -72,7 +70,7 @@ services:
       VnPay__ReturnUrl: ${VNPAY_RETURNURL:?VNPAY_RETURNURL is required}
 
       CloudflareR2__AccountId: ${R2_ACCOUNT_ID:?R2_ACCOUNT_ID is required}
-      CloudflareR2__BucketName: ${R2_BUCKET_NAME:?R2_BUCKET_NAME is required}
+      CloudflareR2__BucketName: ${CLOUDFLARE_R2_BUCKET:?CLOUDFLARE_R2_BUCKET is required}
       CloudflareR2__AccessKeyId: ${R2_ACCESS_KEY_ID:?R2_ACCESS_KEY_ID is required}
       CloudflareR2__SecretAccessKey: ${R2_SECRET_ACCESS_KEY:?R2_SECRET_ACCESS_KEY is required}
 

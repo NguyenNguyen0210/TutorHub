@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Services.DTOs;
 using TutorHub.Application.Features.Services.GetPublicServices;
-using TutorHub.Domain.Enums;
 
 using TutorHub.Application.Features.Services.GetServiceDetail;
 
@@ -30,7 +29,6 @@ public class ServicesController : ControllerBase
     public async Task<IActionResult> GetServices(
         [FromQuery] Guid? categoryId,
         [FromQuery] Guid? subjectId,
-        [FromQuery] TeachingMode? teachingMode,
         [FromQuery] decimal? minPrice,
         [FromQuery] decimal? maxPrice,
         [FromQuery] decimal? minRating,
@@ -43,7 +41,6 @@ public class ServicesController : ControllerBase
         var query = new GetPublicServicesQuery(
             CategoryId: categoryId,
             SubjectId: subjectId,
-            TeachingMode: teachingMode,
             MinPrice: minPrice,
             MaxPrice: maxPrice,
             MinRating: minRating,

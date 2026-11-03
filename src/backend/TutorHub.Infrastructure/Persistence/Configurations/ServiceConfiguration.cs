@@ -43,11 +43,6 @@ public class ServiceConfiguration : IEntityTypeConfiguration<Service>
             .HasPrecision(12, 2)
             .IsRequired();
 
-        builder.Property(s => s.TeachingMode)
-            .HasConversion<string>()
-            .HasMaxLength(50)
-            .IsRequired();
-
         builder.Property(s => s.TrialLessonUrl)
             .HasMaxLength(1000);
 

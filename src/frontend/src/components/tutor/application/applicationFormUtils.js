@@ -12,7 +12,7 @@ export const STEPS = [
   { id: 1, title: 'Thông tin cá nhân', sub: 'Giới thiệu bản thân' },
   { id: 2, title: 'Học vấn & chứng chỉ', sub: 'Trình độ chuyên môn' },
   { id: 3, title: 'Kinh nghiệm giảng dạy', sub: 'Kinh nghiệm & thành tích' },
-  { id: 4, title: 'Môn học & lớp dạy', sub: 'Chọn môn và hình thức dạy' },
+  { id: 4, title: 'Môn học & lớp dạy', sub: 'Chọn môn và khối lớp' },
   { id: 5, title: 'Giáo trình & phương pháp', sub: 'Cách bạn giảng dạy' },
   { id: 6, title: 'Xem lại & gửi hồ sơ', sub: 'Hoàn tất đăng ký' },
 ];
@@ -38,14 +38,6 @@ export const GRADE_LEVELS = [
   'Sinh viên & Người đi làm',
 ];
 
-export const TEACHING_MODE_OPTIONS = [
-  { key: 'Online', label: 'Dạy trực tuyến', desc: 'Google Meet / Zoom' },
-  { key: 'Offline', label: 'Dạy tại nhà', desc: 'Gặp trực tiếp học viên' },
-  { key: 'Both', label: 'Cả hai hình thức', desc: 'Linh hoạt theo yêu cầu' },
-];
-
-export const GENDER_OPTIONS = ['Nam', 'Nữ', 'Khác'];
-
 export const BIO_MAX = 500;
 
 /* ── Upload rules ─────────────────────────────────────────────────────────── */
@@ -53,7 +45,7 @@ export const BIO_MAX = 500;
 export const AVATAR_ACCEPT = 'image/png,image/jpeg';
 export const AVATAR_MAX_BYTES = 5 * 1024 * 1024; // 5MB
 export const DEGREE_ACCEPT = 'image/png,image/jpeg,image/webp,application/pdf';
-export const DEGREE_MAX_BYTES = 10 * 1024 * 1024; // 10MB
+export const DEGREE_MAX_BYTES = 5 * 1024 * 1024; // Matches the media API limit.
 export const DEGREE_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 
 /* ── Initial form state ───────────────────────────────────────────────────── */
@@ -66,41 +58,33 @@ export function createInitialFormData(user) {
   return {
     // Step 1: Personal info
     fullName: user?.fullName || user?.name || '',
-    dob: '2000-05-15',
-    gender: 'Nam',
-    phone: user?.phone || '0901234567',
+    phone: user?.phone || '',
     email: user?.email || '',
-    address: 'Quận Cầu Giấy, Hà Nội',
     avatarUrl: user?.avatarUrl || '',
     avatarPreview: null,
+    avatarFile: null,
     bio: '',
 
     // Step 2: Education & Certs
-    university: 'Đại học Sư phạm Hà Nội',
-    major: 'Sư phạm Toán',
+    university: '',
+    major: '',
     degreeLevel: 'Cử nhân',
-    certifications: 'Chứng chỉ Nghiệp vụ Sư phạm Giỏi, Chứng nhận bồi dưỡng HSG',
+    certifications: '',
     degreeFiles: [], // Array of { id, name, size, type, previewUrl }
 
     // Step 3: Experience
-    experienceYears: 3,
-    targetStudents: ['THCS (Lớp 6-9)', 'THPT (Lớp 10-12)'],
-    achievements:
-      'Giúp 15+ học sinh nâng điểm từ 6 lên 8.5+ môn Toán trong kỳ thi vào 10 và THPT Quốc gia.',
+    experienceYears: 0,
+    targetStudents: [],
+    achievements: '',
 
-    // Step 4: Subjects & Modes
-    teachingMode: 'Both', // Online | Offline | Both
-    offlineArea: 'Quận Cầu Giấy, Nam Từ Liêm, Đống Đa - Hà Nội',
-    subjects: ['Toán học', 'Vật lý'],
-    grades: ['THCS (Lớp 6-9)', 'THPT (Lớp 10-12)'],
+    // Step 4: Subjects
+    subjects: [],
+    grades: [],
 
     // Step 5: Methodology
-    methodology:
-      'Cá nhân hóa theo năng lực từng học sinh, kết hợp sơ đồ tư duy (Mindmap) và bài tập thực hành theo chuyên đề.',
-    curriculum:
-      'Bộ SGK Kết nối tri thức mới, kết hợp tài liệu nâng cao và ngân hàng đề thi chọn lọc.',
-    commitments:
-      'Cam kết nắm vững kiến thức căn bản sau 4 tuần học và tiến bộ rõ rệt sau 1 khóa.',
+    methodology: '',
+    curriculum: '',
+    commitments: '',
 
     // Step 6: Review & Agreement
     agreed: false,
@@ -115,9 +99,18 @@ export function mergeRejectedApplication(formData, app) {
   return {
     ...formData,
     bio: app.bio || formData.bio,
-    address: app.address || formData.address,
     experienceYears: app.experienceYears ?? formData.experienceYears,
-    teachingMode: app.teachingMode || formData.teachingMode,
+    university: app.university || '', major: app.major || '',
+    degreeLevel: app.degreeLevel || 'Cử nhân', certifications: app.certifications || '',
+    methodology: app.methodology || '', achievements: app.achievements || '',
+    subjects: app.subject ? app.subject.split(', ') : [],
+    grades: app.subjectSub ? app.subjectSub.split(', ') : [],
+    degreeFiles: (() => {
+      try { return JSON.parse(app.documentsJson || '[]').filter(d => d.mediaId).map(d => ({
+        id: d.mediaId, mediaId: d.mediaId, name: d.title, type: d.format,
+        size: ((d.sizeBytes || 0) / (1024 * 1024)).toFixed(2),
+      })); } catch { return []; }
+    })(),
   };
 }
 
@@ -130,8 +123,6 @@ export function toggleListValue(list, value) {
 }
 
 /* ── Per-step validation ──────────────────────────────────────────────────── */
-
-const OFFLINE_MODES = ['Offline', 'Both'];
 
 /**
  * Validate one wizard step. Returns the Vietnamese error message to toast, or
@@ -148,9 +139,6 @@ export function validateApplicationStep(step, formData) {
     }
     if (!formData.email.trim()) {
       return 'Vui lòng nhập địa chỉ email.';
-    }
-    if (!formData.address.trim()) {
-      return 'Vui lòng nhập địa chỉ hiện tại.';
     }
     if (!formData.bio || formData.bio.trim().length < 20) {
       return 'Vui lòng nhập phần giới thiệu bản thân tối thiểu 20 ký tự.';
@@ -176,9 +164,6 @@ export function validateApplicationStep(step, formData) {
     if (formData.subjects.length === 0) {
       return 'Vui lòng chọn ít nhất một môn học bạn có thể dạy.';
     }
-    if (OFFLINE_MODES.includes(formData.teachingMode) && !formData.offlineArea.trim()) {
-      return 'Vui lòng nhập khu vực bạn có thể đến dạy trực tiếp.';
-    }
     return null;
   }
 
@@ -192,16 +177,11 @@ export function validateApplicationStep(step, formData) {
   return null;
 }
 
-/** Step 4 shows the offline-area field only for these teaching modes. */
-export function needsOfflineArea(teachingMode) {
-  return OFFLINE_MODES.includes(teachingMode);
-}
-
 /* ── Upload acceptance rules ──────────────────────────────────────────────── */
 
 /** Error message when an avatar file is rejected, or `null` when acceptable. */
 export function avatarFileError(file) {
-  if (!file.type.startsWith('image/')) {
+  if (!['image/jpeg', 'image/png'].includes(file.type)) {
     return 'Vui lòng chỉ chọn tệp hình ảnh (JPG, PNG).';
   }
   if (file.size > AVATAR_MAX_BYTES) {
@@ -216,7 +196,7 @@ export function degreeFileError(file) {
     return `Tệp "${file.name}" không hợp lệ. Chỉ chấp nhận PDF, JPG, PNG.`;
   }
   if (file.size > DEGREE_MAX_BYTES) {
-    return `Tệp "${file.name}" vượt quá kích thước tối đa 10MB.`;
+    return `Tệp "${file.name}" vượt quá kích thước tối đa 5MB.`;
   }
   return null;
 }
@@ -235,37 +215,33 @@ export function makeDegreeFile(file) {
 
 /* ── Backend payload construction ─────────────────────────────────────────── */
 
-/** "Cử nhân - Sư phạm Toán (ĐH…) | Chứng chỉ: …" + the attachment note. */
+/** Display summary; certifications and uploaded documents are sent separately. */
 export function buildEducationSummary(formData) {
-  const filesNote =
-    formData.degreeFiles.length > 0
-      ? ` [Đính kèm ${formData.degreeFiles.length} tệp minh chứng: ${formData.degreeFiles
-          .map((f) => f.name)
-          .join(', ')}]`
-      : '';
-
-  return `${formData.degreeLevel} - ${formData.major.trim()} (${formData.university.trim()})${
-    formData.certifications ? ` | Chứng chỉ: ${formData.certifications.trim()}` : ''
-  }${filesNote}`;
+  return `${formData.degreeLevel} - ${formData.major.trim()} (${formData.university.trim()})`;
 }
 
-/** The single `bio` string the backend stores: intro + methodology + results. */
+/** Personal introduction; methodology and achievements have their own fields. */
 export function buildApplicationBio(formData) {
-  return `${formData.bio.trim()}\n\n[Phương pháp giảng dạy]: ${formData.methodology.trim()}${
-    formData.achievements ? `\n[Thành tích tiêu biểu]: ${formData.achievements.trim()}` : ''
-  }`;
+  return formData.bio.trim();
 }
 
 /**
  * Body for `tutorService.submitTutorApplication(payload)`.
  * Payload keys are a backend contract — do not rename or drop.
  */
-export function buildApplicationPayload(formData) {
+export function buildApplicationPayload(formData, documentIds = []) {
   return {
     bio: buildApplicationBio(formData),
     education: buildEducationSummary(formData),
     experienceYears: Number(formData.experienceYears) || 0,
-    teachingMode: formData.teachingMode,
-    address: formData.address.trim() || null,
+    university: formData.university.trim(),
+    major: formData.major.trim(),
+    degreeLevel: formData.degreeLevel,
+    certifications: formData.certifications.trim() || null,
+    subject: formData.subjects.join(', '),
+    subjectSub: formData.grades.join(', '),
+    methodology: formData.methodology.trim(),
+    achievements: formData.achievements.trim() || null,
+    documentIds,
   };
 }

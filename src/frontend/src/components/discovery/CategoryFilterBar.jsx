@@ -4,196 +4,93 @@ import { cn } from '@/lib/cn';
 import Icon from '@/components/ui/Icon';
 
 const ICON_BY_CATEGORY_NAME = {
+  'Toán': 'calculate',
   'Toán học': 'calculate',
   'Ngoại ngữ': 'translate',
   'Khoa học tự nhiên': 'science',
+  'Công nghệ': 'terminal',
   'Công nghệ thông tin': 'terminal',
   'Khoa học xã hội': 'auto_stories',
+  'Ngữ văn': 'menu_book',
   'Nghệ thuật & Âm nhạc': 'celebration',
+  'Kỹ năng học tập': 'psychology',
   'Kỹ năng mềm': 'group',
   'Luyện thi chứng chỉ': 'military_tech',
   'Kinh tế & Tài chính': 'account_balance',
   'Thể thao & Yoga': 'rocket_launch',
 };
 
-export default function CategoryFilterBar({
-  categories = [],
-  selectedCategoryId,
-  onSelectCategory,
-}) {
-  const [dropdownOpen, setDropdownOpen] = React.useState(false);
-  const dropdownRef = React.useRef(null);
+function getCategoryIcon(name = '') {
+  const exactIcon = ICON_BY_CATEGORY_NAME[name];
+  if (exactIcon) return exactIcon;
+  const matchedName = Object.keys(ICON_BY_CATEGORY_NAME).find((key) =>
+    name.toLocaleLowerCase('vi').includes(key.toLocaleLowerCase('vi'))
+  );
+  return matchedName ? ICON_BY_CATEGORY_NAME[matchedName] : 'category';
+}
 
-  // Close dropdown on outside click
-  React.useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Normalize and prioritize categories per user specification:
-  // Tất cả môn học, CNTT, Khoa học tự nhiên, Khoa học xã hội, Kinh tế & Tài chính, Kỹ năng mềm, Khác ▾
-  const { mainCategories, otherCategories, activeOtherCategory } = React.useMemo(() => {
-    const list = Array.isArray(categories) ? [...categories] : [];
-
-    // Priority ordering rules
-    const priorityKeywords = [
-      'Công nghệ thông tin',
-      'Khoa học tự nhiên',
-      'Khoa học xã hội',
-      'Kinh tế & Tài chính',
-      'Kỹ năng mềm',
-      'Ngoại ngữ',
-    ];
-
-    const mains = [];
-    const others = [];
-
-    list.forEach((cat) => {
-      const isPriority = priorityKeywords.some((pk) =>
-        cat.name.toLowerCase().includes(pk.toLowerCase())
-      );
-      if (isPriority && mains.length < 6) {
-        // Label display abbreviation if applicable
-        const displayName = cat.name.includes('Công nghệ thông tin') ? 'CNTT' : cat.name;
-        mains.push({ ...cat, displayName, icon: ICON_BY_CATEGORY_NAME[cat.name] || 'auto_stories' });
-      } else {
-        others.push({ ...cat, displayName: cat.name, icon: ICON_BY_CATEGORY_NAME[cat.name] || 'category' });
-      }
-    });
-
-    const activeOther = others.find((c) => c.id === selectedCategoryId);
-
-    return { mainCategories: mains, otherCategories: others, activeOtherCategory: activeOther };
-  }, [categories, selectedCategoryId]);
+export default function CategoryFilterBar({ categories = [], selectedCategoryId, onSelectCategory }) {
+  const trackRef = React.useRef(null);
+  const scrollCategories = (direction) => {
+    trackRef.current?.scrollBy({ left: direction * 360, behavior: 'smooth' });
+  };
 
   return (
-    <div className="w-full bg-surface border-b border-neutral-200/80 z-30">
-      <div className="page-shell">
-        <div
-          className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-2.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-          role="tablist"
-          aria-label="Danh mục bộ môn"
-        >
-          {/* 1. All categories tab */}
-          <button
-            type="button"
-            role="tab"
-            aria-selected={!selectedCategoryId}
-            onClick={() => {
-              onSelectCategory('');
-              setDropdownOpen(false);
-            }}
-            className={cn(
-              'flex items-center gap-2 px-3.5 py-1.5 min-h-[44px] rounded-lg text-[13.5px] font-medium shrink-0 transition-all cursor-pointer whitespace-nowrap',
-              !selectedCategoryId
-                ? 'bg-brand-primary-600 text-white shadow-sm font-semibold'
-                : 'bg-transparent text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
-            )}
-          >
-            <Icon name="auto_stories" size="xs" className={!selectedCategoryId ? 'text-white' : 'text-neutral-500'} />
-            <span>Tất cả môn học</span>
-          </button>
+    <section id="category-filter-bar" className="mkt-category-section" aria-labelledby="category-heading">
+      <div className="page-shell py-7 sm:py-8">
+        <div className="mb-4 flex items-end justify-between gap-5">
+          <div>
+            <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[color:var(--mkt-cobalt)]">Khám phá nhanh</p>
+            <h2 id="category-heading" className="mkt-display mt-1 text-[24px] leading-[1.25] tracking-[-0.02em] sm:text-[30px]">Bạn muốn chinh phục môn nào?</h2>
+          </div>
+          <div className="hidden items-center gap-2 sm:flex" aria-label="Cuộn danh mục">
+            <button type="button" className="mkt-category-arrow" onClick={() => scrollCategories(-1)} aria-label="Xem danh mục trước">
+              <Icon name="arrow_back" size="sm" />
+            </button>
+            <button type="button" className="mkt-category-arrow" onClick={() => scrollCategories(1)} aria-label="Xem thêm danh mục">
+              <Icon name="arrow_forward" size="sm" />
+            </button>
+          </div>
+        </div>
 
-          {/* 2. Main 6 Categories */}
-          {mainCategories.map((cat) => {
-            const isActive = selectedCategoryId === cat.id;
+        <div className="mkt-category-track-wrap">
+        <div ref={trackRef} className="mkt-category-track" role="group" aria-label="Danh mục bộ môn">
+          <button
+            id="category-tab-all"
+            type="button"
+            aria-pressed={!selectedCategoryId}
+            onClick={() => onSelectCategory('')}
+            className={cn('mkt-category-card', !selectedCategoryId && 'is-active')}
+          >
+            <span className="mkt-category-icon"><Icon name="category" size="sm" /></span>
+            <span>Tất cả</span>
+          </button>
+          {categories.map((category) => {
+            const active = selectedCategoryId === category.id;
             return (
               <button
-                key={cat.id}
+                key={category.id}
                 type="button"
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => {
-                  onSelectCategory(isActive ? '' : cat.id);
-                  setDropdownOpen(false);
-                }}
-                className={cn(
-                  'flex items-center gap-2 px-3.5 py-1.5 min-h-[44px] rounded-lg text-[13.5px] font-medium shrink-0 transition-all cursor-pointer whitespace-nowrap',
-                  isActive
-                    ? 'bg-brand-primary-600 text-white shadow-sm font-semibold'
-                    : 'bg-transparent text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
-                )}
+                aria-pressed={active}
+                onClick={() => onSelectCategory(active ? '' : category.id)}
+                className={cn('mkt-category-card', active && 'is-active')}
               >
-                <Icon name={cat.icon} size="xs" className={isActive ? 'text-white' : 'text-neutral-500'} />
-                <span>{cat.displayName}</span>
+                <span className="mkt-category-icon">
+                  <Icon name={getCategoryIcon(category.name)} size="sm" />
+                </span>
+                <span>{category.name.includes('Công nghệ thông tin') ? 'CNTT' : category.name}</span>
               </button>
             );
           })}
-
-          {/* 3. Dropdown "Khác ▾" if more categories exist */}
-          {otherCategories.length > 0 && (
-            <div className="relative shrink-0" ref={dropdownRef}>
-              <button
-                type="button"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-lg text-[13.5px] font-medium transition-all cursor-pointer whitespace-nowrap',
-                  activeOtherCategory
-                    ? 'bg-brand-primary-600 text-white shadow-sm font-semibold'
-                    : 'bg-transparent text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
-                )}
-                aria-haspopup="true"
-                aria-expanded={dropdownOpen}
-              >
-                <span>{activeOtherCategory ? activeOtherCategory.name : 'Khác'}</span>
-                <Icon
-                  name="expand_more"
-                  size="xs"
-                  className={cn(
-                    'transition-transform duration-150',
-                    activeOtherCategory ? 'text-white' : 'text-neutral-500',
-                    dropdownOpen && 'rotate-180'
-                  )}
-                />
-              </button>
-
-              {dropdownOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-52 bg-surface rounded-xl shadow-brand-lg border border-neutral-200/80 py-1.5 z-50 animate-fadeIn">
-                  {otherCategories.map((cat) => {
-                    const isSelected = selectedCategoryId === cat.id;
-                    return (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => {
-                          onSelectCategory(cat.id);
-                          setDropdownOpen(false);
-                        }}
-                        className={cn(
-                          'w-full text-left px-3.5 py-2 text-[13px] font-medium flex items-center justify-between hover:bg-neutral-50 transition-colors cursor-pointer',
-                          isSelected ? 'text-brand-primary-600 bg-brand-primary-50/60 font-semibold' : 'text-neutral-700'
-                        )}
-                      >
-                        <div className="flex items-center gap-2 truncate">
-                          <Icon name={cat.icon} size="xs" className={isSelected ? 'text-brand-primary-600' : 'text-neutral-400'} />
-                          <span className="truncate">{cat.name}</span>
-                        </div>
-                        {isSelected && <Icon name="check" size="xs" className="text-brand-primary-600 shrink-0" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+        </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
 CategoryFilterBar.propTypes = {
-  categories: PropTypes.arrayOf(
-    PropTypes.shape({
-      id: PropTypes.string.isRequired,
-      name: PropTypes.string.isRequired,
-    })
-  ),
+  categories: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string.isRequired, name: PropTypes.string.isRequired })),
   selectedCategoryId: PropTypes.string.isRequired,
   onSelectCategory: PropTypes.func.isRequired,
 };

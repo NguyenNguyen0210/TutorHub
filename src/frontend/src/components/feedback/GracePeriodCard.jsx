@@ -6,21 +6,11 @@ import Badge from '@/components/ui/Badge';
 import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
 import Card, { CardHeader } from '@/components/ui/Card';
-import { useToast } from '@/components/ui/Toast';
+import { Link } from 'react-router-dom';
+import SessionDisputeAccess from './SessionDisputeAccess';
 import { formatDateTime } from '@/utils/formatters';
 
-const ISSUE_REASONS = [
-  { value: 'TutorNoShow', label: 'Gia sư không đến (>15 phút)' },
-  { value: 'ShortDuration', label: 'Thời lượng buổi học không đủ' },
-  { value: 'QualityIssue', label: 'Vấn đề chất lượng dạy / kết nối' },
-];
-
-export default function GracePeriodCard({ session = {}, onIssueReported, isTutor = false }) {
-  const toast = useToast();
-  const [showForm, setShowForm] = useState(false);
-  const [reason, setReason] = useState('');
-  const [description, setDescription] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export default function GracePeriodCard({ session = {}, isTutor = false }) {
   const [timeLeft, setTimeLeft] = useState('');
 
   const isAwaitingPayout = session.status === 'AwaitingPayout';
@@ -52,28 +42,7 @@ export default function GracePeriodCard({ session = {}, onIssueReported, isTutor
     return () => clearInterval(interval);
   }, [gracePeriodEndsAt, isAwaitingPayout, hasIssueReport]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!reason) {
-      toast.error('Vui lòng chọn lý do báo cáo sự cố.');
-      return;
-    }
-    if (description.trim().length < 20) {
-      toast.error('Mô tả phải có ít nhất 20 ký tự.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await onIssueReported(reason, description.trim());
-      setShowForm(false);
-      toast.success('Đã gửi báo cáo sự cố. Tiền buổi học đã được đóng băng chờ giải quyết.');
-    } catch (err) {
-      toast.error(err?.message || 'Không thể gửi báo cáo. Vui lòng thử lại.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  if (hasIssueReport) return <SessionDisputeAccess session={session} isTutor={isTutor} />;
 
   // Completed + payout released
   if (isCompleted && session.isPayoutReleased) {
@@ -95,47 +64,6 @@ export default function GracePeriodCard({ session = {}, onIssueReported, isTutor
 
   // Not in a relevant state
   if (!isAwaitingPayout) return null;
-
-  // Has issue report
-  if (hasIssueReport) {
-    return (
-      <Card padding="none" className="border-t-4 border-t-rose-500 border-border shadow-brand-sm overflow-hidden">
-        <div className="p-4 sm:p-5 space-y-4">
-          <CardHeader
-            className="mb-0"
-            title="Buổi học đang khiếu nại / Báo cáo sự cố"
-            subtitle="Tiền thanh toán đang được hệ thống đóng băng để bảo vệ quyền lợi"
-            icon={<Icon name="gavel" size="md" className="text-danger-strong" />}
-          />
-
-          <Callout variant="danger" icon={<Icon name="warning" size="sm" />}>
-            Đã có báo cáo sự cố cho buổi học này. Khoản tiền học phí đang được tạm giữ trong Escrow chờ Quản trị viên xử lý.
-          </Callout>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-brand-md bg-neutral-50 border border-border text-caption">
-            <div>
-              <span className="text-[11px] font-semibold text-fg-muted uppercase tracking-wide block">
-                Lý do báo cáo
-              </span>
-              <p className="font-semibold text-fg mt-0.5">
-                {ISSUE_REASONS.find((r) => r.value === session.issueReportReason)?.label || session.issueReportReason || 'Không xác định'}
-              </p>
-            </div>
-            {session.issueReportedAt && (
-              <div>
-                <span className="text-[11px] font-semibold text-fg-muted uppercase tracking-wide block">
-                  Thời gian ghi nhận
-                </span>
-                <p className="font-mono text-fg mt-0.5 tabular-nums">
-                  {formatDateTime(session.issueReportedAt)}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </Card>
-    );
-  }
 
   // AwaitingPayout — no issue — active countdown
   return (
@@ -179,96 +107,7 @@ export default function GracePeriodCard({ session = {}, onIssueReported, isTutor
               Bạn có <strong className="font-mono tabular-nums text-holding-strong">{timeLeft}</strong> để kiểm tra và báo cáo nếu buổi học gặp sự cố. Hết thời gian này, học phí sẽ được tự động giải ngân cho gia sư.
             </Callout>
 
-            {!showForm ? (
-              <div className="pt-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowForm(true)}
-                  className="text-danger-strong border-danger/40 hover:bg-danger-subtle hover:border-danger active:scale-[0.98]"
-                  icon={<Icon name="report_problem" size="xs" />}
-                >
-                  Báo cáo sự cố buổi học
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="p-4 rounded-brand-md bg-neutral-50/80 border border-border space-y-3.5 animate-fadeIn">
-                <div className="flex items-center justify-between pb-2 border-b border-border">
-                  <h4 className="text-[14px] font-bold text-fg flex items-center gap-2">
-                    <Icon name="report" size="xs" className="text-danger-strong" />
-                    Biểu mẫu báo cáo sự cố buổi học
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => setShowForm(false)}
-                    className="text-fg-muted hover:text-fg text-caption cursor-pointer"
-                  >
-                    Đóng
-                  </button>
-                </div>
-
-                <div>
-                  <label htmlFor="issue-reason" className="block text-caption font-semibold text-fg mb-1.5">
-                    Lý do báo cáo <span className="text-danger-strong">*</span>
-                  </label>
-                  <select
-                    id="issue-reason"
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    className="w-full h-10 px-3 rounded-brand-md border border-border bg-surface text-caption text-fg focus:outline-none focus:ring-2 focus:ring-brand-primary-600 cursor-pointer"
-                  >
-                    <option value="">— Vui lòng chọn lý do chính xác —</option>
-                    {ISSUE_REASONS.map((r) => (
-                      <option key={r.value} value={r.value}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label htmlFor="issue-description" className="block text-caption font-semibold text-fg">
-                      Mô tả chi tiết sự cố <span className="text-danger-strong">*</span>
-                    </label>
-                    <span className="text-[11px] text-fg-muted tabular-nums">
-                      {description.trim().length} / 2000 ký tự (tối thiểu 20)
-                    </span>
-                  </div>
-                  <textarea
-                    id="issue-description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={4}
-                    maxLength={2000}
-                    className="w-full p-3 rounded-brand-md border border-border bg-surface text-caption text-fg placeholder:text-fg-muted focus:outline-none focus:ring-2 focus:ring-brand-primary-600 resize-y"
-                    placeholder="Mô tả cụ thể những gì đã xảy ra (ví dụ: gia sư vắng mặt bao nhiêu phút, chất lượng giảng dạy, vấn đề kết nối...)"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 pt-1">
-                  <Button
-                    type="submit"
-                    variant="danger"
-                    size="sm"
-                    loading={isSubmitting}
-                    disabled={isSubmitting || description.trim().length < 20 || !reason}
-                    icon={<Icon name="send" size="xs" />}
-                  >
-                    Gửi báo cáo sự cố
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={isSubmitting}
-                    onClick={() => setShowForm(false)}
-                  >
-                    Hủy bỏ
-                  </Button>
-                </div>
-              </form>
-            )}
+            <Button as={Link} to={`/student/disputes/new?sessionId=${encodeURIComponent(session.id)}`} variant="outline" size="sm" icon={<Icon name="report_problem" size="sm" />}>Báo cáo sự cố & đính kèm bằng chứng</Button>
           </div>
         )}
       </div>
@@ -286,6 +125,5 @@ GracePeriodCard.propTypes = {
     issueReportedAt: PropTypes.string,
     gracePeriodEndsAt: PropTypes.string,
   }),
-  onIssueReported: PropTypes.func,
   isTutor: PropTypes.bool,
 };

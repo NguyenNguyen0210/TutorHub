@@ -11,6 +11,17 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // A squashed baseline is valid only for an empty database. Existing deployments
+            // still have the old migration history and must be migrated via a reviewed plan.
+            migrationBuilder.Sql("""
+                DO $$
+                BEGIN
+                    IF to_regclass('public."Categories"') IS NOT NULL
+                       OR to_regclass('public."Users"') IS NOT NULL THEN
+                        RAISE EXCEPTION 'InitialBaseline requires an empty database. Back up the existing database and reconcile its old EF migration history before upgrading.';
+                    END IF;
+                END $$;
+                """);
             migrationBuilder.CreateTable(
                 name: "Categories",
                 columns: table => new
@@ -1591,7 +1602,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
             migrationBuilder.Sql(
                 "CREATE OR REPLACE FUNCTION unaccent_immutable(text) RETURNS text " +
                 "LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT " +
-                "AS $$SELECT unaccent(translate($1, 'đĐ', 'dD'))$$;");
+                "AS $$SELECT public.unaccent(translate($1, 'đĐ', 'dD'))$$;");
 
             migrationBuilder.Sql("CREATE INDEX IF NOT EXISTS \"IX_Services_Title_Search\" ON \"Services\" USING gin (lower(unaccent_immutable(\"Title\")) gin_trgm_ops);");
             migrationBuilder.Sql("CREATE INDEX IF NOT EXISTS \"IX_Services_Description_Search\" ON \"Services\" USING gin (lower(unaccent_immutable(\"Description\")) gin_trgm_ops);");

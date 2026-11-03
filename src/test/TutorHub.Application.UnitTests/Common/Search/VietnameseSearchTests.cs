@@ -390,7 +390,6 @@ public class VietnameseSearchTests
             TotalPrice = 200_000m,
             TotalSessions = 1,
             SessionDurationMinutes = 60,
-            TeachingMode = TeachingMode.Online,
             CreatedAt = DateTime.UtcNow
         };
         var transaction = new Transaction

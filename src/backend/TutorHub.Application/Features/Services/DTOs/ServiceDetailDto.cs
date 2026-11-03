@@ -28,7 +28,6 @@ public record ServiceTutorSnapshotDto(
     string? Bio,
     string? Education,
     int ExperienceYears,
-    string? Address,
     decimal RatingAvg,
     int TotalReviews,
     int TotalStudents,
@@ -66,7 +65,6 @@ public record ServiceDetailDto(
     int SessionDurationMinutes,
     decimal Price,
     decimal PricePerSession,
-    string TeachingMode,
     string Status,
     DateTime CreatedAt,
     ServiceSubjectDto Subject,
@@ -74,5 +72,8 @@ public record ServiceDetailDto(
     List<CurriculumItemDto> Curriculum,
     List<FaqItemDto> Faqs,
     ServiceMetricsDto Metrics,
-    List<ServiceReviewItemDto> RecentReviews
+    List<ServiceReviewItemDto> RecentReviews,
+    decimal RatingAvg = 0,
+    int TotalReviews = 0,
+    List<int>? RatingDistribution = null
 );

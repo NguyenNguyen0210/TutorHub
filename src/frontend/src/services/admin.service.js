@@ -67,18 +67,7 @@ function normalizeTutorApplication(raw = {}) {
     }
   }
 
-  if (!Array.isArray(parsedDocuments) || parsedDocuments.length === 0) {
-    parsedDocuments = [
-      {
-        id: `doc-${raw.id}-1`,
-        title: 'Bằng tốt nghiệp đại học / Chứng chỉ',
-        institution: raw.university || raw.education || 'Đại học Sư phạm',
-        format: 'PDF • 2.1 MB',
-        verified: raw.status === 'Approved',
-        previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
-      },
-    ];
-  }
+  if (!Array.isArray(parsedDocuments)) parsedDocuments = [];
 
   return {
     id: raw.id,
@@ -100,8 +89,6 @@ function normalizeTutorApplication(raw = {}) {
     subject: raw.subject || '',
     subjectSub: raw.subjectSub || '',
     experienceYears: toNumber(raw.experienceYears, 0),
-    teachingMode: raw.teachingMode || null,
-    address: raw.address || null,
     methodology: raw.methodology || '',
     achievements: raw.achievements || '',
     documentsJson: raw.documentsJson || null,
@@ -181,6 +168,26 @@ function normalizePaged(raw, normalizeItem) {
 }
 
 export const adminService = {
+  getRevenueChart: months => api.get('/admin/dashboard/revenue-chart', { params: { months } }),
+  getPlatformRevenue: () => api.get('/admin/analytics/platform-revenue'),
+  getConversations: params => api.get('/admin/conversations', { params }),
+  getConversationMessages: (id, params) => api.get(`/admin/conversations/${id}/messages`, { params }),
+  forceUnpublishService: id => api.post(`/admin/services/${id}/force-unpublish`),
+  removeReview: (id, reason) => api.delete(`/admin/reviews/${id}`, { data: { reason } }),
+  cancelEnrollment: (id, reason) => api.post(`/admin/enrollments/${id}/cancel`, { reason }),
+  getTransactions: params => api.get('/admin/transactions', { params }),
+  getCatalog: (kind, params = {}, trash = false) => api.get(`/admin/${kind}${trash ? '/trash' : ''}`, { params }),
+  saveCatalog: (kind, id, payload) => id ? api.put(`/admin/${kind}/${id}`, payload) : api.post(`/admin/${kind}`, payload),
+  deleteCatalog: (kind, id) => api.delete(`/admin/${kind}/${id}`),
+  restoreCatalog: (kind, id) => api.post(`/admin/${kind}/${id}/restore`),
+  async getAllCategories() {
+    const items = []; let pageNumber = 1; let page;
+    do { page = await adminService.getCatalog('categories', { pageNumber, pageSize: 50 }); items.push(...page.items); pageNumber++; } while (page.hasNextPage);
+    return items;
+  },
+  getTrustReports: ({ status, pageNumber = 1 } = {}) => api.get('/admin/trust-reports', { params: { status: status || undefined, pageNumber, pageSize: 10 } }),
+  getTrustReport: id => api.get(`/admin/trust-reports/${id}`),
+  resolveTrustReport: (id, payload) => api.post(`/admin/trust-reports/${id}/resolve`, payload),
   /** GET /admin/dashboard/stats → AdminDashboardStatsDto (nested) */
   async getStats() {
     const res = await api.get('/admin/dashboard/stats');
@@ -196,6 +203,9 @@ export const adminService = {
     if (search) params.search = search;
     const res = await api.get('/admin/tutor-applications', { params });
     return normalizePaged(res, normalizeTutorApplication);
+  },
+  async getApplicationDocumentUrl(mediaId) {
+    return api.get(`/media/${mediaId}/download-url`);
   },
 
   /** GET /admin/disputes → PagedResult<DisputeDto> */
@@ -262,6 +272,8 @@ export const adminService = {
   /** POST /admin/users/{id}/reactivate → AdminUserSummaryDto */
   reactivateUser: (id) =>
     api.post(`/admin/users/${id}/reactivate`),
+
+  unbanUser: (id, reason) => api.post(`/admin/users/${id}/unban`, { reason }),
 
   /** POST /admin/users/{id}/ban { reason } → AdminUserSummaryDto */
   banUser: (id, reason = 'Vi phạm nghiêm trọng quy chế sàn') =>

@@ -44,7 +44,7 @@ public class AdminGetTopUpRequestsQueryHandler
             .Select(r => new TopUpRequestDto
             {
                 Id = r.Id,
-                StudentWalletId = r.StudentWalletId,
+                StudentWalletId = r.WalletId,
                 Amount = r.Amount,
                 TransferReference = r.TransferReference,
                 Status = r.Status,

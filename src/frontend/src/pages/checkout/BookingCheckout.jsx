@@ -4,6 +4,9 @@ import { cn } from '@/lib/cn';
 import paymentService from '@/services/payment.service';
 import studentWalletService from '@/services/studentWallet.service';
 import bookingService from '@/services/booking.service';
+import tutorService from '@/services/tutor.service';
+import CheckoutTopUpDialog from '@/components/checkout/CheckoutTopUpDialog';
+import { hasBookingExpired } from '@/utils/checkout';
 import CountdownTimer from '@/components/feedback/CountdownTimer';
 import { formatCurrency } from '@/utils/formatters';
 import Money from '@/components/ui/Money';
@@ -15,7 +18,6 @@ import Button from '@/components/ui/Button';
 import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
-import Badge from '@/components/ui/Badge';
 
 export default function BookingCheckout() {
   const toast = useToast();
@@ -32,14 +34,17 @@ export default function BookingCheckout() {
   const [loading, setLoading] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
+  const [service, setService] = useState(null);
+  const [topUpOpen, setTopUpOpen] = useState(false);
 
   const loadWallet = useCallback(async () => {
     try {
       setLoadingWallet(true);
       const w = await studentWalletService.getMyWallet();
       setWallet(w);
+      return w;
     } catch {
-      // Not a student or wallet fetch failed
+      return null;
     } finally {
       setLoadingWallet(false);
     }
@@ -47,7 +52,27 @@ export default function BookingCheckout() {
 
   useEffect(() => {
     loadWallet();
+    const refreshOnVisible = () => {
+      if (document.visibilityState === 'visible') loadWallet();
+    };
+    window.addEventListener('focus', loadWallet);
+    document.addEventListener('visibilitychange', refreshOnVisible);
+    return () => {
+      window.removeEventListener('focus', loadWallet);
+      document.removeEventListener('visibilitychange', refreshOnVisible);
+    };
   }, [loadWallet]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setService(null);
+    if (booking?.serviceId) {
+      tutorService.getServiceById(booking.serviceId).then((data) => {
+        if (!cancelled) setService(data);
+      }).catch(() => { /* Keep checkout usable if the public listing is unavailable. */ });
+    }
+    return () => { cancelled = true; };
+  }, [booking?.serviceId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +88,7 @@ export default function BookingCheckout() {
         const data = await bookingService.getBookingById(id);
         if (!cancelled) {
           setBooking(data);
+          setIsExpired(hasBookingExpired(data));
           if (data?.status === 'Paid') {
             toast.info('Đơn hàng này đã được thanh toán thành công.');
             navigate('/student/dashboard');
@@ -131,9 +157,34 @@ export default function BookingCheckout() {
   const pricePerSession = totalSessions > 0 ? Math.round(totalPrice / totalSessions) : totalPrice;
 
   const hasEnoughWalletBalance = (wallet?.availableBalance || 0) >= totalPrice;
+  const shortfall = Math.max(0, totalPrice - (wallet?.availableBalance || 0));
+  const servicePath = booking.serviceId ? `/services/${booking.serviceId}` : '/';
+  const serviceTitle = booking.serviceTitle || service?.title || booking.subjectName || 'Gói học';
+  const paymentDisabled = isExpired || hasBookingExpired(booking);
+
+  const refreshTopUpBalance = async () => {
+    const updated = await loadWallet();
+    if (!updated) {
+      toast.error('Chưa thể tải số dư ví. Vui lòng thử lại.');
+      return false;
+    }
+    if (updated.availableBalance >= totalPrice) {
+      if (isExpired || hasBookingExpired(booking)) {
+        setIsExpired(true);
+        toast.info('Số dư đã cập nhật, nhưng đơn giữ chỗ đã hết hạn. Vui lòng tạo đơn mới để thanh toán.');
+        return true;
+      }
+      setSelectedMethod('wallet');
+      toast.success('Số dư đã cập nhật. Bạn có thể thanh toán bằng ví.');
+      return true;
+    }
+    toast.info('Ví chưa đủ số dư. Nếu vừa nạp tiền, vui lòng chờ xác nhận rồi cập nhật lại.');
+    return false;
+  };
 
   const handlePayWallet = async () => {
-    if (isExpired) {
+    if (isExpired || hasBookingExpired(booking)) {
+      setIsExpired(true);
       toast.error('Đơn giữ chỗ đã hết hạn. Vui lòng tạo lại đơn hàng mới.');
       return;
     }
@@ -155,7 +206,8 @@ export default function BookingCheckout() {
   };
 
   const handlePayVNPay = async () => {
-    if (isExpired) {
+    if (isExpired || hasBookingExpired(booking)) {
+      setIsExpired(true);
       toast.error('Đơn giữ chỗ đã hết hạn. Vui lòng tạo lại đơn hàng mới.');
       return;
     }
@@ -169,7 +221,7 @@ export default function BookingCheckout() {
         return;
       }
 
-      setPaymentError('Cổng thanh toán VNPay không trả về đường dẫn thanh toán. Vui lòng thử lại.');
+      setPaymentError('Chưa thể mở trang thanh toán VNPAY. Vui lòng thử lại.');
     } catch (err) {
       setPaymentError(err?.message || 'Không tạo được đường dẫn thanh toán VNPay.');
     } finally {
@@ -178,7 +230,7 @@ export default function BookingCheckout() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
       {/* Checkout Progress Stepper */}
       <div className="flex items-center justify-between px-2 sm:px-6 py-3 rounded-brand-lg bg-surface border border-border text-caption">
         <div className="flex items-center gap-2 text-success-strong font-semibold">
@@ -206,18 +258,20 @@ export default function BookingCheckout() {
       {/* 15-Minute Countdown Timer */}
       <CountdownTimer
         expiresAt={booking.holdingExpiresAt}
+        expired={isExpired}
         onExpire={() => setIsExpired(true)}
-        onReorderPath="/"
+        onReorderPath={servicePath}
       />
 
       {/* Main 2-Column Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-6 items-start">
         {/* Left Column: Order Summary & Escrow Guarantee */}
-        <div className="lg:col-span-2 space-y-5">
-          <Card padding="lg" className="space-y-4 border border-border shadow-brand-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
+        <div className="contents lg:block lg:min-w-0 lg:space-y-5">
+          <Card padding="lg" className="order-1 space-y-4 border border-border shadow-brand-sm p-4 sm:p-6 lg:order-none">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-border">
               <CardHeader
                 title="Chi tiết đơn đặt giữ chỗ"
+                className="mb-0 [&_h3]:whitespace-normal"
                 icon={<Icon name="shopping_bag" size="sm" className="text-brand-primary-600" />}
               />
               <div className="flex items-center gap-2">
@@ -228,69 +282,55 @@ export default function BookingCheckout() {
               </div>
             </div>
 
-            {/* Tutor identity block */}
-            <div className="flex items-center gap-4 p-3.5 rounded-brand-md bg-neutral-50/80 border border-border">
-              <Avatar name={booking.tutorName} size="lg" className="rounded-brand-md shrink-0 shadow-brand-sm" />
-              <div className="space-y-0.5 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-headline-3 text-fg font-bold truncate m-0">
-                    {booking.tutorName || 'Gia sư chuyên môn'}
-                  </h2>
-                  <Badge variant="success" size="sm">Giữ chỗ 15p</Badge>
-                </div>
+            <div className="space-y-3 p-4 rounded-brand-md bg-neutral-50/80 border border-border">
+              <h1 className="text-headline-2 font-bold leading-snug text-fg">
                 {booking.serviceId ? (
                   <Link
-                    to={`/services/${booking.serviceId}`}
-                    target="_blank"
-                    className="text-caption text-brand-primary-700 hover:text-brand-primary-800 hover:underline font-semibold m-0 truncate inline-flex items-center gap-1"
+                    to={servicePath}
+                    className="hover:text-brand-primary-700 hover:underline underline-offset-4"
                   >
-                    <span>{booking.subjectName || 'Khóa học'}</span>
-                    <Icon name="open_in_new" size="xs" />
+                    {serviceTitle}
                   </Link>
-                ) : (
-                  <p className="text-caption text-brand-primary-700 font-semibold m-0 truncate">
-                    {booking.subjectName || 'Khóa học'}
-                  </p>
-                )}
+                ) : serviceTitle}
+              </h1>
+              <div className="flex min-w-0 items-center gap-2.5 text-body-reg text-fg-secondary">
+                <Avatar src={booking.tutorAvatarUrl || service?.tutor?.avatarUrl || service?.tutorAvatarUrl} name={booking.tutorName} size="md" />
+                <span>Gia sư: <span className="font-medium text-fg">{booking.tutorName || 'Gia sư chuyên môn'}</span></span>
               </div>
             </div>
 
             {/* Financial breakdown */}
             <dl className="p-4 rounded-brand-md bg-neutral-50 border border-border space-y-2.5 text-caption text-fg-secondary">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-wrap justify-between items-center gap-x-3 gap-y-1">
                 <dt>Số buổi học được phân bổ:</dt>
                 <dd className="font-bold text-fg">
                   {totalSessions} buổi ({booking.sessionDurationMinutes || 60} phút/buổi)
                 </dd>
               </div>
-              <div className="flex justify-between items-center">
-                <dt>Hình thức giảng dạy:</dt>
-                <dd className="font-bold text-fg">{booking.teachingMode || 'Online'}</dd>
-              </div>
-              <div className="flex justify-between items-center">
+              <div className="flex flex-wrap justify-between items-center gap-x-3 gap-y-1">
                 <dt>Đơn giá từng buổi học:</dt>
                 <dd className="font-bold text-brand-primary-700 tabular-nums">
                   <Money value={pricePerSession} /> / buổi
                 </dd>
               </div>
-              <div className="flex justify-between items-center text-[11px] text-success-strong">
+              <div className="flex flex-wrap justify-between items-center gap-x-3 gap-y-1 text-[11px] text-success-strong">
                 <dt className="flex items-center gap-1">
                   <Icon name="check" size="xs" />
                   <span>Phí dịch vụ bảo chứng nền tảng:</span>
                 </dt>
                 <dd className="font-bold">0 ₫ (Miễn phí cho học viên)</dd>
               </div>
-              <div className="flex justify-between items-baseline pt-3 border-t border-border text-body-reg font-bold text-fg">
+              <div className="flex flex-wrap justify-between items-baseline gap-x-3 gap-y-1 pt-3 border-t border-border text-body-reg font-bold text-fg">
                 <dt className="text-body-reg font-bold">Tổng thanh toán gói học:</dt>
                 <dd className="text-headline-1 text-success-strong font-bold">
-                  <Money value={totalPrice} />
+                  <Money value={totalPrice} className="whitespace-nowrap" />
                 </dd>
               </div>
             </dl>
           </Card>
 
           {/* High-Trust Escrow Certificate */}
-          <div className="p-4 rounded-brand-lg bg-success-subtle/80 border border-success-subtle/90 text-caption space-y-2 shadow-brand-sm">
+          <div className="order-3 p-4 rounded-brand-lg bg-success-subtle/80 border border-success-subtle/90 text-caption space-y-2 shadow-brand-sm lg:order-none">
             <div className="flex items-center gap-2 text-success-strong font-bold text-body-reg">
               <Icon name="shield" size="sm" filled className="text-success-strong shrink-0" />
               <span>Chứng thư ký quỹ bảo chứng Escrow 100%</span>
@@ -312,8 +352,8 @@ export default function BookingCheckout() {
         </div>
 
         {/* Right Column: Payment Gateway Selector & CTA */}
-        <div className="space-y-5">
-          <Card padding="lg" className="space-y-5 border border-border shadow-brand-sm">
+        <div className="order-2 min-w-0 space-y-5 lg:order-none">
+          <Card padding="lg" className="space-y-5 border border-border shadow-brand-sm p-4 sm:p-6">
             <CardHeader
               title="Cổng thanh toán"
               icon={<Icon name="credit_card" size="sm" className="text-brand-primary-600" />}
@@ -321,87 +361,70 @@ export default function BookingCheckout() {
 
             {paymentError && <Callout variant="danger">{paymentError}</Callout>}
 
-            <div className="space-y-3" role="radiogroup" aria-label="Phương thức thanh toán">
-              {/* Option 1: Student Wallet (100% wallet payment) */}
-              <button
-                type="button"
-                role="radio"
-                aria-checked={selectedMethod === 'wallet'}
-                onClick={() => setSelectedMethod('wallet')}
-                className={cn(
-                  'w-full p-3.5 rounded-brand-md border-2 transition-all flex items-center justify-between text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 cursor-pointer',
-                  selectedMethod === 'wallet'
-                    ? 'border-success-strong bg-success-subtle/40 shadow-brand-sm'
-                    : 'border-border hover:border-neutral-300'
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-brand-md bg-success-strong text-white flex items-center justify-center shrink-0 shadow-brand-sm">
+            <fieldset className="min-w-0 space-y-3">
+              <legend className="sr-only">Phương thức thanh toán</legend>
+              <div className={cn(
+                'rounded-brand-md border-2 p-3.5 transition-colors',
+                selectedMethod === 'wallet' ? 'border-success-strong bg-success-subtle/40' : 'border-border'
+              )}>
+                <label className="flex cursor-pointer items-start gap-3" htmlFor="checkout-wallet">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-brand-md bg-success-strong text-white">
                     <Icon name="account_balance_wallet" size="sm" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-caption sm:text-body-reg text-fg">
-                        Ví Học Viên
-                      </span>
-                      <span className={cn(
-                        "text-[11px] font-bold font-mono px-1.5 py-0.5 rounded",
-                        hasEnoughWalletBalance
-                          ? "bg-success-subtle text-success-strong"
-                          : "bg-holding-subtle text-holding-strong"
-                      )}>
-                        Số dư: {formatCurrency(wallet?.availableBalance || 0)}
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-fg-muted block mt-0.5">
-                      {hasEnoughWalletBalance
-                        ? 'Thanh toán 1-Click tức thì, tiền chuyển thẳng vào Escrow'
-                        : `Còn thiếu ${formatCurrency(totalPrice - (wallet?.availableBalance || 0))} — Nạp thêm để thanh toán`}
+                  </span>
+                  <span className="min-w-0 flex-1 space-y-1">
+                    <span className="block text-body-reg font-bold text-fg">Ví Học Viên</span>
+                    <span className="block text-caption text-fg-secondary">
+                      {loadingWallet ? 'Đang tải số dư…' : wallet ? <>Số dư: <Money value={wallet.availableBalance} className="whitespace-nowrap font-semibold" /></> : 'Chưa tải được số dư ví'}
                     </span>
-                  </div>
-                </div>
-                <div className={cn(
-                  "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0",
-                  selectedMethod === 'wallet' ? "border-success-strong" : "border-neutral-300"
-                )}>
-                  {selectedMethod === 'wallet' && <div className="w-2.5 h-2.5 rounded-full bg-success-strong" />}
-                </div>
-              </button>
-
-              {/* Option 2: VNPay */}
-              <button
-                type="button"
-                role="radio"
-                aria-checked={selectedMethod === 'vnpay'}
-                onClick={() => setSelectedMethod('vnpay')}
-                className={cn(
-                  'w-full p-3.5 rounded-brand-md border-2 transition-all flex items-center justify-between text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 cursor-pointer',
-                  selectedMethod === 'vnpay'
-                    ? 'border-brand-primary-600 bg-brand-primary-50/40 shadow-brand-sm'
-                    : 'border-border hover:border-neutral-300'
+                    {wallet && hasEnoughWalletBalance && <span className="block text-caption text-fg-muted">Thanh toán toàn bộ gói học bằng ví.</span>}
+                  </span>
+                  <input
+                    id="checkout-wallet"
+                    type="radio"
+                    name="checkout-payment"
+                    value="wallet"
+                    checked={selectedMethod === 'wallet'}
+                    onChange={() => setSelectedMethod('wallet')}
+                    disabled={paymentDisabled || loading || loadingWallet || !wallet}
+                    className="mt-1 h-5 w-5 shrink-0 accent-success-strong"
+                  />
+                </label>
+                {wallet && !hasEnoughWalletBalance && (
+                  <button
+                    type="button"
+                    disabled={paymentDisabled || loading || loadingWallet}
+                    onClick={() => setTopUpOpen(true)}
+                    className="ml-[52px] inline-flex min-h-11 flex-wrap items-center gap-1 text-left text-caption font-semibold text-brand-primary-700 underline underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Nạp thêm <Money value={shortfall} className="whitespace-nowrap" /> <Icon name="arrow_forward" size="xs" />
+                  </button>
                 )}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-brand-md bg-brand-primary-600 text-white font-extrabold text-[9px] flex items-center justify-center tracking-tight shrink-0 shadow-brand-sm">
-                    VNPAY
-                  </div>
-                  <div>
-                    <span className="font-bold text-caption sm:text-body-reg text-fg block">
-                      Cổng thanh toán VNPAY
-                    </span>
-                    <span className="text-[10px] text-fg-muted block">
-                      ATM nội địa, VNPAY-QR, Visa/Mastercard
-                    </span>
-                  </div>
-                </div>
-                <div className={cn(
-                  "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0",
-                  selectedMethod === 'vnpay' ? "border-brand-primary-600" : "border-neutral-300"
-                )}>
-                  {selectedMethod === 'vnpay' && <div className="w-2.5 h-2.5 rounded-full bg-brand-primary-600" />}
-                </div>
-              </button>
-            </div>
+                {!wallet && !loadingWallet && (
+                  <button type="button" onClick={loadWallet} className="ml-[52px] min-h-11 text-caption font-semibold text-brand-primary-700 underline">Thử tải lại số dư</button>
+                )}
+              </div>
+
+              <label htmlFor="checkout-vnpay" className={cn(
+                'flex cursor-pointer items-start gap-3 rounded-brand-md border-2 p-3.5 transition-colors',
+                selectedMethod === 'vnpay' ? 'border-brand-primary-600 bg-brand-primary-50/40' : 'border-border'
+              )}>
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-brand-md bg-brand-primary-600 text-[9px] font-extrabold text-white">VNPAY</span>
+                <span className="min-w-0 flex-1 space-y-1">
+                  <span className="block text-body-reg font-bold text-fg">VNPAY</span>
+                  <span className="block text-caption leading-relaxed text-fg-muted">ATM nội địa, VNPAY-QR, Visa/Mastercard</span>
+                </span>
+                <input
+                  id="checkout-vnpay"
+                  type="radio"
+                  name="checkout-payment"
+                  value="vnpay"
+                  checked={selectedMethod === 'vnpay'}
+                  onChange={() => setSelectedMethod('vnpay')}
+                  disabled={paymentDisabled || loading}
+                  className="mt-1 h-5 w-5 shrink-0 accent-brand-primary-600"
+                />
+              </label>
+            </fieldset>
 
             {selectedMethod === 'wallet' ? (
               hasEnoughWalletBalance ? (
@@ -410,26 +433,27 @@ export default function BookingCheckout() {
                   size="lg"
                   fullWidth
                   loading={loading}
-                  disabled={isExpired}
+                  disabled={paymentDisabled || loadingWallet}
                   onClick={handlePayWallet}
+                  className="whitespace-nowrap px-3 text-[14px]"
                   icon={!loading && <Icon name="flash_on" size="sm" />}
                 >
-                  {isExpired
+                  {paymentDisabled
                     ? 'Đơn giữ chỗ đã hết hạn'
-                    : `Thanh toán bằng Ví: ${formatCurrency(totalPrice)}`}
+                    : <>Thanh toán <Money value={totalPrice} className="whitespace-nowrap" /></>}
                 </Button>
               ) : (
                 <div className="space-y-2">
                   <Button
-                    as={Link}
-                    to="/student/wallet"
-                    target="_blank"
+                    onClick={() => setTopUpOpen(true)}
+                    disabled={paymentDisabled || loadingWallet || !wallet}
                     variant="primary"
                     size="lg"
                     fullWidth
                     icon={<Icon name="add_circle" size="sm" />}
+                    className="whitespace-nowrap px-3 text-[14px]"
                   >
-                    Nạp thêm tiền vào Ví Học Viên
+                    {paymentDisabled ? 'Đơn giữ chỗ đã hết hạn' : <>Nạp thêm <Money value={shortfall} className="whitespace-nowrap" /></>}
                   </Button>
                   <p className="text-[11px] text-holding-strong text-center">
                     Sau khi nạp xong, vui lòng <button type="button" onClick={loadWallet} disabled={loadingWallet} className="underline font-bold text-brand-primary-700">{loadingWallet ? 'đang làm mới...' : 'bấm vào đây để làm mới số dư'}</button>.
@@ -442,13 +466,14 @@ export default function BookingCheckout() {
                 size="lg"
                 fullWidth
                 loading={loading}
-                disabled={isExpired}
+                disabled={paymentDisabled}
                 onClick={handlePayVNPay}
+                className="whitespace-nowrap px-3 text-[14px]"
                 icon={!loading && <Icon name="lock" size="sm" />}
               >
-                {isExpired
+                {paymentDisabled
                   ? 'Đơn giữ chỗ đã hết hạn'
-                  : `Thanh toán ${formatCurrency(totalPrice)}`}
+                  : <>Thanh toán <Money value={totalPrice} className="whitespace-nowrap" /></>}
               </Button>
             )}
 
@@ -463,7 +488,7 @@ export default function BookingCheckout() {
 
           <div className="text-center">
             <Link
-              to="/"
+              to={servicePath}
               className="text-caption text-fg-muted hover:text-brand-primary-700 font-semibold inline-flex items-center gap-1 transition-colors"
             >
               <Icon name="arrow_back" size="xs" />
@@ -472,6 +497,13 @@ export default function BookingCheckout() {
           </div>
         </div>
       </div>
+      <CheckoutTopUpDialog
+        open={topUpOpen}
+        onClose={() => setTopUpOpen(false)}
+        shortfall={shortfall}
+        expired={paymentDisabled}
+        onRefresh={refreshTopUpBalance}
+      />
     </div>
   );
 }

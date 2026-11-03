@@ -67,18 +67,6 @@ export const WITHDRAWAL_STATUS_META = {
   [WITHDRAWAL_STATUS.FAILED]: { label: 'Thất bại', color: 'danger' },
 };
 
-export const TEACHING_MODE = {
-  ONLINE: 'Online',
-  OFFLINE: 'Offline',
-  BOTH: 'Both',
-};
-
-export const TEACHING_MODE_META = {
-  [TEACHING_MODE.ONLINE]: { label: 'Trực tuyến (Online)', color: 'info' },
-  [TEACHING_MODE.OFFLINE]: { label: 'Tại nhà (Offline)', color: 'success' },
-  [TEACHING_MODE.BOTH]: { label: 'Online & Tại nhà', color: 'primary' },
-};
-
 /**
  * Resolve an enum value against a meta map without throwing on unknown input.
  * Unknown values are shown verbatim (so a new backend enum is visible, not hidden).
@@ -95,4 +83,3 @@ export const getSessionStatusMeta = (value) => enumMeta(SESSION_STATUS_META, val
 export const getTutorApplicationStatusMeta = (value) =>
   enumMeta(TUTOR_APPLICATION_STATUS_META, value, 'Không rõ');
 export const getWithdrawalStatusMeta = (value) => enumMeta(WITHDRAWAL_STATUS_META, value, 'Không rõ');
-export const getTeachingModeMeta = (value) => enumMeta(TEACHING_MODE_META, value, 'Chưa xác định');

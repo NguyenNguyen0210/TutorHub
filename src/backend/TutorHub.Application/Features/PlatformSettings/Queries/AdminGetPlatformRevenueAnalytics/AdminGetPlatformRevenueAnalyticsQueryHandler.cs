@@ -21,19 +21,21 @@ public class AdminGetPlatformRevenueAnalyticsQueryHandler : IRequestHandler<Admi
         var grossBookingVolume = await _context.Transactions
             .AsNoTracking()
             .Where(t => t.Type == TransactionType.BookingPayment &&
-                        (t.Status == TransactionStatus.Succeeded || t.Status == TransactionStatus.Released))
+                        (t.Status == TransactionStatus.Held || t.Status == TransactionStatus.Succeeded || t.Status == TransactionStatus.Released))
             .SumAsync(t => t.Amount, cancellationToken);
 
         // 2. Gross released earnings
         var grossReleasedEarnings = await _context.Transactions
             .AsNoTracking()
-            .Where(t => t.Type == TransactionType.SessionPayoutCredit && t.Status == TransactionStatus.Released)
+            .Where(t => t.Type == TransactionType.SessionPayoutCredit
+                && (t.Status == TransactionStatus.Released || (t.Status == TransactionStatus.Succeeded && t.ReleasedAt != null)))
             .SumAsync(t => t.Amount, cancellationToken);
 
         // 3. Recognized platform fee
         var recognizedFee = await _context.Transactions
             .AsNoTracking()
-            .Where(t => t.Type == TransactionType.SessionPayoutCredit && t.Status == TransactionStatus.Released)
+            .Where(t => t.Type == TransactionType.SessionPayoutCredit
+                && (t.Status == TransactionStatus.Released || (t.Status == TransactionStatus.Succeeded && t.ReleasedAt != null)))
             .SumAsync(t => t.PlatformFeeAmount, cancellationToken);
 
         // 4. Platform fee reversals (from dispute adjustments)

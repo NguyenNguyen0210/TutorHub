@@ -1,4 +1,5 @@
 import { api } from './api';
+import { safeReturnUrl } from '../utils/authRedirect';
 
 export const externalAuthService = {
   async getProviders() {
@@ -7,11 +8,14 @@ export const externalAuthService = {
     return { providers, enabled: res?.enabled === true && providers.length > 0 };
   },
 
-  async startGoogleLogin() {
+  async startGoogleLogin(returnUrl) {
     const res = await api.get('/auth/oauth/google/start');
     if (!res?.authorizeUrl || !res?.state) {
       throw new Error('Máy chủ chưa cấu hình đăng nhập Google.');
     }
+    const destination = safeReturnUrl(returnUrl);
+    // Bind the destination to this OAuth attempt, including across the external redirect.
+    if (destination) sessionStorage.setItem(`tutorhub_oauth_return:${res.state}`, destination);
     return { authorizeUrl: res.authorizeUrl, state: res.state };
   },
 

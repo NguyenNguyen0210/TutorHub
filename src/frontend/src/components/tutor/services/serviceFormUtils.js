@@ -1,5 +1,3 @@
-import { TEACHING_MODE } from '@/config/enums';
-
 export const SHORT_DESCRIPTION_MAX = 200;
 export const DESCRIPTION_MAX = 2000;
 export const TAGS_MAX = 10;
@@ -49,10 +47,10 @@ export function createInitialFormState(subjectId = '') {
     totalSessions: 10,
     sessionDurationMinutes: 60,
     price: 2000000,
-    teachingMode: TEACHING_MODE.ONLINE,
     trialLessonUrl: '',
     tags: '',
     coverImageUrl: '',
+    coverImageFile: null,
     // Section 4 — editor-local shapes (converted to backend payload on submit).
     sessions: [],
     targetAudienceText: '',
@@ -171,29 +169,28 @@ export function buildServicePayload(formData, { mode = 'create', lockCommercialT
   const shortDescription = (formData.shortDescription || '').trim();
   const tags = parseTags(formData.tags);
   const coverImageUrl = (formData.coverImageUrl || '').trim();
+  const updating = mode === 'update';
 
   const payload = {
     title: formData.title.trim(),
     description: formData.description.trim(),
-    learningScope: formData.learningScope.trim() || null,
-    expectedOutcome: formData.expectedOutcome.trim() || null,
-    trialLessonUrl: formData.trialLessonUrl.trim() || null,
-    ...(shortDescription ? { shortDescription } : {}),
-    ...(tags.length ? { tags } : {}),
-    ...(coverImageUrl ? { coverImageUrl } : {}),
-    ...(curriculum.length ? { curriculum } : {}),
-    ...(targetAudience.length ? { targetAudience } : {}),
-    ...(prerequisites.length ? { prerequisites } : {}),
-    ...(faqs.length ? { faqs } : {}),
+    learningScope: formData.learningScope.trim() || (updating ? '' : null),
+    expectedOutcome: formData.expectedOutcome.trim() || (updating ? '' : null),
+    trialLessonUrl: formData.trialLessonUrl.trim() || (updating ? '' : null),
+    ...(!lockCommercialTerms && (updating || shortDescription) ? { shortDescription } : {}),
+    ...(!lockCommercialTerms && (updating || tags.length) ? { tags } : {}),
+    ...(!lockCommercialTerms && (updating || coverImageUrl) ? { coverImageUrl } : {}),
+    ...(updating || curriculum.length ? { curriculum } : {}),
+    ...(updating || targetAudience.length ? { targetAudience } : {}),
+    ...(updating || prerequisites.length ? { prerequisites } : {}),
+    ...(updating || faqs.length ? { faqs } : {}),
   };
 
-  // NOTE: the original drawer comment claims new optional keys are omitted when
-  // unused so older backends ignore them safely.
+  // PATCH uses null/omission for "no change"; explicit empty values clear fields.
   if (mode === 'create' || !lockCommercialTerms) {
     payload.totalSessions = Number(formData.totalSessions);
     payload.sessionDurationMinutes = Number(formData.sessionDurationMinutes);
     payload.price = Number(formData.price);
-    payload.teachingMode = formData.teachingMode;
   }
   if (mode === 'create') {
     payload.subjectId = formData.subjectId;

@@ -10,6 +10,7 @@
  * - POST /conversations/{id}/messages/attachment → AttachmentUploadResponseDto (body FormData { file })
  */
 import api from './api';
+import { notifyWorkspaceActivityChanged } from '@/utils/workspaceActivity';
 import { HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
 import { useAuthStore } from '@/store/authStore';
 
@@ -91,6 +92,10 @@ export const chatService = {
     return normalizeCursorPaged(res, normalizeConversation);
   },
 
+  async getConversation(conversationId) {
+    return normalizeConversation(await api.get(`/conversations/${conversationId}`));
+  },
+
   /**
    * GET /conversations/{id}/messages → CursorPagedResult<MessageDto>
    */
@@ -115,7 +120,11 @@ export const chatService = {
   },
 
   /** PUT /conversations/{id}/read → số message đã đánh dấu đã đọc */
-  markConversationAsRead: (conversationId) => api.put(`/conversations/${conversationId}/read`),
+  async markConversationAsRead(conversationId) {
+    const result = await api.put(`/conversations/${conversationId}/read`);
+    notifyWorkspaceActivityChanged();
+    return result;
+  },
 
   /**
    * POST /conversations → ConversationDto
@@ -137,6 +146,9 @@ export const chatService = {
     return api.post(`/conversations/${conversationId}/messages/attachment`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+  },
+  async downloadAttachment(conversationId, storageKey) {
+    return api.get(`/conversations/${conversationId}/messages/attachments/${encodeURIComponent(storageKey)}`, { responseType: 'blob' });
   },
 };
 

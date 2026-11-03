@@ -1,4 +1,6 @@
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import adminService from '@/services/admin.service';
 import { useToast } from '@/components/ui/Toast';
@@ -54,6 +56,8 @@ const FILTER_SELECT =
  */
 export default function AdminTutorApplications() {
   const toast = useToast();
+  const [searchParams] = useSearchParams();
+  const requestedApplicationId = searchParams.get('applicationId');
   const confirm = useConfirm();
 
   // Data states
@@ -94,8 +98,13 @@ export default function AdminTutorApplications() {
     async function loadData() {
       try {
         setLoading(true);
-        const res = await adminService.getTutorApplications({ pageSize: 50 });
-        const items = res?.items || [];
+        let page = 1;
+        let res = await adminService.getTutorApplications({ pageSize: 50, pageNumber: page });
+        const items = [...(res?.items || [])];
+        while (isMounted && res.hasNextPage) {
+          res = await adminService.getTutorApplications({ pageSize: 50, pageNumber: ++page });
+          items.push(...(res?.items || []));
+        }
         if (isMounted) {
           setDbApplicants(items);
         }
@@ -112,47 +121,14 @@ export default function AdminTutorApplications() {
     return () => {
       isMounted = false;
     };
-  }, [reloadToken]);
+  }, [reloadToken, toast]);
 
   // Format DB applications loaded from API
-  const allApplications = useMemo(() => {
-    return dbApplicants.map((a, idx) => ({
-      ...a,
-      userFullName: a.userFullName || `Gia sư ${idx + 1}`,
-      userEmail: a.userEmail || `tutor${idx}@tutorhub.vn`,
-      userPhone: a.userPhone || '—',
-      // Không sinh ảnh từ dịch vụ bên thứ ba: bản cũ đưa `a.userEmail` — tức email
-      // thật của người đang xét duyệt — vào seed rồi gửi ra máy chủ bên ngoài.
-      // `null` thì <Avatar> hiện chữ cái đầu.
-      userAvatarUrl: a.userAvatarUrl || null,
-      subject: a.subject || 'Toán học',
-      subjectSub: a.subjectSub || (a.teachingMode === 'Both' ? 'Online & Trực tiếp' : a.teachingMode || 'Online'),
-      education: a.education || a.university || 'Đại học Sư phạm',
-      university: a.university || a.education || '',
-      major: a.major || '',
-      degreeLevel: a.degreeLevel || 'Cử nhân',
-      certifications: a.certifications || '',
-      experienceYears: a.experienceYears ?? 1,
-      teachingMode: a.teachingMode || 'Online',
-      address: a.address || 'Hà Nội',
-      bio: a.bio || 'Chưa cập nhật phần giới thiệu.',
-      methodology: a.methodology || 'Cá nhân hóa theo năng lực từng học sinh, rèn luyện bài tập thực hành theo chuyên đề.',
-      achievements: a.achievements || 'Học sinh đạt kết quả tốt trong các kỳ thi kiểm tra định kỳ.',
-      submittedAt: a.submittedAt || new Date().toISOString(),
-      status: a.status || 'Pending',
-      rejectionReason: a.rejectionReason,
-      documents: Array.isArray(a.documents) && a.documents.length > 0 ? a.documents : [
-        {
-          id: `doc-${a.id}-1`,
-          title: 'Văn bằng chứng chỉ chuyên môn',
-          institution: a.university || a.education || 'Đại học Sư phạm',
-          format: 'PDF • 2.1 MB',
-          verified: a.status === 'Approved',
-          previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
-        },
-      ],
-    }));
-  }, [dbApplicants]);
+  const allApplications = useMemo(() => dbApplicants.map((a) => ({
+    ...a,
+    userAvatarUrl: a.userAvatarUrl || null,
+    documents: Array.isArray(a.documents) ? a.documents : [],
+  })), [dbApplicants]);
 
   // Keep first application selected when list loads
   useEffect(() => {
@@ -160,6 +136,15 @@ export default function AdminTutorApplications() {
       setSelectedAppId(allApplications[0].id);
     }
   }, [allApplications, selectedAppId]);
+  useEffect(() => {
+    if (!requestedApplicationId || loading) return;
+    if (!allApplications.some(item => item.id === requestedApplicationId)) {
+      setDrawerOpen(false); toast.error('Không tìm thấy hồ sơ đăng ký được liên kết.'); return;
+    }
+    setSelectedAppId(requestedApplicationId); setDrawerOpen(true);
+    setStatusTab('all'); setSearchQuery(''); setSubjectFilter('all'); setEducationFilter('all');
+    setCurrentPage(Math.floor(allApplications.findIndex(item => item.id === requestedApplicationId) / PAGE_SIZE) + 1);
+  }, [requestedApplicationId, allApplications, loading, toast]);
 
   // Status Counts (Only 3 real statuses: Pending, Approved, Rejected)
   const counts = useMemo(() => {
@@ -346,27 +331,8 @@ export default function AdminTutorApplications() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* 1. TOP HEADER & BREADCRUMB */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <nav
-            aria-label="Breadcrumb"
-            className="flex items-center gap-1.5 text-[12.5px] text-fg-muted mb-1.5"
-          >
-            <span>Admin</span>
-            <span>›</span>
-            <span className="text-fg-secondary font-medium">Hồ sơ gia sư</span>
-          </nav>
-          <h1 className="text-[24px] sm:text-[28px] font-extrabold text-fg tracking-tight">
-            Bàn kiểm duyệt hồ sơ gia sư
-          </h1>
-          <p className="text-[13.5px] text-fg-secondary mt-0.5 max-w-2xl leading-relaxed">
-            Xem xét, xác minh thông tin và bằng cấp của ứng viên trước khi phê duyệt trở thành gia sư trên TutorHub.
-          </p>
-        </div>
-
-        <Button
+    <div className="space-y-6 lg:space-y-8">
+      <WorkspacePageHeader title="Bàn kiểm duyệt hồ sơ gia sư" description="Xem xét, xác minh thông tin và bằng cấp của ứng viên trước khi phê duyệt trở thành gia sư trên TutorHub." actions={<Button
           type="button"
           variant="outline"
           size="md"
@@ -375,11 +341,10 @@ export default function AdminTutorApplications() {
           className="self-start sm:self-auto shrink-0"
         >
           Hướng dẫn xét duyệt
-        </Button>
-      </div>
+        </Button>} />
 
       {/* 2. 4 STAT METRIC CARDS — hàng số liệu phẳng của Quản lý ví & giao dịch */}
-      <StatStrip
+      <StatStrip appearance="soft" className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4"
         columns={4}
         figures={[
           {
@@ -564,7 +529,18 @@ export default function AdminTutorApplications() {
             onAddNote={handleAddNote}
             checks={currentChecks}
             onToggleCheck={toggleVerification}
-            onPreviewDoc={setPreviewDoc}
+            onPreviewDoc={async (doc) => {
+              try {
+                if (doc.mediaId) {
+                  const media = await adminService.getApplicationDocumentUrl(doc.mediaId);
+                  setPreviewDoc({ ...doc, previewUrl: media.accessUrl });
+                } else {
+                  setPreviewDoc(doc);
+                }
+              } catch {
+                toast.error('Không thể mở tài liệu. Vui lòng thử lại.');
+              }
+            }}
             onClose={() => setDrawerOpen(false)}
             processing={processing}
             onApprove={handleApprove}

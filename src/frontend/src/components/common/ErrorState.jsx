@@ -26,33 +26,33 @@ export default function ErrorState({
   backPath,
   backLabel = 'Quay lại',
   className,
+  showTechnicalDetails = false,
 }) {
   const status = error?.status ?? 0;
   const kind = error?.kind ?? 'unknown';
 
   let defaultTitle = 'Đã có lỗi xảy ra';
-  let defaultMessage = error?.message || 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.';
+  let defaultMessage = 'Tạm thời chưa tải được nội dung. Vui lòng thử lại sau.';
 
   if (kind === 'network' || status === 0) {
-    defaultTitle = 'Mất kết nối máy chủ';
+    defaultTitle = 'Không thể kết nối';
     defaultMessage =
-      'Không thể kết nối đến hệ thống. Vui lòng kiểm tra lại đường truyền mạng hoặc khởi động API.';
+      'Vui lòng kiểm tra kết nối mạng rồi thử lại.';
   } else if (kind === 'notFound' || status === 404) {
     defaultTitle = 'Không tìm thấy dữ liệu';
     defaultMessage =
-      error?.message || 'Nội dung hoặc tài nguyên bạn tìm kiếm không tồn tại hoặc đã bị xóa.';
+      'Nội dung bạn tìm kiếm không còn khả dụng hoặc đã bị xóa.';
   } else if (kind === 'forbidden' || status === 403) {
     defaultTitle = 'Không có quyền truy cập';
     defaultMessage =
-      error?.message || 'Bạn không có quyền thực hiện thao tác hoặc xem nội dung này.';
+      'Tài khoản hiện tại không có quyền xem nội dung này.';
   } else if (kind === 'conflict' || status === 409) {
-    defaultTitle = 'Xung đột trạng thái';
+    defaultTitle = 'Thông tin đã thay đổi';
     defaultMessage =
-      error?.message ||
-      'Yêu cầu bị từ chối do trạng thái tài nguyên đã thay đổi. Vui lòng tải lại trang.';
+      'Thông tin đã được cập nhật. Vui lòng tải lại trang rồi thử lại.';
   } else if (kind === 'throttled' || status === 429) {
     defaultTitle = 'Quá nhiều yêu cầu';
-    defaultMessage = error?.message || 'Hệ thống đang bận. Vui lòng chờ vài giây trước khi thử lại.';
+    defaultMessage = 'Hệ thống đang bận. Vui lòng chờ vài giây trước khi thử lại.';
   }
 
   const displayTitle = title || defaultTitle;
@@ -60,11 +60,12 @@ export default function ErrorState({
   const trimmedMessage = typeof message === 'string' ? message.trim() : message;
   const isRawNetworkError =
     typeof trimmedMessage === 'string' && trimmedMessage.toLowerCase() === 'network error';
+  const isTechnicalMessage = typeof trimmedMessage === 'string' && /request failed|status code|network error|exception|stack trace|\bat (?:System|Microsoft)\.|traceid|correlation|sqlstate|\bhttps?:\/\/|ECONN|ENOTFOUND/i.test(trimmedMessage);
   const displayMessage =
-    isNetwork && (!trimmedMessage || isRawNetworkError) ? defaultMessage : message || defaultMessage;
+    isNetwork && (!trimmedMessage || isRawNetworkError) || isTechnicalMessage ? defaultMessage : message || defaultMessage;
   const errorDetails =
-    Array.isArray(error?.errors) && error.errors.length > 0 ? error.errors : null;
-  const traceId = error?.traceId || null;
+    showTechnicalDetails && Array.isArray(error?.errors) && error.errors.length > 0 ? error.errors : null;
+  const traceId = showTechnicalDetails ? error?.traceId : null;
 
   return (
     <Card
@@ -96,7 +97,10 @@ export default function ErrorState({
       )}
 
       {traceId && (
-        <div className="text-[10px] text-fg-muted font-mono">Trace ID: {traceId}</div>
+        <details className="text-left text-caption text-fg-muted">
+          <summary className="cursor-pointer">Thông tin hỗ trợ</summary>
+          <p className="mt-2 break-all">Mã hỗ trợ: <span className="font-mono">{traceId}</span></p>
+        </details>
       )}
 
       <div className="pt-2 flex items-center justify-center gap-3">

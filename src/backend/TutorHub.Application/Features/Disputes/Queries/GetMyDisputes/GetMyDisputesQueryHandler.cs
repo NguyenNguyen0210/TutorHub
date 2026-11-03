@@ -22,10 +22,15 @@ public class GetMyDisputesQueryHandler : IRequestHandler<GetMyDisputesQuery, IRe
 
         var disputes = await _context.Disputes
             .AsNoTracking()
-            .Include(d => d.Session)
+            .AsSplitQuery()
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(p => p.User)
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(p => p.User)
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.Service)
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.Subject)
             .Include(d => d.InitiatorUser)
             .Include(d => d.RespondentUser)
             .Include(d => d.Evidences)
+            .Include(d => d.Responses).ThenInclude(r => r.AuthorUser)
             .Where(d => d.InitiatorUserId == userId || d.RespondentUserId == userId)
             .OrderByDescending(d => d.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -36,6 +41,13 @@ public class GetMyDisputesQueryHandler : IRequestHandler<GetMyDisputesQuery, IRe
             SessionId = d.SessionId,
             SessionNumber = d.Session.SessionNumber,
             EnrollmentId = d.Session.EnrollmentId,
+            StudentName = d.Session.Enrollment.StudentProfile.User.FullName,
+            StudentAvatarUrl = d.Session.Enrollment.StudentProfile.User.AvatarUrl,
+            TutorName = d.Session.Enrollment.TutorProfile.User.FullName,
+            TutorAvatarUrl = d.Session.Enrollment.TutorProfile.User.AvatarUrl,
+            ServiceTitle = d.Session.Enrollment.Service?.Title ?? string.Empty,
+            SubjectName = d.Session.Enrollment.Subject?.Name ?? string.Empty,
+            UpdatedAt = d.UpdatedAt,
             InitiatorUserId = d.InitiatorUserId,
             InitiatorName = d.InitiatorUser?.FullName ?? "Unknown",
             RespondentUserId = d.RespondentUserId,
@@ -52,13 +64,15 @@ public class GetMyDisputesQueryHandler : IRequestHandler<GetMyDisputesQuery, IRe
             HoldStatus = d.HoldStatus,
             HeldAt = d.HeldAt,
             CreatedAt = d.CreatedAt,
+            Responses = d.Responses.OrderBy(r => r.CreatedAt).ThenBy(r => r.Id).Select(r => new DisputeResponseDto { Id = r.Id, DisputeId = r.DisputeId, AuthorUserId = r.AuthorUserId, AuthorName = r.AuthorUser.FullName, AuthorRole = r.AuthorUser.Role, Content = r.Content, CreatedAt = r.CreatedAt }).ToList(),
             Evidences = d.Evidences.Select(e => new DisputeEvidenceDto
             {
                 Id = e.Id,
                 DisputeId = e.DisputeId,
                 UploadedByUserId = e.UploadedByUserId,
+                ResponseId = e.ResponseId,
                 FileName = e.FileName,
-                FileUrl = e.FileUrl,
+                FileUrl = $"/api/v1/disputes/{e.DisputeId}/evidence/{e.Id}/download",
                 ContentType = e.ContentType,
                 FileSizeBytes = e.FileSizeBytes,
                 CreatedAt = e.CreatedAt

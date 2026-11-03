@@ -15,7 +15,7 @@ export default function PublicLayout() {
 
       <PublicFooter />
 
-      <MobileFloatingDock />
+      <MobileFloatingDock context="discovery" />
     </div>
   );
 }

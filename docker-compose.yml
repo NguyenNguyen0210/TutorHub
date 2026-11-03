@@ -37,23 +37,6 @@ services:
       timeout: 5s
       retries: 10
 
-  # centralized log UI + ingestion for dev/staging. The container listens
-  # on port 80 internally (host browsers use localhost:5341); the api reaches
-  # it as http://seq below. Production uses Seq Cloud or a later Loki setup —
-  # the API only does console JSON when Seq__ServerUrl is empty. The api has
-  # no depends_on here on purpose: it must boot and serve with Seq down (the
-  # Serilog Seq sink batches in the background and never blocks requests).
-  seq:
-    image: datalust/seq:2024.3
-    container_name: tutorhub-seq
-    restart: unless-stopped
-    environment:
-      ACCEPT_EULA: "Y"
-    ports:
-      - "5341:80"
-    volumes:
-      - seqdata:/data
-
   api:
     build:
       context: ./src/backend
@@ -73,14 +56,9 @@ services:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-tutorhub};Username=${POSTGRES_USER:-tutorhub};Password=${POSTGRES_PASSWORD:-tutorhub}
       # shared Redis for OAuth state, SignalR backplane, cache, cron locks.
-      # Disabled by default; the API boots and serves without redis running.
+      # Redis must be reachable for the API readiness check to pass.
       ConnectionStrings__Redis: redis:6379
-      Redis__Enabled: ${Redis__Enabled:-true}
       Redis__InstanceName: ${Redis__InstanceName:-tutorhub:}
-      Redis__Features__OAuth: ${Redis__Features__OAuth:-true}
-      Redis__Features__SignalR: ${Redis__Features__SignalR:-true}
-      Redis__Features__Cache: ${Redis__Features__Cache:-true}
-      Redis__Features__CronLock: ${Redis__Features__CronLock:-true}
       # A fresh pgdata volume has no schema, and nothing else applies migrations.
       # Gated flag, off by default everywhere except this container.
       Database__MigrateOnStartup: "true"
@@ -96,7 +74,7 @@ services:
       VnPay__BaseUrl: ${VnPay__BaseUrl:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
       VnPay__ReturnUrl: ${VnPay__ReturnUrl:-http://localhost:8080/api/v1/payments/vnpay/return}
       CloudflareR2__AccountId: ${CloudflareR2__AccountId}
-      CloudflareR2__BucketName: ${CloudflareR2__BucketName:-tutorhub-media}
+      CloudflareR2__BucketName: ${CLOUDFLARE_R2_BUCKET:-tutorhub}
       CloudflareR2__AccessKeyId: ${CloudflareR2__AccessKeyId}
       CloudflareR2__SecretAccessKey: ${CloudflareR2__SecretAccessKey}
       # SMTP Email settings via MailKit. Outside Development an unset host or sender stops startup
@@ -115,13 +93,6 @@ services:
       ExternalAuth__RedirectUri: ${ExternalAuth__RedirectUri:-http://localhost:5173/auth/oauth/callback}
       ExternalAuth__Google__ClientId: ${ExternalAuth__Google__ClientId}
       ExternalAuth__Google__ClientSecret: ${ExternalAuth__Google__ClientSecret}
-      # Serilog Seq sink. The seq service above listens on container port
-      # 80, so the in-network URL is http://seq (browsers use localhost:5341).
-      # Empty = console-only logging; safe default, Seq down never blocks boot.
-      Seq__ServerUrl: ${Seq__ServerUrl:-http://seq}
-      Seq__ApiKey: ${Seq__ApiKey:-}
-      # Local dev: single host runs background jobs directly inside API.
-      BackgroundJobs__Enabled: "true"
     ports:
       - "8080:8080"
     healthcheck:
@@ -133,4 +104,3 @@ services:
 volumes:
   pgdata:
   redisdata:
-  seqdata:

@@ -6,6 +6,7 @@ using TutorHub.Application.Features.Notifications.GetMyNotifications;
 using TutorHub.Application.Features.Notifications.GetUnreadNotificationCount;
 using TutorHub.Application.Features.Notifications.MarkAllNotificationsAsRead;
 using TutorHub.Application.Features.Notifications.MarkNotificationAsRead;
+using TutorHub.Application.Features.Notifications.GetNotification;
 
 namespace TutorHub.Api.Controllers;
 
@@ -42,6 +43,13 @@ public class NotificationsController : ControllerBase
         var query = new GetUnreadNotificationCountQuery();
         var count = await _mediator.Send(query);
         return Ok(ApiResponse<object>.SuccessResult(new { unreadCount = count }, "Unread count retrieved successfully."));
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetNotification(Guid id, CancellationToken cancellationToken)
+    {
+        var item = await _mediator.Send(new GetNotificationQuery(id), cancellationToken);
+        return Ok(ApiResponse<object>.SuccessResult(item));
     }
 
     [HttpPatch("{id:guid}/read")]

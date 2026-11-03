@@ -26,6 +26,7 @@ public class PaymentWebhookFlowTests : IntegrationTestBase
     }
 
     [Fact]
+    [Trait("Category", "CriticalFlow")]
     public async Task SuccessIpn_OnHoldingBooking_ActivatesEnrollmentWithGrossEscrow()
     {
         var (_, tutor, admin) = await SeedHelper.SeedTutorWithWalletAsync(Db);

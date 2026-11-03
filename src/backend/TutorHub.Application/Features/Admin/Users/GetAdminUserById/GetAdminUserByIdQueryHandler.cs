@@ -62,8 +62,6 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
                     Bio: tutorProfile.Bio,
                     Education: tutorProfile.Education,
                     ExperienceYears: tutorProfile.ExperienceYears,
-                    TeachingMode: tutorProfile.TeachingMode,
-                    Address: tutorProfile.Address,
                     LatestApplicationStatus: latestApplication?.Status.ToString(),
                     RatingAvg: tutorProfile.RatingAvg,
                     TotalReviews: tutorProfile.TotalReviews,

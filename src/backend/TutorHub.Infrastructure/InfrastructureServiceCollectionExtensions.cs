@@ -159,6 +159,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IJwtService, JwtService>();
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
         services.AddSingleton<IRefreshTokenHasher, RefreshTokenHasher>();
+        services.AddSingleton<IPasswordResetOtpStore, PasswordResetOtpStore>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         // VNPay Payment Gateway Services
@@ -236,12 +237,9 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddMemoryCache();
 
-        // ── Redis (optional, disabled by default) ─────────────────────────
-        // ConnectionStrings:Redis wins; Redis:ConnectionString is the fallback so
-        // both `ConnectionStrings__Redis` (compose) and `Redis__ConnectionString`
-        // bind. No ValidateOnStart on purpose: Enabled=false with an empty
-        // connection string must still boot (memory/DB fallback). Enabled=true
-        // with no connection string is a startup failure instead.
+        // Redis is required for caching, OAuth state, SignalR and distributed locks.
+        // ConnectionStrings:Redis wins; Redis:ConnectionString is the fallback.
+        // A running Redis instance is required for all deployments.
         var redis = new RedisOptions();
         configuration.GetSection(RedisOptions.SectionName).Bind(redis);
         var redisConnectionString = configuration.GetConnectionString("Redis");
@@ -312,18 +310,12 @@ public static class InfrastructureServiceCollectionExtensions
             o.Configuration.AbortOnConnectFail = false;
         });
 
-        // Background jobs: default true runs hosted services directly in the API host.
-        if (configuration.GetValue("BackgroundJobs:Enabled", true))
-        {
-            // Background Workers
-            services.AddHostedService<BookingTimeoutBackgroundService>();
-            services.AddHostedService<OutboxDispatcherJob>();
-            services.AddHostedService<EmailDeliveryJob>();
-
-
-            services.AddHostedService<AutoPayoutJob>();
-            services.AddHostedService<IdempotencyCleanupJob>();
-        }
+        // All background workers always run inside the API host.
+        services.AddHostedService<BookingTimeoutBackgroundService>();
+        services.AddHostedService<OutboxDispatcherJob>();
+        services.AddHostedService<EmailDeliveryJob>();
+        services.AddHostedService<AutoPayoutJob>();
+        services.AddHostedService<IdempotencyCleanupJob>();
 
         return services;
     }

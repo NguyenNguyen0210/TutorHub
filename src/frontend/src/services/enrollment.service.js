@@ -37,6 +37,17 @@ export const enrollmentService = {
     const res = await api.get('/enrollments', { params });
     return normalizePaged(res);
   },
+  async getAllMyEnrollments() {
+    const items = [];
+    let pageNumber = 1;
+    let page;
+    do {
+      page = await enrollmentService.getMyEnrollments({ pageNumber, pageSize: 100 });
+      items.push(...page.items);
+      pageNumber += 1;
+    } while (page.hasNextPage);
+    return { items: [...new Map(items.map(item => [item.id, item])).values()] };
+  },
 
   /** GET /enrollments/{id} → EnrollmentDto (kèm danh sách `sessions`) */
   async getEnrollmentById(id) {

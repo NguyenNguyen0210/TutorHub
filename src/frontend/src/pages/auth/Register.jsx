@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useLocation, Link } from 'react-router-dom';
 import {
   GraduationCap,
-  ShieldCheck,
-  BarChart3,
   User,
   Mail,
   Phone,
@@ -11,16 +9,14 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  ChevronRight,
   AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import Avatar from '@/components/ui/Avatar';
 import { useToast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/store/authStore';
-import { api } from '@/services/api';
 import { externalAuthService } from '@/services/externalAuth.service';
 import AuthHeader from '@/components/layout/AuthHeader';
+import { getAuthReturnUrl } from '@/utils/authRedirect';
 
 function GoogleSvg() {
   return (
@@ -47,10 +43,12 @@ function GoogleSvg() {
 
 export default function Register() {
   const toast = useToast();
-  const navigate = useNavigate();
+  const location = useLocation();
+  const authLinkState = { returnUrl: getAuthReturnUrl(location) };
   const { registerWithCredentials } = useAuthStore();
 
   const [selectedRole, setSelectedRole] = useState('Student');
+  const isTutor = selectedRole === 'Tutor';
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -60,43 +58,6 @@ export default function Register() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(false);
-
-  // Truy vấn danh sách gia sư cho card minh họa
-  const [tutorStats, setTutorStats] = useState({
-    totalCount: 0,
-    topTutors: [],
-    loading: true,
-  });
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    api
-      .get('/tutors?pageSize=3', { signal: controller.signal })
-      .then((res) => {
-        const pagedData = res?.data ?? res;
-        const items = Array.isArray(pagedData?.items) ? pagedData.items : [];
-        const count = typeof pagedData?.totalCount === 'number' ? pagedData.totalCount : items.length;
-
-        setTutorStats({
-          totalCount: count,
-          topTutors: items,
-          loading: false,
-        });
-      })
-      .catch((err) => {
-        // Bỏ qua lỗi do hủy request khi component unmount
-        if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
-          return;
-        }
-        console.warn('Lỗi kết nối API gia sư cho trang đăng ký:', err);
-        setTutorStats((prev) => ({ ...prev, loading: false }));
-      });
-
-    return () => {
-      controller.abort();
-    };
-  }, []);
 
   // Xóa lỗi inline của trường khi người dùng nhập liệu lại
   const clearFieldError = (field) => {
@@ -204,11 +165,7 @@ export default function Register() {
 
       toast.success(`Đăng ký thành công! Chào mừng ${normalizedName} gia nhập TutorHub.`);
 
-      if (selectedRole === 'Tutor') {
-        navigate('/tutor/application', { replace: true });
-      } else {
-        navigate('/student/dashboard', { replace: true });
-      }
+      // Auto-login is followed by the same redirect policy in GuestGuard.
     } catch (err) {
       console.error('Đăng ký tài khoản thất bại:', err);
 
@@ -273,16 +230,11 @@ export default function Register() {
 
     try {
       setSocialLoading(true);
-      const { authorizeUrl } = await externalAuthService.startGoogleLogin();
+      const { authorizeUrl } = await externalAuthService.startGoogleLogin(authLinkState.returnUrl);
       window.location.href = authorizeUrl;
     } catch (err) {
       console.error('Khởi tạo đăng ký qua Google thất bại:', err);
-      const msg = err?.message || '';
-      if (msg.includes('not configured') || msg.includes('client id')) {
-        toast.error('Tính năng đăng ký qua Google chưa được cấu hình Client ID / Secret trong hệ thống.');
-      } else {
-        toast.error('Không thể khởi tạo đăng nhập Google vào lúc này. Vui lòng thử lại sau.');
-      }
+      toast.error('Đăng ký bằng Google tạm thời chưa khả dụng. Vui lòng đăng ký bằng email.');
     } finally {
       setSocialLoading(false);
     }
@@ -291,151 +243,80 @@ export default function Register() {
   return (
     <div className="min-h-screen flex flex-col bg-canvas text-fg selection:bg-brand-primary-100 selection:text-brand-primary-800">
       {/* Focused Auth Header */}
-      <AuthHeader mode="register" />
+      <AuthHeader mode="register" showAction={false} />
 
       {/* Main Content Area */}
       <main className="flex-1 w-full max-w-[1360px] mx-auto px-6 sm:px-10 pt-4 sm:pt-6 pb-10 flex items-center">
         <div className="w-full grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-8 lg:gap-12 items-center">
-          {/* Left Column: Marketing Message, Pillars & Illustration */}
+          {/* Left Column: Marketing Message & Dynamic Illustration */}
           <section className="flex flex-col justify-center">
             {/* Tag Pill */}
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-brand-primary-50 text-brand-primary-700 text-[11px] sm:text-[11.5px] font-semibold mb-3.5 border border-brand-primary-100/60 w-fit">
-              Học tốt hơn mỗi ngày
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-brand-primary-50 text-brand-primary-700 text-[11px] sm:text-[11.5px] font-semibold mb-3.5 border border-brand-primary-100/60 w-fit transition-all">
+              {isTutor ? 'Gia nhập đội ngũ gia sư' : 'Dành cho học viên'}
             </div>
 
             {/* Headline */}
-            <h1 className="text-[36px] sm:text-[42px] font-bold text-fg leading-[1.14] tracking-[-1px]">
-              Bắt đầu hành trình <br />
-              <span className="text-brand-primary-600">học tập tốt hơn</span>
+            <h1 className="text-[36px] sm:text-[42px] font-bold text-fg leading-[1.14] tracking-[-1px] transition-all">
+              {isTutor ? (
+                <>
+                  Biến kiến thức của bạn <br />
+                  <span className="text-brand-primary-600">thành giá trị thực</span>
+                </>
+              ) : (
+                <>
+                  Bắt đầu hành trình <br />
+                  <span className="text-brand-primary-600">học tập tốt hơn</span>
+                </>
+              )}
             </h1>
 
             {/* Description */}
-            <p className="mt-3 text-[14px] sm:text-[14.5px] text-neutral-500 max-w-lg leading-relaxed">
-              Tạo tài khoản TutorHub để kết nối với những gia sư chất lượng, khám phá khoá học phù hợp và chạm tới mục tiêu của bạn.
+            <p className="mt-3 text-[14px] sm:text-[14.5px] text-neutral-500 max-w-lg leading-relaxed transition-all">
+              {isTutor
+                ? 'Đăng ký trở thành gia sư trên TutorHub để chia sẻ kiến thức, tự do sắp xếp lịch dạy và tạo nguồn thu nhập linh hoạt, bền vững.'
+                : 'Tạo tài khoản TutorHub để kết nối với những gia sư chất lượng, khám phá khoá học phù hợp và chạm tới mục tiêu của bạn.'}
             </p>
 
-            {/* 3 Pillars Row */}
-            <div className="mt-5 flex flex-wrap sm:flex-nowrap items-center gap-4 sm:gap-6">
-              {/* Benefit 1 */}
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-info-subtle text-info flex items-center justify-center shrink-0">
-                  <GraduationCap className="w-5 h-5" />
-                </div>
-                <div className="leading-tight">
-                  <p className="text-[13px] font-bold text-fg">Gia sư chất lượng</p>
-                  <p className="text-[11px] text-neutral-500 mt-0.5">Được xác thực kỹ càng</p>
-                </div>
-              </div>
-
-              {/* Benefit 2 */}
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-success-subtle text-success-strong flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div className="leading-tight">
-                  <p className="text-[13px] font-bold text-fg">Thanh toán an toàn</p>
-                  <p className="text-[11px] text-neutral-500 mt-0.5">Bảo chứng qua Escrow</p>
-                </div>
-              </div>
-
-              {/* Benefit 3 */}
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center shrink-0">
-                  <BarChart3 className="w-5 h-5" />
-                </div>
-                <div className="leading-tight">
-                  <p className="text-[13px] font-bold text-fg">Học tập hiệu quả</p>
-                  <p className="text-[11px] text-neutral-500 mt-0.5">Đúng người, đúng mục tiêu</p>
-                </div>
-              </div>
+            {/* Dòng đặc quyền / cam kết cốt lõi tinh gọn (không đẩy ảnh xuống quá thấp) */}
+            <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] font-semibold text-neutral-500 sm:text-[12.5px]">
+              <span>{isTutor ? 'Đặc quyền:' : 'Cam kết:'}</span>
+              <span className="text-neutral-800">{isTutor ? 'Tự đặt học phí' : 'Gia sư xác thực'}</span>
+              <span className="text-brand-primary-300" aria-hidden="true">•</span>
+              <span className="text-neutral-800">{isTutor ? 'Linh hoạt lịch dạy' : 'Tiến độ minh bạch'}</span>
+              <span className="text-brand-primary-300" aria-hidden="true">•</span>
+              <span className="text-neutral-800">{isTutor ? 'Bảo vệ thanh toán 12h' : 'Bảo chứng Escrow 100%'}</span>
             </div>
 
-            {/* Illustration with Dynamic Live Floating Badges */}
-            <div className="relative mt-4 max-w-[520px] w-full select-none">
-              <img
-                src="/images/transparent-student-clean.png"
-                alt="TutorHub Student Illustration"
-                className="w-full h-auto object-contain select-none pointer-events-none"
-                loading="eager"
+            {/* Illustration integrated seamlessly into background like hero sections */}
+            <div className="relative mt-5 sm:mt-6 max-w-[520px] w-full select-none flex items-center justify-center">
+              {/* Ambient radial halo glow behind illustration */}
+              <div
+                className={cn(
+                  'pointer-events-none absolute left-1/2 top-1/2 -z-0 h-[320px] w-[320px] sm:h-[380px] sm:w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl transition-colors duration-500',
+                  isTutor ? 'bg-emerald-100/60' : 'bg-blue-200/50'
+                )}
+                aria-hidden="true"
               />
 
-              {/* Floating Badge 1: Top Right - Thông điệp giá trị trung thực */}
-              <div
-                className="absolute top-4 sm:top-5 right-2 sm:right-3 bg-white/95 backdrop-blur-md p-2.5 sm:p-3 rounded-[16px] sm:rounded-[18px] shadow-brand-md border border-white/80 max-w-[145px] sm:max-w-[160px] text-left z-20 animate-float"
-                style={{ animationDuration: '5s' }}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center">
-                    <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </div>
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center text-[9px] sm:text-[10px] font-bold">
-                    ↗
-                  </div>
+              {isTutor ? (
+                <div className="relative z-10 w-full flex items-center justify-center">
+                  <img
+                    src="/images/auth-tutor-classroom.png"
+                    alt="Trở thành gia sư chuyên nghiệp cùng TutorHub"
+                    className="pointer-events-none relative h-auto w-full select-none object-contain transition-all duration-300"
+                    loading="eager"
+                  />
                 </div>
-                <p className="text-[12px] sm:text-[13px] font-bold text-fg leading-tight mt-1">
-                  Học tập hiệu quả
-                </p>
-                <p className="text-[9.5px] sm:text-[10.5px] text-neutral-500 leading-snug mt-0.5">
-                  Kết nối gia sư phù hợp với mục tiêu của bạn
-                </p>
-              </div>
-
-              {/* Floating Badge 2: Bottom Left - Dynamic PostgreSQL Query */}
-              <Link
-                to="/"
-                className="absolute bottom-4 sm:bottom-6 left-2 sm:left-3 bg-white/95 backdrop-blur-md p-2 sm:p-2.5 sm:px-3.5 rounded-xl sm:rounded-2xl shadow-brand-md border border-white/80 flex items-center gap-2 sm:gap-3 z-20 group hover:shadow-brand-lg transition-all animate-float cursor-pointer"
-                style={{ animationDuration: '4.5s', animationDelay: '0.8s' }}
-                title="Khám phá danh sách gia sư chất lượng"
-              >
-                {tutorStats.loading ? (
-                  <>
-                    <div className="flex -space-x-2 overflow-hidden py-0.5 pl-0.5">
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-neutral-200 animate-pulse ring-2 ring-white shrink-0" />
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-neutral-200 animate-pulse ring-2 ring-white shrink-0" />
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-neutral-200 animate-pulse ring-2 ring-white shrink-0" />
-                    </div>
-                    <div className="leading-tight text-left pr-0.5 space-y-1">
-                      <div className="h-3 w-24 bg-neutral-200 rounded animate-pulse" />
-                      <div className="h-2.5 w-32 bg-neutral-100 rounded animate-pulse" />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Real Database Tutor Avatars */}
-                    <div className="flex -space-x-2 overflow-hidden py-0.5 pl-0.5">
-                      {tutorStats.topTutors.length > 0 ? (
-                        tutorStats.topTutors.slice(0, 3).map((tutor, idx) => (
-                          <Avatar
-                            key={tutor.id || idx}
-                            src={tutor.avatarUrl}
-                            name={tutor.fullName}
-                            size="sm"
-                            title={tutor.fullName}
-                            className="inline-block h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-white shrink-0"
-                          />
-                        ))
-                      ) : (
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-brand-primary-100 text-brand-primary-600 flex items-center justify-center shrink-0">
-                          <GraduationCap className="w-4 h-4" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="leading-tight text-left pr-0.5">
-                      <p className="text-[12px] sm:text-[13px] font-bold text-fg group-hover:text-brand-primary-600 transition-colors">
-                        {tutorStats.totalCount > 0
-                          ? `${tutorStats.totalCount}+ gia sư chất lượng`
-                          : 'Đội ngũ gia sư chất lượng'}
-                      </p>
-                      <p className="text-[10px] sm:text-[10.5px] text-neutral-500 mt-0.5">Sẵn sàng đồng hành cùng bạn</p>
-                    </div>
-                  </>
-                )}
-
-                <span className="w-5 h-5 rounded-full bg-neutral-100 text-fg-muted flex items-center justify-center group-hover:bg-brand-primary-50 group-hover:text-brand-primary-600 transition-colors shrink-0">
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </span>
-              </Link>
+              ) : (
+                <div className="relative z-10 w-full flex items-center justify-center">
+                  <img
+                    src="/images/auth-student-classroom.png"
+                    alt="Hành trình học tập 1 kèm 1 cùng TutorHub"
+                    className="pointer-events-none relative h-auto w-full select-none object-contain transition-all duration-300"
+                    loading="eager"
+                  />
+                </div>
+              )}
             </div>
           </section>
 
@@ -468,16 +349,16 @@ export default function Register() {
                     onClick={() => setSelectedRole('Student')}
                     onKeyDown={handleRoleKeyDown}
                     className={cn(
-                      'p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600',
+                      'p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600',
                       selectedRole === 'Student'
                         ? 'border-2 border-brand-primary-600 bg-brand-primary-50'
                         : 'border-border bg-white hover:border-neutral-300'
                     )}
                   >
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0">
                       <GraduationCap
                         className={cn(
-                          'w-5 h-5 transition-colors',
+                          'w-4 h-4 sm:w-5 sm:h-5 transition-colors',
                           selectedRole === 'Student' ? 'text-brand-primary-600' : 'text-neutral-500'
                         )}
                       />
@@ -485,13 +366,13 @@ export default function Register() {
                     <div className="min-w-0 flex-1 leading-snug">
                       <span
                         className={cn(
-                          'font-bold text-[13px] block',
+                          'font-bold text-[12px] sm:text-[13px] block whitespace-nowrap',
                           selectedRole === 'Student' ? 'text-brand-primary-600' : 'text-fg'
                         )}
                       >
                         Tôi là học viên
                       </span>
-                      <span className="text-[10.5px] text-neutral-500 block mt-0.5">
+                      <span className="text-[10px] sm:text-[10.5px] text-neutral-500 block mt-0.5 truncate">
                         Tìm gia sư, mua khoá học
                       </span>
                     </div>
@@ -506,16 +387,16 @@ export default function Register() {
                     onClick={() => setSelectedRole('Tutor')}
                     onKeyDown={handleRoleKeyDown}
                     className={cn(
-                      'p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600',
+                      'p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600',
                       selectedRole === 'Tutor'
                         ? 'border-2 border-brand-primary-600 bg-brand-primary-50'
                         : 'border-border bg-white hover:border-neutral-300'
                     )}
                   >
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0">
                       <User
                         className={cn(
-                          'w-5 h-5 transition-colors',
+                          'w-4 h-4 sm:w-5 sm:h-5 transition-colors',
                           selectedRole === 'Tutor' ? 'text-brand-primary-600' : 'text-neutral-500'
                         )}
                       />
@@ -523,14 +404,14 @@ export default function Register() {
                     <div className="min-w-0 flex-1 leading-snug">
                       <span
                         className={cn(
-                          'font-bold text-[13px] block',
+                          'font-bold text-[12px] sm:text-[13px] block whitespace-nowrap',
                           selectedRole === 'Tutor' ? 'text-brand-primary-600' : 'text-fg'
                         )}
                       >
                         Tôi là gia sư
                       </span>
-                      <span className="text-[10.5px] text-neutral-500 block mt-0.5">
-                        Cung cấp dịch vụ giảng dạy
+                      <span className="text-[10px] sm:text-[10.5px] text-neutral-500 block mt-0.5 truncate">
+                        Mở lớp và tạo gói học
                       </span>
                     </div>
                   </button>
@@ -785,7 +666,7 @@ export default function Register() {
               {/* Bottom Login Link */}
               <p className="text-[13px] text-fg-secondary text-center mt-3.5">
                 Đã có tài khoản?{' '}
-                <Link to="/auth/login" className="text-brand-primary-600 font-bold hover:underline ml-1">
+                <Link to="/auth/login" state={authLinkState} className="text-brand-primary-600 font-bold hover:underline ml-1">
                   Đăng nhập ngay
                 </Link>
               </p>

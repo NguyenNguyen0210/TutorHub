@@ -1,0 +1,76 @@
+/* Shared workspace navigation for every role, including the portalled mobile drawer. */
+.workspace-friendly .workspace-navigation-light,
+.workspace-friendly.workspace-navigation-light {
+  background-color: rgb(var(--workspace-nav-bg));
+  border-color: rgb(var(--border));
+  color: rgb(var(--workspace-nav-text));
+}
+
+.workspace-navigation-light .workspace-nav-divider {
+  border-color: rgb(var(--border));
+}
+
+.workspace-navigation-light .workspace-nav-label,
+.workspace-navigation-light .workspace-nav-muted {
+  color: rgb(var(--workspace-nav-label));
+}
+
+.workspace-navigation-light .workspace-nav-item,
+.workspace-navigation-light .workspace-nav-control {
+  color: rgb(var(--workspace-nav-text));
+}
+
+.workspace-navigation-light .workspace-nav-item:hover,
+.workspace-navigation-light .workspace-nav-control:hover {
+  background-color: rgb(var(--workspace-nav-hover));
+  color: rgb(var(--text-primary));
+}
+
+.workspace-navigation-light .workspace-nav-item[aria-current='page'] {
+  background-color: rgb(var(--workspace-nav-active));
+  color: rgb(var(--workspace-nav-active-text));
+}
+
+.workspace-navigation-light .workspace-nav-item[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  inset-block: 12px;
+  left: 0;
+  width: 3px;
+  border-radius: 999px;
+  background-color: rgb(var(--brand-primary-600));
+}
+
+.workspace-navigation-light .workspace-nav-focus:focus-visible {
+  --tw-ring-color: rgb(var(--brand-primary-500));
+}
+
+.workspace-navigation-light .workspace-nav-account {
+  border-color: rgb(var(--border));
+  background-color: rgb(var(--surface));
+}
+
+.workspace-navigation-light .workspace-nav-account:hover {
+  background-color: rgb(var(--workspace-nav-hover));
+}
+
+[aria-current='page'] > .workspace-nav-account {
+  border-color: rgb(var(--brand-primary-400));
+}
+
+.workspace-navigation-light [aria-current='page'] > .workspace-nav-account {
+  background-color: rgb(var(--workspace-nav-active));
+  border-color: rgb(var(--brand-primary-200));
+}
+
+.workspace-navigation-light .workspace-nav-name {
+  color: rgb(var(--text-primary));
+}
+
+.workspace-navigation-light .workspace-nav-avatar {
+  border-color: rgb(var(--border));
+}
+
+.workspace-navigation-light .workspace-nav-count {
+  --tw-ring-color: rgb(var(--workspace-nav-bg));
+}

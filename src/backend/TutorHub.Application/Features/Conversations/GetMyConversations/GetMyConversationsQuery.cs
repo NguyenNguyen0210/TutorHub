@@ -5,5 +5,6 @@ namespace TutorHub.Application.Features.Conversations.GetMyConversations;
 
 public record GetMyConversationsQuery(
     string? Cursor = null,
-    int PageSize = 20
+    int PageSize = 20,
+    Guid? ConversationId = null
 ) : IRequest<CursorPagedResult<ConversationDto>>;

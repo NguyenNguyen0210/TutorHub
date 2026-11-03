@@ -94,7 +94,7 @@ let isRefreshing = false;
 let failedQueue = [];
 
 // 401 ở chính các endpoint thông tin đăng nhập là sai thông tin, không phải token hết hạn.
-const CREDENTIAL_URL_PATTERN = /^(?:\/api\/v1)?\/?auth\/(login|register|refresh|logout|oauth)/i;
+const CREDENTIAL_URL_PATTERN = /^(?:\/api\/v1)?\/?auth\/(login|register|refresh|logout|oauth|forgot-password|verify-reset-otp|reset-password|change-password)/i;
 
 const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
@@ -167,10 +167,11 @@ api.interceptors.response.use(
 
         const newAccessToken = refreshResponse.data?.data?.accessToken;
         if (newAccessToken) {
-          useAuthStore.getState().login(useAuthStore.getState().user, {
+          const authState = useAuthStore.getState();
+          authState.login(authState.user, {
             accessToken: newAccessToken,
             refreshToken: refreshResponse.data?.data?.refreshToken || refreshToken,
-          });
+          }, authState.rememberMe);
           processQueue(null, newAccessToken);
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return api(originalRequest);

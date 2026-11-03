@@ -1,4 +1,5 @@
 using MediatR;
+using TutorHub.Application.Common.Concurrency;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -41,6 +42,10 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
     {
         var userId = _currentUserService.UserIdOrThrow();
 
+
+        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+        await PostgresAdvisoryLock.LockRowAsync(_context,
+            $"SELECT 1 FROM \"Sessions\" WHERE \"Id\" = {request.SessionId} FOR UPDATE", cancellationToken);
 
         var session = await _context.Sessions
             .Include(s => s.Enrollment)
@@ -110,7 +115,6 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
 
         // 5. Financial Escrow Adjustment & Refund Record
         // Lock the tutor wallet row so concurrent payouts/cancellations cannot race pending-escrow.
-        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             if (session.SessionPrice > 0)

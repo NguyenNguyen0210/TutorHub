@@ -7,6 +7,22 @@
  * space-separated so Tailwind opacity modifiers continue to work.
  */
 
+.workspace-friendly {
+  --canvas: 247 249 252;
+  --color-background: 247 249 252;
+  --text-primary: 23 43 77;
+  --color-foreground: 23 43 77;
+  --text-secondary: 83 101 123;
+  --brand-navy-900: 20 33 61;
+  --semantic-success-strong: 21 128 61;
+  --workspace-nav-bg: 241 245 251;
+  --workspace-nav-hover: 230 238 249;
+  --workspace-nav-active: 219 234 254;
+  --workspace-nav-active-text: 29 78 216;
+  --workspace-nav-text: 83 101 123;
+  --workspace-nav-label: 100 116 139;
+}
+
 :root {
   /* Layer 1: primitives — colour */
   --color-cobalt-50: 239 246 255;
@@ -51,6 +67,21 @@
   --color-red-50: 254 242 242;
   --color-red-500: 239 68 68;
   --color-red-700: 185 28 28;
+
+  /* Learning workspace accents; financial states keep their semantic colours. */
+  --learning-soft-blue: 234 242 255;
+  --learning-mint: 217 245 236;
+  --learning-card-shadow: 0 2px 8px rgb(15 23 42 / 0.035);
+  --course-price-strong: 21 128 61;
+  --course-price-subtle: 240 253 244;
+  --course-price-border: 187 247 208;
+  --course-rating-strong: 180 83 9;
+  --edtech-violet-strong: 109 40 217;
+  --edtech-violet-subtle: 245 243 255;
+  --edtech-violet-border: 221 214 254;
+  --course-trial-strong: var(--edtech-violet-strong);
+  --course-trial-subtle: var(--edtech-violet-subtle);
+  --course-trial-border: var(--edtech-violet-border);
 
   /* Layer 1: primitives — spacing, type, radius, elevation and motion */
   --space-0: 0;

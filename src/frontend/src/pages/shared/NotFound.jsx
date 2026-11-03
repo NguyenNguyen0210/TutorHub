@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
@@ -9,6 +9,10 @@ import { getDashboardPath } from '@/components/layout/navConfig';
 export default function NotFound() {
   const navigate = useNavigate();
   const { isAuthenticated, role } = useAuthStore();
+
+  useEffect(() => {
+    document.title = 'Không tìm thấy trang';
+  }, []);
 
   const homePath = isAuthenticated ? getDashboardPath(role) : '/tutors';
 

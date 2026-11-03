@@ -16,7 +16,7 @@ const GUIDELINES = [
   },
   {
     title: 'Kiểm tra danh tính KYC & liên lạc:',
-    body: 'Xác minh số điện thoại, email và khu vực nhận dạy trực tiếp có trùng khớp với hồ sơ đăng ký.',
+    body: 'Xác minh số điện thoại, email và thông tin danh tính có trùng khớp với hồ sơ đăng ký.',
   },
   {
     title: 'Thẩm định phương pháp sư phạm:',

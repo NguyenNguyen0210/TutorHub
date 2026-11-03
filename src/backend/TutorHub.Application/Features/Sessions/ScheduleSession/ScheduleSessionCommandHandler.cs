@@ -34,6 +34,10 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
     {
         var userId = _currentUserService.UserIdOrThrow();
 
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        await PostgresAdvisoryLock.LockRowAsync(_context,
+            $"SELECT 1 FROM \"Sessions\" WHERE \"Id\" = {request.SessionId} FOR UPDATE", cancellationToken);
+
         var session = await _context.Sessions
             .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
             .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(t => t.User)
@@ -66,7 +70,6 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
         var tutorProfileId = session.Enrollment.TutorProfileId;
         var studentId = session.Enrollment.StudentProfileId;
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             await PostgresAdvisoryLock.AcquireManyAsync(_context,

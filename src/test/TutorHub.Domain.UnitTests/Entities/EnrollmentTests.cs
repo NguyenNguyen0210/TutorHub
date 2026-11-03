@@ -23,7 +23,6 @@ public class EnrollmentTests
             TotalPrice = 3_500_000m,
             TotalSessions = 10,
             SessionDurationMinutes = 60,
-            TeachingMode = TeachingMode.Online
         };
 
         // Assert (Pending → Active → Completed / Cancelled)
@@ -448,7 +447,6 @@ public class EnrollmentTests
             TotalPrice = totalPrice,
             TotalSessions = totalSessions,
             SessionDurationMinutes = 60,
-            TeachingMode = TeachingMode.Online,
             Sessions = sessions
         };
     }

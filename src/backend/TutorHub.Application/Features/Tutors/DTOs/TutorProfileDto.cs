@@ -10,12 +10,11 @@ public record TutorProfileDto(
     string Bio,
     string Education,
     int ExperienceYears,
-    string TeachingMode,
-    string? Address,
-    double? Latitude,
-    double? Longitude,
     decimal RatingAvg,
     int TotalReviews,
     List<TutorSubjectDto> Subjects,
-    List<ServiceSummaryDto> Services
+    List<ServiceSummaryDto> Services,
+    bool IsVerified = true,
+    List<TutorCredentialDto>? Credentials = null,
+    List<int>? RatingDistribution = null
 );

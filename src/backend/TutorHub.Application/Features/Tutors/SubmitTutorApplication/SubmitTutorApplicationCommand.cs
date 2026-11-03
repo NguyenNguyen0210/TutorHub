@@ -1,6 +1,5 @@
 using MediatR;
 using TutorHub.Application.Features.Tutors.DTOs;
-using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Tutors.SubmitTutorApplication;
 
@@ -8,10 +7,6 @@ public record SubmitTutorApplicationCommand(
     string Bio,
     string Education,
     int ExperienceYears,
-    TeachingMode TeachingMode,
-    string? Address = null,
-    double? Latitude = null,
-    double? Longitude = null,
     string? University = null,
     string? Major = null,
     string? DegreeLevel = null,
@@ -20,5 +15,6 @@ public record SubmitTutorApplicationCommand(
     string? SubjectSub = null,
     string? Methodology = null,
     string? Achievements = null,
-    string? DocumentsJson = null
+    string? DocumentsJson = null,
+    List<Guid>? DocumentIds = null
 ) : IRequest<TutorApplicationDto>;

@@ -1,0 +1,28 @@
+.interactive-card {
+  position: relative;
+  isolation: isolate;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.interactive-card:focus-within {
+  z-index: 1;
+  border-color: rgb(var(--brand-primary-300));
+}
+
+@media (hover: hover) {
+  .interactive-card:hover {
+    z-index: 1;
+    border-color: rgb(var(--brand-primary-300));
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .interactive-card:hover { transform: translateY(-2px); }
+  .interactive-card:active { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactive-card { transition: none; }
+}

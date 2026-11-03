@@ -429,7 +429,7 @@ public class BusinessEventNotificationHandler :
             (
                 UserId: notification.StudentUserId,
                 Title: "Refund Processing Notice",
-                Message: $"Automated refund of {notification.Amount.Amount:N0} VND encountered an issue and requires administrative offline settlement. Reason: {notification.Reason}",
+                Message: $"Automated refund of {notification.Amount.Amount:N0} VND encountered an issue and requires manual administrative settlement. Reason: {notification.Reason}",
                 DeepLink: NotificationRouteRegistry.Enrollment(notification.EnrollmentId)
             )
         };
@@ -511,15 +511,18 @@ public class BusinessEventNotificationHandler :
 
     public async Task Handle(ReportResolvedEvent notification, CancellationToken cancellationToken)
     {
-        var recipients = new List<(Guid UserId, string Title, string Message, string DeepLink)>();
+        var recipients = new List<(Guid UserId, string Title, string Message, string DeepLink)>
+        {
+            (notification.ReporterUserId, "Báo cáo đã được xử lý", "TutorHub đã xem xét báo cáo của bạn. Xem kết quả xử lý trong chi tiết báo cáo.", $"/app/reports?reportId={notification.ReportId}")
+        };
 
-        if (notification.Decision == "WarningIssued")
+        if (notification.Decision == "WarningIssued" && notification.ReportedUserId != Guid.Empty)
         {
             recipients.Add((
                 UserId: notification.ReportedUserId,
-                Title: "Official Warning Issued",
-                Message: $"You have received an official warning from the platform administration: {notification.Resolution}",
-                DeepLink: NotificationRouteRegistry.AdminReport(notification.ReportId)
+                Title: "Cảnh báo từ TutorHub",
+                Message: $"TutorHub đã gửi cảnh báo về hoạt động của bạn: {notification.Resolution}",
+                DeepLink: string.Empty
             ));
         }
 
@@ -677,7 +680,25 @@ public class BusinessEventNotificationHandler :
                 Title = title,
                 Message = message,
                 Type = domainEvent.EventType,
-                DeepLink = deepLink,
+                DeepLink = domainEvent switch
+                {
+                    StudentWalletPaymentSucceededEvent e => $"/student/wallet?tab=payments&bookingId={e.BookingId}",
+                    StudentTopUpConfirmedEvent e => $"/student/wallet?tab=topups&recordId={e.TopUpRequestId}",
+                    StudentTopUpRejectedEvent e => $"/student/wallet?tab=topups&recordId={e.TopUpRequestId}",
+                    StudentTopUpRequestedEvent e => $"/admin/student-wallets?tab=topups&recordId={e.TopUpRequestId}",
+                    StudentWithdrawalRequestedEvent e => $"/admin/student-wallets?tab=withdrawals&recordId={e.WithdrawalId}",
+                    StudentWithdrawalCompletedEvent e => $"/student/wallet?tab=withdrawals&recordId={e.WithdrawalId}",
+                    StudentWithdrawalFailedEvent e => $"/student/wallet?tab=withdrawals&recordId={e.WithdrawalId}",
+                    WithdrawalRequestedEvent e => $"/tutor/wallet?tab=withdrawals&recordId={e.WithdrawalId}",
+                    WithdrawalCompletedEvent e => $"/tutor/wallet?tab=withdrawals&recordId={e.WithdrawalId}",
+                    WithdrawalFailedEvent e => $"/tutor/wallet?tab=withdrawals&recordId={e.WithdrawalId}",
+                    EarningCreatedEvent e => NotificationRouteRegistry.Session(e.SessionId),
+                    TutorApplicationSubmittedEvent e => $"/admin/tutor-applications?applicationId={e.ApplicationId}",
+                    ReviewCreatedEvent e => $"/tutors/{e.TutorId}#danh-gia",
+                    DisputeCreatedEvent e => user.Role == UserRole.Admin ? NotificationRouteRegistry.AdminDispute(e.DisputeId) : $"/app/disputes/{e.DisputeId}",
+                    DisputeResolvedEvent e => user.Role == UserRole.Admin ? NotificationRouteRegistry.AdminDispute(e.DisputeId) : $"/app/disputes/{e.DisputeId}",
+                    _ => deepLink
+                },
                 IsCritical = isCritical,
                 EventId = domainEvent.EventId,
                 DeduplicationKey = $"event:{domainEvent.EventId}",

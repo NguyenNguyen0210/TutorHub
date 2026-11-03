@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import Icon from '@/components/ui/Icon';
+import { LEARNING_FAQS } from '@/content/learningFaqs';
 
 export default function ServiceFaqs({ faqs }) {
-  const faqList = Array.isArray(faqs) ? faqs : [];
+  const customFaqs = Array.isArray(faqs) ? faqs : [];
+  const faqList = [...customFaqs, ...LEARNING_FAQS.filter(common =>
+    !customFaqs.some(custom => custom.question === common.question))];
   const [openIndex, setOpenIndex] = useState(0); // Open first item by default
 
   const toggle = (idx) => {

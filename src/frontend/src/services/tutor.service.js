@@ -44,8 +44,6 @@ export function normalizeTutorSummary(raw = {}) {
     bio: raw.bio || '',
     education: raw.education || '',
     experienceYears: toNumber(raw.experienceYears, 0),
-    teachingMode: raw.teachingMode || null,
-    address: raw.address || null,
     ratingAvg: toNumber(raw.ratingAvg ?? raw.rating, 0),
     totalReviews: toNumber(raw.totalReviews, 0),
     subjects: normalizeSubjectNames(raw.subjects),
@@ -67,14 +65,17 @@ export function normalizeServiceSummary(raw = {}) {
     totalSessions: toNumber(raw.totalSessions, 0),
     sessionDurationMinutes: toNumber(raw.sessionDurationMinutes, 0),
     price: toNullableNumber(raw.price),
-    teachingMode: raw.teachingMode || null,
     hasTrialLesson: Boolean(raw.hasTrialLesson),
+    learningScope: raw.learningScope || null,
+    expectedOutcome: raw.expectedOutcome || null,
   };
 }
 
 export function normalizeTutorProfile(raw = {}) {
   return {
     ...normalizeTutorSummary(raw),
+    credentials: Array.isArray(raw.credentials) ? raw.credentials : [],
+    ratingDistribution: raw.ratingDistribution || [0, 0, 0, 0, 0],
     latitude: toNullableNumber(raw.latitude),
     longitude: toNullableNumber(raw.longitude),
     subjects: Array.isArray(raw.subjects)
@@ -90,16 +91,19 @@ export function normalizeTutorProfile(raw = {}) {
 }
 
 export function normalizeTutorReview(raw = {}) {
+  const comment = raw.comment || '';
+  const tutorReply = raw.tutorReply || null;
+
   return {
     id: raw.id,
     enrollmentId: raw.enrollmentId ?? null,
     studentName: raw.studentName || 'Học viên ẩn danh',
     studentAvatarUrl: raw.studentAvatarUrl || null,
-    rating: toNumber(raw.rating, 5),
-    comment: raw.comment || '',
+    rating: toNumber(raw.rating, 0),
+    comment,
     // Backend TutorPublicReviewDto có trả 2 field này; thiếu khai báo ở đây
     // khiến phần "phản hồi từ gia sư" không bao giờ hiển thị.
-    tutorReply: raw.tutorReply || null,
+    tutorReply,
     tutorRepliedAt: raw.tutorRepliedAt ?? null,
     createdAt: raw.createdAt ?? null,
   };
@@ -110,6 +114,7 @@ export function normalizePublicServiceItem(raw = {}) {
     id: raw.id,
     title: raw.title || '',
     description: raw.description || '',
+    shortDescription: raw.shortDescription || null,
     learningScope: raw.learningScope || null,
     expectedOutcome: raw.expectedOutcome || null,
     subjectId: raw.subjectId || null,
@@ -119,13 +124,13 @@ export function normalizePublicServiceItem(raw = {}) {
     totalSessions: toNumber(raw.totalSessions, 1),
     sessionDurationMinutes: toNumber(raw.sessionDurationMinutes, 60),
     price: toNumber(raw.price, 0),
-    teachingMode: raw.teachingMode || 'Online',
-    hasTrialLesson: Boolean(raw.hasTrialLesson),
+    hasTrialLesson: Boolean(raw.hasTrialLesson || raw.trialLessonUrl),
+    trialLessonUrl: raw.trialLessonUrl || null,
     tutorProfileId: raw.tutorProfileId || null,
     tutorUserId: raw.tutorUserId || null,
     tutorName: raw.tutorName || '',
     tutorAvatarUrl: raw.tutorAvatarUrl || null,
-    tutorRating: toNumber(raw.tutorRating, 5),
+    tutorRating: toNumber(raw.tutorRating, 0),
     tutorTotalReviews: toNumber(raw.tutorTotalReviews, 0),
     totalStudents: toNumber(raw.totalStudents, 0),
     createdAt: raw.createdAt || null,
@@ -170,12 +175,10 @@ export const tutorService = {
       subjectId = null,
       minPrice = null,
       maxPrice = null,
-      teachingMode = null,
       minRating = null,
       degreeLevel = null,
       university = null,
       certification = null,
-      city = null,
       minExperience = null,
       maxExperience = null,
       search = '',
@@ -189,12 +192,10 @@ export const tutorService = {
     if (subjectId) params.subjectId = subjectId;
     if (minPrice != null) params.minPrice = minPrice;
     if (maxPrice != null) params.maxPrice = maxPrice;
-    if (teachingMode && teachingMode !== 'All') params.teachingMode = teachingMode;
     if (minRating != null) params.minRating = minRating;
     if (degreeLevel && degreeLevel !== 'All') params.degreeLevel = degreeLevel;
     if (university && university !== 'All') params.university = university;
     if (certification && certification !== 'All') params.certification = certification;
-    if (city && city !== 'All') params.city = city;
     if (minExperience != null) params.minExperience = minExperience;
     if (maxExperience != null) params.maxExperience = maxExperience;
     if (search && search.trim()) params.search = search.trim();
@@ -211,7 +212,6 @@ export const tutorService = {
     const {
       categoryId = null,
       subjectId = null,
-      teachingMode = null,
       minPrice = null,
       maxPrice = null,
       minRating = null,
@@ -224,7 +224,6 @@ export const tutorService = {
     const params = { pageNumber, pageSize };
     if (categoryId) params.categoryId = categoryId;
     if (subjectId) params.subjectId = subjectId;
-    if (teachingMode && teachingMode !== 'All') params.teachingMode = teachingMode;
     if (minPrice != null) params.minPrice = minPrice;
     if (maxPrice != null) params.maxPrice = maxPrice;
     if (minRating != null) params.minRating = minRating;
@@ -269,6 +268,11 @@ export const tutorService = {
     if (Array.isArray(res)) return res;
     if (Array.isArray(res?.items)) return res.items;
     return [];
+  },
+
+  /** Private details include drafts and paused packages, with owner authorization. */
+  async getMyServiceById(serviceId) {
+    return api.get(`/tutors/me/services/${serviceId}`);
   },
 
   /** POST /tutors/me/services → ServiceDto */

@@ -50,14 +50,12 @@ public class TutorsController : ControllerBase
         [FromQuery] Guid? subjectId,
         [FromQuery] decimal? minPrice,
         [FromQuery] decimal? maxPrice,
-        [FromQuery] TeachingMode? teachingMode,
         [FromQuery] decimal? minRating,
         [FromQuery] string? search,
         [FromQuery] string? sortBy,
         [FromQuery] string? degreeLevel,
         [FromQuery] string? university,
         [FromQuery] string? certification,
-        [FromQuery] string? city,
         [FromQuery] int? minExperience,
         [FromQuery] int? maxExperience,
         [FromQuery] int pageNumber = 1,
@@ -69,14 +67,12 @@ public class TutorsController : ControllerBase
             SubjectId: subjectId,
             MinPrice: minPrice,
             MaxPrice: maxPrice,
-            TeachingMode: teachingMode,
             MinRating: minRating,
             Search: search,
             SortBy: sortBy,
             DegreeLevel: degreeLevel,
             University: university,
             Certification: certification,
-            City: city,
             MinExperience: minExperience,
             MaxExperience: maxExperience,
             PageNumber: pageNumber,
@@ -147,19 +143,13 @@ public class TutorsController : ControllerBase
         [FromBody] SubmitTutorApplicationRequest request,
         CancellationToken cancellationToken)
     {
-        if (!Enum.TryParse<TeachingMode>(request.TeachingMode, true, out var parsedMode))
-        {
-            throw new BadRequestException("Teaching mode must be Online, Offline, or Both.");
-        }
-
         var command = new SubmitTutorApplicationCommand(
             Bio: request.Bio,
             Education: request.Education,
             ExperienceYears: request.ExperienceYears,
-            TeachingMode: parsedMode,
-            Address: request.Address,
-            Latitude: request.Latitude,
-            Longitude: request.Longitude
+            University: request.University, Major: request.Major, DegreeLevel: request.DegreeLevel,
+            Certifications: request.Certifications, Subject: request.Subject, SubjectSub: request.SubjectSub,
+            Methodology: request.Methodology, Achievements: request.Achievements, DocumentIds: request.DocumentIds
         );
 
         var result = await _sender.Send(command, cancellationToken);
@@ -180,19 +170,13 @@ public class TutorsController : ControllerBase
         [FromBody] SubmitTutorApplicationRequest request,
         CancellationToken cancellationToken)
     {
-        if (!Enum.TryParse<TeachingMode>(request.TeachingMode, true, out var parsedMode))
-        {
-            throw new BadRequestException("Teaching mode must be Online, Offline, or Both.");
-        }
-
         var command = new ResubmitTutorApplicationCommand(
             Bio: request.Bio,
             Education: request.Education,
             ExperienceYears: request.ExperienceYears,
-            TeachingMode: parsedMode,
-            Address: request.Address,
-            Latitude: request.Latitude,
-            Longitude: request.Longitude
+            University: request.University, Major: request.Major, DegreeLevel: request.DegreeLevel,
+            Certifications: request.Certifications, Subject: request.Subject, SubjectSub: request.SubjectSub,
+            Methodology: request.Methodology, Achievements: request.Achievements, DocumentIds: request.DocumentIds
         );
 
         var result = await _sender.Send(command, cancellationToken);
@@ -242,27 +226,13 @@ public class TutorsController : ControllerBase
         [FromBody] UpdateMyProfileRequest request,
         CancellationToken cancellationToken)
     {
-        TeachingMode? teachingMode = null;
-        if (!string.IsNullOrWhiteSpace(request.TeachingMode))
-        {
-            if (!Enum.TryParse<TeachingMode>(request.TeachingMode, true, out var parsedMode))
-            {
-                throw new BadRequestException("Teaching mode must be Online, Offline, or Both.");
-            }
-            teachingMode = parsedMode;
-        }
-
         var command = new UpdateMyProfileCommand(
             FullName: request.FullName,
             Phone: request.Phone,
             AvatarUrl: request.AvatarUrl,
             Bio: request.Bio,
             Education: request.Education,
-            ExperienceYears: request.ExperienceYears,
-            TeachingMode: teachingMode,
-            Address: request.Address,
-            Latitude: request.Latitude,
-            Longitude: request.Longitude
+            ExperienceYears: request.ExperienceYears
         );
 
         var result = await _sender.Send(command, cancellationToken);
@@ -299,11 +269,6 @@ public class TutorsController : ControllerBase
         [FromBody] CreateServiceRequest request,
         CancellationToken cancellationToken)
     {
-        if (!Enum.TryParse<TeachingMode>(request.TeachingMode, true, out var parsedMode))
-        {
-            throw new BadRequestException("Teaching mode must be Online, Offline, or Both.");
-        }
-
         var command = new CreateServiceCommand(
             SubjectId: request.SubjectId,
             Title: request.Title,
@@ -315,7 +280,6 @@ public class TutorsController : ControllerBase
             TotalSessions: request.TotalSessions,
             SessionDurationMinutes: request.SessionDurationMinutes,
             Price: request.Price,
-            TeachingMode: parsedMode,
             TrialLessonUrl: request.TrialLessonUrl,
             CoverImageUrl: request.CoverImageUrl,
             Curriculum: request.Curriculum,
@@ -379,16 +343,6 @@ public class TutorsController : ControllerBase
         [FromBody] UpdateServiceRequest request,
         CancellationToken cancellationToken)
     {
-        TeachingMode? teachingMode = null;
-        if (!string.IsNullOrWhiteSpace(request.TeachingMode))
-        {
-            if (!Enum.TryParse<TeachingMode>(request.TeachingMode, true, out var parsedMode))
-            {
-                throw new BadRequestException("Teaching mode must be Online, Offline, or Both.");
-            }
-            teachingMode = parsedMode;
-        }
-
         var command = new UpdateServiceCommand(
             ServiceId: serviceId,
             Title: request.Title,
@@ -400,7 +354,6 @@ public class TutorsController : ControllerBase
             TotalSessions: request.TotalSessions,
             SessionDurationMinutes: request.SessionDurationMinutes,
             Price: request.Price,
-            TeachingMode: teachingMode,
             TrialLessonUrl: request.TrialLessonUrl,
             CoverImageUrl: request.CoverImageUrl,
             Curriculum: request.Curriculum,

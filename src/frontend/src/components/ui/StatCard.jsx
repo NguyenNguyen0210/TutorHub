@@ -40,18 +40,20 @@ export default function StatCard({
   mono = false,
   action,
   className,
+  appearance = 'default',
   ...rest
 }) {
   return (
     <div
       className={cn(
         'bg-surface border border-border rounded-brand-lg shadow-brand-sm p-5 flex flex-col gap-3',
+        appearance === 'soft' && 'rounded-2xl shadow-[var(--learning-card-shadow)]',
         className
       )}
       {...rest}
     >
       <div className="flex items-center justify-between gap-3">
-        <span className="text-caption font-semibold text-fg-muted uppercase tracking-wide">
+        <span className={cn('text-caption', appearance === 'soft' ? 'font-medium text-fg-secondary' : 'font-semibold text-fg-muted uppercase tracking-wide')}>
           {label}
         </span>
         {icon && (

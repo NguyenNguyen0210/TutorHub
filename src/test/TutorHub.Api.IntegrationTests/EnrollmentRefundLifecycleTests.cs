@@ -6,6 +6,10 @@ using TutorHub.Application.Features.Enrollments.CancelEnrollment;
 using TutorHub.Application.Features.Enrollments.Common;
 using TutorHub.Application.Features.Enrollments.TutorCannotContinue;
 using TutorHub.Domain.Enums;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using TutorHub.Application.Common.Security;
 
 namespace TutorHub.Api.IntegrationTests;
 
@@ -76,5 +80,43 @@ public class EnrollmentRefundLifecycleTests : IntegrationTestBase
         refund.Status.Should().Be(TransactionStatus.Succeeded);
         refund.SettlementRequired.Should().BeFalse();
         refund.RefundedAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TutorCannotContinue_ConcurrentRequestsRefundOnlyOnce()
+    {
+        var (_, tutorUserId, enrollmentId) = await SetupActiveEnrollmentAsync();
+        SetCurrentUser(tutorUserId, UserRole.Tutor);
+        using var client = Factory.CreateClient();
+        var tutorUser = await Db.Users.AsNoTracking().SingleAsync(u => u.Id == tutorUserId);
+        var jwt = Scope.ServiceProvider.GetRequiredService<IJwtService>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt.GenerateAccessToken(tutorUser));
+        var url = $"/api/v1/enrollments/{enrollmentId}/tutor-cannot-continue";
+        var responses = await Task.WhenAll(
+            client.PostAsJsonAsync(url, new { reason = "Tutor cannot continue these lessons" }),
+            client.PostAsJsonAsync(url, new { reason = "Tutor cannot continue these lessons" }));
+        responses.Select(r => r.StatusCode).Should().BeEquivalentTo(new[] { HttpStatusCode.OK, HttpStatusCode.Conflict });
+        var enrollment = await Db.Enrollments.AsNoTracking().SingleAsync(e => e.Id == enrollmentId);
+        enrollment.Status.Should().Be(EnrollmentStatus.Cancelled);
+        var refunds = await Db.Transactions.AsNoTracking().Where(t => t.BookingId == enrollment.BookingId && t.Type == TransactionType.StudentRefund).ToListAsync();
+        refunds.Should().ContainSingle().Which.Amount.Should().Be(900_000m);
+        (await Db.Wallets.AsNoTracking().SingleAsync(w => w.TutorProfileId == enrollment.TutorProfileId)).PendingBalance.Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task AdminCancelApi_RefundsOnce_AndRejectsRepeat()
+    {
+        var (_, _, enrollmentId) = await SetupActiveEnrollmentAsync();
+        var admin = await Db.Users.AsNoTracking().FirstAsync(u => u.Role == UserRole.Admin && u.Status == AccountStatus.Active);
+        SetCurrentUser(admin.Id, UserRole.Admin);
+        using var client = Factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Scope.ServiceProvider.GetRequiredService<IJwtService>().GenerateAccessToken(admin));
+        var url = $"/api/v1/admin/enrollments/{enrollmentId}/cancel";
+        var payload = new { reason = "Administrative decision to stop this enrollment" };
+        (await client.PostAsJsonAsync(url, payload)).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await client.PostAsJsonAsync(url, payload)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var enrollment = await Db.Enrollments.AsNoTracking().SingleAsync(e => e.Id == enrollmentId);
+        enrollment.CancelledBy.Should().Be(CancelledBy.Admin);
+        (await Db.Transactions.AsNoTracking().CountAsync(t => t.BookingId == enrollment.BookingId && t.Type == TransactionType.StudentRefund)).Should().Be(1);
     }
 }

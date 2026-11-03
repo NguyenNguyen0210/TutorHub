@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import Avatar from '@/components/ui/Avatar';
 import Icon from '@/components/ui/Icon';
+import { trialLessonMedia } from '@/utils/trialLessonMedia';
 
 export default function ServiceDetailHero({ service }) {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
@@ -10,33 +11,7 @@ export default function ServiceDetailHero({ service }) {
   const tutor = service.tutor || {};
   const subject = service.subject || {};
 
-  const modeLabel =
-    service.teachingMode === 'InPerson' || service.teachingMode === 'Offline'
-      ? 'Học tại nhà / Offline'
-      : service.teachingMode === 'Both'
-      ? 'Online hoặc Tại nhà'
-      : 'Online qua Video Call';
-
-  const modeIcon =
-    service.teachingMode === 'InPerson' || service.teachingMode === 'Offline'
-      ? 'home'
-      : service.teachingMode === 'Both'
-      ? 'devices'
-      : 'videocam';
-
-  // Video embed helper
-  const getEmbedUrl = (url) => {
-    if (!url) return null;
-    if (url.includes('youtube.com/watch?v=')) {
-      return url.replace('watch?v=', 'embed/');
-    }
-    if (url.includes('youtu.be/')) {
-      return url.replace('youtu.be/', 'www.youtube.com/embed/');
-    }
-    return url;
-  };
-
-  const embedUrl = getEmbedUrl(service.trialLessonUrl);
+  const trialMedia = trialLessonMedia(service.trialLessonUrl);
   const rating = Number(tutor.ratingAvg) > 0 ? Number(tutor.ratingAvg) : null;
   const totalReviews = Number(tutor.totalReviews) || 0;
   const enrolledCount = Number(service.metrics?.enrolledCount ?? tutor.totalStudents) || 0;
@@ -84,11 +59,6 @@ export default function ServiceDetailHero({ service }) {
                 {subject.name || 'Môn học'}
               </span>
 
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-success-subtle text-success-strong border border-success/30">
-                <Icon name={modeIcon} size="xs" className="w-3.5 h-3.5" />
-                {modeLabel}
-              </span>
-
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-holding-subtle text-holding-strong border border-holding/30">
                 <Icon name="verified_user" size="xs" className="w-3.5 h-3.5 text-holding" />
                 Thanh toán bảo chứng
@@ -110,24 +80,26 @@ export default function ServiceDetailHero({ service }) {
             {/* Quick Metrics Bar */}
             {hasQuickMetrics && <div className="flex items-center gap-4 sm:gap-6 py-2 border-y border-neutral-200/70 flex-wrap text-sm text-fg-secondary">
               {rating && (
-                <div className="flex items-center gap-1.5 font-semibold text-brand-primary-700">
-                  <Icon name="star" size="sm" filled className="w-4 h-4 text-brand-primary-600" />
-                  <span className="text-fg font-extrabold text-base">{rating.toFixed(1)}</span>
+                <div className="flex items-center gap-1.5 font-semibold text-slate-900">
+                  <Icon name="star" size="sm" filled className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  <span className="text-fg font-extrabold text-base tabular-nums">{rating.toFixed(1)}</span>
                   {totalReviews > 0 && (
-                    <span className="text-neutral-500 text-xs font-normal">({totalReviews} đánh giá)</span>
+                    <span className="text-neutral-500 text-xs font-normal">
+                      ({totalReviews} đánh giá gia sư)
+                    </span>
                   )}
                 </div>
               )}
 
               {enrolledCount > 0 && <div className="flex items-center gap-1.5">
                 <Icon name="group" size="sm" className="w-4 h-4 text-brand-primary-600" />
-                <span className="text-fg font-semibold">{enrolledCount}</span>
-                <span className="text-neutral-500 text-xs">học viên đã học</span>
+                <span className="text-fg font-semibold tabular-nums">{enrolledCount}</span>
+                <span className="text-neutral-500 text-xs">học viên đã học khóa này</span>
               </div>}
 
               {totalSessions > 0 && <div className="flex items-center gap-1.5">
                 <Icon name="schedule" size="sm" className="w-4 h-4 text-fg-muted" />
-                <span className="text-fg font-semibold">{totalSessions} buổi</span>
+                <span className="text-fg font-semibold tabular-nums">{totalSessions} buổi</span>
                 {sessionDuration > 0 && <span className="text-neutral-500 text-xs">({sessionDuration} phút/buổi)</span>}
               </div>}
             </div>}
@@ -200,7 +172,7 @@ export default function ServiceDetailHero({ service }) {
               {/* Overlay with Play Button if trial url or video available.
                   Nút thật, không phải div+onClick: bàn phím và trình đọc màn
                   hình cần kích hoạt được, còn div thì không. */}
-              {service.trialLessonUrl && (
+              {trialMedia?.kind === 'video' && (
                 <button
                   type="button"
                   onClick={() => setIsVideoModalOpen(true)}
@@ -215,13 +187,14 @@ export default function ServiceDetailHero({ service }) {
                   </span>
                 </button>
               )}
+              {trialMedia && trialMedia.kind !== 'video' && <a href={trialMedia.href} target="_blank" rel="noopener noreferrer" className="absolute inset-x-3 bottom-3 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm font-semibold text-primary shadow-brand-sm"><Icon name="open_in_new" size="sm" />{trialMedia.kind === 'meeting' ? 'Mở liên kết buổi học thử' : 'Mở liên kết học thử'}</a>}
             </div>
           </div>
         </div>
       </div>
 
       {/* Video Modal */}
-      {isVideoModalOpen && embedUrl && (
+      {isVideoModalOpen && trialMedia?.kind === 'video' && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="relative w-full max-w-4xl bg-black rounded-2xl overflow-hidden shadow-2xl">
             <button
@@ -233,13 +206,16 @@ export default function ServiceDetailHero({ service }) {
               <Icon name="close" size="sm" className="w-5 h-5" />
             </button>
             <div className="aspect-video w-full">
-              <iframe
-                src={embedUrl}
+              {trialMedia.direct
+                // The service API does not provide caption tracks for recordings.
+                // eslint-disable-next-line jsx-a11y/media-has-caption
+                ? <video controls src={trialMedia.href} className="h-full w-full" aria-label="Video học thử" /> : <iframe
+                src={trialMedia.embed}
                 title="Video học thử giới thiệu dịch vụ"
                 className="w-full h-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-              />
+              />}
             </div>
           </div>
         </div>

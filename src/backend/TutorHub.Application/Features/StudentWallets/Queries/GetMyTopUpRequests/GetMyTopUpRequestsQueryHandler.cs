@@ -64,7 +64,7 @@ public class GetMyTopUpRequestsQueryHandler
 
         var query = _context.TopUpRequests
             .AsNoTracking()
-            .Where(r => r.StudentWalletId == wallet.Id);
+            .Where(r => r.WalletId == wallet.Id);
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -76,7 +76,7 @@ public class GetMyTopUpRequestsQueryHandler
             .Select(r => new TopUpRequestDto
             {
                 Id = r.Id,
-                StudentWalletId = r.StudentWalletId,
+                StudentWalletId = r.WalletId,
                 Amount = r.Amount,
                 TransferReference = r.TransferReference,
                 Status = r.Status,

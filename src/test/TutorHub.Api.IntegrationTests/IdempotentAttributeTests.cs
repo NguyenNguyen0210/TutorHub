@@ -34,6 +34,27 @@ public class IdempotentAttributeTests
     }
 
     [Fact]
+    public async Task OnActionExecutionAsync_WhenRequiredKeyIsMissing_ReturnsBadRequest()
+    {
+        var httpContext = new DefaultHttpContext();
+        var context = CreateActionExecutingContext(httpContext);
+        var nextExecuted = false;
+        ActionExecutionDelegate next = () =>
+        {
+            nextExecuted = true;
+            return Task.FromResult(new ActionExecutedContext(context, [], new object()));
+        };
+
+        await new IdempotentAttribute { RequireKey = true }.OnActionExecutionAsync(context, next);
+
+        nextExecuted.Should().BeFalse();
+        var result = context.Result.Should().BeOfType<BadRequestObjectResult>().Subject;
+        result.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
+        result.Value.Should().BeAssignableTo<ApiResponse<object>>()
+            .Which.Message.Should().Contain("required");
+    }
+
+    [Fact]
     public async Task OnActionExecutionAsync_WhenNoIdempotencyKeyHeader_ExecutesNextDelegate()
     {
         // Arrange

@@ -12,6 +12,5 @@ public record SessionCalendarDto(
     DateTime? StartAt,
     DateTime? EndAt,
     int DurationMinutes,
-    TeachingMode TeachingMode,
     SessionStatus Status
 );

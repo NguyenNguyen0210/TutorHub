@@ -34,10 +34,10 @@ public class TutorProfileCacheService : ITutorProfileCacheService
         Guid tutorProfileId,
         Func<Task<TutorProfileDto?>> factory,
         CancellationToken cancellationToken = default) =>
-        GetOrCreateAsync($"tutor:profile:{tutorProfileId:D}", factory, ProfileTtl, cancellationToken);
+        GetOrCreateAsync($"tutor:profile:v3:{tutorProfileId:D}", factory, ProfileTtl, cancellationToken);
 
     public Task InvalidateTutorProfileAsync(Guid tutorProfileId, CancellationToken cancellationToken = default) =>
-        TryRemoveAsync($"tutor:profile:{tutorProfileId:D}", cancellationToken);
+        TryRemoveAsync($"tutor:profile:v3:{tutorProfileId:D}", cancellationToken);
 
     private async Task<T?> GetOrCreateAsync<T>(
         string key,

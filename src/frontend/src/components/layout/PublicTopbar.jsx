@@ -1,349 +1,136 @@
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import Icon from '@/components/ui/Icon';
 import Logo from '@/components/ui/Logo';
-import Avatar, { Menu } from '@/components/ui/Avatar';
-import Button from '@/components/ui/Button';
+import Avatar from '@/components/ui/Avatar';
 import { useAuthStore } from '@/store/authStore';
-import { getDashboardPath } from './navConfig';
+import AccountDropdown from './AccountDropdown';
+import { getWorkspaceEntry, getDiscoveryNav } from './navConfig';
 
-/**
- * PublicTopbar — thanh điều hướng công cộng: sáng, tối giản, dính.
- * Dùng cho trang discovery, checkout (guest), messages/notifications.
- */
+/** Public navigation is for discovery; role-specific tools live in the workspace. */
 export default function PublicTopbar() {
-  const { user, role, isAuthenticated, logout } = useAuthStore();
+  const { user, role, isAuthenticated } = useAuthStore();
   const location = useLocation();
-  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const workspace = getWorkspaceEntry(role);
+  const discoveryLinks = getDiscoveryNav();
+  const authLinkState = /^\/(tutors|services)\/[^/]+/.test(location.pathname)
+    ? { returnUrl: `${location.pathname}${location.search}${location.hash}` }
+    : undefined;
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/auth/login');
-  };
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname, location.search, isAuthenticated]);
 
-  const displayName =
-    user?.fullName || user?.name || user?.email?.split('@')[0] || (isAuthenticated ? 'Tài khoản' : '');
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') {
+        setMobileOpen(false);
+        document.getElementById('discovery-menu-toggle')?.focus();
+      }
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [mobileOpen]);
 
-  const userMenuItems = isAuthenticated
-    ? [
-        {
-          key: 'dashboard',
-          icon: <Icon name="space_dashboard" size="sm" />,
-          label: <span className="font-semibold text-body-reg">Trang tổng quan</span>,
-          onClick: () => navigate(getDashboardPath(role)),
-        },
-        {
-          key: 'settings',
-          icon: <Icon name="settings" size="sm" />,
-          label: <span className="font-semibold text-body-reg">Hồ sơ & Cài đặt</span>,
-          onClick: () =>
-            navigate(
-              role === 'Tutor'
-                ? '/tutor/settings'
-                : role === 'Student'
-                ? '/student/settings'
-                : '/admin/settings'
-            ),
-        },
-        ...(role === 'Tutor'
-          ? [
-              {
-                key: 'application',
-                icon: <Icon name="verified_user" size="sm" />,
-                label: <span className="font-semibold text-body-reg">Hồ sơ xét duyệt</span>,
-                onClick: () => navigate('/tutor/application'),
-              },
-            ]
-          : []),
-        { type: 'divider' },
-        {
-          key: 'logout',
-          icon: <Icon name="logout" size="sm" />,
-          label: <span className="font-semibold text-body-reg">Đăng xuất</span>,
-          danger: true,
-          onClick: handleLogout,
-        },
-      ]
-    : [];
-
-  const schedulePath = isAuthenticated
-    ? role === 'Tutor'
-      ? '/tutor/schedule'
-      : '/student/dashboard'
-    : '/auth/login';
-
-  const myCoursesPath = isAuthenticated
-    ? role === 'Tutor'
-      ? '/tutor/services'
-      : '/student/dashboard'
-    : '/auth/login';
-
+  const displayName = user?.fullName || user?.name || user?.email?.split('@')[0] || 'Tài khoản';
   return (
-    <header className="sticky top-0 z-50 bg-surface/95 backdrop-blur-md border-b border-border/80 shadow-brand-sm">
-      <div className="page-shell flex items-center justify-between h-[72px] gap-4">
-        {/* Brand Logo */}
-        <Link
-          to={isAuthenticated ? getDashboardPath(role) : '/'}
-          aria-label="TutorHub — trang chủ"
-          className="shrink-0 flex items-center"
-        >
-          <Logo variant="horizontal" size={36} />
+    <header className="sticky top-0 z-50 border-b border-border bg-surface">
+      <div className="page-shell flex h-[72px] items-center justify-between gap-2 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-4">
+        <Link to="/" aria-label="TutorHub — Khám phá gia sư" className="flex shrink-0 items-center justify-self-start">
+          <Logo variant="mark" size={36} className="sm:hidden" />
+          <Logo variant="horizontal" size={36} className="hidden sm:inline-flex" />
         </Link>
 
-        {/* Center Nav Items: 14px / 500 font */}
-        <nav className="hidden md:flex items-center gap-1.5" aria-label="Điều hướng chính">
-          <Link
-            to="/"
-            aria-current={location.pathname === '/' || location.pathname === '/tutors' ? 'page' : undefined}
-            className={cn(
-              'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
-              location.pathname === '/' || location.pathname.startsWith('/tutors')
-                ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
-            )}
-          >
-            Khám phá gia sư
-          </Link>
-
-          <Link
-            to="/services"
-            aria-current={location.pathname.startsWith('/services') ? 'page' : undefined}
-            className={cn(
-              'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
-              location.pathname.startsWith('/services')
-                ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
-            )}
-          >
-            Dịch vụ học tập
-          </Link>
-
-          {!isAuthenticated ? (
+        <nav className="hidden items-center justify-self-center gap-1 lg:flex" aria-label="Điều hướng chính">
+          {discoveryLinks.map((item) => (
             <Link
-              to="/how-it-works"
-              aria-current={location.pathname === '/how-it-works' ? 'page' : undefined}
+              key={item.path}
+              to={item.path}
+              aria-current={item.match(location.pathname) ? 'page' : undefined}
               className={cn(
-                'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
-                location.pathname === '/how-it-works'
-                  ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                  : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
+                'inline-flex min-h-11 items-center border-b-2 px-3.5 py-2 text-[14px] font-semibold transition-colors',
+                item.match(location.pathname)
+                  ? 'border-brand-primary-600 text-brand-primary-700'
+                  : 'border-transparent text-fg-secondary hover:border-neutral-300 hover:text-fg'
               )}
             >
-              Cách hoạt động
+              {item.label}
             </Link>
-          ) : (
-            <>
-              <Link
-                to={schedulePath}
-                className={cn(
-                  'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
-                  location.pathname.includes('/schedule') || location.pathname.includes('/sessions')
-                    ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                    : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
-                )}
-              >
-                Lịch học
-              </Link>
-
-              <Link
-                to="/app/messages"
-                className={cn(
-                  'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
-                  location.pathname.startsWith('/app/messages')
-                    ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                    : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
-                )}
-              >
-                Tin nhắn
-              </Link>
-
-              <Link
-                to={myCoursesPath}
-                className={cn(
-                  'min-h-11 inline-flex items-center px-3.5 py-2 rounded-brand-md text-[14px] font-medium transition-colors',
-                  location.pathname.includes('/dashboard') || location.pathname.includes('/services')
-                    ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                    : 'text-fg-secondary hover:text-fg hover:bg-neutral-100'
-                )}
-              >
-                Gói học của tôi
-              </Link>
-            </>
-          )}
+          ))}
         </nav>
 
-        {/* Right actions: Notifications & User profile / Auth buttons */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex min-w-0 items-center justify-self-end gap-1 sm:gap-2.5">
           {isAuthenticated ? (
             <>
-              {role === 'Tutor' && (
-                <Link
-                  to="/tutor/application"
-                  className={cn(
-                    'hidden sm:inline-flex items-center gap-1.5 text-[13px] font-semibold px-3 py-1.5 rounded-lg border transition-all',
-                    location.pathname.startsWith('/tutor/application')
-                      ? 'bg-brand-primary-50 text-brand-primary-600 border-brand-primary-200'
-                      : 'text-neutral-700 hover:text-brand-primary-600 border-border hover:bg-neutral-50'
-                  )}
-                >
-                  <Icon name="verified_user" size="xs" />
-                  Hồ sơ xét duyệt
-                </Link>
-              )}
-
-              <Button
-                as={Link}
-                to="/app/notifications"
-                variant="ghost"
-                aria-label="Thông báo"
-                icon={<Icon name="notifications" size="md" className="text-fg-secondary" />}
-                className="w-9 h-9 !px-0 rounded-full hover:bg-neutral-100"
-              />
-
-              <Menu
-                items={userMenuItems}
+              <Link
+                to={workspace.path}
+                className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-brand-md bg-primary px-3 text-[12px] font-semibold text-white shadow-brand-sm transition-colors hover:bg-primary-hover sm:px-4 sm:text-[13px]"
+              >
+                <Icon name={workspace.icon} size="sm" className="hidden sm:block" />
+                {workspace.label}
+              </Link>
+              <AccountDropdown
+                label={`Tài khoản ${displayName}`}
                 trigger={
-                  <span className="flex items-center gap-2 cursor-pointer rounded-brand-md px-2 py-1 hover:bg-neutral-100 transition-colors">
-                    <Avatar
-                      src={user?.avatarUrl}
-                      name={displayName}
-                      size="sm"
-                      className="w-8 h-8 text-[12px]"
-                    />
-                    <span className="hidden sm:inline font-bold text-caption text-fg">
-                      {displayName}
-                    </span>
-                    <Icon name="chevron_right" size="xs" className="rotate-90 text-fg-muted" />
+                  <span className="flex min-h-11 items-center gap-1.5 rounded-brand-md px-1.5 transition-colors hover:bg-neutral-100">
+                    <Avatar src={user?.avatarUrl} name={displayName} size="sm" className="h-8 w-8 text-[12px]" />
+                    <span className="hidden max-w-[120px] truncate text-caption font-bold text-fg xl:inline">{displayName}</span>
+                    <Icon name="expand_more" size="xs" className="hidden text-fg-muted sm:block" />
                   </span>
                 }
               />
             </>
           ) : (
             <div className="flex items-center gap-2 sm:gap-2.5">
-              <Link
-                to="/become-tutor"
-                className="hidden lg:inline-flex text-[14px] font-medium text-fg-secondary hover:text-brand-primary-600 px-2.5 py-1.5 transition-colors"
-              >
-                Trở thành gia sư
-              </Link>
-              <Link
-                to="/auth/register"
-                className="hidden sm:inline-flex items-center justify-center h-11 px-4 rounded-brand-md border border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-700 text-[13.5px] font-medium transition-colors"
-              >
+              <Link to="/auth/register" state={authLinkState} className="hidden h-11 items-center justify-center rounded-brand-md border border-neutral-300 bg-surface px-4 text-[14px] font-medium text-fg-secondary transition-colors hover:bg-neutral-50 sm:inline-flex">
                 Đăng ký
               </Link>
-              <Link
-                to="/auth/login"
-                className="inline-flex items-center justify-center h-11 px-4 rounded-brand-md bg-primary hover:bg-primary-hover active:scale-[0.98] text-white text-[13px] sm:text-[13.5px] font-semibold transition-all shadow-brand-sm"
-              >
+              <Link to="/auth/login" state={authLinkState} className="inline-flex h-11 items-center justify-center rounded-brand-md bg-primary px-4 text-[14px] font-semibold text-white shadow-brand-sm transition-colors hover:bg-primary-hover">
                 Đăng nhập
               </Link>
             </div>
           )}
 
-          {/* Mobile hamburger toggle */}
           <button
+            id="discovery-menu-toggle"
             type="button"
-            onClick={() => setMobileOpen((v) => !v)}
+            onClick={() => setMobileOpen((open) => !open)}
             aria-label={mobileOpen ? 'Đóng menu' : 'Mở menu'}
             aria-expanded={mobileOpen}
-            className="md:hidden w-11 h-11 rounded-brand-md hover:bg-neutral-100 flex items-center justify-center text-fg-secondary transition-colors"
+            aria-controls="discovery-mobile-menu"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-brand-md text-fg-secondary transition-colors hover:bg-neutral-100 lg:hidden"
           >
             <Icon name={mobileOpen ? 'close' : 'menu'} size="md" />
           </button>
         </div>
       </div>
 
-      {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-border bg-surface px-4 pt-2 pb-4 space-y-1 animate-fadeIn shadow-brand-sm">
-          <Link
-            to="/"
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
-          >
-            <Icon name="explore" size="md" className="text-brand-primary-600" />
-            Khám phá gia sư
-          </Link>
-          <Link
-            to="/services"
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
-          >
-            <Icon name="local_library" size="md" className="text-brand-primary-600" />
-            Dịch vụ học tập
-          </Link>
-          {!isAuthenticated ? (
-            <>
-              <Link
-                to="/how-it-works"
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold transition-colors',
-                  location.pathname === '/how-it-works'
-                    ? 'bg-brand-primary-50 text-brand-primary-600'
-                    : 'text-neutral-700 hover:bg-neutral-100'
-                )}
-              >
-                <Icon name="help_outline" size="md" className="text-brand-primary-600" />
-                Cách hoạt động
-              </Link>
-              <Link
-                to="/become-tutor"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100 border-t border-border pt-3"
-              >
-                <Icon name="school" size="md" className="text-brand-primary-600" />
-                Trở thành gia sư
-              </Link>
-              <div className="pt-3 border-t border-border grid grid-cols-2 gap-2">
-                <Link
-                  to="/auth/login"
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-center h-11 rounded-brand-md bg-primary text-white font-semibold text-caption hover:bg-primary-hover active:scale-[0.98] transition-all shadow-brand-sm"
-                >
-                  Đăng nhập
-                </Link>
-                <Link
-                  to="/auth/register"
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-center h-11 rounded-brand-md border border-neutral-300 bg-white text-neutral-800 font-semibold text-caption hover:bg-neutral-50 active:scale-[0.98] transition-all"
-                >
-                  Đăng ký
-                </Link>
-              </div>
-            </>
-          ) : (
-            <>
-              <Link
-                to={schedulePath}
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
-              >
-                <Icon name="calendar_month" size="md" className="text-brand-primary-600" />
-                Lịch học
-              </Link>
-              <Link
-                to="/app/messages"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
-              >
-                <Icon name="chat" size="md" className="text-brand-primary-600" />
-                Tin nhắn
-              </Link>
-              <Link
-                to={myCoursesPath}
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-brand-md text-body-reg font-semibold text-neutral-700 hover:bg-neutral-100"
-              >
-                <Icon name="auto_stories" size="md" className="text-brand-primary-600" />
-                Gói học của tôi
-              </Link>
-            </>
+        <nav id="discovery-mobile-menu" aria-label="Điều hướng Khám phá" className="space-y-1 border-t border-border bg-surface px-4 pb-4 pt-2 lg:hidden">
+          {discoveryLinks.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => setMobileOpen(false)}
+              aria-current={item.match(location.pathname) ? 'page' : undefined}
+              className={cn(
+                'flex min-h-11 items-center gap-3 rounded-brand-md px-3 py-2.5 text-body-reg font-semibold transition-colors',
+                item.match(location.pathname) ? 'bg-brand-primary-50 text-brand-primary-700' : 'text-fg-secondary hover:bg-neutral-100'
+              )}
+            >
+              <Icon name={item.icon} size="md" />
+              {item.label}
+            </Link>
+          ))}
+          {!isAuthenticated && (
+            <Link to="/auth/register" state={authLinkState} className="flex min-h-11 items-center rounded-brand-md border border-border px-3 text-body-reg font-semibold text-fg-secondary">
+              Đăng ký tài khoản
+            </Link>
           )}
-        </div>
+        </nav>
       )}
     </header>
   );

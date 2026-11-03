@@ -37,7 +37,6 @@ public class ActiveDisputeUniqueIndexTests : IntegrationTestBase
             TotalPrice = 900_000m,
             TotalSessions = 1,
             SessionDurationMinutes = 60,
-            TeachingMode = TeachingMode.Online,
             Status = BookingStatus.Paid,
             CreatedAt = DateTime.UtcNow
         };
@@ -52,7 +51,6 @@ public class ActiveDisputeUniqueIndexTests : IntegrationTestBase
             TotalPrice = 900_000m,
             TotalSessions = 1,
             SessionDurationMinutes = 60,
-            TeachingMode = TeachingMode.Online,
             CreatedAt = DateTime.UtcNow
         };
         enrollment.Activate();

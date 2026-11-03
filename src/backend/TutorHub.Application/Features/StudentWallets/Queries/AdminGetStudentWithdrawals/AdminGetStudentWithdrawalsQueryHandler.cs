@@ -44,7 +44,7 @@ public class AdminGetStudentWithdrawalsQueryHandler
             .Select(w => new StudentWithdrawalDto
             {
                 Id = w.Id,
-                StudentWalletId = w.StudentWalletId,
+                StudentWalletId = w.WalletId,
                 Amount = w.Amount,
                 Status = w.Status,
                 BankName = w.BankName,

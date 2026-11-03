@@ -7,7 +7,7 @@ namespace TutorHub.Domain.Entities;
 ///
 /// Kept as its own table rather than columns on <c>User</c> because one account may
 /// sign in through several providers, and because <c>ProviderUserId</c> — not the
-/// email — is the durable identity. Both Google and Facebook let a user change
+/// email — is the durable identity. Google let a user change
 /// their email, so the provider's own subject id is the only key that does not rot.
 /// </summary>
 public class ExternalLogin
@@ -20,7 +20,7 @@ public class ExternalLogin
     public ExternalAuthProvider Provider { get; set; }
 
     /// <summary>
-    /// The provider's stable user identifier: Google's <c>sub</c>, Facebook's <c>id</c>.
+    /// The provider's stable user identifier: Google's <c>sub</c>, <c>id</c>.
     /// Unique together with <see cref="Provider"/>.
     /// </summary>
     public string ProviderUserId { get; set; } = default!;

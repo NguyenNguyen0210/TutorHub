@@ -34,14 +34,16 @@ public class TransactionsController : ControllerBase
         [FromQuery] DateTime? toDate,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        [FromQuery] TransactionType? type = null)
     {
         var query = new GetMyTransactionsQuery(
             Status: status,
             FromDate: fromDate,
             ToDate: toDate,
             PageNumber: pageNumber,
-            PageSize: pageSize
+            PageSize: pageSize,
+            Type: type
         );
 
         var result = await _sender.Send(query, cancellationToken);

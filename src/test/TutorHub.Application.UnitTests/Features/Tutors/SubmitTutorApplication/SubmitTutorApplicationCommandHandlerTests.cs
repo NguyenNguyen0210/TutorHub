@@ -42,11 +42,7 @@ public class SubmitTutorApplicationCommandHandlerTests
         var command = new SubmitTutorApplicationCommand(
             Bio: "Experienced Math tutor with 5 years experience.",
             Education: "B.Sc. Mathematics",
-            ExperienceYears: 5,
-            TeachingMode: TeachingMode.Both,
-            Address: "123 Main St",
-            Latitude: 10.762622,
-            Longitude: 106.660172
+            ExperienceYears: 5
         );
 
         // Act
@@ -58,7 +54,6 @@ public class SubmitTutorApplicationCommandHandlerTests
         result.Bio.Should().Be("Experienced Math tutor with 5 years experience.");
         result.Education.Should().Be("B.Sc. Mathematics");
         result.ExperienceYears.Should().Be(5);
-        result.TeachingMode.Should().Be("Both");
 
         applicationsList.Should().ContainSingle();
         var created = applicationsList.Single();
@@ -84,7 +79,6 @@ public class SubmitTutorApplicationCommandHandlerTests
             Bio = "Old bio",
             Education = "Old edu",
             ExperienceYears = 1,
-            TeachingMode = TeachingMode.Online,
             SubmittedAt = DateTime.UtcNow.AddDays(-10)
         };
         oldRejectedApp.Reject("Insufficient experience details", Guid.NewGuid());
@@ -100,8 +94,7 @@ public class SubmitTutorApplicationCommandHandlerTests
         var command = new SubmitTutorApplicationCommand(
             Bio: "Updated comprehensive bio with 3 years experience.",
             Education: "B.Sc. Computer Science",
-            ExperienceYears: 3,
-            TeachingMode: TeachingMode.Online
+            ExperienceYears: 3
         );
 
         // Act
@@ -134,8 +127,7 @@ public class SubmitTutorApplicationCommandHandlerTests
         var command = new SubmitTutorApplicationCommand(
             Bio: "Bio",
             Education: "Edu",
-            ExperienceYears: 2,
-            TeachingMode: TeachingMode.Online
+            ExperienceYears: 2
         );
 
         // Act
@@ -164,8 +156,7 @@ public class SubmitTutorApplicationCommandHandlerTests
         var command = new SubmitTutorApplicationCommand(
             Bio: "Bio",
             Education: "Edu",
-            ExperienceYears: 2,
-            TeachingMode: TeachingMode.Online
+            ExperienceYears: 2
         );
 
         // Act
@@ -192,7 +183,6 @@ public class SubmitTutorApplicationCommandHandlerTests
             Bio = "Pending bio",
             Education = "Pending edu",
             ExperienceYears = 1,
-            TeachingMode = TeachingMode.Online,
             SubmittedAt = DateTime.UtcNow
         };
 
@@ -206,8 +196,7 @@ public class SubmitTutorApplicationCommandHandlerTests
         var command = new SubmitTutorApplicationCommand(
             Bio: "Another bio",
             Education: "Another edu",
-            ExperienceYears: 2,
-            TeachingMode: TeachingMode.Online
+            ExperienceYears: 2
         );
 
         // Act
@@ -234,7 +223,6 @@ public class SubmitTutorApplicationCommandHandlerTests
             Bio = "Approved bio",
             Education = "Approved edu",
             ExperienceYears = 5,
-            TeachingMode = TeachingMode.Online,
             SubmittedAt = DateTime.UtcNow.AddDays(-20)
         };
         approvedApp.Approve(Guid.NewGuid());
@@ -249,8 +237,7 @@ public class SubmitTutorApplicationCommandHandlerTests
         var command = new SubmitTutorApplicationCommand(
             Bio: "New bio",
             Education: "New edu",
-            ExperienceYears: 6,
-            TeachingMode: TeachingMode.Online
+            ExperienceYears: 6
         );
 
         // Act

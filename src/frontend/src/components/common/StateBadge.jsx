@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Badge from '@/components/ui/Badge';
+import StatusIndicator from '@/components/ui/StatusIndicator';
 import {
   SESSION_STATUS,
   SESSION_STATUS_META,
@@ -30,6 +31,8 @@ const TOPUP_STATUS_META = {
 };
 
 const RESOLVERS = {
+  booking: (v) => ({ Holding: { label: 'Chờ thanh toán', color: 'holding' }, Paid: { label: 'Đã thanh toán', color: 'success' }, Cancelled: { label: 'Đã hủy', color: 'neutral' }, Expired: { label: 'Đã hết hạn', color: 'neutral' } }[v] || { label: 'Đang cập nhật', color: 'neutral' }),
+  dispute: (v) => ({ Open: { label: 'Đã tiếp nhận', color: 'holding' }, UnderReview: { label: 'Đang xem xét', color: 'holding' }, Resolved: { label: 'Đã giải quyết', color: 'success' }, Dismissed: { label: 'Đã bác bỏ', color: 'neutral' }, RequiresAdminFinancialIntervention: { label: 'Chờ xử lý tài chính', color: 'holding' }, RequiresAdminRefundSettlement: { label: 'Chờ xử lý hoàn tiền', color: 'holding' } }[v] || { label: 'Đang xử lý', color: 'neutral' }),
   session: (v) => SESSION_STATUS_META[v] || { label: v, color: 'neutral' },
   enrollment: (v) => ENROLLMENT_STATUS_META[v] || { label: v, color: 'neutral' },
   withdrawal: (v) => WITHDRAWAL_STATUS_META[v] || { label: v, color: 'neutral' },
@@ -51,6 +54,18 @@ export function getStateMeta(domain, value) {
  */
 export default function StateBadge({ status, domain = 'session', size = 'sm', className }) {
   const { label, color } = getStateMeta(domain, status);
+  const quietStates = {
+    application: { Approved: null },
+    session: { Scheduled: 'event_available', Completed: 'check_circle' },
+    enrollment: { Active: 'menu_book', Completed: 'check_circle' },
+    withdrawal: { Completed: 'check_circle' },
+    topup: { Confirmed: 'check_circle' },
+    booking: { Paid: 'check_circle' },
+    dispute: { Resolved: 'check_circle' },
+  };
+  if (Object.hasOwn(quietStates[domain] || {}, status)) {
+    return <StatusIndicator variant={color} icon={quietStates[domain][status]} dot={domain === 'application'} size={size} className={className}>{label}</StatusIndicator>;
+  }
   return (
     <Badge variant={color} size={size} className={className}>
       {label}
@@ -61,6 +76,8 @@ export default function StateBadge({ status, domain = 'session', size = 'sm', cl
 StateBadge.propTypes = {
   status: PropTypes.string,
   domain: PropTypes.oneOf([
+    'booking',
+    'dispute',
     'session',
     'enrollment',
     'withdrawal',

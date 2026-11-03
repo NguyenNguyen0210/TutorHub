@@ -1,39 +1,36 @@
 using FluentAssertions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Options;
+using Moq;
+using StackExchange.Redis;
 using TutorHub.Infrastructure.HealthChecks;
-using TutorHub.Infrastructure.Redis;
 
 namespace TutorHub.Infrastructure.UnitTests.Redis;
 
 /// <summary>
-/// Redis is optional infrastructure, so the health check must never
-/// report Unhealthy (which would restart a healthy process). Disabled means
-/// Healthy; enabled without a multiplexer (Redis down at boot / DI missing)
-/// means Degraded. Both cases need no multiplexer fake.
+/// Redis is a required readiness dependency.
 /// </summary>
 public class RedisHealthCheckTests
 {
     [Fact]
-    public async Task Disabled_ReturnsHealthy()
+    public async Task WithoutMultiplexer_ReturnsUnhealthy()
     {
-        var check = new RedisHealthCheck(Options.Create(new RedisOptions { Enabled = false }));
+        var check = new RedisHealthCheck();
 
         var result = await check.CheckHealthAsync(new HealthCheckContext());
 
-        result.Status.Should().Be(HealthStatus.Healthy);
-        result.Status.Should().NotBe(HealthStatus.Unhealthy);
+        result.Status.Should().Be(HealthStatus.Unhealthy);
     }
 
     [Fact]
-    public async Task Enabled_WithoutMultiplexer_ReturnsDegraded_NeverUnhealthy()
+    public async Task RedisConnectionFailure_ReturnsUnhealthy()
     {
-        var check = new RedisHealthCheck(
-            Options.Create(new RedisOptions { Enabled = true, ConnectionString = "localhost:6379" }));
+        var multiplexer = new Mock<IConnectionMultiplexer>();
+        multiplexer.Setup(m => m.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
+            .Throws(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "Redis unavailable"));
+        var check = new RedisHealthCheck(multiplexer.Object);
 
         var result = await check.CheckHealthAsync(new HealthCheckContext());
 
-        result.Status.Should().Be(HealthStatus.Degraded);
-        result.Status.Should().NotBe(HealthStatus.Unhealthy);
+        result.Status.Should().Be(HealthStatus.Unhealthy);
     }
 }

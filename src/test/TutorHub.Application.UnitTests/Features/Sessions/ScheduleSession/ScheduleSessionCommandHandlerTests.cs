@@ -58,7 +58,6 @@ public class ScheduleSessionCommandHandlerTests : IDisposable
             TotalPrice = 1_000_000m,
             TotalSessions = 3,
             SessionDurationMinutes = 60,
-            TeachingMode = TeachingMode.Online
         };
         enrollment.Activate();
 

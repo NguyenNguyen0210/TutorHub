@@ -34,6 +34,8 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
     {
         var userId = _currentUserService.UserIdOrThrow();
         var role = _currentUserService.Role;
+        if (request.MediaType == MediaType.ServiceCover && role is not UserRole.Tutor and not UserRole.Admin)
+            throw new ForbiddenException("Only Tutors and Admins can upload service covers.");
 
         if (request.MediaType == MediaType.Certificate && role is not UserRole.Tutor and not UserRole.Admin)
         {
@@ -49,7 +51,7 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
         }
 
         // 2. Determine Privacy & Partitioned Object Storage Key
-        var isPrivate = request.MediaType != MediaType.Avatar;
+        var isPrivate = request.MediaType is not MediaType.Avatar and not MediaType.ServiceCover;
 
 
         var now = _clock.UtcNow;
@@ -58,6 +60,7 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
         var objectKey = request.MediaType switch
         {
             MediaType.Avatar => $"profiles/{userId}/avatar/{storedFileName}",
+            MediaType.ServiceCover => $"tutors/{userId}/covers/{storedFileName}",
             MediaType.Certificate => $"tutors/{userId}/documents/{storedFileName}",
             MediaType.DisputeEvidence => $"reports/{userId}/attachments/{storedFileName}",
             _ => $"general/{userId}/{now:yyyy}/{now:MM}/{storedFileName}"

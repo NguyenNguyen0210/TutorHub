@@ -44,7 +44,6 @@ public class UpdateServiceCommandHandlerTests
             TotalSessions = 5,
             SessionDurationMinutes = 45,
             Price = 1500000m,
-            TeachingMode = TeachingMode.Online,
             Status = ServiceStatus.Draft
         };
 
@@ -63,7 +62,6 @@ public class UpdateServiceCommandHandlerTests
             TotalSessions: 10,
             SessionDurationMinutes: 60,
             Price: 3000000m,
-            TeachingMode: TeachingMode.Both,
             TrialLessonUrl: "https://example.com/trial",
             CoverImageUrl: "https://example.com/cover.png"
         );
@@ -80,7 +78,6 @@ public class UpdateServiceCommandHandlerTests
         result.TotalSessions.Should().Be(10);
         result.SessionDurationMinutes.Should().Be(60);
         result.Price.Should().Be(3000000m);
-        result.TeachingMode.Should().Be("Both");
 
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -106,7 +103,6 @@ public class UpdateServiceCommandHandlerTests
             TotalSessions = 10,
             SessionDurationMinutes = 60,
             Price = 3000000m,
-            TeachingMode = TeachingMode.Online,
             Status = ServiceStatus.Published
         };
 
@@ -125,7 +121,6 @@ public class UpdateServiceCommandHandlerTests
             TotalSessions: null,
             SessionDurationMinutes: null,
             Price: null,
-            TeachingMode: null,
             TrialLessonUrl: null,
             CoverImageUrl: null
         );
@@ -159,7 +154,6 @@ public class UpdateServiceCommandHandlerTests
             TotalSessions = 10,
             SessionDurationMinutes = 60,
             Price = 3000000m,
-            TeachingMode = TeachingMode.Online,
             Status = ServiceStatus.Published
         };
 
@@ -177,7 +171,6 @@ public class UpdateServiceCommandHandlerTests
             TotalSessions: null,
             SessionDurationMinutes: null,
             Price: 4000000m, // Changed price
-            TeachingMode: null,
             TrialLessonUrl: null,
             CoverImageUrl: null
         );
@@ -207,7 +200,6 @@ public class UpdateServiceCommandHandlerTests
             TotalSessions = 10,
             SessionDurationMinutes = 60,
             Price = 3000000m,
-            TeachingMode = TeachingMode.Online,
             Status = ServiceStatus.Published
         };
 
@@ -225,7 +217,6 @@ public class UpdateServiceCommandHandlerTests
             TotalSessions: null,
             SessionDurationMinutes: null,
             Price: null,
-            TeachingMode: null,
             TrialLessonUrl: null,
             CoverImageUrl: "https://example.com/new-cover.png"
         );
@@ -259,7 +250,6 @@ public class UpdateServiceCommandHandlerTests
             TotalSessions = 5,
             SessionDurationMinutes = 45,
             Price = 1500000m,
-            TeachingMode = TeachingMode.Online,
             Status = ServiceStatus.Draft
         };
 
@@ -278,7 +268,6 @@ public class UpdateServiceCommandHandlerTests
             TotalSessions: null,
             SessionDurationMinutes: null,
             Price: null,
-            TeachingMode: null,
             TrialLessonUrl: null,
             CoverImageUrl: null,
             Curriculum: new List<CurriculumItemInput>
@@ -332,7 +321,6 @@ public class UpdateServiceCommandHandlerTests
             TotalSessions = 10,
             SessionDurationMinutes = 60,
             Price = 3000000m,
-            TeachingMode = TeachingMode.Online,
             Status = ServiceStatus.Published
         };
 
@@ -351,7 +339,6 @@ public class UpdateServiceCommandHandlerTests
             TotalSessions: null,
             SessionDurationMinutes: null,
             Price: null,
-            TeachingMode: null,
             TrialLessonUrl: null,
             CoverImageUrl: null,
             Curriculum: new List<CurriculumItemInput> { new(SessionIndex: 1, Title: "Updated session") },
@@ -392,7 +379,6 @@ public class UpdateServiceCommandHandlerTests
             TotalSessions = 2,
             SessionDurationMinutes = 60,
             Price = 1000000m,
-            TeachingMode = TeachingMode.Online,
             Status = ServiceStatus.Draft
         };
 
@@ -410,7 +396,6 @@ public class UpdateServiceCommandHandlerTests
             TotalSessions: null,
             SessionDurationMinutes: null,
             Price: null,
-            TeachingMode: null,
             TrialLessonUrl: null,
             CoverImageUrl: null,
             Curriculum: new List<CurriculumItemInput>
@@ -461,7 +446,6 @@ public class UpdateServiceCommandHandlerTests
             TotalSessions: null,
             SessionDurationMinutes: null,
             Price: null,
-            TeachingMode: null,
             TrialLessonUrl: null,
             CoverImageUrl: null
         );

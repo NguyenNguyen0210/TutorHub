@@ -1,4 +1,5 @@
 using TutorHub.Domain.Entities;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Bookings.DTOs;
 
@@ -24,7 +25,9 @@ public static class SessionMapper
             IssueReportReason: session.IssueReportReason,
             IssueReportedAt: session.IssueReportedAt,
             TutorName: session.Enrollment?.TutorProfile?.User?.FullName,
-            SubjectName: session.Enrollment?.Subject?.Name
+            SubjectName: session.Enrollment?.Subject?.Name,
+            CancellationReason: session.Status == SessionStatus.Cancelled && session.ResolutionSource == "SingleSessionCancel"
+                ? session.ResolutionNotes : null
         );
     }
 

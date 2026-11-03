@@ -174,7 +174,7 @@ public class BusinessEventNotificationHandlerTests
         var reporterUserId = Guid.NewGuid();
         var reportId = Guid.NewGuid();
 
-        var users = new List<User> { reportedUser };
+        var users = new List<User> { reportedUser, new User { Id = reporterUserId, Email = "reporter@example.com", FullName = "Reporter" } };
         var notifications = new List<Notification>();
         var emailDeliveries = new List<EmailDelivery>();
 
@@ -200,10 +200,31 @@ public class BusinessEventNotificationHandlerTests
         await handler.Handle(domainEvent, CancellationToken.None);
 
         // Assert
-        notifications.Should().HaveCount(1);
-        notifications[0].UserId.Should().Be(reportedUserId);
-        notifications[0].Title.Should().Be("Official Warning Issued");
-        notifications[0].Message.Should().Contain("Violation of code of conduct");
+        notifications.Should().HaveCount(2);
+        var warning = notifications.Single(n => n.UserId == reportedUserId);
+        warning.Title.Should().Be("Cảnh báo từ TutorHub");
+        warning.Message.Should().Contain("Violation of code of conduct");
+        warning.DeepLink.Should().BeEmpty(); // The target cannot read the reporter's private report.
+        notifications.Single(n => n.UserId == reporterUserId).DeepLink.Should().Be($"/app/reports?reportId={reportId}");
+    }
+
+    [Theory]
+    [InlineData("Dismissed")]
+    [InlineData("SuspendUser")]
+    [InlineData("BanUser")]
+    [InlineData("RemoveContent")]
+    public async Task Handle_ReportResolved_NotifiesReporterForEveryDecision(string decision)
+    {
+        var reporter = new User { Id = Guid.NewGuid(), Email = "reporter@example.com", FullName = "Reporter" };
+        var notifications = new List<Notification>();
+        _dbContextMock.Setup(c => c.Users).Returns(MockDbSetHelper.CreateMockDbSet(new List<User> { reporter }).Object);
+        _dbContextMock.Setup(c => c.Notifications).Returns(MockDbSetHelper.CreateMockDbSet(notifications).Object);
+        _dbContextMock.Setup(c => c.EmailDeliveries).Returns(MockDbSetHelper.CreateMockDbSet(new List<EmailDelivery>()).Object);
+        var handler = new BusinessEventNotificationHandler(_dbContextMock.Object, StubClock.Instance, _loggerMock.Object, _notificationServiceMock.Object);
+        var domainEvent = new ReportResolvedEvent(Guid.NewGuid(), Guid.Empty, reporter.Id, decision, "Resolution text");
+        await handler.Handle(domainEvent, CancellationToken.None);
+        notifications.Should().ContainSingle().Which.DeepLink.Should().Be($"/app/reports?reportId={domainEvent.ReportId}");
+        notifications.Single().UserId.Should().Be(reporter.Id);
     }
 
     [Fact]

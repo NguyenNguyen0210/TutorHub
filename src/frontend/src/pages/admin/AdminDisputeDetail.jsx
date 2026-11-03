@@ -1,3 +1,5 @@
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
+import DisputeHistory from '@/components/disputes/DisputeHistory';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import adminService from '@/services/admin.service';
@@ -14,7 +16,6 @@ import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
 import { Textarea, Field } from '@/components/ui/Input';
-import { PageHeader } from '@/components/ui/StatCard';
 
 const STATUS_BADGES = {
   Open: { label: 'Mới mở', variant: 'danger' },
@@ -85,7 +86,7 @@ export default function AdminDisputeDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="space-y-6 lg:space-y-8">
         <DetailSkeleton />
       </div>
     );
@@ -211,7 +212,7 @@ export default function AdminDisputeDetail() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="space-y-6 lg:space-y-8">
       {/* Top Navigation */}
       <div className="flex items-center justify-between gap-4">
         <Link
@@ -236,19 +237,20 @@ export default function AdminDisputeDetail() {
       </div>
 
       {/* Header */}
-      <PageHeader
+      <WorkspacePageHeader
         title={
           <span className="flex items-center gap-2.5 flex-wrap">
-            <span>Hồ sơ điều tra & Bàn trọng tài tranh chấp</span>
+            <span>Chi tiết tranh chấp</span>
             <Badge variant={statusInfo.variant} size="md">
               {statusInfo.label}
             </Badge>
           </span>
         }
-        subtitle={`Mã vụ việc: ${id} • Hợp đồng #${enrollment?.id?.substring(0, 8) || '—'}`}
+        description={`Mã vụ việc: ${id} • Hợp đồng #${enrollment?.id?.substring(0, 8) || '—'}`}
       />
 
       {/* Invariant Trust Banner */}
+      {enrollment?.id && <Button as={Link} to={`/admin/enrollments/${enrollment.id}`} variant="outline">Xem hợp đồng liên quan</Button>}
       <div className="p-4 rounded-brand-lg bg-surface border border-border shadow-brand-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-caption">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-brand-md bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center shrink-0 border border-brand-primary-100">
@@ -375,49 +377,7 @@ export default function AdminDisputeDetail() {
           </div>
         </div>
 
-        {/* Uploaded Evidence Documents */}
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-caption font-bold text-fg flex items-center gap-1.5 m-0">
-              <Icon name="attach_file" size="xs" className="text-brand-primary-600" />
-              Tài liệu & Bằng chứng xác minh ({evidences.length})
-            </h3>
-            {hasNoEvidence && (
-              <span className="text-[11px] text-danger-strong font-medium">
-                Chưa có bằng chứng (Quy chế Q3 chặn phán quyết tài chính)
-              </span>
-            )}
-          </div>
-
-          {evidences.length === 0 ? (
-            <div className="p-4 rounded-brand-md bg-neutral-50 border border-dashed border-border text-center text-caption text-fg-muted">
-              Chưa có tài liệu minh chứng (ảnh chụp màn hình, biên bản) nào được gửi kèm.
-            </div>
-          ) : (
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-0 m-0 list-none">
-              {evidences.map((ev, idx) => (
-                <li key={ev.id || idx}>
-                  <a
-                    href={ev.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-3 rounded-brand-md bg-neutral-50 border border-border hover:border-brand-primary-500 hover:bg-neutral-100/60 transition-all flex items-center justify-between text-caption group"
-                  >
-                    <div className="truncate pr-2 space-y-0.5">
-                      <span className="font-semibold block truncate text-fg group-hover:text-brand-primary-700">
-                        {ev.fileName}
-                      </span>
-                      <span className="text-[11px] text-fg-muted font-mono block">
-                        {ev.fileSizeBytes ? `${Math.round(ev.fileSizeBytes / 1024)} KB` : ''} • {ev.contentType || 'file'}
-                      </span>
-                    </div>
-                    <Icon name="open_in_new" size="sm" className="text-brand-primary-600 shrink-0" />
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        {dispute && <DisputeHistory dispute={dispute} />}
 
         {/* Conversation Snippet */}
         {conversationSnippet && conversationSnippet.length > 0 && (

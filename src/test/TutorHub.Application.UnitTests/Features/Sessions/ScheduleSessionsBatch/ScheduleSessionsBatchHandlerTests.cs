@@ -57,7 +57,6 @@ public class ScheduleSessionsBatchHandlerTests : IDisposable
             TotalPrice = 1_000_000m,
             TotalSessions = 3,
             SessionDurationMinutes = 60,
-            TeachingMode = TeachingMode.Online
         };
         enrollment.Activate();
 
@@ -122,7 +121,6 @@ public class ScheduleSessionsBatchHandlerTests : IDisposable
             TotalPrice = 1_000_000m,
             TotalSessions = 1,
             SessionDurationMinutes = 60,
-            TeachingMode = TeachingMode.Online
         };
         enrollment.Activate();
         _context.Enrollments.Add(enrollment);

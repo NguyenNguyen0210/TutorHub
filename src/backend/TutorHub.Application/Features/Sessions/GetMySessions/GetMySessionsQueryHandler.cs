@@ -72,7 +72,6 @@ public class GetMySessionsQueryHandler : IRequestHandler<GetMySessionsQuery, IRe
                 s.StartAt,
                 s.EndAt,
                 s.Enrollment.SessionDurationMinutes,
-                s.Enrollment.TeachingMode,
                 s.Status
             ))
             .ToListAsync(cancellationToken);

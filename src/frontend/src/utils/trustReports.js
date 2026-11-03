@@ -1,0 +1,2 @@
+export const reportTypes = { UserConduct: 'Hành vi người dùng', ReviewViolation: 'Vi phạm đánh giá', ProfileViolation: 'Vi phạm hồ sơ', ServiceViolation: 'Vi phạm gói học', General: 'Báo cáo khác' };
+export const reportDecisions = { Dismissed: 'Không phát hiện vi phạm', WarningIssued: 'Cảnh báo vi phạm', SuspendUser: 'Tạm khóa tài khoản', BanUser: 'Cấm tài khoản', RemoveContent: 'Gỡ nội dung vi phạm' };

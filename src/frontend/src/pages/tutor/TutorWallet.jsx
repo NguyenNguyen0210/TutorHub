@@ -1,268 +1,76 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import walletService from '@/services/wallet.service';
-import { formatCurrency, formatDateTime } from '@/utils/formatters';
 import Money from '@/components/ui/Money';
-import { StatsSkeleton, TableSkeleton } from '@/components/common/Skeleton';
-import EmptyState from '@/components/common/EmptyState';
+import { StatsSkeleton } from '@/components/common/Skeleton';
 import ErrorState from '@/components/common/ErrorState';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
-import StatStrip from '@/components/common/StatStrip';
-import DataTable from '@/components/common/DataTable';
-import SignedAmount from '@/components/common/SignedAmount';
-import StateBadge from '@/components/common/StateBadge';
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
+import TutorWalletHistory from '@/components/tutor/wallet/TutorWalletHistory';
+import TutorEscrowDetails from '@/components/tutor/wallet/TutorEscrowDetails';
+import { MIN_TUTOR_WITHDRAWAL } from '@/utils/tutorWallet';
 
-const WITHDRAW_COLUMNS = [
-  { key: 'time', label: 'Thời gian yêu cầu' },
-  { key: 'bank', label: 'Ngân hàng thụ hưởng' },
-  { key: 'note', label: 'Ghi chú' },
-  { key: 'status', label: 'Trạng thái' },
-  { key: 'amount', label: 'Số tiền rút', align: 'right' },
-];
-
-/**
- * Quy trình Escrow dạng 3 bước ngang có spine.
- *
- * Màu tiêu đề bước = trạng thái tiền ở bước đó: `holding` (đang ký quỹ) →
- * `success` (đã đối soát) → trung tính (tiền ra khỏi ví). Bước 3 cố tình KHÔNG
- * dùng màu CTA `brand-primary-700` như bản cũ: màu CTA dành cho hành động, không
- * dành cho tiêu đề thông tin.
- */
-const ESCROW_STEPS = [
-  {
-    title: 'Bước 1: Giữ tiền hợp đồng',
-    body: 'Khi học viên mua gói, toàn bộ học phí nằm trong két Escrow trung lập (Pending).',
-    titleClass: 'text-holding-strong',
-  },
-  {
-    title: 'Bước 2: Giải ngân tự động',
-    body: 'Sau mỗi buổi học hoàn thành và qua thời gian bảo lưu 12h không có khiếu nại, tiền buổi học tự động chuyển vào số dư khả dụng.',
-    titleClass: 'text-success-strong',
-  },
-  {
-    title: 'Bước 3: Rút tiền về ngân hàng',
-    body: 'Rút thù lao về tài khoản ngân hàng nội địa bất kỳ lúc nào khi hạn mức đạt từ 50.000 ₫.',
-    titleClass: 'text-fg',
-  },
-];
-
-/**
- * Quản trị ví bảo chứng & Trung tâm tài chính Gia sư — Quản lý ví & giao dịch
- *.
- *
- * Bốn số dư đọc ngang như một dòng sổ cái: ký quỹ → khả dụng → phong tỏa → được
- * rút. Công thức hạn mức nổi thành một dòng phương trình ngay dưới strip thay vì
- * nhét dài gói trong `hint` của StatCard (bản cũ bị bó/khó đọc).
- *
- * Tuân thủ bất biến tài chính:
- *: Withdrawable = AvailableBalance.
- * - Hạn mức tối thiểu tạo lệnh rút: 50.000 ₫.
- */
 export default function TutorWallet() {
   const [wallet, setWallet] = useState(null);
-  const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const [showEscrow, setShowEscrow] = useState(false);
+  const [, setParams] = useSearchParams();
+  const [reload, setReload] = useState(0);
+  const retry = useCallback(() => setReload(value => value + 1), []);
   useEffect(() => {
-    let isMounted = true;
-    async function loadWalletData() {
-      try {
-        setLoading(true);
-        const [walletData, withdrawalRes] = await Promise.all([
-          walletService.getMyWallet(),
-          walletService.getWithdrawals({ pageSize: 15 }),
-        ]);
-        if (isMounted) {
-          setWallet(walletData);
-          setWithdrawals(withdrawalRes?.items || []);
-          setError(null);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err);
-        }
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
+    let cancelled = false;
+    setLoading(true); setError(null);
+    walletService.getMyWallet().then(result => { if (!cancelled) setWallet(result); })
+      .catch(err => { if (!cancelled) setError(err); }).finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [reload]);
+  const openWithdrawals = () => {
+    setParams(previous => { const next = new URLSearchParams(previous); next.set('tab', 'withdrawals'); next.delete('recordId'); next.delete('page'); return next; });
+    document.getElementById('wallet-history')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+  };
+  // AvailableBalance already excludes reserved withdrawals; do not subtract them again.
+  const available = wallet?.availableBalance || 0;
+  const canWithdraw = available >= MIN_TUTOR_WITHDRAWAL;
 
-    loadWalletData();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <StatsSkeleton count={4} />
-        <TableSkeleton rows={5} />
-      </div>
-    );
-  }
-
-  if (error || !wallet) {
-    return (
-      <div className="py-12">
-        <ErrorState
-          error={error}
-          title="Không thể tải ví bảo chứng"
-          onRetry={() => window.location.reload()}
-        />
-      </div>
-    );
-  }
-
-  // Withdrawable = Available - Held (không được rút phần đang giữ).
-  const withdrawable = wallet.availableBalance || 0;
-  const canWithdraw = withdrawable >= 50000;
-
-  return (
-    <div className="space-y-6">
-      {/* Page title row — 1 CTA duy nhất của trang */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <h1 className="text-headline-page text-fg tracking-tight">
-            Trung tâm tài chính &amp; Ví bảo chứng gia sư
-          </h1>
-          <p className="text-body-reg text-fg-secondary mt-1">
-            Quản trị minh bạch dòng tiền bảo chứng, thu nhập từng buổi học và hạn mức rút tiền.
-          </p>
+  return <div className="space-y-6 lg:space-y-8">
+    <WorkspacePageHeader title="Ví gia sư" description="Quản lý thu nhập từ hoạt động giảng dạy." />
+    {loading ? <div role="status" aria-label="Đang tải số dư ví"><StatsSkeleton count={3} /></div> : error || !wallet ? <ErrorState error={error} title="Chưa tải được số dư ví" onRetry={retry} /> : <>
+      <section aria-label="Số dư ví gia sư" className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1.3fr_1fr_1fr]">
+        <div className="flex min-w-0 flex-col rounded-2xl border border-success/20 bg-success-subtle p-5 md:col-span-2 xl:col-span-1 sm:p-6">
+          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-surface text-success-strong"><Icon name="account_balance_wallet" size="md" /></div>
+          <h2 className="text-body-reg font-medium text-success-strong">Số dư có thể rút</h2>
+          <p className="mt-2 text-[30px] font-semibold leading-tight text-success-strong sm:text-[32px]"><Money value={available} /></p>
+          <p className="mt-3 text-body-reg leading-relaxed text-fg-secondary">Thu nhập đã được giải ngân vào ví, sau phí sàn.</p>
+          <div className="mt-auto pt-5"><p className="mb-3 text-caption text-fg-secondary">Rút tối thiểu 50.000 ₫</p><Button as={canWithdraw ? Link : 'button'} to={canWithdraw ? '/tutor/wallet/withdraw' : undefined} disabled={!canWithdraw} fullWidth icon={<Icon name="payments" size="sm" />}>Rút tiền</Button></div>
         </div>
-        {canWithdraw ? (
-          <Button
-            as={Link}
-            to="/tutor/wallet/withdraw"
-            variant="primary"
-            size="md"
-            icon={<Icon name="payments" size="sm" />}
-            className="shrink-0"
-          >
-            Yêu cầu rút tiền về ngân hàng
-          </Button>
-        ) : (
-          <Button
-            variant="outline"
-            disabled
-            size="md"
-            title="Số dư khả dụng phải từ 50.000 ₫ trở lên mới được tạo lệnh rút."
-            icon={<Icon name="payments" size="sm" />}
-            className="shrink-0"
-          >
-            Hạn mức rút dưới 50.000 ₫
-          </Button>
-        )}
-      </div>
-
-      {/* 4 số dư — hàng sổ cái phẳng, số là nhân vật chính */}
-      <div>
-        <StatStrip
-          columns={3}
-          figures={[
-            {
-              key: 'pending',
-              label: 'Chờ giải ngân (Pending)',
-              value: <Money value={wallet.pendingBalance} />,
-              hint: 'Tạm giữ an toàn trong Escrow các hợp đồng đang học',
-              tone: 'holding',
-            },
-            {
-              key: 'available',
-              label: 'Số dư khả dụng / Được rút',
-              value: <Money value={withdrawable} />,
-              hint: 'Thu nhập các buổi học đã xong (sau trừ phí sàn)',
-              tone: 'success',
-            },
-            {
-              key: 'pendingWithdrawal',
-              label: 'Đang xử lý rút',
-              value: <Money value={wallet.pendingWithdrawal} />,
-              hint: 'Lệnh rút đang chờ phê duyệt/đối soát',
-              tone: 'muted',
-            },
-          ]}
-        />
-
-        <p className="text-body-reg text-fg-secondary mt-3 leading-relaxed tabular-nums">
-          <span className="font-semibold text-fg">Hạn mức được rút:</span>{' '}
-          <span className="font-bold text-fg">{formatCurrency(withdrawable)}</span>
-          <span className="ml-2 inline-block align-middle text-[11px] font-semibold text-fg-muted border border-border rounded-brand-sm px-1.5 py-0.5">
-            Tối thiểu 50.000 ₫
-          </span>
-        </p>
-      </div>
-
-      {/* Escrow Flow Explainer Banner — 3 bước ngang có spine */}
-      <section className="p-4 rounded-brand-lg bg-surface border border-border shadow-brand-sm">
-        <h2 className="flex items-center gap-2 text-caption font-bold text-fg uppercase tracking-wider">
-          <Icon name="info" size="xs" className="text-brand-primary-600" />
-          <span>Quy trình vận hành dòng tiền Escrow minh bạch</span>
-        </h2>
-        <ol className="grid grid-cols-1 gap-y-3 mt-3.5 md:grid-cols-3 md:gap-y-0 md:divide-x md:divide-border">
-          {ESCROW_STEPS.map((step) => (
-            <li key={step.title} className="md:px-5 md:first:pl-0 md:last:pr-0">
-              <p className={`text-[11px] font-bold uppercase tracking-wide ${step.titleClass}`}>
-                {step.title}
-              </p>
-              <p className="text-[11px] leading-relaxed text-fg-secondary mt-1">
-                {step.body}
-              </p>
-            </li>
-          ))}
-        </ol>
+        <button type="button" aria-expanded={showEscrow} aria-controls="escrow-details" onClick={() => setShowEscrow(value => !value)} className="flex min-w-0 flex-col rounded-2xl border border-holding/20 bg-holding-subtle p-5 text-left transition-colors hover:border-holding/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-6">
+          <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-surface text-holding-strong"><Icon name="shield" size="md" /></span>
+          <span className="text-body-reg font-medium text-holding-strong">Học phí chờ giải ngân</span>
+          <span className="mt-2 text-2xl font-semibold text-holding-strong"><Money value={wallet.pendingBalance} /></span>
+          <span className="mt-3 text-body-reg leading-relaxed text-fg-secondary">Học phí đang giữ trong Escrow, trước phí sàn.</span>
+          <span className="mt-auto inline-flex items-center gap-2 pt-5 text-body-reg font-semibold text-holding-strong">{showEscrow ? 'Thu gọn chi tiết ký quỹ' : 'Xem chi tiết ký quỹ'}<Icon name={showEscrow ? 'expand_less' : 'expand_more'} size="sm" /></span>
+        </button>
+        <div className="flex min-w-0 flex-col rounded-2xl border border-brand-primary-100 bg-brand-primary-50 p-5 sm:p-6">
+          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-surface text-primary"><Icon name="account_balance" size="md" /></div>
+          <h2 className="text-body-reg font-medium text-brand-primary-700">Yêu cầu rút đang xử lý</h2>
+          <p className="mt-2 text-2xl font-semibold text-brand-primary-700"><Money value={wallet.pendingWithdrawal} /></p>
+          <p className="mt-3 text-body-reg leading-relaxed text-fg-secondary">{wallet.pendingWithdrawal > 0 ? 'Đã tạm giữ khỏi số dư có thể rút, đang chờ duyệt hoặc chuyển tiền.' : 'Chưa có yêu cầu đang chờ.'}</p>
+          <Button variant="ghost" size="sm" className="mt-auto self-start px-0 pt-5 text-primary" onClick={openWithdrawals} iconRight={<Icon name="arrow_forward" size="sm" />}>Xem yêu cầu rút</Button>
+        </div>
       </section>
-
-      {/* Withdrawal History Table */}
-      <Card padding="lg" className="space-y-4">
-        <div className="flex items-center justify-between gap-3 pb-2 border-b border-border">
-          <h2 className="text-[20px] font-semibold text-fg tracking-tight">
-            Lịch sử lệnh rút tiền về ngân hàng
-          </h2>
-          <span className="text-caption text-fg-muted tabular-nums whitespace-nowrap">
-            {withdrawals.length} giao dịch gần nhất
-          </span>
-        </div>
-
-        {withdrawals.length === 0 ? (
-          <EmptyState
-            icon="history"
-            title="Chưa có giao dịch rút tiền nào"
-            description="Lệnh rút tiền của bạn sẽ hiển thị tại đây sau khi tạo yêu cầu."
-          />
-        ) : (
-          <DataTable
-            caption="Lịch sử lệnh rút tiền về ngân hàng của Gia sư"
-            columns={WITHDRAW_COLUMNS}
-            minWidth={680}
-          >
-            {withdrawals.map((row) => (
-              <tr key={row.id} className="hover:bg-neutral-50/60 transition-colors">
-                <td className="px-4 py-2.5 font-mono text-fg-muted whitespace-nowrap text-[12px]">
-                  {formatDateTime(row.requestedAt)}
-                </td>
-                <td className="px-4 py-2.5">
-                  <span className="font-semibold text-fg block">{row.bankName}</span>
-                  <span className="text-[11px] font-mono text-fg-muted">
-                    {row.accountNumber} ({row.accountHolderName})
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 text-fg-secondary">
-                  {row.note || 'Rút thù lao giảng dạy'}
-                </td>
-                <td className="px-4 py-2.5 whitespace-nowrap">
-                  <StateBadge status={row.status} domain="withdrawal" />
-                </td>
-                <td className="px-4 py-2.5 text-right">
-                  <SignedAmount amount={row.amount} direction="Debit" />
-                </td>
-              </tr>
-            ))}
-          </DataTable>
-        )}
-      </Card>
-    </div>
-  );
+      {showEscrow && <TutorEscrowDetails />}
+    </>}
+    <TutorWalletHistory />
+    <details className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
+      <summary className="cursor-pointer text-body-reg font-semibold text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Học phí được giải ngân như thế nào?</summary>
+      <p className="mt-3 text-body-reg text-fg-secondary">Tìm hiểu cách TutorHub giữ học phí và chuyển thu nhập vào ví.</p>
+      <ol className="mt-4 grid gap-4 text-body-reg leading-relaxed text-fg-secondary md:grid-cols-3">
+        <li><h3 className="mb-2 font-semibold text-holding-strong">1. Học viên ký quỹ</h3>Học phí gói học được giữ trong Escrow cho các buổi học của hợp đồng.</li>
+        <li><h3 className="mb-2 font-semibold text-success-strong">2. Thu nhập vào ví</h3>Sau buổi học và thời gian bảo lưu 12 giờ, học phí được giải ngân nếu không có sự cố cần xử lý. Thu nhập sau phí sàn được cộng vào số dư có thể rút.</li>
+        <li><h3 className="mb-2 font-semibold text-fg">3. Rút về ngân hàng</h3>Gửi yêu cầu từ 50.000 ₫. Theo dõi trạng thái trong lịch sử rút tiền đến khi chuyển tiền hoàn tất.</li>
+      </ol>
+    </details>
+  </div>;
 }

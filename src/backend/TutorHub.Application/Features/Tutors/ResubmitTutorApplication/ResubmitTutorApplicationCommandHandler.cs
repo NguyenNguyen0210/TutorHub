@@ -75,13 +75,10 @@ public class ResubmitTutorApplicationCommandHandler
             Subject = request.Subject?.Trim(),
             SubjectSub = request.SubjectSub?.Trim(),
             ExperienceYears = request.ExperienceYears,
-            TeachingMode = request.TeachingMode,
-            Address = request.Address?.Trim(),
-            Latitude = request.Latitude,
-            Longitude = request.Longitude,
             Methodology = request.Methodology?.Trim(),
             Achievements = request.Achievements?.Trim(),
-            DocumentsJson = request.DocumentsJson,
+            DocumentsJson = await ApplicationDocuments.ResolveAsync(_context, userId,
+                request.DocumentIds, request.DocumentsJson, cancellationToken),
             SubmittedAt = _clock.UtcNow
         };
 

@@ -1,4 +1,6 @@
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import studentWalletService from '@/services/studentWallet.service';
 import { formatCurrency, formatDateTime } from '@/utils/formatters';
 import { useToast } from '@/components/ui/Toast';
@@ -14,7 +16,6 @@ import EmptyState from '@/components/common/EmptyState';
 import DataTable from '@/components/common/DataTable';
 import SignedAmount from '@/components/common/SignedAmount';
 import StateBadge from '@/components/common/StateBadge';
-import { PageHeader } from '@/components/ui/StatCard';
 
 const TOPUP_COLUMNS = [
   { key: 'student', label: 'Học viên' },
@@ -40,9 +41,12 @@ const CELL_MUTED = 'px-4 py-3 font-mono text-fg-secondary whitespace-nowrap';
 
 export default function AdminStudentWallets() {
   const toast = useToast();
+  const [searchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const recordId = searchParams.get('recordId');
   const confirm = useConfirm();
 
-  const [activeTab, setActiveTab] = useState('topups');
+  const [activeTab, setActiveTab] = useState(requestedTab === 'withdrawals' ? 'withdrawals' : 'topups');
 
   // Top-Up Requests State
   const [topUps, setTopUps] = useState([]);
@@ -75,6 +79,14 @@ export default function AdminStudentWallets() {
   const [submittingAdjust, setSubmittingAdjust] = useState(false);
 
   // 1. Fetch Top-Up Requests
+  useEffect(() => {
+    if (!requestedTab) return;
+    setActiveTab(requestedTab === 'withdrawals' ? 'withdrawals' : 'topups');
+    setTopUpStatusFilter('All'); setWithdrawalStatusFilter('All'); setTopUpSearch('');
+  }, [requestedTab, recordId]);
+  useEffect(() => {
+    if (recordId) document.getElementById(`admin-wallet-record-${recordId}`)?.scrollIntoView({ block: 'center', behavior: 'auto' });
+  }, [recordId, topUps, withdrawals]);
   const fetchTopUps = useCallback(async () => {
     try {
       setLoadingTopUps(true);
@@ -83,14 +95,20 @@ export default function AdminStudentWallets() {
         pageNumber: 1,
         pageSize: 50,
       };
-      const res = await studentWalletService.adminGetTopUps(params);
-      setTopUps(res?.items || []);
+      let res = await studentWalletService.adminGetTopUps(params);
+      const items = [...(res?.items || [])];
+      while (recordId && !items.some(item => item.id === recordId) && res.hasNextPage) {
+        res = await studentWalletService.adminGetTopUps({ ...params, pageNumber: ++params.pageNumber });
+        items.push(...res.items);
+      }
+      setTopUps(items);
+      if (recordId && !items.some(item => item.id === recordId)) toast.error('Không tìm thấy yêu cầu nạp tiền được liên kết.');
     } catch {
       toast.error('Không thể tải danh sách nạp tiền học viên.');
     } finally {
       setLoadingTopUps(false);
     }
-  }, [topUpStatusFilter, toast]);
+  }, [topUpStatusFilter, toast, recordId]);
 
   // 2. Fetch Withdrawals
   const fetchWithdrawals = useCallback(async () => {
@@ -101,14 +119,20 @@ export default function AdminStudentWallets() {
         pageNumber: 1,
         pageSize: 50,
       };
-      const res = await studentWalletService.adminGetWithdrawals(params);
-      setWithdrawals(res?.items || []);
+      let res = await studentWalletService.adminGetWithdrawals(params);
+      const items = [...(res?.items || [])];
+      while (recordId && !items.some(item => item.id === recordId) && res.hasNextPage) {
+        res = await studentWalletService.adminGetWithdrawals({ ...params, pageNumber: ++params.pageNumber });
+        items.push(...res.items);
+      }
+      setWithdrawals(items);
+      if (recordId && !items.some(item => item.id === recordId)) toast.error('Không tìm thấy yêu cầu rút tiền được liên kết.');
     } catch {
       toast.error('Không thể tải danh sách rút tiền học viên.');
     } finally {
       setLoadingWithdrawals(false);
     }
-  }, [withdrawalStatusFilter, toast]);
+  }, [withdrawalStatusFilter, toast, recordId]);
 
   useEffect(() => {
     if (activeTab === 'topups') fetchTopUps();
@@ -264,10 +288,10 @@ export default function AdminStudentWallets() {
   });
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Quản trị Ví Học Viên (Student Wallets)"
-        subtitle="Đối soát lịch sử nạp tiền qua Cổng VNPay, xử lý rút tiền về ngân hàng và kiểm soát sổ cái học viên."
+    <div className="space-y-6 lg:space-y-8">
+      <WorkspacePageHeader
+        title="Ví học viên"
+        description="Đối soát lịch sử nạp tiền qua Cổng VNPay, xử lý rút tiền về ngân hàng và kiểm soát sổ cái học viên."
       />
 
       {/* Tabs */}
@@ -335,7 +359,7 @@ export default function AdminStudentWallets() {
                 {filteredTopUps.map((row) => {
                   const isPending = row.status === 'Pending';
                   return (
-                    <tr key={row.id} className="hover:bg-neutral-50/80 transition-colors">
+                    <tr key={row.id} id={`admin-wallet-record-${row.id}`} className={row.id === recordId ? 'bg-brand-primary-50 ring-1 ring-inset ring-brand-primary-200' : 'hover:bg-neutral-50/80 transition-colors'}>
                       <td className={CELL}>
                         <span className="font-bold text-fg block">{row.studentName || 'Học viên'}</span>
                         <span className="text-[11px] text-fg-muted font-mono block">{row.studentEmail}</span>
@@ -430,7 +454,7 @@ export default function AdminStudentWallets() {
                   const isCompleted = w.status === 'Completed';
                   const isFailed = w.status === 'Failed';
                   return (
-                    <tr key={w.id} className="hover:bg-neutral-50/80 transition-colors">
+                    <tr key={w.id} id={`admin-wallet-record-${w.id}`} className={w.id === recordId ? 'bg-brand-primary-50 ring-1 ring-inset ring-brand-primary-200' : 'hover:bg-neutral-50/80 transition-colors'}>
                       <td className={CELL}>
                         <span className="font-bold text-fg block">{w.studentName || 'Học viên'}</span>
                         <span className="text-[11px] text-fg-muted font-mono block">{w.studentEmail}</span>
@@ -506,7 +530,7 @@ export default function AdminStudentWallets() {
               icon={<Icon name="tune" size="sm" className="text-brand-primary-600" />}
             />
             <p className="text-caption text-fg-muted">
-              Hành động này áp dụng các nghiệp vụ đền bù hoặc xử lý offline đặc biệt. Mọi biến động được ghi vào sổ cái bất biến với dấu vết tài khoản Admin thực hiện.
+              Hành động này áp dụng các nghiệp vụ đền bù hoặc xử lý thủ công đặc biệt. Mọi biến động được ghi vào sổ cái bất biến với dấu vết tài khoản Admin thực hiện.
             </p>
 
             <form onSubmit={handleAdjustWallet} className="space-y-4 pt-2">

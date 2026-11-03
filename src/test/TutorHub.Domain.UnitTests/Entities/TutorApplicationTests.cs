@@ -14,7 +14,6 @@ public class TutorApplicationTests
         Bio = "Sample bio",
         Education = "Sample education",
         ExperienceYears = 3,
-        TeachingMode = TeachingMode.Online,
         SubmittedAt = DateTime.UtcNow
         // Status defaults to Pending
     };

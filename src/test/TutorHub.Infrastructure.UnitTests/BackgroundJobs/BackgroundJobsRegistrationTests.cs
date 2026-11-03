@@ -8,7 +8,7 @@ using TutorHub.Infrastructure.BackgroundServices;
 namespace TutorHub.Infrastructure.UnitTests.BackgroundJobs;
 
 /// <summary>
-/// Background jobs are gated behind <c>BackgroundJobs:Enabled</c> (default true).
+/// All five background jobs must be registered, including when a legacy flag is supplied.
 /// </summary>
 public class BackgroundJobsRegistrationTests
 {
@@ -69,11 +69,11 @@ public class BackgroundJobsRegistrationTests
     }
 
     [Fact]
-    public void FlagFalse_RegistersNoneOfTheJobs()
+    public void LegacyFlagFalse_CannotDisableJobs()
     {
         var services = BuildServices(flagValue: "false");
 
-        RegisteredJobImplementations(services).Should().BeEmpty();
+        RegisteredJobImplementations(services).Should().BeEquivalentTo(JobTypes);
     }
 
     private sealed class StubHostEnvironment : IHostEnvironment

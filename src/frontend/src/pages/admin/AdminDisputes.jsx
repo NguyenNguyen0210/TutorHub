@@ -1,3 +1,4 @@
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
@@ -11,7 +12,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Icon from '@/components/ui/Icon';
 import Input from '@/components/ui/Input';
-import StatCard, { PageHeader } from '@/components/ui/StatCard';
+import StatCard from '@/components/ui/StatCard';
 import { useToast } from '@/components/ui/Toast';
 
 const STATUS_CONFIG = {
@@ -111,10 +112,10 @@ export default function AdminDisputes() {
   ).length;
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="Bàn trọng tài — Phân xử tranh chấp buổi học"
-        subtitle="Giám sát chứng cứ đối soát, phân bổ bồi hoàn và thực thi phán quyết trọng tài công bằng, minh bạch"
+    <div className="space-y-6 lg:space-y-8">
+      <WorkspacePageHeader
+        title="Tranh chấp học phí"
+        description="Giám sát chứng cứ đối soát, phân bổ bồi hoàn và thực thi phán quyết trọng tài công bằng, minh bạch"
       />
 
       {/* Trust Banner */}
@@ -140,29 +141,29 @@ export default function AdminDisputes() {
       </div>
 
       {/* KPI Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <StatCard
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard appearance="soft"
           label="Tổng số vụ việc"
           value={String(totalCount)}
           mono={false}
           icon={<Icon name="folder" size="md" />}
           tone="neutral"
         />
-        <StatCard
+        <StatCard appearance="soft"
           label="Mới mở (Cần tiếp nhận)"
           value={String(openCount)}
           mono={false}
           icon={<Icon name="error_outline" size="md" />}
           tone="danger"
         />
-        <StatCard
+        <StatCard appearance="soft"
           label="Đang điều tra"
           value={String(underReviewCount)}
           mono={false}
           icon={<Icon name="search" size="md" />}
           tone="info"
         />
-        <StatCard
+        <StatCard appearance="soft"
           label="Cần can thiệp ví"
           value={String(interventionCount)}
           mono={false}

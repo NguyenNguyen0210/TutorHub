@@ -71,7 +71,7 @@ public class AdminMoveDisputeUnderReviewCommandHandler : IRequestHandler<AdminMo
                 DisputeId = e.DisputeId,
                 UploadedByUserId = e.UploadedByUserId,
                 FileName = e.FileName,
-                FileUrl = e.FileUrl,
+                FileUrl = $"/api/v1/disputes/{e.DisputeId}/evidence/{e.Id}/download",
                 ContentType = e.ContentType,
                 FileSizeBytes = e.FileSizeBytes,
                 CreatedAt = e.CreatedAt

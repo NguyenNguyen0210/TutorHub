@@ -17,5 +17,9 @@ public record UserTransactionDto(
     DateTime? RefundedAt
 )
 {
+    public TransactionType Type { get; init; }
+    public string? ServiceTitle { get; init; }
+    public BookingStatus BookingStatus { get; init; }
+    public Guid? EnrollmentId { get; init; }
     public decimal? CommissionAmount => PlatformFeeAmount;
 }

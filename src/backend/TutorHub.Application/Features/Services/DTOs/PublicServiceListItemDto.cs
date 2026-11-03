@@ -13,7 +13,6 @@ public record PublicServiceListItemDto(
     int TotalSessions,
     int SessionDurationMinutes,
     decimal Price,
-    string TeachingMode,
     bool HasTrialLesson,
     Guid TutorProfileId,
     Guid TutorUserId,

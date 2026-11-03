@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
+using System.Text.RegularExpressions;
+using System.Security.Cryptography;
 using TutorHub.Application.Common.Storage;
 using TutorHub.Infrastructure.Persistence;
 
@@ -19,11 +21,66 @@ namespace TutorHub.Api.IntegrationTests;
 /// </summary>
 public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
 {
-    private static readonly string Port = Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5433";
-    private static readonly string Password = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD") ?? "123456";
+    private static readonly string LocalDatabaseConnectionString = GetLocalDatabaseConnectionString();
+    private static readonly string DatabaseName = GetTestDatabaseName();
 
     public static readonly string IntegrationConnectionString =
-        $"Host=localhost;Port={Port};Database=tutorhub_integration;Username=tutorhub;Password={Password}";
+        WithDatabase(DatabaseName);
+
+    private static string GetLocalDatabaseConnectionString()
+    {
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
+            while (directory is not null)
+            {
+                var dotenv = Path.Combine(directory.FullName, ".env");
+                if (File.Exists(dotenv))
+                {
+                    connectionString = File.ReadLines(dotenv)
+                        .Select(line => line.Trim())
+                        .Where(line => line.StartsWith("ConnectionStrings__DefaultConnection=", StringComparison.Ordinal))
+                        .Select(line => line.Split('=', 2)[1].Trim().Trim('"', '\''))
+                        .FirstOrDefault();
+                    break;
+                }
+
+                directory = directory.Parent;
+            }
+        }
+
+        // CI provisions PostgreSQL separately, so support its existing test-only variables.
+        connectionString ??= $"Host=localhost;Port={Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5433"};" +
+            $"Database=postgres;Username=tutorhub;Password={Environment.GetEnvironmentVariable("POSTGRES_PASSWORD") ?? "123456"}";
+
+        var builder = new NpgsqlConnectionStringBuilder(connectionString);
+        if (builder.Host is not ("localhost" or "127.0.0.1" or "::1"))
+        {
+            throw new InvalidOperationException("Integration tests require local PostgreSQL; refusing to use a remote database.");
+        }
+
+        return builder.ConnectionString;
+    }
+
+    private static string WithDatabase(string database)
+    {
+        var builder = new NpgsqlConnectionStringBuilder(LocalDatabaseConnectionString)
+        {
+            Database = database
+        };
+        return builder.ConnectionString;
+    }
+
+    private static string GetTestDatabaseName()
+    {
+        var name = Environment.GetEnvironmentVariable("POSTGRES_TEST_DATABASE") ?? "tutorhub_integration";
+        if (!Regex.IsMatch(name, @"^tutorhub_integration(?:_[a-z0-9_]+)?$", RegexOptions.CultureInvariant))
+        {
+            throw new InvalidOperationException("POSTGRES_TEST_DATABASE must start with tutorhub_integration and contain only lowercase letters, digits, or underscores.");
+        }
+        return name;
+    }
 
     private static readonly object Sync = new();
     private static bool _initialized;
@@ -41,7 +98,16 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:DefaultConnection"] = IntegrationConnectionString,
-                ["PlatformFeeRate"] = "0.10"
+                ["PlatformFeeRate"] = "0.10",
+                ["Jwt:Secret"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)),
+                ["RefreshToken:Pepper"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)),
+                ["VnPay:TmnCode"] = "TESTTMN",
+                ["VnPay:HashSecret"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)),
+                ["VnPay:ReturnUrl"] = "http://localhost:5173/payment/return",
+                ["CloudflareR2:AccountId"] = "integration-test",
+                ["CloudflareR2:BucketName"] = "integration-test",
+                ["CloudflareR2:AccessKeyId"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)),
+                ["CloudflareR2:SecretAccessKey"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(32))
             });
         });
 
@@ -73,8 +139,9 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
     }
 
     /// <summary>
-    /// Creates the integration database (if missing) and applies all migrations.
-    /// Safe to call multiple times; runs once per test process.
+    /// Recreates the dedicated integration database and applies all migrations.
+    /// The strict name allow-list makes the destructive reset impossible to run
+    /// against the development or production database. Runs once per test process.
     /// </summary>
     public static void EnsureDatabase()
     {
@@ -85,20 +152,14 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
                 return;
             }
 
-            var maintenanceCs =
-                $"Host=localhost;Port={Port};Database=postgres;Username=tutorhub;Password={Password}";
+            var maintenanceCs = WithDatabase("postgres");
+            NpgsqlConnection.ClearAllPools();
             using (var conn = new NpgsqlConnection(maintenanceCs))
             {
                 conn.Open();
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT 1 FROM pg_database WHERE datname = 'tutorhub_integration'";
-                var exists = cmd.ExecuteScalar() != null;
-                if (!exists)
-                {
-                    using var create = conn.CreateCommand();
-                    create.CommandText = "CREATE DATABASE tutorhub_integration";
-                    create.ExecuteNonQuery();
-                }
+                using var reset = conn.CreateCommand();
+                reset.CommandText = $"DROP DATABASE IF EXISTS \"{DatabaseName}\" WITH (FORCE); CREATE DATABASE \"{DatabaseName}\"";
+                reset.ExecuteNonQuery();
             }
 
             var options = new DbContextOptionsBuilder<AppDbContext>()

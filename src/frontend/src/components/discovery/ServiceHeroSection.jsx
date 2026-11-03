@@ -1,76 +1,58 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
-import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
-import Money from '@/components/ui/Money';
+import ServiceHeroVisual from './ServiceHeroVisual';
+
+const DEFAULT_TAGS = [
+  'Luyện thi THPT',
+  'IELTS',
+  'Tiếng Anh giao tiếp',
+  'Toán nâng cao',
+  'Lập trình',
+];
 
 export default function ServiceHeroSection({
   searchKeyword,
   setSearchKeyword,
   onSearchSubmit,
-  popularTags = [
-    'Luyện thi THPT',
-    'IELTS',
-    'Tiếng Anh giao tiếp',
-    'Toán nâng cao',
-    'Lập trình',
-    'Kỹ năng mềm',
-  ],
+  popularTags = DEFAULT_TAGS,
   onTagClick,
-  sampleServices = [],
 }) {
-  const visibleSamples = Array.isArray(sampleServices) ? sampleServices.slice(0, 3) : [];
-  const showSamples = visibleSamples.length > 0;
-
   return (
-    <section className="relative py-10 sm:py-12 bg-brand-primary-50 border-b border-brand-primary-100">
-      <div className="page-shell">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          {/* Left Column: Breadcrumb, Headline, Search, Popular Tags */}
-          <div className={`${showSamples ? 'lg:col-span-7' : 'lg:col-span-12 max-w-3xl'} space-y-4`}>
-            {/* Breadcrumb */}
-            <nav className="flex items-center gap-1.5 text-[12px] font-medium text-neutral-500" aria-label="Breadcrumb">
-              <Link to="/" className="text-neutral-500 hover:text-brand-primary-600 transition-colors">
-                Trang chủ
-              </Link>
-              <span className="text-neutral-300">›</span>
-              <span className="text-brand-primary-600 font-semibold">Dịch vụ học tập</span>
-            </nav>
+    <section className="relative overflow-hidden border-b border-[color:var(--mkt-line)] bg-gradient-to-br from-blue-50 via-white to-sky-50 py-10 sm:py-14 lg:py-16">
+      <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:radial-gradient(#bfdbfe_1px,transparent_1px)] [background-size:22px_22px]" aria-hidden="true" />
+      <div className="pointer-events-none absolute -right-32 -top-40 h-[420px] w-[420px] rounded-full bg-blue-200/40 blur-3xl" aria-hidden="true" />
 
-            <h1 className="max-w-xl border-l-4 border-brand-primary-600 pl-5 text-[34px] sm:text-[44px] font-bold text-neutral-900 leading-[1.12] tracking-[-0.03em]">
-              Gói học rõ lộ trình, minh bạch học phí
+      <div className="page-shell relative">
+        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:gap-14">
+          <div>
+            <h1 className="mkt-display max-w-3xl text-[38px] leading-[1.1] tracking-[-0.025em] text-[color:var(--mkt-ink)] sm:text-[48px] lg:text-[54px]">
+              Chọn đúng gói học.
+              <span className="block text-[color:var(--mkt-cobalt)]">Theo đúng lộ trình của bạn.</span>
             </h1>
 
-            <p className="text-[13.5px] sm:text-[14.5px] text-neutral-600 max-w-xl leading-relaxed">
-              Mỗi gói ghi rõ số buổi, giá mỗi buổi và học phí trọn gói —
-              kèm buổi học thử để bạn yên tâm bắt đầu.
+            <p className="mt-5 max-w-2xl text-base leading-7 text-[color:var(--mkt-body)] sm:text-[17px]">
+              So sánh số buổi, thời lượng và học phí trọn gói trước khi đăng ký. Mỗi dịch vụ đều gắn với hồ sơ gia sư minh bạch.
             </p>
 
-            {/* Floating Search Bar */}
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
+              onSubmit={(event) => {
+                event.preventDefault();
                 onSearchSubmit(searchKeyword);
               }}
-              className="relative w-full max-w-[600px] h-16 flex items-center bg-surface p-1.5 rounded-brand-xl border border-neutral-200 shadow-brand-md hover:shadow-brand-lg focus-within:ring-2 focus-within:ring-brand-primary-600/20 focus-within:border-brand-primary-600 transition-all"
+              className="mt-7 flex min-h-16 w-full max-w-[680px] items-center gap-2 rounded-2xl border border-blue-200 bg-white p-1.5 shadow-[0_16px_40px_-20px_rgba(37,99,235,0.45)] transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100"
               role="search"
               aria-label="Tìm kiếm dịch vụ học tập"
             >
-              <span className="pl-3.5 pr-2 text-neutral-400 pointer-events-none">
-                <Icon name="search" size="md" />
-              </span>
-
-              <Input
-                type="text"
+              <Icon name="search" size="md" className="ml-3 text-blue-600" />
+              <input
+                type="search"
                 value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
-                placeholder="Tìm gói học hoặc kỹ năng…"
+                onChange={(event) => setSearchKeyword(event.target.value)}
+                placeholder="Bạn muốn học môn gì hoặc kỹ năng nào?"
                 aria-label="Từ khóa tìm kiếm gói học"
-                className="flex-1 !border-none !shadow-none !bg-transparent text-[13.5px] placeholder:text-neutral-400 focus:!ring-0 px-1 h-full"
+                className="h-12 min-w-0 flex-1 bg-transparent px-1 text-base text-slate-900 outline-none placeholder:text-slate-500"
               />
-
               {searchKeyword && (
                 <button
                   type="button"
@@ -78,33 +60,30 @@ export default function ServiceHeroSection({
                     setSearchKeyword('');
                     onSearchSubmit('');
                   }}
-                  className="w-11 h-11 mr-1 inline-flex items-center justify-center rounded-brand-md text-neutral-400 hover:text-neutral-600 transition-colors"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
                   aria-label="Xóa từ khóa"
                 >
-                  <Icon name="close" size="xs" />
+                  <Icon name="close" size="sm" />
                 </button>
               )}
-
-              <Button
+              <button
                 type="submit"
-                variant="primary"
-                size="md"
-                className="!rounded-brand-lg px-4 h-[3.25rem] text-[13px] font-semibold shrink-0 gap-1.5 shadow-brand-sm"
+                className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
               >
-                <span>Tìm dịch vụ</span>
-                <Icon name="arrow_forward" size="xs" />
-              </Button>
+                <span className="hidden sm:inline">Tìm dịch vụ</span>
+                <span className="sm:hidden">Tìm</span>
+                <Icon name="arrow_forward" size="sm" />
+              </button>
             </form>
 
-            {/* Popular Tags */}
-            <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[12.5px]">
-              <span className="font-semibold text-neutral-500">Phổ biến:</span>
-              {(popularTags ?? []).map((tag) => (
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-slate-700">Tìm nhanh:</span>
+              {popularTags.map((tag) => (
                 <button
                   key={tag}
                   type="button"
                   onClick={() => onTagClick(tag)}
-                  className="min-h-9 px-2.5 py-1 rounded-pill bg-white/90 hover:bg-white text-neutral-700 hover:text-brand-primary-600 border border-neutral-200/80 hover:border-brand-primary-600/40 shadow-brand-sm font-medium text-[11.5px] transition-all cursor-pointer"
+                  className="inline-flex min-h-10 items-center rounded-full border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   {tag}
                 </button>
@@ -112,69 +91,9 @@ export default function ServiceHeroSection({
             </div>
           </div>
 
-          {/* Right Column: Real package mini-cards — hidden when no data */}
-          {showSamples && (
-            <div className="lg:col-span-5">
-              <div className="w-full max-w-[460px] mx-auto lg:ml-auto space-y-2.5">
-                <h2 className="text-[13px] font-semibold text-neutral-700">
-                  Gói học đang được quan tâm
-                </h2>
-                {visibleSamples.map((service, index) => {
-                  const totalSessions = Number(service.totalSessions) || 0;
-                  const sessionDuration = Number(service.sessionDurationMinutes) || 0;
-                  const price = Number(service.price) || 0;
-                  const sessionLabel =
-                    totalSessions > 0 && sessionDuration > 0
-                      ? `${totalSessions} buổi · ${sessionDuration} phút/buổi`
-                      : totalSessions > 0
-                        ? `${totalSessions} buổi`
-                        : null;
-                  return (
-                    <Link
-                      key={service.id ?? service.title ?? index}
-                      to={`/services/${service.id}`}
-                      className="group flex items-center justify-between gap-3 bg-surface rounded-brand-lg border border-neutral-200/90 hover:shadow-brand-md hover:border-brand-primary-300 transition-all p-4"
-                    >
-                      <div className="min-w-0 space-y-1">
-                        <span className="inline-block text-[11.5px] font-medium line-clamp-1 text-brand-primary-700">
-                          {service.subjectName || service.categoryName || 'Gói học'}
-                        </span>
-                        <p
-                          title={service.title}
-                          className="text-[13.5px] font-bold text-neutral-900 group-hover:text-brand-primary-600 transition-colors line-clamp-1 leading-snug"
-                        >
-                          {service.title}
-                        </p>
-                        {sessionLabel && (
-                          <p className="flex items-center gap-1 text-[12px] text-neutral-500 font-medium">
-                            <Icon name="schedule" size="xs" className="text-brand-primary-600" />
-                            <span>{sessionLabel}</span>
-                          </p>
-                        )}
-                      </div>
-                      <div className="shrink-0 text-right space-y-0.5">
-                        {price > 0 && (
-                          <>
-                            <span className="text-[10.5px] text-neutral-500 font-medium block">
-                              Trọn gói
-                            </span>
-                            <Money
-                              value={price}
-                              className="text-[15px] font-extrabold text-brand-primary-600"
-                            />
-                          </>
-                        )}
-                        <span className="flex items-center justify-end gap-0.5 text-[12px] font-semibold text-neutral-400 group-hover:text-brand-primary-600 transition-colors">
-                          <span>Xem gói</span>
-                          <Icon name="arrow_forward" size="xs" />
-                        </span>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          <div className="hidden lg:flex items-center justify-center">
+            <ServiceHeroVisual />
+          </div>
         </div>
       </div>
     </section>
@@ -187,15 +106,4 @@ ServiceHeroSection.propTypes = {
   onSearchSubmit: PropTypes.func.isRequired,
   popularTags: PropTypes.arrayOf(PropTypes.string),
   onTagClick: PropTypes.func.isRequired,
-  sampleServices: PropTypes.arrayOf(
-    PropTypes.shape({
-      id: PropTypes.string,
-      title: PropTypes.string,
-      subjectName: PropTypes.string,
-      categoryName: PropTypes.string,
-      totalSessions: PropTypes.number,
-      sessionDurationMinutes: PropTypes.number,
-      price: PropTypes.number,
-    }),
-  ),
 };

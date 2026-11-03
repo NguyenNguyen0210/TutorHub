@@ -18,6 +18,8 @@ public class DisputeEvidenceConfiguration : IEntityTypeConfiguration<DisputeEvid
             .HasMaxLength(1024)
             .IsRequired();
 
+        builder.Property(e => e.ObjectKey).HasMaxLength(512);
+
         builder.Property(e => e.ContentType)
             .HasMaxLength(100)
             .IsRequired();
@@ -39,5 +41,6 @@ public class DisputeEvidenceConfiguration : IEntityTypeConfiguration<DisputeEvid
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(e => e.DisputeId);
+        builder.HasOne(e => e.Response).WithMany().HasForeignKey(e => e.ResponseId).OnDelete(DeleteBehavior.Restrict);
     }
 }

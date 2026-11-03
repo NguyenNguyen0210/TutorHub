@@ -27,6 +27,5 @@ public record BookingDto(
     decimal TotalPrice = 0,
     int TotalSessions = 1,
     int SessionDurationMinutes = 60,
-    TeachingMode TeachingMode = TeachingMode.Online,
     EnrollmentDto? Enrollment = null
 );

@@ -7,11 +7,8 @@ import {
   BIO_MAX,
   AVATAR_ACCEPT,
   DEGREE_ACCEPT,
-  GENDER_OPTIONS,
   GRADE_LEVELS,
   POPULAR_SUBJECTS,
-  TEACHING_MODE_OPTIONS,
-  needsOfflineArea,
   toggleListValue,
 } from './applicationFormUtils';
 
@@ -163,7 +160,7 @@ ChoiceCard.propTypes = {
   className: PropTypes.string,
 };
 
-/** Nút chọn dạng pill (môn học, hình thức giảng dạy). */
+/** Nút chọn dạng pill cho môn học và khối lớp. */
 function PillToggle({ active, onClick, children }) {
   return (
     <button
@@ -190,11 +187,8 @@ PillToggle.propTypes = {
 
 const formDataShape = PropTypes.shape({
   fullName: PropTypes.string,
-  dob: PropTypes.string,
-  gender: PropTypes.string,
   phone: PropTypes.string,
   email: PropTypes.string,
-  address: PropTypes.string,
   avatarUrl: PropTypes.string,
   avatarPreview: PropTypes.string,
   bio: PropTypes.string,
@@ -208,8 +202,6 @@ const formDataShape = PropTypes.shape({
   experienceYears: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   targetStudents: PropTypes.arrayOf(PropTypes.string),
   achievements: PropTypes.string,
-  teachingMode: PropTypes.string,
-  offlineArea: PropTypes.string,
   subjects: PropTypes.arrayOf(PropTypes.string),
   grades: PropTypes.arrayOf(PropTypes.string),
   methodology: PropTypes.string,
@@ -244,7 +236,7 @@ export function PersonalInfoStep({
         description="Hãy chia sẻ một số thông tin cơ bản để chúng tôi hiểu rõ hơn về bạn."
       />
 
-      {/* Họ và tên + Ngày sinh */}
+      {/* Thông tin được lưu vào tài khoản khi nộp hồ sơ. */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Họ và tên" htmlFor="tutor-name" required>
           <IconInput
@@ -255,50 +247,6 @@ export function PersonalInfoStep({
             placeholder="Nguyễn Văn A"
           />
         </Field>
-        <Field label="Ngày sinh" htmlFor="tutor-dob" required>
-          <IconInput
-            id="tutor-dob"
-            type="date"
-            icon="calendar_month"
-            value={formData.dob}
-            onChange={(e) => onFieldChange('dob', e.target.value)}
-          />
-        </Field>
-      </div>
-
-      {/* Giới tính + Số điện thoại */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <GroupLabel required>Giới tính</GroupLabel>
-          <div className="flex items-center gap-4 h-10" role="group" aria-label="Giới tính">
-            {GENDER_OPTIONS.map((g) => {
-              const isChecked = formData.gender === g;
-              return (
-                <button
-                  key={g}
-                  type="button"
-                  onClick={() => onFieldChange('gender', g)}
-                  aria-pressed={isChecked}
-                  className="flex items-center gap-2 cursor-pointer group"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      'w-4 h-4 rounded-full border flex items-center justify-center transition-all',
-                      isChecked
-                        ? 'border-brand-primary-600 bg-brand-primary-600'
-                        : 'border-border bg-surface group-hover:border-neutral-400'
-                    )}
-                  >
-                    {isChecked && <span className="w-1.5 h-1.5 rounded-full bg-surface" />}
-                  </span>
-                  <span className="text-caption font-medium text-fg-secondary">{g}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         <Field label="Số điện thoại" htmlFor="tutor-phone" required>
           <IconInput
             id="tutor-phone"
@@ -318,21 +266,11 @@ export function PersonalInfoStep({
           type="email"
           icon="mail"
           value={formData.email}
-          onChange={(e) => onFieldChange('email', e.target.value)}
+          readOnly
           placeholder="nguyenvana@example.com"
         />
       </Field>
-
-      {/* Địa chỉ hiện tại */}
-      <Field label="Địa chỉ hiện tại" htmlFor="tutor-address" required>
-        <IconInput
-          id="tutor-address"
-          icon="location_on"
-          value={formData.address}
-          onChange={(e) => onFieldChange('address', e.target.value)}
-          placeholder="Quận Cầu Giấy, Hà Nội"
-        />
-      </Field>
+      <p className="text-caption text-fg-muted">Tên, số điện thoại và ảnh đại diện sẽ được cập nhật vào tài khoản khi bạn nộp hồ sơ. Email là địa chỉ đăng nhập của bạn.</p>
 
       {/* Ảnh đại diện */}
       <div>
@@ -486,7 +424,7 @@ export function EducationStep({
             icon="cloud_upload"
             iconSize="xl"
             primary="Chọn tệp văn bằng hoặc kéo thả vào đây"
-            secondary="Hỗ trợ PDF, JPG, PNG tối đa 10MB mỗi tệp"
+            secondary="Hỗ trợ PDF, JPG, PNG tối đa 5MB mỗi tệp"
           />
           <input
             ref={degreeInputRef}
@@ -631,47 +569,8 @@ export function SubjectsStep({ formData, onFieldChange }) {
       <StepHeading
         step={4}
         title="Môn học & lớp dạy"
-        description="Chọn hình thức bạn có thể đáp ứng và môn học sở trường."
+        description="Chọn môn học sở trường và khối lớp bạn sẵn sàng giảng dạy trực tuyến."
       />
-
-      {/* Hình thức giảng dạy */}
-      <div>
-        <GroupLabel required>Hình thức giảng dạy</GroupLabel>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {TEACHING_MODE_OPTIONS.map((m) => {
-            const selected = formData.teachingMode === m.key;
-            return (
-              <button
-                key={m.key}
-                type="button"
-                onClick={() => onFieldChange('teachingMode', m.key)}
-                aria-pressed={selected}
-                className={cn(
-                  'p-3.5 rounded-brand-lg border-2 text-left transition-all cursor-pointer',
-                  selected
-                    ? 'border-brand-primary-600 bg-brand-primary-50/50 shadow-brand-sm'
-                    : 'border-border hover:bg-neutral-50'
-                )}
-              >
-                <span className="font-bold text-caption text-fg block">{m.label}</span>
-                <span className="text-[11px] text-fg-muted mt-0.5 block">{m.desc}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Khu vực nhận dạy trực tiếp */}
-      {needsOfflineArea(formData.teachingMode) && (
-        <Field label="Khu vực nhận dạy trực tiếp (Quận/Huyện)" htmlFor="tutor-area" required>
-          <Input
-            id="tutor-area"
-            value={formData.offlineArea}
-            onChange={(e) => onFieldChange('offlineArea', e.target.value)}
-            placeholder="Ví dụ: Quận Cầu Giấy, Nam Từ Liêm, Hà Nội"
-          />
-        </Field>
-      )}
 
       {/* Môn học thế mạnh */}
       <div>
@@ -802,9 +701,6 @@ export function ReviewStep({ formData, onFieldChange }) {
         )}
         <SummaryRow label="Kinh nghiệm:">
           <span className="font-semibold text-fg">{formData.experienceYears} năm</span>
-        </SummaryRow>
-        <SummaryRow label="Hình thức giảng dạy:">
-          <span className="font-semibold text-fg">{formData.teachingMode}</span>
         </SummaryRow>
         <SummaryRow label="Môn học nhận dạy:">
           <span className="font-semibold text-brand-primary-700 text-right">

@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { resolveServiceCover } from '@/utils/serviceCover';
+import { CoverPreview } from '@/components/tutor/services/ServiceCoverPicker';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
 import Money from '@/components/ui/Money';
@@ -6,15 +8,14 @@ import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import { CardSkeleton } from '@/components/common/Skeleton';
 import ErrorState from '@/components/common/ErrorState';
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import { useToast } from '@/components/ui/Toast';
-import { getTeachingModeMeta } from '@/config/enums';
 import {
   BasicInfoFields,
   ScopeOutcomeFields,
   TrialFields,
   SubjectFields,
   PackageTermsFields,
-  ModeFields,
   CurriculumFields,
   FaqFields,
   SectionTitle,
@@ -32,9 +33,8 @@ const STEPS = [
   { id: 1, label: 'Thông tin cơ bản' },
   { id: 2, label: 'Nội dung & mục tiêu' },
   { id: 3, label: 'Gói học & học phí' },
-  { id: 4, label: 'Hình thức dạy' },
-  { id: 5, label: 'Học thử' },
-  { id: 6, label: 'Xem trước & xuất bản' },
+  { id: 4, label: 'Học thử' },
+  { id: 5, label: 'Xem trước & xuất bản' },
 ];
 
 /** Per-step gate: returns an error message or null. Final step reuses full validation. */
@@ -71,7 +71,6 @@ function validateStep(step, formData) {
 
 function WizardPreview({ formData, subjects }) {
   const subjectName = subjects.find((s) => s.id === formData.subjectId)?.name || '—';
-  const modeMeta = getTeachingModeMeta(formData.teachingMode);
   const sessions = Array.isArray(formData.sessions) ? formData.sessions : [];
   const audience = splitLines(formData.targetAudienceText);
   const prereqs = splitLines(formData.prerequisitesText);
@@ -82,14 +81,7 @@ function WizardPreview({ formData, subjects }) {
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row gap-4">
-        {formData.coverImageUrl?.trim() && (
-          <img
-            src={formData.coverImageUrl.trim()}
-            alt=""
-            aria-hidden="true"
-            className="w-full sm:w-44 h-36 sm:h-auto sm:min-h-[148px] object-cover rounded-brand-md border border-border shrink-0"
-          />
-        )}
+        {(formData.coverImageUrl || formData.coverImageFile) && <CoverPreview value={formData.coverImageUrl} file={formData.coverImageFile} className="w-full shrink-0 sm:w-44" />}
         <div className="flex-1 min-w-0">
           <p className="text-caption font-semibold uppercase tracking-[0.12em] text-brand-primary-600">{subjectName}</p>
           <h3 className="text-headline-2 text-fg mt-1">{formData.title || 'Chưa đặt tên'}</h3>
@@ -97,7 +89,7 @@ function WizardPreview({ formData, subjects }) {
             <p className="text-body-reg text-fg-secondary mt-1">{formData.shortDescription.trim()}</p>
           )}
           <p className="text-[13px] text-fg-secondary mt-2">
-            {total} buổi · {formData.sessionDurationMinutes} phút/buổi · {modeMeta.label}
+            {total} buổi · {formData.sessionDurationMinutes} phút/buổi
           </p>
         </div>
         <div className="sm:text-right shrink-0">
@@ -195,6 +187,8 @@ export default function ServiceCreateWizard() {
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
+  const coverUpload = useRef(null);
+  const submitLock = useRef(false);
   const [formData, setFormData] = useState(() => createInitialFormState());
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -203,7 +197,7 @@ export default function ServiceCreateWizard() {
   const [reached, setReached] = useState(1);
 
   useEffect(() => {
-    document.title = 'Tạo dịch vụ mới — TutorHub';
+    document.title = 'Tạo gói dịch vụ mới';
   }, []);
 
   useEffect(() => {
@@ -246,14 +240,17 @@ export default function ServiceCreateWizard() {
   };
 
   const submit = async (publishAfterCreate) => {
+    if (submitLock.current) return;
     const err = validateServiceForm(formData, 'create') || collectFaqs(formData).error;
     if (err) {
       toast.error(err);
       return;
     }
     try {
+      submitLock.current = true;
       setSubmitting(true);
-      const payload = buildServicePayload(formData, { mode: 'create' });
+      const coverImageUrl = await resolveServiceCover(formData, coverUpload);
+      const payload = buildServicePayload({ ...formData, coverImageUrl }, { mode: 'create' });
       const created = await tutorService.createService(payload);
       if (publishAfterCreate && created?.id) {
         await tutorService.publishService(created.id);
@@ -265,6 +262,7 @@ export default function ServiceCreateWizard() {
     } catch (e) {
       toast.error(e?.message || 'Không thể lưu gói dịch vụ.');
     } finally {
+      submitLock.current = false;
       setSubmitting(false);
     }
   };
@@ -294,7 +292,7 @@ export default function ServiceCreateWizard() {
     : null;
 
   return (
-    <div className="max-w-[880px] mx-auto space-y-5">
+    <div className="max-w-[880px] mx-auto space-y-6 lg:space-y-8">
       {/* Header */}
       <div>
         <Link
@@ -302,11 +300,9 @@ export default function ServiceCreateWizard() {
           className="inline-flex items-center gap-1.5 text-caption font-medium text-fg-secondary hover:text-brand-primary-600 transition-colors"
         >
           <Icon name="arrow_back" size="xs" />
-          Quay lại danh sách dịch vụ
+          Quay lại gói học của tôi
         </Link>
-        <h1 className="text-headline-page text-fg tracking-tight mt-2">
-          Tạo dịch vụ mới
-        </h1>
+        <div className="mt-4"><WorkspacePageHeader title="Tạo gói học" /></div>
         <p className="text-body-reg text-fg-secondary mt-1">
           Hoàn thành {STEPS.length} bước để thiết kế gói học của bạn.
         </p>
@@ -316,7 +312,7 @@ export default function ServiceCreateWizard() {
       <ol className="flex items-center gap-1 sm:gap-2" aria-label="Tiến trình tạo dịch vụ">
         {STEPS.map((s, i) => {
           const current = s.id === step;
-          const reachable = s.id <= reached;
+          const reachable = s.id <= reached && !submitting;
           return (
             <li key={s.id} className="flex-1 min-w-0">
               <button
@@ -357,7 +353,7 @@ export default function ServiceCreateWizard() {
       </ol>
 
       {/* Step body */}
-      <div className="bg-surface border border-border rounded-brand-lg shadow-brand-sm p-4 sm:p-6">
+      <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6">
         {step === 1 && (
           <section className="space-y-4" aria-label="Thông tin cơ bản">
             <SectionTitle step={1}>Thông tin cơ bản</SectionTitle>
@@ -383,25 +379,15 @@ export default function ServiceCreateWizard() {
         )}
 
         {step === 4 && (
-          <section className="space-y-4" aria-label="Hình thức giảng dạy">
-            <SectionTitle step={4}>Hình thức giảng dạy</SectionTitle>
-            <ModeFields formData={formData} onFieldChange={handleFieldChange} locked={false} />
-            <p className="text-caption text-fg-secondary">
-              Lịch từng buổi sẽ do bạn xếp sau khi học viên đăng ký gói học.
-            </p>
-          </section>
-        )}
-
-        {step === 5 && (
           <section className="space-y-4" aria-label="Video học thử">
-            <SectionTitle step={5}>Video học thử</SectionTitle>
+            <SectionTitle step={4}>Video học thử</SectionTitle>
             <TrialFields formData={formData} onFieldChange={handleFieldChange} />
           </section>
         )}
 
-        {step === 6 && (
+        {step === 5 && (
           <section className="space-y-4" aria-label="Xem trước và xuất bản">
-            <SectionTitle step={6}>Xem trước &amp; xuất bản</SectionTitle>
+            <SectionTitle step={5}>Xem trước &amp; xuất bản</SectionTitle>
             <p className="text-caption text-fg-secondary">
               Đây là cách học viên sẽ thấy gói học của bạn trên sàn giao dịch.
             </p>

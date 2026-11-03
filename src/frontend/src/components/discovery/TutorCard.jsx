@@ -1,159 +1,92 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState, useId } from 'react';
 import PropTypes from 'prop-types';
-import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
-import Button, { IconButton } from '@/components/ui/Button';
+import Button from '@/components/ui/Button';
 import Money from '@/components/ui/Money';
+import { formatRating } from '@/utils/marketplaceHelpers';
+import WishlistButton from './WishlistButton';
+import StretchedCardLink from '@/components/ui/StretchedCardLink';
+
+function ApprovedProfileBadge() {
+  const [open, setOpen] = useState(false);
+  const tooltipId = useId();
+  return <span className="inline-flex align-middle">
+    <button type="button" aria-describedby={tooltipId} aria-label="Hồ sơ đã được TutorHub phê duyệt"
+      onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)} onBlur={() => setOpen(false)} onClick={() => setOpen(true)}
+      onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); } }}
+      className="relative z-20 inline-flex h-8 w-8 items-center justify-center rounded-md text-brand-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+      <Icon name="check_circle" size="sm" />
+    </button>
+    <span id={tooltipId} role="tooltip" className={`pointer-events-none absolute left-0 right-0 top-full z-30 mt-2 rounded-xl border border-border bg-surface p-3 text-caption font-normal leading-relaxed text-fg shadow-brand-md ${open ? 'block' : 'hidden'}`}>
+      TutorHub đã phê duyệt hồ sơ đăng ký gia sư. Trạng thái này không đồng nghĩa mọi chứng chỉ hoặc trình độ đều đã được xác thực độc lập.
+    </span>
+  </span>;
+}
 
 export default function TutorCard({ tutor = {} }) {
-  const [isFavorite, setIsFavorite] = useState(false);
-
+  const tutorId = tutor.id || tutor.tutorProfileId;
   const {
-    id,
-    fullName = 'Gia sư',
-    avatarUrl,
-    totalReviews = 0,
-    subjects = [],
+    fullName = 'Gia sư', avatarUrl, bio = '', education = '', university = '', major = '',
+    experienceYears, ratingAvg, totalReviews = 0, subjects = [], minPrice = null,
     isVerified = false,
   } = tutor;
 
-  const displayName = (fullName || '').trim() || 'Gia sư';
-
-  // Map real backend fields safely
-  const rating = Number(tutor.ratingAvg ?? tutor.rating ?? 0);
-  const yearsOfExperience = Number(tutor.experienceYears ?? tutor.yearsOfExperience ?? 0);
-  const hourlyRate = Number(tutor.minPrice ?? tutor.hourlyRate ?? 0);
-  const rawMainSubject = subjects[0];
-  const mainSubject =
-    typeof rawMainSubject === 'string'
-      ? rawMainSubject
-      : rawMainSubject?.name ?? rawMainSubject?.subjectName ?? '';
-
-  // Teaching modes normalization (single-line label, mirror ServiceCard)
-  const modes = Array.isArray(tutor.teachingModes)
-    ? tutor.teachingModes
-    : tutor.teachingMode
-    ? [tutor.teachingMode]
-    : ['Online'];
-  let modeLabel = 'Online';
-  let modeIcon = 'videocam';
-  if (modes.includes('Both') || modes.includes('Hybrid')) {
-    modeLabel = 'Online hoặc tại nhà';
-    modeIcon = 'devices';
-  } else if (modes.includes('InPerson') || modes.includes('Offline')) {
-    modeLabel = 'Tại nhà';
-    modeIcon = 'home';
-  }
+  const displayName = fullName?.trim() || 'Gia sư';
+  const educationDisplay = useMemo(() => {
+    if (major?.trim() && university?.trim()) return `${major.trim()} · ${university.trim()}`;
+    return university?.trim() || major?.trim() || education?.trim() || '';
+  }, [major, university, education]);
+  const normalizedSubjects = useMemo(() => [...new Set((Array.isArray(subjects) ? subjects : [])
+    .map(subject => typeof subject === 'string' ? subject : subject?.name ?? subject?.subjectName)
+    .filter(Boolean))], [subjects]);
+  const rating = Number(ratingAvg ?? tutor.rating ?? 0);
+  const reviewsCount = Number(totalReviews);
+  const yearsExp = Number(experienceYears ?? tutor.yearsOfExperience ?? 0);
+  // Only a package minimum can be labelled "Gói học từ"; hourlyRate is a different unit.
+  const packagePrice = minPrice != null && Number(minPrice) > 0 ? Number(minPrice) : null;
+  const hasRating = reviewsCount > 0 && rating > 0;
+  const profilePath = `/tutors/${tutorId}`;
 
   return (
-    <article className="group relative flex flex-col justify-between bg-surface rounded-brand-lg border border-border hover:shadow-brand-md hover:border-brand-primary-300 hover:-translate-y-0.5 transition-[border-color,box-shadow,transform] duration-normal ease-standard overflow-hidden">
-      <div className="h-1 bg-brand-primary-600" aria-hidden="true" />
-      <div className="p-5 flex-1 flex flex-col justify-between space-y-5">
-        <div className="space-y-4">
-          {/* Hàng 1: avatar thật + tên + tick xác thực + chip môn chính */}
-          <div className="flex items-center gap-3">
-            <Avatar
-              src={avatarUrl}
-              name={displayName}
-              size="md"
-              className="w-14 h-14 ring-1 ring-neutral-200/80"
-            />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <Link
-                  to={`/tutors/${id}`}
-                  className="text-[16px] font-bold text-neutral-900 hover:text-brand-primary-600 transition-colors truncate"
-                  title={displayName}
-                >
-                  {displayName}
-                </Link>
-                {isVerified && (
-                  <span
-                    className="text-success shrink-0 inline-flex items-center"
-                    title="Gia sư đã được xác thực"
-                  >
-                    <Icon name="verified" size="xs" filled className="text-success w-4 h-4" />
-                    <span className="sr-only">Gia sư đã được xác thực</span>
-                  </span>
-                )}
-              </div>
-              {mainSubject ? (
-                <span
-                  className="inline-block mt-1 text-[12px] font-medium text-brand-primary-700 truncate max-w-full"
-                  title={mainSubject}
-                >
-                  {mainSubject}
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Hàng 2: sao + đánh giá + năm kinh nghiệm (thiếu trường nào ẩn đoạn đó) */}
-          <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-neutral-500">
-            <span className="flex items-center text-brand-primary-700 font-bold gap-0.5">
-              <Icon name="star" size="xs" filled className="text-brand-primary-600 w-3.5 h-3.5" />
-              <span>{rating > 0 ? rating.toFixed(1) : 'Mới'}</span>
-            </span>
-            {totalReviews > 0 && (
-              <span className="flex items-center gap-1.5">
-                <span className="text-neutral-300">·</span>
-                <span>{totalReviews} đánh giá</span>
-              </span>
-            )}
-            {yearsOfExperience > 0 && (
-              <span className="flex items-center gap-1.5">
-                <span className="text-neutral-300">·</span>
-                <span>{yearsOfExperience} năm kinh nghiệm</span>
-              </span>
-            )}
-          </div>
-
-          {/* Hàng 3: meta 2 dòng — học phí/buổi + hình thức (thiếu giá ẩn dòng giá) */}
-          <div className="space-y-2 py-4 border-y border-border text-[12px]">
-            {hourlyRate > 0 && (
-              <div className="flex items-center gap-1.5 font-medium text-neutral-700">
-                <Icon name="schedule" size="xs" className="text-brand-primary-600 w-3.5 h-3.5 shrink-0" />
-                <span>
-                  Học phí <Money value={hourlyRate} className="font-bold text-neutral-900" />
-                  /buổi
-                </span>
-              </div>
-            )}
-            <div className="flex items-center gap-1.5 text-neutral-500">
-              <Icon name={modeIcon} size="xs" className="text-fg-muted w-3.5 h-3.5 shrink-0" />
-              <span>{modeLabel}</span>
-            </div>
-          </div>
+    <article className="interactive-card flex h-full min-w-0 flex-col rounded-2xl border border-border bg-surface p-5 shadow-[var(--learning-card-shadow)] sm:p-6">
+      <StretchedCardLink to={profilePath} label={`Xem hồ sơ ${displayName}`} />
+      <div className="relative flex items-start gap-3 sm:gap-4">
+        <Avatar key={avatarUrl || displayName} src={avatarUrl} name={displayName} size="lg" />
+        <div className="min-w-0 flex-1">
+          <h3 className="flex items-start gap-1 text-[17px] font-semibold leading-snug text-fg">
+            <span className="min-w-0">{displayName}</span>{isVerified && <ApprovedProfileBadge />}
+          </h3>
+          {educationDisplay && <p className="mt-1 line-clamp-2 text-caption leading-relaxed text-fg-secondary" title={educationDisplay}>{educationDisplay}</p>}
         </div>
+        <WishlistButton itemType="Tutor" itemId={tutorId} />
+      </div>
 
-        {/* Hàng 4: CTA Xem hồ sơ (primary) + tim lưu (ghost) */}
-        <div className="flex items-center justify-between gap-2">
-          <Button
-            as={Link}
-            to={`/tutors/${id}`}
-            variant="primary"
-            size="md"
-            className="gap-1"
-          >
-            <span>Xem hồ sơ</span>
-            <Icon name="arrow_forward" size="xs" className="w-3 h-3" />
-          </Button>
+      {(yearsExp > 0 || hasRating) && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-caption">
+          {yearsExp > 0 && <span className="inline-flex items-center gap-1.5 py-1 text-fg-secondary"><Icon name="work_history" size="sm" />{yearsExp} năm kinh nghiệm</span>}
+          {hasRating && <span className="inline-flex flex-wrap items-center gap-1.5 py-1 text-fg-secondary"><Icon name="star" size="xs" className="text-brand-secondary-500" filled /><strong className="font-semibold text-[rgb(var(--course-rating-strong))]">{formatRating(rating)}</strong><span>({reviewsCount} đánh giá)</span></span>}
+        </div>
+      )}
 
-          <IconButton
-            label={isFavorite ? 'Bỏ lưu gia sư' : 'Lưu gia sư'}
-            variant="ghost"
-            size="md"
-            onClick={() => setIsFavorite((v) => !v)}
-            icon={
-              <Icon
-                name="favorite"
-                size="xs"
-                filled={isFavorite}
-                className={isFavorite ? 'text-danger w-4 h-4' : 'text-neutral-400 w-4 h-4'}
-              />
-            }
-          />
+      {normalizedSubjects.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2" aria-label="Môn học">
+          {normalizedSubjects.slice(0, 3).map(subject => <span key={subject} className="max-w-full rounded-lg border border-brand-primary-100 bg-brand-primary-50 px-2.5 py-1 text-caption font-medium text-brand-primary-700 break-words">{subject}</span>)}
+          {normalizedSubjects.length > 3 && <span title={normalizedSubjects.slice(3).join(', ')} className="rounded-lg bg-neutral-100 px-2.5 py-1 text-caption text-fg-secondary">+{normalizedSubjects.length - 3} môn</span>}
+        </div>
+      )}
+
+      {bio?.trim() && <p className="my-4 line-clamp-3 text-body-reg leading-relaxed text-fg-secondary">{bio.trim()}</p>}
+
+      <div className="mt-auto pt-5">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-t border-border pt-4">
+          <div className="min-w-0">
+            <p className="text-caption text-fg-secondary">{packagePrice ? 'Gói học từ' : 'Thông tin gói học'}</p>
+            {packagePrice ? <p className="mt-1 text-[22px] font-semibold text-fg"><Money value={packagePrice} /><span className="ml-1 text-caption font-normal text-fg-secondary">/ gói</span></p>
+              : <p className="mt-1 text-body-reg font-medium text-fg">Xem trong hồ sơ</p>}
+          </div>
+          <Button as="span" aria-hidden="true" iconRight={<Icon name="arrow_forward" size="sm" />}>Xem hồ sơ</Button>
         </div>
       </div>
     </article>
@@ -163,18 +96,12 @@ export default function TutorCard({ tutor = {} }) {
 TutorCard.propTypes = {
   tutor: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-    fullName: PropTypes.string,
-    avatarUrl: PropTypes.string,
-    ratingAvg: PropTypes.number,
-    rating: PropTypes.number,
-    totalReviews: PropTypes.number,
-    experienceYears: PropTypes.number,
-    yearsOfExperience: PropTypes.number,
-    subjects: PropTypes.array,
-    minPrice: PropTypes.number,
-    hourlyRate: PropTypes.number,
-    isVerified: PropTypes.bool,
-    teachingMode: PropTypes.string,
-    teachingModes: PropTypes.arrayOf(PropTypes.string),
+    tutorProfileId: PropTypes.string,
+    fullName: PropTypes.string, avatarUrl: PropTypes.string, bio: PropTypes.string,
+    education: PropTypes.string, university: PropTypes.string, major: PropTypes.string,
+    ratingAvg: PropTypes.number, rating: PropTypes.number, totalReviews: PropTypes.number,
+    experienceYears: PropTypes.number, yearsOfExperience: PropTypes.number,
+    subjects: PropTypes.array, minPrice: PropTypes.number, hourlyRate: PropTypes.number,
+    isVerified: PropTypes.bool, isFeatured: PropTypes.bool,
   }).isRequired,
 };

@@ -20,7 +20,11 @@ public record AdminTransactionDto(
     TransactionStatus Status,
     DateTime CreatedAt,
     DateTime? ReleasedAt,
-    DateTime? RefundedAt
+    DateTime? RefundedAt,
+    TransactionType Type = TransactionType.BookingPayment,
+    Guid? SessionId = null,
+    Guid? DisputeId = null,
+    Guid? EnrollmentId = null
 )
 {
     public decimal CommissionRate => PlatformFeeRate;

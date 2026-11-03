@@ -4,8 +4,13 @@ public record SubmitTutorApplicationRequest(
     string Bio,
     string Education,
     int ExperienceYears,
-    string TeachingMode,
-    string? Address = null,
-    double? Latitude = null,
-    double? Longitude = null
+    string? University = null,
+    string? Major = null,
+    string? DegreeLevel = null,
+    string? Certifications = null,
+    string? Subject = null,
+    string? SubjectSub = null,
+    string? Methodology = null,
+    string? Achievements = null,
+    List<Guid>? DocumentIds = null
 );

@@ -25,7 +25,6 @@ public class BookingBuilder
     private decimal _totalPrice = 200_000m;
     private int _totalSessions = 1;
     private int _sessionDurationMinutes = 60;
-    private TeachingMode _teachingMode = TeachingMode.Online;
     private Enrollment? _enrollment;
 
     public BookingBuilder WithId(Guid id)
@@ -41,7 +40,6 @@ public class BookingBuilder
         _totalPrice = service.Price;
         _totalSessions = service.TotalSessions;
         _sessionDurationMinutes = service.SessionDurationMinutes;
-        _teachingMode = service.TeachingMode;
         return this;
     }
 
@@ -51,12 +49,11 @@ public class BookingBuilder
         return this;
     }
 
-    public BookingBuilder WithSnapshot(decimal totalPrice, int totalSessions = 1, int sessionDurationMinutes = 60, TeachingMode teachingMode = TeachingMode.Online)
+    public BookingBuilder WithSnapshot(decimal totalPrice, int totalSessions = 1, int sessionDurationMinutes = 60)
     {
         _totalPrice = totalPrice;
         _totalSessions = totalSessions;
         _sessionDurationMinutes = sessionDurationMinutes;
-        _teachingMode = teachingMode;
         return this;
     }
 
@@ -144,7 +141,6 @@ public class BookingBuilder
             TotalSessions = _totalSessions,
             SessionDurationMinutes = _sessionDurationMinutes,
             Price = _totalPrice,
-            TeachingMode = _teachingMode,
             Status = ServiceStatus.Published
         };
         service.Id = _serviceId;
@@ -171,7 +167,6 @@ public class BookingBuilder
             TotalPrice = _totalPrice,
             TotalSessions = _totalSessions,
             SessionDurationMinutes = _sessionDurationMinutes,
-            TeachingMode = _teachingMode,
             Enrollment = _enrollment,
             Transactions = _transactions,
             Reports = new List<Report>()

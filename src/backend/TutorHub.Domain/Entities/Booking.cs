@@ -25,7 +25,6 @@ public class Booking
     public decimal TotalPrice { get; set; }
     public int TotalSessions { get; set; }
     public int SessionDurationMinutes { get; set; }
-    public TeachingMode TeachingMode { get; set; }
 
     // Lifecycle
     public BookingStatus Status { get; set; }

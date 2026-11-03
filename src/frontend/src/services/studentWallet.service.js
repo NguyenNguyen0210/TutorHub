@@ -2,6 +2,7 @@
  * Student Wallet Service — /api/v1/students/me/wallet and /api/v1/admin/student-wallets
  */
 import api from './api';
+import { idempotencyHeaders } from './idempotency';
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -49,7 +50,7 @@ export const studentWalletService = {
   },
 
   async createVnPayTopUp({ amount }, idempotencyKey = null) {
-    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
+    const headers = idempotencyHeaders(idempotencyKey);
     const res = await api.post('/students/me/wallet/top-up/vnpay', { amount: Number(amount) }, { headers });
     return res;
   },
@@ -62,7 +63,7 @@ export const studentWalletService = {
   },
 
   async requestWithdrawal(payload, idempotencyKey = null) {
-    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
+    const headers = idempotencyHeaders(idempotencyKey);
     const res = await api.post('/students/me/wallet/withdrawals', {
       amount: Number(payload.amount),
       bankName: payload.bankName,
@@ -81,7 +82,7 @@ export const studentWalletService = {
   },
 
   async payBookingFromWallet(bookingId, idempotencyKey = null) {
-    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
+    const headers = idempotencyHeaders(idempotencyKey);
     const res = await api.post(`/payments/${bookingId}/wallet`, {}, { headers });
     return res;
   },

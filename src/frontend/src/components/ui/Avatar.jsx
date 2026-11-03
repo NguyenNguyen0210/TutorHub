@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import Icon from './Icon';
+import '@/styles/popovers.css';
 
 const SIZE_CLASS = {
   sm: 'w-8 h-8 text-caption',
@@ -14,8 +16,8 @@ const SIZE_CLASS = {
  * Avatar — ảnh đại diện với fallback chữ cái đầu khi ảnh lỗi/không có.
  */
 export default function Avatar({ src, name, size = 'md', className, ...rest }) {
-  const [broken, setBroken] = useState(false);
-  const showImage = src && !broken;
+  const [brokenSrc, setBrokenSrc] = useState(null);
+  const showImage = src && brokenSrc !== src;
   const initial = (name || '?').trim().charAt(0).toUpperCase();
 
   return (
@@ -37,7 +39,7 @@ export default function Avatar({ src, name, size = 'md', className, ...rest }) {
           src={src}
           alt={name || 'Ảnh đại diện'}
           className="w-full h-full object-cover"
-          onError={() => setBroken(true)}
+          onError={() => setBrokenSrc(src)}
         />
       ) : (
         <span aria-hidden="true">{initial}</span>
@@ -50,9 +52,10 @@ export default function Avatar({ src, name, size = 'md', className, ...rest }) {
  * Menu — dropdown tuỳ biến, đóng khi click ngoài / nhấn Escape.
  * `items`: [{ key, label, icon?, danger?, onClick } | { type: 'divider' }]
  */
-export function Menu({ trigger, items = [], align = 'right', className, label }) {
+export function Menu({ trigger, items = [], align = 'right', className, label, header, triggerClassName, current = false, appearance = 'default' }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
+  const triggerRef = useRef(null);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -60,12 +63,26 @@ export function Menu({ trigger, items = [], align = 'right', className, label })
       if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
     };
     const onKey = (e) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+      if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key) && rootRef.current?.contains(document.activeElement)) {
+        const options = Array.from(rootRef.current.querySelectorAll('[role="menuitem"]'));
+        if (options.length === 0) return;
+        e.preventDefault();
+        const index = options.indexOf(document.activeElement);
+        const target = e.key === 'Home' ? 0 : e.key === 'End' ? options.length - 1
+          : e.key === 'ArrowDown' ? (index + 1) % options.length : (index - 1 + options.length) % options.length;
+        options[target].focus();
+      }
     };
     document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('focusin', onDocClick);
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('focusin', onDocClick);
       document.removeEventListener('keydown', onKey);
     };
   }, [open]);
@@ -73,6 +90,7 @@ export function Menu({ trigger, items = [], align = 'right', className, label })
   return (
     <div ref={rootRef} className={cn('relative', className)}>
       <div
+        ref={triggerRef}
         onClick={(e) => {
           e.stopPropagation();
           setOpen((v) => !v);
@@ -80,16 +98,23 @@ export function Menu({ trigger, items = [], align = 'right', className, label })
         role="button"
         tabIndex={0}
         aria-label={label}
+        title={label}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
+          if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
             e.preventDefault();
             e.stopPropagation();
-            setOpen((v) => !v);
+            const shouldOpen = e.key === 'ArrowDown' || e.key === 'ArrowUp' || !open;
+            setOpen(shouldOpen);
+            if (shouldOpen) window.setTimeout(() => {
+              const options = rootRef.current?.querySelectorAll('[role="menuitem"]');
+              options?.[e.key === 'ArrowUp' ? options.length - 1 : 0]?.focus();
+            }, 0);
           }
         }}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="inline-flex rounded-brand-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        aria-current={current ? 'page' : undefined}
+        className={cn('inline-flex rounded-brand-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2', triggerClassName)}
       >
         {trigger}
       </div>
@@ -98,33 +123,43 @@ export function Menu({ trigger, items = [], align = 'right', className, label })
         <div
           role="menu"
           className={cn(
-            'absolute top-full mt-2 z-50 min-w-[200px] bg-surface border border-border rounded-brand-md shadow-brand-lg py-1.5 animate-fadeIn',
+            'workspace-popover absolute z-50 min-w-[240px] max-w-[calc(100vw-2rem)] max-h-[min(480px,calc(100dvh-6rem))] overflow-y-auto overscroll-contain bg-surface border border-border rounded-xl shadow-brand-lg py-1.5',
+            appearance === 'account' && 'w-[260px]',
+            align === 'top' ? 'bottom-full left-0 mb-2' : 'top-full mt-2',
             align === 'right' ? 'right-0' : 'left-0'
           )}
         >
+          {header && <div className="mb-1 border-b border-border px-3.5 pb-3 pt-2">{header}</div>}
           {items.map((item, idx) => {
             if (item.type === 'divider') {
               return <div key={`d-${idx}`} className="my-1.5 h-px bg-border" role="separator" />;
             }
+            const Item = item.to ? Link : 'button';
             return (
-              <button
+              <Item
                 key={item.key}
-                type="button"
+                type={item.to ? undefined : 'button'}
+                to={item.to}
+                target={item.target}
+                rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
+                aria-label={item.ariaLabel}
                 role="menuitem"
                 onClick={() => {
                   setOpen(false);
                   if (item.onClick) item.onClick();
                 }}
                 className={cn(
-                  'w-full flex items-center gap-2.5 px-3.5 py-2 text-body-reg text-left transition-colors',
+                  'w-full flex min-h-10 items-center gap-2.5 px-3.5 py-2 text-body-reg text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary-500',
+                  appearance === 'account' && 'min-h-11',
                   item.danger
-                    ? 'text-danger-strong hover:bg-danger-subtle'
-                    : 'text-fg-secondary hover:bg-neutral-100 hover:text-fg'
+                    ? appearance === 'account' ? 'text-danger-strong hover:bg-neutral-100' : 'text-danger-strong hover:bg-danger-subtle'
+                    : appearance === 'account' ? 'text-fg-secondary hover:bg-neutral-100' : 'text-fg-secondary hover:bg-neutral-100 hover:text-fg'
                 )}
               >
                 {item.icon}
-                {item.label}
-              </button>
+                <span className="min-w-0 flex-1">{item.label}</span>
+                {item.trailing}
+              </Item>
             );
           })}
         </div>
@@ -140,7 +175,7 @@ export function Menu({ trigger, items = [], align = 'right', className, label })
 const DRAWER_FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function Drawer({ open, onClose, side = 'left', title, widthClass = 'w-80', footer, children }) {
+export function Drawer({ open, onClose, side = 'left', title, widthClass = 'w-80', panelClassName = '', contentClassName, hideHeader = false, footer, children }) {
   const panelRef = useRef(null);
   const onCloseRef = useRef(onClose);
   useEffect(() => {
@@ -207,10 +242,11 @@ export function Drawer({ open, onClose, side = 'left', title, widthClass = 'w-80
         className={cn(
           'absolute top-0 bottom-0 bg-surface shadow-brand-xl flex flex-col max-w-[85vw] focus-visible:outline-none',
           widthClass,
+          panelClassName,
           side === 'left' ? 'left-0' : 'right-0'
         )}
       >
-        <div className="flex items-center justify-between gap-3 px-5 h-16 border-b border-border shrink-0">
+        {!hideHeader && <div className="flex items-center justify-between gap-3 px-5 h-16 border-b border-border shrink-0">
           <h2 className="text-headline-3 text-fg truncate">{title}</h2>
           <button
             type="button"
@@ -220,8 +256,8 @@ export function Drawer({ open, onClose, side = 'left', title, widthClass = 'w-80
           >
             <Icon name="close" size="md" />
           </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-5">{children}</div>
+        </div>}
+        <div className={cn('flex-1 min-h-0 overflow-y-auto p-5', contentClassName)}>{children}</div>
         {footer && (
           <div className="px-5 py-4 border-t border-border flex items-center gap-2.5 shrink-0 bg-surface">
             {footer}

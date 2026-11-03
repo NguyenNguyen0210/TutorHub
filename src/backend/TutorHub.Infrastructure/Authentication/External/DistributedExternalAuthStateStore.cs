@@ -88,7 +88,6 @@ public sealed class DistributedExternalAuthStateStore : IExternalAuthStateStore
             return null;
         }
 
-        // A state minted for Google must not complete a Facebook sign-in.
         // Already deleted above, matching the memory store's remove-first order.
         if (entry.Provider != provider)
         {

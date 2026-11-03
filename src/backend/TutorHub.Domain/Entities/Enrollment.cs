@@ -31,7 +31,6 @@ public class Enrollment
     public decimal TotalPrice { get; set; }
     public int TotalSessions { get; set; }
     public int SessionDurationMinutes { get; set; }
-    public TeachingMode TeachingMode { get; set; }
 
     // --- Platform Fee Snapshot ---
     // Assigned from configuration (PlatformFeeRate) at activation time

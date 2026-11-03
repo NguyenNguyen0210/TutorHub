@@ -1,3 +1,4 @@
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import React, { useState, useEffect, useCallback } from 'react';
 import adminService from '@/services/admin.service';
 import { ACCOUNT_STATUS, getAccountStatusMeta } from '@/config/enums';
@@ -15,7 +16,7 @@ import EmptyState from '@/components/common/EmptyState';
 import DataTable from '@/components/common/DataTable';
 import StatStrip from '@/components/common/StatStrip';
 import { getStateMeta } from '@/components/common/StateBadge';
-import { PageHeader, Spinner } from '@/components/ui/StatCard';
+import { Spinner } from '@/components/ui/StatCard';
 
 const USER_COLUMNS = [
   { key: 'user', label: 'Người dùng' },
@@ -107,12 +108,14 @@ export default function AdminUsers() {
     const titles = {
       suspend: `Tạm khóa tài khoản: ${user.fullName}`,
       reactivate: `Mở khóa tài khoản: ${user.fullName}`,
+      unban: `Gỡ cấm tài khoản: ${user.fullName}`,
       ban: `Cấm vĩnh viễn tài khoản: ${user.fullName}`,
     };
     const descriptions = {
       suspend: 'Vui lòng nêu rõ lý do kỷ luật vi phạm chính sách sàn:',
       reactivate: 'Tài khoản sẽ được chuyển lại trạng thái Đang hoạt động.',
-      ban: 'Cấm vĩnh viễn là thao tác không thể hoàn tác. Vui lòng nêu rõ lý do kỷ luật:',
+      ban: 'Tài khoản sẽ bị cấm truy cập. Vui lòng nêu rõ lý do kỷ luật:',
+      unban: 'Tài khoản sẽ được hoạt động trở lại. Vui lòng nêu rõ lý do gỡ cấm:',
     };
 
     let reasonInput = '';
@@ -123,9 +126,9 @@ export default function AdminUsers() {
       cancelText: 'Hủy bỏ',
       danger: actionType === 'ban',
       requireReason: actionType !== 'reactivate',
-      reasonLabel: 'Lý do kỷ luật',
+      reasonLabel: actionType === 'unban' ? 'Lý do gỡ cấm' : 'Lý do kỷ luật',
       reasonPlaceholder: 'Nhập lý do chi tiết...',
-      defaultReason: 'Vi phạm quy chế sàn TutorHub',
+      defaultReason: actionType === 'unban' ? '' : 'Vi phạm quy chế sàn TutorHub',
       minReasonLength: 10,
       onConfirmReason: (r) => {
         reasonInput = r;
@@ -141,6 +144,9 @@ export default function AdminUsers() {
       } else if (actionType === 'reactivate') {
         await adminService.reactivateUser(user.id);
         toast.success(`Đã mở lại tài khoản ${user.fullName}`);
+      } else if (actionType === 'unban') {
+        await adminService.unbanUser(user.id, reason);
+        toast.success(`Đã gỡ cấm tài khoản ${user.fullName}`);
       } else if (actionType === 'ban') {
         await adminService.banUser(user.id, reason);
         toast.success(`Đã cấm vĩnh viễn tài khoản ${user.fullName}`);
@@ -148,7 +154,8 @@ export default function AdminUsers() {
       setSelectedUser(null);
       await fetchUsers();
     } catch (err) {
-      toast.error(err?.message || 'Thao tác không thành công.');
+      toast.error(err?.status === 409 ? 'Trạng thái tài khoản đã thay đổi. Vui lòng kiểm tra lại.' : 'Chưa thể cập nhật tài khoản. Vui lòng thử lại.');
+      await fetchUsers();
     }
   };
 
@@ -158,10 +165,10 @@ export default function AdminUsers() {
   ).length;
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="Quản lý người dùng & Kỷ luật vi phạm sàn"
-        subtitle="Theo dõi trạng thái tài khoản, vai trò và bảo mật đăng nhập"
+    <div className="space-y-6 lg:space-y-8">
+      <WorkspacePageHeader
+        title="Quản lý người dùng"
+        description="Theo dõi trạng thái tài khoản, vai trò và bảo mật đăng nhập"
         actions={
           <Button
             variant="outline"
@@ -175,7 +182,7 @@ export default function AdminUsers() {
       />
 
       {/* 3 số liệu — hàng số liệu phẳng của Quản lý ví & giao dịch */}
-      <StatStrip
+      <StatStrip appearance="soft"
         columns={3}
         figures={[
           {
@@ -297,8 +304,8 @@ export default function AdminUsers() {
                 } else if (u.status === ACCOUNT_STATUS.SUSPENDED) {
                   items.push({ key: 'reactivate', label: 'Mở khóa hoạt động' });
                   items.push({ key: 'ban', danger: true, label: 'Cấm vĩnh viễn' });
-                } else {
-                  items.push({ key: 'reactivate', label: 'Mở khóa lại' });
+                } else if (u.status === 'Banned') {
+                  items.push({ key: 'unban', label: 'Gỡ cấm tài khoản' });
                 }
 
                 return (
@@ -466,10 +473,10 @@ export default function AdminUsers() {
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={() => handleAction(selectedUser, 'reactivate')}
+                    onClick={() => handleAction(selectedUser, selectedUser.status === 'Banned' ? 'unban' : 'reactivate')}
                     icon={<Icon name="check_circle" size="xs" />}
                   >
-                    Mở khóa hoạt động
+                    {selectedUser.status === 'Banned' ? 'Gỡ cấm tài khoản' : 'Mở khóa hoạt động'}
                   </Button>
                 )}
                 <Button

@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using TutorHub.Application.Common.Storage;
 using FluentAssertions;
 using Moq;
 using TutorHub.Application.Common.Exceptions;
@@ -15,10 +17,11 @@ public class UploadDisputeEvidenceCommandHandlerTests
     private readonly Mock<IAppDbContext> _contextMock = new();
     private readonly StubCurrentUserService _currentUser = new();
     private readonly UploadDisputeEvidenceCommandHandler _handler;
+    private readonly Mock<IObjectStorageService> _storage = new();
 
     public UploadDisputeEvidenceCommandHandlerTests()
     {
-        _handler = new UploadDisputeEvidenceCommandHandler(_contextMock.Object, StubClock.Instance, _currentUser);
+        _handler = new UploadDisputeEvidenceCommandHandler(_contextMock.Object, StubClock.Instance, _currentUser, _storage.Object, NullLogger<UploadDisputeEvidenceCommandHandler>.Instance);
     }
 
     [Fact]
@@ -47,10 +50,11 @@ public class UploadDisputeEvidenceCommandHandlerTests
         var command = new UploadDisputeEvidenceCommand(
             dispute.Id,
             "screenshot.png",
-            "https://cdn.tutorhub.com/evidence/123.png",
-            "image/png",
-            1024 * 500); // 500KB
+            new MemoryStream(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D }),
+            12); // 500KB
 
+        _storage.Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Stream stream, string key, string mime, CancellationToken ct) => new StoredFileResult(key, 12, mime, null));
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
 
@@ -58,6 +62,10 @@ public class UploadDisputeEvidenceCommandHandlerTests
         result.Should().NotBeNull();
         result.FileName.Should().Be("screenshot.png");
         evidences.Should().ContainSingle(e => e.FileName == "screenshot.png");
+
+        _contextMock.Setup(c => c.SaveChangesAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException("Database write failed"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _handler.Handle(command, CancellationToken.None));
+        _storage.Verify(x => x.DeleteAsync(It.IsAny<string>(), CancellationToken.None), Times.Once);
     }
 
     [Fact]
@@ -87,11 +95,11 @@ public class UploadDisputeEvidenceCommandHandlerTests
         var command = new UploadDisputeEvidenceCommand(
             dispute.Id,
             "screenshot.png",
-            "https://cdn.tutorhub.com/evidence/123.png",
-            "image/png",
-            1024 * 500);
+            new MemoryStream(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D }),
+            12);
 
         // Act & Assert
         await Assert.ThrowsAsync<ForbiddenException>(() => _handler.Handle(command, CancellationToken.None));
+        _storage.Verify(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

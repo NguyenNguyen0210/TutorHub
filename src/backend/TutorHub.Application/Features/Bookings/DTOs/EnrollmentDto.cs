@@ -14,7 +14,6 @@ public record EnrollmentDto(
     int TotalSessions,
     int CompletedSessions,
     int SessionDurationMinutes,
-    TeachingMode TeachingMode,
     EnrollmentStatus Status,
     DateTime CreatedAt,
     DateTime? CompletedAt,

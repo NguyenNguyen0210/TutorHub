@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import ReportAction from '@/components/reports/ReportAction';
+import { discoveryReturn } from '@/utils/discoveryReturn';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import Callout from '@/components/ui/Callout';
+import Icon from '@/components/ui/Icon';
 import { useToast } from '@/components/ui/Toast';
 import tutorService from '@/services/tutor.service';
 import bookingService from '@/services/booking.service';
@@ -13,7 +16,8 @@ import ProfileHeadline from '@/components/tutor/profile/ProfileHeadline';
 import ProfileAnchorNav from '@/components/tutor/profile/ProfileAnchorNav';
 import ProfileAbout from '@/components/tutor/profile/ProfileAbout';
 import ProfileScheduleExplainer from '@/components/tutor/profile/ProfileScheduleExplainer';
-import ProfilePlaceholderSection from '@/components/tutor/profile/ProfilePlaceholderSection';
+import ProfileFAQSection from '@/components/tutor/profile/ProfileFAQSection';
+import CertificatesSection from '@/components/tutor/profile/CertificatesSection';
 import ServicePackageGrid from '@/components/tutor/profile/ServicePackageGrid';
 import ReviewsSection from '@/components/tutor/profile/ReviewsSection';
 import BookingRail from '@/components/tutor/profile/BookingRail';
@@ -36,6 +40,9 @@ import { SECTION_IDS } from '@/components/tutor/profile/sectionNav';
  */
 export default function TutorProfile() {
   const { id } = useParams();
+  const location = useLocation();
+  const { hash } = location;
+  const listingContext = discoveryReturn(location);
   const navigate = useNavigate();
   const toast = useToast();
   const { isAuthenticated, role } = useAuthStore();
@@ -43,6 +50,12 @@ export default function TutorProfile() {
   const [tutor, setTutor] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    if (!loading && hash === '#danh-gia') {
+      const frame = requestAnimationFrame(() => document.getElementById('danh-gia')?.scrollIntoView({ block: 'start', behavior: 'auto' }));
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [hash, loading]);
   const [error, setError] = useState(null);
   const [secondaryWarning, setSecondaryWarning] = useState(null);
   const [bookingId, setBookingId] = useState(null);
@@ -70,6 +83,9 @@ export default function TutorProfile() {
         }
 
         setTutor(tutorRes.value);
+        if (tutorRes.value?.name || tutorRes.value?.fullName) {
+          document.title = `Gia sư ${tutorRes.value.fullName || tutorRes.value.name}`;
+        }
 
         if (reviewsRes.status === 'fulfilled') {
           setReviews(reviewsRes.value?.items || []);
@@ -110,9 +126,9 @@ export default function TutorProfile() {
       const booking = await bookingService.createBooking(service.id);
       const newBookingId = booking?.id;
       if (!newBookingId) {
-        throw new Error('Backend không trả về mã đơn giữ chỗ (booking.id).');
+        throw new Error('Không thể tạo đơn giữ chỗ. Vui lòng thử lại.');
       }
-      toast.success('Đã giữ chỗ thành công 15 phút! Đang chuyển đến cổng thanh toán...');
+      toast.success('Đã khóa giữ chỗ trong 15 phút. Vui lòng hoàn tất thanh toán bên dưới.');
       navigate(`/student/bookings/${newBookingId}/checkout`);
     } catch (err) {
       toast.error(err?.message || 'Không tạo được đơn giữ chỗ. Vui lòng thử lại.');
@@ -169,6 +185,7 @@ export default function TutorProfile() {
     <div className="pb-24 lg:pb-0">
       <div className="page-shell pt-6">
         {/* Breadcrumb */}
+        {listingContext && <Link to={listingContext.listingReturn} state={{ restoreScrollKey: listingContext.listingKey }} className="mb-4 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-caption font-semibold text-primary hover:bg-brand-primary-50 focus-visible:ring-2 focus-visible:ring-ring"><Icon name="arrow_back" size="sm" />Quay lại danh sách trước đó</Link>}
         <nav aria-label="Breadcrumb">
           <ol className="flex items-center gap-1.5 text-caption text-fg-muted">
             <li>
@@ -202,16 +219,13 @@ export default function TutorProfile() {
         </div>
       )}
 
-      {/* Gallery + Headline */}
-      <div className="page-shell pt-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-          <div className="lg:col-span-7">
-            <ProfileGallery tutor={tutor} />
-          </div>
-          <div className="lg:col-span-5">
-            <ProfileHeadline tutor={tutor} />
-          </div>
-        </div>
+      {/* Profile Hero Card & Video giới thiệu (nếu có) */}
+      <div className="page-shell pt-6 space-y-6">
+        <ProfileHeadline tutor={tutor} />
+        <div className="flex justify-end"><ReportAction type="user" targetId={tutor.userId} /></div>
+        {Boolean(tutor.introVideoUrl || tutor.videoUrl) && (
+          <ProfileGallery tutor={tutor} />
+        )}
       </div>
 
       {/* Anchor navigation */}
@@ -230,23 +244,13 @@ export default function TutorProfile() {
               bookingId={bookingId}
               onBook={handleBooking}
             />
-            <ReviewsSection tutor={tutor} reviews={reviews} />
-            <ProfilePlaceholderSection
-              id={SECTION_IDS.certificates}
-              title="Chứng chỉ & Bằng cấp"
-              icon="military_tech"
-              note="Chứng chỉ và bằng cấp của gia sư sẽ được hiển thị tại đây sau khi hồ sơ được thẩm định."
-            />
+            <ReviewsSection tutor={tutor} reviews={reviews} onModerated={() => setReloadToken(value => value + 1)} />
+            <CertificatesSection tutor={tutor} id={SECTION_IDS.certificates} />
             <ProfileScheduleExplainer tutorId={tutor.id} />
-            <ProfilePlaceholderSection
-              id={SECTION_IDS.faq}
-              title="Câu hỏi thường gặp"
-              icon="question_answer"
-              note="Gia sư có thể thêm câu hỏi thường gặp cho từng gói học. Phần câu hỏi chung đang được hoàn thiện."
-            />
+            <ProfileFAQSection tutor={tutor} id={SECTION_IDS.faq} />
           </div>
 
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-4 relative">
             <BookingRail tutor={tutor} />
           </div>
         </div>

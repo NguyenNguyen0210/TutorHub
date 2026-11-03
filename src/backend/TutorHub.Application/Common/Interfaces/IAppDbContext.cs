@@ -26,6 +26,7 @@ public interface IAppDbContext
     DbSet<Report> Reports { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<Media> Media { get; }
+    DbSet<WishlistItem> WishlistItems { get; }
 
     // Backward-compatibility aliases
     DbSet<Wallet> TutorWallets => Wallets;
@@ -43,6 +44,7 @@ public interface IAppDbContext
     DbSet<EmailDelivery> EmailDeliveries { get; }
     DbSet<Dispute> Disputes { get; }
     DbSet<DisputeEvidence> DisputeEvidences { get; }
+    DbSet<DisputeResponse> DisputeResponses { get; }
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<LearningRecord> LearningRecords { get; }
     DbSet<ExternalLogin> ExternalLogins { get; }

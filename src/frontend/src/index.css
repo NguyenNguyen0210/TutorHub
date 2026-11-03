@@ -34,6 +34,17 @@
     outline: 2px solid rgb(var(--color-ring));
     outline-offset: 2px;
   }
+
+  /* Tránh trình duyệt tự động điền (autofill) đổi màu nền sang xanh/xám */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px white inset !important;
+    box-shadow: 0 0 0 1000px white inset !important;
+    -webkit-text-fill-color: rgb(var(--color-foreground)) !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
 }
 
 @layer components {

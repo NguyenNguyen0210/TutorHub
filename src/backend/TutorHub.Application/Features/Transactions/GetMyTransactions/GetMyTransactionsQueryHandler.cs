@@ -39,6 +39,9 @@ public class GetMyTransactionsQueryHandler : IRequestHandler<GetMyTransactionsQu
             return new PagedResult<UserTransactionDto>(new List<UserTransactionDto>(), 0, request.PageNumber, request.PageSize);
         }
 
+        if (request.Type.HasValue)
+            query = query.Where(t => t.Type == request.Type.Value);
+
         // 2. Status Filter
         if (request.Status.HasValue)
         {
@@ -80,7 +83,14 @@ public class GetMyTransactionsQueryHandler : IRequestHandler<GetMyTransactionsQu
                 t.CreatedAt,
                 t.ReleasedAt,
                 t.RefundedAt
-            ))
+            )
+            {
+                Type = t.Type,
+                ServiceTitle = t.Booking.Service.Title,
+                BookingStatus = t.Booking.Status,
+                EnrollmentId = _context.Enrollments.Where(e => e.BookingId == t.BookingId)
+                    .Select(e => (Guid?)e.Id).FirstOrDefault()
+            })
             .ToListAsync(cancellationToken);
 
         return new PagedResult<UserTransactionDto>(items, totalCount, request.PageNumber, request.PageSize);

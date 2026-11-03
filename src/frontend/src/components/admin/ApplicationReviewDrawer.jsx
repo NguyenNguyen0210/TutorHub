@@ -52,7 +52,7 @@ export default function ApplicationReviewDrawer({
 
   const tabs = [
     { key: 'info', label: 'Thông tin' },
-    { key: 'degrees', label: `Bằng cấp (${documents.length || 1})` },
+    { key: 'degrees', label: `Bằng cấp (${documents.length})` },
     { key: 'experience', label: `Kinh nghiệm (${applicant.experienceYears}n)` },
     { key: 'notes', label: `Ghi chú (${notes.length})` },
   ];
@@ -130,7 +130,7 @@ export default function ApplicationReviewDrawer({
           <div className="flex items-center justify-between">
             <h4 className="font-bold text-[13.5px] text-fg">Bằng cấp & chứng chỉ</h4>
             <span className="text-[11px] text-fg-muted">
-              {documents.length || 1} tài liệu đính kèm
+              {documents.length} tài liệu đính kèm
             </span>
           </div>
 
@@ -143,11 +143,11 @@ export default function ApplicationReviewDrawer({
               >
                 <div className="flex items-center gap-3 min-w-0">
                   {/* Certificate Thumbnail */}
-                  <img
+                  {doc.previewUrl ? <img
                     src={doc.previewUrl}
                     alt={doc.title}
                     className="w-12 h-10 object-cover rounded-lg border border-border shrink-0"
-                  />
+                  /> : <Icon name="description" size="md" className="w-12 text-fg-muted shrink-0" />}
                   <div className="min-w-0">
                     <span className="font-bold text-[13px] text-fg block truncate">
                       {doc.title}
@@ -157,9 +157,9 @@ export default function ApplicationReviewDrawer({
                     </span>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[11px] text-fg-muted font-mono">{doc.format}</span>
-                      {doc.verified ? (
+                      {applicant.status === 'Approved' ? (
                         <span className="inline-flex items-center gap-1 text-[10.5px] font-bold text-success-strong">
-                          <Icon name="check" size="xs" /> Hợp lệ
+                          <Icon name="check" size="xs" /> Đã duyệt hồ sơ
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[10.5px] font-bold text-holding-strong">
@@ -267,23 +267,9 @@ export default function ApplicationReviewDrawer({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className={FIELD_CARD}>
-              <span className={FIELD_LABEL}>Hình thức dạy</span>
-              <span className={FIELD_VALUE}>
-                {applicant.teachingMode === 'Both'
-                  ? 'Online & Offline'
-                  : applicant.teachingMode}
-              </span>
-            </div>
-            <div className={FIELD_CARD}>
-              <span className={FIELD_LABEL}>Kinh nghiệm</span>
-              <span className={FIELD_VALUE}>{applicant.experienceYears} năm</span>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <span className={PROSE_LABEL}>Địa chỉ nhận dạy</span>
-            <p className="text-fg-secondary text-[12.5px]">{applicant.address}</p>
+          <div className={FIELD_CARD}>
+            <span className={FIELD_LABEL}>Kinh nghiệm</span>
+            <span className={FIELD_VALUE}>{applicant.experienceYears} năm</span>
           </div>
         </div>
       )}
@@ -386,8 +372,6 @@ ApplicationReviewDrawer.propTypes = {
     education: PropTypes.string,
     major: PropTypes.string,
     certifications: PropTypes.string,
-    teachingMode: PropTypes.string,
-    address: PropTypes.string,
     bio: PropTypes.string,
     methodology: PropTypes.string,
     achievements: PropTypes.string,

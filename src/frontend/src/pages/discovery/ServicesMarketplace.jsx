@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
+import useDiscoveryQueryState, { readDiscoveryQuery } from '@/hooks/useDiscoveryQueryState';
 import { ApiError, generateCorrelationId } from '@/services/api';
 import ServiceHeroSection from '@/components/discovery/ServiceHeroSection';
 import ServiceFilterSidebar from '@/components/discovery/ServiceFilterSidebar';
@@ -13,6 +14,7 @@ import { Pagination } from '@/components/ui/Table';
 import Icon from '@/components/ui/Icon';
 import { formatVND } from '@/utils/formatters';
 import { Drawer } from '@/components/ui/Avatar';
+import '@/styles/marketplace.css';
 
 const SORT_OPTIONS = [
   { value: 'priority', label: 'Phù hợp nhất' },
@@ -31,18 +33,21 @@ const REQUEST_TIMEOUT_MS = 10000;
 
 export default function ServicesMarketplace() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
+
+  const initialQuery = readDiscoveryQuery(searchParams, 'services');
 
   // Filter States
-  const [searchKeyword, setSearchKeyword] = useState(searchParams.get('q') || '');
-  const [debouncedKeyword, setDebouncedKeyword] = useState(searchParams.get('q') || '');
-  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoryId') || '');
-  const [selectedSubject, setSelectedSubject] = useState(searchParams.get('subjectId') || '');
-  const [teachingMode, setTeachingMode] = useState('All');
-  const [priceRange, setPriceRange] = useState(MAX_PRICE);
-  const [minRating, setMinRating] = useState(null);
-  const [sortBy, setSortBy] = useState('priority');
-  const [pageNumber, setPageNumber] = useState(1);
+  const [searchKeyword, setSearchKeyword] = useState(initialQuery.q);
+  const [debouncedKeyword, setDebouncedKeyword] = useState(initialQuery.q);
+  const [selectedCategory, setSelectedCategory] = useState(initialQuery.categoryId);
+  const [selectedSubject, setSelectedSubject] = useState(initialQuery.subjectId);
+  const [minPrice, setMinPrice] = useState(initialQuery.minPrice);
+  const [maxPrice, setMaxPrice] = useState(initialQuery.maxPrice);
+  const [debouncedMinPrice, setDebouncedMinPrice] = useState(initialQuery.minPrice);
+  const [debouncedMaxPrice, setDebouncedMaxPrice] = useState(initialQuery.maxPrice);
+  const [minRating, setMinRating] = useState(initialQuery.minRating);
+  const [sortBy, setSortBy] = useState(initialQuery.sort);
+  const [pageNumber, setPageNumber] = useState(initialQuery.page);
   const pageSize = 12;
 
   // Real Data States from Backend API
@@ -86,6 +91,28 @@ export default function ServicesMarketplace() {
     return () => clearTimeout(timer);
   }, [searchKeyword]);
 
+  // Debounce khoảng giá: kéo slider không bắn request mỗi bước, chỉ gọi API khi ngừng kéo.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedMinPrice(minPrice);
+      setDebouncedMaxPrice(maxPrice);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [minPrice, maxPrice]);
+
+
+  useDiscoveryQueryState({
+    searchParams, setSearchParams, kind: 'services',
+    values: { q: debouncedKeyword, categoryId: selectedCategory, minPrice: debouncedMinPrice, maxPrice: debouncedMaxPrice, minRating, sort: sortBy, page: pageNumber, subjectId: selectedSubject },
+    setters: {
+      q: value => { setSearchKeyword(value); setDebouncedKeyword(value); },
+      categoryId: setSelectedCategory,
+      minPrice: value => { setMinPrice(value); setDebouncedMinPrice(value); },
+      maxPrice: value => { setMaxPrice(value); setDebouncedMaxPrice(value); },
+      minRating: setMinRating, sort: setSortBy, page: setPageNumber, subjectId: setSelectedSubject,
+    },
+  });
+
   // Load Categories & Subjects on Mount
   useEffect(() => {
     let cancelled = false;
@@ -128,8 +155,8 @@ export default function ServicesMarketplace() {
           {
             categoryId: selectedCategory || null,
             subjectId: selectedSubject || null,
-            teachingMode,
-            maxPrice: priceRange < MAX_PRICE ? priceRange : null,
+            minPrice: debouncedMinPrice > 0 ? debouncedMinPrice : null,
+            maxPrice: debouncedMaxPrice < MAX_PRICE ? debouncedMaxPrice : null,
             minRating,
             search: debouncedKeyword,
             sortBy: apiSortBy,
@@ -184,8 +211,8 @@ export default function ServicesMarketplace() {
   }, [
     selectedCategory,
     selectedSubject,
-    teachingMode,
-    priceRange,
+    debouncedMinPrice,
+    debouncedMaxPrice,
     minRating,
     debouncedKeyword,
     sortBy,
@@ -201,12 +228,13 @@ export default function ServicesMarketplace() {
     setDebouncedKeyword('');
     setSelectedCategory('');
     setSelectedSubject('');
-    setTeachingMode('All');
-    setPriceRange(MAX_PRICE);
+    setMinPrice(0);
+    setMaxPrice(MAX_PRICE);
+    setDebouncedMinPrice(0);
+    setDebouncedMaxPrice(MAX_PRICE);
     setMinRating(null);
     setSortBy('priority');
     setPageNumber(1);
-    setSearchParams({});
   };
 
   // Popular Tag click in Hero
@@ -244,25 +272,29 @@ export default function ServicesMarketplace() {
         clear: clearAndResetPage(() => setSelectedSubject('')),
       });
     }
-    if (teachingMode !== 'All') {
-      const modeLabel =
-        teachingMode === 'InPerson'
-          ? 'Tại nhà'
-          : teachingMode === 'Both'
-          ? 'Cả hai'
-          : teachingMode;
-      list.push({
-        key: 'mode',
-        label: `Hình thức: ${modeLabel}`,
-        clear: clearAndResetPage(() => setTeachingMode('All')),
-      });
-    }
-    if (priceRange < MAX_PRICE) {
-      list.push({
-        key: 'price',
-        label: `Học phí ≤ ${formatVND(priceRange)}`,
-        clear: clearAndResetPage(() => setPriceRange(MAX_PRICE)),
-      });
+    if (minPrice > 0 || maxPrice < MAX_PRICE) {
+      if (minPrice > 0 && maxPrice < MAX_PRICE) {
+        list.push({
+          key: 'price',
+          label: `Học phí: ${formatVND(minPrice)} – ${formatVND(maxPrice)}`,
+          clear: clearAndResetPage(() => {
+            setMinPrice(0);
+            setMaxPrice(MAX_PRICE);
+          }),
+        });
+      } else if (minPrice > 0) {
+        list.push({
+          key: 'price',
+          label: `Học phí: từ ${formatVND(minPrice)}`,
+          clear: clearAndResetPage(() => setMinPrice(0)),
+        });
+      } else {
+        list.push({
+          key: 'price',
+          label: `Học phí: đến ${formatVND(maxPrice)}`,
+          clear: clearAndResetPage(() => setMaxPrice(MAX_PRICE)),
+        });
+      }
     }
     if (minRating !== null) {
       list.push({
@@ -278,7 +310,6 @@ export default function ServicesMarketplace() {
         clear: clearAndResetPage(() => {
           setSearchKeyword('');
           setDebouncedKeyword('');
-          setSearchParams({});
         }),
       });
     }
@@ -288,11 +319,10 @@ export default function ServicesMarketplace() {
     selectedSubject,
     categories,
     subjects,
-    teachingMode,
-    priceRange,
+    minPrice,
+    maxPrice,
     minRating,
     searchKeyword,
-    setSearchParams,
   ]);
 
   const handlePageChange = (newPage) => {
@@ -316,14 +346,12 @@ export default function ServicesMarketplace() {
         setSelectedSubject(id);
         setPageNumber(1);
       }}
-      teachingMode={teachingMode}
-      onTeachingModeChange={(mode) => {
-        setTeachingMode(mode);
-        setPageNumber(1);
-      }}
-      priceRange={priceRange}
-      onPriceRangeChange={(val) => {
-        setPriceRange(val);
+      minPrice={minPrice}
+      maxPrice={maxPrice}
+      priceLimit={MAX_PRICE}
+      onPriceChange={({ min, max }) => {
+        setMinPrice(min);
+        setMaxPrice(max);
         setPageNumber(1);
       }}
       minRating={minRating}
@@ -331,11 +359,14 @@ export default function ServicesMarketplace() {
         setMinRating(r);
         setPageNumber(1);
       }}
+      activeCount={activeFilters.length}
+      onReset={handleResetFilters}
+      sticky={!isMobileFilters}
     />
   );
 
   return (
-    <div className="w-full flex-1 bg-canvas pb-16">
+    <div data-discovery-loading={loading ? 'true' : 'false'} className="marketplace-v2 w-full flex-1 bg-[color:var(--mkt-canvas)] pb-4 sm:pb-6">
       {/* 1. Hero Section */}
       <ServiceHeroSection
         searchKeyword={searchKeyword}
@@ -345,12 +376,11 @@ export default function ServicesMarketplace() {
           setPageNumber(1);
         }}
         onTagClick={handleTagClick}
-        sampleServices={services}
       />
 
       {/* 2. Main Discovery Container: 2 Columns */}
-      <div className="page-shell pt-6 sm:pt-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-7 items-start">
+      <div className="page-shell pt-8 sm:pt-10">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[288px_minmax(0,1fr)] lg:gap-9">
           {/* Left Column: Filter Sidebar (desktop; mobile dùng drawer) */}
           {!isMobileFilters && (
             <div className="w-full shrink-0">
@@ -359,47 +389,57 @@ export default function ServicesMarketplace() {
           )}
 
           {/* Right Column: Active Chips + Count Toolbar + Grid */}
-          <div className="flex-1 min-w-0 space-y-5">
+          <div className="min-w-0 flex-1 space-y-5">
             {/* Mobile filter trigger: mở drawer từ trái, badge đếm filter active */}
-            <div className="lg:hidden">
+            <div className="sticky top-[72px] z-30 -mx-4 flex items-center justify-between border-b border-[color:var(--mkt-line)] bg-[color:var(--mkt-canvas)]/95 px-4 py-2.5 backdrop-blur-sm lg:hidden">
               <button
                 type="button"
                 onClick={() => setFilterOpen(true)}
                 aria-haspopup="dialog"
-                className="inline-flex items-center gap-2 min-h-[44px] px-4 rounded-brand-md border border-border bg-surface text-body-reg font-semibold text-fg shadow-sm active:scale-[0.98] transition-all"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[color:var(--mkt-line)] bg-white px-4 text-sm font-bold text-[color:var(--mkt-ink)] shadow-sm transition active:scale-[0.98]"
               >
-                <Icon name="tune" size="sm" className="text-brand-primary-600" />
+                <Icon name="tune" size="sm" className="text-[color:var(--mkt-cobalt)]" />
                 <span>Bộ lọc</span>
                 {activeFilters.length > 0 && (
                   <span
                     role="status"
                     aria-label={`${activeFilters.length} bộ lọc đang áp dụng`}
-                    className="min-w-[22px] h-[22px] px-1 rounded-full bg-brand-primary-600 text-white text-[11px] font-bold inline-flex items-center justify-center"
+                    className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-[color:var(--mkt-cobalt)] px-1 text-[11px] font-bold text-white"
                   >
                     {activeFilters.length}
                   </span>
                 )}
               </button>
+              {activeFilters.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="inline-flex min-h-10 items-center gap-1 text-xs font-semibold text-slate-600 transition-colors hover:text-rose-600"
+                >
+                  <Icon name="close" size="xs" className="h-3.5 w-3.5" />
+                  <span>Xóa lọc ({activeFilters.length})</span>
+                </button>
+              )}
             </div>
 
             {/* Active Filters Bar */}
             {activeFilters.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 p-3 bg-brand-primary-50/70 border border-brand-primary-100/90 rounded-[14px] shadow-sm">
-                <div className="flex items-center gap-1.5 text-[12.5px] font-bold text-neutral-700">
-                  <Icon name="filter_alt" size="xs" className="text-brand-primary-600 w-3.5 h-3.5" />
+              <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50/80 p-3 shadow-sm">
+                <div className="flex items-center gap-1.5 text-sm font-bold text-slate-700">
+                  <Icon name="filter_alt" size="xs" className="h-3.5 w-3.5 text-blue-600" />
                   <span>Đang lọc:</span>
                 </div>
                 {activeFilters.map((af) => (
                   <span
                     key={af.key}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface text-brand-primary-600 text-[12px] font-semibold border border-brand-primary-200/90 shadow-sm hover:border-brand-primary-300 transition-colors"
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-blue-200 bg-white py-1 pl-3 pr-1 text-xs font-bold text-blue-700 shadow-sm transition-colors hover:border-blue-400"
                   >
                     <span>{af.label}</span>
                     <button
                       type="button"
                       onClick={af.clear}
                       aria-label={`Xóa bộ lọc ${af.label}`}
-                      className="hover:text-danger transition-colors font-bold text-[14px] leading-none cursor-pointer ml-0.5 -mr-3 -my-3 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600"
+                      className="ml-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold leading-none transition-colors hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                       title="Gỡ bộ lọc này"
                     >
                       ×
@@ -409,7 +449,7 @@ export default function ServicesMarketplace() {
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className="text-[12px] font-semibold text-neutral-500 hover:text-danger-strong transition-colors ml-auto cursor-pointer flex items-center gap-1 min-h-[44px] px-2"
+                  className="ml-auto flex min-h-10 items-center gap-1 rounded-lg px-2 text-xs font-bold text-slate-600 transition-colors hover:bg-white hover:text-rose-600"
                 >
                   <Icon name="close" size="xs" className="w-3.5 h-3.5" />
                   <span>Xóa bộ lọc</span>
@@ -418,21 +458,26 @@ export default function ServicesMarketplace() {
             )}
 
             {/* Top Toolbar: Counter + Sort Dropdown */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-neutral-200/80 pt-1">
+            <div className="flex flex-col gap-4 border-b border-[color:var(--mkt-line)] pb-4 pt-1 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="text-[18px] sm:text-[22px] font-bold text-neutral-900 tracking-tight">
-                  {loading ? 'Đang tìm kiếm dịch vụ...' : `${totalCount} dịch vụ phù hợp`}
+                <span className="text-xs font-bold uppercase tracking-[0.08em] text-blue-600">Danh sách dịch vụ</span>
+                <h2 className="mt-1 text-[22px] font-bold tracking-[-0.02em] text-[color:var(--mkt-ink)] sm:text-[26px]">
+                  {loading
+                    ? 'Đang tìm kiếm dịch vụ...'
+                    : totalCount === 0
+                      ? 'Không tìm thấy dịch vụ phù hợp'
+                      : `${totalCount} dịch vụ phù hợp`}
                 </h2>
-                <p className="text-[12.5px] text-neutral-500 font-medium mt-0.5">
-                  Dựa trên các tiêu chí lọc hiện tại
+                <p className="mt-1 text-sm font-medium text-[color:var(--mkt-body)]">
+                  So sánh lộ trình, gia sư và học phí trọn gói.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 self-end sm:self-auto">
-                <label htmlFor="sort-services" className="text-[13px] font-semibold text-neutral-500 shrink-0">
-                  Sắp xếp theo:
+              <div className="flex items-center gap-2 self-stretch sm:self-auto">
+                <label htmlFor="sort-services" className="shrink-0 text-sm font-semibold text-slate-600">
+                  Sắp xếp:
                 </label>
-                <div className="w-[195px]">
+                <div className="min-w-0 flex-1 sm:w-[210px] sm:flex-none">
                   <Select
                     id="sort-services"
                     value={sortBy}
@@ -440,7 +485,7 @@ export default function ServicesMarketplace() {
                       setSortBy(e.target.value);
                       setPageNumber(1);
                     }}
-                    className="min-h-[44px] !py-1 text-[13px] font-medium bg-surface border border-neutral-200/90 rounded-lg shadow-sm hover:border-brand-primary-600/50 focus:border-brand-primary-600 focus:ring-2 focus:ring-brand-primary-600/15 cursor-pointer"
+                    className="min-h-11 cursor-pointer rounded-xl border border-slate-200 bg-white !py-1 text-sm font-semibold shadow-sm hover:border-blue-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
                   >
                     {SORT_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -454,34 +499,24 @@ export default function ServicesMarketplace() {
 
             {/* Quick filter chips — two-way synced with sidebar */}
             <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Bộ lọc nhanh">
-              <span className="text-[12.5px] font-semibold text-neutral-500">Lọc nhanh:</span>
+              <span className="mr-1 text-sm font-semibold text-slate-600">Lọc nhanh:</span>
               <button
                 type="button"
-                aria-pressed={teachingMode === 'Online'}
+                aria-pressed={minPrice === 0 && maxPrice <= QUICK_PRICE_CAP}
                 onClick={() => {
-                  setTeachingMode(teachingMode === 'Online' ? 'All' : 'Online');
+                  if (minPrice === 0 && maxPrice <= QUICK_PRICE_CAP) {
+                    setMinPrice(0);
+                    setMaxPrice(MAX_PRICE);
+                  } else {
+                    setMinPrice(0);
+                    setMaxPrice(QUICK_PRICE_CAP);
+                  }
                   setPageNumber(1);
                 }}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer ${
-                  teachingMode === 'Online'
-                    ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
-                    : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
-                }`}
-              >
-                <Icon name="devices" size="xs" className="w-3.5 h-3.5" />
-                <span>Online</span>
-              </button>
-              <button
-                type="button"
-                aria-pressed={priceRange <= QUICK_PRICE_CAP}
-                onClick={() => {
-                  setPriceRange(priceRange <= QUICK_PRICE_CAP ? MAX_PRICE : QUICK_PRICE_CAP);
-                  setPageNumber(1);
-                }}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer ${
-                  priceRange <= QUICK_PRICE_CAP
-                    ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
-                    : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
+                className={`inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 text-sm font-bold transition-colors ${
+                  minPrice === 0 && maxPrice <= QUICK_PRICE_CAP
+                    ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700'
                 }`}
               >
                 <Icon name="payments" size="xs" className="w-3.5 h-3.5" />
@@ -494,10 +529,10 @@ export default function ServicesMarketplace() {
                   setMinRating(minRating === QUICK_RATING ? null : QUICK_RATING);
                   setPageNumber(1);
                 }}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-[12.5px] font-semibold border transition-colors cursor-pointer ${
+                className={`inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 text-sm font-bold transition-colors ${
                   minRating === QUICK_RATING
-                    ? 'border-brand-primary-600 bg-brand-primary-600 text-white shadow-sm'
-                    : 'border-neutral-200 bg-surface text-neutral-600 hover:border-brand-primary-600/50 hover:text-brand-primary-600'
+                    ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700'
                 }`}
               >
                 <Icon name="star" size="xs" className="w-3.5 h-3.5" />
@@ -517,8 +552,8 @@ export default function ServicesMarketplace() {
               />
             )}
 
-            {/* Loading Skeletons */}
-            {loading && <CardSkeleton count={6} className="gap-5" />}
+            {/* Loading Skeletons (2 Columns đồng bộ với Tutor Grid) */}
+            {loading && <CardSkeleton count={6} className="gap-5 md:!grid-cols-2 lg:!grid-cols-2" label="Đang tải danh sách dịch vụ..." />}
 
             {/* Empty State */}
             {!loading && !error && services.length === 0 && (
@@ -531,27 +566,21 @@ export default function ServicesMarketplace() {
               />
             )}
 
-            {/* Services Grid (3 Columns on Desktop) */}
+            {/* Services Grid (2 Columns, đồng bộ với Tutor Grid) */}
             {!loading && !error && services.length > 0 && (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                   {services.map((service) => (
                     <ServiceCard
                       key={service.id}
                       service={service}
-                      onDetail={() => {
-                        navigate(`/services/${service.id}`);
-                      }}
-                      onBookNow={() => {
-                        navigate(`/services/${service.id}`);
-                      }}
                     />
                   ))}
                 </div>
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="pt-8 flex justify-center">
+                  <div className="flex justify-center pt-8">
                     <Pagination
                       page={pageNumber}
                       totalPages={totalPages}
@@ -570,20 +599,21 @@ export default function ServicesMarketplace() {
           onClose={() => setFilterOpen(false)}
           side="left"
           title="Bộ lọc tìm kiếm"
-          widthClass="w-[320px]"
+          widthClass="w-[340px] max-w-[92vw]"
+          panelClassName="marketplace-v2"
           footer={
             <>
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="flex-1 inline-flex items-center justify-center h-11 px-4 rounded-brand-md border border-border bg-surface text-body-reg font-semibold text-fg-secondary active:scale-[0.98] transition-all"
+                className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition active:scale-[0.98]"
               >
                 Xóa
               </button>
               <button
                 type="button"
                 onClick={() => setFilterOpen(false)}
-                className="flex-1 inline-flex items-center justify-center h-11 px-4 rounded-brand-md bg-brand-primary-600 text-white text-body-reg font-semibold shadow-sm active:scale-[0.98] transition-all"
+                className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-bold text-white shadow-sm transition active:scale-[0.98]"
               >
                 Áp dụng
                 {activeFilters.length > 0 ? ` (${activeFilters.length})` : ''}

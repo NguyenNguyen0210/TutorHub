@@ -1,16 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { cn } from '@/lib/cn';
 import Icon from '@/components/ui/Icon';
-import { formatVND } from '@/utils/formatters';
+import PriceRangeFilter from '@/components/discovery/PriceRangeFilter';
 
 const DEGREE_OPTIONS = [
   { id: 'All', label: 'Tất cả học vị' },
-  { id: 'Thạc sĩ', label: 'Thạc sĩ / Tiến sĩ', icon: 'school' },
-  { id: 'Cử nhân', label: 'Cử nhân chính quy', icon: 'history_edu' },
-  { id: 'Kỹ sư', label: 'Kỹ sư công nghệ', icon: 'code' },
-  { id: 'Bác sĩ', label: 'Bác sĩ / Y khoa', icon: 'medical_services' },
-  { id: 'Sinh viên', label: 'Sinh viên giỏi', icon: 'person' },
+  { id: 'Thạc sĩ', label: 'Thạc sĩ / Tiến sĩ' },
+  { id: 'Cử nhân', label: 'Cử nhân chính quy' },
+  { id: 'Kỹ sư', label: 'Kỹ sư công nghệ' },
+  { id: 'Bác sĩ', label: 'Bác sĩ / Y khoa' },
+  { id: 'Sinh viên', label: 'Sinh viên giỏi' },
 ];
 
 const UNIVERSITY_OPTIONS = [
@@ -26,35 +26,118 @@ const UNIVERSITY_OPTIONS = [
 
 const CERTIFICATION_OPTIONS = [
   { id: 'All', label: 'Tất cả chứng chỉ' },
-  { id: 'IELTS', label: 'IELTS 7.5 - 8.5+' },
+  { id: 'IELTS', label: 'IELTS 7.5 – 8.5+' },
   { id: 'JLPT', label: 'JLPT N1 / N2' },
   { id: 'Chứng chỉ Sư phạm', label: 'Nghiệp vụ Sư phạm' },
   { id: 'CELTA', label: 'CELTA / TESOL' },
   { id: 'Kiện tướng', label: 'Kiện tướng Cờ vua QG' },
 ];
 
-const CITY_OPTIONS = [
-  { id: 'All', label: 'Tất cả khu vực' },
-  { id: 'Hà Nội', label: 'Hà Nội' },
-  { id: 'Hồ Chí Minh', label: 'TP. Hồ Chí Minh' },
-  { id: 'Đà Nẵng', label: 'Đà Nẵng' },
+const PRICE_PRESETS = [
+  { label: 'Tất cả', min: 0, max: 5000000 },
+  { label: '< 1 triệu', min: 0, max: 1000000 },
+  { label: '1 – 2,5 triệu', min: 1000000, max: 2500000 },
+  { label: '2,5 – 5 triệu', min: 2500000, max: 5000000 },
 ];
 
-const PRICE_PRESETS = [
-  { label: 'Tất cả', max: 5000000 },
-  { label: '< 1 triệu', max: 1000000 },
-  { label: '1 - 2.5 triệu', max: 2500000 },
-  { label: 'Đến 5 triệu', max: 5000000 },
+const PRICE_STEP = 100000;
+
+const RATING_OPTIONS = [
+  { val: null, label: 'Tất cả' },
+  { val: 4.8, label: 'Từ 4.8' },
+  { val: 4.5, label: 'Từ 4.5' },
+  { val: 4.0, label: 'Từ 4.0' },
 ];
+
+const EXPERIENCE_OPTIONS = [
+  { id: 'All', label: 'Tất cả' },
+  { id: '<1', label: '< 1 năm' },
+  { id: '1-2', label: '1 – 2 năm' },
+  { id: '3-5', label: '3 – 5 năm' },
+  { id: '>=6', label: 'Từ 6 năm' },
+];
+
+function FilterSection({ id, icon, title, summary, open, onToggle, children }) {
+  return (
+    <section className={cn('mkt-filter-section', open && 'is-open')}>
+      <button
+        type="button"
+        className="mkt-filter-section-toggle"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={`filter-section-${id}`}
+      >
+        <span className="mkt-filter-section-icon"><Icon name={icon} size="sm" strokeWidth={1.8} /></span>
+        <span className="min-w-0 flex-1 text-left">
+          <strong>{title}</strong>
+          {summary && <span className="mkt-filter-summary">{summary}</span>}
+        </span>
+        <Icon name="expand_more" size="sm" className={cn('mkt-filter-chevron', open && 'rotate-180')} />
+      </button>
+      {open && <div id={`filter-section-${id}`} className="mkt-filter-section-body">{children}</div>}
+    </section>
+  );
+}
+
+FilterSection.propTypes = {
+  id: PropTypes.string.isRequired,
+  icon: PropTypes.string.isRequired,
+  title: PropTypes.string.isRequired,
+  summary: PropTypes.string,
+  open: PropTypes.bool.isRequired,
+  onToggle: PropTypes.func.isRequired,
+  children: PropTypes.node.isRequired,
+};
+
+function RadioList({ name, options, value, onChange, searchable = false, query = '', onQueryChange }) {
+  return (
+    <div>
+      {searchable && (
+        <div className="mkt-filter-search">
+          <Icon name="search" size="xs" />
+          <input
+            type="search"
+            aria-label="Tìm trong danh sách trường"
+            placeholder="Tìm tên trường"
+            value={query}
+            onChange={(event) => onQueryChange?.(event.target.value)}
+          />
+        </div>
+      )}
+      <div className={cn('mkt-filter-radio-list', searchable && 'mt-3 max-h-[220px] overflow-y-auto pr-1')}>
+        {options.map((option) => {
+          const selected = value === option.id;
+          return (
+            <label key={option.id} className={cn('mkt-filter-option', selected && 'is-selected')}>
+              <input type="radio" name={name} checked={selected} onChange={() => onChange?.(option.id)} />
+              <span className="mkt-filter-radio" aria-hidden="true" />
+              <span className="min-w-0 flex-1">{option.label}</span>
+              {selected && <Icon name="check" size="xs" />}
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+RadioList.propTypes = {
+  name: PropTypes.string.isRequired,
+  options: PropTypes.arrayOf(PropTypes.shape({ id: PropTypes.string.isRequired, label: PropTypes.string.isRequired })).isRequired,
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func,
+  searchable: PropTypes.bool,
+  query: PropTypes.string,
+  onQueryChange: PropTypes.func,
+};
 
 export default function FilterSidebar({
+  minPrice: propMinPrice,
+  maxPrice: propMaxPrice,
+  priceLimit = 5000000,
   priceRange,
+  onPriceChange,
   onPriceRangeChange,
-  maxPrice = 5000000,
-  teachingMode,
-  onTeachingModeChange,
-  city = 'All',
-  onCityChange,
   degreeLevel = 'All',
   onDegreeLevelChange,
   university = 'All',
@@ -63,477 +146,135 @@ export default function FilterSidebar({
   onCertificationChange,
   minRating,
   onMinRatingChange,
-  experienceRange,
+  experienceRange = 'All',
   onExperienceRangeChange,
-  _onResetFilters,
+  onResetFilters,
+  footer,
   className,
 }) {
+  const currentMinPrice = propMinPrice != null ? Number(propMinPrice) : 0;
+  const currentMaxPrice = propMaxPrice != null ? Number(propMaxPrice) : Number(priceRange ?? priceLimit);
   const [openSections, setOpenSections] = useState({
-    degree: true,
-    university: true,
-    cert: false,
-    price: false,
-    mode: false,
-    rating: false,
+    price: true, rating: true, experience: true, degree: false, university: false, cert: false,
   });
-
   const [uniSearch, setUniSearch] = useState('');
 
-  const toggleSection = (section) => {
-    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  const toggleSection = (section) => setOpenSections((current) => ({ ...current, [section]: !current[section] }));
+  const handleSliderChange = ([min, max]) => {
+    if (onPriceChange) onPriceChange({ min, max });
+    else onPriceRangeChange?.(max);
   };
 
   const filteredUniversities = useMemo(() => {
-    if (!uniSearch.trim()) return UNIVERSITY_OPTIONS;
-    const term = uniSearch.toLowerCase().trim();
-    return UNIVERSITY_OPTIONS.filter((u) => u.label.toLowerCase().includes(term));
+    const term = uniSearch.toLocaleLowerCase('vi').trim();
+    if (!term) return UNIVERSITY_OPTIONS;
+    return UNIVERSITY_OPTIONS.filter((option) => option.label.toLocaleLowerCase('vi').includes(term));
   }, [uniSearch]);
 
-  const showLocationFilter = teachingMode === 'InPerson' || teachingMode === 'Both' || teachingMode === 'Hybrid';
+  const activeCount = useMemo(() => [
+    currentMinPrice > 0 || currentMaxPrice < priceLimit,
+    minRating != null,
+    experienceRange !== 'All',
+    degreeLevel !== 'All',
+    university !== 'All',
+    certification !== 'All',
+  ].filter(Boolean).length, [currentMinPrice, currentMaxPrice, priceLimit, minRating, experienceRange, degreeLevel, university, certification]);
+
+  const ratingSummary = minRating != null ? `Từ ${minRating} sao` : null;
+  const experienceSummary = EXPERIENCE_OPTIONS.find((option) => option.id === experienceRange)?.label;
+  const degreeSummary = degreeLevel !== 'All' ? degreeLevel : null;
+  const universitySummary = university !== 'All' ? university : null;
+  const certificationSummary = certification !== 'All' ? certification : null;
 
   return (
-    <aside className={cn('w-full', className)} aria-label="Bộ lọc gia sư đa chiều">
-      <div className="filter-panel p-5 space-y-4 border border-border rounded-brand-lg bg-surface">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3.5 border-b border-neutral-100">
-          <div className="flex items-center gap-2 font-bold text-[15px] text-neutral-900">
-            <Icon name="tune" size="sm" className="text-brand-primary-600" />
-            <span>Bộ lọc tìm kiếm</span>
+    <aside className={cn('w-full', className)} aria-label="Bộ lọc gia sư">
+      <div className="filter-panel mkt-filter-panel">
+        <header className="mkt-filter-header">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="mkt-filter-header-icon">
+              <Icon name="tune" size="md" />
+              {activeCount > 0 && (
+                <span className="mkt-filter-count" aria-label={`${activeCount} bộ lọc đang áp dụng`}>{activeCount}</span>
+              )}
+            </span>
+            <div className="min-w-0">
+              <h2>Tinh chỉnh kết quả</h2>
+              <p>Chọn điều quan trọng với bạn</p>
+            </div>
           </div>
-        </div>
-
-        {/* 1. Degree Level Section (Học vị & Bằng cấp) */}
-        <div className="space-y-2.5">
           <button
             type="button"
-            onClick={() => toggleSection('degree')}
-            aria-expanded={openSections.degree}
-            aria-controls="filter-section-degree"
-            className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
+            onClick={onResetFilters}
+            className={cn('mkt-filter-reset', activeCount === 0 && 'invisible')}
+            disabled={activeCount === 0}
+            aria-label="Đặt lại bộ lọc"
+            title="Đặt lại bộ lọc"
           >
-            <span className="flex items-center gap-1.5">
-              <Icon name="school" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
-              <span>Bằng cấp & Học vị</span>
-            </span>
-            <Icon
-              name="expand_more"
-              size="sm"
-              className={cn(
-                'text-neutral-400 transition-transform duration-200',
-                openSections.degree ? 'rotate-180' : 'rotate-0'
-              )}
-            />
+            <Icon name="refresh" size="sm" strokeWidth={1.8} />
           </button>
+        </header>
 
-          {openSections.degree && (
-            <div id="filter-section-degree" className="space-y-1.5 pt-1 text-[13px]">
-              {DEGREE_OPTIONS.map((item) => {
-                const isSelected = degreeLevel === item.id;
+        <div className="mkt-filter-sections">
+          <FilterSection id="price" icon="payments" title="Ngân sách" open={openSections.price} onToggle={() => toggleSection('price')}>
+            <PriceRangeFilter
+              min={currentMinPrice}
+              max={currentMaxPrice}
+              limit={priceLimit}
+              step={PRICE_STEP}
+              presets={PRICE_PRESETS}
+              onChange={handleSliderChange}
+              ariaLabelMin="Giá gói học tối thiểu"
+              ariaLabelMax="Giá gói học tối đa"
+            />
+          </FilterSection>
+
+          <FilterSection id="rating" icon="star" title="Đánh giá" summary={ratingSummary} open={openSections.rating} onToggle={() => toggleSection('rating')}>
+            <div className="mkt-filter-chip-grid">
+              {RATING_OPTIONS.map((option) => {
+                const selected = minRating === option.val;
                 return (
-                  <label
-                    key={item.id}
-                    htmlFor={`degree-${item.id}`}
-                    className={cn(
-                      'flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer transition-all select-none',
-                      isSelected
-                        ? 'bg-brand-primary-50/80 text-brand-primary-600 font-semibold'
-                        : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
-                    )}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <input
-                        type="radio"
-                        id={`degree-${item.id}`}
-                        name="degreeLevel"
-                        checked={isSelected}
-                        onChange={() => onDegreeLevelChange && onDegreeLevelChange(item.id)}
-                        className="w-3.5 h-3.5 text-brand-primary-600 border-neutral-300 focus:ring-brand-primary-600 cursor-pointer"
-                      />
-                      <span>{item.label}</span>
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* 2. University Section (Trường đại học đào tạo) */}
-        <div className="space-y-2.5 pt-3 border-t border-neutral-100">
-          <button
-            type="button"
-            onClick={() => toggleSection('university')}
-            aria-expanded={openSections.university}
-            aria-controls="filter-section-university"
-            className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
-          >
-            <span className="flex items-center gap-1.5">
-              <Icon name="account_balance" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
-              <span>Trường đại học</span>
-            </span>
-            <Icon
-              name="expand_more"
-              size="sm"
-              className={cn(
-                'text-neutral-400 transition-transform duration-200',
-                openSections.university ? 'rotate-180' : 'rotate-0'
-              )}
-            />
-          </button>
-
-          {openSections.university && (
-            <div id="filter-section-university" className="space-y-2 pt-1 text-[13px]">
-              {/* Quick search university */}
-              <div className="relative">
-                <input
-                  type="text"
-                  aria-label="Lọc trường đại học"
-                  placeholder="Lọc trường..."
-                  value={uniSearch}
-                  onChange={(e) => setUniSearch(e.target.value)}
-                  className="w-full px-2.5 py-1 text-[12px] bg-neutral-50 border border-neutral-200 rounded-md focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand-primary-600"
-                />
-                {uniSearch && (
-                  <button
-                    type="button"
-                    onClick={() => setUniSearch('')}
-                    className="absolute right-2 top-1.5 text-neutral-400 hover:text-neutral-600 text-[11px]"
-                  >
-                    ×
+                  <button key={option.val ?? 'all'} type="button" aria-pressed={selected} onClick={() => onMinRatingChange?.(option.val)}>
+                    {option.val != null && <Icon name="star" size="xs" filled className="text-[color:var(--mkt-amber)]" />}{option.label}
                   </button>
-                )}
-              </div>
-
-              <div className="space-y-1 max-h-[170px] overflow-y-auto pr-1">
-                {filteredUniversities.map((item) => {
-                  const isSelected = university === item.id;
-                  return (
-                    <label
-                      key={item.id}
-                      className={cn(
-                        'flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer select-none transition-colors text-[12.5px]',
-                        isSelected
-                          ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                          : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
-                      )}
-                    >
-                      <input
-                        type="radio"
-                        name="university"
-                        checked={isSelected}
-                        onChange={() => onUniversityChange && onUniversityChange(item.id)}
-                        className="w-3.5 h-3.5 text-brand-primary-600 border-neutral-300 focus:ring-brand-primary-600 cursor-pointer"
-                      />
-                      <span className="truncate">{item.label}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 3. Certifications Section (Chứng chỉ chuyên môn) */}
-        <div className="space-y-2.5 pt-3 border-t border-neutral-100">
-          <button
-            type="button"
-            onClick={() => toggleSection('cert')}
-            aria-expanded={openSections.cert}
-            aria-controls="filter-section-cert"
-            className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
-          >
-            <span className="flex items-center gap-1.5">
-              <Icon name="verified" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
-              <span>Chứng chỉ nổi bật</span>
-            </span>
-            <Icon
-              name="expand_more"
-              size="sm"
-              className={cn(
-                'text-neutral-400 transition-transform duration-200',
-                openSections.cert ? 'rotate-180' : 'rotate-0'
-              )}
-            />
-          </button>
-
-          {openSections.cert && (
-            <div id="filter-section-cert" className="space-y-1 pt-1 text-[13px]">
-              {CERTIFICATION_OPTIONS.map((item) => {
-                const isSelected = certification === item.id;
-                return (
-                  <label
-                    key={item.id}
-                    className={cn(
-                      'flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer select-none transition-colors text-[12.5px]',
-                      isSelected
-                        ? 'bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                        : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="certification"
-                      checked={isSelected}
-                      onChange={() => onCertificationChange && onCertificationChange(item.id)}
-                      className="w-3.5 h-3.5 text-brand-primary-600 border-neutral-300 focus:ring-brand-primary-600 cursor-pointer"
-                    />
-                    <span>{item.label}</span>
-                  </label>
                 );
               })}
             </div>
-          )}
-        </div>
+          </FilterSection>
 
-        {/* 4. Teaching Mode & Location */}
-        <div className="space-y-2.5 pt-3 border-t border-neutral-100">
-          <button
-            type="button"
-            onClick={() => toggleSection('mode')}
-            aria-expanded={openSections.mode}
-            aria-controls="filter-section-mode"
-            className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
-          >
-            <span className="flex items-center gap-1.5">
-              <Icon name="home_work" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
-              <span>Hình thức & Địa bàn</span>
-            </span>
-            <Icon
-              name="expand_more"
-              size="sm"
-              className={cn(
-                'text-neutral-400 transition-transform duration-200',
-                openSections.mode ? 'rotate-180' : 'rotate-0'
-              )}
-            />
-          </button>
-
-          {openSections.mode && (
-            <div id="filter-section-mode" className="space-y-2 pt-1 text-[13px]">
-              <div className="grid grid-cols-2 gap-1.5">
-                {[
-                  { id: 'All', label: 'Tất cả' },
-                  { id: 'Online', label: 'Online' },
-                  { id: 'InPerson', label: 'Tại nhà' },
-                  { id: 'Both', label: 'Cả hai' },
-                ].map((option) => {
-                  const isSelected = teachingMode === option.id;
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => onTeachingModeChange(option.id)}
-                      className={cn(
-                        'py-1.5 px-2 rounded-lg text-[12px] font-medium border text-center transition-all cursor-pointer',
-                        isSelected
-                          ? 'border-brand-primary-600 bg-brand-primary-50 text-brand-primary-600 font-semibold shadow-sm'
-                          : 'border-neutral-200 bg-surface text-neutral-700 hover:border-neutral-300'
-                      )}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Cascading Location Filter when InPerson or Both selected */}
-              {showLocationFilter && (
-                <div className="pt-2 space-y-1.5 animate-fadeIn">
-                  <label
-                    htmlFor="filter-city"
-                    className="text-[11.5px] font-semibold text-neutral-500 uppercase tracking-wide"
-                  >
-                    Tỉnh / Thành phố:
-                  </label>
-                  <select
-                    id="filter-city"
-                    value={city}
-                    onChange={(e) => onCityChange && onCityChange(e.target.value)}
-                    className="w-full text-[12.5px] px-2.5 py-1.5 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-800 focus:bg-surface focus:outline-none focus:ring-1 focus:ring-brand-primary-600 cursor-pointer"
-                  >
-                    {CITY_OPTIONS.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+          <FilterSection id="experience" icon="work_history" title="Kinh nghiệm" summary={experienceRange !== 'All' ? experienceSummary : null} open={openSections.experience} onToggle={() => toggleSection('experience')}>
+            <div className="mkt-filter-chip-grid">
+              {EXPERIENCE_OPTIONS.map((option) => (
+                <button key={option.id} type="button" aria-pressed={experienceRange === option.id} onClick={() => onExperienceRangeChange?.(option.id)}>{option.label}</button>
+              ))}
             </div>
-          )}
+          </FilterSection>
+
+          <FilterSection id="degree" icon="school" title="Học vị" summary={degreeSummary} open={openSections.degree} onToggle={() => toggleSection('degree')}>
+            <RadioList name="degreeLevel" options={DEGREE_OPTIONS} value={degreeLevel} onChange={onDegreeLevelChange} />
+          </FilterSection>
+
+          <FilterSection id="university" icon="account_balance" title="Trường đại học" summary={universitySummary} open={openSections.university} onToggle={() => toggleSection('university')}>
+            <RadioList name="university" options={filteredUniversities} value={university} onChange={onUniversityChange} searchable query={uniSearch} onQueryChange={setUniSearch} />
+          </FilterSection>
+
+          <FilterSection id="cert" icon="verified" title="Chứng chỉ" summary={certificationSummary} open={openSections.cert} onToggle={() => toggleSection('cert')}>
+            <RadioList name="certification" options={CERTIFICATION_OPTIONS} value={certification} onChange={onCertificationChange} />
+          </FilterSection>
         </div>
 
-        {/* 5. Price Range & Presets */}
-        <div className="space-y-2.5 pt-3 border-t border-neutral-100">
-          <button
-            type="button"
-            onClick={() => toggleSection('price')}
-            aria-expanded={openSections.price}
-            aria-controls="filter-section-price"
-            className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
-          >
-            <span className="flex items-center gap-1.5">
-              <Icon name="payments" size="xs" className="text-neutral-400 group-hover:text-brand-primary-600 transition-colors" />
-              <span>Khoảng học phí</span>
-            </span>
-            <Icon
-              name="expand_more"
-              size="sm"
-              className={cn(
-                'text-neutral-400 transition-transform duration-200',
-                openSections.price ? 'rotate-180' : 'rotate-0'
-              )}
-            />
-          </button>
-
-          {openSections.price && (
-            <div id="filter-section-price" className="space-y-3 pt-1">
-              <div className="flex justify-between items-center text-[12.5px] font-semibold">
-                <span className="text-neutral-400 font-mono">0đ</span>
-                <span className="text-brand-primary-600 font-bold font-mono text-[13px]">
-                  {priceRange >= maxPrice ? 'Tất cả mức giá' : `Đến ${formatVND(priceRange)}`}
-                </span>
-                <span className="text-neutral-400 font-mono">5.000.000đ</span>
-              </div>
-
-              <input
-                type="range"
-                min="0"
-                max={maxPrice}
-                step="100000"
-                value={priceRange}
-                onChange={(e) => onPriceRangeChange(Number(e.target.value))}
-                className="w-full h-1.5 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-brand-primary-600"
-                aria-label="Khoảng học phí"
-              />
-
-              {/* Price Presets */}
-              <div className="flex flex-wrap gap-1 pt-0.5">
-                {PRICE_PRESETS.map((p, idx) => {
-                  const isActive = priceRange === p.max;
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => onPriceRangeChange(p.max)}
-                      className={cn(
-                        'text-[11px] px-2 py-1 rounded-md border transition-colors cursor-pointer',
-                        isActive
-                          ? 'border-brand-primary-600 bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                          : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
-                      )}
-                    >
-                      {p.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 6. Minimum Rating & Experience */}
-        <div className="space-y-2.5 pt-3 border-t border-neutral-100">
-          <button
-            type="button"
-            onClick={() => toggleSection('rating')}
-            aria-expanded={openSections.rating}
-            aria-controls="filter-section-rating"
-            className="w-full flex items-center justify-between text-[13.5px] font-bold text-neutral-900 group cursor-pointer"
-          >
-            <span className="flex items-center gap-1.5">
-              <Icon name="star" size="xs" className="text-neutral-400 group-hover:text-brand-secondary-500 transition-colors" />
-              <span>Đánh giá & Kinh nghiệm</span>
-            </span>
-            <Icon
-              name="expand_more"
-              size="sm"
-              className={cn(
-                'text-neutral-400 transition-transform duration-200',
-                openSections.rating ? 'rotate-180' : 'rotate-0'
-              )}
-            />
-          </button>
-
-          {openSections.rating && (
-            <div id="filter-section-rating" className="space-y-3 pt-1 text-[13px]">
-              <div>
-                <p className="text-[11.5px] font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">
-                  Đánh giá sao:
-                </p>
-                <div className="space-y-1">
-                  {[
-                    { val: null, label: 'Tất cả đánh giá' },
-                    { val: 4.8, label: '★ 4.8 trở lên (Xuất sắc)' },
-                    { val: 4.5, label: '★ 4.5 trở lên (Rất tốt)' },
-                    { val: 4.0, label: '★ 4.0 trở lên' },
-                  ].map((item) => (
-                    <label
-                      key={item.val ?? 'all'}
-                      className={cn(
-                        'flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer select-none text-[12.5px] transition-colors',
-                        minRating === item.val
-                          ? 'bg-brand-secondary-50 text-brand-secondary-700 font-semibold'
-                          : 'text-neutral-700 hover:bg-neutral-50'
-                      )}
-                    >
-                      <input
-                        type="radio"
-                        name="ratingFilter"
-                        checked={minRating === item.val}
-                        onChange={() => onMinRatingChange(item.val)}
-                        className="w-3.5 h-3.5 text-brand-secondary-500 border-neutral-300 focus:ring-brand-secondary-500 cursor-pointer"
-                      />
-                      <span>{item.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-neutral-100">
-                <p className="text-[11.5px] font-semibold text-neutral-500 uppercase tracking-wide mb-1.5">
-                  Số năm kinh nghiệm:
-                </p>
-                <div className="grid grid-cols-2 gap-1">
-                  {[
-                    { id: 'All', label: 'Tất cả' },
-                    { id: '<1', label: '< 1 năm' },
-                    { id: '1-3', label: '1 - 3 năm' },
-                    { id: '3-5', label: '3 - 5 năm' },
-                    { id: '>5', label: '> 5 năm' },
-                  ].map((exp) => (
-                    <button
-                      key={exp.id}
-                      type="button"
-                      onClick={() => onExperienceRangeChange(exp.id)}
-                      className={cn(
-                        'text-[11.5px] py-1 px-2 rounded-md border text-center transition-colors cursor-pointer',
-                        experienceRange === exp.id
-                          ? 'border-brand-primary-600 bg-brand-primary-50 text-brand-primary-600 font-semibold'
-                          : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
-                      )}
-                    >
-                      {exp.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        {footer && <footer className="mkt-filter-footer">{footer}</footer>}
       </div>
     </aside>
   );
 }
 
 FilterSidebar.propTypes = {
-  priceRange: PropTypes.number.isRequired,
-  onPriceRangeChange: PropTypes.func.isRequired,
+  minPrice: PropTypes.number,
   maxPrice: PropTypes.number,
-  teachingMode: PropTypes.string.isRequired,
-  onTeachingModeChange: PropTypes.func.isRequired,
-  city: PropTypes.string,
-  onCityChange: PropTypes.func,
+  priceLimit: PropTypes.number,
+  priceRange: PropTypes.number,
+  onPriceChange: PropTypes.func,
+  onPriceRangeChange: PropTypes.func,
   degreeLevel: PropTypes.string,
   onDegreeLevelChange: PropTypes.func,
   university: PropTypes.string,
@@ -541,9 +282,10 @@ FilterSidebar.propTypes = {
   certification: PropTypes.string,
   onCertificationChange: PropTypes.func,
   minRating: PropTypes.number,
-  onMinRatingChange: PropTypes.func.isRequired,
-  experienceRange: PropTypes.string.isRequired,
-  onExperienceRangeChange: PropTypes.func.isRequired,
+  onMinRatingChange: PropTypes.func,
+  experienceRange: PropTypes.string,
+  onExperienceRangeChange: PropTypes.func,
   onResetFilters: PropTypes.func,
+  footer: PropTypes.node,
   className: PropTypes.string,
 };

@@ -1,9 +1,9 @@
+import ServiceCoverPicker from './ServiceCoverPicker';
 import React, { useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import Input, { Textarea, Select, Field, Checkbox } from '@/components/ui/Input';
+import Input, { Textarea, Select, Field } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
-import { TEACHING_MODE } from '@/config/enums';
 import {
   SHORT_DESCRIPTION_MAX,
   DESCRIPTION_MAX,
@@ -13,34 +13,6 @@ import {
   EMPTY_SESSION,
   EMPTY_FAQ,
 } from './serviceFormUtils';
-
-export const TEACHING_MODE_OPTIONS = [
-  { value: TEACHING_MODE.ONLINE, label: 'Trực tuyến (Online)' },
-  { value: TEACHING_MODE.OFFLINE, label: 'Tại nhà học viên (Offline)' },
-  { value: TEACHING_MODE.BOTH, label: 'Cả Online & tại nhà' },
-];
-
-/**
- * Map the 3 teaching-place checkboxes to the backend TeachingMode enum:
- * only-Online → Online, only-offline-ish → Offline, mixed → Both.
- */
-export function teachingModeFromPlaces({ online, atHome, otherPlace }) {
-  if (online && !atHome && !otherPlace) return TEACHING_MODE.ONLINE;
-  if (!online && (atHome || otherPlace)) return TEACHING_MODE.OFFLINE;
-  return TEACHING_MODE.BOTH;
-}
-
-/** Reverse mapping, used to initialise the checkboxes from a stored enum value. */
-export function placesFromTeachingMode(mode) {
-  switch (mode) {
-    case TEACHING_MODE.OFFLINE:
-      return { online: false, atHome: true, otherPlace: false };
-    case TEACHING_MODE.BOTH:
-      return { online: true, atHome: true, otherPlace: false };
-    default:
-      return { online: true, atHome: false, otherPlace: false };
-  }
-}
 
 export function SectionTitle({ step, children }) {
   return (
@@ -90,7 +62,6 @@ const formDataShape = PropTypes.shape({
   totalSessions: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   sessionDurationMinutes: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   price: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  teachingMode: PropTypes.string,
   trialLessonUrl: PropTypes.string,
   tags: PropTypes.string,
   coverImageUrl: PropTypes.string,
@@ -101,10 +72,9 @@ const formDataShape = PropTypes.shape({
 });
 
 /* ── Basic info: title, short description, rich description, cover ── */
-export function BasicInfoFields({ formData, onFieldChange }) {
+export function BasicInfoFields({ formData, onFieldChange, locked = false, readOnlyLocked = false, hideCover = false, descriptionMax = DESCRIPTION_MAX }) {
   const description = formData.description || '';
   const shortDescription = formData.shortDescription || '';
-  const coverImageUrl = (formData.coverImageUrl || '').trim();
 
   // Minimal markdown toolbar: wrap selection (or a placeholder word) at cursor.
   const descRef = useRef(null);
@@ -142,10 +112,10 @@ export function BasicInfoFields({ formData, onFieldChange }) {
 
   return (
     <>
-      <Field label="Tên dịch vụ" htmlFor="service-title" required>
+      <Field label="Tên gói học" htmlFor="service-title" required>
         <Input
           id="service-title"
-          maxLength={120}
+          maxLength={200}
           placeholder="Ví dụ: Luyện thi IELTS 6.5+ (4 kỹ năng)"
           value={formData.title}
           onChange={(e) => onFieldChange('title', e.target.value)}
@@ -153,9 +123,10 @@ export function BasicInfoFields({ formData, onFieldChange }) {
         />
       </Field>
 
-      <Field label="Mô tả ngắn" htmlFor="service-short">
+      {locked && readOnlyLocked ? <div className="space-y-2"><p className="text-body-reg font-medium text-fg">Mô tả ngắn · Chỉ đọc</p><p className="rounded-xl bg-neutral-50 p-3 text-body-reg leading-relaxed text-fg-secondary">{shortDescription || 'Chưa có mô tả ngắn.'}</p></div> : <Field label="Mô tả ngắn" htmlFor="service-short">
         <Input
           id="service-short"
+          disabled={locked}
           maxLength={SHORT_DESCRIPTION_MAX}
           placeholder="Tóm tắt gói học trong một câu ngắn…"
           value={formData.shortDescription}
@@ -164,7 +135,7 @@ export function BasicInfoFields({ formData, onFieldChange }) {
         <p className="text-right text-caption text-fg-secondary mt-1">
           {shortDescription.length}/{SHORT_DESCRIPTION_MAX}
         </p>
-      </Field>
+      </Field>}
 
       <Field
         label="Mô tả chi tiết"
@@ -212,7 +183,7 @@ export function BasicInfoFields({ formData, onFieldChange }) {
           id="service-desc"
           ref={descRef}
           rows={5}
-          maxLength={DESCRIPTION_MAX}
+          maxLength={descriptionMax}
           aria-describedby="service-desc-count"
           placeholder="Mô tả chi tiết về nội dung, phương pháp giảng dạy, đối tượng phù hợp..."
           value={description}
@@ -220,38 +191,20 @@ export function BasicInfoFields({ formData, onFieldChange }) {
           required
         />
         <p id="service-desc-count" className="text-right text-caption text-fg-secondary mt-1">
-          {description.length}/{DESCRIPTION_MAX}
+          {description.length}/{descriptionMax}
         </p>
       </Field>
 
-      <Field
-        label="Ảnh bìa (URL)"
-        htmlFor="service-cover"
-        hint="Không bắt buộc — ảnh minh họa giúp gói học nổi bật hơn."
-      >
-        <div className="flex items-start gap-3">
-          {coverImageUrl && (
-            <img
-              src={coverImageUrl}
-              alt="Xem trước ảnh bìa"
-              className="w-14 h-14 rounded-brand-md object-cover border border-border shrink-0"
-            />
-          )}
-          <Input
-            id="service-cover"
-            type="url"
-            inputMode="url"
-            placeholder="https://..."
-            value={formData.coverImageUrl}
-            onChange={(e) => onFieldChange('coverImageUrl', e.target.value)}
-          />
-        </div>
-      </Field>
+      {!hideCover && <ServiceCoverPicker form={formData} onChange={onFieldChange} locked={locked} />}
     </>
   );
 }
 
 BasicInfoFields.propTypes = {
+  readOnlyLocked: PropTypes.bool,
+  hideCover: PropTypes.bool,
+  descriptionMax: PropTypes.number,
+  locked: PropTypes.bool,
   formData: formDataShape.isRequired,
   onFieldChange: PropTypes.func.isRequired,
 };
@@ -311,7 +264,7 @@ TrialFields.propTypes = {
 };
 
 /* ── Subject: select (create) or locked box (edit) + category + tags ── */
-export function SubjectFields({ formData, onFieldChange, subjects, editingService = null }) {
+export function SubjectFields({ formData, onFieldChange, subjects, editingService = null, locked = false }) {
   const selectedSubject = subjects.find((s) => s.id === formData.subjectId);
   const categoryName =
     selectedSubject?.categoryName || editingService?.categoryName || '';
@@ -362,6 +315,7 @@ export function SubjectFields({ formData, onFieldChange, subjects, editingServic
       >
         <Input
           id="service-tags"
+          disabled={locked}
           placeholder="Thêm thẻ (ví dụ: IELTS, Giao tiếp, THPT...)"
           value={formData.tags}
           onChange={(e) => onFieldChange('tags', e.target.value)}
@@ -372,6 +326,7 @@ export function SubjectFields({ formData, onFieldChange, subjects, editingServic
 }
 
 SubjectFields.propTypes = {
+  locked: PropTypes.bool,
   formData: formDataShape.isRequired,
   onFieldChange: PropTypes.func.isRequired,
   subjects: PropTypes.arrayOf(
@@ -394,13 +349,12 @@ export function PackageTermsFields({ formData, onFieldChange, locked = false }) 
     <>
       {locked && (
         <div className="p-3 bg-holding-subtle text-holding-strong rounded-brand-md text-caption" role="note">
-          <strong>Khóa điều khoản thương mại:</strong> gói đang tuyển sinh không sửa
-          được số buổi, thời lượng, giá và hình thức dạy. Hãy <strong>Tạm ẩn</strong> gói
-          nếu muốn đổi các thông tin này.
+          Gói đang tuyển sinh giữ nguyên học phí, số buổi và thời lượng.
+          Tạm dừng tuyển sinh hoặc gỡ xuất bản trước khi thay đổi các thông tin này.
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Số buổi học" htmlFor="service-sessions" required>
           <SuffixInput
             id="service-sessions"
@@ -453,66 +407,6 @@ export function PackageTermsFields({ formData, onFieldChange, locked = false }) 
 }
 
 PackageTermsFields.propTypes = {
-  formData: formDataShape.isRequired,
-  onFieldChange: PropTypes.func.isRequired,
-  locked: PropTypes.bool,
-};
-
-
-/* ── Teaching mode checkboxes ── */
-export function ModeFields({ formData, onFieldChange, locked = false }) {
-  const places = placesFromTeachingMode(formData.teachingMode);
-  const handlePlaceToggle = (key) => {
-    const next = { ...places, [key]: !places[key] };
-    // Keep at least one place checked so the enum mapping stays valid.
-    if (!next.online && !next.atHome && !next.otherPlace) return;
-    onFieldChange('teachingMode', teachingModeFromPlaces(next));
-  };
-
-  return (
-    /* Đây là NHÓM checkbox, không phải một control: `<label for>` chỉ trỏ được
-       tới đúng một control, nên dùng `Field` ở đây sẽ sinh ra một `<label>`
-       trỏ vào hư không. `<fieldset>` + `<legend>` là cách gom nhóm control có
-       sẵn của HTML — trình đọc màn hình đọc tên nhóm khi bước qua từng ô mà
-       không cần `role="group"` hay `aria-label` viết tay. */
-    <fieldset className="w-full">
-      <legend className="block text-caption font-semibold text-fg-secondary mb-1.5 uppercase tracking-wide">
-        Hình thức học
-        <span className="text-danger ml-0.5" aria-hidden="true">
-          *
-        </span>
-      </legend>
-      <div className="space-y-2.5" aria-describedby="service-mode-hint">
-        <Checkbox
-          id="service-mode-online"
-          label="Online"
-          checked={places.online}
-          disabled={locked}
-          onChange={() => handlePlaceToggle('online')}
-        />
-        <Checkbox
-          id="service-mode-athome"
-          label="Tại nhà học viên"
-          checked={places.atHome}
-          disabled={locked}
-          onChange={() => handlePlaceToggle('atHome')}
-        />
-        <Checkbox
-          id="service-mode-other"
-          label="Tại địa điểm khác"
-          checked={places.otherPlace}
-          disabled={locked}
-          onChange={() => handlePlaceToggle('otherPlace')}
-        />
-      </div>
-      <p id="service-mode-hint" className="text-caption text-fg-muted mt-1.5">
-        Chọn ít nhất một hình thức.
-      </p>
-    </fieldset>
-  );
-}
-
-ModeFields.propTypes = {
   formData: formDataShape.isRequired,
   onFieldChange: PropTypes.func.isRequired,
   locked: PropTypes.bool,
@@ -758,7 +652,7 @@ export function FaqFields({ formData, onFieldChange }) {
             <Input
               id={`service-faq-${i}-q`}
               maxLength={200}
-              placeholder="Ví dụ: Học online hay offline?"
+              placeholder="Ví dụ: Cần chuẩn bị gì trước buổi học?"
               value={f.question}
               onChange={(e) => updateFaq(i, 'question', e.target.value)}
             />

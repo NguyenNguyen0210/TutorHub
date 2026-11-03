@@ -11,6 +11,7 @@
  * - GET  /tutors/me/wallet/statement    → PagedResult<WalletTransactionDto>
  */
 import api from './api';
+import { idempotencyHeaders } from './idempotency';
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -80,7 +81,7 @@ export const walletService = {
    * Body: { amount, bankName, bankCode, accountNumber, accountHolderName, note }
    */
   async createWithdrawal(payload, idempotencyKey = null) {
-    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
+    const headers = idempotencyHeaders(idempotencyKey);
     return api.post('/tutors/me/wallet/withdrawals', payload, { headers });
   },
 

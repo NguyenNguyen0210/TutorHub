@@ -39,7 +39,6 @@ public static class BookingMapper
             TotalPrice: booking.TotalPrice,
             TotalSessions: booking.TotalSessions,
             SessionDurationMinutes: booking.SessionDurationMinutes,
-            TeachingMode: booking.TeachingMode,
             Enrollment: enrollment
         );
     }

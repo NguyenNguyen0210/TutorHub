@@ -11,8 +11,6 @@ public class TutorProfileBuilder
     private string _bio = "Experienced educator with 5+ years of teaching experience.";
     private int _experienceYears = 5;
     private string _education = "B.Sc. in Mathematics Education";
-    private TeachingMode _teachingMode = TeachingMode.Both;
-    private string? _address = "123 Nguyen Trai, District 1, HCMC";
     private readonly List<int> _ratings = Enumerable.Repeat(5, 10).ToList();
 
     public TutorProfileBuilder WithId(Guid id)
@@ -70,8 +68,6 @@ public class TutorProfileBuilder
             Bio = _bio,
             ExperienceYears = _experienceYears,
             Education = _education,
-            TeachingMode = _teachingMode,
-            Address = _address,
             TutorSubjects = new List<TutorSubject>()
         };
         profile.ApplyReview(_ratings);

@@ -1,12 +1,9 @@
+using TutorHub.Application.Features.Disputes.Commands.SubmitDisputeResponse;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TutorHub.Application.Common.Exceptions;
-using TutorHub.Application.Common.Files;
-using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
-using TutorHub.Application.Common.Security;
-using TutorHub.Application.Common.Storage;
 using TutorHub.Application.Features.Disputes.Commands.CreateDispute;
 using TutorHub.Application.Features.Disputes.Commands.UploadDisputeEvidence;
 using TutorHub.Application.Features.Disputes.DTOs;
@@ -20,12 +17,10 @@ namespace TutorHub.Api.Controllers;
 public class DisputesController : ControllerBase
 {
     private readonly ISender _sender;
-    private readonly IObjectStorageService _storageService;
 
-    public DisputesController(ISender sender, IObjectStorageService storageService)
+    public DisputesController(ISender sender)
     {
         _sender = sender;
-        _storageService = storageService;
     }
 
     /// <summary>
@@ -45,6 +40,14 @@ public class DisputesController : ControllerBase
         );
     }
 
+    [HttpPost("{id:guid}/responses")]
+    [ProducesResponseType(typeof(ApiResponse<DisputeResponseDto>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> SubmitResponse([FromRoute] Guid id, [FromBody] SubmitResponseRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new SubmitDisputeResponseCommand(id, request.SubmissionId, request.Content), cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, ApiResponse<DisputeResponseDto>.SuccessResult(result));
+    }
+
     /// <summary>
     /// Upload supporting evidence file (multipart/form-data) for an active dispute with binary signature validation.
     /// </summary>
@@ -55,70 +58,22 @@ public class DisputesController : ControllerBase
     public async Task<IActionResult> UploadEvidenceForm(
         [FromRoute] Guid id,
         IFormFile file,
+        [FromForm] Guid? responseId,
         CancellationToken cancellationToken)
     {
-        if (file == null || file.Length == 0)
-        {
-            throw new BadRequestException("No file was uploaded or file is empty.");
-        }
-
-        if (file.Length > UploadLimits.EvidenceMaxBytes)
-        {
-            throw new BadRequestException($"File size exceeds the maximum allowed limit of {UploadLimits.EvidenceMaxBytes / 1024 / 1024}MB.");
-        }
-
-        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-
+        if (file == null) throw new BadRequestException("No file was uploaded.");
         await using var stream = file.OpenReadStream();
-        if (!FileSignatureValidator.IsValidSignature(stream, ext, out var detectedMime) ||
-            !UploadLimits.EvidenceMimeTypes.Contains(detectedMime))
-        {
-            throw new BadRequestException("File binary signature does not match allowed evidence types (JPG, PNG, WEBP, PDF, TXT).");
-        }
-
-        var uniqueKey = $"reports/evidence/{id:N}/{Guid.NewGuid():N}{ext}";
-        var stored = await _storageService.UploadAsync(stream, uniqueKey, detectedMime, cancellationToken);
-        var downloadUrl = await _storageService.GenerateDownloadUrlAsync(stored.ObjectKey, TimeSpan.FromDays(7), cancellationToken);
-
-        var command = new UploadDisputeEvidenceCommand(
-            DisputeId: id,
-            FileName: file.FileName,
-            FileUrl: downloadUrl,
-            ContentType: detectedMime,
-            FileSizeBytes: stored.Size
-        );
-
-        var result = await _sender.Send(command, cancellationToken);
-        return StatusCode(
-            StatusCodes.Status201Created,
-            ApiResponse<DisputeEvidenceDto>.SuccessResult(result, "Evidence uploaded successfully.")
-        );
+        var result = await _sender.Send(new UploadDisputeEvidenceCommand(id, file.FileName, stream, file.Length, responseId), cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, ApiResponse<DisputeEvidenceDto>.SuccessResult(result));
     }
 
-    /// <summary>
-    /// Upload supporting evidence metadata (application/json) for an active dispute (backwards compatible).
-    /// </summary>
-    [HttpPost("{id:guid}/evidence")]
-    [Consumes("application/json")]
-    [ProducesResponseType(typeof(ApiResponse<DisputeEvidenceDto>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> UploadEvidence(
-        [FromRoute] Guid id,
-        [FromBody] UploadEvidenceRequest request,
-        CancellationToken cancellationToken)
+    [HttpGet("{id:guid}/evidence/{evidenceId:guid}/download")]
+    public async Task<IActionResult> DownloadEvidence(Guid id, Guid evidenceId, CancellationToken cancellationToken)
     {
-        var command = new UploadDisputeEvidenceCommand(
-            DisputeId: id,
-            FileName: request.FileName,
-            FileUrl: request.FileUrl,
-            ContentType: request.ContentType,
-            FileSizeBytes: request.FileSizeBytes
-        );
-
-        var result = await _sender.Send(command, cancellationToken);
-        return StatusCode(
-            StatusCodes.Status201Created,
-            ApiResponse<DisputeEvidenceDto>.SuccessResult(result, "Evidence uploaded successfully.")
-        );
+        var result = await _sender.Send(new TutorHub.Application.Features.Disputes.Queries.DownloadEvidence.DownloadDisputeEvidenceQuery(id, evidenceId), cancellationToken);
+        Response.Headers.CacheControl = "private, no-store";
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return File(result.Content, "application/octet-stream", result.FileName);
     }
 
     /// <summary>
@@ -133,9 +88,4 @@ public class DisputesController : ControllerBase
     }
 }
 
-public record UploadEvidenceRequest(
-    string FileName,
-    string FileUrl,
-    string ContentType,
-    long FileSizeBytes
-);
+public record SubmitResponseRequest(Guid SubmissionId, string Content);

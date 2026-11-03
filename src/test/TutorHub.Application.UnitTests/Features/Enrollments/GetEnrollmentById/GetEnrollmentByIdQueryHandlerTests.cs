@@ -48,7 +48,6 @@ public class GetEnrollmentByIdQueryHandlerTests
             TotalPrice = 2_000_000m,
             TotalSessions = 2,
             SessionDurationMinutes = 90,
-            TeachingMode = TeachingMode.Offline
         };
 
         var session1 = new Session { Id = Guid.NewGuid(), EnrollmentId = enrollment.Id, Enrollment = enrollment, SessionNumber = 1, SessionPrice = 1_000_000m };

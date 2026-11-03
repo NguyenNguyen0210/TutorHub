@@ -40,6 +40,7 @@ public class Dispute
     public DateTime? UpdatedAt { get; private set; }
 
     public ICollection<DisputeEvidence> Evidences { get; set; } = new List<DisputeEvidence>();
+    public ICollection<DisputeResponse> Responses { get; set; } = new List<DisputeResponse>();
 
     // State machine methods
     public void MoveUnderReview(Guid adminId, DateTime now)

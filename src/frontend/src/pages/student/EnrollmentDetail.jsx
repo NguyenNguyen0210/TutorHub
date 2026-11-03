@@ -1,5 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import chatService from '@/services/chat.service';
+import tutorService from '@/services/tutor.service';
+import { summarizeTuition } from '@/utils/studentDashboard';
 import dayjs from 'dayjs';
 import { cn } from '@/lib/cn';
 import { useAuthStore } from '@/store/authStore';
@@ -12,44 +15,21 @@ import ErrorState from '@/components/common/ErrorState';
 import Card, { CardHeader } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import Avatar from '@/components/ui/Avatar';
 import Icon from '@/components/ui/Icon';
 import { Progress } from '@/components/ui/Callout';
 import { DetailSkeleton } from '@/components/common/Skeleton';
 import { Textarea, Field } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
-import StatStrip from '@/components/common/StatStrip';
-import DataTable from '@/components/common/DataTable';
 import StateBadge, { getStateMeta } from '@/components/common/StateBadge';
+import StretchedCardLink from '@/components/ui/StretchedCardLink';
+import { useConfirm } from '@/components/ui/Dialog';
+import { useQueryClient } from '@tanstack/react-query';
+import disputeService from '@/services/dispute.service';
+import { scheduleReturn } from '@/utils/tutorSchedule';
+import ReviewReplyForm from '@/components/tutor/ReviewReplyForm';
 
-/**
- * Hợp đồng học tập — Quản lý ví & giao dịch.
- *
- * Sổ cái buổi học là phần lõi của màn này, không phải phần phụ sau header. Vì vậy
- * danh sách buổi nằm ngay dưới dải số liệu, dạng dòng sổ thật: spine màu trạng
- * thái ở mép trái, thời gian tabular, ký quỹ căn phải, thao tác cuối dòng.
- * Desktop = bảng; mobile = card xếp dọc (cùng dữ liệu, cùng view-model).
- *
- * Màu ở đây là TRẠNG THÁI, không phải trang trí: `Tỷ lệ phí sàn`
- * dùng màu trung tính vì phí sàn không phải tín hiệu tốt cho học viên.
- */
-
-/** Cột của sổ buổi học — thứ tự đọc là: buổi → thời gian → tiền → thao tác. */
-const SESSION_COLUMNS = [
-  { key: 'session', label: 'Buổi học', width: '32%' },
-  { key: 'time', label: 'Thời gian', width: '24%' },
-  { key: 'escrow', label: 'Ký quỹ buổi', width: '18%', align: 'right' },
-  { key: 'actions', label: 'Thao tác', width: '26%', align: 'right' },
-];
-
-/**
- * Màu theo trạng thái. `border` = spine mép trái của dòng bảng, `bar` = spine
- * card mobile, `chip` = ô số thứ tự. Nguồn màu là `getStateMeta` (StateBadge),
- * không map lại chuỗi status ở đây.
- *
- * `holding` không có trong bảng này vì `SESSION_STATUS_META` không có trạng thái
- * holding — trạng thái chờ grace period 12h, do badge ở `getStatusBadge`
- * mang, không phải màu của enum buổi học.
- */
+/** Lộ trình học tập — dùng trạng thái và thao tác hiện có của hợp đồng. */
 const TONE_CLASS = {
   success: {
     border: 'border-l-success',
@@ -84,38 +64,31 @@ function sessionTone(session) {
   return TONE_CLASS[color] || TONE_CLASS.neutral;
 }
 
-/**
- * Cột trái của dòng sổ: số thứ tự + tên buổi + badge trạng thái.
- * Dùng chung cho hàng bảng (`<th scope="row">`) và card mobile.
- */
-function SessionIdentity({ number, badge, chipClass }) {
-  return (
-    <div className="flex items-center gap-3 min-w-0">
-      <span
-        aria-hidden="true"
-        className={cn(
-          'w-9 h-9 shrink-0 rounded-brand-md flex items-center justify-center text-caption font-bold tabular-nums',
-          chipClass
-        )}
-      >
-        {number}
-      </span>
-      <div className="min-w-0">
-        <p className="text-[15px] font-semibold text-fg leading-snug truncate">
-          Buổi học #{number}
-        </p>
-        <div className="mt-1 flex items-center">{badge}</div>
-      </div>
-    </div>
-  );
-}
-
 export default function EnrollmentDetail() {
   const toast = useToast();
+  const confirm = useConfirm();
+  const client = useQueryClient();
+  const [cancelling, setCancelling] = useState(false);
+  const cancellingRef = useRef(false);
+  const navigate = useNavigate();
+  const [sessionFilter, setSessionFilter] = useState('all');
+  const [visibleCount, setVisibleCount] = useState(5);
+  const [openingChat, setOpeningChat] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return undefined;
+    const timeout = window.setTimeout(() => setCopied(false), 1800);
+    return () => window.clearTimeout(timeout);
+  }, [copied]);
+
   const { id } = useParams();
   const { role } = useAuthStore();
   const isTutor = role === 'Tutor';
-  const backPath = isTutor ? '/tutor/schedule' : '/student/dashboard';
+  const location = useLocation();
+  const scheduleContext = isTutor ? scheduleReturn(location.state) : null;
+  const sessionLinkState = scheduleContext ? { scheduleReturn: scheduleContext } : undefined;
+  const backPath = scheduleContext || (isTutor ? '/tutor/schedule' : '/student/dashboard');
   const backLabel = isTutor ? 'Quay lại lịch dạy' : 'Quay lại bàn học';
 
   const [enrollment, setEnrollment] = useState(null);
@@ -142,8 +115,13 @@ export default function EnrollmentDetail() {
   const loadEnrollment = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await enrollmentService.getEnrollmentById(id);
-      setEnrollment(data);
+      // The existing summary endpoint supplies course/tutor metadata absent in the detail DTO.
+      const [data, summaries] = await Promise.all([
+        enrollmentService.getEnrollmentById(id),
+        enrollmentService.getAllMyEnrollments().catch(() => ({ items: [] })),
+      ]);
+      const summary = summaries.items.find(item => item.id === id) || {};
+      setEnrollment({ ...summary, ...data });
       setError(null);
 
       // If enrollment is completed, fetch any existing review
@@ -168,8 +146,56 @@ export default function EnrollmentDetail() {
     }
   }, [id]);
 
+  const cancelCourse = async () => {
+    if (cancellingRef.current) return;
+    cancellingRef.current = true;
+    setCancelling(true);
+    try {
+      const [current, disputes] = await Promise.all([
+        enrollmentService.getEnrollmentById(id),
+        disputeService.getMyDisputes(),
+      ]);
+      if (current.status !== 'Active') {
+        toast.info('Lớp học không còn ở trạng thái có thể dừng.');
+        await loadEnrollment();
+        return;
+      }
+      if (disputes.some(item => item.enrollmentId === id && !['Resolved', 'Dismissed'].includes(item.status))) {
+        toast.info('Vui lòng chờ giải quyết các khiếu nại của lớp trước khi dừng khóa học.');
+        return;
+      }
+      const remaining = (current.sessions || []).filter(item => !['Completed', 'Cancelled'].includes(item.status));
+      if (remaining.some(item => item.status === 'AwaitingPayout')) {
+        toast.info('Vui lòng chờ kết thúc thời gian bảo lưu học phí của buổi học trước khi dừng khóa học.');
+        return;
+      }
+      const refund = remaining.reduce((sum, item) => sum + Number(item.sessionPrice || 0), 0);
+      let reason = '';
+      const accepted = await confirm({
+        title: isTutor ? 'Ngừng giảng dạy hợp đồng?' : 'Dừng khóa học?', danger: true, confirmText: 'Xác nhận dừng', cancelText: 'Quay lại',
+        requireReason: true, minReasonLength: 5, maxReasonLength: 500,
+        reasonLabel: 'Lý do dừng khóa học', reasonPlaceholder: 'Chia sẻ lý do (5–500 ký tự)',
+        onConfirmReason: value => { reason = value; },
+        content: <div className="space-y-3"><p>{remaining.length} buổi học còn lại sẽ bị hủy. Các buổi đã hoàn thành được giữ nguyên.</p><p>Học phí dự kiến hoàn về Ví học viên: <strong className="text-success-strong"><Money value={refund} /></strong>.</p><p>Số tiền cuối cùng được xác định theo trạng thái hợp đồng khi xác nhận. Thao tác này không thể hoàn tác.</p></div>,
+      });
+      if (!accepted) return;
+      const updated = isTutor ? await enrollmentService.tutorCannotContinue(id, reason) : await enrollmentService.cancelEnrollment(id, reason);
+      setEnrollment(previous => ({ ...previous, ...updated }));
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['student-schedule'] }),
+        client.invalidateQueries({ queryKey: ['booking-enrollments'] }),
+      ]);
+      toast.success(isTutor ? 'Đã ngừng giảng dạy hợp đồng. Học phí còn lại được xử lý về Ví học viên.' : 'Đã dừng khóa học. Bạn có thể xem khoản hoàn tiền trong Ví học viên.');
+    } catch (err) {
+      toast.error(err?.status === 409 ? 'Trạng thái lớp học vừa thay đổi. Vui lòng tải lại lộ trình trước khi dừng.' : 'Chưa thể dừng khóa học. Vui lòng thử lại.');
+    } finally { setCancelling(false); cancellingRef.current = false; }
+  };
+
   useEffect(() => {
     if (id) {
+      setSessionFilter('all');
+      setVisibleCount(5);
+      setCopied(false);
       loadEnrollment();
     }
   }, [id, loadEnrollment]);
@@ -253,7 +279,7 @@ export default function EnrollmentDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto py-8">
+      <div className="mx-auto max-w-[1200px] py-8">
         <DetailSkeleton />
       </div>
     );
@@ -261,7 +287,7 @@ export default function EnrollmentDetail() {
 
   if (error || !enrollment) {
     return (
-      <div className="max-w-4xl mx-auto space-y-4 py-8">
+      <div className="mx-auto max-w-[1200px] space-y-4 py-8">
         <Link
           to={backPath}
           className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
@@ -286,12 +312,54 @@ export default function EnrollmentDetail() {
   const isActive = enrollment.status === 'Active';
   const tutorName = enrollment.tutorName || sessions[0]?.tutorName || 'Gia sư';
   const durationMinutes = enrollment.sessionDurationMinutes || 60;
+  const courseTitle = enrollment.serviceTitle || enrollment.subjectName || 'Lộ trình học tập';
+  const upcomingSessions = sessions.filter(session =>
+    session.status === SESSION_STATUS.SCHEDULED && session.startAt && dayjs(session.startAt).isAfter(dayjs())
+  ).sort((a, b) => dayjs(a.startAt).valueOf() - dayjs(b.startAt).valueOf());
+  const nextSession = upcomingSessions[0] || null;
+  const uniformSessionPrice = sessions.length > 0 && sessions.every(session => session.sessionPrice === sessions[0].sessionPrice)
+    ? sessions[0].sessionPrice : null;
+  const hasFinancialSummary = enrollment.releasedAmount != null && enrollment.refundedAmount != null;
+  const completedSessions = sessions.filter(session => session.status === SESSION_STATUS.COMPLETED);
+  const filteredSessions = [...(sessionFilter === 'upcoming' ? upcomingSessions
+    : sessionFilter === 'completed' ? completedSessions : sessions)]
+    .sort((a, b) => sessionFilter === 'upcoming'
+      ? dayjs(a.startAt).valueOf() - dayjs(b.startAt).valueOf() : a.sessionNumber - b.sessionNumber);
+  const visibleSessions = filteredSessions.slice(0, visibleCount);
+  const needsSchedule = isActive && !nextSession && sessions.some(session => session.status === SESSION_STATUS.UNSCHEDULED);
+  const finances = summarizeTuition([{
+    ...enrollment,
+    releasedAmount: enrollment.releasedAmount ?? sessions.filter(session => session.isPayoutReleased)
+      .reduce((sum, session) => sum + (Number(session.sessionPrice) || 0), 0),
+  }]);
 
-  /**
-   * View-model dùng chung cho hàng bảng (desktop) và card (mobile): cùng dữ liệu,
-   * cùng thao tác, không lệch nội dung giữa hai breakpoint.
-   */
-  const sessionRows = sessions.map((sess) => {
+  const messageTutor = async () => {
+    if (openingChat) return;
+    setOpeningChat(true);
+    try {
+      const tutorUserId = enrollment.tutorUserId
+        || (await tutorService.getTutorById(enrollment.tutorProfileId)).userId;
+      if (!tutorUserId) throw new Error('Không thể mở cuộc trò chuyện với gia sư.');
+      const conversation = await chatService.getOrCreateConversation(tutorUserId);
+      if (!conversation?.id) throw new Error('Không thể mở cuộc trò chuyện với gia sư.');
+      navigate(`/app/messages?conversationId=${conversation.id}`);
+    } catch (err) {
+      toast.error(err?.message || 'Không thể mở tin nhắn. Vui lòng thử lại.');
+    } finally {
+      setOpeningChat(false);
+    }
+  };
+
+  const copyContractId = async () => {
+    try {
+      await navigator.clipboard.writeText(String(enrollment.id));
+      setCopied(true);
+    } catch {
+      toast.error('Không thể sao chép. Bạn có thể chọn và sao chép mã trong thông tin hợp đồng.');
+    }
+  };
+
+  const sessionRows = visibleSessions.map((sess) => {
     const isUnscheduled = sess.status === SESSION_STATUS.UNSCHEDULED;
     const isSchedulingThis = schedulingSessionId === sess.id;
     const canTutorSchedule = isTutor && isUnscheduled && isActive;
@@ -300,29 +368,10 @@ export default function EnrollmentDetail() {
     return {
       id: sess.id,
       number: sess.sessionNumber,
+      session: sess,
+      hasActions: canTutorSchedule || (!isTutor && sess.status === SESSION_STATUS.AWAITING_PAYOUT && !sess.hasIssueReport),
       tone,
       badge: getStatusBadge(sess),
-      time: (
-        <div className="min-w-0">
-          {sess.startAt ? (
-            <span className="font-mono text-caption text-fg tabular-nums whitespace-nowrap">
-              {formatDateTime(sess.startAt, 'DD/MM/YYYY HH:mm')}
-            </span>
-          ) : (
-            <span className="text-caption text-fg-muted">Chờ gia sư xếp lịch</span>
-          )}
-          {sess.endAt && (
-            <span className="block text-[12px] text-fg-muted tabular-nums whitespace-nowrap">
-              &ndash; {formatDateTime(sess.endAt, 'HH:mm')}
-            </span>
-          )}
-        </div>
-      ),
-      escrow: (
-        <span className="text-caption font-semibold text-fg whitespace-nowrap">
-          <Money value={sess.sessionPrice ?? sess.earningAmount ?? 0} />
-        </span>
-      ),
       actions: (
         <>
           {canTutorSchedule && (
@@ -343,16 +392,6 @@ export default function EnrollmentDetail() {
               {isSchedulingThis ? 'Đóng' : 'Xếp lịch'}
             </Button>
           )}
-
-          <Button
-            as={Link}
-            to={isTutor ? `/tutor/sessions/${sess.id}` : `/student/sessions/${sess.id}`}
-            variant="outline"
-            size="sm"
-            iconRight={<Icon name="chevron_right" size="sm" />}
-          >
-            Chi tiết
-          </Button>
 
           {!isTutor && sess.status === SESSION_STATUS.AWAITING_PAYOUT && !sess.hasIssueReport && (
             <Button
@@ -427,182 +466,146 @@ export default function EnrollmentDetail() {
   });
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <Link
-        to={backPath}
-        className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
-      >
-        <Icon name="arrow_back" size="sm" />
-        {backLabel}
+    <div className="mx-auto max-w-[1200px] space-y-6 lg:space-y-8">
+      <Link to={backPath}
+        className="inline-flex min-h-9 items-center gap-2 rounded-lg text-sm font-medium text-fg-secondary transition-colors hover:text-brand-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-500">
+        <Icon name="arrow_back" size="sm" />{backLabel}
       </Link>
 
-      <Card padding="lg" className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+      <Card padding="lg" className="rounded-2xl shadow-none">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
           <div className="min-w-0">
-            <span className="font-mono text-caption font-semibold text-fg-muted select-all block">
-              HỢP ĐỒNG #{String(enrollment.id || '').slice(0, 8)}
-            </span>
-            <h1 className="text-headline-page text-fg tracking-tight mt-1">
-              {enrollment.serviceTitle || enrollment.subjectName || 'Hợp đồng học tập'}
-            </h1>
-            <p className="text-body-reg text-fg-secondary mt-1">
-              Gia sư phụ trách: <strong className="text-fg">{tutorName}</strong>
-            </p>
+            <button type="button" onClick={copyContractId} title={String(enrollment.id)}
+              aria-label="Sao chép mã hợp đồng"
+              className="inline-flex min-h-8 items-center gap-2 rounded-lg text-xs font-medium text-fg-muted transition-colors hover:text-brand-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-500">
+              <span>{copied ? 'Đã sao chép mã' : `Mã hợp đồng #${String(enrollment.id || '').slice(0, 8)}`}</span>
+              <Icon name={copied ? 'check' : 'content_copy'} size="xs" />
+            </button>
+            <span className="sr-only" role="status">{copied ? 'Đã sao chép mã hợp đồng' : ''}</span>
+            <h1 className="mt-2 text-headline-page leading-snug tracking-tight text-fg">{courseTitle}</h1>
+            <div className="mt-4 flex items-center gap-3">
+              <Avatar src={enrollment.tutorAvatarUrl} name={tutorName} size="sm" />
+              <p className="text-sm text-fg-secondary">Gia sư <span className="font-medium text-fg">{tutorName}</span></p>
+            </div>
           </div>
-          {/* Trạng thái nằm ở badge, không nằm ở viền card. */}
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <StateBadge status={enrollment.status} domain="enrollment" size="md" />
-            {isActive && (
-              <span className="inline-flex items-center gap-1.5 text-caption font-semibold text-holding-strong">
-                <Icon name="lock" size="sm" />
-                Escrow đang khóa
-              </span>
-            )}
-          </div>
+          <StateBadge status={enrollment.status} domain="enrollment" size="md" className="shrink-0 self-start" />
         </div>
-
-        <StatStrip
-          figures={[
-            {
-              key: 'total',
-              label: 'Tổng học phí',
-              value: <Money value={enrollment.totalPrice} />,
-              hint: isActive ? 'Bảo chứng trong Escrow' : undefined,
-            },
-            {
-              key: 'sessions',
-              label: 'Số buổi',
-              value: <span>{enrollment.totalSessions}</span>,
-              hint: `${durationMinutes} phút/buổi`,
-            },
-            {
-              key: 'progress',
-              label: 'Buổi hoàn thành',
-              value: (
-                <span>
-                  {completedCount} / {enrollment.totalSessions}
-                </span>
-              ),
-            },
-            {
-              // Phí sàn KHÔNG phải tín hiệu tốt cho học viên → giữ màu trung tính.
-              key: 'platformFee',
-              label: 'Tỷ lệ phí sàn',
-              value: <span>{(Number(enrollment.platformFeeRate || 0.1) * 100).toFixed(0)}%</span>,
-              hint: 'Snapshot tại thời điểm đăng ký',
-            },
-          ]}
-        />
-
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-caption text-fg-secondary">
-            <span>Tiến độ hợp đồng:</span>
-            <span className="font-bold tabular-nums">{progressPercent}%</span>
+        <div className="mt-6 space-y-3 border-t border-border pt-5">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+            <span className="font-medium text-fg">Tiến độ học tập</span>
+            <span className="text-fg-secondary tabular-nums">{completedCount}/{enrollment.totalSessions} buổi hoàn thành <span className="ml-2 font-semibold text-brand-primary-600">{progressPercent}%</span></span>
           </div>
-          <Progress value={progressPercent} label="Tiến độ hợp đồng" />
+          <Progress value={progressPercent} label="Tiến độ học tập" />
+          {isActive && <p className="inline-flex items-center gap-1.5 text-xs text-fg-muted">
+            <Icon name="shield" size="xs" className="text-brand-primary-600" />Học phí được bảo vệ qua Escrow
+          </p>}
         </div>
       </Card>
 
-      {/* ── Sổ cái buổi học: phần lõi của màn này ───────────────────── */}
-      <Card padding="lg" className="space-y-4">
-        <div>
-          <h2 className="text-[20px] font-semibold text-fg tracking-tight">
-            Lộ trình &amp; Tiến độ phân rã {enrollment.totalSessions} buổi học
-          </h2>
-          <p className="text-caption text-fg-muted mt-0.5">
-            Mỗi buổi học tương ứng một khoản ký quỹ riêng biệt được giải ngân tự động sau khi kết thúc buổi học
-          </p>
-        </div>
+      <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Card padding="md" className="rounded-2xl shadow-none">
+          <dt className="flex items-center gap-2 text-sm font-medium text-fg-secondary"><Icon name="trending_up" size="sm" className="text-brand-primary-600" />Tiến độ học</dt>
+          <dd className="mt-4 text-[28px] font-semibold leading-none tracking-tight text-fg tabular-nums">{completedCount}<span className="ml-1 text-lg font-medium text-fg-muted">/ {enrollment.totalSessions}</span></dd>
+          <p className="mt-2 text-xs text-fg-muted">Buổi hoàn thành</p>
+        </Card>
+        <Card padding="md" className="rounded-2xl shadow-none">
+          <dt className="flex items-center gap-2 text-sm font-medium text-fg-secondary"><Icon name="calendar_month" size="sm" className="text-brand-primary-600" />Buổi tiếp theo</dt>
+          <dd className="mt-4 text-xl font-semibold leading-snug text-fg">
+            {nextSession ? formatDateTime(nextSession.startAt, 'DD/MM · HH:mm') : 'Chưa có lịch'}
+          </dd>
+          <p className="mt-2 text-xs text-fg-muted">{nextSession ? `Buổi học ${nextSession.sessionNumber}` : isActive ? 'Chờ xếp lịch' : 'Chưa có buổi học sắp tới'}</p>
+        </Card>
+        <Card padding="md" className="rounded-2xl shadow-none">
+          <dt className="flex items-center gap-2 text-sm font-medium text-fg-secondary"><Icon name="shield" size="sm" className="text-holding-strong" />Học phí ký quỹ</dt>
+          <dd className="mt-4 text-[26px] font-semibold leading-none tracking-tight text-fg tabular-nums">{hasFinancialSummary ? <Money value={finances.escrowRemaining} /> : '—'}</dd>
+          <p className="mt-2 text-xs text-fg-muted">{!hasFinancialSummary ? 'Xem chi tiết trong Ví học viên' : finances.escrowRemaining > 0 ? 'Đang được bảo vệ' : 'Không còn học phí đang giữ'}</p>
+        </Card>
+      </dl>
 
-        {sessionRows.length === 0 ? (
-          <p className="text-caption text-fg-muted m-0">Hợp đồng này chưa có buổi học nào.</p>
-        ) : (
-          <>
-            {/* Desktop: dòng sổ thật — spine trạng thái · thời gian · ký quỹ · thao tác */}
-            <DataTable
-              caption="Sổ buổi học của hợp đồng"
-              columns={SESSION_COLUMNS}
-              minWidth={700}
-              className="hidden lg:block"
-            >
-              {sessionRows.map((row) => (
-                <React.Fragment key={row.id}>
-                  <tr className="align-middle">
-                    <th
-                      scope="row"
-                      className={cn(
-                        'border-l-2 py-3 pl-4 pr-3 text-left font-normal',
-                        row.tone.border
-                      )}
-                    >
-                      <SessionIdentity
-                        number={row.number}
-                        badge={row.badge}
-                        chipClass={row.tone.chip}
-                      />
-                    </th>
-                    <td className="py-3 px-3 align-middle">{row.time}</td>
-                    <td className="py-3 px-3 text-right align-middle whitespace-nowrap">
-                      {row.escrow}
-                    </td>
-                    <td className="py-3 pl-3 pr-4 align-middle">
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        {row.actions}
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.85fr)_minmax(280px,1fr)] lg:gap-8">
+        <div className="min-w-0 space-y-6">
+          {!isTutor && needsSchedule && (
+            <Card padding="lg" className="rounded-2xl border-brand-primary-100 bg-brand-primary-50/40 shadow-none">
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-brand-primary-600"><Icon name="chat" size="sm" /></span>
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold text-fg">{completedCount === 0 ? 'Lớp học của bạn chưa có lịch' : 'Thống nhất lịch học tiếp theo'}</h2>
+                  <p className="mt-2 text-sm leading-relaxed text-fg-secondary">
+                    Trao đổi với gia sư để chọn thời gian phù hợp cho buổi học {completedCount === 0 ? 'đầu tiên' : 'tiếp theo'}.
+                  </p>
+                  <Button variant="primary" size="md" className="mt-4" loading={openingChat} onClick={messageTutor}
+                    icon={<Icon name="chat" size="sm" />}>Nhắn tin gia sư</Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          <Card padding="lg" className="rounded-2xl shadow-none">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight text-fg">Lộ trình học tập</h2>
+                <p className="mt-2 text-sm text-fg-secondary">{enrollment.totalSessions} buổi học · {durationMinutes} phút/buổi</p>
+              </div>
+              <span className="rounded-lg bg-neutral-50 px-3 py-2 text-xs font-medium text-fg-secondary tabular-nums">{completedCount}/{enrollment.totalSessions} hoàn thành</span>
+            </div>
+            <div role="group" aria-label="Lọc buổi học" className="mt-5 flex flex-wrap gap-1 border-b border-border pb-4">
+              {[
+                { key: 'all', label: 'Tất cả', count: sessions.length },
+                { key: 'upcoming', label: 'Sắp tới', count: upcomingSessions.length },
+                { key: 'completed', label: 'Hoàn thành', count: completedSessions.length },
+              ].map(filter => (
+                <button key={filter.key} type="button" aria-pressed={sessionFilter === filter.key}
+                  onClick={() => { setSessionFilter(filter.key); setVisibleCount(5); }}
+                  className={cn('inline-flex min-h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-500',
+                    sessionFilter === filter.key ? 'bg-brand-primary-50 text-brand-primary-700' : 'text-fg-secondary hover:bg-neutral-50')}>
+                  {filter.label}<span className="text-xs opacity-75 tabular-nums">{filter.count}</span>
+                </button>
+              ))}
+            </div>
+
+            {sessionRows.length === 0 ? (
+              <div className="py-10 text-center">
+                <Icon name={sessionFilter === 'completed' ? 'school' : 'calendar_month'} size="lg" className="mx-auto text-fg-muted" />
+                <p className="mt-3 text-sm font-medium text-fg">
+                  {sessionFilter === 'upcoming' ? 'Chưa có buổi học sắp tới' : sessionFilter === 'completed' ? 'Chưa có buổi học hoàn thành' : 'Lộ trình chưa có buổi học'}
+                </p>
+                <p className="mt-2 text-xs text-fg-muted">{sessionFilter === 'all' ? 'Các buổi học sẽ được hiển thị tại đây.' : 'Chọn Tất cả để xem toàn bộ lộ trình.'}</p>
+              </div>
+            ) : (
+              <ul className="mt-4 space-y-3">
+                {sessionRows.map(row => (
+                  <li key={row.id} className="interactive-card overflow-hidden rounded-xl border border-border bg-surface">
+                    <StretchedCardLink to={isTutor ? `/tutor/sessions/${row.id}` : `/student/sessions/${row.id}`} state={sessionLinkState} label={`Xem chi tiết buổi học ${row.number}`} />
+                    <div className="flex min-h-24 items-center gap-3 rounded-xl p-4">
+                      <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-semibold tabular-nums', row.tone.chip)}>{String(row.number).padStart(2, '0')}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-fg">Buổi học {row.number}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          {row.badge}
+                          {row.session.startAt && <span className="text-xs text-fg-secondary tabular-nums">{formatDateTime(row.session.startAt, 'DD/MM/YYYY · HH:mm')}</span>}
+                        </div>
                       </div>
-                    </td>
-                  </tr>
-                  {row.scheduleForm && (
-                    <tr>
-                      <td colSpan={SESSION_COLUMNS.length} className="pb-3 pr-4">
-                        {row.scheduleForm}
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))}
-            </DataTable>
-
-            {/* Mobile: cùng view-model, xếp dọc thành card */}
-            <ul className="lg:hidden space-y-2.5">
-              {sessionRows.map((row) => (
-                <li
-                  key={row.id}
-                  className="relative overflow-hidden rounded-brand-lg border border-border bg-surface p-4 pl-5 space-y-3"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={cn('absolute inset-y-0 left-0 w-1', row.tone.bar)}
-                  />
-                  <SessionIdentity
-                    number={row.number}
-                    badge={row.badge}
-                    chipClass={row.tone.chip}
-                  />
-
-                  <dl className="grid grid-cols-2 gap-3 border-t border-border pt-3">
-                    <div className="min-w-0">
-                      <dt className="text-[11px] font-semibold uppercase tracking-wide text-fg-muted">
-                        Thời gian
-                      </dt>
-                      <dd className="m-0 mt-1">{row.time}</dd>
+                      <Icon name="chevron_right" size="sm" className="shrink-0 text-fg-muted" />
                     </div>
-                    <div className="text-right">
-                      <dt className="text-[11px] font-semibold uppercase tracking-wide text-fg-muted">
-                        Ký quỹ buổi
-                      </dt>
-                      <dd className="m-0 mt-1">{row.escrow}</dd>
-                    </div>
-                  </dl>
-
-                  <div className="flex flex-wrap items-center gap-2">{row.actions}</div>
-
-                  {row.scheduleForm}
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </Card>
+                    {row.hasActions && (
+                      <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3 [&_button]:relative [&_button]:z-20 [&_a]:relative [&_a]:z-20">{row.actions}</div>
+                    )}
+                    {row.scheduleForm && <div className="relative z-20 px-3 pb-3">{row.scheduleForm}</div>}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {filteredSessions.length > 5 && (
+              <div className="mt-5 flex flex-col items-center justify-between gap-3 border-t border-border pt-4 sm:flex-row">
+                <p className="text-xs text-fg-muted">Hiển thị {Math.min(visibleCount, filteredSessions.length)}/{filteredSessions.length} buổi học</p>
+                <Button variant="ghost" size="sm" className="text-brand-primary-600"
+                  onClick={() => setVisibleCount(visibleCount < filteredSessions.length ? filteredSessions.length : 5)}
+                  iconRight={<Icon name={visibleCount < filteredSessions.length ? 'expand_more' : 'expand_less'} size="sm" />}>
+                  {visibleCount < filteredSessions.length ? `Xem tất cả ${filteredSessions.length} buổi` : 'Thu gọn danh sách'}
+                </Button>
+              </div>
+            )}
+          </Card>
 
       {/* Review Section (for Completed Enrollment) */}
       {isCompleted && (
@@ -658,6 +661,7 @@ export default function EnrollmentDetail() {
                 </p>
 
                 {/* Tutor Reply if available */}
+                {isTutor && <ReviewReplyForm key={review.id} review={review} onSaved={setReview} />}
                 {review.tutorReply && (
                   <div className="mt-3 p-3 rounded-brand-md bg-brand-primary-50/60 border border-brand-primary-200 text-caption space-y-1">
                     <div className="flex items-center gap-1.5 text-brand-primary-800 font-bold text-xs">
@@ -759,6 +763,56 @@ export default function EnrollmentDetail() {
           )}
         </Card>
       )}
+
+        </div>
+
+        <aside className="min-w-0 space-y-4 lg:sticky lg:top-24">
+          <Card padding="lg" className="rounded-2xl shadow-none">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-fg"><Icon name="calendar_month" size="sm" className="text-brand-primary-600" />Buổi học tiếp theo</h2>
+            {nextSession ? (
+              <div className="mt-5">
+                <p className="text-2xl font-semibold text-brand-primary-700 tabular-nums">{formatDateTime(nextSession.startAt, 'HH:mm')}</p>
+                <p className="mt-1 text-sm text-fg-secondary">{formatDateTime(nextSession.startAt, 'DD/MM/YYYY')}</p>
+                <p className="mt-4 text-sm font-medium text-fg">Buổi học {nextSession.sessionNumber}</p>
+                <p className="mt-1 text-xs text-fg-muted">{durationMinutes} phút · Gia sư {tutorName}</p>
+                <Button as={Link} to={isTutor ? `/tutor/sessions/${nextSession.id}` : `/student/sessions/${nextSession.id}`} state={sessionLinkState}
+                  variant="primary" size="md" fullWidth className="mt-5" iconRight={<Icon name="arrow_forward" size="sm" />}>Xem buổi học</Button>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-xl bg-neutral-50 p-4">
+                <Icon name="event" size="md" className="text-fg-muted" />
+                <p className="mt-3 text-sm font-medium text-fg">Chưa có lịch học sắp tới</p>
+                <p className="mt-2 text-xs leading-relaxed text-fg-secondary">{isTutor && isActive ? 'Chọn buổi chưa xếp lịch trong lộ trình để thiết lập thời gian học.' : needsSchedule ? 'Lịch học sẽ hiển thị sau khi bạn và gia sư thống nhất thời gian.' : 'Các buổi học đã được xếp lịch sẽ xuất hiện tại đây.'}</p>
+              </div>
+            )}
+          </Card>
+
+          <Card padding="lg" className="rounded-2xl shadow-none">
+            <h2 className="flex items-center justify-between gap-2 text-base font-semibold text-fg">Thông tin thanh toán<Icon name="shield" size="sm" className="text-fg-muted" /></h2>
+            <dl className="mt-5 space-y-3 text-sm">
+              <div className="flex flex-wrap justify-between gap-2"><dt className="text-fg-secondary">Tổng học phí</dt><dd className="font-semibold text-fg tabular-nums"><Money value={enrollment.totalPrice} /></dd></div>
+              {uniformSessionPrice != null && <div className="flex flex-wrap justify-between gap-2"><dt className="text-fg-secondary">Học phí / buổi</dt><dd className="font-medium text-fg-secondary tabular-nums"><Money value={uniformSessionPrice} /></dd></div>}
+              <div className="flex flex-wrap justify-between gap-2"><dt className="text-fg-secondary">Đang ký quỹ</dt><dd className="font-semibold text-holding-strong tabular-nums"><Money value={finances.escrowRemaining} /></dd></div>
+              <div className="flex flex-wrap justify-between gap-2"><dt className="text-fg-secondary">Đã giải ngân</dt><dd className="font-semibold text-success-strong tabular-nums"><Money value={finances.escrowReleased} /></dd></div>
+              {finances.escrowRefunded > 0 && <div className="flex flex-wrap justify-between gap-2"><dt className="text-fg-secondary">Đã hoàn tiền</dt><dd className="font-medium tabular-nums"><Money value={finances.escrowRefunded} /></dd></div>}
+              <div className="flex flex-wrap justify-between gap-2 border-t border-border pt-3"><dt className="text-fg-muted">Tỷ lệ phí sàn</dt><dd className="text-fg-secondary">{enrollment.platformFeeRate != null ? `${(Number(enrollment.platformFeeRate) * 100).toFixed(0)}%` : '—'}</dd></div>
+            </dl>
+            <p className="mt-4 text-xs leading-relaxed text-fg-muted">Học phí được giải ngân sau 12 giờ nếu buổi học không có khiếu nại.</p>
+            {!isTutor && <Button as={Link} to="/student/wallet" variant="ghost" size="md" fullWidth className="mt-3 text-brand-primary-600"
+              icon={<Icon name="account_balance_wallet" size="sm" />}>Xem Ví học viên</Button>}
+            <details className="group mt-4 border-t border-border pt-4">
+              <summary className="cursor-pointer rounded-lg text-xs font-medium text-fg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-500">Thông tin hợp đồng</summary>
+              <dl className="mt-3 space-y-3 text-xs">
+                <div><dt className="text-fg-muted">Mã hợp đồng</dt><dd className="mt-1 break-all text-fg-secondary select-all">{enrollment.id}</dd></div>
+                {enrollment.createdAt && <div><dt className="text-fg-muted">Ngày đăng ký</dt><dd className="mt-1 text-fg-secondary">{formatDateTime(enrollment.createdAt, 'DD/MM/YYYY')}</dd></div>}
+              </dl>
+            </details>
+            {enrollment.status === 'Active' && <div className="mt-4 space-y-2 border-t border-border pt-4"><Button variant="danger-outline" fullWidth loading={cancelling} onClick={cancelCourse}>{isTutor ? 'Không thể tiếp tục giảng dạy' : 'Dừng khóa học'}</Button><p className="text-xs leading-relaxed text-fg-secondary">Các buổi chưa hoàn thành sẽ được hủy và hoàn học phí theo trạng thái hợp đồng. Khiếu nại và thời gian bảo lưu cần kết thúc trước khi dừng.</p></div>}
+            {enrollment.status === 'Cancelled' && enrollment.cancellationReason && <p className="mt-4 whitespace-pre-wrap break-words border-t border-border pt-4 text-xs leading-relaxed text-fg-secondary">Lý do dừng: {enrollment.cancellationReason}</p>}
+            {!isTutor && enrollment.bookingId && <Button as={Link} to={`/student/reports?bookingId=${encodeURIComponent(enrollment.bookingId)}`} variant="ghost" fullWidth className="mt-4">Báo cáo hành vi vi phạm</Button>}
+          </Card>
+        </aside>
+      </div>
     </div>
   );
 }

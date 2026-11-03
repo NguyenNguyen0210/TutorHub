@@ -1,6 +1,8 @@
-import React from 'react';
-import { Navigate, useLocation, Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Navigate, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { getAuthReturnUrl } from '../utils/authRedirect';
+import { getPostAuthDestination } from '../services/authRedirect.service';
 
 export function RequireAuth({ children }) {
   const { isAuthenticated } = useAuthStore();
@@ -40,11 +42,25 @@ export function RequireRole({ allowedRoles, children }) {
 
 export function GuestGuard({ children }) {
   const { isAuthenticated, role } = useAuthStore();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [redirectError, setRedirectError] = useState(false);
+  const returnUrl = getAuthReturnUrl(location);
+
+  useEffect(() => {
+    if (!isAuthenticated) return undefined;
+    let cancelled = false;
+    setRedirectError(false);
+    getPostAuthDestination(role, returnUrl).then((destination) => {
+      if (!cancelled && useAuthStore.getState().isAuthenticated) navigate(destination, { replace: true });
+    }).catch(() => {
+      if (!cancelled) setRedirectError(true);
+    });
+    return () => { cancelled = true; };
+  }, [isAuthenticated, role, returnUrl, navigate]);
 
   if (isAuthenticated) {
-    if (role === 'Admin') return <Navigate to="/admin/dashboard" replace />;
-    if (role === 'Tutor') return <Navigate to="/tutor/dashboard" replace />;
-    return <Navigate to="/student/dashboard" replace />;
+    return <p role="status" className="p-8 text-center text-fg-secondary">{redirectError ? 'Không thể chuyển trang. Vui lòng tải lại trang.' : 'Đang mở trang dành cho bạn…'}</p>;
   }
 
   return children;

@@ -19,7 +19,7 @@ public class HealthEndpointTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Readiness_ReportsDatabaseAndPlatformFeeSetting()
+    public async Task Readiness_ReportsDatabaseRedisAndPlatformFeeSetting()
     {
         using var client = Factory.CreateClient();
 
@@ -33,6 +33,9 @@ public class HealthEndpointTests : IntegrationTestBase
         var checks = document.RootElement.GetProperty("checks");
         checks.TryGetProperty("database", out var database).Should().BeTrue();
         database.GetProperty("status").GetString().Should().Be("Healthy");
+
+        checks.TryGetProperty("redis", out var redis).Should().BeTrue();
+        redis.GetProperty("status").GetString().Should().Be("Healthy");
 
         checks.TryGetProperty("platform-fee-setting", out var feeSetting).Should().BeTrue();
         feeSetting.GetProperty("status").GetString().Should().Be("Healthy");

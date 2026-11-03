@@ -5,6 +5,7 @@ using System.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Options;
@@ -63,9 +64,25 @@ if (builder.Environment.IsDevelopment())
 
 builder.Configuration.AddEnvironmentVariables();
 
-// structured logging. Console (compact JSON) always; the Seq sink is
-// added only when Seq:ServerUrl is set, so the API boots and serves with Seq
-// down (the Seq sink batches in the background and never blocks requests).
+// Forwarded headers are accepted only from explicitly configured reverse proxies.
+// Direct deployments use the connection address and ignore client-supplied headers.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+    foreach (var value in builder.Configuration.GetSection("ReverseProxy:KnownProxies").Get<string[]>() ?? [])
+    {
+        if (!IPAddress.TryParse(value, out var address))
+        {
+            throw new InvalidOperationException($"Invalid ReverseProxy:KnownProxies address: {value}");
+        }
+        options.KnownProxies.Add(address);
+    }
+});
+
+// Structured logging to console, with compact JSON in production.
 // Levels/enrichment come from the Serilog config section first; the code
 // below unconditionally re-states the same defaults — keep in sync with the
 // Serilog section in appsettings.json.
@@ -89,20 +106,6 @@ builder.Host.UseSerilog((context, loggerConfig) =>
     else
     {
         loggerConfig.WriteTo.Console(new RenderedCompactJsonFormatter());
-    }
-
-    var seqUrl = context.Configuration["Seq:ServerUrl"];
-    if (!string.IsNullOrWhiteSpace(seqUrl))
-    {
-        var seqApiKey = context.Configuration["Seq:ApiKey"];
-        if (string.IsNullOrWhiteSpace(seqApiKey))
-        {
-            loggerConfig.WriteTo.Seq(seqUrl);
-        }
-        else
-        {
-            loggerConfig.WriteTo.Seq(seqUrl, apiKey: seqApiKey);
-        }
     }
 });
 
@@ -313,6 +316,7 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
 });
 
 app.UseExceptionHandler();
+app.UseForwardedHeaders();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -323,7 +327,7 @@ app.UseMiddleware<TutorHub.Api.Middlewares.CorrelationIdMiddleware>();
 
 // one request log per call, enriched with the CorrelationId above (this
 // runs inside its LogContext scope). Health probes are excluded so
-// orchestrator polling stays out of Seq.
+// orchestrator polling stays out of request logs.
 app.UseWhen(
     context => !context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase),
     branch => branch.UseSerilogRequestLogging(options =>
@@ -367,7 +371,6 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseCors();
-
 
 app.UseAuthentication();
 app.UseAuthorization();

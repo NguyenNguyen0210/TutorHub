@@ -13,6 +13,8 @@ public class Service
     public Guid SubjectId { get; set; }
     public Subject Subject { get; set; } = default!;
 
+    public ICollection<WishlistItem> WishlistItems { get; set; } = new List<WishlistItem>();
+
     // Content & Scope
     public string Title { get; set; } = default!;
     public string Description { get; set; } = default!;
@@ -25,7 +27,6 @@ public class Service
     public int TotalSessions { get; set; }
     public int SessionDurationMinutes { get; set; }
     public decimal Price { get; set; }
-    public TeachingMode TeachingMode { get; set; }
 
     // Trial Lesson & Media preview
     public string? TrialLessonUrl { get; set; }

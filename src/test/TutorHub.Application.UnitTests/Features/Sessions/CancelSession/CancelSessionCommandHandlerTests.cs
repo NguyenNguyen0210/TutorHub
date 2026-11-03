@@ -63,7 +63,6 @@ public class CancelSessionCommandHandlerTests : IDisposable
             TotalPrice = 1_000_000m,
             TotalSessions = 1,
             SessionDurationMinutes = 60,
-            TeachingMode = TeachingMode.Online
         };
         enrollment.Activate();
 

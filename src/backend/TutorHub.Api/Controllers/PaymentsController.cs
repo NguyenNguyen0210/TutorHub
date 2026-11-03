@@ -27,7 +27,7 @@ public class PaymentsController : ControllerBase
     /// </summary>
     [Authorize(Roles = "Student")]
     [HttpPost("vnpay/create-url")]
-    [Idempotent]
+    [Idempotent(RequireKey = true)]
     [ProducesResponseType(typeof(ApiResponse<PaymentRedirectDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -38,7 +38,7 @@ public class PaymentsController : ControllerBase
         [FromBody] InitiatePaymentRequest request,
         CancellationToken cancellationToken)
     {
-        var ipAddress = GetClientIpAddress();
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
 
         var command = new InitiatePaymentCommand(
             BookingId: request.BookingId,
@@ -54,7 +54,7 @@ public class PaymentsController : ControllerBase
     /// </summary>
     [Authorize(Roles = "Student")]
     [HttpPost("{bookingId:guid}/wallet")]
-    [Idempotent]
+    [Idempotent(RequireKey = true)]
     [ProducesResponseType(typeof(ApiResponse<PayBookingFromWalletResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -70,7 +70,7 @@ public class PaymentsController : ControllerBase
     }
 
     /// <summary>
-    /// VNPay browser return URL redirect handler (Presentation / Read-Only).
+    /// Confirm the signed browser callback through the same idempotent settlement path as IPN.
     /// </summary>
     [AllowAnonymous]
     [HttpGet("vnpay/return")]
@@ -79,13 +79,10 @@ public class PaymentsController : ControllerBase
     {
         var parameters = ExtractQueryParameters();
 
-        // For TOPUP transactions on development/localhost where VNPay IPN cannot reach local machine,
-        // execute the webhook handler to credit the wallet idempotently upon verified return callback.
-        if (parameters.TryGetValue("vnp_TxnRef", out var txnRef) &&
-            txnRef.StartsWith("TOPUP", StringComparison.OrdinalIgnoreCase))
-        {
-            await _sender.Send(new HandlePaymentWebhookCommand(parameters), cancellationToken);
-        }
+        // The server-to-server IPN may arrive later or cannot reach localhost.
+        // The canonical handler verifies signature, merchant, amount and saved attempt,
+        // then settles atomically. Repeated return/IPN callbacks cannot activate twice.
+        await _sender.Send(new HandlePaymentWebhookCommand(parameters), cancellationToken);
 
         var query = new GetPaymentResultQuery(parameters);
         var result = await _sender.Send(query, cancellationToken);
@@ -125,29 +122,4 @@ public class PaymentsController : ControllerBase
         return dictionary;
     }
 
-    private string GetClientIpAddress()
-    {
-        // 1. Check for X-Forwarded-For proxy header
-        if (Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))
-        {
-            var ip = forwardedFor.ToString().Split(',')[0].Trim();
-            if (!string.IsNullOrWhiteSpace(ip))
-            {
-                return ip;
-            }
-        }
-
-        // 2. Check for X-Real-IP proxy header
-        if (Request.Headers.TryGetValue("X-Real-IP", out var realIp))
-        {
-            var ip = realIp.ToString().Trim();
-            if (!string.IsNullOrWhiteSpace(ip))
-            {
-                return ip;
-            }
-        }
-
-        // 3. Fallback to HttpContext Connection RemoteIpAddress
-        return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
-    }
 }

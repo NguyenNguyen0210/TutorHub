@@ -51,6 +51,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Media> Media => Set<Media>();
+    public DbSet<WishlistItem> WishlistItems => Set<WishlistItem>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<ConversationAttachment> ConversationAttachments => Set<ConversationAttachment>();
     public DbSet<Message> Messages => Set<Message>();
@@ -59,6 +60,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<EmailDelivery> EmailDeliveries => Set<EmailDelivery>();
     public DbSet<Dispute> Disputes => Set<Dispute>();
     public DbSet<DisputeEvidence> DisputeEvidences => Set<DisputeEvidence>();
+    public DbSet<DisputeResponse> DisputeResponses => Set<DisputeResponse>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<LearningRecord> LearningRecords => Set<LearningRecord>();
     public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();

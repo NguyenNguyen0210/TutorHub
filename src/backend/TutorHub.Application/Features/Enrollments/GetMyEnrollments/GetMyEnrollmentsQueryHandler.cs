@@ -65,11 +65,19 @@ public class GetMyEnrollmentsQueryHandler : IRequestHandler<GetMyEnrollmentsQuer
                 e.TotalSessions,
                 e.Sessions.Count(s => s.Status == SessionStatus.Completed), // Server-side SQL COUNT
                 e.SessionDurationMinutes,
-                e.TeachingMode,
                 e.Status,
                 e.CreatedAt,
                 e.CompletedAt,
-                e.CancelledAt
+                e.CancelledAt,
+                e.TutorProfile.User.AvatarUrl,
+                e.TutorProfile.UserId,
+                e.Sessions.Where(s => s.IsPayoutReleased).Sum(s => (decimal?)s.SessionPrice) ?? 0,
+                _context.Transactions.Where(t => t.BookingId == e.BookingId
+                    && t.Type == TransactionType.StudentRefund
+                    && (t.Status == TransactionStatus.Succeeded || t.Status == TransactionStatus.Refunded))
+                    .Sum(t => (decimal?)t.Amount) ?? 0,
+                e.StudentProfile.UserId,
+                e.StudentProfile.User.AvatarUrl
             ))
             .ToListAsync(cancellationToken);
 

@@ -115,7 +115,6 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
             TotalPrice = service.Price,
             TotalSessions = service.TotalSessions,
             SessionDurationMinutes = service.SessionDurationMinutes,
-            TeachingMode = service.TeachingMode,
             Status = BookingStatus.Holding,
             HoldingExpiresAt = now.AddMinutes(15),
             CreatedAt = now

@@ -80,26 +80,6 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
             tutor.ExperienceYears = request.ExperienceYears.Value;
         }
 
-        if (request.TeachingMode.HasValue)
-        {
-            tutor.TeachingMode = request.TeachingMode.Value;
-        }
-
-        if (request.Address != null)
-        {
-            tutor.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
-        }
-
-        if (request.Latitude.HasValue)
-        {
-            tutor.Latitude = request.Latitude.Value;
-        }
-
-        if (request.Longitude.HasValue)
-        {
-            tutor.Longitude = request.Longitude.Value;
-        }
-
         await _context.SaveChangesAsync(cancellationToken);
         await _tutorCache.InvalidateTutorProfileAsync(tutor.Id, cancellationToken);
 
@@ -126,10 +106,6 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
             Bio: tutor.Bio,
             Education: tutor.Education,
             ExperienceYears: tutor.ExperienceYears,
-            TeachingMode: tutor.TeachingMode.ToString(),
-            Address: tutor.Address,
-            Latitude: tutor.Latitude,
-            Longitude: tutor.Longitude,
             RatingAvg: tutor.RatingAvg,
             TotalReviews: tutor.TotalReviews,
             Subjects: subjects,

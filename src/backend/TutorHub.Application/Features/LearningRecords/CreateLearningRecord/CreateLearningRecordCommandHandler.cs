@@ -24,7 +24,7 @@ public class CreateLearningRecordCommandHandler : IRequestHandler<CreateLearning
         var userId = _currentUserService.UserIdOrThrow();
 
         var session = await _context.Sessions
-            .Include(s => s.Enrollment)
+            .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
             .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
 
         if (session == null)

@@ -23,7 +23,6 @@ public class SignalRBackplaneRegistrationTests
         {
             ["ConnectionStrings:DefaultConnection"] =
                 "Host=localhost;Port=5432;Database=tutorhub;Username=tutorhub;Password=123456",
-            ["Redis:Enabled"] = "true",
             ["Redis:ConnectionString"] = "localhost:6379"
         };
 

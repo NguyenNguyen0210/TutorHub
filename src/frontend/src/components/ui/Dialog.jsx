@@ -73,6 +73,10 @@ export function DialogProvider({ children }) {
         );
         return;
       }
+      if (dialog.maxReasonLength && trimmed.length > dialog.maxReasonLength) {
+        setReasonError(`Vui lòng nhập tối đa ${dialog.maxReasonLength} ký tự.`);
+        return;
+      }
       if (typeof dialog.onConfirmReason === 'function') dialog.onConfirmReason(trimmed);
       close(true);
       return;
@@ -170,6 +174,7 @@ export function DialogProvider({ children }) {
                     id="dialog-reason"
                     rows={3}
                     value={reason}
+                    maxLength={dialog.maxReasonLength || undefined}
                     onChange={(e) => {
                       setReason(e.target.value);
                       if (reasonError) setReasonError('');

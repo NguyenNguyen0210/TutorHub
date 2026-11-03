@@ -1,3 +1,4 @@
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import React, { useState, useEffect, useCallback } from 'react';
 import adminService from '@/services/admin.service';
 import { formatDateTime } from '@/utils/formatters';
@@ -10,7 +11,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Icon from '@/components/ui/Icon';
 import Tabs from '@/components/ui/Tabs';
-import { PageHeader } from '@/components/ui/StatCard';
+
 import { useToast } from '@/components/ui/Toast';
 
 function formatJson(raw) {
@@ -105,10 +106,10 @@ export default function AdminAuditLogs() {
   };
 
   return (
-    <div className="space-y-5">
-      <PageHeader
+    <div className="space-y-6 lg:space-y-8">
+      <WorkspacePageHeader
         title="Nhật ký kiểm toán hệ thống"
-        subtitle="Ghi nhận minh bạch mọi biến động số dư, giao dịch bảo chứng, hợp đồng và phán quyết phân xử"
+        description="Ghi nhận minh bạch mọi biến động số dư, giao dịch bảo chứng, hợp đồng và phán quyết phân xử"
       />
 
       {/* Trust Banner */}
@@ -134,8 +135,8 @@ export default function AdminAuditLogs() {
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-md">
+      <div className="min-w-0 space-y-4">
+        <div className="relative w-full max-w-md">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted pointer-events-none">
             <Icon name="search" size="sm" />
           </span>
@@ -159,7 +160,7 @@ export default function AdminAuditLogs() {
           )}
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="min-w-0">
           <Tabs
             value={entityFilter}
             onChange={(val) => {

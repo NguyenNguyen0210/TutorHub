@@ -14,7 +14,6 @@ public class ExternalLoginConfiguration : IEntityTypeConfiguration<ExternalLogin
             .IsRequired()
             .HasConversion<int>();
 
-        // Google's `sub` and Facebook's `id` are opaque strings of varying length.
         builder.Property(l => l.ProviderUserId)
             .IsRequired()
             .HasMaxLength(255);

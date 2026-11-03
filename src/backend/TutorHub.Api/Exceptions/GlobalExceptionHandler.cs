@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Diagnostics;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Models;
+using TutorHub.Domain.Entities;
 
 namespace TutorHub.Api.Exceptions;
 
@@ -41,7 +42,7 @@ public class GlobalExceptionHandler : IExceptionHandler
                 appEx.Errors
             ),
             // Domain state guards surface as 409 so expected conflicts never leak as 500.
-            InvalidOperationException invalidOp => (
+            InvalidOperationException invalidOp when invalidOp.TargetSite?.DeclaringType?.Assembly == typeof(User).Assembly => (
                 HttpStatusCode.Conflict,
                 invalidOp.Message,
                 new List<string> { invalidOp.Message }

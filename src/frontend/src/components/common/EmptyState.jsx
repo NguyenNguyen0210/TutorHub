@@ -18,6 +18,8 @@ export default function EmptyState({
   actionLabel,
   actionPath,
   onAction,
+  secondaryActionLabel,
+  onSecondaryAction,
   filters = [],
   onClearAll,
   clearAllLabel = 'Xóa toàn bộ bộ lọc',
@@ -65,15 +67,27 @@ export default function EmptyState({
         </div>
       )}
 
-      {(actionLabel && (actionPath || onAction)) && (
-        <div className="pt-2">
-          {actionPath ? (
-            <Button as={Link} to={actionPath} variant="primary" size="md">
-              {actionLabel}
-            </Button>
-          ) : (
-            <Button variant="primary" size="md" onClick={onAction}>
-              {actionLabel}
+      {(actionLabel || secondaryActionLabel) && (
+        <div className="flex flex-col items-center justify-center gap-2 pt-2 sm:flex-row">
+          {actionLabel && (actionPath || onAction) && (
+            actionPath ? (
+              <Button as={Link} to={actionPath} variant="primary" size="md" className="w-full sm:w-auto">
+                {actionLabel}
+              </Button>
+            ) : (
+              <Button variant="primary" size="md" onClick={onAction} className="w-full sm:w-auto">
+                {actionLabel}
+              </Button>
+            )
+          )}
+          {secondaryActionLabel && onSecondaryAction && (
+            <Button
+              variant="outline"
+              size="md"
+              onClick={onSecondaryAction}
+              className="w-full sm:w-auto"
+            >
+              {secondaryActionLabel}
             </Button>
           )}
         </div>

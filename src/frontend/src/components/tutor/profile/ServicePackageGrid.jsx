@@ -7,13 +7,12 @@ import EmptyState from '@/components/common/EmptyState';
 import { SectionShell } from './SectionShell';
 import ServicePackageCard from './ServicePackageCard';
 
-const VISIBLE_LIMIT = 3;
+const VISIBLE_LIMIT = 4;
 
 /**
- * ServicePackageGrid — section "Dịch vụ học tập" của hồ sơ gia sư.
- *
- * V1 chỉ nhận tối đa 3 gói đầu vì `TutorProfileDto.services` chưa phân trang
- *. Link "Xem tất cả" chỉ hiện khi nhiều hơn 3 gói.
+ * ServicePackageGrid — Section "Dịch vụ học tập" của hồ sơ gia sư.
+ * Sử dụng lưới 2 cột rộng 100% giúp các thẻ gói học giãn đều, đẹp mắt
+ * và ngang bằng hoàn hảo với khung Giới thiệu ở trên.
  */
 export default function ServicePackageGrid({
   services = [],
@@ -57,7 +56,7 @@ export default function ServicePackageGrid({
         />
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full items-stretch">
             {visible.map((service) => (
               <ServicePackageCard
                 key={service.id}
@@ -86,4 +85,3 @@ ServicePackageGrid.propTypes = {
   bookingId: PropTypes.string,
   onBook: PropTypes.func.isRequired,
 };
-

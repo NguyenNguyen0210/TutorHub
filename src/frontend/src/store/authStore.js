@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import api from '../services/api';
+import { getStoredItem, getSavedRememberMe, persistLogin } from './authPersistence';
 
-const getStoredItem = (key) => localStorage.getItem(key) || sessionStorage.getItem(key);
+const savedRememberMe = getSavedRememberMe();
 
 const savedUser = JSON.parse(getStoredItem('tutorhub_user') || 'null');
 const savedToken = getStoredItem('tutorhub_token') || null;
@@ -11,26 +12,17 @@ export const useAuthStore = create((set, get) => ({
   user: savedUser,
   accessToken: savedToken,
   refreshToken: savedRefreshToken,
+  rememberMe: savedRememberMe,
   role: savedUser?.role || null,
   isAuthenticated: !!(savedUser && savedToken),
 
   login: (userData, tokens, rememberMe = true) => {
-    const targetStorage = rememberMe ? localStorage : sessionStorage;
-    const alternateStorage = rememberMe ? sessionStorage : localStorage;
-
-    alternateStorage.removeItem('tutorhub_user');
-    alternateStorage.removeItem('tutorhub_token');
-    alternateStorage.removeItem('tutorhub_refresh_token');
-
-    targetStorage.setItem('tutorhub_user', JSON.stringify(userData));
-    targetStorage.setItem('tutorhub_token', tokens.accessToken);
-    if (tokens.refreshToken) {
-      targetStorage.setItem('tutorhub_refresh_token', tokens.refreshToken);
-    }
+    persistLogin(userData, tokens, rememberMe);
     set({
       user: userData,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken || get().refreshToken,
+      rememberMe,
       role: userData.role,
       isAuthenticated: true,
     });
@@ -48,6 +40,7 @@ export const useAuthStore = create((set, get) => ({
       user: null,
       accessToken: null,
       refreshToken: null,
+      rememberMe: false,
       role: null,
       isAuthenticated: false,
     });

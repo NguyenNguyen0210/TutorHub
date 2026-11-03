@@ -1,4 +1,5 @@
 using MediatR;
+using TutorHub.Application.Common.Concurrency;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
@@ -35,6 +36,13 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
     {
         var userId = _currentUserService.UserIdOrThrow();
 
+        // Lock before reading financial state, in the same session-first order as payout.
+        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+        await PostgresAdvisoryLock.LockRowAsync(_context,
+            $"SELECT 1 FROM \"Sessions\" WHERE \"EnrollmentId\" = {request.EnrollmentId} ORDER BY \"Id\" FOR UPDATE", cancellationToken);
+        await PostgresAdvisoryLock.LockRowAsync(_context,
+            $"SELECT 1 FROM \"Enrollments\" WHERE \"Id\" = {request.EnrollmentId} FOR UPDATE", cancellationToken);
+
         var enrollment = await _context.Enrollments
             .Include(e => e.StudentProfile).ThenInclude(s => s.User)
             .Include(e => e.TutorProfile).ThenInclude(t => t.User)
@@ -63,6 +71,11 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
         // 3. Domain Logic: Cancel sessions and compute refund
         var now = _clock.UtcNow;
 
+        var sessionIds = enrollment.Sessions.Select(s => s.Id).ToList();
+        if (await _context.Disputes.AsNoTracking().AnyAsync(d => sessionIds.Contains(d.SessionId)
+            && d.Status != DisputeStatus.Resolved && d.Status != DisputeStatus.Dismissed, cancellationToken))
+            throw new ConflictException("Cannot discontinue an enrollment with active disputes. Resolve the disputes first.");
+
         if (enrollment.Sessions.Any(s => s.Status == SessionStatus.AwaitingPayout))
         {
             throw new ConflictException("Cannot cancel enrollment while sessions are in the 12-hour grace period. Resolve or wait for those sessions first.");
@@ -72,7 +85,6 @@ public class TutorCannotContinueCommandHandler : IRequestHandler<TutorCannotCont
 
         // 4. Financial Escrow Adjustment & Refund Record. Lock the tutor wallet
         // row so concurrent payouts/cancellations cannot race the escrow debit.
-        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             if (refundAmount > 0)

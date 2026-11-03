@@ -36,11 +36,6 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.Property(b => b.SessionDurationMinutes)
             .IsRequired();
 
-        builder.Property(b => b.TeachingMode)
-            .HasConversion<string>()
-            .HasMaxLength(50)
-            .IsRequired();
-
         // Indexes
         builder.HasIndex(b => new { b.TutorProfileId, b.Status });
         builder.HasIndex(b => new { b.StudentProfileId, b.Status });

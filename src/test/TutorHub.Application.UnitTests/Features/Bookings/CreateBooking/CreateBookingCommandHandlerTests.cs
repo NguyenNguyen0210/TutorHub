@@ -64,7 +64,6 @@ public class CreateBookingCommandHandlerTests
             TotalSessions = 10,
             SessionDurationMinutes = 60,
             Price = 3_500_000m,
-            TeachingMode = TeachingMode.Online,
             Status = serviceStatus
         };
 
@@ -96,7 +95,6 @@ public class CreateBookingCommandHandlerTests
         result.TotalPrice.Should().Be(3_500_000m);
         result.TotalSessions.Should().Be(10);
         result.SessionDurationMinutes.Should().Be(60);
-        result.TeachingMode.Should().Be(TeachingMode.Online);
         result.Status.Should().Be(BookingStatus.Holding);
         // Frozen clock (see ctor): holding = frozen now + 15m.
         result.HoldingExpiresAt.Should().Be(new DateTime(2026, 9, 6, 0, 15, 0, DateTimeKind.Utc));
@@ -278,7 +276,6 @@ public class CreateBookingCommandHandlerTests
             TotalPrice = service.Price,
             TotalSessions = service.TotalSessions,
             SessionDurationMinutes = service.SessionDurationMinutes,
-            TeachingMode = service.TeachingMode,
             Status = BookingStatus.Holding,
             HoldingExpiresAt = new DateTime(2026, 9, 6, 0, 10, 0, DateTimeKind.Utc), // In the future (now is 00:00:00)
             CreatedAt = new DateTime(2026, 9, 5, 23, 55, 0, DateTimeKind.Utc)

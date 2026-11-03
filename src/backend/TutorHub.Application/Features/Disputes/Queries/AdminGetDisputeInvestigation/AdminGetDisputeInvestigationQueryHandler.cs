@@ -26,6 +26,7 @@ public class AdminGetDisputeInvestigationQueryHandler : IRequestHandler<AdminGet
             .Include(d => d.InitiatorUser)
             .Include(d => d.RespondentUser)
             .Include(d => d.Evidences)
+            .Include(d => d.Responses).ThenInclude(r => r.AuthorUser)
             .FirstOrDefaultAsync(d => d.Id == request.DisputeId, cancellationToken);
 
         if (dispute == null)
@@ -93,13 +94,15 @@ public class AdminGetDisputeInvestigationQueryHandler : IRequestHandler<AdminGet
                 HoldStatus = dispute.HoldStatus,
                 HeldAt = dispute.HeldAt,
                 CreatedAt = dispute.CreatedAt,
+                Responses = dispute.Responses.OrderBy(r => r.CreatedAt).ThenBy(r => r.Id).Select(r => new DisputeResponseDto { Id = r.Id, DisputeId = r.DisputeId, AuthorUserId = r.AuthorUserId, AuthorName = r.AuthorUser.FullName, AuthorRole = r.AuthorUser.Role, Content = r.Content, CreatedAt = r.CreatedAt }).ToList(),
                 Evidences = dispute.Evidences.Select(e => new DisputeEvidenceDto
                 {
                     Id = e.Id,
                     DisputeId = e.DisputeId,
                     UploadedByUserId = e.UploadedByUserId,
+                    ResponseId = e.ResponseId,
                     FileName = e.FileName,
-                    FileUrl = e.FileUrl,
+                    FileUrl = $"/api/v1/disputes/{e.DisputeId}/evidence/{e.Id}/download",
                     ContentType = e.ContentType,
                     FileSizeBytes = e.FileSizeBytes,
                     CreatedAt = e.CreatedAt

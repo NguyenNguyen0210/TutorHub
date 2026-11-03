@@ -1,24 +1,17 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Options;
 using StackExchange.Redis;
-using TutorHub.Infrastructure.Redis;
 
 namespace TutorHub.Infrastructure.HealthChecks;
 
-// Redis is optional infrastructure, so a dead/unreachable server must never
-// fail readiness into a restart loop — it reports Degraded, never Unhealthy.
-// The multiplexer is only registered when Redis:Enabled, hence the optional
-// constructor parameter (missing service falls back to its default: null).
+// Redis is required: readiness fails when Redis cannot be reached.
 public sealed class RedisHealthCheck : IHealthCheck
 {
     private static readonly TimeSpan PingTimeout = TimeSpan.FromSeconds(2);
 
-    private readonly RedisOptions _options;
     private readonly IConnectionMultiplexer? _multiplexer;
 
-    public RedisHealthCheck(IOptions<RedisOptions> options, IConnectionMultiplexer? multiplexer = null)
+    public RedisHealthCheck(IConnectionMultiplexer? multiplexer = null)
     {
-        _options = options.Value;
         _multiplexer = multiplexer;
     }
 
@@ -26,16 +19,9 @@ public sealed class RedisHealthCheck : IHealthCheck
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
-        if (!_options.Enabled)
-        {
-            return HealthCheckResult.Healthy(
-                "Redis is disabled.",
-                new Dictionary<string, object> { ["redis"] = "disabled" });
-        }
-
         if (_multiplexer is null)
         {
-            return HealthCheckResult.Degraded("Redis is enabled but no connection multiplexer is registered.");
+            return HealthCheckResult.Unhealthy("Redis connection multiplexer is missing.");
         }
 
         try
@@ -47,17 +33,17 @@ public sealed class RedisHealthCheck : IHealthCheck
 
             if (completed != pingTask)
             {
-                return HealthCheckResult.Degraded("Redis ping timed out after 2s.");
+                return HealthCheckResult.Unhealthy("Redis ping timed out after 2s.");
             }
 
             var latency = await pingTask;
             return HealthCheckResult.Healthy(
                 $"Redis ping took {latency.TotalMilliseconds:F1}ms.",
-                new Dictionary<string, object> { ["redis"] = "enabled" });
+                new Dictionary<string, object> { ["redis"] = "connected" });
         }
         catch (Exception ex)
         {
-            return HealthCheckResult.Degraded($"Redis ping failed: {ex.Message}");
+            return HealthCheckResult.Unhealthy($"Redis ping failed: {ex.Message}");
         }
     }
 }

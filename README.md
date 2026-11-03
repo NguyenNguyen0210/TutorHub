@@ -50,6 +50,8 @@
 
 ## 🏛️ Kiến Trúc Kỹ Thuật (Architecture)
 
+> Reviewer/nhà tuyển dụng có thể xem [Portfolio Technical Guide](docs/portfolio/README.md) để đọc sơ đồ kiến trúc, ERD, sequence diagram, tài khoản demo và các quyết định kỹ thuật.
+
 Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết hợp mô hình **CQRS (Command Query Responsibility Segregation)** thông qua thư viện MediatR, phân tách rành mạch giữa nghiệp vụ miền (Domain), xử lý ứng dụng (Application), giao tiếp hạ tầng (Infrastructure) và giao diện lập trình (API / Web Client).
 
 ```text
@@ -94,7 +96,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 ## ⚡ Các Tính Năng & Nghiệp Vụ Cốt Lõi
 
 ### 1. Quản Lý Gói Dịch Vụ & Showcase Khóa Học
-* Gia sư chủ động tạo và quản lý các gói dịch vụ học tập với thông tin chi tiết: số buổi, thời lượng, hình thức (Online/Offline), đối tượng học viên, điều kiện tiên quyết, câu hỏi thường gặp (FAQs) và lộ trình giáo trình chi tiết (Curriculum).
+* Gia sư chủ động tạo và quản lý các gói học trực tuyến với thông tin chi tiết: số buổi, thời lượng, đối tượng học viên, điều kiện tiên quyết, câu hỏi thường gặp (FAQs) và lộ trình giáo trình chi tiết (Curriculum).
 * Vòng đời dịch vụ linh hoạt: `Draft` (Bản nháp), `Published` (Đang mở bán), `Paused` (Tạm ngưng nhận học viên mới nhưng vẫn phục vụ học viên đang học), `Unpublished` (Đóng gói).
 
 ### 2. Đặt Lịch & Giữ Chỗ Thanh Toán 15 Phút (Booking TTL Hold)
@@ -150,7 +152,7 @@ Hệ thống được thiết kế theo nguyên lý **Clean Architecture** kết
 | **Backend Framework** | .NET 8.0 (C# 12) | ASP.NET Core Web API, RESTful Endpoints |
 | **Architectural Patterns** | MediatR 12, FluentValidation 11 | CQRS, Pipeline Behaviors, Request Validation |
 | **ORM & Database** | Entity Framework Core 8, Npgsql 8 | PostgreSQL 16 Provider, Code-First Migrations, Triggers |
-| **Authentication & Security** | JWT Bearer, PBKDF2/BCrypt, OAuth 2.0 PKCE | Xác thực người dùng, Refresh Token Rotation, Google/Facebook Login |
+| **Authentication & Security** | JWT Bearer, PBKDF2/BCrypt, OpenID Connect + PKCE | Xác thực người dùng, Refresh Token Rotation, Google Sign-In |
 | **Realtime Engine** | ASP.NET Core SignalR | WebSockets Hubs cho Trò chuyện và Thông báo |
 | **Payment Gateway** | VNPay SDK (HMAC-SHA512) | Thanh toán trực tuyến, IPN Webhook, Đối soát giao dịch |
 | **Object Storage** | AWS S3 SDK / Cloudflare R2 | Lưu trữ tài liệu, ảnh đại diện, chứng chỉ gia sư qua Presigned URL |
@@ -225,41 +227,94 @@ cp .env.example .env
 
 # 2. Thay toàn bộ secret mẫu `change_me` trong .env bằng giá trị thật.
 #    API từ chối khởi động nếu vẫn dùng secret mẫu.
+#    API chỉ cần ConnectionStrings__DefaultConnection để kết nối PostgreSQL.
 
 # 3. Để dùng Swagger và cấu hình dev, đặt ASPNETCORE_ENVIRONMENT=Development trong .env.
 #    Nếu để trống, Compose mặc định chạy Production và không phục vụ Swagger.
 
-# 4. Khởi động cụm dịch vụ (PostgreSQL, Redis, Seq, Backend API)
+# 4. Khởi động cụm dịch vụ (PostgreSQL, Redis, Backend API)
 docker compose up -d --build
 
-# 5. Nạp dữ liệu mẫu nếu cần; script sẽ TRUNCATE dữ liệu hiện có và yêu cầu xác nhận.
+# 5. Tiện ích nạp dữ liệu cục bộ (nếu đã có scripts/ trên máy).
+# scripts/ không được đưa vào Git; bản clone mới có thể nạp Data.sql bằng psql như hướng dẫn bên dưới.
+# Script sẽ TRUNCATE dữ liệu hiện có và yêu cầu xác nhận.
 ./scripts/seed-data.sh     # Linux/macOS/Git Bash
 # hoặc trên Windows PowerShell:
 .\scripts\seed-data.ps1
 ```
 
-Seed dùng dữ liệu nhân vật và giao dịch **giả lập** nhưng nhất quán: 10 gia sư đã duyệt,
-2 hồ sơ đang chờ/từ chối, 24 học viên, 20 gói học, 48 booking và các buổi học,
-ví, đánh giá, hội thoại tương ứng. Mọi tài khoản được seed dùng mật khẩu `Test@123`.
-Ví dụ đăng nhập: `admin@tutorhub.test`, `gia-su01@tutorhub.test`,
-`hoc-vien01@tutorhub.test`. Seed không tạo email đã gửi, refresh token,
-tệp đính kèm hay lệnh thanh toán thật.
+Docker Compose vẫn phải cung cấp `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
+để **khởi tạo container PostgreSQL**. Các biến này không cần nằm trong `.env`
+của ứng dụng: Compose mặc định tạo database `tutorhub`, user `tutorhub`, password
+`tutorhub` tại cổng máy host `5433`. Nếu PostgreSQL local đã được khởi tạo với
+mật khẩu khác, hãy tạo file `docker-compose.override.yml` (đã được Git ignore)
+để giữ thông tin container hiện có, ví dụ:
 
-`src/backend/seedData.sql` đã chứa toàn bộ các câu `INSERT` và có thể chép riêng
+```yaml
+services:
+  postgres:
+    environment:
+      POSTGRES_USER: tutorhub
+      POSTGRES_PASSWORD: your_existing_local_postgres_password
+      POSTGRES_DB: tutorhub
+  api:
+    environment:
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=tutorhub;Username=tutorhub;Password=your_existing_local_postgres_password
+```
+
+Trong `.env`, dùng `Host=localhost;Port=5433` khi chạy .NET API trực tiếp trên máy.
+Trong container API, `Host=postgres;Port=5432` là địa chỉ nội bộ Docker. Mật khẩu
+trong hai connection string phải khớp với database local đã tạo. Đối với Render,
+chỉ đặt `ConnectionStrings__DefaultConnection` trỏ tới Neon trong trang Environment;
+không cần biến `POSTGRES_*` của Docker.
+
+Seed hiện có 12 gia sư đã duyệt, 24 học viên, 15 gói học, 12 hợp đồng và
+9 đánh giá gắn với hợp đồng đã hoàn thành. Nhân vật, văn bằng, chia sẻ và giao dịch
+đều là dữ liệu **minh họa**, không phải thông tin người thật hay thanh toán thật.
+Mật khẩu tài khoản demo là `Test@123`; ví dụ `admin@tutorhub.vn`,
+`hocvien.thaovy@tutorhub.vn`. Đồng bộ không đổi mật khẩu các tài khoản có sẵn.
+
+`Data.sql` đã chứa toàn bộ các câu `INSERT` và có thể chép riêng
 sang máy khác để nạp; máy đích chỉ cần PostgreSQL với schema đã áp dụng đủ EF migrations.
 Không cần Python hay script generator khi nạp dữ liệu. Ví dụ nạp trực tiếp bằng `psql`
 (thay tên user/database theo máy đích):
 
 ```bash
-psql -U tutorhub -d tutorhub -v ON_ERROR_STOP=1 -f src/backend/seedData.sql
+psql -U tutorhub -d tutorhub -v ON_ERROR_STOP=1 -f Data.sql
 ```
 
 Lệnh nạp sẽ thay thế toàn bộ dữ liệu nghiệp vụ hiện có trong database đích.
 
+Để cập nhật nội dung demo trên DB đang sử dụng, áp dụng migrations rồi dùng
+`Data.sync.sql`. Bản này không TRUNCATE, không sửa tài khoản, ví, đơn hàng hay
+giao dịch đã có; nó cập nhật nội dung hồ sơ/gói học, bổ sung dữ liệu demo còn thiếu
+và tính lại số sao từ Reviews. Các đánh giá bổ sung dùng tài khoản demo riêng.
+
+```powershell
+dotnet ef database update --project src/backend/TutorHub.Infrastructure --startup-project src/backend/TutorHub.Api
+python scripts/generate-data-sql.py
+python scripts/generate-data-sql.py --sync
+.\scripts\seed-data.ps1 -SyncContent
+# Linux/macOS/Git Bash: ./scripts/seed-data.sh --sync-content
+```
+
+Các tiện ích generator và `scripts/seed-content.json` chỉ lưu trên máy phát triển, không nằm trong Git. `Data.sql` và `Data.sync.sql` là đầu ra để chia sẻ và nạp dữ liệu trên máy khác.
+FAQ chính sách chung và chia sẻ trên trang giới thiệu là nội dung tĩnh trong
+`src/frontend/src/content`, không cần bảng hay API riêng. FAQ riêng từng gói,
+giáo trình và đánh giá vẫn lấy từ API; không tự sinh đánh giá khi API rỗng hoặc lỗi.
+Văn bằng công khai lấy từ học vấn/chứng chỉ trong hồ sơ đã được admin duyệt.
+Trường học, chuyên ngành, chứng chỉ, phương pháp và thành tích được gửi riêng
+trong API nộp/gửi lại hồ sơ. Tệp chứng chỉ tải qua Media API; hồ sơ chỉ lưu mã
+và metadata tài liệu, không lưu URL tải tạm thời. API kiểm tra người sở hữu tệp;
+admin lấy URL mới khi mở tài liệu. Nhãn “Đã duyệt hồ sơ” phản ánh việc xét duyệt,
+không khẳng định một quy trình xác minh văn bằng độc lập.
+Sau khi đồng bộ lúc API đang chạy, đợi cache hồ sơ/gói học hết hạn (tối đa 15 phút)
+hoặc xóa đúng các key `tutor:profile:v3:*` và `service:detail:v3:*` trong Redis.
+
 Sau khi khởi chạy thành công:
 * **Backend API:** `http://localhost:8080`
 * **Swagger Documentation (chỉ khi `ASPNETCORE_ENVIRONMENT=Development`):** `http://localhost:8080/swagger`
-* **Cơ sở dữ liệu PostgreSQL:** `localhost:5433` (database và tài khoản theo `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` trong `.env`)
+* **Cơ sở dữ liệu PostgreSQL:** `localhost:5433` (thông tin ứng dụng lấy từ `ConnectionStrings__DefaultConnection` trong `.env`)
 
 ---
 
@@ -279,6 +334,17 @@ dotnet ef database update --project src/backend/TutorHub.Infrastructure --startu
 # Nạp dữ liệu mẫu (script kiểm tra migration và hỏi trước khi thay dữ liệu cũ)
 ./scripts/seed-data.sh
 ```
+
+> **Database đã tồn tại:** `20261028125846_InitialBaseline` là baseline dành cho
+> database trống. Migration sẽ dừng nếu phát hiện bảng ứng dụng đã tồn tại.
+> Trước khi nâng cấp, sao lưu database, kiểm tra `__EFMigrationsHistory` và
+> đối chiếu schema hiện tại với baseline trên một bản sao. Không xóa lịch sử
+> migration, không đánh dấu baseline là đã chạy, và không chạy seed trên dữ liệu
+> cần giữ cho đến khi có kế hoạch nâng cấp được kiểm chứng riêng cho database đó.
+
+Khi chạy API sau reverse proxy, khai báo từng địa chỉ IP proxy tin cậy trong
+`ReverseProxy__KnownProxies__0`, `ReverseProxy__KnownProxies__1`, ... . Nếu không
+khai báo, API dùng địa chỉ kết nối trực tiếp và bỏ qua các header IP do client gửi.
 
 #### Bước 3.2: Khởi chạy Backend API (.NET 8)
 ```bash
@@ -300,28 +366,34 @@ npm run dev
 
 ## 🔀 Mở Rộng Quy Mô (Scale-Out với Redis)
 
-* **Redis tích hợp:** Compose bật `Redis:Enabled=true`; local Development có thể tắt bằng `Redis__Enabled=false` trong `.env`. Khi bật, Redis dùng cho distributed lock, cache, SignalR backplane và OAuth state.
-* **Redis chết lúc chạy:** Các đường non-OAuth vẫn phục vụ — cache đọc thẳng DB, cron bỏ qua kỳ + log, `/health` báo `Degraded` ở check `redis` (không bao giờ `Unhealthy`, không restart tiến trình).
+* **Redis bắt buộc:** Tất cả môi trường cần Redis hoạt động, dùng cho distributed lock, cache, SignalR backplane và OAuth state. Cấu hình địa chỉ bằng `ConnectionStrings__Redis`; Docker Compose chạy kèm container Redis.
+* **Redis mất kết nối:** `/health` trả về trạng thái `Unhealthy` để hệ thống triển khai ngừng chuyển yêu cầu tới instance chưa sẵn sàng. `/health/live` vẫn kiểm tra liveness độc lập với Redis và PostgreSQL.
 * **Background Jobs (Hợp nhất vào API host):**
-  - Cả môi trường Dev (`docker-compose.yml`) và Production (`docker-compose.prod.yml`) đều cấu hình `BackgroundJobs__Enabled: "true"` trực tiếp trên container `api`, tinh giản việc duy trì container worker riêng rẽ.
+  - Cả môi trường Dev (`docker-compose.yml`) và Production (`docker-compose.prod.yml`) luôn chạy cả 5 hosted background jobs trong tiến trình `api`, không cần biến bật/tắt.
   - **5 Background Jobs gồm có:** `BookingTimeoutBackgroundService` (hủy giữ chỗ quá hạn 15 phút), `OutboxDispatcherJob` (quét và bắn sự kiện Transactional Outbox), `EmailDeliveryJob` (gửi email bất đồng bộ dự phòng), `AutoPayoutJob` (quét buổi học quá hạn 12h Grace Period để tự động giải ngân), `IdempotencyCleanupJob` (quét và dọn dẹp các bản ghi idempotency đã hết hạn).
   - **Khóa phân tán (Redis Distributed Cron Lock):** Các cron job chạy đa node được điều phối bởi `IRedisDistributedLock` (`SET NX PX` kết hợp script Lua Compare-and-Delete) để đảm bảo tại một thời điểm chỉ có 1 node thực thi task, an toàn khi scale ngang.
   - **Bộ đệm phân tán (Read-Through Caching):** Cung cấp `IServiceDetailCacheService` và `ITutorProfileCacheService` kết hợp `SemaphoreSlim` per-key chống Cache Stampede. Các danh mục (Categories) và môn học (Subjects) truy vấn trực tiếp DB qua index tối ưu.
   - **Lớp bảo vệ Idempotency Outer Shield:** Bộ lọc `[Idempotent]` kết hợp băm SHA-256 fingerprint trên body request và `DbIdempotencyStore` chống thanh toán/tạo đơn/rút tiền trùng lặp khi mạng lag.
   - **Nhắc lịch (Reminders):** Session Reminder và Grace Period Reminder không sử dụng cron job định kỳ quét toàn bộ database mà chuyển sang kiến trúc **Delayed Outbox Pattern** (`SessionReminderDueEvent`, `GracePeriodClosingSoonEvent`), tối ưu hiệu năng và tránh rủi ro lock bảng.
 * **Tìm kiếm tiếng Việt:** `unaccent` (wrapper immutable `unaccent_immutable`) + trigram `pg_trgm` với GIN index trên `Services(Title, Description)`, `Subjects(Name)`, `Users(FullName, Email)`… — `toan` ra `toán`, `nguyen` ra `Nguyễn`, giữ nguyên sort/paging cũ. `EXPLAIN` xác nhận dùng index + timing trước/sau là follow-up staging (sandbox nghiệm thu không có PG nên chưa đo).
-* **Log tập trung:** Serilog JSON console + Seq sink (chỉ khi `Seq:ServerUrl` khác rỗng; Seq chết không chặn boot), enrich `CorrelationId`, bỏ ồn `/health*`, cấm log secret/PII. Dev/staging: service `seq` trong compose (`:5341`).
+* **Ghi log ứng dụng:** Serilog ghi ra console (JSON trong production), bổ sung `CorrelationId`, lọc log `/health*` và không ghi secret/PII.
 
 ---
 
 ## 🧪 Kiểm Thử Tự Động (Automated Testing)
 
-Project có unit test cho Domain, Application và Infrastructure, integration test cho API và kịch bản Playwright E2E. Số lượng và kết quả test cần lấy từ lần chạy hiện tại; tài liệu không giữ số đếm cố định. Integration test dùng PostgreSQL tại `localhost:5433` (có thể đổi cổng bằng `POSTGRES_PORT`), user `tutorhub`, mật khẩu từ biến môi trường `POSTGRES_PASSWORD` (mặc định `123456`) và tự tạo database `tutorhub_integration` (xem `IntegrationWebApplicationFactory`). Đặt `POSTGRES_PASSWORD` bằng mật khẩu của container đang chạy trước khi gọi `dotnet test`.
+Project có unit test cho Domain, Application và Infrastructure, integration test cho API và kịch bản Playwright E2E. Số lượng và kết quả test cần lấy từ lần chạy hiện tại; tài liệu không giữ số đếm cố định. Integration test đọc `ConnectionStrings__DefaultConnection` từ môi trường hoặc `.env`; CI vẫn hỗ trợ các biến PostgreSQL riêng để khởi tạo database test. Test từ chối host không phải localhost và mỗi test process chỉ được phép xóa/tạo lại database có tên bắt đầu bằng `tutorhub_integration`, vì vậy dữ liệu development không bị đụng tới.
 
 ### Chạy Toàn Bộ Test Suite Backend
+```powershell
+# Windows: build và chạy toàn bộ unit + integration test bằng Release
+# Đảm bảo .env chứa ConnectionStrings__DefaultConnection trỏ về Docker local.
+dotnet test src/backend/TutorHub.sln --configuration Release
+```
+
 ```bash
-# Chạy toàn bộ test trong solution (integration test cần PostgreSQL)
-dotnet test src/backend/TutorHub.sln --logger "console;verbosity=normal"
+# Linux/macOS/CI
+dotnet test src/backend/TutorHub.sln --configuration Release
 ```
 
 ### Chạy Kiểm Thử Từng Dự Án
@@ -340,14 +412,16 @@ dotnet test src/test/TutorHub.Api.IntegrationTests
 ```
 
 ### Chạy Kiểm Thử Giao Diện Đầu-Cuối (Playwright E2E)
-```bash
-# Cài đặt dependency kịch bản test
-pip install playwright pytest
-playwright install chromium
 
-# Thực thi bộ test kịch bản tự động giải ngân và khiếu nại
-python scripts/e2e_grace_period.py
+Toàn bộ thư mục `scripts/` chỉ dùng cục bộ và không được đưa vào Git. Các regression test trong `src/test` và `src/frontend/test` vẫn được quản lý phiên bản; CI gọi `dotnet test` trực tiếp.
+
+```bash
+# Chuẩn bị trình duyệt khi cần chạy kịch bản Playwright cục bộ
+python -m pip install playwright
+python -m playwright install chromium
 ```
+
+Lưu plan tại `C:\Users\Nguyen Nguyen\Documents\TutorHub-local\plans` và báo cáo, ảnh chụp, trace, trạng thái kiểm thử tại `C:\Users\Nguyen Nguyen\Documents\TutorHub-local\testing`, bên ngoài project. Không dùng database development cho kịch bản có thao tác thanh toán, hủy hoặc hoàn tiền.
 
 ### Cập nhật bản OpenAPI
 
