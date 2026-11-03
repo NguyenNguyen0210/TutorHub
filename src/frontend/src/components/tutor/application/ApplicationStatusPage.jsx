@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import TeachingSubjects from '@/components/tutor/TeachingSubjects';
 import { Link } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
 import userService from '@/services/user.service';
@@ -63,5 +64,6 @@ export default function ApplicationStatusPage({ application, onEdit, onRefresh, 
       {approved && metadata?.unavailable && <div className="flex flex-wrap items-center gap-3"><p className="text-caption text-fg-secondary">Chưa tải đủ thông tin hồ sơ và gói học.</p><Button variant="ghost" size="sm" onClick={() => setRetry(value => value + 1)}>Thử lại</Button></div>}
       {approved && <Link to="/tutor/dashboard" className="inline-flex min-h-11 items-center text-body-reg font-medium text-primary hover:underline">Quay về Tổng quan</Link>}
     </Card>
+    {approved && <TeachingSubjects />}
   </div>;
 }
