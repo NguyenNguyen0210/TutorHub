@@ -1602,7 +1602,7 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
             migrationBuilder.Sql(
                 "CREATE OR REPLACE FUNCTION unaccent_immutable(text) RETURNS text " +
                 "LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT " +
-                "AS $$SELECT unaccent(translate($1, 'đĐ', 'dD'))$$;");
+                "AS $$SELECT public.unaccent(translate($1, 'đĐ', 'dD'))$$;");
 
             migrationBuilder.Sql("CREATE INDEX IF NOT EXISTS \"IX_Services_Title_Search\" ON \"Services\" USING gin (lower(unaccent_immutable(\"Title\")) gin_trgm_ops);");
             migrationBuilder.Sql("CREATE INDEX IF NOT EXISTS \"IX_Services_Description_Search\" ON \"Services\" USING gin (lower(unaccent_immutable(\"Description\")) gin_trgm_ops);");

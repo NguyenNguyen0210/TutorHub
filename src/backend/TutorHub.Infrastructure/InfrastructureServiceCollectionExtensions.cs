@@ -17,6 +17,7 @@ using TutorHub.Application.Common.Security;
 using TutorHub.Application.Common.Storage;
 using TutorHub.Infrastructure.Authentication;
 using TutorHub.Infrastructure.Authentication.External;
+using TutorHub.Infrastructure.Configuration;
 using TutorHub.Infrastructure.BackgroundServices;
 using TutorHub.Infrastructure.Caching;
 using TutorHub.Infrastructure.Distributed;
@@ -39,7 +40,7 @@ public static class InfrastructureServiceCollectionExtensions
     {
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(
-                configuration.GetConnectionString("DefaultConnection"),
+                NeonPostgresConnection.Resolve(configuration),
                 npgsql => npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
 
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());

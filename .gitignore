@@ -134,3 +134,4 @@ __pycache__/
 .opencode/
 
 !.env.production.example
+.neon
