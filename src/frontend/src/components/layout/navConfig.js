@@ -39,7 +39,7 @@ export const NAV = {
     { path: '/student/bookings', label: 'Đơn đặt chỗ', icon: 'receipt_long', match: (p) => p === '/student/bookings' },
     { path: '/student/wallet', label: 'Ví học viên', icon: 'account_balance_wallet', match: (p) => p.startsWith('/student/wallet') },
     { path: '/student/wishlist', label: 'Đã lưu', icon: 'favorite', match: (p) => p.startsWith('/student/wishlist') },
-    { path: '/student/disputes', label: 'Khiếu nại', icon: 'shield', match: (p) => p.startsWith('/student/disputes') || p.startsWith('/student/reports') || p.startsWith('/app/disputes/') },
+    { path: '/student/disputes', label: 'Khiếu nại', icon: 'shield', match: (p) => p.startsWith('/student/disputes') || p.startsWith('/student/reports') || p.startsWith('/app/disputes/') || p.startsWith('/app/reports') },
     { path: '/', label: 'Khám phá gia sư', icon: 'explore', match: () => false },
     { path: '/app/messages', label: 'Tin nhắn', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
     { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },
@@ -56,7 +56,7 @@ export const NAV = {
     { path: '/tutor/services', label: 'Gói học của tôi', icon: 'inventory_2', match: (p) => p.startsWith('/tutor/services') },
     { path: '/app/messages', label: 'Tin nhắn', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
     { path: '/tutor/wallet', label: 'Ví gia sư', icon: 'account_balance_wallet', match: (p) => p.startsWith('/tutor/wallet') },
-    { path: '/tutor/disputes', label: 'Khiếu nại', icon: 'shield', match: (p) => p.startsWith('/tutor/disputes') || p.startsWith('/app/disputes/') },
+    { path: '/tutor/disputes', label: 'Khiếu nại', icon: 'shield', match: (p) => p.startsWith('/tutor/disputes') || p.startsWith('/app/disputes/') || p.startsWith('/app/reports') },
     { path: '/tutor/application', label: 'Hồ sơ giảng dạy', icon: 'verified_user', match: (p) => p === '/tutor/application' },
     // TODO(mockup): mục "Đánh giá" — chưa có trang đánh giá dành cho gia sư, bổ sung khi có route.
     { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },

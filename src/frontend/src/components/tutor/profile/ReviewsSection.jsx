@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReportAction from '@/components/reports/ReportAction';
 import PropTypes from 'prop-types';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
@@ -182,6 +183,7 @@ export default function ReviewsSection({ tutor, reviews = [] }) {
                     )}
 
                     {/* Phản hồi từ gia sư với icon reply */}
+                    <ReportAction type="review" targetId={review.id} />
                     {reply && (
                       <div className="p-3.5 rounded-xl bg-surface border border-blue-100/90 text-caption text-fg-secondary ml-3 sm:ml-4 space-y-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                         <p className="flex items-center gap-1.5 text-blue-800 font-semibold text-[12px] m-0">

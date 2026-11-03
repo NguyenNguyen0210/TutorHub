@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import ReportAction from '@/components/reports/ReportAction';
 import { discoveryReturn } from '@/utils/discoveryReturn';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import Callout from '@/components/ui/Callout';
@@ -221,6 +222,7 @@ export default function TutorProfile() {
       {/* Profile Hero Card & Video giới thiệu (nếu có) */}
       <div className="page-shell pt-6 space-y-6">
         <ProfileHeadline tutor={tutor} />
+        <div className="flex justify-end"><ReportAction type="user" targetId={tutor.userId} /></div>
         {Boolean(tutor.introVideoUrl || tutor.videoUrl) && (
           <ProfileGallery tutor={tutor} />
         )}
