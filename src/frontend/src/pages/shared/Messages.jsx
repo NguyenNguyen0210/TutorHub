@@ -4,6 +4,7 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tansta
 import { cn } from '@/lib/cn';
 import chatService, { createChatHubConnection } from '@/services/chat.service';
 import enrollmentService from '@/services/enrollment.service';
+import tutorService from '@/services/tutor.service';
 import { useAuthStore } from '@/store/authStore';
 import { formatDateTime, formatRelativeTime } from '@/utils/formatters';
 import { notifyWorkspaceActivityChanged } from '@/utils/workspaceActivity';
@@ -53,6 +54,25 @@ export default function Messages() {
   const typingTimer = useRef(null);
   const lastTypingAt = useRef(0);
   const currentConversationRef = useRef(activeConversationId);
+  const targetUserId = searchParams.get('userId');
+  const targetTutorId = searchParams.get('tutorId');
+  const contactQuery = useQuery({
+    queryKey: ['chat', 'contact', currentUserId, targetUserId, targetTutorId],
+    enabled: Boolean(currentUserId && !activeConversationId && (targetUserId || targetTutorId)),
+    retry: false,
+    staleTime: Infinity,
+    queryFn: async () => {
+      const target = targetUserId || (await tutorService.getTutorById(targetTutorId))?.userId;
+      if (!target || target === currentUserId) throw new Error('Invalid contact');
+      return chatService.getOrCreateConversation(target);
+    },
+  });
+  useEffect(() => {
+    if (activeConversationId || !contactQuery.data?.id || (!targetUserId && !targetTutorId)) return;
+    const conv = contactQuery.data;
+    queryClient.setQueryData(['chat', 'conversation', currentUserId, conv.id], conv);
+    setSearchParams({ conversationId: conv.id }, { replace: true });
+  }, [activeConversationId, contactQuery.data, currentUserId, queryClient, setSearchParams, targetUserId, targetTutorId]);
 
   const conversationQuery = useQuery({
     queryKey: conversationKey,
@@ -256,6 +276,13 @@ export default function Messages() {
   const unreadCount = conversations.filter(conv => conv.unreadCount > 0).length;
   const filteredConversations = conversations.filter(conv => (!unreadOnly || conv.unreadCount > 0) && normalizeSearch(otherPerson(conv).name).includes(normalizeSearch(search.trim())))
     .sort((a, b) => String(b.lastMessageAt || b.createdAt).localeCompare(String(a.lastMessageAt || a.createdAt)));
+
+  if (!activeConversationId && (targetUserId || targetTutorId)) {
+    return <Card padding="lg" variant="outlined" className="mx-auto max-w-lg rounded-2xl">
+      {contactQuery.isError ? <><h1 className="text-headline-3 text-fg">Chưa mở được cuộc trò chuyện</h1><p className="mt-3 text-body-reg text-fg-secondary">Không thể liên hệ tài khoản này lúc này. Bạn có thể thử lại hoặc quay về danh sách tin nhắn.</p><div className="mt-5 flex flex-wrap gap-3"><Button onClick={() => contactQuery.refetch()} loading={contactQuery.isFetching}>Thử lại</Button><Button variant="outline" onClick={() => setSearchParams({})}>Về tin nhắn</Button></div></>
+        : <div role="status" className="text-body-reg text-fg-secondary">Đang mở cuộc trò chuyện…</div>}
+    </Card>;
+  }
 
   return (
     <div className="mx-auto max-w-[1200px] space-y-4">
