@@ -7,6 +7,8 @@ namespace TutorHub.Api.IntegrationTests;
 internal sealed class TestObjectStorageService : IObjectStorageService
 {
     private readonly ConcurrentDictionary<string, (byte[] Content, string ContentType)> _objects = new();
+    public int ObjectCount => _objects.Count;
+    public bool FailNextUploadAfterWrite { get; set; }
 
     public StorageProvider Provider => StorageProvider.LocalFileSystem;
 
@@ -17,6 +19,7 @@ internal sealed class TestObjectStorageService : IObjectStorageService
         await stream.CopyToAsync(buffer, cancellationToken);
         var content = buffer.ToArray();
         _objects[objectKey] = (content, contentType);
+        if (FailNextUploadAfterWrite) { FailNextUploadAfterWrite = false; throw new IOException("Simulated storage failure after write."); }
         return new StoredFileResult(objectKey, content.LongLength, contentType, null);
     }
 

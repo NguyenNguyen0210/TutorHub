@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { formatDateTime } from '@/utils/formatters';
-import { evidenceDownloadUrl } from '@/utils/disputeEvidence';
+import disputeService from '@/services/dispute.service';
+import { saveDownloadedFile } from '@/utils/chatAttachment';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
 
@@ -11,9 +12,18 @@ function author(dispute, id) {
 }
 
 export function EvidenceLink({ evidence }) {
-  const url = evidenceDownloadUrl(evidence.fileUrl);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+  const download = async () => {
+    if (busy) return;
+    setBusy(true); setError(false);
+    try { saveDownloadedFile(await disputeService.downloadEvidence(evidence.disputeId, evidence.id), evidence.fileName); }
+    catch { setError(true); }
+    finally { setBusy(false); }
+  };
   return <div className="min-w-0 text-sm">
-    {url ? <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 max-w-full items-center gap-2 rounded font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Icon name="attach_file" size="sm" /><span className="break-all">{evidence.fileName}</span><Icon name="open_in_new" size="xs" /></a> : <p className="break-all font-medium text-fg">{evidence.fileName}</p>}
+    <button type="button" onClick={download} disabled={busy} className="inline-flex min-h-11 max-w-full items-center gap-2 rounded text-left font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Icon name="download" size="sm" /><span className="break-all">{busy ? 'Đang tải chứng cứ…' : evidence.fileName}</span></button>
+    {error && <p role="alert" className="text-caption text-holding-strong">Chưa tải được chứng cứ. Vui lòng thử lại hoặc liên hệ hỗ trợ nếu tệp không còn khả dụng.</p>}
     <p className="text-caption text-fg-secondary">{formatDateTime(evidence.createdAt, 'DD/MM/YYYY · HH:mm')} · {Math.max(1, Math.ceil(evidence.fileSizeBytes / 1024))} KB</p>
   </div>;
 }

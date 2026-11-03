@@ -34,6 +34,9 @@ export const disputeService = {
   async submitResponse(disputeId, { submissionId, content }) {
     return api.post(`/disputes/${disputeId}/responses`, { submissionId, content });
   },
+  async downloadEvidence(disputeId, evidenceId) {
+    return api.get(`/disputes/${disputeId}/evidence/${evidenceId}/download`, { responseType: 'blob' });
+  },
 
   /**
    * GET /disputes/my → DisputeDto[]

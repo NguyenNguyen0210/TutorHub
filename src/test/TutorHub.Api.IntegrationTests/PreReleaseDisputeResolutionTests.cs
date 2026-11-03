@@ -66,9 +66,8 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
         await SendAsync(new UploadDisputeEvidenceCommand(
             DisputeId: dispute.Id,
             FileName: "chat-log.png",
-            FileUrl: "disputes/chat-log.png",
-            ContentType: "image/png",
-            FileSizeBytes: 1024));
+            Content: new MemoryStream(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D }),
+            FileSizeBytes: 12));
 
         // Act
         SetCurrentUser(adminId, UserRole.Admin);
@@ -106,10 +105,9 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
 
         await SendAsync(new UploadDisputeEvidenceCommand(
             DisputeId: dispute.Id,
-            FileName: "notes.pdf",
-            FileUrl: "disputes/notes.pdf",
-            ContentType: "application/pdf",
-            FileSizeBytes: 2048));
+            FileName: "notes.png",
+            Content: new MemoryStream(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D }),
+            FileSizeBytes: 12));
 
         // Act
         SetCurrentUser(adminId, UserRole.Admin);
@@ -149,9 +147,8 @@ public class PreReleaseDisputeResolutionTests : IntegrationTestBase
         await SendAsync(new UploadDisputeEvidenceCommand(
             DisputeId: dispute.Id,
             FileName: "screenshot.png",
-            FileUrl: "disputes/screenshot.png",
-            ContentType: "image/png",
-            FileSizeBytes: 10_000));
+            Content: new MemoryStream(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D }),
+            FileSizeBytes: 12));
 
         // Act
         SetCurrentUser(adminId, UserRole.Admin);

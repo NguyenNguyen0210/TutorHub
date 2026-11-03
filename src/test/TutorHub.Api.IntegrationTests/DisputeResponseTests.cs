@@ -124,7 +124,7 @@ public class DisputeResponseTests(IntegrationWebApplicationFactory factory) : In
         var results = await Task.WhenAll(SendAsync(command), SendAsync(command));
         results.Select(x => x.Id).Distinct().Should().ContainSingle();
         (await Db.DisputeResponses.CountAsync(x => x.DisputeId == id)).Should().Be(1);
-        var file = new UploadDisputeEvidenceCommand(id, "proof.txt", "https://example.test/proof.txt", "text/plain", 50, command.SubmissionId);
+        var file = new UploadDisputeEvidenceCommand(id, "proof.txt", new MemoryStream(System.Text.Encoding.UTF8.GetBytes("Lesson evidence")), 15, command.SubmissionId);
         var evidence = await SendAsync(file);
         evidence.ResponseId.Should().Be(command.SubmissionId);
         SetCurrentUser(student, UserRole.Student);

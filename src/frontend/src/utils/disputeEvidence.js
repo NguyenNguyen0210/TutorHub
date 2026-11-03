@@ -8,11 +8,3 @@ export function evidenceValidationMessage(file) {
   if (file.size > 10 * 1024 * 1024) return 'Tệp vượt quá 10 MB. Vui lòng chọn tệp nhỏ hơn.';
   return '';
 }
-
-export function evidenceDownloadUrl(value) {
-  if (!value) return null;
-  try {
-    const url = new URL(value, window.location.origin);
-    return ['http:', 'https:'].includes(url.protocol) ? url.href : null;
-  } catch { return null; }
-}

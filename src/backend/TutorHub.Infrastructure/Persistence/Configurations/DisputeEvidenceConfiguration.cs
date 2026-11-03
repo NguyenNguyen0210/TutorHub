@@ -18,6 +18,8 @@ public class DisputeEvidenceConfiguration : IEntityTypeConfiguration<DisputeEvid
             .HasMaxLength(1024)
             .IsRequired();
 
+        builder.Property(e => e.ObjectKey).HasMaxLength(512);
+
         builder.Property(e => e.ContentType)
             .HasMaxLength(100)
             .IsRequired();
