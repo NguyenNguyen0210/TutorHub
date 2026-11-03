@@ -50,6 +50,12 @@ public class GetMyConversationsQueryHandler : IRequestHandler<GetMyConversations
             .Where(c => (studentProfileId.HasValue && c.StudentProfileId == studentProfileId.Value) ||
                         (tutorProfileId.HasValue && c.TutorProfileId == tutorProfileId.Value));
 
+        // A direct participant-only lookup may open an empty composer. The inbox
+        // only contains conversations where someone has actually sent a message.
+        query = request.ConversationId.HasValue
+            ? query.Where(c => c.Id == request.ConversationId.Value)
+            : query.Where(c => c.LastMessageId != null);
+
         // Parse cursor if provided: "{lastMessageAtUtcTicks}_{id}"
         if (!string.IsNullOrWhiteSpace(request.Cursor))
         {

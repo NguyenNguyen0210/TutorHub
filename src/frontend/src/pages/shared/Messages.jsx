@@ -52,7 +52,6 @@ export default function Messages() {
   const hubRef = useRef(null);
   const typingTimer = useRef(null);
   const lastTypingAt = useRef(0);
-  const requestedRefresh = useRef(null);
   const currentConversationRef = useRef(activeConversationId);
 
   const conversationQuery = useQuery({
@@ -73,12 +72,19 @@ export default function Messages() {
     },
     refetchInterval: 30000,
   });
-  const conversations = conversationQuery.data || [];
-  const activeConv = conversations.find(item => item.id === activeConversationId);
+  const conversations = (conversationQuery.data || []).filter(item => item.lastMessageId);
+  const listedConversation = conversations.find(item => item.id === activeConversationId);
+  // An empty composer is opened independently from the inbox, so opening a
+  // contact never adds a blank conversation to either participant's list.
+  const requestedConversationQuery = useQuery({
+    queryKey: ['chat', 'conversation', currentUserId, activeConversationId],
+    enabled: Boolean(currentUserId && activeConversationId && !listedConversation),
+    queryFn: () => chatService.getConversation(activeConversationId),
+    retry: false,
+  });
+  const activeConv = listedConversation || requestedConversationQuery.data;
   const hasActiveConversation = Boolean(activeConv);
-  const { isLoading: loadingConversations, refetch: refetchConversations } = conversationQuery;
-  const waitingForRequested = activeConversationId && !activeConv && !conversationQuery.isError
-    && (loadingConversations || conversationQuery.isFetching || requestedRefresh.current !== activeConversationId);
+  const waitingForRequested = activeConversationId && !activeConv && requestedConversationQuery.isLoading;
   const hasConversations = conversations.length > 0;
   const otherPerson = conv => {
     const otherIsStudent = conv.tutorUserId === currentUserId || user?.role === 'Tutor';
@@ -89,14 +95,6 @@ export default function Messages() {
     };
   };
   const activePerson = activeConv ? otherPerson(activeConv) : null;
-
-  // A new conversation opened from a tutor profile may not be in the cached list yet.
-  useEffect(() => {
-    if (activeConversationId && !hasActiveConversation && !loadingConversations && requestedRefresh.current !== activeConversationId) {
-      requestedRefresh.current = activeConversationId;
-      refetchConversations();
-    }
-  }, [activeConversationId, hasActiveConversation, loadingConversations, refetchConversations]);
 
   const messageQuery = useInfiniteQuery({
     queryKey: messageKey,
@@ -124,10 +122,15 @@ export default function Messages() {
   }, [activeConversationId, hasActiveConversation, messageQuery.isSuccess, messageQuery.dataUpdatedAt, queryClient, conversationKey]);
 
   const updateConversation = (message) => {
-    queryClient.setQueryData(conversationKey, previous => previous?.map(conv =>
+    queryClient.setQueryData(conversationKey, previous => {
+      const items = previous || [];
+      const source = items.some(conv => conv.id === message.conversationId) || activeConv?.id !== message.conversationId
+        ? items : [...items, activeConv];
+      return source.map(conv =>
       conv.id === message.conversationId && (!conv.lastMessageAt || String(message.createdAt) >= String(conv.lastMessageAt))
         ? { ...conv, lastMessageId: message.id, lastMessageAt: message.createdAt, lastMessagePreview: message.content || message.attachmentName || '', unreadCount: document.hidden ? conv.unreadCount : 0 }
-        : conv));
+        : conv);
+    });
   };
 
   useEffect(() => {
@@ -152,6 +155,7 @@ export default function Messages() {
           unreadCount: document.hidden ? unread : 0,
         };
       }));
+      queryClient.invalidateQueries({ queryKey: conversationKey });
       if (document.hidden) notifyWorkspaceActivityChanged();
     };
     connection.on('ReceiveMessage', receive);
@@ -196,6 +200,7 @@ export default function Messages() {
         ...previous, pages: previous.pages.map((page, index) => index === 0 ? { ...page, items: sortMessages([...page.items, message]) } : page),
       } : previous);
       updateConversation(message);
+      queryClient.invalidateQueries({ queryKey: conversationKey });
       setDrafts(previous => previous[conversationId] === draft ? { ...previous, [conversationId]: '' } : previous);
       setSendErrors(previous => ({ ...previous, [conversationId]: null }));
       notifyWorkspaceActivityChanged();
@@ -227,7 +232,7 @@ export default function Messages() {
   const contactMutation = useMutation({
     mutationFn: () => chatService.getOrCreateConversation(tutorUserIds[0]),
     onSuccess: conv => {
-      queryClient.setQueryData(conversationKey, previous => [...(previous || []).filter(item => item.id !== conv.id), conv]);
+      queryClient.setQueryData(['chat', 'conversation', currentUserId, conv.id], conv);
       setContactError(null);
       select(conv.id);
     },
@@ -343,6 +348,7 @@ export default function Messages() {
               <p className="hidden text-[11px] text-fg-secondary sm:block">Enter để gửi · Shift + Enter để xuống dòng</p>
             </form>
           </> : conversationQuery.isLoading || waitingForRequested ? <div className="p-6"><MessageSkeleton /></div>
+            : activeConversationId && requestedConversationQuery.isError && requestedConversationQuery.error?.status !== 404 ? <div className="flex flex-1 items-center justify-center p-8 text-center"><div><h2 className="text-headline-3 text-fg">Chưa mở được cuộc trò chuyện</h2><p className="mt-3 text-body-reg text-fg-secondary">Vui lòng thử lại để tiếp tục nhắn tin.</p><Button variant="outline" className="mt-5" onClick={() => requestedConversationQuery.refetch()} loading={requestedConversationQuery.isFetching}>Thử lại</Button></div></div>
             : conversationQuery.isError && !hasConversations ? <div className="flex flex-1 items-center justify-center p-8 text-center"><div><h2 className="text-headline-3 text-fg">Chưa tải được hội thoại</h2><p className="mt-3 text-body-reg text-fg-secondary">Thử tải lại danh sách để tiếp tục nhắn tin.</p><Button variant="outline" className="mt-5" onClick={() => conversationQuery.refetch()} loading={conversationQuery.isFetching}>Thử lại</Button></div></div>
             : activeConversationId && !activeConv ? <div className="flex flex-1 items-center justify-center p-8 text-center"><div><h2 className="text-headline-3 text-fg">Không tìm thấy hội thoại</h2><p className="mt-3 text-body-reg text-fg-secondary">Cuộc trò chuyện không còn khả dụng hoặc bạn chưa có quyền truy cập.</p><Button variant="outline" className="mt-5" onClick={() => select(null)}>Về danh sách hội thoại</Button></div></div>
             : <div className="flex flex-1 items-center justify-center">{welcome(!hasConversations)}</div>}

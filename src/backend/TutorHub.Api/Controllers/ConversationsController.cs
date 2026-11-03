@@ -68,6 +68,20 @@ public class ConversationsController : ControllerBase
     }
 
     /// <summary>
+    /// Open a conversation, including an empty one, for its participants only.
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<ConversationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetConversation(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new GetMyConversationsQuery(ConversationId: id), cancellationToken);
+        var conversation = result.Items.FirstOrDefault()
+            ?? throw new NotFoundException("Conversation", id);
+        return Ok(ApiResponse<ConversationDto>.SuccessResult(conversation));
+    }
+
+    /// <summary>
     /// Get messages in a conversation with keyset cursor pagination.
     /// </summary>
     [HttpGet("{id:guid}/messages")]

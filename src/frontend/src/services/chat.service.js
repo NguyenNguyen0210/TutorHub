@@ -92,6 +92,10 @@ export const chatService = {
     return normalizeCursorPaged(res, normalizeConversation);
   },
 
+  async getConversation(conversationId) {
+    return normalizeConversation(await api.get(`/conversations/${conversationId}`));
+  },
+
   /**
    * GET /conversations/{id}/messages → CursorPagedResult<MessageDto>
    */
