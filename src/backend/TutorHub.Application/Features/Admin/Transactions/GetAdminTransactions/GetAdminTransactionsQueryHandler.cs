@@ -77,7 +77,11 @@ public class GetAdminTransactionsQueryHandler : IRequestHandler<GetAdminTransact
                 t.Status,
                 t.CreatedAt,
                 t.ReleasedAt,
-                t.RefundedAt
+                t.RefundedAt,
+                t.Type,
+                t.SessionId,
+                t.DisputeId,
+                t.Booking.Enrollment != null ? t.Booking.Enrollment.Id : (Guid?)null
             ))
             .ToListAsync(cancellationToken);
 

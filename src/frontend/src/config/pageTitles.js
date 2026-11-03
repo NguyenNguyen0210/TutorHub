@@ -51,6 +51,7 @@ const STATIC_TITLES = {
   '/admin/users': 'Quản lý người dùng',
   '/admin/categories': 'Quản lý danh mục',
   '/admin/subjects': 'Quản lý môn học',
+  '/admin/transactions': 'Giao dịch toàn sàn',
   '/admin/trust-reports': 'Báo cáo vi phạm',
   '/admin/audit-logs': 'Nhật ký kiểm toán',
   '/admin/settings': 'Cài đặt tài khoản',

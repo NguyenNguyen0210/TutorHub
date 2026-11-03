@@ -168,6 +168,7 @@ function normalizePaged(raw, normalizeItem) {
 }
 
 export const adminService = {
+  getTransactions: params => api.get('/admin/transactions', { params }),
   getCatalog: (kind, params = {}, trash = false) => api.get(`/admin/${kind}${trash ? '/trash' : ''}`, { params }),
   saveCatalog: (kind, id, payload) => id ? api.put(`/admin/${kind}/${id}`, payload) : api.post(`/admin/${kind}`, payload),
   deleteCatalog: (kind, id) => api.delete(`/admin/${kind}/${id}`),
