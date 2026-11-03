@@ -1,3 +1,4 @@
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/cn';
@@ -330,27 +331,8 @@ export default function AdminTutorApplications() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* 1. TOP HEADER & BREADCRUMB */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <nav
-            aria-label="Breadcrumb"
-            className="flex items-center gap-1.5 text-[12.5px] text-fg-muted mb-1.5"
-          >
-            <span>Admin</span>
-            <span>›</span>
-            <span className="text-fg-secondary font-medium">Hồ sơ gia sư</span>
-          </nav>
-          <h1 className="text-[24px] sm:text-[28px] font-extrabold text-fg tracking-tight">
-            Bàn kiểm duyệt hồ sơ gia sư
-          </h1>
-          <p className="text-[13.5px] text-fg-secondary mt-0.5 max-w-2xl leading-relaxed">
-            Xem xét, xác minh thông tin và bằng cấp của ứng viên trước khi phê duyệt trở thành gia sư trên TutorHub.
-          </p>
-        </div>
-
-        <Button
+    <div className="space-y-6 lg:space-y-8">
+      <WorkspacePageHeader title="Bàn kiểm duyệt hồ sơ gia sư" description="Xem xét, xác minh thông tin và bằng cấp của ứng viên trước khi phê duyệt trở thành gia sư trên TutorHub." actions={<Button
           type="button"
           variant="outline"
           size="md"
@@ -359,11 +341,10 @@ export default function AdminTutorApplications() {
           className="self-start sm:self-auto shrink-0"
         >
           Hướng dẫn xét duyệt
-        </Button>
-      </div>
+        </Button>} />
 
       {/* 2. 4 STAT METRIC CARDS — hàng số liệu phẳng của Quản lý ví & giao dịch */}
-      <StatStrip
+      <StatStrip appearance="soft" className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4"
         columns={4}
         figures={[
           {

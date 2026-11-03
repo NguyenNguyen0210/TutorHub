@@ -14,7 +14,7 @@ import UnreadBadge from './UnreadBadge';
 import '@/styles/workspace-navigation.css';
 
 export default function WorkspaceShell({ userRole: role, children }) {
-  const friendly = role === 'Student' || role === 'Tutor';
+  const friendly = ['Student', 'Tutor', 'Admin'].includes(role);
   const { user, isAuthenticated } = useAuthStore();
   const tutorApplication = useTutorApplication(user?.id || user?.userId, isAuthenticated && role === 'Tutor');
   const location = useLocation();
@@ -105,7 +105,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
   );
 
   return (
-    <div className={cn('flex min-h-screen bg-canvas text-fg antialiased', friendly && 'workspace-friendly', role === 'Student' && 'student-workspace')}>
+    <div className={cn('flex min-h-screen bg-canvas text-fg antialiased', friendly && 'workspace-friendly', role === 'Student' && 'student-workspace', role === 'Admin' && 'admin-workspace')}>
       <aside id="workspace-sidebar" className={cn('sticky top-0 z-50 hidden h-screen shrink-0 flex-col border-r border-brand-navy-800 bg-brand-navy-900 text-white transition-[width] duration-200 motion-reduce:transition-none lg:flex', collapsed ? 'w-[68px]' : 'w-[232px]', friendly && 'workspace-navigation-light')}>
         {sidebar(collapsed)}
       </aside>
@@ -131,7 +131,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
             </div>
           </div>
         </header>
-        <main className={cn('mx-auto w-full flex-1 px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 lg:p-8', role === 'Admin' ? 'max-w-[1600px]' : location.pathname.startsWith('/app/messages') ? 'max-w-[1280px]' : 'max-w-[1120px]')}>
+        <main className={cn('mx-auto w-full flex-1 px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 lg:p-8', location.pathname.startsWith('/app/messages') ? 'max-w-[1280px]' : 'max-w-[1120px]')}>
           {children}
         </main>
       </div>

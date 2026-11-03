@@ -1,3 +1,4 @@
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import React, { useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -51,7 +52,7 @@ export default function AdminCatalog() {
     } catch (err) { setError(err?.status === 409 ? 'Không thể thực hiện vì dữ liệu còn liên kết hoặc tên bị trùng. Vui lòng kiểm tra các môn học, gia sư và đơn học liên quan.' : 'Chưa cập nhật được dữ liệu. Vui lòng thử lại.'); }
     finally { busy.current = false; setSaving(false); }
   };
-  return <div className="mx-auto max-w-5xl space-y-6"><header className="flex flex-wrap justify-between gap-4"><div><h1 className="text-headline-page">{subject ? 'Quản lý môn học' : 'Quản lý danh mục'}</h1><p className="mt-2 text-fg-secondary">Quản lý phân loại nội dung giảng dạy trên TutorHub.</p></div>{!trash && <Button onClick={() => { setError(''); setEditing({ name: '', description: '', categoryId: '', isActive: true }); }}>Thêm {label}</Button>}</header>
+  return <div className="space-y-6 lg:space-y-8"><WorkspacePageHeader title={subject ? 'Quản lý môn học' : 'Quản lý danh mục'} description="Quản lý phân loại nội dung giảng dạy trên TutorHub." actions={!trash && <Button onClick={() => { setError(''); setEditing({ name: '', description: '', categoryId: '', isActive: true }); }}>Thêm {label}</Button>} />
     <nav aria-label="Quản lý phân loại" className="flex flex-wrap gap-3"><Button as={Link} to="/admin/categories" variant={subject ? 'outline' : 'primary'}>Danh mục</Button><Button as={Link} to="/admin/subjects" variant={subject ? 'primary' : 'outline'}>Môn học</Button><Button variant="outline" onClick={() => setParams(trash ? {} : { tab: 'trash' })}>{trash ? 'Danh sách hiện tại' : 'Thùng rác'}</Button></nav>
     <form className="flex items-end gap-3" onSubmit={e => { e.preventDefault(); setParams({ ...(trash ? { tab: 'trash' } : {}), ...(searchText.trim() ? { search: searchText.trim() } : {}) }); }}><Field label="Tìm theo tên" htmlFor="catalog-search"><Input id="catalog-search" value={searchText} onChange={e => setSearchText(e.target.value)} /></Field><Button type="submit" variant="outline">Tìm kiếm</Button></form>
     {error && !editing && <p role="alert" className="text-sm text-danger-strong">{error}</p>}

@@ -1,3 +1,4 @@
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import DisputeHistory from '@/components/disputes/DisputeHistory';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
@@ -15,7 +16,6 @@ import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
 import { Textarea, Field } from '@/components/ui/Input';
-import { PageHeader } from '@/components/ui/StatCard';
 
 const STATUS_BADGES = {
   Open: { label: 'Mới mở', variant: 'danger' },
@@ -86,7 +86,7 @@ export default function AdminDisputeDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="space-y-6 lg:space-y-8">
         <DetailSkeleton />
       </div>
     );
@@ -212,7 +212,7 @@ export default function AdminDisputeDetail() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="space-y-6 lg:space-y-8">
       {/* Top Navigation */}
       <div className="flex items-center justify-between gap-4">
         <Link
@@ -237,16 +237,16 @@ export default function AdminDisputeDetail() {
       </div>
 
       {/* Header */}
-      <PageHeader
+      <WorkspacePageHeader
         title={
           <span className="flex items-center gap-2.5 flex-wrap">
-            <span>Hồ sơ điều tra & Bàn trọng tài tranh chấp</span>
+            <span>Chi tiết tranh chấp</span>
             <Badge variant={statusInfo.variant} size="md">
               {statusInfo.label}
             </Badge>
           </span>
         }
-        subtitle={`Mã vụ việc: ${id} • Hợp đồng #${enrollment?.id?.substring(0, 8) || '—'}`}
+        description={`Mã vụ việc: ${id} • Hợp đồng #${enrollment?.id?.substring(0, 8) || '—'}`}
       />
 
       {/* Invariant Trust Banner */}

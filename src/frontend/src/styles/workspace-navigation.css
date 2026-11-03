@@ -1,4 +1,4 @@
-/* Shared student/tutor navigation, including the portalled mobile drawer. */
+/* Shared workspace navigation for every role, including the portalled mobile drawer. */
 .workspace-friendly .workspace-navigation-light,
 .workspace-friendly.workspace-navigation-light {
   background-color: rgb(var(--workspace-nav-bg));

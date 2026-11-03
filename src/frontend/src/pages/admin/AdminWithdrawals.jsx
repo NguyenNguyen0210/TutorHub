@@ -1,3 +1,4 @@
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import adminService from '@/services/admin.service';
@@ -15,7 +16,7 @@ import Input from '@/components/ui/Input';
 import Tabs from '@/components/ui/Tabs';
 import { TableSkeleton } from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
-import StatCard, { PageHeader } from '@/components/ui/StatCard';
+import StatCard from '@/components/ui/StatCard';
 
 const STATUS_TABS = [
   { id: 'All', label: 'Tất cả' },
@@ -297,10 +298,10 @@ export default function AdminWithdrawals() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Quản trị Lệnh Rút tiền"
-        subtitle="Tiếp nhận, đối soát thông tin tài khoản ngân hàng thụ hưởng và giải ngân thu nhập khả dụng cho Gia sư"
+    <div className="space-y-6 lg:space-y-8">
+      <WorkspacePageHeader
+        title="Yêu cầu rút tiền"
+        description="Tiếp nhận, đối soát thông tin tài khoản ngân hàng thụ hưởng và giải ngân thu nhập khả dụng cho Gia sư"
         actions={
           <Button
             variant="outline"
@@ -316,7 +317,7 @@ export default function AdminWithdrawals() {
 
       {/* Financial Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard
+        <StatCard appearance="soft"
           label="Chờ tiếp nhận"
           value={`${stats.pendingCount} lệnh`}
           hint={
@@ -334,7 +335,7 @@ export default function AdminWithdrawals() {
           icon={<Icon name="hourglass_top" size="md" />}
           tone="holding"
         />
-        <StatCard
+        <StatCard appearance="soft"
           label="Đang xử lý / Chi trả"
           value={`${stats.processingCount} lệnh`}
           hint={
@@ -352,7 +353,7 @@ export default function AdminWithdrawals() {
           icon={<Icon name="sync" size="md" />}
           tone="info"
         />
-        <StatCard
+        <StatCard appearance="soft"
           label="Tổng số lệnh trên hệ thống"
           value={`${totalCount} yêu cầu`}
           hint="Toàn bộ lịch sử các lệnh rút tiền từ trước tới nay"

@@ -1,3 +1,4 @@
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import React, { useState, useEffect, useCallback } from 'react';
 import adminService from '@/services/admin.service';
 import { ACCOUNT_STATUS, getAccountStatusMeta } from '@/config/enums';
@@ -15,7 +16,7 @@ import EmptyState from '@/components/common/EmptyState';
 import DataTable from '@/components/common/DataTable';
 import StatStrip from '@/components/common/StatStrip';
 import { getStateMeta } from '@/components/common/StateBadge';
-import { PageHeader, Spinner } from '@/components/ui/StatCard';
+import { Spinner } from '@/components/ui/StatCard';
 
 const USER_COLUMNS = [
   { key: 'user', label: 'Người dùng' },
@@ -164,10 +165,10 @@ export default function AdminUsers() {
   ).length;
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="Quản lý người dùng & Kỷ luật vi phạm sàn"
-        subtitle="Theo dõi trạng thái tài khoản, vai trò và bảo mật đăng nhập"
+    <div className="space-y-6 lg:space-y-8">
+      <WorkspacePageHeader
+        title="Quản lý người dùng"
+        description="Theo dõi trạng thái tài khoản, vai trò và bảo mật đăng nhập"
         actions={
           <Button
             variant="outline"
@@ -181,7 +182,7 @@ export default function AdminUsers() {
       />
 
       {/* 3 số liệu — hàng số liệu phẳng của Quản lý ví & giao dịch */}
-      <StatStrip
+      <StatStrip appearance="soft"
         columns={3}
         figures={[
           {

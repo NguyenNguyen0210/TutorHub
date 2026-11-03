@@ -1,3 +1,4 @@
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import React, { useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -44,8 +45,8 @@ export default function AdminTrustReports() {
       query.refetch();
     } finally { busy.current = false; setSaving(false); }
   };
-  return <div className="mx-auto max-w-5xl space-y-6">
-    <header>{id && <Button as={Link} to="/admin/trust-reports" variant="ghost">Về danh sách báo cáo</Button>}<h1 className="mt-3 text-headline-page text-fg">{id ? 'Chi tiết báo cáo vi phạm' : 'Báo cáo vi phạm'}</h1><p className="mt-2 text-fg-secondary">Xem xét hành vi và nội dung không phù hợp. Khiếu nại học phí được xử lý riêng tại mục Tranh chấp.</p></header>
+  return <div className="space-y-6 lg:space-y-8">
+    {id && <Button as={Link} to="/admin/trust-reports" variant="ghost">Về danh sách báo cáo</Button>}<WorkspacePageHeader title={id ? 'Chi tiết báo cáo vi phạm' : 'Báo cáo vi phạm'} description="Xem xét hành vi và nội dung không phù hợp. Khiếu nại học phí được xử lý riêng tại mục Tranh chấp." />
     {!id && <Field label="Trạng thái" htmlFor="report-status"><Select id="report-status" value={status} onChange={e => setParams(e.target.value ? { status: e.target.value } : {})}><option value="">Tất cả</option><option value="Open">Chờ xử lý</option><option value="Resolved">Đã xử lý</option></Select></Field>}
     {query.isPending ? <p role="status">Đang tải báo cáo…</p> : query.isError ? <Card padding="lg"><p role="alert">{query.error?.status === 404 ? 'Báo cáo không còn tồn tại hoặc bạn không có quyền xem.' : 'Chưa tải được thông tin báo cáo.'}</p><Button className="mt-4" variant="outline" onClick={() => query.refetch()}>Thử lại</Button></Card>
       : id ? <>

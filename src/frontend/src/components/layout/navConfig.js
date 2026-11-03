@@ -65,7 +65,7 @@ export const NAV = {
   Admin: [
     { path: '/admin/dashboard', label: 'Tổng quan sàn', icon: 'space_dashboard', match: (p) => p === '/admin/dashboard' },
     { path: '/admin/student-wallets', label: 'Ví học viên', icon: 'account_balance_wallet', match: (p) => p.startsWith('/admin/student-wallets') },
-    { path: '/admin/transactions', label: 'Giao dịch toàn sàn', icon: 'receipt_long', match: (p) => p.startsWith('/admin/transactions') },
+    { path: '/admin/transactions', label: 'Giao dịch toàn sàn', icon: 'receipt_long', match: (p) => p.startsWith('/admin/transactions') || p.startsWith('/admin/enrollments/') },
     { path: '/admin/revenue', label: 'Doanh thu nền tảng', icon: 'trending_up', match: (p) => p.startsWith('/admin/revenue') },
     { path: '/admin/withdrawals', label: 'Lệnh rút tiền', icon: 'payments', match: (p) => p.startsWith('/admin/withdrawals') },
     { path: '/admin/tutor-applications', label: 'Duyệt gia sư', icon: 'verified_user', match: (p) => p.startsWith('/admin/tutor-applications') },
@@ -94,6 +94,17 @@ export function getDashboardPath(role) {
 
 /** Shared ordering for the desktop sidebar and mobile overflow menu. */
 export function getWorkspaceNavGroups(role, items) {
+  if (role === 'Admin') {
+    const sections = [
+      { label: 'Tổng quan', paths: ['/admin/dashboard'] },
+      { label: 'Tài chính', paths: ['/admin/student-wallets', '/admin/transactions', '/admin/revenue', '/admin/withdrawals'] },
+      { label: 'Kiểm duyệt', paths: ['/admin/tutor-applications', '/admin/disputes', '/admin/trust-reports', '/admin/conversations'] },
+      { label: 'Quản lý nền tảng', paths: ['/admin/users', '/admin/categories', '/admin/audit-logs'] },
+      { label: 'Thông báo', paths: ['/app/notifications'] },
+      { label: 'Khám phá', paths: ['/'] },
+    ];
+    return sections.map(section => ({ label: section.label, items: section.paths.map(path => items.find(item => item.path === path)).filter(Boolean) })).filter(group => group.items.length);
+  }
   const finances = ['/student/bookings', '/student/wallet', '/student/disputes'];
   const groups = role === 'Student' ? [
     { label: 'Học tập', items: items.filter(item => item.path.startsWith('/student/') && !finances.includes(item.path)) },

@@ -1,3 +1,4 @@
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import studentWalletService from '@/services/studentWallet.service';
@@ -15,7 +16,6 @@ import EmptyState from '@/components/common/EmptyState';
 import DataTable from '@/components/common/DataTable';
 import SignedAmount from '@/components/common/SignedAmount';
 import StateBadge from '@/components/common/StateBadge';
-import { PageHeader } from '@/components/ui/StatCard';
 
 const TOPUP_COLUMNS = [
   { key: 'student', label: 'Học viên' },
@@ -288,10 +288,10 @@ export default function AdminStudentWallets() {
   });
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Quản trị Ví Học Viên (Student Wallets)"
-        subtitle="Đối soát lịch sử nạp tiền qua Cổng VNPay, xử lý rút tiền về ngân hàng và kiểm soát sổ cái học viên."
+    <div className="space-y-6 lg:space-y-8">
+      <WorkspacePageHeader
+        title="Ví học viên"
+        description="Đối soát lịch sử nạp tiền qua Cổng VNPay, xử lý rút tiền về ngân hàng và kiểm soát sổ cái học viên."
       />
 
       {/* Tabs */}

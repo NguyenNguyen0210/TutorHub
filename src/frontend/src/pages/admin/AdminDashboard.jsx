@@ -1,3 +1,4 @@
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
@@ -7,20 +8,19 @@ import { StatsSkeleton } from '@/components/common/Skeleton';
 import ErrorState from '@/components/common/ErrorState';
 import Card, { CardHeader } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
 import Money from '@/components/ui/Money';
 import Icon from '@/components/ui/Icon';
 import StatStrip from '@/components/common/StatStrip';
-import { PageHeader } from '@/components/ui/StatCard';
+
 import { useToast } from '@/components/ui/Toast';
 
 // Tông của thẻ hành động: dùng đúng bảng màu của `ActionQueue` trong
 // components/common/ để bàn trọng tài Admin đồng bộ giao diện
 // workspace (chờ tiền = holding, tranh chấp = danger).
 const ACTION_TONE_CLASS = {
-  danger: 'border-l-danger bg-danger-subtle',
-  holding: 'border-l-holding bg-holding-subtle',
-  success: 'border-l-success bg-success-subtle',
+  danger: 'bg-danger-subtle text-danger-strong',
+  holding: 'bg-holding-subtle text-holding-strong',
+  success: 'bg-success-subtle text-success-strong',
 };
 
 export default function AdminDashboard() {
@@ -57,7 +57,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 lg:space-y-8">
         <div className="h-16 bg-neutral-200 rounded-brand-md animate-pulse" />
         <StatsSkeleton count={4} />
       </div>
@@ -123,7 +123,7 @@ export default function AdminDashboard() {
     },
     {
       id: 'applications',
-      title: 'Hồ sơ gia sư chờ xác minh bằng cấp',
+      title: 'Hồ sơ gia sư chờ duyệt',
       count: `${actionQueue.pendingTutorsCount} hồ sơ`,
       urgent: actionQueue.pendingTutorsCount > 0,
       desc:
@@ -139,9 +139,9 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Bảng điều hành quản trị sàn & Giám sát dòng tiền"
-        subtitle="Trung tâm chỉ huy vận hành, đối soát ký quỹ Escrow và thanh khoản thị trường theo thời gian thực"
+      <WorkspacePageHeader
+        title="Tổng quan quản trị"
+        description="Theo dõi hoạt động TutorHub, xử lý yêu cầu và quản lý học phí."
         actions={
           <div className="flex items-center gap-2.5">
             <Button
@@ -153,37 +153,12 @@ export default function AdminDashboard() {
             >
               Làm mới
             </Button>
-            <Badge variant="success" dot size="md">
-              Hệ thống: Live (Sẵn sàng)
-            </Badge>
           </div>
         }
       />
 
-      {/* Sovereign Platform Governance Banner */}
-      <div className="p-4 rounded-brand-lg bg-surface border border-border shadow-brand-sm flex flex-col md:flex-row md:items-center justify-between gap-3 text-caption">
-        <div className="flex items-start md:items-center gap-3">
-          <div className="w-9 h-9 rounded-brand-md bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center shrink-0 border border-brand-primary-100 mt-0.5 md:mt-0">
-            <Icon name="shield" size="sm" filled />
-          </div>
-          <div className="space-y-0.5">
-            <span className="font-bold text-fg block text-body-reg">
-              Hệ thống bảo chứng giao dịch & an toàn thanh toán
-            </span>
-            <p className="text-fg-secondary text-[12px] m-0 leading-relaxed">
-              <strong>100% Ký quỹ bảo toàn</strong> cho từng buổi học • <strong>Cơ chế phân xử minh bạch</strong> bảo vệ quyền lợi các bên • <strong>Hệ thống sổ cái giao dịch</strong> ghi nhận minh bạch & bất biến.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0 self-start md:self-auto">
-          <Badge variant="primary" size="md">
-            Bảo chứng kích hoạt
-          </Badge>
-        </div>
-      </div>
-
       {/* Top 4 Primary Financial & Volume KPIs — hàng số liệu phẳng (StatStrip) */}
-      <StatStrip
+      <StatStrip appearance="soft" className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4"
         columns={4}
         figures={[
           {
@@ -218,7 +193,7 @@ export default function AdminDashboard() {
       {/* Action Queue: Urgent Operational Tasks */}
       <Card padding="lg" className="space-y-4 shadow-brand-sm border border-border">
         <CardHeader
-          title="Hàng đợi nghiệp vụ & Tác vụ cần xử lý ngay"
+          title="Yêu cầu cần xử lý"
           subtitle="Giám sát khiếu nại phát sinh và yêu cầu rút tiền của thành viên"
           icon={<Icon name="emergency" size="sm" className="text-danger" />}
         />
@@ -227,19 +202,17 @@ export default function AdminDashboard() {
           {actionCards.map((q) => (
             <div
               key={q.id}
-              className={cn(
-                'p-5 rounded-brand-md border border-border border-l-4 space-y-3 flex flex-col justify-between transition-shadow hover:shadow-brand-sm',
-                ACTION_TONE_CLASS[q.tone]
-              )}
+              className="flex flex-col justify-between gap-4 rounded-2xl border border-border bg-surface p-5"
             >
               <div className="space-y-2">
+                <span className={cn('mb-3 flex h-9 w-9 items-center justify-center rounded-lg', ACTION_TONE_CLASS[q.tone])}><Icon name={q.icon} size="sm" /></span>
                 <div className="flex justify-between items-start gap-2">
                   <span className="text-caption font-bold text-fg leading-snug">
                     {q.title}
                   </span>
-                  <Badge variant={q.tone} size="sm" className="shrink-0 tabular-nums">
+                  <span className="shrink-0 text-xs font-medium tabular-nums text-fg-secondary">
                     {q.count}
-                  </Badge>
+                  </span>
                 </div>
                 <p className="text-caption text-fg-secondary leading-relaxed m-0">
                   {q.desc}
@@ -268,7 +241,7 @@ export default function AdminDashboard() {
         {/* Left Column: Financial Stream Settlement Matrix */}
         <Card padding="lg" className="space-y-4 shadow-brand-sm border border-border">
           <CardHeader
-            title="Dòng tiền & Cơ chế phân bổ tài chính"
+            title="Dòng tiền học phí"
             subtitle="Phân rã GMV sàn thành thu nhập gia sư, phí sàn và dự phòng hoàn tiền"
             icon={<Icon name="pie_chart" size="sm" className="text-brand-primary-600" />}
           />
@@ -344,7 +317,7 @@ export default function AdminDashboard() {
         {/* Right Column: Bookings & User Health Matrix */}
         <Card padding="lg" className="space-y-4 shadow-brand-sm border border-border">
           <CardHeader
-            title="Quy mô cộng đồng & Chuyển đổi đặt gói"
+            title="Người dùng và gói học"
             subtitle="Hiệu suất đặt chỗ 15 phút và mức độ thẩm định hồ sơ giảng dạy"
             icon={<Icon name="group" size="sm" className="text-success-strong" />}
           />
