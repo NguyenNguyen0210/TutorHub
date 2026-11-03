@@ -7,7 +7,6 @@ import {
   BIO_MAX,
   AVATAR_ACCEPT,
   DEGREE_ACCEPT,
-  GENDER_OPTIONS,
   GRADE_LEVELS,
   POPULAR_SUBJECTS,
   toggleListValue,
@@ -188,8 +187,6 @@ PillToggle.propTypes = {
 
 const formDataShape = PropTypes.shape({
   fullName: PropTypes.string,
-  dob: PropTypes.string,
-  gender: PropTypes.string,
   phone: PropTypes.string,
   email: PropTypes.string,
   avatarUrl: PropTypes.string,
@@ -239,7 +236,7 @@ export function PersonalInfoStep({
         description="Hãy chia sẻ một số thông tin cơ bản để chúng tôi hiểu rõ hơn về bạn."
       />
 
-      {/* Họ và tên + Ngày sinh */}
+      {/* Thông tin được lưu vào tài khoản khi nộp hồ sơ. */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Họ và tên" htmlFor="tutor-name" required>
           <IconInput
@@ -250,50 +247,6 @@ export function PersonalInfoStep({
             placeholder="Nguyễn Văn A"
           />
         </Field>
-        <Field label="Ngày sinh" htmlFor="tutor-dob" required>
-          <IconInput
-            id="tutor-dob"
-            type="date"
-            icon="calendar_month"
-            value={formData.dob}
-            onChange={(e) => onFieldChange('dob', e.target.value)}
-          />
-        </Field>
-      </div>
-
-      {/* Giới tính + Số điện thoại */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <GroupLabel required>Giới tính</GroupLabel>
-          <div className="flex items-center gap-4 h-10" role="group" aria-label="Giới tính">
-            {GENDER_OPTIONS.map((g) => {
-              const isChecked = formData.gender === g;
-              return (
-                <button
-                  key={g}
-                  type="button"
-                  onClick={() => onFieldChange('gender', g)}
-                  aria-pressed={isChecked}
-                  className="flex items-center gap-2 cursor-pointer group"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      'w-4 h-4 rounded-full border flex items-center justify-center transition-all',
-                      isChecked
-                        ? 'border-brand-primary-600 bg-brand-primary-600'
-                        : 'border-border bg-surface group-hover:border-neutral-400'
-                    )}
-                  >
-                    {isChecked && <span className="w-1.5 h-1.5 rounded-full bg-surface" />}
-                  </span>
-                  <span className="text-caption font-medium text-fg-secondary">{g}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         <Field label="Số điện thoại" htmlFor="tutor-phone" required>
           <IconInput
             id="tutor-phone"
@@ -313,10 +266,11 @@ export function PersonalInfoStep({
           type="email"
           icon="mail"
           value={formData.email}
-          onChange={(e) => onFieldChange('email', e.target.value)}
+          readOnly
           placeholder="nguyenvana@example.com"
         />
       </Field>
+      <p className="text-caption text-fg-muted">Tên, số điện thoại và ảnh đại diện sẽ được cập nhật vào tài khoản khi bạn nộp hồ sơ. Email là địa chỉ đăng nhập của bạn.</p>
 
       {/* Ảnh đại diện */}
       <div>

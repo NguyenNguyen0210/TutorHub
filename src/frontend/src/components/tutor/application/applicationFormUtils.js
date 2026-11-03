@@ -38,8 +38,6 @@ export const GRADE_LEVELS = [
   'Sinh viên & Người đi làm',
 ];
 
-export const GENDER_OPTIONS = ['Nam', 'Nữ', 'Khác'];
-
 export const BIO_MAX = 500;
 
 /* ── Upload rules ─────────────────────────────────────────────────────────── */
@@ -60,12 +58,11 @@ export function createInitialFormData(user) {
   return {
     // Step 1: Personal info
     fullName: user?.fullName || user?.name || '',
-    dob: '',
-    gender: 'Nam',
     phone: user?.phone || '',
     email: user?.email || '',
     avatarUrl: user?.avatarUrl || '',
     avatarPreview: null,
+    avatarFile: null,
     bio: '',
 
     // Step 2: Education & Certs
@@ -184,7 +181,7 @@ export function validateApplicationStep(step, formData) {
 
 /** Error message when an avatar file is rejected, or `null` when acceptable. */
 export function avatarFileError(file) {
-  if (!file.type.startsWith('image/')) {
+  if (!['image/jpeg', 'image/png'].includes(file.type)) {
     return 'Vui lòng chỉ chọn tệp hình ảnh (JPG, PNG).';
   }
   if (file.size > AVATAR_MAX_BYTES) {

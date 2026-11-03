@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildApplicationPayload, createInitialFormData, mergeRejectedApplication } from '../src/components/tutor/application/applicationFormUtils.js';
+import { avatarFileError, buildApplicationPayload, createInitialFormData, mergeRejectedApplication } from '../src/components/tutor/application/applicationFormUtils.js';
 import { LEARNING_FAQS } from '../src/content/learningFaqs.js';
 import { BECOME_TUTOR_TESTIMONIALS } from '../src/content/becomeTutorTestimonials.js';
 
@@ -10,6 +10,14 @@ test('new applications do not prefill invented qualifications or achievements', 
     assert.equal(form[key], '');
   }
   assert.deepEqual(form.degreeFiles, []);
+  assert.equal('dob' in form, false);
+  assert.equal('gender' in form, false);
+});
+
+test('application avatar selection matches the accepted formats and upload limit', () => {
+  assert.equal(avatarFileError({ type: 'image/png', size: 1024 }), null);
+  assert.ok(avatarFileError({ type: 'image/svg+xml', size: 1024 }));
+  assert.ok(avatarFileError({ type: 'image/jpeg', size: 5 * 1024 * 1024 + 1 }));
 });
 
 test('submission preserves independent education fields and uploaded media IDs', () => {

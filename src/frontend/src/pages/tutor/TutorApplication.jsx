@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
 import { mediaService } from '@/services/media.service';
+import { userService } from '@/services/user.service';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/components/ui/Toast';
 import Icon from '@/components/ui/Icon';
@@ -65,6 +66,7 @@ export default function TutorApplication() {
   const [isDraggingAvatar, setIsDraggingAvatar] = useState(false);
   const degreeInputRef = useRef(null);
   const avatarInputRef = useRef(null);
+  const avatarUpload = useRef(null);
 
   // Form State
   const [formData, setFormData] = useState(() => createInitialFormData(user));
@@ -97,9 +99,8 @@ export default function TutorApplication() {
       setFormData((prev) => ({
         ...prev,
         avatarPreview: event.target.result,
-        avatarUrl: event.target.result,
+        avatarFile: file,
       }));
-      toast.success('Đã tải ảnh đại diện thành công!');
     };
     reader.readAsDataURL(file);
   };
@@ -142,7 +143,7 @@ export default function TutorApplication() {
         ...prev,
         degreeFiles: [...prev.degreeFiles, ...newFiles],
       }));
-      toast.success(`Đã tải lên ${newFiles.length} tệp minh chứng bằng cấp.`);
+      toast.success(`Đã chọn ${newFiles.length} tệp minh chứng bằng cấp.`);
     }
   };
 
@@ -203,6 +204,27 @@ export default function TutorApplication() {
     submittingRef.current = true;
     try {
       setSubmitting(true);
+      for (let step = 1; step < STEP_COUNT; step++) {
+        const error = validateApplicationStep(step, formData);
+        if (error) { setCurrentStep(step); toast.error(error); return; }
+      }
+      let avatarUrl = formData.avatarUrl;
+      if (formData.avatarFile) {
+        if (avatarUpload.current?.file !== formData.avatarFile) {
+          avatarUpload.current = { file: formData.avatarFile, url: await mediaService.uploadAvatar(formData.avatarFile) };
+        }
+        avatarUrl = avatarUpload.current.url;
+      }
+      const profile = await userService.updateMyProfile({
+        fullName: formData.fullName.trim(), phone: formData.phone.trim(), avatarUrl: avatarUrl || null,
+      });
+      const auth = useAuthStore.getState();
+      if (auth.user?.id === user?.id && auth.accessToken) {
+        auth.login({ ...auth.user, ...profile, name: profile.fullName }, {
+          accessToken: auth.accessToken, refreshToken: auth.refreshToken,
+        }, auth.rememberMe);
+      }
+      setFormData(prev => ({ ...prev, avatarUrl: profile.avatarUrl || '', avatarFile: null, avatarPreview: null }));
       const documentIds = [];
       for (const document of formData.degreeFiles) {
         if (document.mediaId) {
