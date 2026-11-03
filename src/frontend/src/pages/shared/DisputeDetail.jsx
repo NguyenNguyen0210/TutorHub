@@ -12,6 +12,7 @@ import StateBadge from '@/components/common/StateBadge';
 import DisputeHistory from '@/components/disputes/DisputeHistory';
 import DisputeResponseForm from '@/components/disputes/DisputeResponseForm';
 import Icon from '@/components/ui/Icon';
+import DisputeReport from '@/components/disputes/DisputeReport';
 
 export default function DisputeDetail() {
   const { id } = useParams();
@@ -34,6 +35,7 @@ export default function DisputeDetail() {
   const item = query.data;
   const workspace = user?.role === 'Tutor' ? 'tutor' : 'student';
   const closed = ['Resolved', 'Dismissed'].includes(item.status);
+  const reportTitle = user?.id === item.initiatorUserId ? 'Báo cáo của bạn' : user?.role === 'Tutor' ? 'Báo cáo của học viên' : 'Báo cáo của gia sư';
   return <div className="mx-auto max-w-3xl space-y-5">
     <Button as={Link} to={backPath} variant="ghost">Về khiếu nại của tôi</Button>
     <header className="flex flex-wrap items-start justify-between gap-4">
@@ -42,14 +44,14 @@ export default function DisputeDetail() {
     </header>
     <Card padding="lg" variant="outlined" className="space-y-4 rounded-2xl">
       <StateBadge domain="dispute" status={item.status} />
-      <h2 className="text-lg font-semibold text-fg">Nội dung khiếu nại</h2>
-      <p className="whitespace-pre-wrap break-words text-body-reg leading-relaxed text-fg-secondary">{item.description}</p>
+      <h2 className="text-lg font-semibold text-fg">Thông tin vụ việc</h2>
       <dl className="space-y-3 text-body-reg text-fg-secondary"><div><dt>Người gửi</dt><dd className="text-fg">{item.initiatorName}</dd></div><div><dt>Thời gian tạo</dt><dd className="text-fg">{formatDateTime(item.createdAt)}</dd></div><div><dt>Học phí được tạm giữ khi mở tranh chấp</dt><dd className="text-fg"><Money value={item.heldAmount} /></dd></div>{item.adminNotes && <div><dt>Ghi chú xử lý</dt><dd className="whitespace-pre-wrap text-fg">{item.adminNotes}</dd></div>}{item.resolvedAt && <div><dt>Thời gian xử lý</dt><dd className="text-fg">{formatDateTime(item.resolvedAt)}</dd></div>}</dl>
       <div className="flex flex-wrap gap-3">{!closed && <Button as="a" href="#dispute-response" variant="outline">Gửi giải trình</Button>}<Button as={Link} to={`/${workspace}/sessions/${item.sessionId}`}>Xem buổi học</Button><Button as={Link} to={`/${workspace}/enrollments/${item.enrollmentId}`} variant="outline">Xem hợp đồng</Button></div>
     </Card>
-    <Card padding="lg" variant="outlined" className="rounded-2xl"><DisputeHistory dispute={item} /></Card>
+    <Card padding="lg" variant="outlined" className="rounded-2xl"><DisputeReport dispute={item} title={reportTitle} /></Card>
     <Card padding="lg" variant="outlined" className="rounded-2xl">
-      {!closed ? <DisputeResponseForm key={id} disputeId={id} onSaved={refresh} uploadFailed={location.state?.evidenceUploadFailed} /> : <div className="space-y-2"><h2 className="text-lg font-semibold text-fg">Vụ việc đã kết thúc</h2><p className="text-sm text-fg-secondary">Khiếu nại không còn nhận thêm giải trình hoặc bằng chứng. Bạn có thể xem lại toàn bộ lịch sử ở trên.</p></div>}
+      {!closed ? <DisputeResponseForm key={id} disputeId={id} onSaved={refresh} uploadFailed={location.state?.evidenceUploadFailed} reportTitle={reportTitle} /> : <div className="space-y-2"><h2 className="text-lg font-semibold text-fg">Vụ việc đã kết thúc</h2><p className="text-sm text-fg-secondary">Khiếu nại không còn nhận thêm giải trình hoặc bằng chứng. Bạn có thể xem lại toàn bộ lịch sử bên dưới.</p></div>}
     </Card>
+    <Card padding="lg" variant="outlined" className="rounded-2xl"><DisputeHistory dispute={item} reportHref="#dispute-report" /></Card>
   </div>;
 }

@@ -6,7 +6,7 @@ import Icon from '@/components/ui/Icon';
 import { EVIDENCE_ACCEPT, EVIDENCE_HINT, evidenceValidationMessage } from '@/utils/disputeEvidence';
 import { useToast } from '@/components/ui/Toast';
 
-export default function DisputeResponseForm({ disputeId, onSaved, uploadFailed }) {
+export default function DisputeResponseForm({ disputeId, onSaved, uploadFailed, reportTitle }) {
   const toast = useToast();
   const [content, setContent] = useState('');
   const [file, setFile] = useState(null);
@@ -46,6 +46,7 @@ export default function DisputeResponseForm({ disputeId, onSaved, uploadFailed }
   };
   return <section id="dispute-response" aria-labelledby="response-title" className="scroll-mt-24 space-y-4">
     <div><h2 id="response-title" className="text-lg font-semibold text-fg">Gửi giải trình & bằng chứng</h2><p className="mt-2 text-sm leading-relaxed text-fg-secondary">Giải thích sự việc từ góc nhìn của bạn. Bạn có thể gửi nội dung, tệp bằng chứng hoặc cả hai; phản hồi sẽ được lưu trong lịch sử để các bên và TutorHub xem xét.</p></div>
+    {reportTitle && <a href="#dispute-report" className="inline-flex min-h-11 items-center gap-2 rounded text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Icon name="description" size="sm" />Xem {reportTitle.toLocaleLowerCase('vi-VN')}</a>}
     {uploadFailed && !sent && <p role="alert" className="rounded-lg bg-holding-subtle p-3 text-sm text-holding-strong">Khiếu nại đã được tạo nhưng tệp đính kèm chưa tải lên thành công. Vui lòng chọn lại tệp bên dưới.</p>}
     <form onSubmit={submit} noValidate className="space-y-4">
       <div><label htmlFor="dispute-explanation" className="block text-sm font-semibold text-fg">Nội dung giải trình của bạn</label><Textarea id="dispute-explanation" value={content} rows={6} maxLength={10000} disabled={busy || Boolean(savedResponseId)} aria-describedby="response-hint response-count" onChange={event => { setContent(event.target.value); setError(''); }} placeholder="Mô tả sự việc, nội dung cần làm rõ và các thông tin liên quan đến buổi học…" className="mt-2" /><div className="mt-2 flex flex-wrap justify-between gap-2 text-caption text-fg-secondary"><p id="response-hint">Ít nhất 20 ký tự khi có giải trình.</p><p id="response-count">{content.length.toLocaleString('vi-VN')}/10.000 ký tự</p></div></div>
