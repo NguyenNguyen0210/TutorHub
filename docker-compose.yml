@@ -73,14 +73,9 @@ services:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-tutorhub};Username=${POSTGRES_USER:-tutorhub};Password=${POSTGRES_PASSWORD:-tutorhub}
       # shared Redis for OAuth state, SignalR backplane, cache, cron locks.
-      # Disabled by default; the API boots and serves without redis running.
+      # Redis must be reachable for the API readiness check to pass.
       ConnectionStrings__Redis: redis:6379
-      Redis__Enabled: ${Redis__Enabled:-true}
       Redis__InstanceName: ${Redis__InstanceName:-tutorhub:}
-      Redis__Features__OAuth: ${Redis__Features__OAuth:-true}
-      Redis__Features__SignalR: ${Redis__Features__SignalR:-true}
-      Redis__Features__Cache: ${Redis__Features__Cache:-true}
-      Redis__Features__CronLock: ${Redis__Features__CronLock:-true}
       # A fresh pgdata volume has no schema, and nothing else applies migrations.
       # Gated flag, off by default everywhere except this container.
       Database__MigrateOnStartup: "true"
@@ -120,8 +115,6 @@ services:
       # Empty = console-only logging; safe default, Seq down never blocks boot.
       Seq__ServerUrl: ${Seq__ServerUrl:-http://seq}
       Seq__ApiKey: ${Seq__ApiKey:-}
-      # Local dev: single host runs background jobs directly inside API.
-      BackgroundJobs__Enabled: "true"
     ports:
       - "8080:8080"
     healthcheck:

@@ -366,10 +366,10 @@ npm run dev
 
 ## 🔀 Mở Rộng Quy Mô (Scale-Out với Redis)
 
-* **Redis tích hợp:** Compose bật `Redis:Enabled=true`; local Development có thể tắt bằng `Redis__Enabled=false` trong `.env`. Khi bật, Redis dùng cho distributed lock, cache, SignalR backplane và OAuth state.
-* **Redis chết lúc chạy:** Các đường non-OAuth vẫn phục vụ — cache đọc thẳng DB, cron bỏ qua kỳ + log, `/health` báo `Degraded` ở check `redis` (không bao giờ `Unhealthy`, không restart tiến trình).
+* **Redis bắt buộc:** Tất cả môi trường cần Redis hoạt động, dùng cho distributed lock, cache, SignalR backplane và OAuth state. Cấu hình địa chỉ bằng `ConnectionStrings__Redis`; Docker Compose chạy kèm container Redis.
+* **Redis mất kết nối:** `/health` trả về trạng thái `Unhealthy` để hệ thống triển khai ngừng chuyển yêu cầu tới instance chưa sẵn sàng. `/health/live` vẫn kiểm tra liveness độc lập với Redis và PostgreSQL.
 * **Background Jobs (Hợp nhất vào API host):**
-  - Cả môi trường Dev (`docker-compose.yml`) và Production (`docker-compose.prod.yml`) đều cấu hình `BackgroundJobs__Enabled: "true"` trực tiếp trên container `api`, tinh giản việc duy trì container worker riêng rẽ.
+  - Cả môi trường Dev (`docker-compose.yml`) và Production (`docker-compose.prod.yml`) luôn chạy cả 5 hosted background jobs trong tiến trình `api`, không cần biến bật/tắt.
   - **5 Background Jobs gồm có:** `BookingTimeoutBackgroundService` (hủy giữ chỗ quá hạn 15 phút), `OutboxDispatcherJob` (quét và bắn sự kiện Transactional Outbox), `EmailDeliveryJob` (gửi email bất đồng bộ dự phòng), `AutoPayoutJob` (quét buổi học quá hạn 12h Grace Period để tự động giải ngân), `IdempotencyCleanupJob` (quét và dọn dẹp các bản ghi idempotency đã hết hạn).
   - **Khóa phân tán (Redis Distributed Cron Lock):** Các cron job chạy đa node được điều phối bởi `IRedisDistributedLock` (`SET NX PX` kết hợp script Lua Compare-and-Delete) để đảm bảo tại một thời điểm chỉ có 1 node thực thi task, an toàn khi scale ngang.
   - **Bộ đệm phân tán (Read-Through Caching):** Cung cấp `IServiceDetailCacheService` và `ITutorProfileCacheService` kết hợp `SemaphoreSlim` per-key chống Cache Stampede. Các danh mục (Categories) và môn học (Subjects) truy vấn trực tiếp DB qua index tối ưu.

@@ -54,11 +54,9 @@ services:
       ASPNETCORE_URLS: http://+:8080
       AllowedHosts: ${ALLOWED_HOSTS:?ALLOWED_HOSTS is required}
       Database__MigrateOnStartup: "true"
-      BackgroundJobs__Enabled: "true"
 
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-tutorhub};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD}"
-      Redis__Enabled: "true"
       Redis__InstanceName: "${REDIS_INSTANCE_NAME:-tutorhub:}"
 
       Jwt__Secret: ${JWT_SECRET:?JWT_SECRET is required}

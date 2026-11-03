@@ -129,7 +129,7 @@ public class SerilogCorrelationTests : IDisposable
     }
 
     /// <summary>
-    /// Full app with only the Seq URL varied. Redis stays disabled (default),
+    /// Full app with only the Seq URL varied. Redis remains registered, but
     /// <c>/health/live</c> runs zero health checks, so no Postgres, Redis, or
     /// Docker is needed. Background jobs are removed for determinism, like the
     /// shared integration factory.
