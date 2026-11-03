@@ -147,6 +147,9 @@ export const chatService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+  async downloadAttachment(conversationId, storageKey) {
+    return api.get(`/conversations/${conversationId}/messages/attachments/${encodeURIComponent(storageKey)}`, { responseType: 'blob' });
+  },
 };
 
 export default chatService;

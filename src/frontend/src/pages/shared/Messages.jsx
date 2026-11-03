@@ -13,6 +13,8 @@ import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
 import Input, { Textarea } from '@/components/ui/Input';
+import ChatAttachment, { ChatFilePreview } from '@/components/common/ChatAttachment';
+import { CHAT_FILE_ACCEPT, validateChatFile, chatAttachmentPayload } from '@/utils/chatAttachment';
 
 const TYPING_THROTTLE_MS = 2000;
 const normalizeSearch = text => String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
@@ -44,6 +46,9 @@ export default function Messages() {
   const [search, setSearch] = useState('');
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [drafts, setDrafts] = useState({});
+  const [files, setFiles] = useState({});
+  const uploadedFiles = useRef(new WeakMap());
+  const fileInput = useRef(null);
   const [sendErrors, setSendErrors] = useState({});
   const [typing, setTyping] = useState(false);
   const [contactError, setContactError] = useState(null);
@@ -214,29 +219,39 @@ export default function Messages() {
   }, [messages, activeConversationId, typing]);
 
   const sendMutation = useMutation({
-    mutationFn: ({ conversationId, content }) => chatService.sendMessage(conversationId, content),
-    onSuccess: (message, { conversationId, draft }) => {
+    mutationFn: async ({ conversationId, content, file }) => {
+      let attachment = null;
+      if (file) {
+        const cached = uploadedFiles.current.get(file);
+        attachment = cached?.conversationId === conversationId ? cached.attachment : chatAttachmentPayload(await chatService.uploadAttachment(conversationId, file));
+        uploadedFiles.current.set(file, { conversationId, attachment });
+      }
+      return chatService.sendMessage(conversationId, content, attachment);
+    },
+    onSuccess: (message, { conversationId, draft, file }) => {
       queryClient.setQueryData(['chat', 'messages', currentUserId, conversationId], previous => previous ? {
         ...previous, pages: previous.pages.map((page, index) => index === 0 ? { ...page, items: sortMessages([...page.items, message]) } : page),
       } : previous);
       updateConversation(message);
       queryClient.invalidateQueries({ queryKey: conversationKey });
       setDrafts(previous => previous[conversationId] === draft ? { ...previous, [conversationId]: '' } : previous);
+      setFiles(previous => previous[conversationId] === file ? { ...previous, [conversationId]: null } : previous);
       setSendErrors(previous => ({ ...previous, [conversationId]: null }));
       notifyWorkspaceActivityChanged();
     },
-    onError: (err, { conversationId }) => setSendErrors(previous => ({
-      ...previous, [conversationId]: err?.message || 'Chưa gửi được tin nhắn. Nội dung vẫn được giữ lại để bạn thử lại.',
+    onError: (_err, { conversationId }) => setSendErrors(previous => ({
+      ...previous, [conversationId]: 'Chưa gửi được tin nhắn. Vui lòng thử lại.',
     })),
   });
   const draft = drafts[activeConversationId] || '';
+  const file = files[activeConversationId];
   const sendingHere = sendMutation.isPending && sendMutation.variables?.conversationId === activeConversationId;
   const sendError = sendErrors[activeConversationId];
   const send = event => {
     event?.preventDefault();
-    if (!draft.trim() || !activeConv || sendMutation.isPending || messageQuery.isPending || (messageQuery.isError && !messageQuery.data)) return;
+    if ((!draft.trim() && !file) || !activeConv || sendMutation.isPending || messageQuery.isPending || (messageQuery.isError && !messageQuery.data)) return;
     scrollToBottom.current = true;
-    sendMutation.mutate({ conversationId: activeConversationId, content: draft.trim(), draft });
+    sendMutation.mutate({ conversationId: activeConversationId, content: draft.trim(), draft, file });
   };
   const select = id => {
     setSearchParams(previous => { const next = new URLSearchParams(previous); if (id) next.set('conversationId', id); else next.delete('conversationId'); return next; });
@@ -345,7 +360,7 @@ export default function Messages() {
                       <div className={cn('flex flex-col gap-1', mine ? 'items-end' : 'items-start')}>
                         <div className={cn('max-w-[90%] rounded-2xl px-4 py-3 text-body-reg leading-relaxed sm:max-w-[80%]', mine ? 'rounded-br-md bg-primary text-white' : 'rounded-bl-md border border-border bg-surface text-fg')}>
                           {message.content && <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.content}</p>}
-                          {message.attachmentName && <p className="mt-1 inline-flex items-center gap-2 break-all"><Icon name="description" size="sm" />{message.attachmentName}</p>}
+                          {message.attachmentName && message.attachmentKey && <ChatAttachment message={message} />}
                         </div>
                         {message.createdAt && <time dateTime={message.createdAt} title={formatDateTime(message.createdAt)} className="px-1 text-[11px] text-fg-secondary">{formatDateTime(message.createdAt, 'HH:mm')}</time>}
                       </div>
@@ -355,8 +370,17 @@ export default function Messages() {
                 </div>}
             </div>
             <form onSubmit={send} className="shrink-0 space-y-3 border-t border-border p-3 sm:p-4">
+              {file && <ChatFilePreview file={file} disabled={sendingHere} onRemove={() => setFiles(previous => ({ ...previous, [activeConversationId]: null }))} />}
+              <input ref={fileInput} type="file" accept={CHAT_FILE_ACCEPT} disabled={sendMutation.isPending} className="sr-only" aria-label="Chọn tệp đính kèm" onChange={event => {
+                const selected = event.target.files?.[0]; event.target.value = '';
+                if (!selected) return;
+                const error = validateChatFile(selected);
+                setSendErrors(previous => ({ ...previous, [activeConversationId]: error }));
+                if (!error) setFiles(previous => ({ ...previous, [activeConversationId]: selected }));
+              }} />
               {sendError && <div role="alert" className="rounded-lg bg-danger-subtle p-3 text-caption text-danger-strong"><p>{sendError}</p><p className="mt-1">Nội dung tin nhắn vẫn được giữ lại bên dưới.</p></div>}
               <div className="flex items-end gap-2">
+                <button type="button" disabled={sendMutation.isPending} onClick={() => fileInput.current?.click()} aria-label="Đính kèm tệp" title="JPG, PNG, WEBP, GIF, PDF hoặc TXT; tối đa 10 MB" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-fg-secondary hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-ring"><Icon name="attach_file" size="sm" /></button>
                 <Textarea value={draft} rows={2} maxLength={4000} disabled={sendingHere || messageQuery.isPending || (messageQuery.isError && !messageQuery.data)}
                   onChange={event => {
                     const value = event.target.value;
@@ -370,7 +394,7 @@ export default function Messages() {
                   }}
                   onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); send(); } }}
                   placeholder="Nhập tin nhắn…" aria-label={`Nhập tin nhắn cho ${activePerson.name}`} className="min-h-11 flex-1 resize-none" />
-                <Button type="submit" disabled={sendMutation.isPending || !draft.trim() || messageQuery.isPending || (messageQuery.isError && !messageQuery.data)} loading={sendingHere} icon={<Icon name="send" size="sm" />}>{sendingHere ? 'Đang gửi…' : sendError ? 'Thử gửi lại' : 'Gửi'}</Button>
+                <Button type="submit" disabled={sendMutation.isPending || (!draft.trim() && !file) || messageQuery.isPending || (messageQuery.isError && !messageQuery.data)} loading={sendingHere} icon={<Icon name="send" size="sm" />}>{sendingHere ? 'Đang gửi…' : sendError ? 'Thử gửi lại' : 'Gửi'}</Button>
               </div>
               <p className="hidden text-[11px] text-fg-secondary sm:block">Enter để gửi · Shift + Enter để xuống dòng</p>
             </form>
