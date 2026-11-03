@@ -658,13 +658,23 @@ public class AdminController : ControllerBase
         [FromQuery] TransactionStatus? status,
         [FromQuery] DateTime? fromDate,
         [FromQuery] DateTime? toDate,
+        [FromQuery] TransactionType? type = null,
+        [FromQuery] AdminTransactionSort sort = AdminTransactionSort.Newest,
+        [FromQuery] Guid? bookingId = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetAdminTransactionsQuery(search, status, fromDate, toDate, pageNumber, pageSize);
+        var query = new GetAdminTransactionsQuery(search, status, fromDate, toDate, pageNumber, pageSize, type, sort, bookingId);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<AdminTransactionDto>>.SuccessResult(result, "Transactions retrieved successfully."));
+    }
+
+    [HttpGet("transactions/{id:guid}")]
+    public async Task<IActionResult> GetAdminTransaction(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new GetAdminTransactionQuery(id), cancellationToken);
+        return Ok(ApiResponse<AdminTransactionDto>.SuccessResult(result));
     }
 
     /// <summary>

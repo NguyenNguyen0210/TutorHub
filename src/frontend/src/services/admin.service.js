@@ -181,6 +181,7 @@ export const adminService = {
   removeReview: (id, reason) => api.delete(`/admin/reviews/${id}`, { data: { reason } }),
   cancelEnrollment: (id, reason) => api.post(`/admin/enrollments/${id}/cancel`, { reason }),
   getTransactions: params => api.get('/admin/transactions', { params }),
+  getTransaction: id => api.get(`/admin/transactions/${id}`),
   getCatalog: (kind, params = {}, trash = false) => api.get(`/admin/${kind}${trash ? '/trash' : ''}`, { params }),
   saveCatalog: (kind, id, payload) => id ? api.put(`/admin/${kind}/${id}`, payload) : api.post(`/admin/${kind}`, payload),
   deleteCatalog: (kind, id) => api.delete(`/admin/${kind}/${id}`),
