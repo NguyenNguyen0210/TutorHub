@@ -49,6 +49,8 @@ const STATIC_TITLES = {
   '/admin/disputes': 'Quản lý tranh chấp',
   '/admin/tutor-applications': 'Duyệt hồ sơ gia sư',
   '/admin/users': 'Quản lý người dùng',
+  '/admin/categories': 'Quản lý danh mục',
+  '/admin/subjects': 'Quản lý môn học',
   '/admin/trust-reports': 'Báo cáo vi phạm',
   '/admin/audit-logs': 'Nhật ký kiểm toán',
   '/admin/settings': 'Cài đặt tài khoản',

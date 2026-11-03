@@ -168,6 +168,15 @@ function normalizePaged(raw, normalizeItem) {
 }
 
 export const adminService = {
+  getCatalog: (kind, params = {}, trash = false) => api.get(`/admin/${kind}${trash ? '/trash' : ''}`, { params }),
+  saveCatalog: (kind, id, payload) => id ? api.put(`/admin/${kind}/${id}`, payload) : api.post(`/admin/${kind}`, payload),
+  deleteCatalog: (kind, id) => api.delete(`/admin/${kind}/${id}`),
+  restoreCatalog: (kind, id) => api.post(`/admin/${kind}/${id}/restore`),
+  async getAllCategories() {
+    const items = []; let pageNumber = 1; let page;
+    do { page = await adminService.getCatalog('categories', { pageNumber, pageSize: 50 }); items.push(...page.items); pageNumber++; } while (page.hasNextPage);
+    return items;
+  },
   getTrustReports: ({ status, pageNumber = 1 } = {}) => api.get('/admin/trust-reports', { params: { status: status || undefined, pageNumber, pageSize: 10 } }),
   getTrustReport: id => api.get(`/admin/trust-reports/${id}`),
   resolveTrustReport: (id, payload) => api.post(`/admin/trust-reports/${id}/resolve`, payload),

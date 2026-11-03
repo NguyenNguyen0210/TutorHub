@@ -96,6 +96,7 @@ const AdminTutorApplications = loadPage(() => import('../pages/admin/AdminTutorA
 const AdminDisputes = loadPage(() => import('../pages/admin/AdminDisputes'));
 const AdminDisputeDetail = loadPage(() => import('../pages/admin/AdminDisputeDetail'));
 const AdminUsers = loadPage(() => import('../pages/admin/AdminUsers'));
+const AdminCatalog = loadPage(() => import('../pages/admin/AdminCatalog'));
 const AdminTrustReports = loadPage(() => import('../pages/admin/AdminTrustReports'));
 const AdminAuditLogs = loadPage(() => import('../pages/admin/AdminAuditLogs'));
 
@@ -217,6 +218,8 @@ export default function AppRoutes() {
         <Route path="tutor-applications" element={<AdminTutorApplications />} />
         <Route path="disputes/:id" element={<AdminDisputeDetail />} />
         <Route path="users" element={<AdminUsers />} />
+        <Route path="categories" element={<AdminCatalog key="categories" />} />
+        <Route path="subjects" element={<AdminCatalog key="subjects" />} />
         <Route path="trust-reports" element={<AdminTrustReports />} />
         <Route path="trust-reports/:id" element={<AdminTrustReports />} />
         <Route path="audit-logs" element={<AdminAuditLogs />} />
