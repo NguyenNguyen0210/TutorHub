@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import Icon from '@/components/ui/Icon';
 import Logo from '@/components/ui/Logo';
-import Avatar, { Menu } from '@/components/ui/Avatar';
+import Avatar from '@/components/ui/Avatar';
 import { useAuthStore } from '@/store/authStore';
+import AccountDropdown from './AccountDropdown';
 import { getWorkspaceEntry, getDiscoveryNav } from './navConfig';
 
 /** Public navigation is for discovery; role-specific tools live in the workspace. */
 export default function PublicTopbar() {
-  const { user, role, isAuthenticated, logout } = useAuthStore();
+  const { user, role, isAuthenticated } = useAuthStore();
   const location = useLocation();
-  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const workspace = getWorkspaceEntry(role);
   const discoveryLinks = getDiscoveryNav();
@@ -35,29 +35,7 @@ export default function PublicTopbar() {
     return () => document.removeEventListener('keydown', closeOnEscape);
   }, [mobileOpen]);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/auth/login');
-  };
-
   const displayName = user?.fullName || user?.name || user?.email?.split('@')[0] || 'Tài khoản';
-  const userMenuItems = [
-    {
-      key: 'settings',
-      icon: <Icon name="settings" size="sm" />,
-      label: <span className="font-semibold text-body-reg">Hồ sơ & Cài đặt</span>,
-      onClick: () => navigate('/settings'),
-    },
-    { type: 'divider' },
-    {
-      key: 'logout',
-      icon: <Icon name="logout" size="sm" />,
-      label: <span className="font-semibold text-body-reg">Đăng xuất</span>,
-      danger: true,
-      onClick: handleLogout,
-    },
-  ];
-
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-surface">
       <div className="page-shell flex h-[72px] items-center justify-between gap-2 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-4">
@@ -94,9 +72,8 @@ export default function PublicTopbar() {
                 <Icon name={workspace.icon} size="sm" className="hidden sm:block" />
                 {workspace.label}
               </Link>
-              <Menu
+              <AccountDropdown
                 label={`Tài khoản ${displayName}`}
-                items={userMenuItems}
                 trigger={
                   <span className="flex min-h-11 items-center gap-1.5 rounded-brand-md px-1.5 transition-colors hover:bg-neutral-100">
                     <Avatar src={user?.avatarUrl} name={displayName} size="sm" className="h-8 w-8 text-[12px]" />

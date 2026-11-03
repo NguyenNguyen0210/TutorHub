@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import Icon from './Icon';
 import '@/styles/popovers.css';
@@ -51,7 +52,7 @@ export default function Avatar({ src, name, size = 'md', className, ...rest }) {
  * Menu — dropdown tuỳ biến, đóng khi click ngoài / nhấn Escape.
  * `items`: [{ key, label, icon?, danger?, onClick } | { type: 'divider' }]
  */
-export function Menu({ trigger, items = [], align = 'right', className, label, header, triggerClassName, current = false }) {
+export function Menu({ trigger, items = [], align = 'right', className, label, header, triggerClassName, current = false, appearance = 'default' }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
@@ -99,12 +100,15 @@ export function Menu({ trigger, items = [], align = 'right', className, label, h
         aria-label={label}
         title={label}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+          if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
             e.preventDefault();
             e.stopPropagation();
-            const shouldOpen = e.key === 'ArrowDown' || !open;
+            const shouldOpen = e.key === 'ArrowDown' || e.key === 'ArrowUp' || !open;
             setOpen(shouldOpen);
-            if (shouldOpen) window.setTimeout(() => rootRef.current?.querySelector('[role="menuitem"]')?.focus(), 0);
+            if (shouldOpen) window.setTimeout(() => {
+              const options = rootRef.current?.querySelectorAll('[role="menuitem"]');
+              options?.[e.key === 'ArrowUp' ? options.length - 1 : 0]?.focus();
+            }, 0);
           }
         }}
         aria-haspopup="menu"
@@ -120,6 +124,7 @@ export function Menu({ trigger, items = [], align = 'right', className, label, h
           role="menu"
           className={cn(
             'workspace-popover absolute z-50 min-w-[240px] max-w-[calc(100vw-2rem)] max-h-[min(480px,calc(100dvh-6rem))] overflow-y-auto overscroll-contain bg-surface border border-border rounded-xl shadow-brand-lg py-1.5',
+            appearance === 'account' && 'w-[260px]',
             align === 'top' ? 'bottom-full left-0 mb-2' : 'top-full mt-2',
             align === 'right' ? 'right-0' : 'left-0'
           )}
@@ -129,10 +134,15 @@ export function Menu({ trigger, items = [], align = 'right', className, label, h
             if (item.type === 'divider') {
               return <div key={`d-${idx}`} className="my-1.5 h-px bg-border" role="separator" />;
             }
+            const Item = item.to ? Link : 'button';
             return (
-              <button
+              <Item
                 key={item.key}
-                type="button"
+                type={item.to ? undefined : 'button'}
+                to={item.to}
+                target={item.target}
+                rel={item.target === '_blank' ? 'noopener noreferrer' : undefined}
+                aria-label={item.ariaLabel}
                 role="menuitem"
                 onClick={() => {
                   setOpen(false);
@@ -140,14 +150,16 @@ export function Menu({ trigger, items = [], align = 'right', className, label, h
                 }}
                 className={cn(
                   'w-full flex min-h-10 items-center gap-2.5 px-3.5 py-2 text-body-reg text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary-500',
+                  appearance === 'account' && 'min-h-11',
                   item.danger
-                    ? 'text-danger-strong hover:bg-danger-subtle'
-                    : 'text-fg-secondary hover:bg-neutral-100 hover:text-fg'
+                    ? appearance === 'account' ? 'text-danger-strong hover:bg-neutral-100' : 'text-danger-strong hover:bg-danger-subtle'
+                    : appearance === 'account' ? 'text-fg-secondary hover:bg-neutral-100' : 'text-fg-secondary hover:bg-neutral-100 hover:text-fg'
                 )}
               >
                 {item.icon}
-                {item.label}
-              </button>
+                <span className="min-w-0 flex-1">{item.label}</span>
+                {item.trailing}
+              </Item>
             );
           })}
         </div>

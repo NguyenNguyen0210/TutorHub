@@ -1,25 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import Icon from '@/components/ui/Icon';
 import Logo from '@/components/ui/Logo';
-import Avatar, { Menu, Drawer } from '@/components/ui/Avatar';
+import Avatar, { Drawer } from '@/components/ui/Avatar';
 import { useAuthStore } from '@/store/authStore';
 import { useWorkspaceActivity } from '@/hooks/useWorkspaceActivity';
 import { useTutorApplication } from '@/hooks/useTutorApplication';
 import { getNavForRole, getDashboardPath } from './navConfig';
+import AccountDropdown from './AccountDropdown';
 import WorkspaceMobileNav from './WorkspaceMobileNav';
 import UnreadBadge from './UnreadBadge';
 import '@/styles/workspace-navigation.css';
 
 export default function WorkspaceShell({ userRole: role, children }) {
   const friendly = role === 'Student' || role === 'Tutor';
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const tutorApplication = useTutorApplication(user?.id || user?.userId, isAuthenticated && role === 'Tutor');
-  const approvedTutor = role === 'Tutor' && tutorApplication.data?.status === 'Approved';
-  const profileId = user?.idProfile || user?.tutorProfileId;
   const location = useLocation();
-  const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('tutorhub_sidebar_collapsed') === '1'; }
@@ -28,7 +26,6 @@ export default function WorkspaceShell({ userRole: role, children }) {
   const activity = useWorkspaceActivity(isAuthenticated ? user?.id || user?.userId : null, location.pathname);
   const roleLabel = role === 'Student' ? 'Học viên' : role === 'Tutor' ? 'Gia sư' : 'Quản trị viên';
   const settingsPath = role === 'Tutor' ? '/tutor/settings' : role === 'Admin' ? '/admin/settings' : '/student/settings';
-  const settingsActive = location.pathname === settingsPath || (approvedTutor && location.pathname === '/tutor/application');
   const fullName = user?.fullName || user?.name || 'Tài khoản';
 
   useEffect(() => { setDrawerOpen(false); }, [location.pathname, location.search]);
@@ -37,20 +34,6 @@ export default function WorkspaceShell({ userRole: role, children }) {
     catch { /* Navigation still works when browser storage is unavailable. */ }
   }, [collapsed]);
 
-  const goTo = path => { setDrawerOpen(false); navigate(path); };
-  const userMenuItems = [
-    { key: 'profile', icon: <Icon name="person" size="sm" />, label: 'Hồ sơ cá nhân', onClick: () => goTo(`${settingsPath}?tab=profile`) },
-    { key: 'settings', icon: <Icon name="lock" size="sm" />, label: 'Đổi mật khẩu', onClick: () => goTo(`${settingsPath}?tab=password`) },
-    ...(approvedTutor ? [{ type: 'divider' }, { key: 'teaching-profile', icon: <Icon name="verified_user" size="sm" />, label: 'Hồ sơ giảng dạy', onClick: () => goTo('/tutor/application') }] : []),
-    ...(role === 'Tutor' && profileId ? [
-      { type: 'divider' },
-      { key: 'public-profile', icon: <Icon name="school" size="sm" />, label: 'Xem hồ sơ công khai', onClick: () => goTo(`/tutors/${profileId}`) },
-    ] : []),
-    { type: 'divider' },
-    { key: 'logout', icon: <Icon name="logout" size="sm" />, label: 'Đăng xuất', danger: true,
-      onClick: async () => { await logout(); navigate('/auth/login'); } },
-  ];
-  const accountHeader = <div className="min-w-0"><p className="truncate text-sm font-semibold text-fg">{fullName}</p><p className="mt-1 text-xs text-fg-muted">{roleLabel}</p></div>;
   const navItems = getNavForRole(role, isAuthenticated, tutorApplication.data?.status);
   const primaryPaths = [getDashboardPath(role), role === 'Admin' ? '/admin/disputes' : '/app/messages', '/app/notifications'];
   const mobilePrimary = primaryPaths.map(path => navItems.find(item => item.path === path)).filter(Boolean)
@@ -114,7 +97,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
           <Icon name="contact_support" size="sm" />
           {!compact && <><span className="flex-1">Cần hỗ trợ?</span><Icon name="arrow_forward" size="xs" /></>}
         </Link>
-        {!mobile && <Menu current={settingsActive} items={userMenuItems} header={accountHeader} label={`${fullName} · ${roleLabel} — Mở menu tài khoản`} align="top" className="w-full" triggerClassName="w-full"
+        {!mobile && <AccountDropdown label={`${fullName} · ${roleLabel} — Mở menu tài khoản`} align="top" className="w-full" triggerClassName="w-full"
           trigger={<span className={cn('workspace-nav-account flex min-h-14 w-full items-center rounded-xl border border-white/10 bg-white/[0.04] transition-colors duration-150 hover:bg-white/[0.08]', compact ? 'justify-center p-1' : 'gap-3 px-2.5 py-2')}>
             <Avatar src={user?.avatarUrl} name={fullName} size="sm" className="workspace-nav-avatar border-white/10" />
             {!compact && <><span className="min-w-0 flex-1 text-left"><span className="workspace-nav-name block truncate text-xs font-semibold text-white">{fullName}</span><span className="workspace-nav-muted mt-0.5 block text-[11px] text-neutral-400">{roleLabel}</span></span><Icon name="expand_more" size="xs" className="workspace-nav-muted text-neutral-400" /></>}
@@ -142,7 +125,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
               <Logo variant="horizontal" size={32} />
             </Link>
             <div className="ml-auto flex items-center gap-2 sm:gap-3">
-              <Menu current={settingsActive} items={userMenuItems} header={accountHeader} label="Mở menu tài khoản" triggerClassName={settingsActive ? 'bg-brand-primary-50 ring-1 ring-brand-primary-200' : undefined}
+              <AccountDropdown label="Mở menu tài khoản"
                 trigger={<span className="flex min-h-11 items-center gap-2 rounded-xl p-1 transition-colors duration-150 hover:bg-neutral-100">
                   <Avatar src={user?.avatarUrl} name={fullName} size="sm" />
                   <Icon name="expand_more" size="xs" className="hidden text-fg-muted sm:block" />

@@ -60,7 +60,7 @@ export const NAV = {
     { path: '/', label: 'Khám phá gia sư', icon: 'explore', match: () => false },
     { path: '/app/messages', label: 'Tin nhắn', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
     { path: '/tutor/wallet', label: 'Ví gia sư', icon: 'account_balance_wallet', match: (p) => p.startsWith('/tutor/wallet') },
-    { path: '/tutor/application', label: 'Hồ sơ xét duyệt', icon: 'verified_user', match: (p) => p === '/tutor/application' },
+    { path: '/tutor/application', label: 'Hồ sơ giảng dạy', icon: 'verified_user', match: (p) => p === '/tutor/application' },
     // TODO(mockup): mục "Đánh giá" — chưa có trang đánh giá dành cho gia sư, bổ sung khi có route.
     { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },
   ],
