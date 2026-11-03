@@ -14,7 +14,7 @@ export function validateServiceEditor(form, service) {
   if (form.shortDescription.length > 200) return fail('basics', 'service-short', 'Mô tả ngắn tối đa 200 ký tự.');
   if (form.learningScope.length > 2000) return fail('basics', 'service-scope', 'Phạm vi kiến thức tối đa 2.000 ký tự.');
   if (form.expectedOutcome.length > 2000) return fail('basics', 'service-outcome', 'Cam kết đầu ra tối đa 2.000 ký tự.');
-  if (service.status !== 'Published' && (!validImageLink(form.coverImageUrl) || form.coverImageUrl.length > 1000)) return fail('basics', 'service-cover', 'Ảnh bìa cần là liên kết http hoặc https hợp lệ, tối đa 1.000 ký tự.');
+  if (service.status !== 'Published' && !form.coverImageFile && (!validImageLink(form.coverImageUrl) || form.coverImageUrl.length > 1000)) return fail('basics', 'service-cover', 'Ảnh bìa hiện tại không hợp lệ. Vui lòng chọn ảnh khác hoặc xóa ảnh.');
   if (form.trialLessonUrl.length > 1000) return fail('basics', 'service-trial', 'Liên kết học thử tối đa 1.000 ký tự.');
   if (form.trialLessonUrl.trim() && form.trialLessonUrl !== (service.trialLessonUrl || '') && trialLessonMedia(form.trialLessonUrl)?.kind !== 'video') return fail('basics', 'service-trial', 'Dùng liên kết video YouTube, Vimeo hoặc tệp MP4/WebM/OGG. Liên kết cuộc họp không phải video phát lại.');
   if (service.status !== 'Published') {

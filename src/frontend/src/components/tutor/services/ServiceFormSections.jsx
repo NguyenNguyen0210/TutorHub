@@ -1,3 +1,4 @@
+import ServiceCoverPicker from './ServiceCoverPicker';
 import React, { useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import Input, { Textarea, Select, Field } from '@/components/ui/Input';
@@ -74,7 +75,6 @@ const formDataShape = PropTypes.shape({
 export function BasicInfoFields({ formData, onFieldChange, locked = false, readOnlyLocked = false, hideCover = false, descriptionMax = DESCRIPTION_MAX }) {
   const description = formData.description || '';
   const shortDescription = formData.shortDescription || '';
-  const coverImageUrl = (formData.coverImageUrl || '').trim();
 
   // Minimal markdown toolbar: wrap selection (or a placeholder word) at cursor.
   const descRef = useRef(null);
@@ -195,30 +195,7 @@ export function BasicInfoFields({ formData, onFieldChange, locked = false, readO
         </p>
       </Field>
 
-      {!hideCover && <Field
-        label="Ảnh bìa (URL)"
-        htmlFor="service-cover"
-        hint="Không bắt buộc — ảnh minh họa giúp gói học nổi bật hơn."
-      >
-        <div className="flex items-start gap-3">
-          {coverImageUrl && (
-            <img
-              src={coverImageUrl}
-              alt="Xem trước ảnh bìa"
-              className="w-14 h-14 rounded-brand-md object-cover border border-border shrink-0"
-            />
-          )}
-          <Input
-            id="service-cover"
-            disabled={locked}
-            type="url"
-            inputMode="url"
-            placeholder="https://..."
-            value={formData.coverImageUrl}
-            onChange={(e) => onFieldChange('coverImageUrl', e.target.value)}
-          />
-        </div>
-      </Field>}
+      {!hideCover && <ServiceCoverPicker form={formData} onChange={onFieldChange} locked={locked} />}
     </>
   );
 }

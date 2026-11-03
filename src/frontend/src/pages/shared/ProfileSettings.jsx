@@ -103,7 +103,7 @@ export default function ProfileSettings() {
   }, [role, userId, retry]);
 
   const dirty = Boolean(pendingAvatar) || JSON.stringify(profilePayload(draft, teaching)) !== JSON.stringify(profilePayload(saved, teaching));
-  const errors = validateProfile(draft, teaching);
+  const errors = validateProfile(pendingAvatar ? { ...draft, avatarUrl: '' } : draft, teaching);
   const change = (key, value) => { setDraft(previous => ({ ...previous, [key]: value })); setSaveError(''); };
   const fieldError = key => touched[key] ? errors[key] : undefined;
   const blur = key => setTouched(previous => ({ ...previous, [key]: true }));
@@ -198,9 +198,7 @@ export default function ProfileSettings() {
             onChange={event => change('phone', event.target.value)} onBlur={() => blur('phone')} state={fieldError('phone') ? 'error' : 'default'} aria-invalid={Boolean(fieldError('phone'))} placeholder="Ví dụ: 0912345678" />
         </Field>
       </section>
-      <details className="border-t border-border pt-4"><summary className="w-fit cursor-pointer rounded text-sm font-medium text-fg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Tùy chọn nâng cao</summary>
-        <div className="mt-4"><Field label="Đường dẫn ảnh đại diện" htmlFor="profile-avatarUrl" error={fieldError('avatarUrl')} hint="Bạn cũng có thể dùng đường dẫn ảnh có sẵn."><Input id="profile-avatarUrl" type="url" maxLength={500} value={draft.avatarUrl} disabled={saving} onChange={event => { setPendingAvatar(null); uploaded.current = null; change('avatarUrl', event.target.value); }} onBlur={() => blur('avatarUrl')} aria-invalid={Boolean(fieldError('avatarUrl'))} placeholder="https://…" /></Field></div>
-      </details>
+
       {teaching && <section className="space-y-5 border-t border-border pt-5">
         <CardHeader title="Hồ sơ giảng dạy" subtitle="Thông tin chuyên môn hiển thị trong hồ sơ gia sư." />
         <Field label="Số năm kinh nghiệm" htmlFor="profile-experience" error={fieldError('experienceYears')}><Input id="profile-experience" type="number" min={0} max={60} disabled={saving} value={draft.experienceYears} onChange={event => change('experienceYears', event.target.value)} onBlur={() => blur('experienceYears')} /></Field>

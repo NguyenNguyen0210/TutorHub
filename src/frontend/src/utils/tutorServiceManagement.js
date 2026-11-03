@@ -20,6 +20,7 @@ export function serviceToForm(service) {
     price: service.price ?? 0,
     trialLessonUrl: service.trialLessonUrl || '',
     coverImageUrl: service.coverImageUrl || '',
+    coverImageFile: null,
     tags: Array.isArray(service.tags) ? service.tags.join(', ') : service.tags || '',
     sessions: (service.curriculum || []).map(item => ({
       title: item.title || '', description: item.description || '',

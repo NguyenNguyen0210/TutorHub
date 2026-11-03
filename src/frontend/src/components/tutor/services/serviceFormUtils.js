@@ -50,6 +50,7 @@ export function createInitialFormState(subjectId = '') {
     trialLessonUrl: '',
     tags: '',
     coverImageUrl: '',
+    coverImageFile: null,
     // Section 4 — editor-local shapes (converted to backend payload on submit).
     sessions: [],
     targetAudienceText: '',

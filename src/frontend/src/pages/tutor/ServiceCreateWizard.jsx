@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { resolveServiceCover } from '@/utils/serviceCover';
+import { CoverPreview } from '@/components/tutor/services/ServiceCoverPicker';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
 import Money from '@/components/ui/Money';
@@ -79,14 +81,7 @@ function WizardPreview({ formData, subjects }) {
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row gap-4">
-        {formData.coverImageUrl?.trim() && (
-          <img
-            src={formData.coverImageUrl.trim()}
-            alt=""
-            aria-hidden="true"
-            className="w-full sm:w-44 h-36 sm:h-auto sm:min-h-[148px] object-cover rounded-brand-md border border-border shrink-0"
-          />
-        )}
+        {(formData.coverImageUrl || formData.coverImageFile) && <CoverPreview value={formData.coverImageUrl} file={formData.coverImageFile} className="w-full shrink-0 sm:w-44" />}
         <div className="flex-1 min-w-0">
           <p className="text-caption font-semibold uppercase tracking-[0.12em] text-brand-primary-600">{subjectName}</p>
           <h3 className="text-headline-2 text-fg mt-1">{formData.title || 'Chưa đặt tên'}</h3>
@@ -192,6 +187,8 @@ export default function ServiceCreateWizard() {
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
+  const coverUpload = useRef(null);
+  const submitLock = useRef(false);
   const [formData, setFormData] = useState(() => createInitialFormState());
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -243,14 +240,17 @@ export default function ServiceCreateWizard() {
   };
 
   const submit = async (publishAfterCreate) => {
+    if (submitLock.current) return;
     const err = validateServiceForm(formData, 'create') || collectFaqs(formData).error;
     if (err) {
       toast.error(err);
       return;
     }
     try {
+      submitLock.current = true;
       setSubmitting(true);
-      const payload = buildServicePayload(formData, { mode: 'create' });
+      const coverImageUrl = await resolveServiceCover(formData, coverUpload);
+      const payload = buildServicePayload({ ...formData, coverImageUrl }, { mode: 'create' });
       const created = await tutorService.createService(payload);
       if (publishAfterCreate && created?.id) {
         await tutorService.publishService(created.id);
@@ -262,6 +262,7 @@ export default function ServiceCreateWizard() {
     } catch (e) {
       toast.error(e?.message || 'Không thể lưu gói dịch vụ.');
     } finally {
+      submitLock.current = false;
       setSubmitting(false);
     }
   };
@@ -311,7 +312,7 @@ export default function ServiceCreateWizard() {
       <ol className="flex items-center gap-1 sm:gap-2" aria-label="Tiến trình tạo dịch vụ">
         {STEPS.map((s, i) => {
           const current = s.id === step;
-          const reachable = s.id <= reached;
+          const reachable = s.id <= reached && !submitting;
           return (
             <li key={s.id} className="flex-1 min-w-0">
               <button

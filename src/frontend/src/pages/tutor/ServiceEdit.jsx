@@ -1,3 +1,4 @@
+import { resolveServiceCover } from '@/utils/serviceCover';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBlocker, useLocation, useNavigate, useParams } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
@@ -41,6 +42,7 @@ export default function ServiceEdit() {
   const [preview, setPreview] = useState(false);
   const [activeSection, setActiveSection] = useState('basics');
   const submitting = useRef(false);
+  const coverUpload = useRef(null);
   const requestVersion = useRef(0);
   const asking = useRef(false);
   const initialForm = useMemo(() => service ? serviceToForm(service) : null, [service]);
@@ -66,6 +68,7 @@ export default function ServiceEdit() {
     try {
       const result = await tutorService.getMyServiceById(id);
       if (version !== requestVersion.current) return;
+      coverUpload.current = null;
       setService(result); setForm(serviceToForm(result)); setSaved(false); setSaveError(''); setValidation(null);
     } catch (err) { if (version === requestVersion.current) setError(err); }
     finally { if (version === requestVersion.current) setLoading(false); }
@@ -110,7 +113,8 @@ export default function ServiceEdit() {
     submitting.current = true; setSaving(true); setSaveError('');
     const version = requestVersion.current;
     try {
-      const updated = await tutorService.updateService(id, buildServicePayload(form, { mode: 'update', lockCommercialTerms: service.status === 'Published' }));
+      const coverImageUrl = await resolveServiceCover(form, coverUpload);
+      const updated = await tutorService.updateService(id, buildServicePayload({ ...form, coverImageUrl }, { mode: 'update', lockCommercialTerms: service.status === 'Published' }));
       if (version !== requestVersion.current) return;
       setService(updated); setForm(serviceToForm(updated)); setSaved(true); setValidation(null);
       toast.success('Đã lưu thay đổi gói học.');
