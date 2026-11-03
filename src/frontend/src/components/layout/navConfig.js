@@ -4,11 +4,8 @@
  * `match(path)` quyết định trạng thái active (prefix match).
  *
  * Khám phá dùng PublicLayout; công cụ của từng role dùng WorkspaceShell.
- * Chuyển giữa hai khu vực trong cùng tab qua mục Khám phá / nút không gian riêng.
- *
- * Toàn bộ phần public gộp thành MỘT mục "Khám phá" → `/` (trang chủ sàn, từ đó
- * đi tới danh sách gia sư và sàn dịch vụ). Hồ sơ công khai của gia sư không
- * chiếm chỗ ở sidebar — nó nằm trong menu tài khoản.
+ * Student và Admin có mục Khám phá → `/`; Tutor tập trung vào giảng dạy.
+ * Hồ sơ công khai của gia sư nằm trong menu tài khoản.
  */
 
 const DISCOVERY_LINKS = [
@@ -57,7 +54,6 @@ export const NAV = {
     { path: '/tutor/schedule', label: 'Lịch dạy', icon: 'calendar_month', match: (p) => p.startsWith('/tutor/schedule') },
     // TODO(mockup): mục "Học viên" — chưa có trang danh sách học viên cho gia sư, bổ sung khi có route.
     { path: '/tutor/services', label: 'Gói học của tôi', icon: 'inventory_2', match: (p) => p.startsWith('/tutor/services') },
-    { path: '/', label: 'Khám phá gia sư', icon: 'explore', match: () => false },
     { path: '/app/messages', label: 'Tin nhắn', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
     { path: '/tutor/wallet', label: 'Ví gia sư', icon: 'account_balance_wallet', match: (p) => p.startsWith('/tutor/wallet') },
     { path: '/tutor/application', label: 'Hồ sơ giảng dạy', icon: 'verified_user', match: (p) => p === '/tutor/application' },
