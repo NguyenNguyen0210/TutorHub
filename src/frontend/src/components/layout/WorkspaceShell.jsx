@@ -7,7 +7,7 @@ import Avatar, { Drawer } from '@/components/ui/Avatar';
 import { useAuthStore } from '@/store/authStore';
 import { useWorkspaceActivity } from '@/hooks/useWorkspaceActivity';
 import { useTutorApplication } from '@/hooks/useTutorApplication';
-import { getNavForRole, getDashboardPath } from './navConfig';
+import { getNavForRole, getDashboardPath, getWorkspaceNavGroups } from './navConfig';
 import AccountDropdown from './AccountDropdown';
 import WorkspaceMobileNav from './WorkspaceMobileNav';
 import UnreadBadge from './UnreadBadge';
@@ -38,11 +38,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
   const primaryPaths = [getDashboardPath(role), role === 'Admin' ? '/admin/disputes' : '/app/messages', '/app/notifications'];
   const mobilePrimary = primaryPaths.map(path => navItems.find(item => item.path === path)).filter(Boolean)
     .map(item => ({ ...item, shortLabel: item.path === getDashboardPath(role) ? role === 'Student' ? 'Bàn học' : 'Tổng quan' : item.label }));
-  const navGroups = [
-    { label: role === 'Student' ? 'Học tập' : role === 'Tutor' ? 'Giảng dạy' : 'Quản lý', items: navItems.filter(item => !item.path.startsWith('/app/') && item.path !== '/') },
-    { label: 'Trao đổi', items: navItems.filter(item => item.path.startsWith('/app/')) },
-    { label: 'Khám phá', items: navItems.filter(item => item.path === '/') },
-  ].filter(group => group.items.length > 0);
+  const navGroups = getWorkspaceNavGroups(role, navItems);
   const mobileGroups = navGroups.map(group => ({ ...group, items: group.items.filter(item => !primaryPaths.includes(item.path) && item.path !== settingsPath) }))
     .filter(group => group.items.length > 0);
   const moreActive = mobileGroups.some(group => group.items.some(item => item.match(location.pathname)));
@@ -79,6 +75,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
               aria-current={active ? 'page' : undefined}
               className={cn('workspace-nav-item workspace-nav-focus relative flex min-h-11 items-center rounded-xl text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
                 compact ? 'justify-center px-2' : 'gap-3 px-3 py-2.5',
+                role === 'Student' && item.path === '/' && 'font-medium',
                 active ? 'bg-brand-primary-600 text-white' : 'text-neutral-300 hover:bg-white/[0.08] hover:text-white')}>
               <Icon name={item.icon} size="md" className="shrink-0" />
               {!compact && <span className={cn('min-w-0 flex-1', item.attention ? 'whitespace-normal leading-5' : 'truncate')}>{item.label}</span>}

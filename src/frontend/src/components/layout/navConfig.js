@@ -86,6 +86,21 @@ export function getDashboardPath(role) {
   return getWorkspaceEntry(role).path;
 }
 
+/** Shared ordering for the desktop sidebar and mobile overflow menu. */
+export function getWorkspaceNavGroups(role, items) {
+  const finances = ['/student/bookings', '/student/wallet', '/student/disputes'];
+  const groups = role === 'Student' ? [
+    { label: 'Học tập', items: items.filter(item => item.path.startsWith('/student/') && !finances.includes(item.path)) },
+    { label: 'Học phí & đơn hàng', items: items.filter(item => finances.includes(item.path)) },
+  ] : [
+    { label: role === 'Tutor' ? 'Giảng dạy' : 'Quản lý', items: items.filter(item => !item.path.startsWith('/app/') && item.path !== '/') },
+  ];
+  return [...groups,
+    { label: 'Trao đổi', items: items.filter(item => item.path.startsWith('/app/')) },
+    { label: 'Khám phá', items: items.filter(item => item.path === '/') },
+  ].filter(group => group.items.length > 0);
+}
+
 export const ROLE_SUBTITLE = {
   Student: 'Student Learning Hub',
   Tutor: 'Verified Master Tutor',
