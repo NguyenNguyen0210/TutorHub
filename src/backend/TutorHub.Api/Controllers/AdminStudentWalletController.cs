@@ -12,6 +12,8 @@ using TutorHub.Application.Features.StudentWallets.DTOs;
 using TutorHub.Application.Features.StudentWallets.Queries.AdminGetStudentWithdrawals;
 using TutorHub.Application.Features.StudentWallets.Queries.AdminGetTopUpRequests;
 using TutorHub.Domain.Enums;
+using TutorHub.Api.Filters;
+using TutorHub.Application.Features.StudentWallets.Queries.AdminFindStudentWallets;
 
 namespace TutorHub.Api.Controllers;
 
@@ -28,6 +30,13 @@ public class AdminStudentWalletController : ControllerBase
         _sender = sender;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> FindWallets([FromQuery] string search = "", [FromQuery] int pageNumber = 1, CancellationToken cancellationToken = default)
+    {
+        var result = await _sender.Send(new AdminFindStudentWalletsQuery(search, pageNumber), cancellationToken);
+        return Ok(ApiResponse<PagedResult<AdminStudentWalletDto>>.SuccessResult(result));
+    }
+
     /// <summary>
     /// Get paginated list of student top-up requests (Admin only).
     /// </summary>
@@ -35,11 +44,13 @@ public class AdminStudentWalletController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<PagedResult<TopUpRequestDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTopUpRequests(
         [FromQuery] TopUpRequestStatus? status,
+        [FromQuery] string? search = null,
+        [FromQuery] Guid? recordId = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var query = new AdminGetTopUpRequestsQuery(status, pageNumber, pageSize);
+        var query = new AdminGetTopUpRequestsQuery(status, pageNumber, pageSize, search, recordId);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<TopUpRequestDto>>.SuccessResult(result, "Top-up requests retrieved successfully."));
     }
@@ -85,11 +96,12 @@ public class AdminStudentWalletController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<PagedResult<StudentWithdrawalDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetWithdrawals(
         [FromQuery] WithdrawalStatus? status,
+        [FromQuery] Guid? recordId = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var query = new AdminGetStudentWithdrawalsQuery(status, pageNumber, pageSize);
+        var query = new AdminGetStudentWithdrawalsQuery(status, pageNumber, pageSize, recordId);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<StudentWithdrawalDto>>.SuccessResult(result, "Withdrawal requests retrieved successfully."));
     }
@@ -147,6 +159,7 @@ public class AdminStudentWalletController : ControllerBase
     /// Admin financial adjustment on student wallet (credit/debit with reason and audit trail).
     /// </summary>
     [HttpPost("adjust")]
+    [Idempotent(RequireKey = true)]
     [ProducesResponseType(typeof(ApiResponse<StudentWalletDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -154,6 +167,8 @@ public class AdminStudentWalletController : ControllerBase
         [FromBody] AdminAdjustStudentWalletCommand command,
         CancellationToken cancellationToken)
     {
+        if (!command.ExpectedAvailableBalance.HasValue)
+            return BadRequest(ApiResponse<object>.FailureResult("Vui lòng kiểm tra số dư ví trước khi xác nhận điều chỉnh."));
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<StudentWalletDto>.SuccessResult(result, "Student wallet balance adjusted successfully."));
     }

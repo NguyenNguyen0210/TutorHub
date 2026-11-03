@@ -42,7 +42,7 @@ public class TopUpConcurrencyTests : IntegrationTestBase
         await Db.SaveChangesAsync();
         SetCurrentUser(admin.Id, UserRole.Admin);
 
-        var command = new AdminConfirmTopUpCommand(topUp.Id);
+        var command = new AdminConfirmTopUpCommand(topUp.Id, "Matched legacy bank settlement receipt");
         await Task.WhenAll(SendAsync(command), SendAsync(command));
 
         var balance = await Db.Wallets.AsNoTracking().Where(w => w.Id == wallet.Id)

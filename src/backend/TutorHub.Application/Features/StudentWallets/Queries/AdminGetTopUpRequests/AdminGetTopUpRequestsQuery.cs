@@ -8,4 +8,6 @@ namespace TutorHub.Application.Features.StudentWallets.Queries.AdminGetTopUpRequ
 public record AdminGetTopUpRequestsQuery(
     TopUpRequestStatus? Status = null,
     int PageNumber = 1,
-    int PageSize = 20) : IRequest<PagedResult<TopUpRequestDto>>;
+    int PageSize = 20,
+    string? Search = null,
+    Guid? RecordId = null) : IRequest<PagedResult<TopUpRequestDto>>;

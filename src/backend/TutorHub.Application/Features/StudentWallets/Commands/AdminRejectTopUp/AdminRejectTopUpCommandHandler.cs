@@ -41,6 +41,8 @@ public class AdminRejectTopUpCommandHandler : IRequestHandler<AdminRejectTopUpCo
         {
             throw new BadRequestException($"Cannot reject top-up request in '{topUp.Status}' status. Must be Pending.");
         }
+        if (topUp.IsGatewayTopUp)
+            throw new BadRequestException("Trạng thái yêu cầu VNPAY được cập nhật từ kết quả xác thực của cổng thanh toán.");
 
         topUp.Wallet = await _context.Wallets.FirstAsync(w => w.Id == topUp.WalletId, cancellationToken);
 

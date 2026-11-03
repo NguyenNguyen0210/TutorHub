@@ -8,4 +8,5 @@ namespace TutorHub.Application.Features.StudentWallets.Queries.AdminGetStudentWi
 public record AdminGetStudentWithdrawalsQuery(
     WithdrawalStatus? Status = null,
     int PageNumber = 1,
-    int PageSize = 20) : IRequest<PagedResult<StudentWithdrawalDto>>;
+    int PageSize = 20,
+    Guid? RecordId = null) : IRequest<PagedResult<StudentWithdrawalDto>>;

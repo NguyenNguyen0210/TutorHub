@@ -9,5 +9,6 @@ public record AdminAdjustStudentWalletCommand(
     decimal Amount,
     FinancialDirection Direction,
     string Reason,
-    Guid? ReferenceId = null
+    Guid? ReferenceId = null,
+    decimal? ExpectedAvailableBalance = null
 ) : IRequest<StudentWalletDto>;

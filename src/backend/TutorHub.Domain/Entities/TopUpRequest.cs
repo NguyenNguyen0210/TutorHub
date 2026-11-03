@@ -24,6 +24,10 @@ public class TopUpRequest
     public string? RejectionReason { get; set; }
     public string? AdminNote { get; set; }
 
+    // Current gateway references are reserved by CreateVnPayTopUp and the IPN router.
+    public bool IsGatewayTopUp => TransferReference.StartsWith("TOPUP", StringComparison.OrdinalIgnoreCase)
+        || (AdminNote?.Contains("VNPay", StringComparison.OrdinalIgnoreCase) ?? false);
+
     public void Confirm(Guid adminId, DateTime now, string? note = null)
     {
         if (Status != TopUpRequestStatus.Pending)

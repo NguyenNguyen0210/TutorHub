@@ -151,7 +151,7 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
         // 5. Action Queue Metrics
         int pendingWithdrawalsCount = await _context.Withdrawals
             .AsNoTracking()
-            .CountAsync(w => w.Status == WithdrawalStatus.Pending, cancellationToken);
+            .CountAsync(w => w.Status == WithdrawalStatus.Pending && w.Wallet.User.Role == UserRole.Tutor, cancellationToken);
 
         int openReportsCount = await _context.Reports
             .AsNoTracking()

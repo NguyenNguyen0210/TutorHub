@@ -20,6 +20,7 @@ public class GetAdminWithdrawalsQueryHandler : IRequestHandler<GetAdminWithdrawa
     {
         var query = _context.Withdrawals
             .AsNoTracking()
+            .Where(w => w.Wallet.User.Role == UserRole.Tutor)
             .Include(w => w.Wallet).ThenInclude(wall => wall.User)
             .Include(w => w.ProcessingStartedByAdmin)
             .Include(w => w.ProcessedByAdmin)

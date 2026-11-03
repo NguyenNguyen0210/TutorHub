@@ -1,693 +1,161 @@
-import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
+import StudentWalletAdjustment from '@/components/admin/StudentWalletAdjustment';
 import studentWalletService from '@/services/studentWallet.service';
-import { formatCurrency, formatDateTime } from '@/utils/formatters';
+import { formatDateTime } from '@/utils/formatters';
+import { maskBankAccount } from '@/utils/tutorWallet';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/Dialog';
-import Card, { CardHeader } from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
+import Avatar, { Drawer } from '@/components/ui/Avatar';
+import Card from '@/components/ui/Card';
 import Icon from '@/components/ui/Icon';
 import Button from '@/components/ui/Button';
 import Input, { Field } from '@/components/ui/Input';
 import Tabs from '@/components/ui/Tabs';
-import { TableSkeleton } from '@/components/common/Skeleton';
-import EmptyState from '@/components/common/EmptyState';
-import DataTable from '@/components/common/DataTable';
-import SignedAmount from '@/components/common/SignedAmount';
+import Money from '@/components/ui/Money';
 import StateBadge from '@/components/common/StateBadge';
+import { TableSkeleton } from '@/components/common/Skeleton';
 
-const TOPUP_COLUMNS = [
-  { key: 'student', label: 'Học viên' },
-  { key: 'ref', label: 'Mã chuyển khoản' },
-  { key: 'amount', label: 'Số tiền nạp', align: 'right' },
-  { key: 'time', label: 'Thời gian' },
-  { key: 'status', label: 'Trạng thái' },
-  { key: 'actions', label: 'Thao tác', align: 'right' },
-];
+const TOPUP_STATES = { Pending: 'Chờ xác nhận', Confirmed: 'Đã ghi có', Rejected: 'Đã từ chối' };
+const WITHDRAWAL_STATES = { Pending: 'Chờ tiếp nhận', Processing: 'Đang xử lý', Completed: 'Đã hoàn tất', Failed: 'Thất bại' };
 
-const WITHDRAWAL_COLUMNS = [
-  { key: 'student', label: 'Học viên' },
-  { key: 'bank', label: 'Tài khoản nhận tiền' },
-  { key: 'amount', label: 'Số tiền rút', align: 'right' },
-  { key: 'time', label: 'Thời gian' },
-  { key: 'status', label: 'Trạng thái' },
-  { key: 'actions', label: 'Thao tác', align: 'right' },
-];
-
-const CELL = 'px-4 py-3';
-const CELL_RIGHT = 'px-4 py-3 text-right';
-const CELL_MUTED = 'px-4 py-3 font-mono text-fg-secondary whitespace-nowrap';
+function EmptyList({ withdrawal, filtered }) {
+  return <div className="flex flex-col items-center px-4 py-14 text-center">
+    <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-primary-50 text-brand-primary-600"><Icon name={withdrawal ? 'payments' : 'add_card'} size="lg" /></span>
+    <h3 className="text-base font-semibold">{filtered ? 'Không có yêu cầu phù hợp' : withdrawal ? 'Chưa có yêu cầu rút tiền' : 'Chưa có yêu cầu nạp tiền'}</h3>
+    <p className="mt-2 max-w-md text-sm leading-6 text-fg-secondary">{filtered ? 'Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.' : 'Yêu cầu sẽ xuất hiện tại đây khi học viên gửi lên.'}</p>
+  </div>;
+}
 
 export default function AdminStudentWallets() {
   const toast = useToast();
-  const [searchParams] = useSearchParams();
-  const requestedTab = searchParams.get('tab');
-  const recordId = searchParams.get('recordId');
   const confirm = useConfirm();
-
-  const [activeTab, setActiveTab] = useState(requestedTab === 'withdrawals' ? 'withdrawals' : 'topups');
-
-  // Top-Up Requests State
-  const [topUps, setTopUps] = useState([]);
-  const [loadingTopUps, setLoadingTopUps] = useState(false);
-  const [topUpStatusFilter, setTopUpStatusFilter] = useState('All');
-  const [topUpSearch, setTopUpSearch] = useState('');
-
-  // Confirm / Reject Modal State
-  const [confirmModalData, setConfirmModalData] = useState(null);
-  const [adminNoteInput, setAdminNoteInput] = useState('');
-  const [submittingConfirm, setSubmittingConfirm] = useState(false);
-
-  const [rejectModalData, setRejectModalData] = useState(null);
-  const [rejectionReasonInput, setRejectionReasonInput] = useState('');
-  const [submittingReject, setSubmittingReject] = useState(false);
-
-  // Withdrawals State
-  const [withdrawals, setWithdrawals] = useState([]);
-  const [loadingWithdrawals, setLoadingWithdrawals] = useState(false);
-  const [withdrawalStatusFilter, setWithdrawalStatusFilter] = useState('All');
-  const [failModalData, setFailModalData] = useState(null);
-  const [failReasonInput, setFailReasonInput] = useState('');
-  const [submittingFail, setSubmittingFail] = useState(false);
-
-  // Adjustment State
-  const [adjustWalletId, setAdjustWalletId] = useState('');
-  const [adjustAmount, setAdjustAmount] = useState('');
-  const [adjustDirection, setAdjustDirection] = useState('Credit');
-  const [adjustReason, setAdjustReason] = useState('');
-  const [submittingAdjust, setSubmittingAdjust] = useState(false);
-
-  // 1. Fetch Top-Up Requests
-  useEffect(() => {
-    if (!requestedTab) return;
-    setActiveTab(requestedTab === 'withdrawals' ? 'withdrawals' : 'topups');
-    setTopUpStatusFilter('All'); setWithdrawalStatusFilter('All'); setTopUpSearch('');
-  }, [requestedTab, recordId]);
-  useEffect(() => {
-    if (recordId) document.getElementById(`admin-wallet-record-${recordId}`)?.scrollIntoView({ block: 'center', behavior: 'auto' });
-  }, [recordId, topUps, withdrawals]);
-  const fetchTopUps = useCallback(async () => {
-    try {
-      setLoadingTopUps(true);
-      const params = {
-        status: topUpStatusFilter === 'All' ? null : topUpStatusFilter,
-        pageNumber: 1,
-        pageSize: 50,
-      };
-      let res = await studentWalletService.adminGetTopUps(params);
-      const items = [...(res?.items || [])];
-      while (recordId && !items.some(item => item.id === recordId) && res.hasNextPage) {
-        res = await studentWalletService.adminGetTopUps({ ...params, pageNumber: ++params.pageNumber });
-        items.push(...res.items);
-      }
-      setTopUps(items);
-      if (recordId && !items.some(item => item.id === recordId)) toast.error('Không tìm thấy yêu cầu nạp tiền được liên kết.');
-    } catch {
-      toast.error('Không thể tải danh sách nạp tiền học viên.');
-    } finally {
-      setLoadingTopUps(false);
-    }
-  }, [topUpStatusFilter, toast, recordId]);
-
-  // 2. Fetch Withdrawals
-  const fetchWithdrawals = useCallback(async () => {
-    try {
-      setLoadingWithdrawals(true);
-      const params = {
-        status: withdrawalStatusFilter === 'All' ? null : withdrawalStatusFilter,
-        pageNumber: 1,
-        pageSize: 50,
-      };
-      let res = await studentWalletService.adminGetWithdrawals(params);
-      const items = [...(res?.items || [])];
-      while (recordId && !items.some(item => item.id === recordId) && res.hasNextPage) {
-        res = await studentWalletService.adminGetWithdrawals({ ...params, pageNumber: ++params.pageNumber });
-        items.push(...res.items);
-      }
-      setWithdrawals(items);
-      if (recordId && !items.some(item => item.id === recordId)) toast.error('Không tìm thấy yêu cầu rút tiền được liên kết.');
-    } catch {
-      toast.error('Không thể tải danh sách rút tiền học viên.');
-    } finally {
-      setLoadingWithdrawals(false);
-    }
-  }, [withdrawalStatusFilter, toast, recordId]);
+  const [params, setParams] = useSearchParams();
+  const activeTab = ['withdrawals', 'adjust'].includes(params.get('tab')) ? params.get('tab') : 'topups';
+  const recordId = params.get('recordId') || undefined;
+  const withdrawal = activeTab === 'withdrawals';
+  const [status, setStatus] = useState('');
+  const [search, setSearch] = useState('');
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [reload, setReload] = useState(0);
+  const [detail, setDetail] = useState(null);
+  const [note, setNote] = useState('');
+  const [checked, setChecked] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const actionLock = useRef(false);
+  const openedRecord = useRef(null);
 
   useEffect(() => {
-    if (activeTab === 'topups') fetchTopUps();
-    else if (activeTab === 'withdrawals') fetchWithdrawals();
-  }, [activeTab, fetchTopUps, fetchWithdrawals]);
+    setDetail(null); setNote(''); setChecked(false); openedRecord.current = null;
+  }, [activeTab, recordId]);
 
-  // Handle Confirm Top-Up
-  const handleConfirmTopUp = async () => {
-    if (!confirmModalData) return;
-    try {
-      setSubmittingConfirm(true);
-      await studentWalletService.adminConfirmTopUp(confirmModalData.id, {
-        adminNote: adminNoteInput.trim() || null,
-      });
-      toast.success(`Đã duyệt nạp ${formatCurrency(confirmModalData.amount)} cho học viên!`);
-      setConfirmModalData(null);
-      setAdminNoteInput('');
-      fetchTopUps();
-    } catch (err) {
-      toast.error(err?.message || 'Không thể duyệt nạp tiền.');
-    } finally {
-      setSubmittingConfirm(false);
-    }
+  useEffect(() => { const timer = setTimeout(() => { setQuery(search.trim()); setPage(1); }, 300); return () => clearTimeout(timer); }, [search]);
+  useEffect(() => {
+    if (activeTab === 'adjust') return;
+    const controller = new AbortController();
+    setLoading(true); setError(false);
+    const request = withdrawal ? studentWalletService.adminGetWithdrawals : studentWalletService.adminGetTopUps;
+    request({ status: recordId ? null : status || null, search: recordId ? undefined : query, pageNumber: recordId ? 1 : page, pageSize: 10, recordId, signal: controller.signal })
+      .then(result => {
+        if (controller.signal.aborted) return;
+        setData(result);
+        if (recordId && openedRecord.current !== `${activeTab}:${recordId}`) {
+          openedRecord.current = `${activeTab}:${recordId}`;
+          if (result.items[0]) { setDetail(result.items[0]); setNote(''); setChecked(false); }
+        }
+      }).catch(() => { if (!controller.signal.aborted) setError(true); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [activeTab, withdrawal, status, query, page, recordId, reload]);
+
+  const changeTab = tab => {
+    setStatus(''); setSearch(''); setQuery(''); setPage(1); setData(null); setDetail(null); openedRecord.current = null;
+    setParams({ tab });
+  };
+  const openDetail = row => { setDetail(row); setNote(''); setChecked(false); };
+  const copy = async text => {
+    try { await navigator.clipboard.writeText(text); toast.success('Đã sao chép mã tham chiếu.'); }
+    catch { toast.error('Không thể sao chép. Bạn có thể chọn và sao chép mã trực tiếp.'); }
   };
 
-  // Handle Reject Top-Up
-  const handleRejectTopUp = async () => {
-    if (!rejectModalData) return;
-    if (!rejectionReasonInput.trim()) {
-      toast.error('Vui lòng nhập lý do từ chối.');
-      return;
-    }
+  const act = async kind => {
+    if (!detail || actionLock.current) return;
+    const needsNote = ['confirm', 'reject', 'fail'].includes(kind);
+    if (needsNote && (note.trim().length < 10 || note.trim().length > 500)) { toast.error('Vui lòng nhập ghi chú từ 10 đến 500 ký tự.'); return; }
+    if (['confirm', 'complete'].includes(kind) && !checked) return;
+    actionLock.current = true; setBusy(true);
     try {
-      setSubmittingReject(true);
-      await studentWalletService.adminRejectTopUp(rejectModalData.id, {
-        reason: rejectionReasonInput.trim(),
-      });
-      toast.warning('Đã từ chối yêu cầu nạp tiền.');
-      setRejectModalData(null);
-      setRejectionReasonInput('');
-      fetchTopUps();
-    } catch (err) {
-      toast.error(err?.message || 'Không thể từ chối yêu cầu.');
-    } finally {
-      setSubmittingReject(false);
-    }
+      const titles = { confirm: 'Xác nhận ghi có vào ví', reject: 'Từ chối yêu cầu nạp tiền', process: 'Tiếp nhận yêu cầu rút tiền', complete: 'Xác nhận đã chuyển tiền', fail: 'Ghi nhận rút tiền thất bại' };
+      const ok = await confirm({ title: titles[kind], content: <div className="space-y-2 text-sm"><p className="font-semibold">{detail.studentName}</p><p className="break-all">{detail.studentEmail}</p><Money value={detail.amount} className="block text-xl font-semibold" /><p>{kind === 'complete' ? 'Chỉ xác nhận khi tiền đã được chuyển thành công đến đúng tài khoản học viên.' : kind === 'fail' ? 'Khoản đang chờ rút sẽ được trả về số dư khả dụng.' : kind === 'process' ? 'Yêu cầu chuyển sang Đang xử lý; bước này chưa xác nhận đã chi trả.' : note.trim()}</p></div>, confirmText: titles[kind], danger: ['reject', 'fail'].includes(kind) });
+      if (!ok) return;
+      if (kind === 'confirm') await studentWalletService.adminConfirmTopUp(detail.id, { adminNote: note.trim() });
+      if (kind === 'reject') await studentWalletService.adminRejectTopUp(detail.id, { reason: note.trim() });
+      if (kind === 'process') await studentWalletService.adminProcessWithdrawal(detail.id);
+      if (kind === 'complete') await studentWalletService.adminCompleteWithdrawal(detail.id);
+      if (kind === 'fail') await studentWalletService.adminFailWithdrawal(detail.id, { reason: note.trim() });
+      toast.success('Đã cập nhật yêu cầu.'); setDetail(null); setReload(value => value + 1);
+    } catch (err) { toast.error(err?.message || 'Chưa thể xử lý yêu cầu. Vui lòng thử lại.'); }
+    finally { setBusy(false); actionLock.current = false; }
   };
 
-  // Handle Process Withdrawal
-  const handleProcessWithdrawal = async (id) => {
-    const ok = await confirm({
-      title: 'Bắt đầu xử lý rút tiền',
-      content: 'Chuyển trạng thái sang "Đang xử lý" để kế toán thực hiện chuyển khoản?',
-      confirmText: 'Bắt đầu xử lý',
-    });
-    if (!ok) return;
+  const rows = data?.items || [];
+  const pendingCount = rows.filter(row => row.status === 'Pending').length;
+  const states = withdrawal ? WITHDRAWAL_STATES : TOPUP_STATES;
 
-    try {
-      await studentWalletService.adminProcessWithdrawal(id);
-      toast.success('Lệnh rút tiền đã được chuyển sang trạng thái Đang xử lý.');
-      fetchWithdrawals();
-    } catch (err) {
-      toast.error(err?.message || 'Không thể cập nhật trạng thái.');
-    }
-  };
-
-  // Handle Complete Withdrawal
-  const handleCompleteWithdrawal = async (id) => {
-    const ok = await confirm({
-      title: 'Xác nhận hoàn tất chuyển khoản',
-      content: 'Bạn đã chuyển tiền thành công qua ngân hàng cho học viên?',
-      confirmText: 'Đã chuyển tiền',
-    });
-    if (!ok) return;
-
-    try {
-      await studentWalletService.adminCompleteWithdrawal(id);
-      toast.success('Đã hoàn tất lệnh rút tiền và giải phóng tiền giữ.');
-      fetchWithdrawals();
-    } catch (err) {
-      toast.error(err?.message || 'Không thể hoàn tất lệnh rút tiền.');
-    }
-  };
-
-  // Handle Fail Withdrawal
-  const handleFailWithdrawal = async () => {
-    if (!failModalData) return;
-    if (!failReasonInput.trim()) {
-      toast.error('Vui lòng nhập lý do thất bại.');
-      return;
-    }
-
-    try {
-      setSubmittingFail(true);
-      await studentWalletService.adminFailWithdrawal(failModalData.id, {
-        reason: failReasonInput.trim(),
-      });
-      toast.success('Đã ghi nhận thất bại và hoàn trả tiền về ví học viên.');
-      setFailModalData(null);
-      setFailReasonInput('');
-      fetchWithdrawals();
-    } catch (err) {
-      toast.error(err?.message || 'Không thể cập nhật trạng thái.');
-    } finally {
-      setSubmittingFail(false);
-    }
-  };
-
-  // Handle Manual Adjustment
-  const handleAdjustWallet = async (e) => {
-    e.preventDefault();
-    const num = Number(adjustAmount);
-    if (!adjustWalletId.trim() || !num || num <= 0 || !adjustReason.trim()) {
-      toast.error('Vui lòng điền đầy đủ Mã Ví, Số tiền hợp lệ và Lý do điều chỉnh.');
-      return;
-    }
-
-    const ok = await confirm({
-      title: 'Xác nhận điều chỉnh số dư ví học viên',
-      content: `Bạn có chắc muốn ${adjustDirection === 'Credit' ? 'CỘNG' : 'TRỪ'} ${formatCurrency(num)} vào ví ${adjustWalletId}? Hành động này sẽ được ghi vào sổ cái bất biến.`,
-      confirmText: 'Xác nhận điều chỉnh',
-      danger: adjustDirection === 'Debit',
-    });
-    if (!ok) return;
-
-    try {
-      setSubmittingAdjust(true);
-      await studentWalletService.adminAdjustWallet({
-        studentWalletId: adjustWalletId.trim(),
-        amount: num,
-        direction: adjustDirection,
-        reason: adjustReason.trim(),
-      });
-      toast.success('Điều chỉnh số dư thành công và đã ghi sổ cái.');
-      setAdjustAmount('');
-      setAdjustReason('');
-    } catch (err) {
-      toast.error(err?.message || 'Không thể điều chỉnh số dư ví.');
-    } finally {
-      setSubmittingAdjust(false);
-    }
-  };
-
-  // Filtered TopUps
-  const filteredTopUps = topUps.filter((item) => {
-    if (!topUpSearch.trim()) return true;
-    const q = topUpSearch.toLowerCase();
-    return (
-      item.transferReference?.toLowerCase().includes(q) ||
-      item.studentName?.toLowerCase().includes(q) ||
-      item.studentEmail?.toLowerCase().includes(q)
-    );
-  });
-
-  return (
-    <div className="space-y-6 lg:space-y-8">
-      <WorkspacePageHeader
-        title="Ví học viên"
-        description="Đối soát lịch sử nạp tiền qua Cổng VNPay, xử lý rút tiền về ngân hàng và kiểm soát sổ cái học viên."
-      />
-
-      {/* Tabs */}
-      <div className="space-y-4">
-        <Tabs
-          tabs={[
-            { key: 'topups', label: 'Đối soát nạp tiền VNPay' },
-            { key: 'withdrawals', label: 'Xử lý rút tiền (Withdrawals)' },
-            { key: 'adjust', label: 'Điều chỉnh số dư đặc biệt' },
-          ]}
-          value={activeTab}
-          onChange={setActiveTab}
-        />
-
-        {/* TAB 1: TOP-UPS */}
-        {activeTab === 'topups' && (
-          <Card padding="lg" className="space-y-4 border border-border shadow-brand-sm">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-border">
-              <div className="flex items-center gap-2 min-w-0">
-                <CardHeader
-                  className="mb-0 min-w-0"
-                  title="Danh sách nạp tiền VNPay"
-                  subtitle={`${filteredTopUps.length} yêu cầu`}
-                  icon={<Icon name="add_card" size="sm" className="text-brand-primary-600" />}
-                />
-              </div>
-
-              {/* Status Filters & Search */}
-              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                <select
-                  value={topUpStatusFilter}
-                  onChange={(e) => setTopUpStatusFilter(e.target.value)}
-                  className="h-9 px-3 rounded-brand-md border border-border bg-surface text-caption text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600"
-                >
-                  <option value="All">Tất cả trạng thái</option>
-                  <option value="Pending">Chờ duyệt (Pending)</option>
-                  <option value="Confirmed">Đã duyệt (Confirmed)</option>
-                  <option value="Rejected">Đã từ chối (Rejected)</option>
-                </select>
-
-                <div className="w-full sm:w-56">
-                  <Input
-                    placeholder="Tìm tên, email, mã ref..."
-                    value={topUpSearch}
-                    onChange={(e) => setTopUpSearch(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {loadingTopUps ? (
-              <TableSkeleton rows={6} />
-            ) : filteredTopUps.length === 0 ? (
-              <EmptyState
-                icon="inbox"
-                title="Không có yêu cầu nạp tiền nào"
-                description="Khi học viên tạo yêu cầu nạp tiền chuyển khoản, thông tin sẽ xuất hiện ở đây."
-              />
-            ) : (
-              <DataTable
-                caption="Danh sách yêu cầu nạp tiền qua cổng VNPay của học viên"
-                columns={TOPUP_COLUMNS}
-                minWidth={750}
-              >
-                {filteredTopUps.map((row) => {
-                  const isPending = row.status === 'Pending';
-                  return (
-                    <tr key={row.id} id={`admin-wallet-record-${row.id}`} className={row.id === recordId ? 'bg-brand-primary-50 ring-1 ring-inset ring-brand-primary-200' : 'hover:bg-neutral-50/80 transition-colors'}>
-                      <td className={CELL}>
-                        <span className="font-bold text-fg block">{row.studentName || 'Học viên'}</span>
-                        <span className="text-[11px] text-fg-muted font-mono block">{row.studentEmail}</span>
-                      </td>
-                      <td className={CELL}>
-                        <span className="font-mono font-bold text-brand-primary-700 bg-brand-primary-50 px-2 py-0.5 rounded border border-brand-primary-200">
-                          {row.transferReference}
-                        </span>
-                      </td>
-                      <td className={CELL_RIGHT}>
-                        <SignedAmount amount={row.amount} direction="Credit" />
-                      </td>
-                      <td className={CELL_MUTED}>{formatDateTime(row.requestedAt)}</td>
-                      <td className={`${CELL} whitespace-nowrap`}>
-                        <StateBadge status={row.status} domain="topup" />
-                      </td>
-                      <td className={`${CELL_RIGHT} whitespace-nowrap`}>
-                        {isPending ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="success"
-                              size="sm"
-                              onClick={() => setConfirmModalData(row)}
-                            >
-                              Xác nhận nạp
-                            </Button>
-                            <Button
-                              variant="danger-outline"
-                              size="sm"
-                              onClick={() => setRejectModalData(row)}
-                            >
-                              Từ chối
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-fg-muted italic">
-                            {row.rejectionReason || row.adminNote || 'Đã hoàn tất'}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </DataTable>
-            )}
-          </Card>
-        )}
-
-        {/* TAB 2: WITHDRAWALS */}
-        {activeTab === 'withdrawals' && (
-          <Card padding="lg" className="space-y-4 border border-border shadow-brand-sm">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-border">
-              <div className="flex items-center gap-2 min-w-0">
-                <CardHeader
-                  className="mb-0 min-w-0"
-                  title="Yêu cầu rút tiền học viên"
-                  subtitle={`${withdrawals.length} lệnh`}
-                  icon={<Icon name="payments" size="sm" className="text-brand-primary-600" />}
-                />
-              </div>
-
-              <select
-                value={withdrawalStatusFilter}
-                onChange={(e) => setWithdrawalStatusFilter(e.target.value)}
-                className="h-9 px-3 rounded-brand-md border border-border bg-surface text-caption text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600"
-              >
-                <option value="All">Tất cả trạng thái</option>
-                <option value="Pending">Chờ tiếp nhận (Pending)</option>
-                <option value="Processing">Đang xử lý (Processing)</option>
-                <option value="Completed">Đã hoàn tất (Completed)</option>
-                <option value="Failed">Thất bại (Failed)</option>
-              </select>
-            </div>
-
-            {loadingWithdrawals ? (
-              <TableSkeleton rows={6} />
-            ) : withdrawals.length === 0 ? (
-              <EmptyState
-                icon="payments"
-                title="Không có yêu cầu rút tiền nào"
-                description="Khi học viên tạo lệnh rút tiền, thông tin sẽ xuất hiện ở đây để kế toán xử lý."
-              />
-            ) : (
-              <DataTable
-                caption="Danh sách yêu cầu rút tiền của học viên về tài khoản ngân hàng"
-                columns={WITHDRAWAL_COLUMNS}
-                minWidth={800}
-              >
-                {withdrawals.map((w) => {
-                  const isPending = w.status === 'Pending';
-                  const isProcessing = w.status === 'Processing';
-                  const isCompleted = w.status === 'Completed';
-                  const isFailed = w.status === 'Failed';
-                  return (
-                    <tr key={w.id} id={`admin-wallet-record-${w.id}`} className={w.id === recordId ? 'bg-brand-primary-50 ring-1 ring-inset ring-brand-primary-200' : 'hover:bg-neutral-50/80 transition-colors'}>
-                      <td className={CELL}>
-                        <span className="font-bold text-fg block">{w.studentName || 'Học viên'}</span>
-                        <span className="text-[11px] text-fg-muted font-mono block">{w.studentEmail}</span>
-                      </td>
-                      <td className={CELL}>
-                        <span className="font-semibold text-fg block">{w.bankName}</span>
-                        <span className="text-[11px] font-mono text-fg-muted block">
-                          STK: {w.accountNumber} ({w.accountHolderName})
-                        </span>
-                      </td>
-                      <td className={CELL_RIGHT}>
-                        <SignedAmount amount={w.amount} direction="Debit" />
-                      </td>
-                      <td className={CELL_MUTED}>{formatDateTime(w.requestedAt)}</td>
-                      <td className={`${CELL} whitespace-nowrap`}>
-                        {/* Nhãn rút tiền khác nhãn trong `StateBadge` domain
-                            `withdrawal` ("Chờ xử lý" ≠ "Chờ duyệt") nên giữ
-                            chuỗi tại chỗ; màu vẫn theo token ngữ nghĩa. */}
-                        <Badge
-                          variant={isCompleted ? 'success' : isFailed ? 'danger' : 'holding'}
-                          size="sm"
-                        >
-                          {isCompleted ? 'Đã hoàn tất' : isFailed ? 'Thất bại (hoàn lại)' : isProcessing ? 'Đang chuyển' : 'Chờ xử lý'}
-                        </Badge>
-                      </td>
-                      <td className={`${CELL_RIGHT} whitespace-nowrap`}>
-                        {isPending && (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => handleProcessWithdrawal(w.id)}
-                          >
-                            Bắt đầu xử lý
-                          </Button>
-                        )}
-                        {isProcessing && (
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="success"
-                              size="sm"
-                              onClick={() => handleCompleteWithdrawal(w.id)}
-                            >
-                              Hoàn tất
-                            </Button>
-                            <Button
-                              variant="danger-outline"
-                              size="sm"
-                              onClick={() => setFailModalData(w)}
-                            >
-                              Báo lỗi / Hủy
-                            </Button>
-                          </div>
-                        )}
-                        {(isCompleted || isFailed) && (
-                          <span className="text-[11px] text-fg-muted italic">
-                            {w.failureReason || 'Đã kết thúc'}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </DataTable>
-            )}
-          </Card>
-        )}
-
-        {/* TAB 3: ADJUSTMENT */}
-        {activeTab === 'adjust' && (
-          <Card padding="lg" className="max-w-xl mx-auto space-y-4 border border-border shadow-brand-sm">
-            <CardHeader
-              title="Điều chỉnh số dư học viên"
-              icon={<Icon name="tune" size="sm" className="text-brand-primary-600" />}
-            />
-            <p className="text-caption text-fg-muted">
-              Hành động này áp dụng các nghiệp vụ đền bù hoặc xử lý thủ công đặc biệt. Mọi biến động được ghi vào sổ cái bất biến với dấu vết tài khoản Admin thực hiện.
-            </p>
-
-            <form onSubmit={handleAdjustWallet} className="space-y-4 pt-2">
-              <Field label="Mã định danh ví học viên" htmlFor="adjust-wallet-id">
-                <Input
-                  id="adjust-wallet-id"
-                  placeholder="Nhập mã ví học viên (UUID)..."
-                  value={adjustWalletId}
-                  onChange={(e) => setAdjustWalletId(e.target.value)}
-                  required
-                />
-              </Field>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Loại điều chỉnh" htmlFor="adjust-direction">
-                  <select
-                    id="adjust-direction"
-                    value={adjustDirection}
-                    onChange={(e) => setAdjustDirection(e.target.value)}
-                    className="w-full h-10 rounded-brand-md border border-border bg-surface px-3 text-caption text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600"
-                  >
-                    <option value="Credit">Cộng tiền (+ Credit)</option>
-                    <option value="Debit">Trừ tiền (- Debit)</option>
-                  </select>
-                </Field>
-
-                <Field label="Số tiền điều chỉnh (VND)" htmlFor="adjust-amount">
-                  <Input
-                    id="adjust-amount"
-                    type="number"
-                    placeholder="Ví dụ: 100000"
-                    value={adjustAmount}
-                    onChange={(e) => setAdjustAmount(e.target.value)}
-                    min="1000"
-                    step="1000"
-                    required
-                  />
-                </Field>
-              </div>
-
-              <Field label="Lý do điều chỉnh (Bắt buộc)" htmlFor="adjust-reason">
-                <Input
-                  id="adjust-reason"
-                  placeholder="Ví dụ: Đền bù gián đoạn hệ thống theo quyết định #123"
-                  value={adjustReason}
-                  onChange={(e) => setAdjustReason(e.target.value)}
-                  required
-                />
-              </Field>
-
-              <Button
-                type="submit"
-                variant="primary"
-                fullWidth
-                loading={submittingAdjust}
-              >
-                Ghi sổ điều chỉnh số dư
-              </Button>
-            </form>
-          </Card>
-        )}
-      </div>
-
-      {/* CONFIRM TOP-UP MODAL */}
-      {confirmModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-navy-950/50 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-surface rounded-brand-lg border border-border shadow-brand-xl p-5 space-y-4 animate-fadeIn">
-            <div className="flex items-center gap-2 text-success-strong font-bold">
-              <Icon name="check_circle" size="sm" />
-              <span>Xác nhận đã nhận tiền nạp</span>
-            </div>
-            <p className="text-caption text-fg leading-relaxed">
-              Bạn xác nhận đã nhận được khoản chuyển <strong>{formatCurrency(confirmModalData.amount)}</strong> từ học viên <strong>{confirmModalData.studentName}</strong> (Cú pháp: <code>{confirmModalData.transferReference}</code>)?
-            </p>
-            <Field label="Ghi chú đối soát (Tùy chọn)" htmlFor="adjust-note">
-              <Input
-                id="adjust-note"
-                placeholder="Ví dụ: Khớp giao dịch VCB 10:30 ngày 22/09"
-                value={adminNoteInput}
-                onChange={(e) => setAdminNoteInput(e.target.value)}
-              />
-            </Field>
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-border">
-              <Button variant="outline" onClick={() => setConfirmModalData(null)}>
-                Hủy bỏ
-              </Button>
-              <Button variant="success" loading={submittingConfirm} onClick={handleConfirmTopUp}>
-                Cộng {formatCurrency(confirmModalData.amount)} vào ví
-              </Button>
-            </div>
+  return <div className="space-y-6 lg:space-y-8">
+    <WorkspacePageHeader title="Quản lý ví học viên" description="Theo dõi nạp tiền, rút tiền và điều chỉnh số dư." />
+    <Tabs tabs={[{ key: 'topups', label: 'Nạp tiền', icon: <Icon name="add_card" size="sm" /> }, { key: 'withdrawals', label: 'Rút tiền', icon: <Icon name="payments" size="sm" /> }, { key: 'adjust', label: 'Điều chỉnh số dư', icon: <Icon name="tune" size="sm" /> }]} value={activeTab} onChange={changeTab} />
+    {activeTab === 'adjust' ? <StudentWalletAdjustment /> : <>
+      {!withdrawal && <div className="flex items-start gap-3 rounded-xl border border-brand-primary-100 bg-brand-primary-50 p-4 text-sm text-fg-secondary"><Icon name="verified_user" size="md" className="mt-0.5 text-brand-primary-600" /><p>VNPAY tự động ghi có sau khi xác thực thanh toán. Yêu cầu đang chờ chưa đồng nghĩa với học viên đã nạp tiền.</p></div>}
+      <Card padding="lg">
+        <div className="flex flex-col justify-between gap-4 border-b border-border pb-5 xl:flex-row xl:items-center">
+          <div className="flex items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-primary-50 text-brand-primary-600"><Icon name={withdrawal ? 'payments' : 'add_card'} size="md" /></span><div><h2 className="text-lg font-semibold">{withdrawal ? 'Yêu cầu rút tiền học viên' : 'Yêu cầu nạp tiền'}</h2><p className="mt-1 text-xs text-fg-secondary">{data?.totalCount || 0} yêu cầu{!loading && pendingCount > 0 ? ` · ${pendingCount} chờ trong trang này` : ''}</p></div></div>
+          <div className="flex flex-wrap items-center gap-2">
+            {!withdrawal && <Input aria-label="Tìm yêu cầu nạp tiền" placeholder="Tên, email, mã tham chiếu" value={search} onChange={event => setSearch(event.target.value)} className="sm:w-56" />}
+            <select aria-label="Lọc trạng thái yêu cầu" value={status} onChange={event => { setStatus(event.target.value); setPage(1); }} className="min-h-11 max-w-full rounded-lg border border-border bg-surface px-3 text-sm"><option value="">Tất cả trạng thái</option>{Object.entries(states).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
+            <Button variant="ghost" size="sm" loading={loading} aria-label="Làm mới yêu cầu" onClick={() => setReload(value => value + 1)}><Icon name="refresh" size="sm" /></Button>
           </div>
         </div>
-      )}
-
-      {/* REJECT TOP-UP MODAL */}
-      {rejectModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-navy-950/50 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-surface rounded-brand-lg border border-border shadow-brand-xl p-5 space-y-4 animate-fadeIn">
-            <div className="flex items-center gap-2 text-danger-strong font-bold">
-              <Icon name="cancel" size="sm" />
-              <span>Từ chối yêu cầu nạp tiền</span>
-            </div>
-            <p className="text-caption text-fg leading-relaxed">
-              Từ chối yêu cầu nạp tiền <strong>{formatCurrency(rejectModalData.amount)}</strong> (Ref: <code>{rejectModalData.transferReference}</code>). Vui lòng cung cấp lý do để gửi thông báo cho học viên.
-            </p>
-            <Field label="Lý do từ chối (Bắt buộc)" htmlFor="reject-reason">
-              <Input
-                id="reject-reason"
-                placeholder="Ví dụ: Không tìm thấy giao dịch ngân hàng khớp cú pháp sau 24h"
-                value={rejectionReasonInput}
-                onChange={(e) => setRejectionReasonInput(e.target.value)}
-                required
-              />
-            </Field>
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-border">
-              <Button variant="outline" onClick={() => setRejectModalData(null)}>
-                Hủy
-              </Button>
-              <Button variant="danger" loading={submittingReject} onClick={handleRejectTopUp}>
-                Từ chối yêu cầu
-              </Button>
-            </div>
+        {recordId && <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-brand-primary-50 p-3 text-sm"><span>Đang xem yêu cầu từ thông báo</span><Button size="sm" variant="ghost" onClick={() => setParams({ tab: activeTab })}>Xem tất cả</Button></div>}
+        {loading ? <div className="pt-5"><TableSkeleton rows={3} /></div> : error ? <div className="py-12 text-center"><p role="alert" className="mb-4 text-sm text-danger-strong">Không thể tải danh sách yêu cầu.</p><Button variant="outline" onClick={() => setReload(value => value + 1)}>Thử lại</Button></div> : rows.length === 0 ? <EmptyList withdrawal={withdrawal} filtered={!!(status || query || recordId)} /> : <>
+          <div className="divide-y divide-border">
+            {rows.map(row => <article key={row.id} className="grid items-center gap-4 py-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]">
+              <div className="flex items-start gap-3"><Avatar name={row.studentName || 'Học viên'} size="sm" /><div className="min-w-0"><h3 className="text-sm font-semibold">{row.studentName || 'Học viên'}</h3><p className="mt-1 break-all text-xs text-fg-secondary">{row.studentEmail}</p><p className="mt-2 text-xs text-fg-secondary">{formatDateTime(row.requestedAt)}</p></div></div>
+              <div className="min-w-0"><p className="text-xs text-fg-secondary">{withdrawal ? 'Số tiền yêu cầu rút' : 'Số tiền yêu cầu nạp'}</p><Money value={row.amount} className={row.status === 'Confirmed' ? 'mt-1 block text-xl font-semibold text-success-strong' : 'mt-1 block text-xl font-semibold'} />
+                {withdrawal ? <p className="mt-2 text-xs text-fg-secondary">{row.bankName} · {maskBankAccount(row.accountNumber)}</p> : <div className="mt-2 flex min-w-0 items-center gap-2"><code className="break-all text-xs text-fg-secondary">{row.transferReference}</code><button type="button" onClick={() => copy(row.transferReference)} aria-label="Sao chép mã tham chiếu" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-brand-primary-600 hover:bg-brand-primary-50 focus-visible:ring-2 focus-visible:ring-brand-primary-500"><Icon name="content_copy" size="sm" /></button></div>}
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 lg:flex-col lg:items-end"><StateBadge status={row.status} domain={withdrawal ? 'withdrawal' : 'topup'} /><Button variant="outline" size="sm" onClick={() => openDetail(row)} iconRight={<Icon name="chevron_right" size="sm" />}>{withdrawal ? 'Xem chi tiết' : 'Kiểm tra giao dịch'}</Button></div>
+            </article>)}
           </div>
-        </div>
-      )}
+          {data.totalPages > 1 && <div className="flex items-center justify-between gap-2 border-t border-border pt-5 text-xs text-fg-secondary"><Button size="sm" variant="outline" disabled={!data.hasPreviousPage} onClick={() => setPage(page - 1)}>Trước</Button><span>Trang {data.pageNumber}/{data.totalPages}</span><Button size="sm" variant="outline" disabled={!data.hasNextPage} onClick={() => setPage(page + 1)}>Tiếp</Button></div>}
+        </>}
+      </Card>
+    </>}
 
-      {/* FAIL WITHDRAWAL MODAL */}
-      {failModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-navy-950/50 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-surface rounded-brand-lg border border-border shadow-brand-xl p-5 space-y-4 animate-fadeIn">
-            <div className="flex items-center gap-2 text-danger-strong font-bold">
-              <Icon name="error" size="sm" />
-              <span>Báo lỗi rút tiền & Hoàn trả ví</span>
-            </div>
-            <p className="text-caption text-fg leading-relaxed">
-              Lệnh rút <strong>{formatCurrency(failModalData.amount)}</strong> sẽ chuyển sang trạng thái Thất bại. Số tiền đang tạm giữ sẽ được <strong>tự động hoàn trả 100% về số dư khả dụng</strong> của học viên.
-            </p>
-            <Field label="Lý do thất bại (Bắt buộc)" htmlFor="fail-reason">
-              <Input
-                id="fail-reason"
-                placeholder="Ví dụ: Số tài khoản thụ hưởng không tồn tại hoặc sai tên chủ thẻ"
-                value={failReasonInput}
-                onChange={(e) => setFailReasonInput(e.target.value)}
-                required
-              />
-            </Field>
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-border">
-              <Button variant="outline" onClick={() => setFailModalData(null)}>
-                Hủy
-              </Button>
-              <Button variant="danger" loading={submittingFail} onClick={handleFailWithdrawal}>
-                Xác nhận hoàn lại tiền vào ví
-              </Button>
-            </div>
-          </div>
+    <Drawer open={!!detail} onClose={() => { if (!busy) setDetail(null); }} side="right" title={withdrawal ? 'Chi tiết rút tiền' : 'Kiểm tra nạp tiền'} widthClass="w-full sm:max-w-lg" panelClassName="max-w-full">
+      {detail && <div className="space-y-5">
+        <div className="flex items-center gap-3"><Avatar name={detail.studentName} size="md" /><div className="min-w-0"><p className="font-semibold">{detail.studentName}</p><p className="mt-1 break-all text-sm text-fg-secondary">{detail.studentEmail}</p></div></div>
+        <div className="rounded-xl border border-brand-primary-100 bg-brand-primary-50 p-4"><p className="text-xs text-fg-secondary">{withdrawal ? 'Số tiền yêu cầu rút' : 'Số tiền yêu cầu nạp'}</p><Money value={detail.amount} className="mt-2 block text-3xl font-semibold" /><div className="mt-3"><StateBadge status={detail.status} domain={withdrawal ? 'withdrawal' : 'topup'} /></div></div>
+        <dl className="space-y-3 text-sm">
+          <div><dt className="text-xs text-fg-secondary">Thời gian yêu cầu</dt><dd className="mt-1">{formatDateTime(detail.requestedAt)}</dd></div>
+          {detail.processedAt && <div><dt className="text-xs text-fg-secondary">Thời gian xử lý</dt><dd className="mt-1">{formatDateTime(detail.processedAt)}</dd></div>}
+          {withdrawal ? <><div><dt className="text-xs text-fg-secondary">Ngân hàng nhận</dt><dd>{detail.bankName}</dd></div><div><dt className="text-xs text-fg-secondary">Chủ tài khoản</dt><dd>{detail.accountHolderName}</dd></div><div><dt className="text-xs text-fg-secondary">Số tài khoản đối soát</dt><dd className="break-all">{detail.accountNumber}</dd></div></> : <div><dt className="text-xs text-fg-secondary">Mã tham chiếu giao dịch</dt><dd className="mt-1 flex items-start gap-2"><code className="min-w-0 flex-1 break-all">{detail.transferReference}</code><Button variant="ghost" size="sm" aria-label="Sao chép mã tham chiếu trong chi tiết" onClick={() => copy(detail.transferReference)}><Icon name="content_copy" size="sm" /></Button></dd></div>}
+          {(detail.failureReason || detail.rejectionReason) && <div><dt className="text-xs text-fg-secondary">Lý do</dt><dd className="mt-1 break-words">{detail.failureReason || detail.rejectionReason}</dd></div>}
+        </dl>
+        {!withdrawal && !detail.canManuallyReview && <div className="rounded-xl bg-brand-primary-50 p-4 text-sm leading-6 text-fg-secondary">{detail.status === 'Pending' ? 'Chờ kết quả xác thực thanh toán từ VNPAY. Yêu cầu này chưa được ghi có vào ví.' : detail.status === 'Confirmed' ? 'Yêu cầu đã được ghi có vào ví.' : 'Yêu cầu đã kết thúc và không được ghi có vào ví.'}</div>}
+        {((!withdrawal && detail.canManuallyReview && detail.status === 'Pending') || (withdrawal && detail.status === 'Processing')) && <Field label={withdrawal ? 'Lý do nếu chuyển tiền thất bại' : 'Ghi chú đối soát / Lý do từ chối'} htmlFor="wallet-review-note"><textarea id="wallet-review-note" rows={3} minLength={10} maxLength={500} value={note} onChange={event => setNote(event.target.value)} disabled={busy} placeholder="Nhập thông tin đối soát cụ thể, từ 10 đến 500 ký tự" className="w-full rounded-lg border border-border bg-surface p-3 text-sm focus-visible:ring-2 focus-visible:ring-brand-primary-500" /></Field>}
+        {((!withdrawal && detail.canManuallyReview && detail.status === 'Pending') || (withdrawal && detail.status === 'Processing')) && <label className="flex items-start gap-3 rounded-xl bg-holding-subtle p-4 text-sm leading-6"><input type="checkbox" checked={checked} onChange={event => setChecked(event.target.checked)} disabled={busy} className="mt-1 h-4 w-4 shrink-0" /><span>{withdrawal ? 'Tôi đã kiểm tra và xác nhận tiền được chuyển thành công đến đúng tài khoản trên.' : 'Tôi đã đối chiếu chứng từ và xác nhận thực nhận đúng số tiền, người nạp và mã tham chiếu.'}</span></label>}
+        <div className="space-y-3 border-t border-border pt-4">
+          {!withdrawal && detail.canManuallyReview && detail.status === 'Pending' && <><Button fullWidth loading={busy} disabled={!checked || note.trim().length < 10} onClick={() => act('confirm')}>Xác nhận ghi có</Button><Button fullWidth variant="danger-outline" disabled={busy || note.trim().length < 10} onClick={() => act('reject')}>Từ chối yêu cầu</Button></>}
+          {withdrawal && detail.status === 'Pending' && <Button fullWidth loading={busy} onClick={() => act('process')}>Tiếp nhận xử lý</Button>}
+          {withdrawal && detail.status === 'Processing' && <><Button fullWidth loading={busy} disabled={!checked} onClick={() => act('complete')}>Xác nhận đã chuyển tiền</Button><Button fullWidth variant="danger-outline" disabled={busy || note.trim().length < 10} onClick={() => act('fail')}>Ghi nhận chuyển tiền thất bại</Button></>}
         </div>
-      )}
-    </div>
-  );
+      </div>}
+    </Drawer>
+  </div>;
 }

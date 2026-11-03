@@ -21,5 +21,6 @@ public class TopUpRequestDto
     // Student details for admin views
     public string? StudentName { get; set; }
     public string? StudentEmail { get; set; }
+    public bool CanManuallyReview { get; set; }
 }
 

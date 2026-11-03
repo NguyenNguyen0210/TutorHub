@@ -88,10 +88,10 @@ export const studentWalletService = {
   },
 
   // Admin endpoints
-  async adminGetTopUps({ status = null, pageNumber = 1, pageSize = 20 } = {}) {
-    const params = { pageNumber, pageSize };
+  async adminGetTopUps({ status = null, pageNumber = 1, pageSize = 20, search, recordId, signal } = {}) {
+    const params = { pageNumber, pageSize, search, recordId };
     if (status) params.status = status;
-    const res = await api.get('/admin/student-wallets/top-ups', { params });
+    const res = await api.get('/admin/student-wallets/top-ups', { params, signal });
     return normalizePaged(res);
   },
 
@@ -105,10 +105,10 @@ export const studentWalletService = {
     return res;
   },
 
-  async adminGetWithdrawals({ status = null, pageNumber = 1, pageSize = 20 } = {}) {
-    const params = { pageNumber, pageSize };
+  async adminGetWithdrawals({ status = null, pageNumber = 1, pageSize = 20, recordId, signal } = {}) {
+    const params = { pageNumber, pageSize, recordId };
     if (status) params.status = status;
-    const res = await api.get('/admin/student-wallets/withdrawals', { params });
+    const res = await api.get('/admin/student-wallets/withdrawals', { params, signal });
     return normalizePaged(res);
   },
 
@@ -127,14 +127,19 @@ export const studentWalletService = {
     return res;
   },
 
-  async adminAdjustWallet({ studentWalletId, amount, direction, reason, referenceId = null }) {
+  async adminFindWallets(search, pageNumber = 1, signal) {
+    return normalizePaged(await api.get('/admin/student-wallets', { params: { search, pageNumber }, signal }));
+  },
+
+  async adminAdjustWallet({ studentWalletId, amount, direction, reason, referenceId = null, expectedAvailableBalance }, idempotencyKey) {
     const res = await api.post('/admin/student-wallets/adjust', {
       studentWalletId,
       amount: Number(amount),
       direction,
       reason,
       referenceId,
-    });
+      expectedAvailableBalance,
+    }, { headers: idempotencyHeaders(idempotencyKey) });
     return res;
   },
 };
