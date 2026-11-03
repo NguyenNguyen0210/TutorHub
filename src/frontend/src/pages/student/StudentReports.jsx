@@ -55,14 +55,14 @@ export default function StudentReports() {
   const bookingId = params.get('bookingId');
   const reportId = params.get('reportId');
   const page = Math.min(10000, Math.max(1, Math.floor(Number(params.get('page')) || 1)));
-  const reports = useQuery({ queryKey: ['student-reports', user?.id, page], queryFn: () => reportService.getMyReports(page), staleTime: 0 });
+  const reports = useQuery({ queryKey: ['student-reports', user?.id, page, reportId], queryFn: () => reportService.getMyReports(page, reportId), staleTime: 0 });
   const onSubmitted = id => { setSubmitted(true); setParams({ reportId: id }); reports.refetch(); };
   return <div className="mx-auto max-w-[1000px] space-y-6">
-    <header><Button as={Link} to="/student/disputes" variant="ghost">Về khiếu nại</Button><h1 className="mt-4 text-headline-page text-fg">Báo cáo vi phạm</h1><p className="mt-2 text-body-reg text-fg-secondary">Theo dõi báo cáo về hành vi hoặc nội dung không phù hợp và kết quả xem xét của TutorHub.</p></header>
+    <header><Button as={Link} to={user?.role === 'Student' ? '/student/disputes' : user?.role === 'Tutor' ? '/tutor/disputes' : '/admin/trust-reports'} variant="ghost">Về không gian làm việc</Button><h1 className="mt-4 text-headline-page text-fg">Báo cáo vi phạm</h1><p className="mt-2 text-body-reg text-fg-secondary">Theo dõi báo cáo về hành vi hoặc nội dung không phù hợp và kết quả xem xét của TutorHub.</p>{reportId && <Button className="mt-3" variant="outline" onClick={() => setParams({})}>Xem tất cả báo cáo của tôi</Button>}</header>
     {bookingId && <ReportForm key={bookingId} bookingId={bookingId} onSubmitted={onSubmitted} onCancel={() => setParams({})} />}
     {submitted && <p role="status" className="rounded-xl bg-success-subtle p-4 text-sm text-success-strong">Đã gửi báo cáo. Bạn có thể theo dõi kết quả bên dưới.</p>}
     {reports.isPending ? <p role="status">Đang tải báo cáo…</p> : reports.isError ? <Card padding="lg" variant="outlined"><p>Chưa tải được danh sách báo cáo.</p><Button className="mt-4" variant="outline" onClick={() => reports.refetch()}>Thử lại</Button></Card>
-      : !reports.data?.items?.length ? <Card padding="lg" variant="outlined"><h2 className="font-semibold">Bạn chưa có báo cáo nào</h2><p className="mt-2 text-sm text-fg-secondary">Nếu gặp hành vi không phù hợp, bạn có thể gửi báo cáo từ chi tiết hợp đồng học tập.</p><Button className="mt-4" as={Link} to="/student/dashboard" variant="outline">Xem lớp học của tôi</Button></Card>
+      : !reports.data?.items?.length ? <Card padding="lg" variant="outlined"><h2 className="font-semibold">Bạn chưa có báo cáo nào</h2><p className="mt-2 text-sm text-fg-secondary">Nếu gặp hành vi không phù hợp, bạn có thể gửi báo cáo từ chi tiết hợp đồng học tập.</p><Button className="mt-4" as={Link} to={user?.role === 'Tutor' ? '/tutor/dashboard' : user?.role === 'Admin' ? '/admin/dashboard' : '/student/dashboard'} variant="outline">Xem lớp học của tôi</Button></Card>
         : <div className="divide-y divide-border rounded-2xl border border-border bg-surface">{reports.data.items.map(item => <article key={item.id} className={`p-5 sm:p-6 ${item.id === reportId ? 'bg-brand-primary-50/30' : ''}`}>
           <div className="flex flex-wrap justify-between gap-3"><h2 className="font-semibold text-fg">{types[item.reportType] || 'Báo cáo vi phạm'}</h2><span className="text-sm text-fg-secondary">{item.status === 'Resolved' ? 'Đã xử lý' : 'Chờ xem xét'}</span></div>
           <p className="mt-2 text-xs text-fg-secondary">Gửi ngày {formatDateTime(item.createdAt)}</p>

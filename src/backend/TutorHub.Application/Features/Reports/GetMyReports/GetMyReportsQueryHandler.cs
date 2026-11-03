@@ -25,6 +25,9 @@ public class GetMyReportsQueryHandler : IRequestHandler<GetMyReportsQuery, Paged
             .AsNoTracking()
             .Where(r => r.ReporterUserId == userId);
 
+        if (request.ReportId.HasValue)
+            query = query.Where(r => r.Id == request.ReportId.Value);
+
         var totalCount = await query.CountAsync(cancellationToken);
         var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
         var pageSize = request.PageSize < 1 ? 10 : (request.PageSize > 50 ? 50 : request.PageSize);

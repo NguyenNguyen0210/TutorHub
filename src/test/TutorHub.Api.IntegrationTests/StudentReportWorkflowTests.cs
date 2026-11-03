@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using TutorHub.Application.Common.Security;
 using TutorHub.Application.Features.Bookings.CreateBooking;
 using TutorHub.Application.Features.Bookings.CancelBooking;
-using TutorHub.Application.Features.Admin.Reports.ResolveReport;
 using TutorHub.Domain.Enums;
 
 namespace TutorHub.Api.IntegrationTests;
@@ -34,10 +33,17 @@ public class StudentReportWorkflowTests(IntegrationWebApplicationFactory factory
         using var created = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         var id = created.RootElement.GetProperty("data").GetProperty("id").GetGuid();
         (await client.PostAsJsonAsync(url, new { description })).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await client.GetAsync("/api/v1/admin/trust-reports")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
         SetCurrentUser(admin.Id, UserRole.Admin);
-        await SendAsync(new ResolveReportCommand(id, ReportDecision.WarningIssued, "The reported account has received a warning."));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt.GenerateAccessToken(admin));
+        (await client.GetAsync("/api/v1/admin/trust-reports?status=Open")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await client.GetAsync($"/api/v1/admin/trust-reports/{id}")).StatusCode.Should().Be(HttpStatusCode.OK);
+        var verdict = new { decision = "WarningIssued", resolution = "The reported account has received a warning." };
+        (await client.PostAsJsonAsync($"/api/v1/admin/trust-reports/{id}/resolve", verdict)).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await client.PostAsJsonAsync($"/api/v1/admin/trust-reports/{id}/resolve", verdict)).StatusCode.Should().Be(HttpStatusCode.Conflict);
         SetCurrentUser(student.Id, UserRole.Student);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt.GenerateAccessToken(student));
         var history = await client.GetAsync("/api/v1/reports/me");
         history.StatusCode.Should().Be(HttpStatusCode.OK);
         using var json = JsonDocument.Parse(await history.Content.ReadAsStringAsync());
@@ -47,12 +53,16 @@ public class StudentReportWorkflowTests(IntegrationWebApplicationFactory factory
         item.GetProperty("status").GetString().Should().Be("Resolved");
         item.GetProperty("resolution").GetString().Should().Contain("received a warning");
 
+        var focused = await client.GetAsync($"/api/v1/reports/me?reportId={id}");
+        using var focusedJson = JsonDocument.Parse(await focused.Content.ReadAsStringAsync());
+        focusedJson.RootElement.GetProperty("data").GetProperty("items").GetArrayLength().Should().Be(1);
+
         var (_, otherTutor, otherAdmin) = await SeedHelper.SeedTutorWithWalletAsync(Db);
         var (outsider, _, _) = await SeedHelper.SeedMarketplaceAsync(Db, otherTutor, otherAdmin.Id);
         SetCurrentUser(outsider.Id, UserRole.Student);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt.GenerateAccessToken(outsider));
         (await client.PostAsJsonAsync(url, new { description })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        var privateHistory = await client.GetAsync("/api/v1/reports/me");
+        var privateHistory = await client.GetAsync($"/api/v1/reports/me?reportId={id}");
         using var privateJson = JsonDocument.Parse(await privateHistory.Content.ReadAsStringAsync());
         privateJson.RootElement.GetProperty("data").GetProperty("items").GetArrayLength().Should().Be(0);
     }

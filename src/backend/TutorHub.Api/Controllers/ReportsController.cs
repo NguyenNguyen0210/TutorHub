@@ -58,9 +58,10 @@ public class ReportsController : ControllerBase
     public async Task<IActionResult> GetMyReports(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
+        [FromQuery] Guid? reportId = null,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetMyReportsQuery(pageNumber, pageSize);
+        var query = new GetMyReportsQuery(pageNumber, pageSize, reportId);
         var result = await _sender.Send(query, cancellationToken);
 
         return Ok(ApiResponse<PagedResult<UserReportDetailDto>>.SuccessResult(result, "Your dispute reports retrieved successfully."));

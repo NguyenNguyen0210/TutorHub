@@ -239,16 +239,13 @@ public class ResolveReportCommandHandler : IRequestHandler<ResolveReportCommand,
 
         report.ResolvedByAdmin = admin;
 
-        // 4b. Warning notification to reported user
-        if (request.Decision == ReportDecision.WarningIssued && report.ReportedUserId.HasValue)
-        {
-            _context.AddOutboxMessage(new ReportResolvedEvent(
+        // Every decision is delivered to the reporter; warnings also notify the target.
+        _context.AddOutboxMessage(new ReportResolvedEvent(
                 report.Id,
-                report.ReportedUserId.Value,
+                report.ReportedUserId ?? Guid.Empty,
                 report.ReporterUserId,
                 request.Decision.ToString(),
                 request.Resolution));
-        }
 
         // 5. Central Append-Only Audit Logging
         await _auditLogService.LogAsync(

@@ -94,16 +94,16 @@ export default function AdminDashboard() {
 
   const actionCards = [
     {
-      id: 'disputes',
-      title: 'Vụ tranh chấp & Báo cáo cần xử lý',
+      id: 'reports',
+      title: 'Báo cáo vi phạm cần xử lý',
       count: `${actionQueue.openReportsCount} vụ việc`,
       urgent: actionQueue.openReportsCount > 0,
       desc:
         actionQueue.openReportsCount > 0
-          ? 'Có khiếu nại tranh chấp buổi học đang chờ tiếp nhận và xử lý.'
-          : 'Bàn trọng tài hiện không có vụ việc tồn đọng.',
-      link: '/admin/disputes',
-      btnText: 'Phân xử trọng tài',
+          ? 'Có báo cáo về hành vi hoặc nội dung đang chờ xem xét.'
+          : 'Không có báo cáo vi phạm đang chờ xử lý.',
+      link: '/admin/trust-reports?status=Open',
+      btnText: 'Xem báo cáo',
       tone: 'danger',
       icon: 'gavel',
     },

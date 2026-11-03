@@ -96,6 +96,7 @@ const AdminTutorApplications = loadPage(() => import('../pages/admin/AdminTutorA
 const AdminDisputes = loadPage(() => import('../pages/admin/AdminDisputes'));
 const AdminDisputeDetail = loadPage(() => import('../pages/admin/AdminDisputeDetail'));
 const AdminUsers = loadPage(() => import('../pages/admin/AdminUsers'));
+const AdminTrustReports = loadPage(() => import('../pages/admin/AdminTrustReports'));
 const AdminAuditLogs = loadPage(() => import('../pages/admin/AdminAuditLogs'));
 
 export default function AppRoutes() {
@@ -136,6 +137,7 @@ export default function AppRoutes() {
         <Route path="messages" element={<Messages />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="notifications/:id" element={<NotificationTarget />} />
+        <Route path="reports" element={<StudentReports />} />
         <Route path="disputes/:id" element={<DisputeDetail />} />
       </Route>
 
@@ -215,6 +217,8 @@ export default function AppRoutes() {
         <Route path="tutor-applications" element={<AdminTutorApplications />} />
         <Route path="disputes/:id" element={<AdminDisputeDetail />} />
         <Route path="users" element={<AdminUsers />} />
+        <Route path="trust-reports" element={<AdminTrustReports />} />
+        <Route path="trust-reports/:id" element={<AdminTrustReports />} />
         <Route path="audit-logs" element={<AdminAuditLogs />} />
         <Route path="settings" element={<ProfileSettings />} />
         <Route path="profile" element={<Navigate to="/admin/settings" replace />} />

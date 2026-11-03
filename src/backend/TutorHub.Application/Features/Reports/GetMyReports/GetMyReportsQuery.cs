@@ -6,5 +6,6 @@ namespace TutorHub.Application.Features.Reports.GetMyReports;
 
 public record GetMyReportsQuery(
     int PageNumber = 1,
-    int PageSize = 10
+    int PageSize = 10,
+    Guid? ReportId = null
 ) : IRequest<PagedResult<UserReportDetailDto>>;

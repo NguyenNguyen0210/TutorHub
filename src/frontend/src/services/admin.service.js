@@ -168,6 +168,9 @@ function normalizePaged(raw, normalizeItem) {
 }
 
 export const adminService = {
+  getTrustReports: ({ status, pageNumber = 1 } = {}) => api.get('/admin/trust-reports', { params: { status: status || undefined, pageNumber, pageSize: 10 } }),
+  getTrustReport: id => api.get(`/admin/trust-reports/${id}`),
+  resolveTrustReport: (id, payload) => api.post(`/admin/trust-reports/${id}/resolve`, payload),
   /** GET /admin/dashboard/stats → AdminDashboardStatsDto (nested) */
   async getStats() {
     const res = await api.get('/admin/dashboard/stats');

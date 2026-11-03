@@ -511,15 +511,18 @@ public class BusinessEventNotificationHandler :
 
     public async Task Handle(ReportResolvedEvent notification, CancellationToken cancellationToken)
     {
-        var recipients = new List<(Guid UserId, string Title, string Message, string DeepLink)>();
+        var recipients = new List<(Guid UserId, string Title, string Message, string DeepLink)>
+        {
+            (notification.ReporterUserId, "Báo cáo đã được xử lý", "TutorHub đã xem xét báo cáo của bạn. Xem kết quả xử lý trong chi tiết báo cáo.", $"/app/reports?reportId={notification.ReportId}")
+        };
 
-        if (notification.Decision == "WarningIssued")
+        if (notification.Decision == "WarningIssued" && notification.ReportedUserId != Guid.Empty)
         {
             recipients.Add((
                 UserId: notification.ReportedUserId,
-                Title: "Official Warning Issued",
-                Message: $"You have received an official warning from the platform administration: {notification.Resolution}",
-                DeepLink: NotificationRouteRegistry.AdminReport(notification.ReportId)
+                Title: "Cảnh báo từ TutorHub",
+                Message: $"TutorHub đã gửi cảnh báo về hoạt động của bạn: {notification.Resolution}",
+                DeepLink: string.Empty
             ));
         }
 
