@@ -405,6 +405,9 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("character varying(1024)");
 
+                    b.Property<Guid?>("ResponseId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("UploadedByUserId")
                         .HasColumnType("uuid");
 
@@ -412,9 +415,40 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("DisputeId");
 
+                    b.HasIndex("ResponseId");
+
                     b.HasIndex("UploadedByUserId");
 
                     b.ToTable("DisputeEvidences");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.DisputeResponse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AuthorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DisputeId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorUserId");
+
+                    b.HasIndex("DisputeId", "CreatedAt");
+
+                    b.ToTable("DisputeResponses");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.EmailDelivery", b =>
@@ -2087,6 +2121,11 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("TutorHub.Domain.Entities.DisputeResponse", "Response")
+                        .WithMany()
+                        .HasForeignKey("ResponseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TutorHub.Domain.Entities.User", "UploadedByUser")
                         .WithMany()
                         .HasForeignKey("UploadedByUserId")
@@ -2095,7 +2134,28 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
 
                     b.Navigation("Dispute");
 
+                    b.Navigation("Response");
+
                     b.Navigation("UploadedByUser");
+                });
+
+            modelBuilder.Entity("TutorHub.Domain.Entities.DisputeResponse", b =>
+                {
+                    b.HasOne("TutorHub.Domain.Entities.User", "AuthorUser")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TutorHub.Domain.Entities.Dispute", "Dispute")
+                        .WithMany("Responses")
+                        .HasForeignKey("DisputeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AuthorUser");
+
+                    b.Navigation("Dispute");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.EmailDelivery", b =>
@@ -2538,6 +2598,8 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TutorHub.Domain.Entities.Dispute", b =>
                 {
                     b.Navigation("Evidences");
+
+                    b.Navigation("Responses");
                 });
 
             modelBuilder.Entity("TutorHub.Domain.Entities.Enrollment", b =>

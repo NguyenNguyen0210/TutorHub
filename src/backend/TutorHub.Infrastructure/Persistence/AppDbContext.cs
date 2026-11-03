@@ -60,6 +60,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<EmailDelivery> EmailDeliveries => Set<EmailDelivery>();
     public DbSet<Dispute> Disputes => Set<Dispute>();
     public DbSet<DisputeEvidence> DisputeEvidences => Set<DisputeEvidence>();
+    public DbSet<DisputeResponse> DisputeResponses => Set<DisputeResponse>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<LearningRecord> LearningRecords => Set<LearningRecord>();
     public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();

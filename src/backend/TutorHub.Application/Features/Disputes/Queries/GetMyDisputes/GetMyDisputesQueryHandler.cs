@@ -26,6 +26,7 @@ public class GetMyDisputesQueryHandler : IRequestHandler<GetMyDisputesQuery, IRe
             .Include(d => d.InitiatorUser)
             .Include(d => d.RespondentUser)
             .Include(d => d.Evidences)
+            .Include(d => d.Responses).ThenInclude(r => r.AuthorUser)
             .Where(d => d.InitiatorUserId == userId || d.RespondentUserId == userId)
             .OrderByDescending(d => d.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -52,11 +53,13 @@ public class GetMyDisputesQueryHandler : IRequestHandler<GetMyDisputesQuery, IRe
             HoldStatus = d.HoldStatus,
             HeldAt = d.HeldAt,
             CreatedAt = d.CreatedAt,
+            Responses = d.Responses.OrderBy(r => r.CreatedAt).ThenBy(r => r.Id).Select(r => new DisputeResponseDto { Id = r.Id, DisputeId = r.DisputeId, AuthorUserId = r.AuthorUserId, AuthorName = r.AuthorUser.FullName, AuthorRole = r.AuthorUser.Role, Content = r.Content, CreatedAt = r.CreatedAt }).ToList(),
             Evidences = d.Evidences.Select(e => new DisputeEvidenceDto
             {
                 Id = e.Id,
                 DisputeId = e.DisputeId,
                 UploadedByUserId = e.UploadedByUserId,
+                ResponseId = e.ResponseId,
                 FileName = e.FileName,
                 FileUrl = e.FileUrl,
                 ContentType = e.ContentType,

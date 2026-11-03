@@ -1,3 +1,4 @@
+using TutorHub.Application.Features.Disputes.Commands.SubmitDisputeResponse;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -45,6 +46,14 @@ public class DisputesController : ControllerBase
         );
     }
 
+    [HttpPost("{id:guid}/responses")]
+    [ProducesResponseType(typeof(ApiResponse<DisputeResponseDto>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> SubmitResponse([FromRoute] Guid id, [FromBody] SubmitResponseRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new SubmitDisputeResponseCommand(id, request.SubmissionId, request.Content), cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, ApiResponse<DisputeResponseDto>.SuccessResult(result));
+    }
+
     /// <summary>
     /// Upload supporting evidence file (multipart/form-data) for an active dispute with binary signature validation.
     /// </summary>
@@ -55,6 +64,7 @@ public class DisputesController : ControllerBase
     public async Task<IActionResult> UploadEvidenceForm(
         [FromRoute] Guid id,
         IFormFile file,
+        [FromForm] Guid? responseId,
         CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0)
@@ -85,7 +95,8 @@ public class DisputesController : ControllerBase
             FileName: file.FileName,
             FileUrl: downloadUrl,
             ContentType: detectedMime,
-            FileSizeBytes: stored.Size
+            FileSizeBytes: stored.Size,
+            ResponseId: responseId
         );
 
         var result = await _sender.Send(command, cancellationToken);
@@ -111,7 +122,8 @@ public class DisputesController : ControllerBase
             FileName: request.FileName,
             FileUrl: request.FileUrl,
             ContentType: request.ContentType,
-            FileSizeBytes: request.FileSizeBytes
+            FileSizeBytes: request.FileSizeBytes,
+            ResponseId: request.ResponseId
         );
 
         var result = await _sender.Send(command, cancellationToken);
@@ -137,5 +149,8 @@ public record UploadEvidenceRequest(
     string FileName,
     string FileUrl,
     string ContentType,
-    long FileSizeBytes
+    long FileSizeBytes,
+    Guid? ResponseId = null
 );
+
+public record SubmitResponseRequest(Guid SubmissionId, string Content);

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { Link, useParams, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import disputeService from '@/services/dispute.service';
@@ -9,22 +9,16 @@ import Button from '@/components/ui/Button';
 import ErrorState from '@/components/common/ErrorState';
 import Money from '@/components/ui/Money';
 import StateBadge from '@/components/common/StateBadge';
-import { useToast } from '@/components/ui/Toast';
-import { EVIDENCE_ACCEPT, EVIDENCE_HINT, evidenceValidationMessage, evidenceDownloadUrl } from '@/utils/disputeEvidence';
+import DisputeHistory from '@/components/disputes/DisputeHistory';
+import DisputeResponseForm from '@/components/disputes/DisputeResponseForm';
+import Icon from '@/components/ui/Icon';
 
 export default function DisputeDetail() {
   const { id } = useParams();
   const location = useLocation();
-  const [evidenceAdded, setEvidenceAdded] = useState(false);
   const { user } = useAuthStore();
   const client = useQueryClient();
-  const toast = useToast();
-  const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState('');
-  const inputRef = useRef(null);
   const backPath = user?.role === 'Tutor' ? '/tutor/disputes' : '/student/disputes';
-  useEffect(() => { setFile(null); setUploadError(''); setEvidenceAdded(false); if (inputRef.current) inputRef.current.value = ''; }, [id]);
   const query = useQuery({ queryKey: ['my-dispute', user?.id, id], staleTime: 0, queryFn: async () => {
     const items = await disputeService.getMyDisputes();
     const item = items.find(value => value.id === id);
@@ -32,47 +26,30 @@ export default function DisputeDetail() {
     return item;
   } });
   if (query.isPending) return <div role="status" aria-label="Đang tải tranh chấp" className="h-64 rounded-2xl bg-neutral-100 motion-safe:animate-pulse" />;
-  const upload = async event => {
-    event.preventDefault();
-    if (uploading) return;
-    const error = evidenceValidationMessage(file);
-    if (error) { setUploadError(error); return; }
-    setUploading(true);
-    setUploadError('');
-    try {
-      await disputeService.uploadEvidence(id, file);
-      setEvidenceAdded(true);
-      setFile(null);
-      if (inputRef.current) inputRef.current.value = '';
-      await Promise.all([
-        client.invalidateQueries({ queryKey: ['my-dispute', user?.id, id] }),
-        client.invalidateQueries({ queryKey: ['my-disputes', user?.id] }),
-      ]);
-      toast.success('Đã bổ sung bằng chứng.');
-    } catch { setUploadError('Chưa thể tải bằng chứng. Vui lòng kiểm tra tệp và thử lại.'); }
-    finally { setUploading(false); }
-  };
+  const refresh = () => Promise.all([
+    client.invalidateQueries({ queryKey: ['my-dispute', user?.id, id] }),
+    client.invalidateQueries({ queryKey: ['my-disputes', user?.id] }),
+  ]);
   if (query.isError) return <ErrorState title="Không thể mở khiếu nại" error={query.error} onRetry={query.refetch} backPath={backPath} backLabel="Quay lại" />;
   const item = query.data;
   const workspace = user?.role === 'Tutor' ? 'tutor' : 'student';
   const closed = ['Resolved', 'Dismissed'].includes(item.status);
   return <div className="mx-auto max-w-3xl space-y-5">
     <Button as={Link} to={backPath} variant="ghost">Về khiếu nại của tôi</Button>
-    <h1 className="text-headline-page text-fg">Khiếu nại buổi học #{item.sessionNumber}</h1>
+    <header className="flex flex-wrap items-start justify-between gap-4">
+      <div><h1 className="text-headline-page text-fg">Khiếu nại buổi học #{item.sessionNumber}</h1><p className="mt-2 text-sm leading-relaxed text-fg-secondary">{user?.id === item.respondentUserId ? 'Bạn nhận được khiếu nại liên quan đến buổi học này. Hãy đọc nội dung và gửi giải trình nếu cần.' : 'Theo dõi phản hồi và kết quả xử lý khiếu nại của bạn.'}</p></div>
+      <Button variant="outline" size="sm" onClick={() => query.refetch()} icon={<Icon name="refresh" size="sm" />}>Cập nhật</Button>
+    </header>
     <Card padding="lg" variant="outlined" className="space-y-4 rounded-2xl">
       <StateBadge domain="dispute" status={item.status} />
+      <h2 className="text-lg font-semibold text-fg">Nội dung khiếu nại</h2>
       <p className="whitespace-pre-wrap break-words text-body-reg leading-relaxed text-fg-secondary">{item.description}</p>
       <dl className="space-y-3 text-body-reg text-fg-secondary"><div><dt>Người gửi</dt><dd className="text-fg">{item.initiatorName}</dd></div><div><dt>Thời gian tạo</dt><dd className="text-fg">{formatDateTime(item.createdAt)}</dd></div><div><dt>Học phí được tạm giữ khi mở tranh chấp</dt><dd className="text-fg"><Money value={item.heldAmount} /></dd></div>{item.adminNotes && <div><dt>Ghi chú xử lý</dt><dd className="whitespace-pre-wrap text-fg">{item.adminNotes}</dd></div>}{item.resolvedAt && <div><dt>Thời gian xử lý</dt><dd className="text-fg">{formatDateTime(item.resolvedAt)}</dd></div>}</dl>
-      <div className="flex flex-wrap gap-3"><Button as={Link} to={`/${workspace}/sessions/${item.sessionId}`}>Xem buổi học</Button><Button as={Link} to={`/${workspace}/enrollments/${item.enrollmentId}`} variant="outline">Xem hợp đồng</Button></div>
+      <div className="flex flex-wrap gap-3">{!closed && <Button as="a" href="#dispute-response" variant="outline">Gửi giải trình</Button>}<Button as={Link} to={`/${workspace}/sessions/${item.sessionId}`}>Xem buổi học</Button><Button as={Link} to={`/${workspace}/enrollments/${item.enrollmentId}`} variant="outline">Xem hợp đồng</Button></div>
     </Card>
-    <Card padding="lg" variant="outlined" className="space-y-4 rounded-2xl">
-      <h2 className="text-lg font-semibold text-fg">Bằng chứng đính kèm</h2>
-      {location.state?.evidenceUploadFailed && !evidenceAdded && !closed && <p role="alert" className="rounded-lg bg-holding-subtle p-3 text-sm text-holding-strong">Khiếu nại đã được tạo nhưng tệp đính kèm chưa tải lên thành công. Vui lòng chọn lại tệp và gửi bằng chứng bên dưới.</p>}
-      {item.evidences?.length ? <ul className="divide-y divide-border">{item.evidences.map(evidence => {
-        const url = evidenceDownloadUrl(evidence.fileUrl);
-        return <li key={evidence.id} className="space-y-1 py-3">{url ? <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center break-all rounded font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{evidence.fileName}</a> : <p className="break-all font-medium text-fg">{evidence.fileName}</p>}<p className="text-caption text-fg-secondary">{formatDateTime(evidence.createdAt)} · {Math.max(1, Math.ceil(evidence.fileSizeBytes / 1024))} KB</p></li>;
-      })}</ul> : <p className="text-sm text-fg-secondary">Chưa có tệp bằng chứng đính kèm.</p>}
-      {!closed ? <form onSubmit={upload} className="space-y-3 border-t border-border pt-4"><label htmlFor="dispute-evidence" className="block text-sm font-semibold text-fg">Bổ sung bằng chứng</label><p id="evidence-help" className="text-caption text-fg-secondary">{EVIDENCE_HINT}</p><input key={id} ref={inputRef} id="dispute-evidence" type="file" accept={EVIDENCE_ACCEPT} disabled={uploading} aria-describedby={uploadError ? 'evidence-help evidence-error' : 'evidence-help'} aria-invalid={Boolean(uploadError)} onChange={event => { setFile(event.target.files?.[0] || null); setUploadError(''); }} className="block min-h-11 w-full min-w-0 rounded-lg border border-border bg-surface p-2 text-sm text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />{uploadError && <p id="evidence-error" role="alert" className="text-sm text-danger-strong">{uploadError}</p>}<Button type="submit" loading={uploading} disabled={!file || uploading}>Gửi bằng chứng</Button></form> : <p className="text-caption text-fg-secondary">Khiếu nại đã kết thúc và không còn nhận thêm bằng chứng.</p>}
+    <Card padding="lg" variant="outlined" className="rounded-2xl"><DisputeHistory dispute={item} /></Card>
+    <Card padding="lg" variant="outlined" className="rounded-2xl">
+      {!closed ? <DisputeResponseForm key={id} disputeId={id} onSaved={refresh} uploadFailed={location.state?.evidenceUploadFailed} /> : <div className="space-y-2"><h2 className="text-lg font-semibold text-fg">Vụ việc đã kết thúc</h2><p className="text-sm text-fg-secondary">Khiếu nại không còn nhận thêm giải trình hoặc bằng chứng. Bạn có thể xem lại toàn bộ lịch sử ở trên.</p></div>}
     </Card>
   </div>;
 }

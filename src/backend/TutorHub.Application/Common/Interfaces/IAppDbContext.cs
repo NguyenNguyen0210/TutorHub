@@ -44,6 +44,7 @@ public interface IAppDbContext
     DbSet<EmailDelivery> EmailDeliveries { get; }
     DbSet<Dispute> Disputes { get; }
     DbSet<DisputeEvidence> DisputeEvidences { get; }
+    DbSet<DisputeResponse> DisputeResponses { get; }
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<LearningRecord> LearningRecords { get; }
     DbSet<ExternalLogin> ExternalLogins { get; }

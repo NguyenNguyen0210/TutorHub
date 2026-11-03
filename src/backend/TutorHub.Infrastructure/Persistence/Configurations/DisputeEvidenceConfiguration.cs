@@ -39,5 +39,6 @@ public class DisputeEvidenceConfiguration : IEntityTypeConfiguration<DisputeEvid
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(e => e.DisputeId);
+        builder.HasOne(e => e.Response).WithMany().HasForeignKey(e => e.ResponseId).OnDelete(DeleteBehavior.Restrict);
     }
 }

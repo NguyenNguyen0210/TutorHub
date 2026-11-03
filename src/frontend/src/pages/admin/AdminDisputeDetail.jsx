@@ -1,3 +1,4 @@
+import DisputeHistory from '@/components/disputes/DisputeHistory';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import adminService from '@/services/admin.service';
@@ -375,49 +376,7 @@ export default function AdminDisputeDetail() {
           </div>
         </div>
 
-        {/* Uploaded Evidence Documents */}
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-caption font-bold text-fg flex items-center gap-1.5 m-0">
-              <Icon name="attach_file" size="xs" className="text-brand-primary-600" />
-              Tài liệu & Bằng chứng xác minh ({evidences.length})
-            </h3>
-            {hasNoEvidence && (
-              <span className="text-[11px] text-danger-strong font-medium">
-                Chưa có bằng chứng (Quy chế Q3 chặn phán quyết tài chính)
-              </span>
-            )}
-          </div>
-
-          {evidences.length === 0 ? (
-            <div className="p-4 rounded-brand-md bg-neutral-50 border border-dashed border-border text-center text-caption text-fg-muted">
-              Chưa có tài liệu minh chứng (ảnh chụp màn hình, biên bản) nào được gửi kèm.
-            </div>
-          ) : (
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-0 m-0 list-none">
-              {evidences.map((ev, idx) => (
-                <li key={ev.id || idx}>
-                  <a
-                    href={ev.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-3 rounded-brand-md bg-neutral-50 border border-border hover:border-brand-primary-500 hover:bg-neutral-100/60 transition-all flex items-center justify-between text-caption group"
-                  >
-                    <div className="truncate pr-2 space-y-0.5">
-                      <span className="font-semibold block truncate text-fg group-hover:text-brand-primary-700">
-                        {ev.fileName}
-                      </span>
-                      <span className="text-[11px] text-fg-muted font-mono block">
-                        {ev.fileSizeBytes ? `${Math.round(ev.fileSizeBytes / 1024)} KB` : ''} • {ev.contentType || 'file'}
-                      </span>
-                    </div>
-                    <Icon name="open_in_new" size="sm" className="text-brand-primary-600 shrink-0" />
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        {dispute && <DisputeHistory dispute={dispute} />}
 
         {/* Conversation Snippet */}
         {conversationSnippet && conversationSnippet.length > 0 && (

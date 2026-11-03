@@ -19,15 +19,20 @@ export const disputeService = {
    * POST /disputes/{id}/evidence (multipart/form-data)
    * Upload binary evidence file directly.
    */
-  async uploadEvidence(disputeId, file) {
+  async uploadEvidence(disputeId, file, responseId) {
     const formData = new FormData();
     formData.append('file', file);
+    if (responseId) formData.append('responseId', responseId);
     const res = await api.post(`/disputes/${disputeId}/evidence`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
     return res;
+  },
+
+  async submitResponse(disputeId, { submissionId, content }) {
+    return api.post(`/disputes/${disputeId}/responses`, { submissionId, content });
   },
 
   /**

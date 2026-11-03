@@ -53,10 +53,18 @@ public class UploadDisputeEvidenceCommandHandler : IRequestHandler<UploadDispute
             throw new BadRequestException("Cannot upload evidence for a closed dispute.");
         }
 
+        if (request.ResponseId.HasValue)
+        {
+            var response = await _context.DisputeResponses.FirstOrDefaultAsync(x => x.Id == request.ResponseId.Value, cancellationToken);
+            if (response == null || response.DisputeId != dispute.Id || response.AuthorUserId != userId)
+                throw new ForbiddenException("Evidence must belong to your own response in this dispute.");
+        }
+
         var evidence = new DisputeEvidence
         {
             Id = Guid.NewGuid(),
             DisputeId = dispute.Id,
+            ResponseId = request.ResponseId,
             UploadedByUserId = userId,
             FileName = request.FileName,
             FileUrl = request.FileUrl,
@@ -72,6 +80,7 @@ public class UploadDisputeEvidenceCommandHandler : IRequestHandler<UploadDispute
         {
             Id = evidence.Id,
             DisputeId = evidence.DisputeId,
+            ResponseId = evidence.ResponseId,
             UploadedByUserId = evidence.UploadedByUserId,
             FileName = evidence.FileName,
             FileUrl = evidence.FileUrl,

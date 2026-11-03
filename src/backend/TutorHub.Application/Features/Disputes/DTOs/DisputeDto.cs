@@ -25,6 +25,7 @@ public class DisputeDto
     public DateTime? HeldAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<DisputeEvidenceDto> Evidences { get; set; } = new();
+    public List<DisputeResponseDto> Responses { get; set; } = new();
 }
 
 public class DisputeEvidenceDto
@@ -32,9 +33,21 @@ public class DisputeEvidenceDto
     public Guid Id { get; set; }
     public Guid DisputeId { get; set; }
     public Guid UploadedByUserId { get; set; }
+    public Guid? ResponseId { get; set; }
     public string FileName { get; set; } = string.Empty;
     public string FileUrl { get; set; } = string.Empty;
     public string ContentType { get; set; } = string.Empty;
     public long FileSizeBytes { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class DisputeResponseDto
+{
+    public Guid Id { get; set; }
+    public Guid DisputeId { get; set; }
+    public Guid AuthorUserId { get; set; }
+    public string AuthorName { get; set; } = string.Empty;
+    public UserRole AuthorRole { get; set; }
+    public string Content { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
 }

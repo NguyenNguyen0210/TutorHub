@@ -8,5 +8,6 @@ public record UploadDisputeEvidenceCommand(
     string FileName,
     string FileUrl,
     string ContentType,
-    long FileSizeBytes
+    long FileSizeBytes,
+    Guid? ResponseId = null
 ) : IRequest<DisputeEvidenceDto>;
