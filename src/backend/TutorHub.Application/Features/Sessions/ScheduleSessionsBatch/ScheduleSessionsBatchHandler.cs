@@ -39,6 +39,10 @@ public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatc
 
         // Pass 1: load ALL sessions in one query, validate every item before touching state.
         var ids = request.Items.Select(i => i.SessionId).ToList();
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        foreach (var sessionId in ids.Distinct().OrderBy(id => id.ToString("D"), StringComparer.Ordinal))
+            await PostgresAdvisoryLock.LockRowAsync(_context,
+                $"SELECT 1 FROM \"Sessions\" WHERE \"Id\" = {sessionId} FOR UPDATE", cancellationToken);
         var sessions = await _context.Sessions
             .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
             .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(t => t.User)
@@ -78,7 +82,6 @@ public class ScheduleSessionsBatchHandler : IRequestHandler<ScheduleSessionsBatc
         var tutorProfileIds = sessions.Select(s => s.Enrollment.TutorProfileId).Distinct().ToList();
         var studentProfileIds = sessions.Select(s => s.Enrollment.StudentProfileId).Distinct().ToList();
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             await PostgresAdvisoryLock.AcquireManyAsync(_context,

@@ -1,4 +1,5 @@
 using MediatR;
+using TutorHub.Application.Common.Concurrency;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Exceptions;
@@ -41,6 +42,13 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
         {
             throw new ForbiddenException("Only administrators have permission to perform administrative enrollment cancellation.");
         }
+
+        // Lock before reading financial state, in the same session-first order as payout.
+        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+        await PostgresAdvisoryLock.LockRowAsync(_context,
+            $"SELECT 1 FROM \"Sessions\" WHERE \"EnrollmentId\" = {request.EnrollmentId} ORDER BY \"Id\" FOR UPDATE", cancellationToken);
+        await PostgresAdvisoryLock.LockRowAsync(_context,
+            $"SELECT 1 FROM \"Enrollments\" WHERE \"Id\" = {request.EnrollmentId} FOR UPDATE", cancellationToken);
 
         var enrollment = await _context.Enrollments
             .Include(e => e.StudentProfile).ThenInclude(s => s.User)
@@ -100,7 +108,6 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
         // 4. Financial Escrow Adjustment & Refund Record.
         // Lock the tutor wallet row so concurrent payouts/cancellations cannot
         // race the pending-escrow read-modify-write.
-        await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             if (refundAmount > 0)

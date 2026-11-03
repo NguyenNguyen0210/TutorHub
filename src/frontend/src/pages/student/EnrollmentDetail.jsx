@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import chatService from '@/services/chat.service';
 import tutorService from '@/services/tutor.service';
@@ -68,6 +68,7 @@ export default function EnrollmentDetail() {
   const confirm = useConfirm();
   const client = useQueryClient();
   const [cancelling, setCancelling] = useState(false);
+  const cancellingRef = useRef(false);
   const navigate = useNavigate();
   const [sessionFilter, setSessionFilter] = useState('all');
   const [visibleCount, setVisibleCount] = useState(5);
@@ -145,7 +146,8 @@ export default function EnrollmentDetail() {
   }, [id]);
 
   const cancelCourse = async () => {
-    if (cancelling || isTutor) return;
+    if (cancellingRef.current) return;
+    cancellingRef.current = true;
     setCancelling(true);
     try {
       const [current, disputes] = await Promise.all([
@@ -169,23 +171,23 @@ export default function EnrollmentDetail() {
       const refund = remaining.reduce((sum, item) => sum + Number(item.sessionPrice || 0), 0);
       let reason = '';
       const accepted = await confirm({
-        title: 'Dừng khóa học?', danger: true, confirmText: 'Xác nhận dừng', cancelText: 'Tiếp tục học',
+        title: isTutor ? 'Ngừng giảng dạy hợp đồng?' : 'Dừng khóa học?', danger: true, confirmText: 'Xác nhận dừng', cancelText: 'Quay lại',
         requireReason: true, minReasonLength: 5, maxReasonLength: 500,
         reasonLabel: 'Lý do dừng khóa học', reasonPlaceholder: 'Chia sẻ lý do (5–500 ký tự)',
         onConfirmReason: value => { reason = value; },
         content: <div className="space-y-3"><p>{remaining.length} buổi học còn lại sẽ bị hủy. Các buổi đã hoàn thành được giữ nguyên.</p><p>Học phí dự kiến hoàn về Ví học viên: <strong className="text-success-strong"><Money value={refund} /></strong>.</p><p>Số tiền cuối cùng được xác định theo trạng thái hợp đồng khi xác nhận. Thao tác này không thể hoàn tác.</p></div>,
       });
       if (!accepted) return;
-      const updated = await enrollmentService.cancelEnrollment(id, reason);
+      const updated = isTutor ? await enrollmentService.tutorCannotContinue(id, reason) : await enrollmentService.cancelEnrollment(id, reason);
       setEnrollment(previous => ({ ...previous, ...updated }));
       await Promise.all([
         client.invalidateQueries({ queryKey: ['student-schedule'] }),
         client.invalidateQueries({ queryKey: ['booking-enrollments'] }),
       ]);
-      toast.success('Đã dừng khóa học. Bạn có thể xem khoản hoàn tiền trong Ví học viên.');
+      toast.success(isTutor ? 'Đã ngừng giảng dạy hợp đồng. Học phí còn lại được xử lý về Ví học viên.' : 'Đã dừng khóa học. Bạn có thể xem khoản hoàn tiền trong Ví học viên.');
     } catch (err) {
       toast.error(err?.status === 409 ? 'Trạng thái lớp học vừa thay đổi. Vui lòng tải lại lộ trình trước khi dừng.' : 'Chưa thể dừng khóa học. Vui lòng thử lại.');
-    } finally { setCancelling(false); }
+    } finally { setCancelling(false); cancellingRef.current = false; }
   };
 
   useEffect(() => {
@@ -803,7 +805,7 @@ export default function EnrollmentDetail() {
                 {enrollment.createdAt && <div><dt className="text-fg-muted">Ngày đăng ký</dt><dd className="mt-1 text-fg-secondary">{formatDateTime(enrollment.createdAt, 'DD/MM/YYYY')}</dd></div>}
               </dl>
             </details>
-            {!isTutor && enrollment.status === 'Active' && <div className="mt-4 space-y-2 border-t border-border pt-4"><Button variant="danger-outline" fullWidth loading={cancelling} onClick={cancelCourse}>Dừng khóa học</Button><p className="text-xs leading-relaxed text-fg-secondary">Các buổi chưa hoàn thành sẽ được hủy và hoàn học phí theo trạng thái hợp đồng. Khiếu nại và thời gian bảo lưu cần kết thúc trước khi dừng.</p></div>}
+            {enrollment.status === 'Active' && <div className="mt-4 space-y-2 border-t border-border pt-4"><Button variant="danger-outline" fullWidth loading={cancelling} onClick={cancelCourse}>{isTutor ? 'Không thể tiếp tục giảng dạy' : 'Dừng khóa học'}</Button><p className="text-xs leading-relaxed text-fg-secondary">Các buổi chưa hoàn thành sẽ được hủy và hoàn học phí theo trạng thái hợp đồng. Khiếu nại và thời gian bảo lưu cần kết thúc trước khi dừng.</p></div>}
             {enrollment.status === 'Cancelled' && enrollment.cancellationReason && <p className="mt-4 whitespace-pre-wrap break-words border-t border-border pt-4 text-xs leading-relaxed text-fg-secondary">Lý do dừng: {enrollment.cancellationReason}</p>}
             {!isTutor && enrollment.bookingId && <Button as={Link} to={`/student/reports?bookingId=${encodeURIComponent(enrollment.bookingId)}`} variant="ghost" fullWidth className="mt-4">Báo cáo hành vi vi phạm</Button>}
           </Card>
