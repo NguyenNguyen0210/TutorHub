@@ -71,6 +71,7 @@ import DisputeNew from '../pages/student/DisputeNew';
 import StudentWishlist from '../pages/student/StudentWishlist';
 import StudentSchedule from '../pages/student/StudentSchedule';
 import StudentBookings from '../pages/student/StudentBookings';
+import StudentReports from '../pages/student/StudentReports';
 import MyDisputes from '../pages/shared/MyDisputes';
 import LegalPolicy from '../pages/shared/LegalPolicy';
 
@@ -164,6 +165,7 @@ export default function AppRoutes() {
         <Route path="schedule" element={<StudentSchedule />} />
         <Route path="bookings" element={<StudentBookings />} />
         <Route path="disputes" element={<MyDisputes />} />
+        <Route path="reports" element={<StudentReports />} />
         <Route path="wallet" element={<StudentWallet />} />
         <Route path="wallet/topup" element={<StudentWalletTopUp />} />
         <Route path="wallet/withdraw" element={<StudentWalletWithdraw />} />

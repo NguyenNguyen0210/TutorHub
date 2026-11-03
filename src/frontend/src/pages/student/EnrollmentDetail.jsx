@@ -805,6 +805,7 @@ export default function EnrollmentDetail() {
             </details>
             {!isTutor && enrollment.status === 'Active' && <div className="mt-4 space-y-2 border-t border-border pt-4"><Button variant="danger-outline" fullWidth loading={cancelling} onClick={cancelCourse}>Dừng khóa học</Button><p className="text-xs leading-relaxed text-fg-secondary">Các buổi chưa hoàn thành sẽ được hủy và hoàn học phí theo trạng thái hợp đồng. Khiếu nại và thời gian bảo lưu cần kết thúc trước khi dừng.</p></div>}
             {enrollment.status === 'Cancelled' && enrollment.cancellationReason && <p className="mt-4 whitespace-pre-wrap break-words border-t border-border pt-4 text-xs leading-relaxed text-fg-secondary">Lý do dừng: {enrollment.cancellationReason}</p>}
+            {!isTutor && enrollment.bookingId && <Button as={Link} to={`/student/reports?bookingId=${encodeURIComponent(enrollment.bookingId)}`} variant="ghost" fullWidth className="mt-4">Báo cáo hành vi vi phạm</Button>}
           </Card>
         </aside>
       </div>

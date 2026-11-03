@@ -39,7 +39,7 @@ export const NAV = {
     { path: '/student/bookings', label: 'Đơn đặt chỗ', icon: 'receipt_long', match: (p) => p === '/student/bookings' },
     { path: '/student/wallet', label: 'Ví học viên', icon: 'account_balance_wallet', match: (p) => p.startsWith('/student/wallet') },
     { path: '/student/wishlist', label: 'Đã lưu', icon: 'favorite', match: (p) => p.startsWith('/student/wishlist') },
-    { path: '/student/disputes', label: 'Khiếu nại', icon: 'shield', match: (p) => p.startsWith('/student/disputes') || p.startsWith('/app/disputes/') },
+    { path: '/student/disputes', label: 'Khiếu nại', icon: 'shield', match: (p) => p.startsWith('/student/disputes') || p.startsWith('/student/reports') || p.startsWith('/app/disputes/') },
     { path: '/', label: 'Khám phá gia sư', icon: 'explore', match: () => false },
     { path: '/app/messages', label: 'Tin nhắn', icon: 'chat', match: (p) => p.startsWith('/app/messages') },
     { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },
