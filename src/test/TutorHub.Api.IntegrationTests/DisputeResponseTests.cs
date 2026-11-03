@@ -41,6 +41,35 @@ public class DisputeResponseTests(IntegrationWebApplicationFactory factory) : In
     }
 
     [Fact]
+    public async Task ParticipantList_IncludesRealCourseAndParticipantContext_WithoutExposingItToOthers()
+    {
+        var (id, student, tutor, admin) = await ArrangeDispute();
+        var studentUser = await Db.Users.SingleAsync(x => x.Id == student);
+        var tutorUser = await Db.Users.SingleAsync(x => x.Id == tutor);
+        studentUser.FullName = "Student context name";
+        tutorUser.FullName = "Tutor context name";
+        studentUser.AvatarUrl = "https://example.test/student.png";
+        tutorUser.AvatarUrl = "https://example.test/tutor.png";
+        await Db.SaveChangesAsync();
+        foreach (var participant in new[] { studentUser, tutorUser })
+        {
+            SetCurrentUser(participant.Id, participant.Role);
+            var item = (await SendAsync(new GetMyDisputesQuery())).Single(x => x.Id == id);
+            item.StudentName.Should().Be(studentUser.FullName);
+            item.TutorName.Should().Be(tutorUser.FullName);
+            item.StudentAvatarUrl.Should().Be(studentUser.AvatarUrl);
+            item.TutorAvatarUrl.Should().Be(tutorUser.AvatarUrl);
+            item.ServiceTitle.Should().Be("Integration Package");
+            item.SubjectName.Should().StartWith("Subject ");
+            item.Reason.Should().Be(DisputeReason.QualityIssue);
+            item.SessionNumber.Should().Be(1);
+            item.UpdatedAt.Should().NotBeNull();
+        }
+        SetCurrentUser(admin, UserRole.Admin);
+        (await SendAsync(new GetMyDisputesQuery())).Should().NotContain(x => x.Id == id);
+    }
+
+    [Fact]
     public async Task ParticipantTextOnlyResponse_IsDurableAndVisibleToBothSidesAndAdmin_WithoutChangingMoney()
     {
         var (id, student, tutor, admin) = await ArrangeDispute();

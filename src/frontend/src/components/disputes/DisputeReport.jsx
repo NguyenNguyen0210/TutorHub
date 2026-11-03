@@ -3,12 +3,7 @@ import { formatDateTime } from '@/utils/formatters';
 import { EvidenceLink } from './DisputeHistory';
 import Avatar from '@/components/ui/Avatar';
 
-const REASONS = {
-  TutorNoShow: 'Gia sư không tham gia buổi học', TutorLate: 'Gia sư vào muộn',
-  IncompleteSession: 'Buổi học không đủ thời lượng', ShortDuration: 'Buổi học không đủ thời lượng',
-  QualityIssue: 'Chất lượng buổi học', InappropriateBehavior: 'Hành vi không phù hợp',
-  TechnicalFailure: 'Sự cố kỹ thuật', Other: 'Lý do khác',
-};
+import { DISPUTE_REASONS as REASONS } from '@/utils/disputeList';
 
 export default function DisputeReport({ dispute, title }) {
   const files = (dispute.evidences || []).filter(file => file.uploadedByUserId === dispute.initiatorUserId && !file.responseId);

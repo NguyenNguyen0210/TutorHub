@@ -8,6 +8,13 @@ public class DisputeDto
     public Guid SessionId { get; set; }
     public int SessionNumber { get; set; }
     public Guid EnrollmentId { get; set; }
+    public string StudentName { get; set; } = string.Empty;
+    public string? StudentAvatarUrl { get; set; }
+    public string TutorName { get; set; } = string.Empty;
+    public string? TutorAvatarUrl { get; set; }
+    public string ServiceTitle { get; set; } = string.Empty;
+    public string SubjectName { get; set; } = string.Empty;
+    public DateTime? UpdatedAt { get; set; }
     public Guid InitiatorUserId { get; set; }
     public string InitiatorName { get; set; } = string.Empty;
     public Guid RespondentUserId { get; set; }

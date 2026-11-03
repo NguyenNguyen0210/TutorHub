@@ -22,7 +22,11 @@ public class GetMyDisputesQueryHandler : IRequestHandler<GetMyDisputesQuery, IRe
 
         var disputes = await _context.Disputes
             .AsNoTracking()
-            .Include(d => d.Session)
+            .AsSplitQuery()
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(p => p.User)
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(p => p.User)
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.Service)
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.Subject)
             .Include(d => d.InitiatorUser)
             .Include(d => d.RespondentUser)
             .Include(d => d.Evidences)
@@ -37,6 +41,13 @@ public class GetMyDisputesQueryHandler : IRequestHandler<GetMyDisputesQuery, IRe
             SessionId = d.SessionId,
             SessionNumber = d.Session.SessionNumber,
             EnrollmentId = d.Session.EnrollmentId,
+            StudentName = d.Session.Enrollment.StudentProfile.User.FullName,
+            StudentAvatarUrl = d.Session.Enrollment.StudentProfile.User.AvatarUrl,
+            TutorName = d.Session.Enrollment.TutorProfile.User.FullName,
+            TutorAvatarUrl = d.Session.Enrollment.TutorProfile.User.AvatarUrl,
+            ServiceTitle = d.Session.Enrollment.Service?.Title ?? string.Empty,
+            SubjectName = d.Session.Enrollment.Subject?.Name ?? string.Empty,
+            UpdatedAt = d.UpdatedAt,
             InitiatorUserId = d.InitiatorUserId,
             InitiatorName = d.InitiatorUser?.FullName ?? "Unknown",
             RespondentUserId = d.RespondentUserId,
