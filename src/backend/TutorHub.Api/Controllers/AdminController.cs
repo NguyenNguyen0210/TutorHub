@@ -506,9 +506,9 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<AdminDashboardStatsDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetDashboardStats(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetDashboardStats(CancellationToken cancellationToken, [FromQuery] DashboardPeriod period = DashboardPeriod.All)
     {
-        var query = new GetAdminDashboardStatsQuery();
+        var query = new GetAdminDashboardStatsQuery(period);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<AdminDashboardStatsDto>.SuccessResult(result, "Dashboard stats retrieved successfully."));
     }

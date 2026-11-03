@@ -20,6 +20,9 @@ function toNumber(value, fallback = 0) {
 
 function normalizeAdminStats(source = {}) {
   return {
+    updatedAt: source.updatedAt,
+    fromUtc: source.fromUtc,
+    period: source.period,
     users: {
       totalUsers: toNumber(source.users?.totalUsers),
       totalStudents: toNumber(source.users?.totalStudents),
@@ -46,11 +49,13 @@ function normalizeAdminStats(source = {}) {
       totalPlatformRevenue: toNumber(source.financials?.totalPlatformRevenue),
       totalTutorPayouts: toNumber(source.financials?.totalTutorPayouts),
       totalRefundedAmount: toNumber(source.financials?.totalRefundedAmount),
+      pendingRefundAmount: toNumber(source.financials?.pendingRefundAmount),
     },
     actionQueue: {
       pendingTutorsCount: toNumber(source.actionQueue?.pendingTutorsCount),
       pendingWithdrawalsCount: toNumber(source.actionQueue?.pendingWithdrawalsCount),
       openReportsCount: toNumber(source.actionQueue?.openReportsCount),
+      openDisputesCount: toNumber(source.actionQueue?.openDisputesCount),
     },
   };
 }
@@ -189,8 +194,8 @@ export const adminService = {
   getTrustReport: id => api.get(`/admin/trust-reports/${id}`),
   resolveTrustReport: (id, payload) => api.post(`/admin/trust-reports/${id}/resolve`, payload),
   /** GET /admin/dashboard/stats → AdminDashboardStatsDto (nested) */
-  async getStats() {
-    const res = await api.get('/admin/dashboard/stats');
+  async getStats(period = 'All', signal) {
+    const res = await api.get('/admin/dashboard/stats', { params: { period }, signal });
     return normalizeAdminStats(res);
   },
 

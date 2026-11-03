@@ -19,6 +19,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
   const tutorApplication = useTutorApplication(user?.id || user?.userId, isAuthenticated && role === 'Tutor');
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [closedGroups, setClosedGroups] = useState({});
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('tutorhub_sidebar_collapsed') === '1'; }
     catch { return false; }
@@ -62,9 +63,19 @@ export default function WorkspaceShell({ userRole: role, children }) {
         className="workspace-nav-control workspace-nav-focus flex h-10 w-10 items-center justify-center rounded-xl text-neutral-300 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"><Icon name="chevron_right" size="md" /></button></div>}
 
       <nav id={mobile ? 'workspace-more-navigation' : undefined} className={cn('min-h-0 flex-1 space-y-5 overflow-y-auto py-5', compact ? 'px-2' : 'px-3')} aria-label={mobile ? 'Điều hướng bổ sung' : 'Điều hướng không gian làm việc'}>
-        {(mobile ? mobileGroups : navGroups).map(group => <div key={group.label} className="space-y-1">
+        {(mobile ? mobileGroups : navGroups).map((group, groupIndex) => {
+          const collapsible = role === 'Admin' && ['Tài chính', 'Kiểm duyệt', 'Quản lý nền tảng'].includes(group.label) && !compact;
+          const hasActive = group.items.some(item => item.match(location.pathname));
+          const open = !collapsible || hasActive || !closedGroups[group.label];
+          const groupId = `workspace-${mobile ? 'mobile' : 'desktop'}-group-${groupIndex}`;
+          return <div key={group.label} className="space-y-1">
           {compact ? <div className="mx-2 mb-3 workspace-nav-divider border-t border-white/10" /> :
-            <p className="workspace-nav-label mb-2 px-3 text-[11px] font-medium text-neutral-300">{group.label}</p>}
+            collapsible ? <button type="button" aria-expanded={open} aria-controls={groupId} aria-disabled={hasActive}
+              onClick={() => { if (!hasActive) setClosedGroups(current => ({ ...current, [group.label]: !current[group.label] })); }}
+              className="workspace-nav-label workspace-nav-focus mb-2 flex min-h-9 w-full items-center justify-between rounded-lg px-3 text-left text-[11px] font-medium text-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-500">
+              {group.label}<Icon name={open ? 'expand_more' : 'chevron_right'} size="xs" />
+            </button> : <p className="workspace-nav-label mb-2 px-3 text-[11px] font-medium text-neutral-300">{group.label}</p>}
+          <div id={groupId} hidden={!open} className="space-y-1">
           {group.items.map(item => {
             const active = item.match(location.pathname);
             const unread = item.path === '/app/messages' ? activity.conversations : item.path === '/app/notifications' ? activity.notifications : 0;
@@ -78,13 +89,14 @@ export default function WorkspaceShell({ userRole: role, children }) {
                 role === 'Student' && item.path === '/' && 'font-medium',
                 active ? 'bg-brand-primary-600 text-white' : 'text-neutral-300 hover:bg-white/[0.08] hover:text-white')}>
               <Icon name={item.icon} size="md" className="shrink-0" />
-              {!compact && <span className={cn('min-w-0 flex-1', item.attention ? 'whitespace-normal leading-5' : 'truncate')}>{item.label}</span>}
+              {!compact && <span className={cn('min-w-0 flex-1', item.attention || role === 'Admin' ? 'whitespace-normal leading-5' : 'truncate')}>{item.label}</span>}
               {item.attention && (compact ? <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-holding" aria-label="Hồ sơ cần chỉnh sửa" /> : <span className="rounded-full bg-holding-subtle px-2 py-0.5 text-[10px] font-medium text-holding-strong">Cần sửa</span>)}
               {compact && unread > 0 ? <span className="workspace-nav-count absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-primary-600 px-1 text-[9px] font-bold text-white ring-2 ring-brand-navy-900" aria-label={`${unread} ${unreadLabel}`}>{unread > 99 ? '99+' : unread}</span> :
                 <UnreadBadge count={unread} label={unreadLabel} className={friendly ? 'bg-brand-primary-100 text-brand-primary-700' : undefined} />}
             </Link>;
           })}
-        </div>)}
+          </div>
+        </div>; })}
       </nav>
 
       <div className="space-y-3 workspace-nav-divider border-t border-white/10 p-3">
