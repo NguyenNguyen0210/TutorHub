@@ -91,7 +91,7 @@ services:
       VnPay__BaseUrl: ${VnPay__BaseUrl:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
       VnPay__ReturnUrl: ${VnPay__ReturnUrl:-http://localhost:8080/api/v1/payments/vnpay/return}
       CloudflareR2__AccountId: ${CloudflareR2__AccountId}
-      CloudflareR2__BucketName: ${CloudflareR2__BucketName:-tutorhub-media}
+      CloudflareR2__BucketName: ${CLOUDFLARE_R2_BUCKET:-tutorhub}
       CloudflareR2__AccessKeyId: ${CloudflareR2__AccessKeyId}
       CloudflareR2__SecretAccessKey: ${CloudflareR2__SecretAccessKey}
       # SMTP Email settings via MailKit. Outside Development an unset host or sender stops startup
