@@ -27,6 +27,7 @@ import { useConfirm } from '@/components/ui/Dialog';
 import { useQueryClient } from '@tanstack/react-query';
 import disputeService from '@/services/dispute.service';
 import { scheduleReturn } from '@/utils/tutorSchedule';
+import ReviewReplyForm from '@/components/tutor/ReviewReplyForm';
 
 /** Lộ trình học tập — dùng trạng thái và thao tác hiện có của hợp đồng. */
 const TONE_CLASS = {
@@ -660,6 +661,7 @@ export default function EnrollmentDetail() {
                 </p>
 
                 {/* Tutor Reply if available */}
+                {isTutor && <ReviewReplyForm key={review.id} review={review} onSaved={setReview} />}
                 {review.tutorReply && (
                   <div className="mt-3 p-3 rounded-brand-md bg-brand-primary-50/60 border border-brand-primary-200 text-caption space-y-1">
                     <div className="flex items-center gap-1.5 text-brand-primary-800 font-bold text-xs">
