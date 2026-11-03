@@ -253,6 +253,8 @@ export const adminService = {
   reactivateUser: (id) =>
     api.post(`/admin/users/${id}/reactivate`),
 
+  unbanUser: (id, reason) => api.post(`/admin/users/${id}/unban`, { reason }),
+
   /** POST /admin/users/{id}/ban { reason } → AdminUserSummaryDto */
   banUser: (id, reason = 'Vi phạm nghiêm trọng quy chế sàn') =>
     api.post(`/admin/users/${id}/ban`, { reason }),
