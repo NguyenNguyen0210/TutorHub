@@ -71,7 +71,7 @@ const formDataShape = PropTypes.shape({
 });
 
 /* ── Basic info: title, short description, rich description, cover ── */
-export function BasicInfoFields({ formData, onFieldChange, locked = false }) {
+export function BasicInfoFields({ formData, onFieldChange, locked = false, readOnlyLocked = false, hideCover = false, descriptionMax = DESCRIPTION_MAX }) {
   const description = formData.description || '';
   const shortDescription = formData.shortDescription || '';
   const coverImageUrl = (formData.coverImageUrl || '').trim();
@@ -115,7 +115,7 @@ export function BasicInfoFields({ formData, onFieldChange, locked = false }) {
       <Field label="Tên gói học" htmlFor="service-title" required>
         <Input
           id="service-title"
-          maxLength={120}
+          maxLength={200}
           placeholder="Ví dụ: Luyện thi IELTS 6.5+ (4 kỹ năng)"
           value={formData.title}
           onChange={(e) => onFieldChange('title', e.target.value)}
@@ -123,7 +123,7 @@ export function BasicInfoFields({ formData, onFieldChange, locked = false }) {
         />
       </Field>
 
-      <Field label="Mô tả ngắn" htmlFor="service-short">
+      {locked && readOnlyLocked ? <div className="space-y-2"><p className="text-body-reg font-medium text-fg">Mô tả ngắn · Chỉ đọc</p><p className="rounded-xl bg-neutral-50 p-3 text-body-reg leading-relaxed text-fg-secondary">{shortDescription || 'Chưa có mô tả ngắn.'}</p></div> : <Field label="Mô tả ngắn" htmlFor="service-short">
         <Input
           id="service-short"
           disabled={locked}
@@ -135,7 +135,7 @@ export function BasicInfoFields({ formData, onFieldChange, locked = false }) {
         <p className="text-right text-caption text-fg-secondary mt-1">
           {shortDescription.length}/{SHORT_DESCRIPTION_MAX}
         </p>
-      </Field>
+      </Field>}
 
       <Field
         label="Mô tả chi tiết"
@@ -183,7 +183,7 @@ export function BasicInfoFields({ formData, onFieldChange, locked = false }) {
           id="service-desc"
           ref={descRef}
           rows={5}
-          maxLength={DESCRIPTION_MAX}
+          maxLength={descriptionMax}
           aria-describedby="service-desc-count"
           placeholder="Mô tả chi tiết về nội dung, phương pháp giảng dạy, đối tượng phù hợp..."
           value={description}
@@ -191,11 +191,11 @@ export function BasicInfoFields({ formData, onFieldChange, locked = false }) {
           required
         />
         <p id="service-desc-count" className="text-right text-caption text-fg-secondary mt-1">
-          {description.length}/{DESCRIPTION_MAX}
+          {description.length}/{descriptionMax}
         </p>
       </Field>
 
-      <Field
+      {!hideCover && <Field
         label="Ảnh bìa (URL)"
         htmlFor="service-cover"
         hint="Không bắt buộc — ảnh minh họa giúp gói học nổi bật hơn."
@@ -218,12 +218,15 @@ export function BasicInfoFields({ formData, onFieldChange, locked = false }) {
             onChange={(e) => onFieldChange('coverImageUrl', e.target.value)}
           />
         </div>
-      </Field>
+      </Field>}
     </>
   );
 }
 
 BasicInfoFields.propTypes = {
+  readOnlyLocked: PropTypes.bool,
+  hideCover: PropTypes.bool,
+  descriptionMax: PropTypes.number,
   locked: PropTypes.bool,
   formData: formDataShape.isRequired,
   onFieldChange: PropTypes.func.isRequired,

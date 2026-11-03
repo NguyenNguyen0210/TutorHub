@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import AppRoutes from './routes';
 import ScrollToTop from './components/common/ScrollToTop';
 import ErrorBoundary from './components/common/ErrorBoundary';
@@ -18,6 +18,9 @@ const queryClient = new QueryClient({
   },
 });
 
+// A data router lets editors block in-app navigation and browser Back before losing changes.
+const router = createBrowserRouter([{ path: '*', element: <><ScrollToTop /><AppRoutes /></> }]);
+
 export default function App() {
   useEffect(() => {
     useAuthStore.getState().revalidateSession();
@@ -28,10 +31,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <DialogProvider>
-            <BrowserRouter>
-              <ScrollToTop />
-              <AppRoutes />
-            </BrowserRouter>
+            <RouterProvider router={router} />
           </DialogProvider>
         </ToastProvider>
       </QueryClientProvider>

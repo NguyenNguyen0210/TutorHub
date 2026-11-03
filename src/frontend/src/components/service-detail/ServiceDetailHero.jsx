@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import Avatar from '@/components/ui/Avatar';
 import Icon from '@/components/ui/Icon';
+import { trialLessonMedia } from '@/utils/trialLessonMedia';
 
 export default function ServiceDetailHero({ service }) {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
@@ -10,19 +11,7 @@ export default function ServiceDetailHero({ service }) {
   const tutor = service.tutor || {};
   const subject = service.subject || {};
 
-  // Video embed helper
-  const getEmbedUrl = (url) => {
-    if (!url) return null;
-    if (url.includes('youtube.com/watch?v=')) {
-      return url.replace('watch?v=', 'embed/');
-    }
-    if (url.includes('youtu.be/')) {
-      return url.replace('youtu.be/', 'www.youtube.com/embed/');
-    }
-    return url;
-  };
-
-  const embedUrl = getEmbedUrl(service.trialLessonUrl);
+  const trialMedia = trialLessonMedia(service.trialLessonUrl);
   const rating = Number(tutor.ratingAvg) > 0 ? Number(tutor.ratingAvg) : null;
   const totalReviews = Number(tutor.totalReviews) || 0;
   const enrolledCount = Number(service.metrics?.enrolledCount ?? tutor.totalStudents) || 0;
@@ -183,7 +172,7 @@ export default function ServiceDetailHero({ service }) {
               {/* Overlay with Play Button if trial url or video available.
                   Nút thật, không phải div+onClick: bàn phím và trình đọc màn
                   hình cần kích hoạt được, còn div thì không. */}
-              {service.trialLessonUrl && (
+              {trialMedia?.kind === 'video' && (
                 <button
                   type="button"
                   onClick={() => setIsVideoModalOpen(true)}
@@ -198,13 +187,14 @@ export default function ServiceDetailHero({ service }) {
                   </span>
                 </button>
               )}
+              {trialMedia && trialMedia.kind !== 'video' && <a href={trialMedia.href} target="_blank" rel="noopener noreferrer" className="absolute inset-x-3 bottom-3 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm font-semibold text-primary shadow-brand-sm"><Icon name="open_in_new" size="sm" />{trialMedia.kind === 'meeting' ? 'Mở liên kết buổi học thử' : 'Mở liên kết học thử'}</a>}
             </div>
           </div>
         </div>
       </div>
 
       {/* Video Modal */}
-      {isVideoModalOpen && embedUrl && (
+      {isVideoModalOpen && trialMedia?.kind === 'video' && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="relative w-full max-w-4xl bg-black rounded-2xl overflow-hidden shadow-2xl">
             <button
@@ -216,13 +206,16 @@ export default function ServiceDetailHero({ service }) {
               <Icon name="close" size="sm" className="w-5 h-5" />
             </button>
             <div className="aspect-video w-full">
-              <iframe
-                src={embedUrl}
+              {trialMedia.direct
+                // The service API does not provide caption tracks for recordings.
+                // eslint-disable-next-line jsx-a11y/media-has-caption
+                ? <video controls src={trialMedia.href} className="h-full w-full" aria-label="Video học thử" /> : <iframe
+                src={trialMedia.embed}
                 title="Video học thử giới thiệu dịch vụ"
                 className="w-full h-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-              />
+              />}
             </div>
           </div>
         </div>
