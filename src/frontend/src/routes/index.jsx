@@ -71,7 +71,7 @@ import DisputeNew from '../pages/student/DisputeNew';
 import StudentWishlist from '../pages/student/StudentWishlist';
 import StudentSchedule from '../pages/student/StudentSchedule';
 import StudentBookings from '../pages/student/StudentBookings';
-import StudentDisputes from '../pages/student/StudentDisputes';
+import MyDisputes from '../pages/shared/MyDisputes';
 import LegalPolicy from '../pages/shared/LegalPolicy';
 
 // Tutor Space & Wallet Screens
@@ -163,7 +163,7 @@ export default function AppRoutes() {
         <Route path="dashboard" element={<StudentDashboard />} />
         <Route path="schedule" element={<StudentSchedule />} />
         <Route path="bookings" element={<StudentBookings />} />
-        <Route path="disputes" element={<StudentDisputes />} />
+        <Route path="disputes" element={<MyDisputes />} />
         <Route path="wallet" element={<StudentWallet />} />
         <Route path="wallet/topup" element={<StudentWalletTopUp />} />
         <Route path="wallet/withdraw" element={<StudentWalletWithdraw />} />
@@ -189,6 +189,7 @@ export default function AppRoutes() {
         </RequireAuth>
       }>
         <Route path="dashboard" element={<TutorDashboard />} />
+        <Route path="disputes" element={<MyDisputes />} />
         <Route path="schedule" element={<TutorSchedule />} />
         <Route path="availability" element={<Navigate to="/tutor/schedule" replace />} />
         <Route path="services" element={<TutorServices />} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -14,16 +14,9 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
+import { evidenceValidationMessage } from '@/utils/disputeEvidence';
 import { Textarea } from '@/components/ui/Input';
 
-const ALLOWED_MIME_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'application/pdf',
-  'text/plain',
-];
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB per integrity rules
 const MIN_DESCRIPTION_LENGTH = 20;
 
 const REASONS = [
@@ -75,6 +68,9 @@ export default function DisputeNew() {
   const [description, setDescription] = useState('');
   const [evidenceFile, setEvidenceFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,19 +101,8 @@ export default function DisputeNew() {
       return;
     }
 
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      toast.error('Định dạng tệp không hợp lệ. Chỉ chấp nhận JPG, PNG, WEBP, PDF hoặc TXT.');
-      e.target.value = '';
-      setEvidenceFile(null);
-      return;
-    }
-
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      toast.error('Dung lượng tệp vượt quá 10MB theo quy định bảo mật.');
-      e.target.value = '';
-      setEvidenceFile(null);
-      return;
-    }
+    const error = evidenceValidationMessage(file);
+    if (error) { toast.error(error); e.target.value = ''; setEvidenceFile(null); return; }
 
     setEvidenceFile(file);
   };
@@ -162,7 +147,8 @@ export default function DisputeNew() {
   const isCancelled = session?.status === 'Cancelled';
   // 12h-grace rule: a released (Completed/payout) session is deemed accepted.
   const isReleased = session?.status === 'Completed' || session?.isPayoutReleased === true;
-  const cannotDispute = isFutureSession || isUnscheduled || isCancelled || isReleased;
+  const isGraceExpired = session?.gracePeriodEndsAt && new Date(session.gracePeriodEndsAt).getTime() <= now;
+  const cannotDispute = session?.status !== 'AwaitingPayout' || isFutureSession || isUnscheduled || isCancelled || isReleased || isGraceExpired || session?.hasIssueReport;
 
   const descriptionLength = description.trim().length;
   const descriptionTooShort = descriptionLength < MIN_DESCRIPTION_LENGTH;
@@ -181,9 +167,10 @@ export default function DisputeNew() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting.current) return;
 
-    if (cannotDispute) {
-      toast.error('Không thể mở khiếu nại cho buổi học chưa diễn ra hoặc đã bị hủy.');
+    if (cannotDispute || (session?.gracePeriodEndsAt && new Date(session.gracePeriodEndsAt).getTime() <= Date.now())) {
+      toast.error('Buổi học hiện không đủ điều kiện mở khiếu nại mới. Vui lòng kiểm tra trạng thái buổi học.');
       return;
     }
 
@@ -193,6 +180,7 @@ export default function DisputeNew() {
     }
 
     try {
+      submitting.current = true;
       setLoading(true);
       const created = await disputeService.createDispute({
         sessionId,
@@ -200,21 +188,23 @@ export default function DisputeNew() {
         description: description.trim(),
       });
 
+      let evidenceUploadFailed = false;
       if (evidenceFile && created?.id) {
         try {
           await disputeService.uploadEvidence(created.id, evidenceFile);
-        } catch (uploadErr) {
-          console.warn('Lỗi tải tệp bằng chứng:', uploadErr);
+        } catch {
+          evidenceUploadFailed = true;
           toast.warning('Đã tạo đơn khiếu nại nhưng tệp bằng chứng tải lên thất bại. Bạn có thể bổ sung sau.');
         }
       }
 
-      await client.invalidateQueries({ queryKey: ['student-disputes'] });
-      toast.success('Đã gửi đơn khiếu nại thành công! Tiền học buổi này đã được bảo chứng trong Escrow.');
-      navigate(created?.id ? `/app/disputes/${created.id}` : '/student/disputes');
+      await client.invalidateQueries({ queryKey: ['my-disputes'] });
+      if (!evidenceUploadFailed) toast.success('Đã gửi đơn khiếu nại thành công.');
+      navigate(created?.id ? `/app/disputes/${created.id}` : '/student/disputes', { state: { evidenceUploadFailed } });
     } catch (err) {
       toast.error(err?.message || 'Không thể gửi đơn khiếu nại. Vui lòng kiểm tra lại thông tin.');
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };
@@ -269,6 +259,9 @@ export default function DisputeNew() {
           title="Không thể mở khiếu nại cho buổi học này"
           icon={<Icon name="warning" size="md" />}
         >
+          {session?.hasIssueReport && <p>Buổi học đã có báo cáo sự cố. Vui lòng mở hồ sơ hiện có để bổ sung bằng chứng, không cần tạo đơn mới.</p>}
+          {isGraceExpired && !session?.hasIssueReport && <p>Thời gian bảo lưu 12 giờ đã kết thúc. Buổi học không còn nhận khiếu nại mới.</p>}
+          {session?.status === 'Scheduled' && !isFutureSession && <p>Buổi học chưa chuyển sang giai đoạn bảo lưu học phí. Bạn có thể kiểm tra trạng thái tại trang chi tiết buổi học.</p>}
           {isFutureSession && (
             <p className="m-0">
               Theo quy chế hoạt động, khiếu nại tranh chấp chỉ áp dụng cho buổi học đã diễn ra trong quá khứ. Với buổi học sắp diễn ra, bạn có thể thực hiện <strong>Hủy buổi học</strong> (hoàn 100% học phí về ví ký quỹ) hoặc <strong>Dời lịch học</strong> trên trang chi tiết buổi học.
@@ -317,7 +310,7 @@ export default function DisputeNew() {
                     type="button"
                     role="radio"
                     aria-checked={selected}
-                    disabled={cannotDispute}
+                    disabled={cannotDispute || loading}
                     onClick={() => setReason(r.key)}
                     className={cn(
                       'w-full flex items-start gap-3 p-3.5 rounded-brand-md border text-left transition-colors',
@@ -374,7 +367,7 @@ export default function DisputeNew() {
               id="dispute-description"
               rows={5}
               required
-              disabled={cannotDispute}
+              disabled={cannotDispute || loading}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               aria-labelledby="dispute-step-2"
@@ -394,14 +387,14 @@ export default function DisputeNew() {
               <input
                 id="dispute-evidence-input"
                 type="file"
-                disabled={cannotDispute}
+                disabled={cannotDispute || loading}
                 accept="image/jpeg,image/png,image/webp,application/pdf,text/plain"
                 onChange={handleFileChange}
                 aria-labelledby="dispute-step-3 dispute-evidence-hint"
-                className="text-caption text-fg-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-brand-md file:border-0 file:text-caption file:font-semibold file:bg-brand-primary-50 file:text-brand-primary-700 hover:file:bg-brand-primary-100 cursor-pointer disabled:opacity-50"
+                className="w-full min-w-0 max-w-full text-caption text-fg-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-brand-md file:border-0 file:text-caption file:font-semibold file:bg-brand-primary-50 file:text-brand-primary-700 hover:file:bg-brand-primary-100 cursor-pointer disabled:opacity-50"
               />
               {evidenceFile && (
-                <p className="text-caption text-fg font-medium m-0">
+                <p className="break-all text-caption text-fg font-medium m-0">
                   Đã chọn: {evidenceFile.name} ({Math.round(evidenceFile.size / 1024)} KB)
                 </p>
               )}
@@ -428,7 +421,7 @@ export default function DisputeNew() {
                 variant="danger"
                 size="lg"
                 loading={loading}
-                disabled={cannotDispute}
+                disabled={cannotDispute || loading}
                 icon={!loading && <Icon name="send" size="sm" />}
               >
                 Gửi đơn khiếu nại lên Admin

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import disputeService from '@/services/dispute.service';
 import { useAuthStore } from '@/store/authStore';
@@ -14,6 +14,8 @@ import { EVIDENCE_ACCEPT, EVIDENCE_HINT, evidenceValidationMessage, evidenceDown
 
 export default function DisputeDetail() {
   const { id } = useParams();
+  const location = useLocation();
+  const [evidenceAdded, setEvidenceAdded] = useState(false);
   const { user } = useAuthStore();
   const client = useQueryClient();
   const toast = useToast();
@@ -21,8 +23,8 @@ export default function DisputeDetail() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const inputRef = useRef(null);
-  const backPath = user?.role === 'Tutor' ? '/app/notifications' : '/student/disputes';
-  useEffect(() => { setFile(null); setUploadError(''); if (inputRef.current) inputRef.current.value = ''; }, [id]);
+  const backPath = user?.role === 'Tutor' ? '/tutor/disputes' : '/student/disputes';
+  useEffect(() => { setFile(null); setUploadError(''); setEvidenceAdded(false); if (inputRef.current) inputRef.current.value = ''; }, [id]);
   const query = useQuery({ queryKey: ['my-dispute', user?.id, id], staleTime: 0, queryFn: async () => {
     const items = await disputeService.getMyDisputes();
     const item = items.find(value => value.id === id);
@@ -39,11 +41,12 @@ export default function DisputeDetail() {
     setUploadError('');
     try {
       await disputeService.uploadEvidence(id, file);
+      setEvidenceAdded(true);
       setFile(null);
       if (inputRef.current) inputRef.current.value = '';
       await Promise.all([
         client.invalidateQueries({ queryKey: ['my-dispute', user?.id, id] }),
-        client.invalidateQueries({ queryKey: ['student-disputes', user?.id] }),
+        client.invalidateQueries({ queryKey: ['my-disputes', user?.id] }),
       ]);
       toast.success('Đã bổ sung bằng chứng.');
     } catch { setUploadError('Chưa thể tải bằng chứng. Vui lòng kiểm tra tệp và thử lại.'); }
@@ -54,7 +57,7 @@ export default function DisputeDetail() {
   const workspace = user?.role === 'Tutor' ? 'tutor' : 'student';
   const closed = ['Resolved', 'Dismissed'].includes(item.status);
   return <div className="mx-auto max-w-3xl space-y-5">
-    <Button as={Link} to={backPath} variant="ghost">{workspace === 'student' ? 'Về khiếu nại của tôi' : 'Về thông báo'}</Button>
+    <Button as={Link} to={backPath} variant="ghost">Về khiếu nại của tôi</Button>
     <h1 className="text-headline-page text-fg">Khiếu nại buổi học #{item.sessionNumber}</h1>
     <Card padding="lg" variant="outlined" className="space-y-4 rounded-2xl">
       <StateBadge domain="dispute" status={item.status} />
@@ -64,6 +67,7 @@ export default function DisputeDetail() {
     </Card>
     <Card padding="lg" variant="outlined" className="space-y-4 rounded-2xl">
       <h2 className="text-lg font-semibold text-fg">Bằng chứng đính kèm</h2>
+      {location.state?.evidenceUploadFailed && !evidenceAdded && !closed && <p role="alert" className="rounded-lg bg-holding-subtle p-3 text-sm text-holding-strong">Khiếu nại đã được tạo nhưng tệp đính kèm chưa tải lên thành công. Vui lòng chọn lại tệp và gửi bằng chứng bên dưới.</p>}
       {item.evidences?.length ? <ul className="divide-y divide-border">{item.evidences.map(evidence => {
         const url = evidenceDownloadUrl(evidence.fileUrl);
         return <li key={evidence.id} className="space-y-1 py-3">{url ? <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center break-all rounded font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{evidence.fileName}</a> : <p className="break-all font-medium text-fg">{evidence.fileName}</p>}<p className="text-caption text-fg-secondary">{formatDateTime(evidence.createdAt)} · {Math.max(1, Math.ceil(evidence.fileSizeBytes / 1024))} KB</p></li>;

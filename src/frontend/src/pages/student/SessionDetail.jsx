@@ -169,12 +169,6 @@ export default function SessionDetail() {
     } finally { setOpeningChat(false); }
   };
 
-  // Handle Issue Report from GracePeriodCard
-  const handleIssueReported = async (reason, description) => {
-    const updated = await sessionService.reportSessionIssue(id, reason, description);
-    setSession(updated);
-  };
-
   // Handle Learning Record creation (Tutor only)
   const handleCreateLearningRecord = async (e) => {
     e.preventDefault();
@@ -372,7 +366,7 @@ export default function SessionDetail() {
     : isAwaitingPayout && session.hasIssueReport ? 'Đang xử lý sự cố'
     : isAwaitingPayout ? 'Chờ giải ngân'
     : session.isPayoutReleased === false ? 'Chưa giải ngân' : 'Chưa có thông tin';
-  const showProtection = isAwaitingPayout && (session.hasIssueReport || isReportWindowOpen);
+  const showProtection = session.hasIssueReport || (isAwaitingPayout && isReportWindowOpen);
   const permissions = tutorSessionPermissions(session, enrollment, learningRecord, now);
   const addRecord = () => {
     setRecordEditorOpen(true);
@@ -472,7 +466,7 @@ export default function SessionDetail() {
 
           {showProtection && (
             <section id="session-protection" className={`scroll-mt-24 ${isTutor ? 'order-3 min-w-0 lg:col-start-1' : ''}`} aria-label="Bảo vệ học phí">
-              <GracePeriodCard key={session.id} session={session} onIssueReported={handleIssueReported} isTutor={isTutor} />
+              <GracePeriodCard key={session.id} session={session} isTutor={isTutor} />
             </section>
           )}
 
