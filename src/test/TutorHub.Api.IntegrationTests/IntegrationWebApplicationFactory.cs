@@ -21,12 +21,56 @@ namespace TutorHub.Api.IntegrationTests;
 /// </summary>
 public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
 {
-    private static readonly string Port = Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5433";
-    private static readonly string Password = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD") ?? "123456";
+    private static readonly string LocalDatabaseConnectionString = GetLocalDatabaseConnectionString();
     private static readonly string DatabaseName = GetTestDatabaseName();
 
     public static readonly string IntegrationConnectionString =
-        $"Host=localhost;Port={Port};Database={DatabaseName};Username=tutorhub;Password={Password}";
+        WithDatabase(DatabaseName);
+
+    private static string GetLocalDatabaseConnectionString()
+    {
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
+            while (directory is not null)
+            {
+                var dotenv = Path.Combine(directory.FullName, ".env");
+                if (File.Exists(dotenv))
+                {
+                    connectionString = File.ReadLines(dotenv)
+                        .Select(line => line.Trim())
+                        .Where(line => line.StartsWith("ConnectionStrings__DefaultConnection=", StringComparison.Ordinal))
+                        .Select(line => line.Split('=', 2)[1].Trim().Trim('"', '\''))
+                        .FirstOrDefault();
+                    break;
+                }
+
+                directory = directory.Parent;
+            }
+        }
+
+        // CI provisions PostgreSQL separately, so support its existing test-only variables.
+        connectionString ??= $"Host=localhost;Port={Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5433"};" +
+            $"Database=postgres;Username=tutorhub;Password={Environment.GetEnvironmentVariable("POSTGRES_PASSWORD") ?? "123456"}";
+
+        var builder = new NpgsqlConnectionStringBuilder(connectionString);
+        if (builder.Host is not ("localhost" or "127.0.0.1" or "::1"))
+        {
+            throw new InvalidOperationException("Integration tests require local PostgreSQL; refusing to use a remote database.");
+        }
+
+        return builder.ConnectionString;
+    }
+
+    private static string WithDatabase(string database)
+    {
+        var builder = new NpgsqlConnectionStringBuilder(LocalDatabaseConnectionString)
+        {
+            Database = database
+        };
+        return builder.ConnectionString;
+    }
 
     private static string GetTestDatabaseName()
     {
@@ -108,8 +152,7 @@ public class IntegrationWebApplicationFactory : WebApplicationFactory<Program>
                 return;
             }
 
-            var maintenanceCs =
-                $"Host=localhost;Port={Port};Database=postgres;Username=tutorhub;Password={Password}";
+            var maintenanceCs = WithDatabase("postgres");
             NpgsqlConnection.ClearAllPools();
             using (var conn = new NpgsqlConnection(maintenanceCs))
             {

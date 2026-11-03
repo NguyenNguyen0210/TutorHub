@@ -227,6 +227,7 @@ cp .env.example .env
 
 # 2. Thay toàn bộ secret mẫu `change_me` trong .env bằng giá trị thật.
 #    API từ chối khởi động nếu vẫn dùng secret mẫu.
+#    API chỉ cần ConnectionStrings__DefaultConnection để kết nối PostgreSQL.
 
 # 3. Để dùng Swagger và cấu hình dev, đặt ASPNETCORE_ENVIRONMENT=Development trong .env.
 #    Nếu để trống, Compose mặc định chạy Production và không phục vụ Swagger.
@@ -241,6 +242,31 @@ docker compose up -d --build
 # hoặc trên Windows PowerShell:
 .\scripts\seed-data.ps1
 ```
+
+Docker Compose vẫn phải cung cấp `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
+để **khởi tạo container PostgreSQL**. Các biến này không cần nằm trong `.env`
+của ứng dụng: Compose mặc định tạo database `tutorhub`, user `tutorhub`, password
+`tutorhub` tại cổng máy host `5433`. Nếu PostgreSQL local đã được khởi tạo với
+mật khẩu khác, hãy tạo file `docker-compose.override.yml` (đã được Git ignore)
+để giữ thông tin container hiện có, ví dụ:
+
+```yaml
+services:
+  postgres:
+    environment:
+      POSTGRES_USER: tutorhub
+      POSTGRES_PASSWORD: your_existing_local_postgres_password
+      POSTGRES_DB: tutorhub
+  api:
+    environment:
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=tutorhub;Username=tutorhub;Password=your_existing_local_postgres_password
+```
+
+Trong `.env`, dùng `Host=localhost;Port=5433` khi chạy .NET API trực tiếp trên máy.
+Trong container API, `Host=postgres;Port=5432` là địa chỉ nội bộ Docker. Mật khẩu
+trong hai connection string phải khớp với database local đã tạo. Đối với Render,
+chỉ đặt `ConnectionStrings__DefaultConnection` trỏ tới Neon trong trang Environment;
+không cần biến `POSTGRES_*` của Docker.
 
 Seed hiện có 12 gia sư đã duyệt, 24 học viên, 15 gói học, 12 hợp đồng và
 9 đánh giá gắn với hợp đồng đã hoàn thành. Nhân vật, văn bằng, chia sẻ và giao dịch
@@ -288,7 +314,7 @@ hoặc xóa đúng các key `tutor:profile:v3:*` và `service:detail:v3:*` trong
 Sau khi khởi chạy thành công:
 * **Backend API:** `http://localhost:8080`
 * **Swagger Documentation (chỉ khi `ASPNETCORE_ENVIRONMENT=Development`):** `http://localhost:8080/swagger`
-* **Cơ sở dữ liệu PostgreSQL:** `localhost:5433` (database và tài khoản theo `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` trong `.env`)
+* **Cơ sở dữ liệu PostgreSQL:** `localhost:5433` (thông tin ứng dụng lấy từ `ConnectionStrings__DefaultConnection` trong `.env`)
 
 ---
 
@@ -356,12 +382,12 @@ npm run dev
 
 ## 🧪 Kiểm Thử Tự Động (Automated Testing)
 
-Project có unit test cho Domain, Application và Infrastructure, integration test cho API và kịch bản Playwright E2E. Số lượng và kết quả test cần lấy từ lần chạy hiện tại; tài liệu không giữ số đếm cố định. Integration test dùng PostgreSQL tại `localhost:5433` (có thể đổi cổng bằng `POSTGRES_PORT`), user `tutorhub`, mật khẩu từ biến môi trường `POSTGRES_PASSWORD` hoặc tự đọc từ `.env`. Mỗi test process chỉ được phép xóa/tạo lại database có tên bắt đầu bằng `tutorhub_integration`, vì vậy dữ liệu development không bị đụng tới.
+Project có unit test cho Domain, Application và Infrastructure, integration test cho API và kịch bản Playwright E2E. Số lượng và kết quả test cần lấy từ lần chạy hiện tại; tài liệu không giữ số đếm cố định. Integration test đọc `ConnectionStrings__DefaultConnection` từ môi trường hoặc `.env`; CI vẫn hỗ trợ các biến PostgreSQL riêng để khởi tạo database test. Test từ chối host không phải localhost và mỗi test process chỉ được phép xóa/tạo lại database có tên bắt đầu bằng `tutorhub_integration`, vì vậy dữ liệu development không bị đụng tới.
 
 ### Chạy Toàn Bộ Test Suite Backend
 ```powershell
 # Windows: build và chạy toàn bộ unit + integration test bằng Release
-$env:POSTGRES_PASSWORD = '<mật khẩu PostgreSQL local>'
+# Đảm bảo .env chứa ConnectionStrings__DefaultConnection trỏ về Docker local.
 dotnet test src/backend/TutorHub.sln --configuration Release
 ```
 
