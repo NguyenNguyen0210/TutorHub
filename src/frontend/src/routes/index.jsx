@@ -1,8 +1,6 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import NotificationTarget from '../pages/shared/NotificationTarget';
-import DisputeDetail from '../pages/shared/DisputeDetail';
 
 // Deep link redirect helpers for notifications and external URLs
 function EnrollmentRedirect() {
@@ -42,66 +40,63 @@ import TutorLayout from '../layouts/TutorLayout';
 import AdminLayout from '../layouts/AdminLayout';
 import WorkspaceLayout from '../layouts/WorkspaceLayout';
 
-// Auth & Onboarding Screens
-import Login from '../pages/auth/Login';
-import Register from '../pages/auth/Register';
-import ForgotPassword from '../pages/auth/ForgotPassword';
-import OAuthCallback from '../pages/auth/OAuthCallback';
-import TutorApplication from '../pages/tutor/TutorApplication';
-
-// Discovery Screens
-import Marketplace from '../pages/discovery/Marketplace';
-import BecomeTutor from '../pages/discovery/BecomeTutor';
-import TutorProfile from '../pages/discovery/TutorProfile';
-import ServicesMarketplace from '../pages/discovery/ServicesMarketplace';
-import ServiceDetail from '../pages/discovery/ServiceDetail';
-import HowItWorks from '../pages/discovery/HowItWorks';
-
-// Checkout Screens
-import BookingCheckout from '../pages/checkout/BookingCheckout';
-import PaymentReturn from '../pages/checkout/PaymentReturn';
-
-import StudentDashboard from '../pages/student/StudentDashboard';
-import StudentWallet from '../pages/student/StudentWallet';
-import StudentWalletTopUp from '../pages/student/StudentWalletTopUp';
-import StudentWalletWithdraw from '../pages/student/StudentWalletWithdraw';
-import EnrollmentDetail from '../pages/student/EnrollmentDetail';
-import SessionDetail from '../pages/student/SessionDetail';
-import DisputeNew from '../pages/student/DisputeNew';
-import StudentWishlist from '../pages/student/StudentWishlist';
-import StudentSchedule from '../pages/student/StudentSchedule';
-import StudentBookings from '../pages/student/StudentBookings';
-import StudentReports from '../pages/student/StudentReports';
-import MyDisputes from '../pages/shared/MyDisputes';
-import LegalPolicy from '../pages/shared/LegalPolicy';
-
-// Tutor Space & Wallet Screens
-import TutorDashboard from '../pages/tutor/TutorDashboard';
-import TutorSchedule from '../pages/tutor/TutorSchedule';
-import TutorServices from '../pages/tutor/TutorServices';
-import ServiceCreateWizard from '../pages/tutor/ServiceCreateWizard';
-import ServiceEdit from '../pages/tutor/ServiceEdit';
-import TutorWallet from '../pages/tutor/TutorWallet';
-import TutorWithdraw from '../pages/tutor/TutorWithdraw';
-
-// Shared Realtime Screens
-import Messages from '../pages/shared/Messages';
-import Notifications from '../pages/shared/Notifications';
-import ProfileSettings from '../pages/shared/ProfileSettings';
-import NotFound from '../pages/shared/NotFound';
-
-// Admin Space Screens
-import AdminDashboard from '../pages/admin/AdminDashboard';
-import AdminWithdrawals from '../pages/admin/AdminWithdrawals';
-import AdminStudentWallets from '../pages/admin/AdminStudentWallets';
-import AdminTutorApplications from '../pages/admin/AdminTutorApplications';
-import AdminDisputes from '../pages/admin/AdminDisputes';
-import AdminDisputeDetail from '../pages/admin/AdminDisputeDetail';
-import AdminUsers from '../pages/admin/AdminUsers';
-import AdminAuditLogs from '../pages/admin/AdminAuditLogs';
-
 // Guards
 import { RequireAuth, RequireRole, GuestGuard } from './RouteGuards';
+
+function loadPage(loader) {
+  const Page = lazy(loader);
+  return function LazyPage() {
+    return <Suspense fallback={<div role="status" aria-live="polite" className="mx-auto max-w-[1200px] px-4 py-10 text-sm text-fg-secondary">Đang tải nội dung…</div>}><Page /></Suspense>;
+  };
+}
+
+const NotificationTarget = loadPage(() => import('../pages/shared/NotificationTarget'));
+const DisputeDetail = loadPage(() => import('../pages/shared/DisputeDetail'));
+const Login = loadPage(() => import('../pages/auth/Login'));
+const Register = loadPage(() => import('../pages/auth/Register'));
+const ForgotPassword = loadPage(() => import('../pages/auth/ForgotPassword'));
+const OAuthCallback = loadPage(() => import('../pages/auth/OAuthCallback'));
+const TutorApplication = loadPage(() => import('../pages/tutor/TutorApplication'));
+const Marketplace = loadPage(() => import('../pages/discovery/Marketplace'));
+const BecomeTutor = loadPage(() => import('../pages/discovery/BecomeTutor'));
+const TutorProfile = loadPage(() => import('../pages/discovery/TutorProfile'));
+const ServicesMarketplace = loadPage(() => import('../pages/discovery/ServicesMarketplace'));
+const ServiceDetail = loadPage(() => import('../pages/discovery/ServiceDetail'));
+const HowItWorks = loadPage(() => import('../pages/discovery/HowItWorks'));
+const BookingCheckout = loadPage(() => import('../pages/checkout/BookingCheckout'));
+const PaymentReturn = loadPage(() => import('../pages/checkout/PaymentReturn'));
+const StudentDashboard = loadPage(() => import('../pages/student/StudentDashboard'));
+const StudentWallet = loadPage(() => import('../pages/student/StudentWallet'));
+const StudentWalletTopUp = loadPage(() => import('../pages/student/StudentWalletTopUp'));
+const StudentWalletWithdraw = loadPage(() => import('../pages/student/StudentWalletWithdraw'));
+const EnrollmentDetail = loadPage(() => import('../pages/student/EnrollmentDetail'));
+const SessionDetail = loadPage(() => import('../pages/student/SessionDetail'));
+const DisputeNew = loadPage(() => import('../pages/student/DisputeNew'));
+const StudentWishlist = loadPage(() => import('../pages/student/StudentWishlist'));
+const StudentSchedule = loadPage(() => import('../pages/student/StudentSchedule'));
+const StudentBookings = loadPage(() => import('../pages/student/StudentBookings'));
+const StudentReports = loadPage(() => import('../pages/student/StudentReports'));
+const MyDisputes = loadPage(() => import('../pages/shared/MyDisputes'));
+const LegalPolicy = loadPage(() => import('../pages/shared/LegalPolicy'));
+const TutorDashboard = loadPage(() => import('../pages/tutor/TutorDashboard'));
+const TutorSchedule = loadPage(() => import('../pages/tutor/TutorSchedule'));
+const TutorServices = loadPage(() => import('../pages/tutor/TutorServices'));
+const ServiceCreateWizard = loadPage(() => import('../pages/tutor/ServiceCreateWizard'));
+const ServiceEdit = loadPage(() => import('../pages/tutor/ServiceEdit'));
+const TutorWallet = loadPage(() => import('../pages/tutor/TutorWallet'));
+const TutorWithdraw = loadPage(() => import('../pages/tutor/TutorWithdraw'));
+const Messages = loadPage(() => import('../pages/shared/Messages'));
+const Notifications = loadPage(() => import('../pages/shared/Notifications'));
+const ProfileSettings = loadPage(() => import('../pages/shared/ProfileSettings'));
+const NotFound = loadPage(() => import('../pages/shared/NotFound'));
+const AdminDashboard = loadPage(() => import('../pages/admin/AdminDashboard'));
+const AdminWithdrawals = loadPage(() => import('../pages/admin/AdminWithdrawals'));
+const AdminStudentWallets = loadPage(() => import('../pages/admin/AdminStudentWallets'));
+const AdminTutorApplications = loadPage(() => import('../pages/admin/AdminTutorApplications'));
+const AdminDisputes = loadPage(() => import('../pages/admin/AdminDisputes'));
+const AdminDisputeDetail = loadPage(() => import('../pages/admin/AdminDisputeDetail'));
+const AdminUsers = loadPage(() => import('../pages/admin/AdminUsers'));
+const AdminAuditLogs = loadPage(() => import('../pages/admin/AdminAuditLogs'));
 
 export default function AppRoutes() {
   return (
