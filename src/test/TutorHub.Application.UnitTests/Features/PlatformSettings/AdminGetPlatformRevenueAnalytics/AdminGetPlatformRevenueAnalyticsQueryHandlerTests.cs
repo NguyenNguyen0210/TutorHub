@@ -20,6 +20,22 @@ public class AdminGetPlatformRevenueAnalyticsQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_CountsPaidBookingEscrow_WithoutCountingPendingOrFailedPayments()
+    {
+        var transactions = new List<Transaction> {
+            new() { Type = TransactionType.BookingPayment, Status = TransactionStatus.Held, Amount = 900_000m },
+            new() { Type = TransactionType.BookingPayment, Status = TransactionStatus.Pending, Amount = 5_000_000m },
+            new() { Type = TransactionType.BookingPayment, Status = TransactionStatus.Failed, Amount = 7_000_000m }
+        };
+        _contextMock.Setup(c => c.Transactions).Returns(MockDbSetHelper.CreateMockDbSet(transactions).Object);
+        _contextMock.Setup(c => c.Sessions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Session>()).Object);
+        _contextMock.Setup(c => c.Disputes).Returns(MockDbSetHelper.CreateMockDbSet(new List<Dispute>()).Object);
+        var result = await _handler.Handle(new AdminGetPlatformRevenueAnalyticsQuery(), CancellationToken.None);
+        result.GrossBookingVolume.Should().Be(900_000m);
+        result.RecognizedPlatformFee.Should().Be(0m);
+    }
+
+    [Fact]
     public async Task Handle_ReconcilesNetPlatformRevenueWithReversals()
     {
         // Arrange

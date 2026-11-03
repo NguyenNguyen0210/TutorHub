@@ -53,6 +53,7 @@ const STATIC_TITLES = {
   '/admin/subjects': 'Quản lý môn học',
   '/admin/transactions': 'Giao dịch toàn sàn',
   '/admin/conversations': 'Điều tra hội thoại',
+  '/admin/revenue': 'Doanh thu nền tảng',
   '/admin/trust-reports': 'Báo cáo vi phạm',
   '/admin/audit-logs': 'Nhật ký kiểm toán',
   '/admin/settings': 'Cài đặt tài khoản',

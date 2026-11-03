@@ -21,7 +21,7 @@ public class AdminGetPlatformRevenueAnalyticsQueryHandler : IRequestHandler<Admi
         var grossBookingVolume = await _context.Transactions
             .AsNoTracking()
             .Where(t => t.Type == TransactionType.BookingPayment &&
-                        (t.Status == TransactionStatus.Succeeded || t.Status == TransactionStatus.Released))
+                        (t.Status == TransactionStatus.Held || t.Status == TransactionStatus.Succeeded || t.Status == TransactionStatus.Released))
             .SumAsync(t => t.Amount, cancellationToken);
 
         // 2. Gross released earnings

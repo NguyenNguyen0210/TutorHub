@@ -66,6 +66,7 @@ export const NAV = {
     { path: '/admin/dashboard', label: 'Tổng quan sàn', icon: 'space_dashboard', match: (p) => p === '/admin/dashboard' },
     { path: '/admin/student-wallets', label: 'Ví học viên', icon: 'account_balance_wallet', match: (p) => p.startsWith('/admin/student-wallets') },
     { path: '/admin/transactions', label: 'Giao dịch toàn sàn', icon: 'receipt_long', match: (p) => p.startsWith('/admin/transactions') },
+    { path: '/admin/revenue', label: 'Doanh thu nền tảng', icon: 'trending_up', match: (p) => p.startsWith('/admin/revenue') },
     { path: '/admin/withdrawals', label: 'Lệnh rút tiền', icon: 'payments', match: (p) => p.startsWith('/admin/withdrawals') },
     { path: '/admin/tutor-applications', label: 'Duyệt gia sư', icon: 'verified_user', match: (p) => p.startsWith('/admin/tutor-applications') },
     { path: '/admin/disputes', label: 'Tranh chấp', icon: 'gavel', match: (p) => p.startsWith('/admin/disputes') },
