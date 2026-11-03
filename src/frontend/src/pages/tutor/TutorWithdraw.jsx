@@ -1,273 +1,103 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import walletService from '@/services/wallet.service';
 import { formatCurrency, formatDateTime } from '@/utils/formatters';
+import { maskBankAccount, MIN_TUTOR_WITHDRAWAL, withdrawalBlocker } from '@/utils/tutorWallet';
 import Money from '@/components/ui/Money';
 import { useToast } from '@/components/ui/Toast';
+import { useConfirm } from '@/components/ui/Dialog';
 import ErrorState from '@/components/common/ErrorState';
 import { DetailSkeleton } from '@/components/common/Skeleton';
-import Card, { CardHeader } from '@/components/ui/Card';
+import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
-import Callout from '@/components/ui/Callout';
 import Icon from '@/components/ui/Icon';
 import Input, { Field } from '@/components/ui/Input';
 import StateBadge from '@/components/common/StateBadge';
 import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 
-const MIN_WITHDRAW = 50000;
-
-/**
- * Yêu cầu rút tiền về tài khoản ngân hàng — Yêu cầu rút tiền.
- *
- * Rút tiền là TIỀN RA, không phải "đã quyết toán" → nút submit và Callout hạn
- * mức dùng `primary` / trung tính, không dùng `success` (xanh lá) như bản cũ.
- *
- * Bất biến tài chính:
- *: Withdrawable = AvailableBalance.
- * - Hạn mức tối thiểu tạo lệnh rút: 50.000 ₫.
- */
 export default function TutorWithdraw() {
   const toast = useToast();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const [wallet, setWallet] = useState(null);
-  const [payoutAccount, setPayoutAccount] = useState(null);
+  const [account, setAccount] = useState(null);
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [amount, setAmount] = useState('50000');
   const [note, setNote] = useState('Rút thù lao giảng dạy');
-  const [submitting, setSubmitting] = useState(false);
-
+  const [phase, setPhase] = useState(null);
+  const [saveError, setSaveError] = useState('');
+  const busy = useRef(false);
+  const request = useRef(null);
+  const mounted = useRef(true);
   useEffect(() => {
-    let isMounted = true;
-    async function loadData() {
-      try {
-        setLoading(true);
-        const [walletData, account, history] = await Promise.all([
-          walletService.getMyWallet(),
-          walletService.getPayoutAccount(),
-          walletService.getWithdrawals({ pageSize: 5 }),
-        ]);
-        if (isMounted) {
-          setWallet(walletData);
-          setPayoutAccount(account);
-          setWithdrawals(history?.items || []);
-          if (walletData?.withdrawableBalance) {
-            setAmount(String(Math.min(walletData.withdrawableBalance, 500000)));
-          }
-          setError(null);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err);
-        }
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-
-    loadData();
-    return () => {
-      isMounted = false;
-    };
+    mounted.current = true;
+    Promise.all([walletService.getMyWallet(), walletService.getPayoutAccount(), walletService.getWithdrawals({ pageSize: 5 })])
+      .then(([balance, bank, history]) => { if (mounted.current) { setWallet(balance); setAccount(bank); setWithdrawals(history.items); } })
+      .catch(err => { if (mounted.current) setError(err); }).finally(() => { if (mounted.current) setLoading(false); });
+    return () => { mounted.current = false; };
   }, []);
-
-    const withdrawableLimit = Math.max(0, wallet?.availableBalance || 0);
-  const parsedAmount = parseInt(amount, 10);
-
-  // Lý do chặn submit — hiện ngay cạnh nút thay vì chỉ bắt người dùng bấm rồi mới
-  // nhận toast, để họ biết trước mình đang thiếu gì.
-  const blocker = useMemo(() => {
-    if (!Number.isFinite(parsedAmount) || parsedAmount < MIN_WITHDRAW) {
-      return 'Số tiền rút tối thiểu là 50.000 ₫';
-    }
-    if (parsedAmount > withdrawableLimit) {
-      return 'Số tiền rút vượt quá hạn mức được rút hiện tại';
-    }
-    if (!payoutAccount?.accountNumber) {
-      return 'Chưa có thông tin tài khoản ngân hàng thụ hưởng.';
-    }
-    return null;
-  }, [parsedAmount, withdrawableLimit, payoutAccount]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const num = parseInt(amount, 10);
-    if (!num || num < MIN_WITHDRAW) {
-      toast.error('Số tiền rút tối thiểu là 50.000 ₫');
-      return;
-    }
-    if (num > withdrawableLimit) {
-      toast.error('Số tiền rút vượt quá hạn mức được phép');
-      return;
-    }
-    if (!payoutAccount?.accountNumber) {
-      toast.error('Chưa có thông tin tài khoản ngân hàng thụ hưởng.');
-      return;
-    }
-
+  const available = wallet?.availableBalance || 0;
+  const blocker = withdrawalBlocker(amount, available, account);
+  const hasAccount = Boolean(account?.bankName && account?.accountNumber && account?.accountHolderName);
+  const submit = async event => {
+    event.preventDefault();
+    if (busy.current || blocker) return;
+    const value = Number(amount);
+    const payload = { amount: value, bankName: account.bankName, bankCode: account.bankCode || undefined, accountNumber: account.accountNumber, accountHolderName: account.accountHolderName, note: note.trim() };
+    busy.current = true; setPhase('confirming'); setSaveError('');
     try {
-      setSubmitting(true);
-      await walletService.createWithdrawal({
-        amount: num,
-        bankName: payoutAccount.bankName || 'Ngân Hàng',
-        bankCode: payoutAccount.bankCode || 'BANK',
-        accountNumber: payoutAccount.accountNumber,
-        accountHolderName: payoutAccount.accountHolderName,
-        note: note.trim() || 'Rút thù lao giảng dạy',
+      const approved = await confirm({
+        title: 'Xác nhận yêu cầu rút tiền', confirmText: 'Gửi yêu cầu', cancelText: 'Quay lại',
+        content: <div className="space-y-3"><p className="text-2xl font-semibold text-fg"><Money value={value} /></p><dl className="space-y-2 text-body-reg"><div><dt className="text-fg-secondary">Ngân hàng nhận</dt><dd className="font-medium text-fg">{account.bankName}</dd></div><div><dt className="text-fg-secondary">Tài khoản</dt><dd className="font-medium text-fg">{maskBankAccount(account.accountNumber)} · {account.accountHolderName}</dd></div></dl><p className="leading-relaxed">Sau khi gửi, số tiền này được tạm giữ khỏi số dư có thể rút để chờ xử lý. Bạn có thể theo dõi yêu cầu trong lịch sử ví.</p></div>,
       });
-      toast.success(`Đã tạo lệnh rút ${formatCurrency(num)} thành công! Lệnh đang chờ xử lý.`);
-      navigate('/tutor/wallet');
+      if (!approved || !mounted.current) return;
+      const fingerprint = JSON.stringify(payload);
+      // Retrying the same request reuses its key if a response was lost.
+      if (request.current?.fingerprint !== fingerprint) request.current = { fingerprint, key: crypto.randomUUID() };
+      setPhase('sending');
+      const created = await walletService.createWithdrawal(payload, request.current.key);
+      if (!mounted.current) return;
+      toast.success('Đã gửi yêu cầu rút tiền. Bạn có thể theo dõi trạng thái trong lịch sử ví.');
+      navigate(created?.id ? `/tutor/wallet?recordId=${created.id}` : '/tutor/wallet');
     } catch (err) {
-      toast.error(err?.message || 'Không thể tạo lệnh rút tiền.');
-    } finally {
-      setSubmitting(false);
-    }
+      if (!mounted.current) return;
+      setSaveError(err?.status === 400 || err?.status === 409
+        ? 'Chưa gửi được yêu cầu. Vui lòng kiểm tra lại số dư và thông tin ngân hàng.'
+        : 'Chưa xác nhận được yêu cầu rút tiền. Kiểm tra lịch sử ví hoặc thử lại.');
+      if (err?.status === 400 || err?.status === 409) {
+        try { const updated = await walletService.getMyWallet(); if (mounted.current) setWallet(updated); } catch { /* Retain the last known balance until the user retries. */ }
+      }
+    } finally { busy.current = false; if (mounted.current) setPhase(null); }
   };
 
-  if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto py-8">
-        <DetailSkeleton />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="max-w-4xl mx-auto py-8">
-        <ErrorState error={error} backPath="/tutor/wallet" backLabel="Quay lại ví" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <nav aria-label="Breadcrumb">
-        <Link
-          to="/tutor/wallet"
-          className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
-        >
-          <Icon name="arrow_back" size="sm" />
-          Quay lại ví gia sư
-        </Link>
-      </nav>
-
-      <WorkspacePageHeader title="Rút tiền về ngân hàng" description="Tạo yêu cầu rút tiền từ số dư khả dụng trong ví gia sư." />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card padding="lg" variant="outlined" className="lg:col-span-2 space-y-5 rounded-2xl">
-          {/* Callout trung tính: hạn mức là số liệu tham chiếu, không phải
-              "đã quyết toán" — xanh lá là sai ngữ nghĩa tiền. */}
-          <Callout variant="neutral" title="Hạn mức được phép rút hiện tại">
-            <span className="text-headline-2 font-semibold">
-              <Money value={withdrawableLimit} />
-            </span>
-          </Callout>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <Field
-              label="Số tiền muốn rút (₫)"
-              htmlFor="withdraw-amount"
-              required
-              hint={`Tối thiểu: 50.000 ₫ • Tối đa: ${formatCurrency(withdrawableLimit)}`}
-            >
-              <Input
-                id="withdraw-amount"
-                type="number"
-                inputMode="numeric"
-                required
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                min={MIN_WITHDRAW}
-                max={withdrawableLimit}
-                className="tabular-nums font-bold text-body-lg"
-              />
+  if (loading) return <div className="mx-auto max-w-4xl" role="status" aria-label="Đang tải thông tin rút tiền"><DetailSkeleton /></div>;
+  if (error || !wallet) return <ErrorState error={error} title="Chưa tải được thông tin rút tiền" onRetry={() => window.location.reload()} backPath="/tutor/wallet" backLabel="Về ví gia sư" />;
+  return <div className="mx-auto max-w-5xl space-y-6">
+    <Button as={Link} to="/tutor/wallet" variant="ghost" disabled={Boolean(phase)} icon={<Icon name="arrow_back" size="sm" />}>Về ví gia sư</Button>
+    <WorkspacePageHeader title="Rút tiền về ngân hàng" description="Kiểm tra số tiền và tài khoản nhận trước khi gửi yêu cầu." />
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(240px,1fr)]">
+      <Card padding="lg" variant="outlined" className="space-y-5 rounded-2xl">
+        <div className="rounded-xl border border-success/20 bg-success-subtle p-4"><p className="text-body-reg text-success-strong">Số dư có thể rút</p><p className="mt-2 text-[28px] font-semibold text-success-strong"><Money value={available} /></p></div>
+        <form onSubmit={submit} className="space-y-5">
+          <fieldset disabled={Boolean(phase)} className="min-w-0 space-y-5">
+            <Field label="Số tiền muốn rút (₫)" htmlFor="withdraw-amount" required hint={`Từ 50.000 ₫ đến ${formatCurrency(available)}`}>
+              <Input id="withdraw-amount" type="number" inputMode="decimal" min={MIN_TUTOR_WITHDRAWAL} max={available} step="0.01" required value={amount} onChange={event => { setAmount(event.target.value); setSaveError(''); }} aria-invalid={!Number.isFinite(Number(amount)) || Number(amount) < MIN_TUTOR_WITHDRAWAL || Number(amount) > available} aria-describedby={blocker ? 'withdraw-blocker' : undefined} className="text-lg font-semibold tabular-nums" />
+              <Button variant="ghost" size="sm" className="mt-2 px-0 text-primary" disabled={available < MIN_TUTOR_WITHDRAWAL} onClick={() => { setAmount(String(available)); setSaveError(''); }}>Rút toàn bộ</Button>
             </Field>
-
-            <div className="space-y-2">
-              <span className="block text-caption font-semibold text-fg-secondary uppercase tracking-wide">
-                Tài khoản ngân hàng thụ hưởng đã xác thực
-              </span>
-              <div className="p-4 rounded-brand-md bg-neutral-50 border border-border flex items-center justify-between gap-3 text-caption">
-                <div className="min-w-0">
-                  <span className="font-semibold text-fg block">
-                    {payoutAccount?.bankName || 'Ngân hàng thụ hưởng'}
-                  </span>
-                  <span className="text-fg-secondary font-mono">
-                    STK: {payoutAccount?.accountNumber || '—'} •{' '}
-                    {payoutAccount?.accountHolderName || ''}
-                  </span>
-                </div>
-                <Badge variant="success" size="sm" className="shrink-0">
-                  Đã xác thực KYC
-                </Badge>
-              </div>
-            </div>
-
-            <Field label="Ghi chú giao dịch" htmlFor="withdraw-note">
-              <Input
-                id="withdraw-note"
-                type="text"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-              />
-            </Field>
-
-            {blocker && (
-              <p className="text-caption text-danger-strong m-0" role="status">
-                {blocker}
-              </p>
-            )}
-
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              fullWidth
-              loading={submitting}
-              disabled={Boolean(blocker)}
-              icon={!submitting && <Icon name="send" size="sm" />}
-            >
-              {`Xác nhận rút ${formatCurrency(parseInt(amount, 10) || 0)} về ngân hàng`}
-            </Button>
-          </form>
-        </Card>
-
-        <Card padding="lg" variant="outlined" className="space-y-4 rounded-2xl">
-          <CardHeader title="Lệnh rút gần đây" icon={<Icon name="history" size="sm" />} />
-
-          {withdrawals.length === 0 ? (
-            <p className="text-caption text-fg-muted text-center py-4">
-              Chưa có giao dịch rút tiền nào.
-            </p>
-          ) : (
-            <ul className="space-y-3 text-caption">
-              {withdrawals.map((w) => (
-                <li
-                  key={w.id}
-                  className="p-3.5 rounded-brand-md bg-neutral-50 border border-border space-y-1"
-                >
-                  <div className="flex justify-between items-center gap-2">
-                    <span className="font-mono font-bold text-fg">
-                      {w.id.slice(0, 8).toUpperCase()}
-                    </span>
-                    <StateBadge status={w.status} domain="withdrawal" />
-                  </div>
-                  <div className="flex justify-between items-center gap-2 text-fg-muted">
-                    <span>{formatDateTime(w.requestedAt, 'DD/MM/YYYY')}</span>
-                    <span className="font-bold text-fg tabular-nums">
-                      {formatCurrency(w.amount)}
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
+            <section aria-labelledby="payout-account-title"><h2 id="payout-account-title" className="mb-2 text-body-reg font-medium text-fg">Ngân hàng nhận tiền</h2><div className="space-y-2 rounded-xl border border-border bg-neutral-50 p-4 text-body-reg">{hasAccount ? <><p className="font-semibold text-fg">{account.bankName}</p><p className="text-fg-secondary">{maskBankAccount(account.accountNumber)}</p><p className="break-words text-fg-secondary">{account.accountHolderName}</p></> : <p className="text-fg-secondary">Chưa có đủ thông tin tài khoản nhận tiền.</p>}</div></section>
+            <Field label="Ghi chú" htmlFor="withdraw-note"><Input id="withdraw-note" value={note} maxLength={500} onChange={event => { setNote(event.target.value); setSaveError(''); }} /></Field>
+          </fieldset>
+          {blocker && <p id="withdraw-blocker" role="status" className="text-body-reg text-danger-strong">{blocker}</p>}
+          {saveError && <div role="alert" className="space-y-2 rounded-xl bg-danger-subtle p-4 text-body-reg text-danger-strong"><p>{saveError}</p><Link to="/tutor/wallet" className="inline-flex min-h-11 items-center font-medium underline">Kiểm tra lịch sử ví</Link></div>}
+          <Button type="submit" fullWidth disabled={Boolean(blocker || phase)} loading={phase === 'sending'} icon={<Icon name="arrow_forward" size="sm" />}>{phase === 'sending' ? 'Đang gửi yêu cầu…' : 'Kiểm tra yêu cầu rút'}</Button>
+          <p className="text-caption leading-relaxed text-fg-secondary">Gửi yêu cầu chưa đồng nghĩa với tiền đã về ngân hàng. Trạng thái Hoàn tất sẽ hiển thị khi yêu cầu đã được xử lý thành công.</p>
+        </form>
+      </Card>
+      <Card padding="lg" variant="outlined" className="space-y-4 rounded-2xl"><h2 className="text-headline-3 font-semibold text-fg">Yêu cầu gần đây</h2>
+        {withdrawals.length ? <ul className="divide-y divide-border">{withdrawals.map(item => <li key={item.id} className="space-y-2 py-3"><StateBadge status={item.status} domain="withdrawal" /><p className="text-lg font-semibold text-fg"><Money value={item.amount} /></p><p className="text-caption text-fg-secondary">{formatDateTime(item.requestedAt)}</p><Link to={`/tutor/wallet?recordId=${item.id}`} className="inline-flex min-h-11 items-center text-caption font-medium text-primary">Xem yêu cầu</Link></li>)}</ul> : <p className="py-3 text-body-reg text-fg-secondary">Chưa có yêu cầu rút tiền.</p>}
+      </Card>
     </div>
-  );
+  </div>;
 }
