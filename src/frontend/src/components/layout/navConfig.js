@@ -78,8 +78,11 @@ export const NAV = {
   ],
 };
 
-export function getNavForRole(role, isAuthenticated) {
+export function getNavForRole(role, isAuthenticated, applicationStatus) {
   if (!isAuthenticated) return NAV.guest;
+  if (role === 'Tutor') return NAV.Tutor
+    .filter(item => item.path !== '/tutor/application' || applicationStatus !== 'Approved')
+    .map(item => item.path === '/tutor/application' && applicationStatus === 'Rejected' ? { ...item, attention: true } : item);
   return NAV[role] || NAV.guest;
 }
 

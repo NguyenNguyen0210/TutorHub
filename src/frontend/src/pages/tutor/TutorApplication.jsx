@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
 import { mediaService } from '@/services/media.service';
 import { useAuthStore } from '@/store/authStore';
@@ -7,8 +8,10 @@ import { useToast } from '@/components/ui/Toast';
 import Icon from '@/components/ui/Icon';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
 import Callout from '@/components/ui/Callout';
+import ErrorState from '@/components/common/ErrorState';
+import ApplicationStatusPage from '@/components/tutor/application/ApplicationStatusPage';
+import { useTutorApplication, tutorApplicationKey } from '@/hooks/useTutorApplication';
 import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import ApplicationStepper, { SupportCard } from '@/components/tutor/application/ApplicationStepper';
 import {
@@ -47,11 +50,15 @@ export default function TutorApplication() {
   const toast = useToast();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+  const applicationQuery = useTutorApplication(user?.id || user?.userId, user?.role === 'Tutor');
+  const existingApp = applicationQuery.data || null;
+  const loadingApp = applicationQuery.isLoading;
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [existingApp, setExistingApp] = useState(null);
-  const [loadingApp, setLoadingApp] = useState(true);
+  const [editingRejected, setEditingRejected] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   // File upload drag states & refs
   const [isDraggingDegree, setIsDraggingDegree] = useState(false);
@@ -62,35 +69,13 @@ export default function TutorApplication() {
   // Form State
   const [formData, setFormData] = useState(() => createInitialFormData(user));
 
-  // Check current tutor application on mount
+  const hydratedApplication = useRef(null);
   useEffect(() => {
-    let mounted = true;
-    async function loadCurrentApplication() {
-      try {
-        setLoadingApp(true);
-        const app = await tutorService.getMyTutorApplication();
-        if (mounted && app) {
-          setExistingApp(app);
-          // If rejected, prefill with previous data so tutor can edit & resubmit
-          if (app.status === 'Rejected') {
-            setFormData((prev) => mergeRejectedApplication(prev, app));
-          }
-        }
-      } catch (err) {
-        console.warn('[TutorApplication] Could not fetch application status:', err.message);
-        if (mounted) {
-          toast.error(err?.message || 'Không thể tải trạng thái hồ sơ gia sư. Vui lòng thử lại sau.');
-        }
-      } finally {
-        if (mounted) setLoadingApp(false);
-      }
+    if (existingApp?.status === 'Rejected' && hydratedApplication.current !== existingApp.id) {
+      setFormData(previous => mergeRejectedApplication(previous, existingApp));
+      hydratedApplication.current = existingApp.id;
     }
-
-    loadCurrentApplication();
-    return () => {
-      mounted = false;
-    };
-  }, [toast]);
+  }, [existingApp]);
 
   const updateField = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -209,11 +194,13 @@ export default function TutorApplication() {
   };
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
     if (!formData.agreed) {
       toast.error('Bạn cần đánh dấu đồng ý cam kết điều khoản trước khi nộp hồ sơ.');
       return;
     }
 
+    submittingRef.current = true;
     try {
       setSubmitting(true);
       const documentIds = [];
@@ -230,24 +217,24 @@ export default function TutorApplication() {
         }
       }
       const payload = buildApplicationPayload(formData, documentIds);
-      if (existingApp?.status === 'Rejected') {
-        await tutorService.resubmitTutorApplication(payload);
-      } else {
-        await tutorService.submitTutorApplication(payload);
-      }
+      const updated = existingApp?.status === 'Rejected'
+        ? await tutorService.resubmitTutorApplication(payload)
+        : await tutorService.submitTutorApplication(payload);
 
       toast.success('Nộp hồ sơ gia sư thành công! Ban quản trị sẽ xét duyệt trong 1–3 ngày làm việc.');
-      // Refresh status
-      const updated = await tutorService.getMyTutorApplication();
-      setExistingApp(updated || { status: 'Pending' });
-    } catch (err) {
-      toast.error(err?.message || 'Không thể nộp hồ sơ gia sư. Vui lòng thử lại.');
+      queryClient.setQueryData(tutorApplicationKey(user?.id || user?.userId), updated);
+      setEditingRejected(false);
+    } catch {
+      toast.error('Chưa thể gửi hồ sơ gia sư. Vui lòng kiểm tra thông tin và thử lại.');
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
   /* ── 1. Loading state ─────────────────────────────────────────────────── */
+
+  if (user?.role !== 'Tutor') return <ErrorState title="Hồ sơ giảng dạy dành cho tài khoản gia sư" message="Vui lòng sử dụng tài khoản gia sư để gửi và theo dõi hồ sơ xét duyệt." backPath="/" backLabel="Về trang khám phá" />;
 
   if (loadingApp) {
     return (
@@ -258,90 +245,12 @@ export default function TutorApplication() {
     );
   }
 
-  /* ── 2. Already Pending state ─────────────────────────────────────────── */
-
-  if (existingApp && existingApp.status === 'Pending') {
-    return (
-      <div className="w-full max-w-3xl mx-auto">
-        <Card padding="none" variant="outlined" className="rounded-2xl p-6 sm:p-8 text-center space-y-6">
-          <span className="w-16 h-16 rounded-full bg-brand-primary-50 border border-brand-primary-200 text-brand-primary-600 ring-1 ring-inset ring-brand-primary-200 flex items-center justify-center mx-auto">
-            <Icon name="hourglass_top" size="xl" />
-          </span>
-
-          <div className="space-y-2 max-w-lg mx-auto">
-            <Badge variant="holding" className="px-3 py-1">
-              <span aria-hidden="true" className="w-2 h-2 rounded-full bg-holding animate-pulse" />
-              Đang chờ kiểm duyệt
-            </Badge>
-            <h1 className="text-headline-page text-fg">Hồ sơ đang được xét duyệt</h1>
-            <p className="text-body-reg text-fg-secondary leading-relaxed">
-              Cảm ơn bạn đã gửi hồ sơ đăng ký trở thành gia sư tại TutorHub. Ban quản trị đang thẩm định văn bằng và thông tin giảng dạy của bạn.
-            </p>
-          </div>
-
-          <dl className="p-4 rounded-brand-lg bg-neutral-50 border border-border max-w-md mx-auto text-left text-caption space-y-2 text-fg-secondary">
-            <div className="flex justify-between">
-              <dt className="text-fg-muted">Thời gian gửi:</dt>
-              <dd className="font-semibold text-fg-secondary">
-                {new Date(existingApp.submittedAt || Date.now()).toLocaleDateString('vi-VN')}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-fg-muted">Thời gian dự kiến:</dt>
-              <dd className="font-semibold text-success">1 – 3 ngày làm việc</dd>
-            </div>
-          </dl>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <Button as={Link} to="/" variant="outline" size="md">
-              Khám phá gia sư khác
-            </Button>
-            <Button
-              as="a"
-              href="mailto:support@tutorhub.vn"
-              variant="ghost"
-              size="md"
-              icon={<Icon name="call" size="sm" />}
-            >
-              Liên hệ hỗ trợ
-            </Button>
-          </div>
-        </Card>
-      </div>
-    );
+  if (applicationQuery.isError && !existingApp) {
+    return <ErrorState error={applicationQuery.error} title="Chưa tải được trạng thái hồ sơ" onRetry={applicationQuery.refetch} />;
   }
-
-  /* ── 3. Already Approved state ────────────────────────────────────────── */
-
-  if (existingApp && existingApp.status === 'Approved') {
-    return (
-      <div className="w-full max-w-3xl mx-auto">
-        <Card padding="none" variant="outlined" className="rounded-2xl p-6 sm:p-8 text-center space-y-6">
-          <span className="w-16 h-16 rounded-full bg-success-subtle border border-success/25 text-success ring-1 ring-inset ring-success/25 flex items-center justify-center mx-auto">
-            <Icon name="verified" size="xl" />
-          </span>
-
-          <div className="space-y-2 max-w-lg mx-auto">
-            <Badge variant="success" icon={<Icon name="check" size="xs" />}>
-              Đã phê duyệt
-            </Badge>
-            <h1 className="text-headline-page text-fg">Hồ sơ giảng dạy đã được duyệt</h1>
-            <p className="text-body-reg text-fg-secondary leading-relaxed">
-              Hồ sơ giảng dạy của bạn đã được kiểm duyệt thành công. Bạn đã có thể thiết lập lịch rảnh và mở các gói khóa học trên sàn.
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <Button as={Link} to="/tutor/dashboard" variant="primary" size="lg">
-              Về không gian giảng dạy
-            </Button>
-            <Button as={Link} to="/tutor/services" variant="outline" size="lg">
-              Quản lý gói học
-            </Button>
-          </div>
-        </Card>
-      </div>
-    );
+  if (existingApp && (existingApp.status !== 'Rejected' || !editingRejected)) {
+    return <ApplicationStatusPage application={existingApp} onRefresh={applicationQuery.refetch} refreshing={applicationQuery.isFetching}
+      onEdit={() => { setEditingRejected(true); setCurrentStep(1); window.scrollTo({ top: 0, behavior: 'instant' }); }} />;
   }
 
   /* ── 4. Default: 6-step wizard (stepper · step body · perks rail) ─────── */
@@ -352,11 +261,11 @@ export default function TutorApplication() {
         {/* Top action */}
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={() => editingRejected ? setEditingRejected(false) : navigate(-1)}
           className="inline-flex items-center gap-1.5 text-body-reg font-semibold text-brand-primary-700 hover:text-brand-primary-800 transition-colors mb-4 group cursor-pointer"
         >
           <Icon name="chevron_left" size="sm" className="transition-transform group-hover:-translate-x-0.5" />
-          Quay lại
+          {editingRejected ? 'Về trạng thái hồ sơ' : 'Quay lại'}
         </button>
 
         {/* Page title & subtitle */}
@@ -383,7 +292,7 @@ export default function TutorApplication() {
           </aside>
 
           {/* MIDDLE: step body */}
-          <main className="lg:col-span-6">
+          <section className="lg:col-span-6" aria-label="Thông tin hồ sơ gia sư">
             <Card padding="none" className="p-6 sm:p-8 space-y-6">
               {currentStep === 1 && (
                 <PersonalInfoStep
@@ -461,7 +370,7 @@ export default function TutorApplication() {
                 )}
               </div>
             </Card>
-          </main>
+          </section>
 
           {/* RIGHT: perks & review process */}
           <aside className="lg:col-span-3 space-y-5">

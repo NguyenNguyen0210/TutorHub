@@ -6,6 +6,7 @@ import Logo from '@/components/ui/Logo';
 import Avatar, { Menu, Drawer } from '@/components/ui/Avatar';
 import { useAuthStore } from '@/store/authStore';
 import { useWorkspaceActivity } from '@/hooks/useWorkspaceActivity';
+import { useTutorApplication } from '@/hooks/useTutorApplication';
 import { getNavForRole, getDashboardPath } from './navConfig';
 import WorkspaceMobileNav from './WorkspaceMobileNav';
 import UnreadBadge from './UnreadBadge';
@@ -14,6 +15,8 @@ import '@/styles/workspace-navigation.css';
 export default function WorkspaceShell({ userRole: role, children }) {
   const friendly = role === 'Student' || role === 'Tutor';
   const { user, isAuthenticated, logout } = useAuthStore();
+  const tutorApplication = useTutorApplication(user?.id || user?.userId, isAuthenticated && role === 'Tutor');
+  const approvedTutor = role === 'Tutor' && tutorApplication.data?.status === 'Approved';
   const profileId = user?.idProfile || user?.tutorProfileId;
   const location = useLocation();
   const navigate = useNavigate();
@@ -25,7 +28,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
   const activity = useWorkspaceActivity(isAuthenticated ? user?.id || user?.userId : null, location.pathname);
   const roleLabel = role === 'Student' ? 'Học viên' : role === 'Tutor' ? 'Gia sư' : 'Quản trị viên';
   const settingsPath = role === 'Tutor' ? '/tutor/settings' : role === 'Admin' ? '/admin/settings' : '/student/settings';
-  const settingsActive = location.pathname === settingsPath;
+  const settingsActive = location.pathname === settingsPath || (approvedTutor && location.pathname === '/tutor/application');
   const fullName = user?.fullName || user?.name || 'Tài khoản';
 
   useEffect(() => { setDrawerOpen(false); }, [location.pathname, location.search]);
@@ -38,6 +41,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
   const userMenuItems = [
     { key: 'profile', icon: <Icon name="person" size="sm" />, label: 'Hồ sơ cá nhân', onClick: () => goTo(`${settingsPath}?tab=profile`) },
     { key: 'settings', icon: <Icon name="lock" size="sm" />, label: 'Đổi mật khẩu', onClick: () => goTo(`${settingsPath}?tab=password`) },
+    ...(approvedTutor ? [{ type: 'divider' }, { key: 'teaching-profile', icon: <Icon name="verified_user" size="sm" />, label: 'Hồ sơ giảng dạy', onClick: () => goTo('/tutor/application') }] : []),
     ...(role === 'Tutor' && profileId ? [
       { type: 'divider' },
       { key: 'public-profile', icon: <Icon name="school" size="sm" />, label: 'Xem hồ sơ công khai', onClick: () => goTo(`/tutors/${profileId}`) },
@@ -47,7 +51,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
       onClick: async () => { await logout(); navigate('/auth/login'); } },
   ];
   const accountHeader = <div className="min-w-0"><p className="truncate text-sm font-semibold text-fg">{fullName}</p><p className="mt-1 text-xs text-fg-muted">{roleLabel}</p></div>;
-  const navItems = getNavForRole(role, isAuthenticated);
+  const navItems = getNavForRole(role, isAuthenticated, tutorApplication.data?.status);
   const primaryPaths = [getDashboardPath(role), role === 'Admin' ? '/admin/disputes' : '/app/messages', '/app/notifications'];
   const mobilePrimary = primaryPaths.map(path => navItems.find(item => item.path === path)).filter(Boolean)
     .map(item => ({ ...item, shortLabel: item.path === getDashboardPath(role) ? role === 'Student' ? 'Bàn học' : 'Tổng quan' : item.label }));
@@ -94,7 +98,8 @@ export default function WorkspaceShell({ userRole: role, children }) {
                 compact ? 'justify-center px-2' : 'gap-3 px-3 py-2.5',
                 active ? 'bg-brand-primary-600 text-white' : 'text-neutral-300 hover:bg-white/[0.08] hover:text-white')}>
               <Icon name={item.icon} size="md" className="shrink-0" />
-              {!compact && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
+              {!compact && <span className={cn('min-w-0 flex-1', item.attention ? 'whitespace-normal leading-5' : 'truncate')}>{item.label}</span>}
+              {item.attention && (compact ? <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-holding" aria-label="Hồ sơ cần chỉnh sửa" /> : <span className="rounded-full bg-holding-subtle px-2 py-0.5 text-[10px] font-medium text-holding-strong">Cần sửa</span>)}
               {compact && unread > 0 ? <span className="workspace-nav-count absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-primary-600 px-1 text-[9px] font-bold text-white ring-2 ring-brand-navy-900" aria-label={`${unread} ${unreadLabel}`}>{unread > 99 ? '99+' : unread}</span> :
                 <UnreadBadge count={unread} label={unreadLabel} className={friendly ? 'bg-brand-primary-100 text-brand-primary-700' : undefined} />}
             </Link>;
