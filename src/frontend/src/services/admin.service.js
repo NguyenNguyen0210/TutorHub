@@ -85,6 +85,7 @@ function normalizeTutorApplication(raw = {}) {
     status: raw.status || 'Pending',
     submittedAt: raw.submittedAt ?? null,
     reviewedAt: raw.reviewedAt ?? null,
+    reviewedByAdminName: raw.reviewedByAdminName ?? null,
     rejectionReason: raw.rejectionReason ?? null,
     bio: raw.bio || '',
     education: raw.education || '',

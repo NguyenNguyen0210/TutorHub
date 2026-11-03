@@ -75,7 +75,8 @@ public class GetAdminTutorApplicationsQueryHandler
                 a.ExperienceYears,
                 a.Methodology,
                 a.Achievements,
-                a.DocumentsJson
+                a.DocumentsJson,
+                a.ReviewedByAdmin != null ? a.ReviewedByAdmin.FullName : null
             ))
             .ToListAsync(cancellationToken);
 

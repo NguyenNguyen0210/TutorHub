@@ -22,5 +22,6 @@ public record AdminTutorApplicationListItemDto(
     int ExperienceYears = 0,
     string? Methodology = null,
     string? Achievements = null,
-    string? DocumentsJson = null
+    string? DocumentsJson = null,
+    string? ReviewedByAdminName = null
 );
