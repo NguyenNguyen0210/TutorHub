@@ -13,18 +13,20 @@ public class AdminGetConversationsQueryHandler : IRequestHandler<AdminGetConvers
 {
     private readonly IAppDbContext _dbContext;
     private readonly IClock _clock;
+    private readonly IAuditLogService _audit;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AdminGetConversationsQueryHandler> _logger;
 
     public AdminGetConversationsQueryHandler(
         IAppDbContext dbContext, IClock clock,
         ICurrentUserService currentUserService,
-        ILogger<AdminGetConversationsQueryHandler> logger)
+        ILogger<AdminGetConversationsQueryHandler> logger, IAuditLogService audit)
     {
         _dbContext = dbContext;
         _clock = clock;
         _currentUserService = currentUserService;
         _logger = logger;
+        _audit = audit;
     }
 
     public async Task<CursorPagedResult<ConversationDto>> Handle(AdminGetConversationsQuery request, CancellationToken cancellationToken)
@@ -111,6 +113,12 @@ public class AdminGetConversationsQueryHandler : IRequestHandler<AdminGetConvers
             var lastItem = items[^1];
             nextCursor = CreateCursor(lastItem.LastMessageAt, lastItem.Id);
         }
+
+        await _audit.LogAsync(action: "ADMIN_CONVERSATION_INSPECTED", entityName: "Conversation",
+            entityId: "list", userId: adminUserId,
+            newValues: new { operationalReason = request.OperationalReason.Trim(), returnedCount = dtos.Count },
+            cancellationToken: cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
 
         return CursorPagedResult<ConversationDto>.Create(dtos, nextCursor, hasMore);
     }
