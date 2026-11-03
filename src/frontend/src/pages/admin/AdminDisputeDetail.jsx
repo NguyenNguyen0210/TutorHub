@@ -250,6 +250,7 @@ export default function AdminDisputeDetail() {
       />
 
       {/* Invariant Trust Banner */}
+      {enrollment?.id && <Button as={Link} to={`/admin/enrollments/${enrollment.id}`} variant="outline">Xem hợp đồng liên quan</Button>}
       <div className="p-4 rounded-brand-lg bg-surface border border-border shadow-brand-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-caption">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-brand-md bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center shrink-0 border border-brand-primary-100">

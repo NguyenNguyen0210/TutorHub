@@ -6,6 +6,7 @@ import ServiceDetailHero from '@/components/service-detail/ServiceDetailHero';
 import ServiceSyllabus from '@/components/service-detail/ServiceSyllabus';
 import ServiceSidebarCard from '@/components/service-detail/ServiceSidebarCard';
 import ServiceReviews from '@/components/service-detail/ServiceReviews';
+import ModerationAction from '@/components/admin/ModerationAction';
 import ServiceFaqs from '@/components/service-detail/ServiceFaqs';
 import ErrorState from '@/components/common/ErrorState';
 import EmptyState from '@/components/common/EmptyState';
@@ -31,6 +32,7 @@ export default function ServiceDetail() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const serviceId = service?.id || id;
   const isFavorite = isFavorited('Service', serviceId);
@@ -98,7 +100,7 @@ export default function ServiceDetail() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, reloadToken]);
 
   const scrollToSection = (sectionId, tabKey) => {
     setActiveTab(tabKey);
@@ -205,6 +207,7 @@ export default function ServiceDetail() {
       {listingContext && <div className="page-shell pt-4"><Link to={listingContext.listingReturn} state={{ restoreScrollKey: listingContext.listingKey }} className="inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-brand-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Icon name="arrow_back" size="sm" />Quay lại danh sách trước đó</Link></div>}
       {/* 1. Top Hero Section */}
       <ServiceDetailHero service={service} />
+      {service.status === 'Published' && <div className="page-shell py-4"><ModerationAction type="service" targetId={service.id} onSaved={() => setReloadToken(value => value + 1)} /></div>}
 
       {/* 2. Sticky Tab Navigation Bar */}
       <div className="sticky top-[64px] z-30 bg-surface/95 backdrop-blur-sm border-b border-border shadow-xs">
@@ -371,6 +374,7 @@ export default function ServiceDetail() {
               totalSessions={service.totalSessions}
               sessionDurationMinutes={service.sessionDurationMinutes}
               serviceTitle={service.title}
+              onModerated={() => setReloadToken(value => value + 1)}
               subjectName={service.subject?.name}
             />
 

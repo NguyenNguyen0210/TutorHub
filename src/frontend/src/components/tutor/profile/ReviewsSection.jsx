@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReportAction from '@/components/reports/ReportAction';
+import ModerationAction from '@/components/admin/ModerationAction';
 import PropTypes from 'prop-types';
 import Card from '@/components/ui/Card';
 import Avatar from '@/components/ui/Avatar';
@@ -33,7 +34,7 @@ Stars.propTypes = { rating: PropTypes.number, className: PropTypes.string };
  * Đã đồng bộ số lượng đánh giá trên từng thanh sao, bổ sung nút Xem thêm,
  * chuyển icon phản hồi sang Reply và chuẩn hóa nội dung mẫu về Tiếng Anh.
  */
-export default function ReviewsSection({ tutor, reviews = [] }) {
+export default function ReviewsSection({ tutor, reviews = [], onModerated = () => {} }) {
   const [items, setItems] = useState(() => (Array.isArray(reviews) ? reviews : []));
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -184,6 +185,7 @@ export default function ReviewsSection({ tutor, reviews = [] }) {
 
                     {/* Phản hồi từ gia sư với icon reply */}
                     <ReportAction type="review" targetId={review.id} />
+                    <ModerationAction type="review" targetId={review.id} onSaved={onModerated} />
                     {reply && (
                       <div className="p-3.5 rounded-xl bg-surface border border-blue-100/90 text-caption text-fg-secondary ml-3 sm:ml-4 space-y-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                         <p className="flex items-center gap-1.5 text-blue-800 font-semibold text-[12px] m-0">
@@ -226,6 +228,7 @@ export default function ReviewsSection({ tutor, reviews = [] }) {
 }
 
 ReviewsSection.propTypes = {
+  onModerated: PropTypes.func,
   tutor: PropTypes.shape({
     id: PropTypes.string,
     fullName: PropTypes.string,

@@ -102,4 +102,21 @@ public class EnrollmentRefundLifecycleTests : IntegrationTestBase
         refunds.Should().ContainSingle().Which.Amount.Should().Be(900_000m);
         (await Db.Wallets.AsNoTracking().SingleAsync(w => w.TutorProfileId == enrollment.TutorProfileId)).PendingBalance.Should().Be(0m);
     }
+
+    [Fact]
+    public async Task AdminCancelApi_RefundsOnce_AndRejectsRepeat()
+    {
+        var (_, _, enrollmentId) = await SetupActiveEnrollmentAsync();
+        var admin = await Db.Users.AsNoTracking().FirstAsync(u => u.Role == UserRole.Admin && u.Status == AccountStatus.Active);
+        SetCurrentUser(admin.Id, UserRole.Admin);
+        using var client = Factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Scope.ServiceProvider.GetRequiredService<IJwtService>().GenerateAccessToken(admin));
+        var url = $"/api/v1/admin/enrollments/{enrollmentId}/cancel";
+        var payload = new { reason = "Administrative decision to stop this enrollment" };
+        (await client.PostAsJsonAsync(url, payload)).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await client.PostAsJsonAsync(url, payload)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var enrollment = await Db.Enrollments.AsNoTracking().SingleAsync(e => e.Id == enrollmentId);
+        enrollment.CancelledBy.Should().Be(CancelledBy.Admin);
+        (await Db.Transactions.AsNoTracking().CountAsync(t => t.BookingId == enrollment.BookingId && t.Type == TransactionType.StudentRefund)).Should().Be(1);
+    }
 }

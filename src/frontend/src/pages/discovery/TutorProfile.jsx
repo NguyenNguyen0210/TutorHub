@@ -244,7 +244,7 @@ export default function TutorProfile() {
               bookingId={bookingId}
               onBook={handleBooking}
             />
-            <ReviewsSection tutor={tutor} reviews={reviews} />
+            <ReviewsSection tutor={tutor} reviews={reviews} onModerated={() => setReloadToken(value => value + 1)} />
             <CertificatesSection tutor={tutor} id={SECTION_IDS.certificates} />
             <ProfileScheduleExplainer tutorId={tutor.id} />
             <ProfileFAQSection tutor={tutor} id={SECTION_IDS.faq} />

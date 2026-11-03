@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ReportAction from '@/components/reports/ReportAction';
+import ModerationAction from '@/components/admin/ModerationAction';
 import PropTypes from 'prop-types';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
@@ -12,6 +13,7 @@ export default function ServiceReviews({
   satisfactionRate,
   serviceTitle = '',
   ratingDistribution,
+  onModerated = () => {},
 }) {
   const [filterRating, setFilterRating] = useState('all');
 
@@ -174,6 +176,7 @@ export default function ServiceReviews({
 
                 {/* Tutor Official Reply */}
                 <ReportAction type="review" targetId={item.id} />
+                <ModerationAction type="review" targetId={item.id} onSaved={onModerated} />
                 {tutorReply && (
                   <div className="ml-[52px] p-3.5 bg-brand-primary-50/50 rounded-xl border border-brand-primary-100/80 flex flex-col gap-1">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-brand-primary-800">
@@ -200,6 +203,7 @@ export default function ServiceReviews({
 }
 
 ServiceReviews.propTypes = {
+  onModerated: PropTypes.func,
   ratingDistribution: PropTypes.arrayOf(PropTypes.number),
   reviews: PropTypes.array,
   ratingAvg: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
