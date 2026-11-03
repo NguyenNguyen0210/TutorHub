@@ -82,9 +82,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     }
 });
 
-// structured logging. Console (compact JSON) always; the Seq sink is
-// added only when Seq:ServerUrl is set, so the API boots and serves with Seq
-// down (the Seq sink batches in the background and never blocks requests).
+// Structured logging to console, with compact JSON in production.
 // Levels/enrichment come from the Serilog config section first; the code
 // below unconditionally re-states the same defaults — keep in sync with the
 // Serilog section in appsettings.json.
@@ -108,20 +106,6 @@ builder.Host.UseSerilog((context, loggerConfig) =>
     else
     {
         loggerConfig.WriteTo.Console(new RenderedCompactJsonFormatter());
-    }
-
-    var seqUrl = context.Configuration["Seq:ServerUrl"];
-    if (!string.IsNullOrWhiteSpace(seqUrl))
-    {
-        var seqApiKey = context.Configuration["Seq:ApiKey"];
-        if (string.IsNullOrWhiteSpace(seqApiKey))
-        {
-            loggerConfig.WriteTo.Seq(seqUrl);
-        }
-        else
-        {
-            loggerConfig.WriteTo.Seq(seqUrl, apiKey: seqApiKey);
-        }
     }
 });
 
@@ -343,7 +327,7 @@ app.UseMiddleware<TutorHub.Api.Middlewares.CorrelationIdMiddleware>();
 
 // one request log per call, enriched with the CorrelationId above (this
 // runs inside its LogContext scope). Health probes are excluded so
-// orchestrator polling stays out of Seq.
+// orchestrator polling stays out of request logs.
 app.UseWhen(
     context => !context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase),
     branch => branch.UseSerilogRequestLogging(options =>

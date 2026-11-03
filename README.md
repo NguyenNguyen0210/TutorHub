@@ -232,7 +232,7 @@ cp .env.example .env
 # 3. Để dùng Swagger và cấu hình dev, đặt ASPNETCORE_ENVIRONMENT=Development trong .env.
 #    Nếu để trống, Compose mặc định chạy Production và không phục vụ Swagger.
 
-# 4. Khởi động cụm dịch vụ (PostgreSQL, Redis, Seq, Backend API)
+# 4. Khởi động cụm dịch vụ (PostgreSQL, Redis, Backend API)
 docker compose up -d --build
 
 # 5. Tiện ích nạp dữ liệu cục bộ (nếu đã có scripts/ trên máy).
@@ -376,7 +376,7 @@ npm run dev
   - **Lớp bảo vệ Idempotency Outer Shield:** Bộ lọc `[Idempotent]` kết hợp băm SHA-256 fingerprint trên body request và `DbIdempotencyStore` chống thanh toán/tạo đơn/rút tiền trùng lặp khi mạng lag.
   - **Nhắc lịch (Reminders):** Session Reminder và Grace Period Reminder không sử dụng cron job định kỳ quét toàn bộ database mà chuyển sang kiến trúc **Delayed Outbox Pattern** (`SessionReminderDueEvent`, `GracePeriodClosingSoonEvent`), tối ưu hiệu năng và tránh rủi ro lock bảng.
 * **Tìm kiếm tiếng Việt:** `unaccent` (wrapper immutable `unaccent_immutable`) + trigram `pg_trgm` với GIN index trên `Services(Title, Description)`, `Subjects(Name)`, `Users(FullName, Email)`… — `toan` ra `toán`, `nguyen` ra `Nguyễn`, giữ nguyên sort/paging cũ. `EXPLAIN` xác nhận dùng index + timing trước/sau là follow-up staging (sandbox nghiệm thu không có PG nên chưa đo).
-* **Log tập trung:** Serilog JSON console + Seq sink (chỉ khi `Seq:ServerUrl` khác rỗng; Seq chết không chặn boot), enrich `CorrelationId`, bỏ ồn `/health*`, cấm log secret/PII. Dev/staging: service `seq` trong compose (`:5341`).
+* **Ghi log ứng dụng:** Serilog ghi ra console (JSON trong production), bổ sung `CorrelationId`, lọc log `/health*` và không ghi secret/PII.
 
 ---
 
