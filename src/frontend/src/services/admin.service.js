@@ -12,6 +12,7 @@
  * - GET /admin/disputes/{id}/investigation → DisputeInvestigationDto
  */
 import api from './api';
+import { idempotencyHeaders } from './idempotency';
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -155,6 +156,11 @@ function normalizeWithdrawal(raw = {}) {
     processedByAdminId: raw.processedByAdminId ?? null,
     processedByAdminName: raw.processedByAdminName ?? null,
     failureReason: raw.failureReason ?? null,
+    tutorAvatarUrl: raw.tutorAvatarUrl ?? null,
+    availableBalanceAtRequest: raw.availableBalanceAtRequest ?? null,
+    availableBalanceAfterReservation: raw.availableBalanceAfterReservation ?? null,
+    bankTransferReference: raw.bankTransferReference ?? null,
+    reconciliationNote: raw.reconciliationNote ?? null,
   };
 }
 
@@ -300,12 +306,14 @@ export const adminService = {
   /**
    * GET /admin/withdrawals → PagedResult<WithdrawalDto>
    */
-  async getWithdrawals({ status = null, pageNumber = 1, pageSize = 10 } = {}) {
-    const params = { pageNumber, pageSize };
+  async getWithdrawals({ status = null, pageNumber = 1, pageSize = 10, search } = {}) {
+    const params = { pageNumber, pageSize, search };
     if (status) params.status = status;
     const res = await api.get('/admin/withdrawals', { params });
     return normalizePaged(res, normalizeWithdrawal);
   },
+
+  getWithdrawalSummary: () => api.get('/admin/withdrawals/summary'),
 
   /** GET /admin/withdrawals/{id} → WithdrawalDto */
   async getWithdrawalById(id) {
@@ -317,7 +325,7 @@ export const adminService = {
   processWithdrawal: (id) => api.post(`/admin/withdrawals/${id}/process`),
 
   /** POST /admin/withdrawals/{id}/complete → WithdrawalDto */
-  completeWithdrawal: (id) => api.post(`/admin/withdrawals/${id}/complete`),
+  completeWithdrawal: (id, payload, key) => api.post(`/admin/withdrawals/${id}/complete`, payload, { headers: idempotencyHeaders(key) }),
 
   /** POST /admin/withdrawals/{id}/fail { reason } → WithdrawalDto */
   failWithdrawal: (id, reason) => api.post(`/admin/withdrawals/${id}/fail`, { reason }),

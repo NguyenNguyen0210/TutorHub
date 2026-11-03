@@ -162,6 +162,7 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAdminWithdrawals(
         [FromQuery] WithdrawalStatus? status,
+        [FromQuery] string? search = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
@@ -169,11 +170,19 @@ public class AdminController : ControllerBase
         var query = new GetAdminWithdrawalsQuery(
             Status: status,
             PageNumber: pageNumber,
-            PageSize: pageSize
+            PageSize: pageSize,
+            Search: search
         );
 
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<WithdrawalDto>>.SuccessResult(result, "Admin withdrawals list retrieved successfully."));
+    }
+
+    [HttpGet("withdrawals/summary")]
+    public async Task<IActionResult> GetAdminWithdrawalSummary(CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new GetAdminWithdrawalSummaryQuery(), cancellationToken);
+        return Ok(ApiResponse<AdminWithdrawalSummaryDto>.SuccessResult(result));
     }
 
     /// <summary>
@@ -211,14 +220,17 @@ public class AdminController : ControllerBase
     /// Complete a processing withdrawal request and finalize payout (Admin only).
     /// </summary>
     [HttpPost("withdrawals/{id:guid}/complete")]
+    [TutorHub.Api.Filters.Idempotent(RequireKey = true)]
     [ProducesResponseType(typeof(ApiResponse<WithdrawalDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> CompleteWithdrawal([FromRoute] Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> CompleteWithdrawal([FromRoute] Guid id, [FromBody] CompleteWithdrawalApiRequest request, CancellationToken cancellationToken)
     {
-        var command = new CompleteWithdrawalCommand(id);
+        if (string.IsNullOrWhiteSpace(request.BankTransferReference))
+            return BadRequest(ApiResponse<object>.FailureResult("Vui lòng nhập mã giao dịch chuyển khoản để đối soát."));
+        var command = new CompleteWithdrawalCommand(id, request.BankTransferReference, request.ReconciliationNote);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<WithdrawalDto>.SuccessResult(result, "Withdrawal completed successfully."));
     }

@@ -8,5 +8,6 @@ namespace TutorHub.Application.Features.Admin.Withdrawals.GetAdminWithdrawals;
 public record GetAdminWithdrawalsQuery(
     WithdrawalStatus? Status = null,
     int PageNumber = 1,
-    int PageSize = 10
+    int PageSize = 10,
+    string? Search = null
 ) : IRequest<PagedResult<WithdrawalDto>>;
