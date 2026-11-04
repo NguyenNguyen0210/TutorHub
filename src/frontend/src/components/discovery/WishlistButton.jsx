@@ -5,7 +5,7 @@ import { useWishlist } from '@/hooks/useWishlist';
 export default function WishlistButton({ itemType, itemId }) {
   const { isFavorited, toggle, isPending } = useWishlist();
   const saved = isFavorited(itemType, itemId);
-  const label = `${saved ? 'Bỏ lưu' : 'Lưu'} ${itemType === 'Tutor' ? 'gia sư' : 'dịch vụ'}`;
+  const label = `${saved ? 'Bỏ lưu' : 'Lưu'} ${itemType === 'Tutor' ? 'gia sư' : "gói học"}`;
   return (
     <button type="button" onClick={() => toggle(itemType, itemId)} disabled={isPending}
       title={label} aria-label={label} aria-pressed={saved} aria-busy={isPending || undefined}

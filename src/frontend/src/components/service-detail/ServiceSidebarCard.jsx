@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
@@ -68,7 +69,7 @@ export default function ServiceSidebarCard({
         navigate(`/student/bookings/${booking.id}/checkout`);
       }
     } catch (err) {
-      toast.error(err?.message || 'Không tạo được đơn giữ chỗ. Vui lòng thử lại.');
+      toast.error(userFacingError(err, 'Không tạo được đơn giữ chỗ. Vui lòng thử lại.'));
     } finally {
       setBookingLoading(false);
     }
@@ -139,8 +140,8 @@ export default function ServiceSidebarCard({
             variant={isFavorite ? 'primary' : 'outline'}
             size="lg"
             onClick={handleToggleFavorite}
-            aria-label={isFavorite ? 'Bỏ lưu dịch vụ' : 'Lưu dịch vụ'}
-            title={isFavorite ? 'Bỏ lưu dịch vụ' : 'Lưu dịch vụ'}
+            aria-label={isFavorite ? "Bỏ lưu gói học" : "Lưu gói học"}
+            title={isFavorite ? "Bỏ lưu gói học" : "Lưu gói học"}
             className={`!rounded-xl !p-3.5 shrink-0 ${
               isFavorite
                 ? 'text-danger bg-danger-subtle border-danger/30'
@@ -172,7 +173,7 @@ export default function ServiceSidebarCard({
         <div className="flex items-start gap-2.5 text-xs text-fg-secondary">
           <Icon name="security" size="xs" className="w-4 h-4 text-success-strong shrink-0 mt-0.5" />
           <span>
-            <strong className="text-fg">Bảo chứng Escrow:</strong> Tiền học được bảo đảm, gia sư chỉ nhận tiền sau khi từng buổi học hoàn tất.
+            <strong className="text-fg">Bảo vệ học phí:</strong> Tiền học được bảo đảm, gia sư chỉ nhận tiền sau khi từng buổi học hoàn tất.
           </span>
         </div>
 

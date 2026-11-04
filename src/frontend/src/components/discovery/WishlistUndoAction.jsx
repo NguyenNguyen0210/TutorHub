@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { wishlistService } from '@/services/wishlistService';
@@ -30,15 +31,15 @@ export default function WishlistUndoAction({ itemType, itemId, userId, saved = f
         queryClient.invalidateQueries({ queryKey: ['wishlist', 'items'] }),
       ]);
       dismiss();
-      toast.success(`${desiredSaved ? 'Đã lưu lại' : 'Đã bỏ lưu'} ${itemType === 'Tutor' ? 'gia sư' : 'dịch vụ'}.`);
+      toast.success(`${desiredSaved ? 'Đã lưu lại' : 'Đã bỏ lưu'} ${itemType === 'Tutor' ? 'gia sư' : "gói học"}.`);
     } catch (err) {
-      toast.error(err?.message || 'Không thể hoàn tác. Vui lòng thử lại.');
+      toast.error(userFacingError(err, 'Không thể hoàn tác. Vui lòng thử lại.'));
     } finally { setRestoring(false); }
   };
 
   return (
     <span className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-      <span>{`${saved ? 'Đã lưu' : 'Đã bỏ lưu'} ${itemType === 'Tutor' ? 'gia sư' : 'dịch vụ'}.`}</span>
+      <span>{`${saved ? 'Đã lưu' : 'Đã bỏ lưu'} ${itemType === 'Tutor' ? 'gia sư' : "gói học"}.`}</span>
       <button type="button" onClick={restore} disabled={restoring} aria-busy={restoring || undefined}
         className="min-h-11 rounded px-1 font-semibold underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current disabled:opacity-60">
         {restoring ? 'Đang hoàn tác…' : 'Hoàn tác'}

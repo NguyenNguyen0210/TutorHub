@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import {
@@ -284,7 +285,7 @@ export default function Register() {
               <span className="text-brand-primary-300" aria-hidden="true">•</span>
               <span className="text-neutral-800">{isTutor ? 'Linh hoạt lịch dạy' : 'Tiến độ minh bạch'}</span>
               <span className="text-brand-primary-300" aria-hidden="true">•</span>
-              <span className="text-neutral-800">{isTutor ? 'Bảo vệ thanh toán 12h' : 'Bảo chứng Escrow 100%'}</span>
+              <span className="text-neutral-800">{isTutor ? 'Bảo vệ thanh toán 12h' : "Học phí được giữ an toàn"}</span>
             </div>
 
             {/* Illustration integrated seamlessly into background like hero sections */}
@@ -454,7 +455,7 @@ export default function Register() {
                   {fieldErrors.fullName && (
                     <p id="fullname-error" className="mt-1 text-[11.5px] text-error font-medium flex items-center gap-1" role="alert">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>{fieldErrors.fullName}</span>
+                      <span>{userFacingError(fieldErrors.fullName, 'Vui lòng kiểm tra thông tin ở mục này.')}</span>
                     </p>
                   )}
                 </div>
@@ -493,7 +494,7 @@ export default function Register() {
                   {fieldErrors.email && (
                     <p id="email-error" className="mt-1 text-[11.5px] text-error font-medium flex items-center gap-1" role="alert">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>{fieldErrors.email}</span>
+                      <span>{userFacingError(fieldErrors.email, 'Vui lòng kiểm tra thông tin ở mục này.')}</span>
                     </p>
                   )}
                 </div>
@@ -531,7 +532,7 @@ export default function Register() {
                   {fieldErrors.phoneNumber && (
                     <p id="phone-error" className="mt-1 text-[11.5px] text-error font-medium flex items-center gap-1" role="alert">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>{fieldErrors.phoneNumber}</span>
+                      <span>{userFacingError(fieldErrors.phoneNumber, 'Vui lòng kiểm tra thông tin ở mục này.')}</span>
                     </p>
                   )}
                 </div>
@@ -578,7 +579,7 @@ export default function Register() {
                   {fieldErrors.password && (
                     <p id="password-error" className="mt-1 text-[11.5px] text-error font-medium flex items-center gap-1" role="alert">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>{fieldErrors.password}</span>
+                      <span>{userFacingError(fieldErrors.password, 'Vui lòng kiểm tra thông tin ở mục này.')}</span>
                     </p>
                   )}
                 </div>
@@ -613,7 +614,7 @@ export default function Register() {
                   {fieldErrors.agreeTerms && (
                     <p id="terms-error" className="mt-1.5 text-[11.5px] text-error font-medium flex items-center gap-1 pl-6" role="alert">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>{fieldErrors.agreeTerms}</span>
+                      <span>{userFacingError(fieldErrors.agreeTerms, 'Vui lòng kiểm tra thông tin ở mục này.')}</span>
                     </p>
                   )}
                 </div>

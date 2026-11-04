@@ -21,8 +21,8 @@ const JOURNEY_CONFIG = {
     steps: [
       ['search', 'Tìm người phù hợp', 'Lọc theo môn học, mục tiêu và học phí trọn gói minh bạch.'],
       ['forum', 'Trao đổi mục tiêu', 'Xem hồ sơ thật và thống nhất kỳ vọng trước khi đăng ký.'],
-      ['credit_card', 'Giữ chỗ an toàn', 'Chọn gói học; hệ thống giữ chỗ 15 phút trong lúc thanh toán ký quỹ.'],
-      ['event_available', 'Học theo tiến độ', 'Xếp lịch từng buổi và có 12 giờ nghiệm thu tự động trước giải ngân.'],
+      ['credit_card', 'Giữ chỗ an toàn', 'Chọn gói học và hoàn tất thanh toán trong 15 phút giữ chỗ.'],
+      ['event_available', 'Học theo tiến độ', "Xếp lịch từng buổi. Sau buổi học, bạn có 12 giờ phản hồi trước khi học phí được chuyển cho gia sư."],
     ],
   },
   tutor: {

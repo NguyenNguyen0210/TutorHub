@@ -29,7 +29,7 @@ export default function PublicFooter() {
             <h3 id="footer-discover" className={footerHeadingClass}>Khám phá</h3>
             <ul className="space-y-1">
               <li><Link to="/" className={footerLinkClass}>Tìm gia sư</Link></li>
-              <li><Link to="/services" className={footerLinkClass}>Dịch vụ học tập</Link></li>
+              <li><Link to="/services" className={footerLinkClass}>Gói học</Link></li>
               <li><Link to="/become-tutor" className={footerLinkClass}>Trở thành gia sư</Link></li>
             </ul>
           </nav>
@@ -50,7 +50,7 @@ export default function PublicFooter() {
             <ul className="space-y-1">
               <li><Link to="/how-it-works" className={footerLinkClass}>Về chúng tôi</Link></li>
               <li><Link to="/become-tutor" className={footerLinkClass}>Cộng đồng gia sư</Link></li>
-              <li><Link to="/services" className={footerLinkClass}>Dịch vụ nổi bật</Link></li>
+              <li><Link to="/services" className={footerLinkClass}>Gói học nổi bật</Link></li>
             </ul>
           </nav>
 

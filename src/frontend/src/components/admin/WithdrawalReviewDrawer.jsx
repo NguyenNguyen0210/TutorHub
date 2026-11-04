@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
@@ -49,7 +50,7 @@ export default function WithdrawalReviewDrawer({ id, onClose }) {
       await client.invalidateQueries({ queryKey: ['admin-tutor-withdrawals', userId] });
       setVerified(false);
     } catch (err) {
-      toast.error(err?.message || 'Chưa thể cập nhật yêu cầu. Vui lòng thử lại.');
+      toast.error(userFacingError(err, 'Chưa thể cập nhật yêu cầu. Vui lòng thử lại.'));
       if (err?.status === 409 || err?.response?.status === 409) await detail.refetch();
     } finally { lock.current = false; setBusy(false); }
   };

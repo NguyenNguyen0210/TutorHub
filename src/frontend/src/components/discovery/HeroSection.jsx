@@ -22,7 +22,7 @@ export default function HeroSection({ searchKeyword, setSearchKeyword, onSearchS
             </h1>
 
             <p className="mt-6 max-w-[600px] text-[15px] leading-7 text-[color:var(--mkt-body)] sm:text-[17px]">
-              Khám phá gia sư đã được xác minh, so sánh hồ sơ minh bạch và bắt đầu hành trình học tập theo nhịp riêng của bạn.
+              Tìm gia sư đã được duyệt hồ sơ, so sánh thông tin và bắt đầu hành trình học tập theo nhịp riêng của bạn.
             </p>
 
             <form

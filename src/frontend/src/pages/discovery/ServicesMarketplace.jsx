@@ -460,13 +460,13 @@ export default function ServicesMarketplace() {
             {/* Top Toolbar: Counter + Sort Dropdown */}
             <div className="flex flex-col gap-4 border-b border-[color:var(--mkt-line)] pb-4 pt-1 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <span className="text-xs font-bold uppercase tracking-[0.08em] text-blue-600">Danh sách dịch vụ</span>
+                <span className="text-xs font-bold uppercase tracking-[0.08em] text-blue-600">Danh sách gói học</span>
                 <h2 className="mt-1 text-[22px] font-bold tracking-[-0.02em] text-[color:var(--mkt-ink)] sm:text-[26px]">
                   {loading
-                    ? 'Đang tìm kiếm dịch vụ...'
+                    ? "Đang tìm kiếm gói học..."
                     : totalCount === 0
-                      ? 'Không tìm thấy dịch vụ phù hợp'
-                      : `${totalCount} dịch vụ phù hợp`}
+                      ? "Không tìm thấy gói học phù hợp"
+                      : `${totalCount} gói học phù hợp`}
                 </h2>
                 <p className="mt-1 text-sm font-medium text-[color:var(--mkt-body)]">
                   So sánh lộ trình, gia sư và học phí trọn gói.
@@ -544,7 +544,7 @@ export default function ServicesMarketplace() {
             {error && !loading && (
               <ErrorState
                 error={error}
-                title="Không thể tải danh sách dịch vụ học tập"
+                title="Không thể tải danh sách gói học"
                 message={error.message}
                 onRetry={handleRetry}
                 backPath="/"
@@ -553,13 +553,13 @@ export default function ServicesMarketplace() {
             )}
 
             {/* Loading Skeletons (2 Columns đồng bộ với Tutor Grid) */}
-            {loading && <CardSkeleton count={6} className="gap-5 md:!grid-cols-2 lg:!grid-cols-2" label="Đang tải danh sách dịch vụ..." />}
+            {loading && <CardSkeleton count={6} className="gap-5 md:!grid-cols-2 lg:!grid-cols-2" label="Đang tải danh sách gói học..." />}
 
             {/* Empty State */}
             {!loading && !error && services.length === 0 && (
               <EmptyState
                 icon="search_off"
-                title="Không tìm thấy dịch vụ học tập phù hợp"
+                title="Không tìm thấy gói học phù hợp"
                 description="Bộ lọc hiện tại quá hẹp. Hãy thử nới khoảng giá, đổi danh mục/môn học, tìm từ khóa khác, hoặc gỡ bớt từng bộ lọc bên dưới."
                 filters={activeFilters}
                 onClearAll={handleResetFilters}

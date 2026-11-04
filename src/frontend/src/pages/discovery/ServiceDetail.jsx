@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { discoveryReturn } from '@/utils/discoveryReturn';
@@ -61,7 +62,7 @@ export default function ServiceDetail() {
         navigate(`/student/bookings/${booking.id}/checkout`);
       }
     } catch (err) {
-      toast.error(err?.message || 'Không tạo được đơn giữ chỗ. Vui lòng thử lại.');
+      toast.error(userFacingError(err, 'Không tạo được đơn giữ chỗ. Vui lòng thử lại.'));
     } finally {
       setBookingLoading(false);
     }
@@ -84,7 +85,7 @@ export default function ServiceDetail() {
       } catch (err) {
         if (!cancelled) {
           console.error('[ServiceDetail] Error loading service:', err);
-          setError(err.message || 'Không thể tải thông tin dịch vụ học tập.');
+          setError(userFacingError(err, "Không thể tải thông tin gói học."));
         }
       } finally {
         if (!cancelled) {
@@ -178,8 +179,8 @@ export default function ServiceDetail() {
     return (
       <div className="min-h-[70vh] flex items-center justify-center p-6">
         <EmptyState
-          title="Dịch vụ học tập không tồn tại"
-          description="Dịch vụ học tập bạn đang tìm kiếm có thể đã bị gỡ hoặc không tồn tại."
+          title="Gói học không tồn tại"
+          description="Gói học bạn đang tìm kiếm có thể đã bị gỡ hoặc không tồn tại."
           actionText="Về danh sách dịch vụ"
           onAction={() => navigate('/services')}
         />
@@ -249,7 +250,7 @@ export default function ServiceDetail() {
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-brand-primary-600" />
                 <h2 className="text-xl sm:text-2xl font-bold text-fg tracking-tight">
-                  Tổng quan dịch vụ & Phạm vi đào tạo
+                  Tổng quan gói học & Phạm vi đào tạo
                 </h2>
               </div>
 
@@ -493,7 +494,7 @@ export default function ServiceDetail() {
             variant={isFavorite ? 'primary' : 'outline'}
             size="md"
             onClick={handleToggleFavorite}
-            aria-label={isFavorite ? 'Bỏ lưu dịch vụ' : 'Lưu dịch vụ'}
+            aria-label={isFavorite ? "Bỏ lưu gói học" : "Lưu gói học"}
             className={`!rounded-xl px-3 min-h-[44px] ${isFavorite ? 'text-danger bg-danger-subtle' : ''}`}
           >
             <Icon name="favorite" size="sm" filled={isFavorite} />

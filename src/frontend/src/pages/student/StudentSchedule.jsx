@@ -15,7 +15,7 @@ import { DetailSkeleton } from '@/components/common/Skeleton';
 
 const ZONE = 'Asia/Ho_Chi_Minh';
 const weekStart = date => date.startOf('day').subtract((date.day() + 6) % 7, 'day');
-const statuses = { all: 'Tất cả trạng thái', Scheduled: 'Đã lên lịch', AwaitingPayout: 'Đang bảo lưu học phí', Completed: 'Đã hoàn thành', Cancelled: 'Đã hủy', Unscheduled: 'Chưa xếp lịch' };
+const statuses = { all: 'Tất cả trạng thái', Scheduled: 'Đã xếp lịch', AwaitingPayout: 'Chờ giải ngân', Completed: 'Đã hoàn thành', Cancelled: 'Đã hủy', Unscheduled: 'Chưa xếp lịch' };
 
 export default function StudentSchedule() {
   const { user } = useAuthStore();

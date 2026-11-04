@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import chatService from '@/services/chat.service';
@@ -230,7 +231,7 @@ export default function EnrollmentDetail() {
       setScheduleDatetime('');
       await loadEnrollment();
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Không thể xếp lịch buổi học.');
+      toast.error(userFacingError(err, 'Chưa xếp được lịch. Vui lòng kiểm tra ngày giờ và thử lại.'));
     } finally {
       setSubmittingSchedule(false);
     }
@@ -249,7 +250,7 @@ export default function EnrollmentDetail() {
       setReview(res);
       toast.success('Đã gửi đánh giá khóa học thành công! Cảm ơn bạn đã phản hồi.');
     } catch (err) {
-      toast.error(err?.message || 'Không thể gửi đánh giá. Vui lòng thử lại.');
+      toast.error(userFacingError(err, 'Không thể gửi đánh giá. Vui lòng thử lại.'));
     } finally {
       setSubmittingReview(false);
     }
@@ -344,7 +345,7 @@ export default function EnrollmentDetail() {
       if (!conversation?.id) throw new Error('Không thể mở cuộc trò chuyện với gia sư.');
       navigate(`/app/messages?conversationId=${conversation.id}`);
     } catch (err) {
-      toast.error(err?.message || 'Không thể mở tin nhắn. Vui lòng thử lại.');
+      toast.error(userFacingError(err, 'Không thể mở tin nhắn. Vui lòng thử lại.'));
     } finally {
       setOpeningChat(false);
     }
@@ -497,7 +498,7 @@ export default function EnrollmentDetail() {
           </div>
           <Progress value={progressPercent} label="Tiến độ học tập" />
           {isActive && <p className="inline-flex items-center gap-1.5 text-xs text-fg-muted">
-            <Icon name="shield" size="xs" className="text-brand-primary-600" />Học phí được bảo vệ qua Escrow
+            <Icon name="shield" size="xs" className="text-brand-primary-600" />TutorHub giữ học phí và trả theo từng buổi học
           </p>}
         </div>
       </Card>
@@ -516,7 +517,7 @@ export default function EnrollmentDetail() {
           <p className="mt-2 text-xs text-fg-muted">{nextSession ? `Buổi học ${nextSession.sessionNumber}` : isActive ? 'Chờ xếp lịch' : 'Chưa có buổi học sắp tới'}</p>
         </Card>
         <Card padding="md" className="rounded-2xl shadow-none">
-          <dt className="flex items-center gap-2 text-sm font-medium text-fg-secondary"><Icon name="shield" size="sm" className="text-holding-strong" />Học phí ký quỹ</dt>
+          <dt className="flex items-center gap-2 text-sm font-medium text-fg-secondary"><Icon name="shield" size="sm" className="text-holding-strong" />Học phí đang giữ</dt>
           <dd className="mt-4 text-[26px] font-semibold leading-none tracking-tight text-fg tabular-nums">{hasFinancialSummary ? <Money value={finances.escrowRemaining} /> : '—'}</dd>
           <p className="mt-2 text-xs text-fg-muted">{!hasFinancialSummary ? 'Xem chi tiết trong Ví học viên' : finances.escrowRemaining > 0 ? 'Đang được bảo vệ' : 'Không còn học phí đang giữ'}</p>
         </Card>
@@ -792,7 +793,7 @@ export default function EnrollmentDetail() {
             <dl className="mt-5 space-y-3 text-sm">
               <div className="flex flex-wrap justify-between gap-2"><dt className="text-fg-secondary">Tổng học phí</dt><dd className="font-semibold text-fg tabular-nums"><Money value={enrollment.totalPrice} /></dd></div>
               {uniformSessionPrice != null && <div className="flex flex-wrap justify-between gap-2"><dt className="text-fg-secondary">Học phí / buổi</dt><dd className="font-medium text-fg-secondary tabular-nums"><Money value={uniformSessionPrice} /></dd></div>}
-              <div className="flex flex-wrap justify-between gap-2"><dt className="text-fg-secondary">Đang ký quỹ</dt><dd className="font-semibold text-holding-strong tabular-nums"><Money value={finances.escrowRemaining} /></dd></div>
+              <div className="flex flex-wrap justify-between gap-2"><dt className="text-fg-secondary">Đang giữ học phí</dt><dd className="font-semibold text-holding-strong tabular-nums"><Money value={finances.escrowRemaining} /></dd></div>
               <div className="flex flex-wrap justify-between gap-2"><dt className="text-fg-secondary">Đã giải ngân</dt><dd className="font-semibold text-success-strong tabular-nums"><Money value={finances.escrowReleased} /></dd></div>
               {finances.escrowRefunded > 0 && <div className="flex flex-wrap justify-between gap-2"><dt className="text-fg-secondary">Đã hoàn tiền</dt><dd className="font-medium tabular-nums"><Money value={finances.escrowRefunded} /></dd></div>}
               <div className="flex flex-wrap justify-between gap-2 border-t border-border pt-3"><dt className="text-fg-muted">Tỷ lệ phí sàn</dt><dd className="text-fg-secondary">{enrollment.platformFeeRate != null ? `${(Number(enrollment.platformFeeRate) * 100).toFixed(0)}%` : '—'}</dd></div>

@@ -4,7 +4,7 @@ import { URLSearchParams } from 'node:url';
 import { transactionStatus, transactionFilters } from '../src/utils/adminTransactions.js';
 
 test('transaction states distinguish escrow, settled payouts, refunds and actual failures', () => {
-  assert.deepEqual(transactionStatus({ status: 'Held', type: 'BookingPayment' }), { label: 'Đang ký quỹ', tone: 'holding' });
+  assert.deepEqual(transactionStatus({ status: 'Held', type: 'BookingPayment' }), { label: 'Đang giữ học phí', tone: 'holding' });
   assert.equal(transactionStatus({ status: 'Pending' }).tone, 'blue');
   assert.equal(transactionStatus({ status: 'Failed' }).tone, 'danger');
   assert.equal(transactionStatus({ status: 'Succeeded', type: 'BookingPayment' }).label, 'Đã thanh toán');

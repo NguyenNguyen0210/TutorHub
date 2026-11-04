@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { adminWorkspaceDestination } from '@/utils/adminWorkspaceNavigation';
@@ -103,7 +104,7 @@ export default function AdminStudentWallets({ withdrawalsOnly = false }) {
       if (kind === 'complete') await studentWalletService.adminCompleteWithdrawal(detail.id);
       if (kind === 'fail') await studentWalletService.adminFailWithdrawal(detail.id, { reason: note.trim() });
       toast.success('Đã cập nhật yêu cầu.'); setDetail(null); setReload(value => value + 1);
-    } catch (err) { toast.error(err?.message || 'Chưa thể xử lý yêu cầu. Vui lòng thử lại.'); }
+    } catch (err) { toast.error(userFacingError(err, 'Chưa thể xử lý yêu cầu. Vui lòng thử lại.')); }
     finally { setBusy(false); actionLock.current = false; }
   };
 

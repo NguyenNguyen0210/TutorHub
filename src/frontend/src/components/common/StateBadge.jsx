@@ -19,7 +19,7 @@ import {
  */
 const ENROLLMENT_STATUS_META = {
   Pending: { label: 'Chờ kích hoạt', color: 'holding' },
-  Active: { label: 'Đang hiệu lực', color: 'success' },
+  Active: { label: "Đang học", color: 'success' },
   Completed: { label: 'Đã hoàn tất', color: 'info' },
   Cancelled: { label: 'Đã hủy', color: 'danger' },
 };
@@ -33,11 +33,11 @@ const TOPUP_STATUS_META = {
 const RESOLVERS = {
   booking: (v) => ({ Holding: { label: 'Chờ thanh toán', color: 'holding' }, Paid: { label: 'Đã thanh toán', color: 'success' }, Cancelled: { label: 'Đã hủy', color: 'neutral' }, Expired: { label: 'Đã hết hạn', color: 'neutral' } }[v] || { label: 'Đang cập nhật', color: 'neutral' }),
   dispute: (v) => ({ Open: { label: 'Đã tiếp nhận', color: 'holding' }, UnderReview: { label: 'Đang xem xét', color: 'holding' }, Resolved: { label: 'Đã giải quyết', color: 'success' }, Dismissed: { label: 'Đã bác bỏ', color: 'neutral' }, RequiresAdminFinancialIntervention: { label: 'Chờ xử lý tài chính', color: 'holding' }, RequiresAdminRefundSettlement: { label: 'Chờ xử lý hoàn tiền', color: 'holding' } }[v] || { label: 'Đang xử lý', color: 'neutral' }),
-  session: (v) => SESSION_STATUS_META[v] || { label: v, color: 'neutral' },
-  enrollment: (v) => ENROLLMENT_STATUS_META[v] || { label: v, color: 'neutral' },
-  withdrawal: (v) => WITHDRAWAL_STATUS_META[v] || { label: v, color: 'neutral' },
-  topup: (v) => TOPUP_STATUS_META[v] || { label: v, color: 'neutral' },
-  application: (v) => TUTOR_APPLICATION_STATUS_META[v] || { label: v, color: 'neutral' },
+  session: (v) => SESSION_STATUS_META[v] || { label: 'Chưa rõ trạng thái', color: 'neutral' },
+  enrollment: (v) => ENROLLMENT_STATUS_META[v] || { label: 'Chưa rõ trạng thái', color: 'neutral' },
+  withdrawal: (v) => WITHDRAWAL_STATUS_META[v] || { label: 'Chưa rõ trạng thái', color: 'neutral' },
+  topup: (v) => TOPUP_STATUS_META[v] || { label: 'Chưa rõ trạng thái', color: 'neutral' },
+  application: (v) => TUTOR_APPLICATION_STATUS_META[v] || { label: 'Chưa rõ trạng thái', color: 'neutral' },
 };
 
 export function getStateMeta(domain, value) {
@@ -45,7 +45,7 @@ export function getStateMeta(domain, value) {
     return { label: '—', color: 'neutral' };
   }
   const resolve = RESOLVERS[domain] || RESOLVERS.session;
-  return resolve(value) || { label: String(value), color: 'neutral' };
+  return resolve(value) || { label: 'Chưa rõ trạng thái', color: 'neutral' };
 }
 
 /**

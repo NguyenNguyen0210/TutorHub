@@ -132,7 +132,7 @@ export default function HowItWorksHeroVisual() {
             <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
               <span className="flex items-center gap-1 font-medium">
                 <Icon name="shield" size="xs" className="text-emerald-600" />
-                Escrow bảo chứng 100%
+                Học phí được giữ an toàn
               </span>
               <span className="font-medium">Dời lịch trước 2h</span>
             </div>
@@ -166,7 +166,7 @@ export default function HowItWorksHeroVisual() {
             </div>
             <div className="min-w-0">
               <span className="block text-[11px] font-bold uppercase tracking-wider text-amber-600">Bước 4</span>
-              <p className="line-clamp-1 text-[13px] font-bold text-slate-900">Nghiệm thu 12h</p>
+              <p className="line-clamp-1 text-[13px] font-bold text-slate-900">12 giờ phản hồi</p>
               <p className="line-clamp-1 text-[11px] text-slate-500">Giải ngân minh bạch</p>
             </div>
           </div>

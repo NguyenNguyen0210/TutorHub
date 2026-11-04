@@ -63,13 +63,13 @@ export default function AdminTransactions() {
 
     <Card padding="none" variant="outlined">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
-        <div><h2 className="text-base font-semibold">Danh sách giao dịch</h2><p className="mt-1 text-xs text-fg-secondary">{query.isPending ? 'Đang tra cứu…' : query.isError ? 'Chưa tải được kết quả' : `${query.data?.totalCount || 0} bút toán${hasFilters ? ' phù hợp' : ''}`}</p></div>
-        <span className="inline-flex items-center gap-2 text-xs text-fg-secondary"><Icon name="receipt_long" size="sm" />Đối soát theo từng bút toán</span>
+        <div><h2 className="text-base font-semibold">Danh sách giao dịch</h2><p className="mt-1 text-xs text-fg-secondary">{query.isPending ? 'Đang tra cứu…' : query.isError ? 'Chưa tải được kết quả' : `${query.data?.totalCount || 0} khoản thu, chi${hasFilters ? ' phù hợp' : ''}`}</p></div>
+        <span className="inline-flex items-center gap-2 text-xs text-fg-secondary"><Icon name="receipt_long" size="sm" />Đối chiếu từng giao dịch</span>
       </div>
       {query.isPending ? <div className="p-5"><TableSkeleton rows={5} /></div> : query.isError ? <div className="p-8"><p role="alert" className="text-sm text-fg-secondary">Chưa tra cứu được giao dịch. Vui lòng kiểm tra bộ lọc và thử lại.</p><Button className="mt-4" variant="outline" onClick={() => query.refetch()}>Thử lại</Button></div> : !query.data?.items?.length ? <div className="px-5 py-14 text-center"><Icon name="receipt_long" size="xl" className="mx-auto mb-4 text-brand-primary-600" /><h3 className="font-semibold">Không có giao dịch phù hợp</h3><p className="mt-2 text-sm text-fg-secondary">Thử thay đổi loại giao dịch hoặc khoảng thời gian.</p></div> : <>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1020px] text-sm">
-            <caption className="sr-only">Giao dịch toàn sàn — mỗi dòng là một bút toán</caption>
+            <caption className="sr-only">Giao dịch toàn sàn — mỗi dòng là một khoản thu, chi</caption>
             <thead className="sticky top-0 z-10 bg-neutral-100 text-left text-xs text-fg-secondary">
               <tr>
                 <th scope="col" className="px-5 py-4 font-medium" aria-sort={sort === 'Newest' ? 'descending' : sort === 'Oldest' ? 'ascending' : 'none'}><button type="button" onClick={() => update({ sort: sort === 'Newest' ? 'Oldest' : 'Newest' })} className="inline-flex items-center gap-2 rounded focus-visible:ring-2 focus-visible:ring-brand-primary-500" aria-label="Sắp xếp theo thời gian">Giao dịch<Icon name={sort === 'Oldest' ? 'keyboard_arrow_up' : 'keyboard_arrow_down'} size="xs" /></button></th>
@@ -93,7 +93,7 @@ export default function AdminTransactions() {
           </table>
         </div>
         <nav aria-label="Phân trang giao dịch" className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-5">
-          <p className="text-xs text-fg-secondary">{(page - 1) * 10 + 1}–{Math.min(page * 10, query.data.totalCount)} / {query.data.totalCount} bút toán</p>
+          <p className="text-xs text-fg-secondary">{(page - 1) * 10 + 1}–{Math.min(page * 10, query.data.totalCount)} / {query.data.totalCount} khoản thu, chi</p>
           <div className="flex items-center gap-3"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setParams({ ...filters, page: page - 1 })}>Trước</Button><span className="text-xs text-fg-secondary">Trang {page}/{query.data.totalPages || 1}</span><Button size="sm" variant="outline" disabled={!query.data.hasNextPage} onClick={() => setParams({ ...filters, page: page + 1 })}>Tiếp</Button></div>
         </nav>
       </>}

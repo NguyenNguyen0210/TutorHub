@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useMemo, useRef, useStat
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/cn';
 import Icon from './Icon';
+import { userFacingError } from '@/utils/userFacingError';
 
 const ToastContext = createContext(null);
 
@@ -74,7 +75,7 @@ export function ToastProvider({ children }) {
                 )}
               >
                 <Icon name={v.icon} size="md" />
-                <p className="text-body-reg font-medium flex-1">{t.content}</p>
+                <p className="text-body-reg font-medium flex-1">{t.type === 'error' && typeof t.content === 'string' ? userFacingError(t.content) : t.content}</p>
                 <button
                   type="button"
                   onClick={() => dismiss(t.id)}

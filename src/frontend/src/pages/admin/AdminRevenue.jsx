@@ -56,7 +56,7 @@ export default function AdminRevenue() {
         <Card padding="lg" variant="outlined">
           <div className="mb-5 flex items-center gap-2"><Icon name="pie_chart" size="sm" className="text-insight-strong" /><h3 className="text-sm font-semibold">Chi tiết doanh thu lũy kế</h3></div>
           <dl className="grid gap-5 md:grid-cols-3">{detailMetrics.map(metric => <div key={metric.key} className="min-w-0"><dt className="flex items-center gap-2 text-xs text-fg-secondary"><Icon name={metric.icon} size="sm" className={metric.tone} />{metric.label}</dt><dd className="mt-2"><Amount value={totals[metric.key]} className="text-xl font-semibold" /></dd></div>)}</dl>
-          <details className="mt-5 border-t border-border pt-4 text-xs leading-5 text-fg-secondary"><summary className="w-fit cursor-pointer rounded focus-visible:ring-2 focus-visible:ring-brand-primary-500">Vì sao giá trị gói và học phí giải ngân có thể khác nhau?</summary><p className="mt-2">Giá trị gói lấy từ bút toán thanh toán; học phí giải ngân lấy từ bút toán từng buổi. Đây là hai nhóm bút toán và thời điểm ghi nhận khác nhau. Học phí giải ngân gồm cả phí nền tảng, không phải toàn bộ thu nhập thực nhận của gia sư.</p></details>
+          <details className="mt-5 border-t border-border pt-4 text-xs leading-5 text-fg-secondary"><summary className="w-fit cursor-pointer rounded focus-visible:ring-2 focus-visible:ring-brand-primary-500">Vì sao giá trị gói và học phí giải ngân có thể khác nhau?</summary><p className="mt-2">Giá trị gói là số tiền học viên đã thanh toán. Học phí giải ngân được ghi nhận theo từng buổi, có thể ở kỳ khác với lúc mua gói. Khoản giải ngân gồm cả phí nền tảng, không phải toàn bộ tiền gia sư thực nhận.</p></details>
         </Card>
       </>}
     </section>
@@ -82,7 +82,7 @@ export default function AdminRevenue() {
             })}</tbody>
           </table>
         </div>
-        <details className="text-xs leading-5 text-fg-secondary"><summary className="w-fit cursor-pointer rounded focus-visible:ring-2 focus-visible:ring-brand-primary-500">Phạm vi dữ liệu và cách đọc báo cáo</summary><p className="mt-2">0 ₫ là không phát sinh; — là chưa có dữ liệu. Biểu đồ và bảng sử dụng cùng khoảng thời gian, theo tháng tạo bút toán. Số đơn là các đơn tạo trong tháng đã thanh toán. Tháng đang diễn ra chưa thể so sánh trực tiếp với một tháng đầy đủ.</p></details>
+        <details className="text-xs leading-5 text-fg-secondary"><summary className="w-fit cursor-pointer rounded focus-visible:ring-2 focus-visible:ring-brand-primary-500">Phạm vi dữ liệu và cách đọc báo cáo</summary><p className="mt-2">0 ₫ là không phát sinh; — là chưa có dữ liệu. Biểu đồ và bảng sử dụng cùng khoảng thời gian, theo tháng ghi nhận giao dịch. Số đơn là các đơn tạo trong tháng đã thanh toán. Tháng đang diễn ra chưa thể so sánh trực tiếp với một tháng đầy đủ.</p></details>
       </>}
     </Card>
   </div>;

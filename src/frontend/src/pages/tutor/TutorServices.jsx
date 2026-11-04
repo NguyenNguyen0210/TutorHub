@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
@@ -17,9 +18,9 @@ import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 const STATUS_TABS = [
   { id: 'All', label: 'Tất cả' },
   { id: 'Draft', label: 'Bản nháp' },
-  { id: 'Published', label: 'Đã xuất bản' },
+  { id: 'Published', label: "Đã đăng" },
   { id: 'Paused', label: 'Tạm dừng' },
-  { id: 'Unpublished', label: 'Đã gỡ xuất bản' },
+  { id: 'Unpublished', label: "Đã ẩn gói học" },
 ];
 
 export default function TutorServices() {
@@ -88,11 +89,11 @@ export default function TutorServices() {
   // Publish Action
   const handlePublish = async (pkg) => {
     const ok = await confirm({
-      title: 'Xuất bản gói học',
+      title: "Đăng gói học",
       content: (
         <div className="space-y-2 text-caption text-fg-secondary">
           <p>
-            Bạn có chắc chắn muốn xuất bản gói học <strong>&ldquo;{pkg.title}&rdquo;</strong> lên sàn giao dịch?
+            Bạn có chắc chắn muốn đăng gói học <strong>&ldquo;{pkg.title}&rdquo;</strong> lên sàn giao dịch?
           </p>
           <div className="bg-neutral-50 p-3 rounded-brand-md border border-border space-y-1">
             <div className="flex justify-between">
@@ -107,11 +108,11 @@ export default function TutorServices() {
             </div>
           </div>
           <p className="text-[11px] text-fg-muted">
-            Sau khi xuất bản, gói học sẽ hiển thị công khai trên hồ sơ của bạn để học viên đặt mua.
+            Sau khi đăng, gói học sẽ hiển thị công khai trên hồ sơ của bạn để học viên đặt mua.
           </p>
         </div>
       ),
-      confirmText: 'Xuất bản ngay',
+      confirmText: "Đăng ngay",
       cancelText: 'Hủy',
       danger: false,
     });
@@ -121,10 +122,10 @@ export default function TutorServices() {
     try {
       setActionInProgressId(pkg.id);
       await tutorService.publishService(pkg.id);
-      toast.success('Gói học đã được xuất bản công khai.');
+      toast.success("Gói học đã được đăng công khai.");
       await loadData();
     } catch (err) {
-      toast.error(err?.message || 'Không thể xuất bản gói học.');
+      toast.error(userFacingError(err, "Chưa đăng được gói học. Vui lòng thử lại."));
     } finally {
       setActionInProgressId(null);
     }
@@ -133,7 +134,7 @@ export default function TutorServices() {
   // Unpublish Action
   const handleUnpublish = async (pkg) => {
     const ok = await confirm({
-      title: 'Gỡ xuất bản gói học',
+      title: "Ẩn gói học",
       content: (
         <div className="space-y-2 text-caption text-fg-secondary">
           <p>
@@ -144,7 +145,7 @@ export default function TutorServices() {
           </p>
         </div>
       ),
-      confirmText: 'Gỡ xuất bản',
+      confirmText: "Ẩn gói học",
       cancelText: 'Hủy',
       danger: true,
     });
@@ -154,10 +155,10 @@ export default function TutorServices() {
     try {
       setActionInProgressId(pkg.id);
       await tutorService.unpublishService(pkg.id);
-      toast.success('Đã gỡ xuất bản gói học.');
+      toast.success("Đã ẩn gói học.");
       await loadData();
     } catch (err) {
-      toast.error(err?.message || 'Không thể tạm ẩn gói học.');
+      toast.error(userFacingError(err, 'Chưa ẩn được gói học. Vui lòng thử lại.'));
     } finally {
       setActionInProgressId(null);
     }
@@ -166,11 +167,11 @@ export default function TutorServices() {
   // Pause Action (Published -> Paused)
   const handlePause = async (pkg) => {
     const ok = await confirm({
-      title: 'Tạm dừng tuyển sinh',
+      title: "Tạm dừng nhận học viên",
       content: (
         <div className="space-y-2 text-caption text-fg-secondary">
           <p>
-            Tạm dừng tuyển sinh gói học <strong>&ldquo;{pkg.title}&rdquo;</strong>? Học viên sẽ
+            Tạm dừng nhận học viên cho gói học <strong>&ldquo;{pkg.title}&rdquo;</strong>? Học viên sẽ
             không thấy gói này trên sàn cho đến khi bạn tiếp tục.
           </p>
           <p className="text-xs text-fg-muted">
@@ -188,10 +189,10 @@ export default function TutorServices() {
     try {
       setActionInProgressId(pkg.id);
       await tutorService.pauseService(pkg.id);
-      toast.success('Đã tạm dừng tuyển sinh gói học.');
+      toast.success("Đã tạm dừng nhận học viên cho gói học.");
       await loadData();
     } catch (err) {
-      toast.error(err?.message || 'Không thể tạm dừng gói học.');
+      toast.error(userFacingError(err, 'Chưa tạm dừng được gói học. Vui lòng thử lại.'));
     } finally {
       setActionInProgressId(null);
     }
@@ -205,7 +206,7 @@ export default function TutorServices() {
       toast.success('Đã tiếp tục tuyển sinh gói học.');
       await loadData();
     } catch (err) {
-      toast.error(err?.message || 'Không thể tiếp tục gói học.');
+      toast.error(userFacingError(err, 'Chưa mở lại việc nhận học viên. Vui lòng thử lại.'));
     } finally {
       setActionInProgressId(null);
     }

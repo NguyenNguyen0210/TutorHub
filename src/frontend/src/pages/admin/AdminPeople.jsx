@@ -17,7 +17,7 @@ export function AdminStudentWithdrawalRedirect() {
 export default function AdminPeople() {
   const [params, setParams] = useSearchParams();
   const tab = params.get('tab') === 'applications' ? 'applications' : 'accounts';
-  return <div className="space-y-6"><WorkspacePageHeader title="Người dùng & hồ sơ" description="Quản lý tài khoản và xét duyệt hồ sơ giảng dạy." />
+  return <div className="space-y-6"><WorkspacePageHeader title="Người dùng và hồ sơ" description="Quản lý tài khoản và xét duyệt hồ sơ giảng dạy." />
     <Tabs tabs={[{ key: 'accounts', label: 'Tài khoản' }, { key: 'applications', label: 'Hồ sơ gia sư' }]} value={tab} onChange={value => setParams({ tab: value })} />
     {tab === 'applications' ? <AdminTutorApplications embedded /> : <AdminUsers embedded />}
   </div>;

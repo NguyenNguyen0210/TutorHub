@@ -5,7 +5,7 @@
 const STATIC_TITLES = {
   // Discovery & Public
   '/': 'Tìm gia sư',
-  '/services': 'Dịch vụ học tập',
+  '/services': "Gói học",
   '/how-it-works': 'Cách hoạt động',
   '/become-tutor': 'Trở thành gia sư',
   '/terms': 'Điều khoản sử dụng',
@@ -29,8 +29,8 @@ const STATIC_TITLES = {
   '/student/wallet': 'Ví học viên',
   '/student/wallet/topup': 'Nạp tiền ví',
   '/student/wallet/withdraw': 'Rút tiền ví',
-  '/student/wishlist': 'Gia sư & Dịch vụ đã lưu',
-  '/student/disputes/new': 'Tạo khiếu nại',
+  '/student/wishlist': "Gia sư và gói học đã lưu",
+  '/student/disputes/new': "Gửi khiếu nại",
   '/student/settings': 'Cài đặt tài khoản',
 
   // Tutor Space
@@ -50,7 +50,7 @@ const STATIC_TITLES = {
   '/admin/withdrawals': 'Yêu cầu rút tiền',
   '/admin/disputes': 'Quản lý tranh chấp',
   '/admin/tutor-applications': 'Duyệt hồ sơ gia sư',
-  '/admin/users': 'Người dùng & hồ sơ',
+  '/admin/users': "Người dùng và hồ sơ",
   '/admin/categories': 'Quản lý danh mục',
   '/admin/subjects': 'Quản lý môn học',
   '/admin/transactions': 'Giao dịch toàn sàn',
@@ -73,7 +73,7 @@ export function getTitleForPathname(pathname) {
   // Fallback cho các đường dẫn động
   if (/^\/tutor\/services\/[^/]+\/edit$/.test(pathname)) return 'Chỉnh sửa gói học';
   if (pathname.startsWith('/services/') || pathname.startsWith('/service/')) {
-    return 'Chi tiết dịch vụ';
+    return "Chi tiết gói học";
   }
   if (pathname.startsWith('/tutors/')) {
     return 'Hồ sơ gia sư';

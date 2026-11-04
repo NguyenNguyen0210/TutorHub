@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import studentWalletService from '@/services/studentWallet.service';
@@ -63,7 +64,7 @@ export default function StudentWalletAdjustment() {
       setAmount(''); setReason(''); setReference(''); setReview(null); attempt.current = null;
       toast.success('Đã điều chỉnh số dư học viên.');
     } catch (err) {
-      toast.error(err?.message || 'Chưa thể điều chỉnh số dư. Vui lòng thử lại.');
+      toast.error(userFacingError(err, 'Chưa thể điều chỉnh số dư. Vui lòng thử lại.'));
       // Keep the same intent/key on retry, including uncertain network outcomes.
     } finally { inFlight.current = false; setBusy(false); }
   };
@@ -76,7 +77,7 @@ export default function StudentWalletAdjustment() {
       const wallet = data.items.find(item => item.id === selected.id);
       if (!wallet) throw new Error('Không tìm thấy ví học viên.');
       setSelected(wallet);
-    } catch (err) { toast.error(err?.message || 'Không thể cập nhật số dư.'); }
+    } catch (err) { toast.error(userFacingError(err, 'Không thể cập nhật số dư.')); }
     finally { setBusy(false); }
   };
 

@@ -6,7 +6,7 @@ export const TRANSACTION_TYPES = {
   DisputeAdjustment: { label: 'Điều chỉnh tranh chấp', short: 'Điều chỉnh', icon: 'tune', tone: 'neutral' },
 };
 
-export const TRANSACTION_STATUSES = { Held: 'Đang ký quỹ', Released: 'Đã giải ngân', Refunded: 'Đã hoàn tiền', Pending: 'Đang xử lý', Succeeded: 'Thành công', Failed: 'Thất bại' };
+export const TRANSACTION_STATUSES = { Held: "Đang giữ học phí", Released: 'Đã giải ngân', Refunded: 'Đã hoàn tiền', Pending: 'Đang xử lý', Succeeded: 'Thành công', Failed: 'Thất bại' };
 export const TRANSACTION_SORTS = { Newest: 'Mới nhất', Oldest: 'Cũ nhất', AmountDesc: 'Số tiền giảm dần', AmountAsc: 'Số tiền tăng dần' };
 
 export function transactionStatus(item) {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/cn';
+import { userFacingError } from '@/utils/userFacingError';
 
 const FIELD_BASE =
   'w-full rounded-brand-md border bg-surface px-3 text-body-reg text-fg placeholder:text-fg-muted shadow-brand-sm transition-[border-color,box-shadow,background-color] duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 disabled:bg-neutral-100 disabled:opacity-70 disabled:cursor-not-allowed';
@@ -28,7 +29,7 @@ export function Field({ label, htmlFor, hint, error, required, children, classNa
       {children}
       {error ? (
         <p className="text-caption text-danger-strong mt-1.5" role="alert">
-          {error}
+          {typeof error === 'string' ? userFacingError(error, 'Vui lòng kiểm tra thông tin ở mục này.') : error}
         </p>
       ) : (
         hint && <p className="text-caption text-fg-muted mt-1.5">{hint}</p>

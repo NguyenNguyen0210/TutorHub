@@ -6,7 +6,7 @@ const BENEFITS = [
     icon: 'verified_user',
     iconBg: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
     title: 'Bảo chứng thanh toán',
-    desc: 'Tiền học được giữ an toàn trong Escrow và chỉ giải ngân theo tiến độ từng buổi học.',
+    desc: "TutorHub giữ học phí và chuyển cho gia sư theo tiến độ từng buổi học.",
   },
   {
     icon: 'group',

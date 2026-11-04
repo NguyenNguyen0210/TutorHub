@@ -31,7 +31,7 @@ export function RequireRole({ allowedRoles, children }) {
           Tài khoản hiện tại của bạn (<strong>{role}</strong>) không có quyền truy cập khu vực này.
         </p>
         <Link to="/" className="text-brand-primary-700 font-bold text-xs hover:underline">
-          Về Trang Khám Phá
+          Về trang tìm gia sư
         </Link>
       </div>
     );

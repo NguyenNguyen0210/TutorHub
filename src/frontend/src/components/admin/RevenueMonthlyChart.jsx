@@ -53,7 +53,7 @@ export default function RevenueMonthlyChart({ points, currentMonth }) {
         <p className="font-semibold">{revenueMonthLabel(focused.month)}{focused.month === currentMonth && <span className="ml-2 font-normal text-brand-primary-600">Đang diễn ra</span>}</p>
         <p className="mt-2 text-fg-secondary">Doanh thu phí thuần</p><p className="mt-1 text-base font-semibold">{revenueNumber(focused.platformRevenue) == null ? '—' : <Money value={focused.platformRevenue} />}</p>
         <p className="mt-2 text-fg-secondary">Đơn tạo trong tháng đã thanh toán: <strong className="font-medium text-fg">{revenueNumber(focused.paidBookings) ?? '—'}</strong></p>
-        <p className="mt-2 text-fg-secondary">Nhấn để xem bút toán trong tháng.</p>
+        <p className="mt-2 text-fg-secondary">Nhấn để xem khoản thu, chi trong tháng.</p>
       </div>}
     </div>
   </div>;

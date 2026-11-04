@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -26,7 +27,7 @@ const REASONS = [
   { key: 'TutorLate', title: 'Gia sư vào lớp muộn quá 15 phút', desc: 'Không bù giờ hoặc làm ảnh hưởng nghiêm trọng đến việc học.' },
   { key: 'InappropriateBehavior', title: 'Hành vi không phù hợp', desc: 'Gia sư có thái độ, lời nói hoặc hành vi thiếu chuẩn mực.' },
   { key: 'TechnicalFailure', title: 'Sự cố kỹ thuật từ gia sư', desc: 'Mất kết nối hoặc thiết bị hỏng khiến buổi học bị gián đoạn kéo dài.' },
-  { key: 'Other', title: 'Lý do khác', desc: 'Các vấn đề phát sinh khác cần ban trọng tài can thiệp đối soát.' },
+  { key: 'Other', title: 'Lý do khác', desc: "Vấn đề khác cần TutorHub xem xét giải quyết." },
 ];
 
 /**
@@ -175,7 +176,7 @@ export default function DisputeNew() {
     }
 
     if (!description.trim() || description.trim().length < MIN_DESCRIPTION_LENGTH) {
-      toast.error('Mô tả chi tiết phải từ 20 ký tự trở lên để trọng tài có đủ căn cứ.');
+      toast.error("Vui lòng mô tả ít nhất 20 ký tự để TutorHub có đủ thông tin xem xét.");
       return;
     }
 
@@ -202,7 +203,7 @@ export default function DisputeNew() {
       if (!evidenceUploadFailed) toast.success('Đã gửi đơn khiếu nại thành công.');
       navigate(created?.id ? `/app/disputes/${created.id}` : '/student/disputes', { state: { evidenceUploadFailed } });
     } catch (err) {
-      toast.error(err?.message || 'Không thể gửi đơn khiếu nại. Vui lòng kiểm tra lại thông tin.');
+      toast.error(userFacingError(err, 'Không thể gửi đơn khiếu nại. Vui lòng kiểm tra lại thông tin.'));
     } finally {
       submitting.current = false;
       setLoading(false);
@@ -229,10 +230,10 @@ export default function DisputeNew() {
           </p>
         </div>
         <p className="text-body-reg text-fg-secondary">
-          Mô tả điều xảy ra để Ban Trọng Tài có căn cứ đối soát.
+          Mô tả sự việc để TutorHub có đủ thông tin xem xét.
         </p>
         <p className="text-[13px] text-fg-muted">
-          Hệ thống trọng tài bảo vệ quyền lợi tài chính minh bạch cho cả học viên và gia sư.
+          TutorHub xem xét thông tin từ cả học viên và gia sư để giải quyết khiếu nại.
         </p>
       </header>
 
@@ -260,11 +261,11 @@ export default function DisputeNew() {
           icon={<Icon name="warning" size="md" />}
         >
           {session?.hasIssueReport && <p>Buổi học đã có báo cáo sự cố. Vui lòng mở hồ sơ hiện có để bổ sung bằng chứng, không cần tạo đơn mới.</p>}
-          {isGraceExpired && !session?.hasIssueReport && <p>Thời gian bảo lưu 12 giờ đã kết thúc. Buổi học không còn nhận khiếu nại mới.</p>}
-          {session?.status === 'Scheduled' && !isFutureSession && <p>Buổi học chưa chuyển sang giai đoạn bảo lưu học phí. Bạn có thể kiểm tra trạng thái tại trang chi tiết buổi học.</p>}
+          {isGraceExpired && !session?.hasIssueReport && <p>Thời gian phản hồi 12 giờ đã kết thúc. Buổi học không còn nhận khiếu nại mới.</p>}
+          {session?.status === 'Scheduled' && !isFutureSession && <p>Buổi học chưa bắt đầu thời gian phản hồi. Bạn có thể kiểm tra trạng thái tại trang chi tiết buổi học.</p>}
           {isFutureSession && (
             <p className="m-0">
-              Theo quy chế hoạt động, khiếu nại tranh chấp chỉ áp dụng cho buổi học đã diễn ra trong quá khứ. Với buổi học sắp diễn ra, bạn có thể thực hiện <strong>Hủy buổi học</strong> (hoàn 100% học phí về ví ký quỹ) hoặc <strong>Dời lịch học</strong> trên trang chi tiết buổi học.
+              Theo quy chế hoạt động, khiếu nại tranh chấp chỉ áp dụng cho buổi học đã diễn ra trong quá khứ. Với buổi học sắp diễn ra, bạn có thể thực hiện <strong>Hủy buổi học</strong> (hoàn học phí về Ví học viên theo điều kiện hủy) hoặc <strong>Dời lịch học</strong> trên trang chi tiết buổi học.
             </p>
           )}
           {isUnscheduled && (
@@ -274,7 +275,7 @@ export default function DisputeNew() {
           )}
           {isCancelled && (
             <p className="m-0">
-              Buổi học này đã được hủy trước đó và tiền ký quỹ đã được hoàn trả.
+              Buổi học này đã được hủy trước đó và học phí đã được hoàn trả.
             </p>
           )}
           {isReleased && (
@@ -372,7 +373,7 @@ export default function DisputeNew() {
               onChange={(e) => setDescription(e.target.value)}
               aria-labelledby="dispute-step-2"
               aria-describedby="dispute-description-count"
-              placeholder="Mô tả diễn biến cụ thể (thời gian vào lớp, sự cố phát sinh...) để trọng tài có đầy đủ cơ sở đối soát..."
+              placeholder="Mô tả sự việc, thời gian và ảnh hưởng đến buổi học…"
             />
           </div>
 
@@ -408,11 +409,10 @@ export default function DisputeNew() {
           <div className="space-y-4 border-t border-border pt-5">
             <Callout
               variant="danger"
-              title="Quy tắc bảo chứng tài chính Escrow"
+              title="Cách TutorHub bảo vệ học phí"
               icon={<Icon name="lock" size="md" />}
             >
-              Sau khi gửi khiếu nại thành công, học phí buổi học sẽ được bảo chứng trong Escrow và
-              chỉ được giải ngân hoặc hoàn trả theo phán quyết phân xử của Ban Trọng Tài (Admin).
+              Sau khi bạn gửi khiếu nại, TutorHub tạm giữ học phí buổi học. Khoản này sẽ được chuyển cho gia sư hoặc hoàn lại theo kết quả giải quyết.
             </Callout>
 
             <div className="flex flex-col gap-3 sm:flex-row">

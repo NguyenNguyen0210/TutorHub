@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
@@ -48,7 +49,7 @@ export default function StudentWalletTopUp() {
         toast.error('Chưa thể mở trang nạp tiền. Vui lòng thử lại.');
       }
     } catch (err) {
-      toast.error(err?.message || 'Không thể tạo yêu cầu nạp tiền.');
+      toast.error(userFacingError(err, 'Chưa tạo được yêu cầu nạp tiền. Vui lòng thử lại.'));
     } finally {
       setSubmitting(false);
     }
@@ -56,13 +57,13 @@ export default function StudentWalletTopUp() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
-      <nav aria-label="Breadcrumb">
+      <nav aria-label="Đường dẫn trang">
         <Link
           to="/student/wallet"
           className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
         >
           <Icon name="arrow_back" size="sm" />
-          Quay lại Ví Học Viên
+          Quay lại Ví học viên
         </Link>
       </nav>
 

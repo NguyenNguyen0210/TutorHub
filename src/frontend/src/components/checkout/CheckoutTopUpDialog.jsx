@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useEffect, useRef, useState } from 'react';
 import { Drawer } from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
@@ -49,7 +50,7 @@ export default function CheckoutTopUpDialog({ open, onClose, shortfall, expired,
       if (paymentTab) paymentTab.location.href = result.paymentUrl;
     } catch (err) {
       paymentTab?.close();
-      setError(err?.message || 'Không thể tạo yêu cầu nạp tiền. Vui lòng thử lại.');
+      setError(userFacingError(err, 'Không thể tạo yêu cầu nạp tiền. Vui lòng thử lại.'));
     } finally {
       setSubmitting(false);
     }
@@ -69,7 +70,7 @@ export default function CheckoutTopUpDialog({ open, onClose, shortfall, expired,
     <Drawer
       open={open}
       onClose={() => { if (!submitting) onClose(); }}
-      title="Nạp tiền vào Ví Học Viên"
+      title="Nạp tiền vào Ví học viên"
       widthClass="w-[480px]"
       footer={paymentUrl ? (
         <Button fullWidth onClick={refreshBalance} loading={refreshing}>Tôi đã nạp xong — Cập nhật số dư</Button>

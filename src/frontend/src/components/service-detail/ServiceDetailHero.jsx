@@ -29,7 +29,7 @@ export default function ServiceDetailHero({ service }) {
           </Link>
           <Icon name="chevron_right" size="xs" className="w-3.5 h-3.5 text-fg-muted" />
           <Link to="/services" className="hover:text-brand-primary-600 transition-colors">
-            Dịch vụ học tập
+            Gói học
           </Link>
           {subject.categoryName && (
             <>
@@ -211,7 +211,7 @@ export default function ServiceDetailHero({ service }) {
                 // eslint-disable-next-line jsx-a11y/media-has-caption
                 ? <video controls src={trialMedia.href} className="h-full w-full" aria-label="Video học thử" /> : <iframe
                 src={trialMedia.embed}
-                title="Video học thử giới thiệu dịch vụ"
+                title="Video học thử giới thiệu gói học"
                 className="w-full h-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen

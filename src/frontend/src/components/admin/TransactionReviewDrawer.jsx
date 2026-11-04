@@ -46,7 +46,7 @@ export default function TransactionReviewDrawer({ id, onClose, onSelect }) {
         <div className="flex flex-wrap gap-3">
           {item.enrollmentId && <Button as={Link} to={`/admin/enrollments/${item.enrollmentId}`} variant="outline" size="sm">Xem hợp đồng</Button>}
           {item.disputeId && <Button as={Link} to={`/admin/disputes/${item.disputeId}`} variant="outline" size="sm">Xem tranh chấp</Button>}
-          {item.relatedTransactionId && <Button variant="outline" size="sm" onClick={() => onSelect(item.relatedTransactionId)}>Xem bút toán gốc</Button>}
+          {item.relatedTransactionId && <Button variant="outline" size="sm" onClick={() => onSelect(item.relatedTransactionId)}>Xem giao dịch gốc</Button>}
         </div>
       </section>
 
@@ -54,15 +54,15 @@ export default function TransactionReviewDrawer({ id, onClose, onSelect }) {
       <section><h3 className="text-sm font-semibold">Mốc thời gian ghi nhận</h3><p className="mt-1 text-xs text-fg-secondary">Giờ Việt Nam (UTC+7)</p>
         <ol className="mt-4 space-y-4 border-l border-border pl-4 text-sm">
           {[
-            { label: 'Tạo bút toán', at: item.createdAt },
+            { label: "Ghi nhận giao dịch", at: item.createdAt },
             ...(item.type === 'BookingPayment' ? [{ label: 'Xác nhận thanh toán đơn', at: item.bookingConfirmedAt }] : []),
             { label: 'Giải ngân', at: item.releasedAt }, { label: 'Hoàn tiền', at: item.refundedAt },
           ].filter(event => event.at).sort((a, b) => new Date(a.at) - new Date(b.at)).map(event => <li key={event.label}><p className="font-medium">{event.label}</p><p className="mt-1 text-xs text-fg-secondary">{formatDateTime(event.at)}</p></li>)}
         </ol>
       </section>
 
-      <section className="border-t border-border pt-5"><h3 className="text-sm font-semibold">Bút toán cùng đơn đặt chỗ</h3><p className="mt-2 text-xs leading-5 text-fg-secondary">Thanh toán, giải ngân và hoàn tiền là các bước khác nhau; không cộng tất cả thành doanh thu.</p>
-        {related.isPending ? <p role="status" className="mt-4 text-sm">Đang tải bút toán…</p> : related.isError ? <div className="mt-4"><p className="text-sm text-fg-secondary">Chưa tải được bút toán liên quan.</p><Button variant="ghost" size="sm" onClick={() => related.refetch()}>Thử lại</Button></div> : <>
+      <section className="border-t border-border pt-5"><h3 className="text-sm font-semibold">Các khoản thu, chi của đơn</h3><p className="mt-2 text-xs leading-5 text-fg-secondary">Thanh toán, giải ngân và hoàn tiền là các bước khác nhau; không cộng tất cả thành doanh thu.</p>
+        {related.isPending ? <p role="status" className="mt-4 text-sm">Đang tải lịch sử thu, chi…</p> : related.isError ? <div className="mt-4"><p className="text-sm text-fg-secondary">Chưa tải được các khoản thu, chi liên quan. Vui lòng thử lại.</p><Button variant="ghost" size="sm" onClick={() => related.refetch()}>Thử lại</Button></div> : <>
           <div className="mt-3 divide-y divide-border">{related.data?.items?.map(row => <button type="button" key={row.id} aria-current={row.id === id ? 'true' : undefined} disabled={row.id === id} onClick={() => onSelect(row.id)} className="flex w-full items-start justify-between gap-3 rounded-lg py-3 text-left text-sm hover:bg-neutral-50 disabled:cursor-default focus-visible:ring-2 focus-visible:ring-brand-primary-500">
             <span className="min-w-0"><span className="block font-medium">{TRANSACTION_TYPES[row.type]?.label || 'Giao dịch'}{row.id === id && <span className="ml-2 text-xs font-normal text-fg-secondary">Đang xem</span>}</span><span className="mt-1 block text-xs text-fg-secondary">{formatDateTime(row.createdAt)}</span><span className="mt-1 block"><TransactionStatus item={row} /></span></span><Money value={row.grossAmount} className="shrink-0 font-semibold" />
           </button>)}</div>

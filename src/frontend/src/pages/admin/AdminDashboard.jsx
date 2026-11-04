@@ -59,16 +59,16 @@ export default function AdminDashboard() {
   const flows = financials ? [
     { label: 'Đã giải ngân cho gia sư', value: financials.totalTutorPayouts, color: 'bg-success-strong', icon: 'payments', tone: 'success', description: 'Thu nhập gia sư từ các giao dịch giải ngân đã xác nhận trong kỳ.' },
     { label: 'Phí sàn sau điều chỉnh', value: financials.totalPlatformRevenue, color: 'bg-insight-strong', icon: 'trending_up', tone: 'insight', description: 'Phí từ giao dịch giải ngân, trừ các khoản đảo phí phát sinh trong kỳ.' },
-    { label: 'Đã hoàn tiền / Bồi hoàn', value: financials.totalRefundedAmount, color: 'bg-holding', icon: 'refresh', tone: 'holding', description: 'Các giao dịch hoàn tiền đã hoàn tất trong kỳ.' },
+    { label: "Đã hoàn tiền", value: financials.totalRefundedAmount, color: 'bg-holding', icon: 'refresh', tone: 'holding', description: 'Các giao dịch hoàn tiền đã hoàn tất trong kỳ.' },
   ] : [];
   const difference = gmv - flows.reduce((sum, item) => sum + item.value, 0);
   const canShowComposition = gmv > 0 && difference >= 0 && flows.every(flow => flow.value >= 0);
-  const chartFlows = [...flows, { label: 'Chênh lệch so với GMV', value: difference, color: 'bg-neutral-300' }];
+  const chartFlows = [...flows, { label: "Chênh lệch so với tiền thanh toán", value: difference, color: 'bg-neutral-300' }];
   const kpis = financials ? [
-    { label: 'Tổng GMV', value: gmv, icon: 'receipt_long', hint: 'Gói học đã thanh toán', primary: true, tone: 'blue' },
-    { label: 'Phí sàn sau điều chỉnh', value: financials.totalPlatformRevenue, icon: 'trending_up', hint: `${percent(financials.totalPlatformRevenue, gmv)}% GMV`, tone: 'insight' },
-    { label: 'Đã giải ngân', value: financials.totalTutorPayouts, icon: 'payments', hint: `${percent(financials.totalTutorPayouts, gmv)}% GMV`, tone: 'success' },
-    { label: 'Đã hoàn tiền / Bồi hoàn', value: financials.totalRefundedAmount, icon: 'refresh', hint: financials.totalRefundedAmount ? 'Giao dịch đã hoàn tất' : 'Chưa phát sinh hoàn tiền', tone: 'holding' },
+    { label: "Giá trị gói đã thanh toán", value: gmv, icon: 'receipt_long', hint: 'Gói học đã thanh toán', primary: true, tone: 'blue' },
+    { label: 'Phí sàn sau điều chỉnh', value: financials.totalPlatformRevenue, icon: 'trending_up', hint: `${percent(financials.totalPlatformRevenue, gmv)}% tổng tiền thanh toán`, tone: 'insight' },
+    { label: 'Đã giải ngân', value: financials.totalTutorPayouts, icon: 'payments', hint: `${percent(financials.totalTutorPayouts, gmv)}% tổng tiền thanh toán`, tone: 'success' },
+    { label: "Đã hoàn tiền", value: financials.totalRefundedAmount, icon: 'refresh', hint: financials.totalRefundedAmount ? 'Giao dịch đã hoàn tất' : 'Chưa phát sinh hoàn tiền', tone: 'holding' },
   ] : [];
 
   return <div className="space-y-6 lg:space-y-8">
@@ -116,8 +116,8 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-5">
         <Card padding="lg" className="xl:col-span-3">
           <SectionHeader title="Dòng tiền học phí" description="Tổng hợp dòng tiền trong kỳ" icon="pie_chart" tone="blue" />
-          {canShowComposition && <figure className="mt-6" aria-label="Các khoản so với tổng GMV">
-            <figcaption className="mb-3 flex items-center justify-between gap-2 text-xs text-fg-secondary"><span>So với tổng GMV</span><Money value={gmv} className="font-semibold text-fg" /></figcaption>
+          {canShowComposition && <figure className="mt-6" aria-label="Các khoản thu, chi so với tiền thanh toán">
+            <figcaption className="mb-3 flex items-center justify-between gap-2 text-xs text-fg-secondary"><span>So với tiền thanh toán</span><Money value={gmv} className="font-semibold text-fg" /></figcaption>
             <div className="flex h-4 overflow-hidden rounded-full bg-neutral-100" aria-hidden="true">
               {chartFlows.filter(flow => flow.value > 0).map(flow => <div key={flow.label} className={flow.color} style={{ width: `${flow.value / gmv * 100}%` }} />)}
             </div>
@@ -130,11 +130,11 @@ export default function AdminDashboard() {
           </dl>
           {financials.pendingRefundAmount > 0 && <p className="mb-3 flex flex-wrap justify-between gap-2 text-sm text-holding-strong"><span>Hoàn tiền đang chờ</span><Money value={financials.pendingRefundAmount} /></p>}
           <div className="mt-2 rounded-xl border border-insight-border bg-insight-subtle p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-sm"><span className="inline-flex items-center gap-2 font-medium"><Icon name="info" size="sm" className="text-insight-strong" />Chênh lệch so với GMV</span><Money value={difference} className="font-semibold text-insight-strong" /></div>
-            <p className="mt-2 text-xs text-fg-secondary">Không đồng nghĩa với số dư Escrow.</p>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm"><span className="inline-flex items-center gap-2 font-medium"><Icon name="info" size="sm" className="text-insight-strong" />Chênh lệch so với tiền thanh toán</span><Money value={difference} className="font-semibold text-insight-strong" /></div>
+            <p className="mt-2 text-xs text-fg-secondary">Khoản này không phải số học phí đang được giữ.</p>
             <details className="mt-3 text-xs leading-5 text-fg-secondary">
               <summary className="w-fit cursor-pointer rounded font-medium text-insight-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-500">Xem giải thích cách tính</summary>
-              <p className="mt-2">GMV trừ giải ngân, phí sàn và hoàn tiền đã hoàn tất. Các khoản có thể thuộc gói học mua ở kỳ khác; chênh lệch này không phải số dư Escrow đã đối soát.</p>
+              <p className="mt-2">Tổng tiền gói đã thanh toán, trừ tiền đã chuyển cho gia sư, phí nền tảng và tiền đã hoàn. Các khoản có thể thuộc gói mua ở kỳ khác, nên chênh lệch này không thể dùng làm số học phí đang giữ.</p>
               <ul className="mt-2 list-disc space-y-1 pl-4">{flows.map(flow => <li key={flow.label}>{flow.description}</li>)}</ul>
             </details>
           </div>

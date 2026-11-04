@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
@@ -189,17 +190,17 @@ export default function BookingCheckout() {
       return;
     }
     if (!hasEnoughWalletBalance) {
-      toast.error('Số dư Ví Học Viên không đủ để thanh toán toàn bộ khóa học.');
+      toast.error("Số dư Ví học viên không đủ để thanh toán toàn bộ khóa học.");
       return;
     }
     try {
       setLoading(true);
       setPaymentError(null);
       await studentWalletService.payBookingFromWallet(booking.id);
-      toast.success('Thanh toán thành công từ Ví Học Viên! Hợp đồng đã được kích hoạt.');
+      toast.success("Thanh toán thành công từ Ví học viên! Hợp đồng đã được kích hoạt.");
       navigate('/student/dashboard');
     } catch (err) {
-      setPaymentError(err?.message || 'Không thể thanh toán từ Ví Học Viên.');
+      setPaymentError(userFacingError(err, "Không thể thanh toán từ Ví học viên."));
     } finally {
       setLoading(false);
     }
@@ -223,7 +224,7 @@ export default function BookingCheckout() {
 
       setPaymentError('Chưa thể mở trang thanh toán VNPAY. Vui lòng thử lại.');
     } catch (err) {
-      setPaymentError(err?.message || 'Không tạo được đường dẫn thanh toán VNPay.');
+      setPaymentError(userFacingError(err, "Không tạo được đường dẫn thanh toán VNPAY."));
     } finally {
       setLoading(false);
     }
@@ -333,10 +334,10 @@ export default function BookingCheckout() {
           <div className="order-3 p-4 rounded-brand-lg bg-success-subtle/80 border border-success-subtle/90 text-caption space-y-2 shadow-brand-sm lg:order-none">
             <div className="flex items-center gap-2 text-success-strong font-bold text-body-reg">
               <Icon name="shield" size="sm" filled className="text-success-strong shrink-0" />
-              <span>Chứng thư ký quỹ bảo chứng Escrow 100%</span>
+              <span>Học phí được TutorHub giữ an toàn</span>
             </div>
             <p className="text-success-strong leading-relaxed text-[12px]">
-              Số tiền <strong>{formatCurrency(totalPrice)}</strong> của bạn được bảo đảm an toàn 100% trong két ký quỹ trung lập của TutorHub. Tiền chỉ được giải ngân sau mỗi buổi học thành công và qua thời gian bảo lưu 12 giờ nếu không có khiếu nại phát sinh.
+              Số tiền <strong>{formatCurrency(totalPrice)}</strong> được TutorHub giữ. Học phí từng buổi chỉ được chuyển cho gia sư sau khi buổi học hoàn thành và hết 12 giờ phản hồi, nếu không có khiếu nại.
             </p>
             <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-success-strong font-medium">
               <span className="flex items-center gap-1">
@@ -345,7 +346,7 @@ export default function BookingCheckout() {
               </span>
               <span className="flex items-center gap-1">
                 <Icon name="check_circle" size="xs" className="text-success" />
-                Hoàn tiền 100% khi có khiếu nại hợp lệ
+                Hoàn tiền theo kết quả giải quyết khiếu nại
               </span>
             </div>
           </div>
@@ -372,7 +373,7 @@ export default function BookingCheckout() {
                     <Icon name="account_balance_wallet" size="sm" />
                   </span>
                   <span className="min-w-0 flex-1 space-y-1">
-                    <span className="block text-body-reg font-bold text-fg">Ví Học Viên</span>
+                    <span className="block text-body-reg font-bold text-fg">Ví học viên</span>
                     <span className="block text-caption text-fg-secondary">
                       {loadingWallet ? 'Đang tải số dư…' : wallet ? <>Số dư: <Money value={wallet.availableBalance} className="whitespace-nowrap font-semibold" /></> : 'Chưa tải được số dư ví'}
                     </span>

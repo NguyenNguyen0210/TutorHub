@@ -20,7 +20,7 @@ export default function CoursePaymentHistoryRow({ payment, focused = false }) {
   if (!captured) escrow = { label: 'Không áp dụng', tone: 'neutral' };
   else if (tuition && tuition.totalTuition > 0) {
     if (tuition.escrowRemaining > 0) escrow = {
-      label: tuition.escrowReleased > 0 ? 'Đã giải ngân một phần' : tuition.escrowRefunded > 0 ? 'Đã hoàn một phần' : 'Đang ký quỹ', tone: 'holding',
+      label: tuition.escrowReleased > 0 ? 'Đã giải ngân một phần' : tuition.escrowRefunded > 0 ? 'Đã hoàn một phần' : "Đang giữ học phí", tone: 'holding',
     };
     else escrow = { label: tuition.escrowRefunded >= tuition.totalTuition ? 'Đã hoàn tiền' : tuition.escrowReleased >= tuition.totalTuition ? 'Đã giải ngân' : 'Đã quyết toán', tone: 'success' };
   } else if (payment.status === 'Released') escrow = { label: 'Đã giải ngân', tone: 'success' };
@@ -40,7 +40,7 @@ export default function CoursePaymentHistoryRow({ payment, focused = false }) {
             <div><dt>Mã đặt chỗ</dt><dd className="break-all text-fg">{payment.bookingId}</dd></div>
             {reference && <div><dt>Mã đối soát</dt><dd className="break-all text-fg">{reference}</dd></div>}
             {captured && tuition && <div className="space-y-1 border-t border-border pt-2">
-              <p>Đang ký quỹ: <Money value={tuition.escrowRemaining} /></p>
+              <p>Học phí đang giữ: <Money value={tuition.escrowRemaining} /></p>
               <p>Đã giải ngân: <Money value={tuition.escrowReleased} /></p>
               {tuition.escrowRefunded > 0 && <p>Đã hoàn tiền: <Money value={tuition.escrowRefunded} /></p>}
             </div>}

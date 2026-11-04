@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -83,13 +84,13 @@ export default function ForgotPassword() {
     try {
       setLoading(true);
       await forgotPasswordService.requestResetOtp(cleanEmail);
-      toast.success('Mã xác nhận OTP đã được gửi. Vui lòng kiểm tra hộp thư email của bạn!');
+      toast.success("Đã gửi mã xác nhận. Vui lòng kiểm tra email của bạn.");
       setStep(2);
       setCountdown(60);
       setCanResend(false);
       setOtp(['', '', '', '', '', '']);
     } catch (err) {
-      toast.error(err?.message || 'Không thể gửi mã xác nhận. Vui lòng thử lại sau.');
+      toast.error(userFacingError(err, 'Không thể gửi mã xác nhận. Vui lòng thử lại sau.'));
     } finally {
       setLoading(false);
     }
@@ -102,13 +103,13 @@ export default function ForgotPassword() {
     try {
       setLoading(true);
       await forgotPasswordService.requestResetOtp(email);
-      toast.success('Mã OTP mới đã được gửi đến email của bạn.');
+      toast.success("Mã xác nhận mới đã được gửi đến email của bạn.");
       setCountdown(60);
       setCanResend(false);
       setOtp(['', '', '', '', '', '']);
       otpInputRefs.current[0]?.focus();
     } catch (err) {
-      toast.error(err?.message || 'Không thể gửi lại mã OTP. Vui lòng thử lại.');
+      toast.error(userFacingError(err, "Không thể gửi lại mã xác nhận. Vui lòng thử lại."));
     } finally {
       setLoading(false);
     }
@@ -155,7 +156,7 @@ export default function ForgotPassword() {
     e.preventDefault();
     const otpCode = otp.join('');
     if (otpCode.length !== 6) {
-      toast.error('Vui lòng nhập đủ 6 chữ số mã OTP.');
+      toast.error("Vui lòng nhập đủ 6 chữ số mã xác nhận.");
       return;
     }
 
@@ -163,10 +164,10 @@ export default function ForgotPassword() {
       setLoading(true);
       const token = await forgotPasswordService.verifyResetOtp(email, otpCode);
       setResetToken(token);
-      toast.success('Xác thực OTP thành công! Hãy tạo mật khẩu mới.');
+      toast.success("Đã xác nhận mã. Bạn có thể tạo mật khẩu mới.");
       setStep(3);
     } catch (err) {
-      toast.error(err?.message || 'Mã OTP không đúng hoặc đã hết hạn.');
+      toast.error(userFacingError(err, "Mã xác nhận không đúng hoặc đã hết hạn."));
     } finally {
       setLoading(false);
     }
@@ -186,7 +187,7 @@ export default function ForgotPassword() {
       toast.success('Đặt lại mật khẩu thành công! Vui lòng đăng nhập bằng mật khẩu mới.');
       navigate('/auth/login', { replace: true });
     } catch (err) {
-      toast.error(err?.message || 'Không thể đặt lại mật khẩu. Phiên xác thực có thể đã hết hạn.');
+      toast.error(userFacingError(err, "Chưa đổi được mật khẩu. Vui lòng thử lại hoặc yêu cầu mã xác nhận mới."));
     } finally {
       setLoading(false);
     }
@@ -204,7 +205,7 @@ export default function ForgotPassword() {
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-neutral-100">
                 {[
                   { num: 1, label: 'Email' },
-                  { num: 2, label: 'Mã OTP' },
+                  { num: 2, label: "Mã xác nhận" },
                   { num: 3, label: 'Mật khẩu' },
                 ].map((s, idx) => (
                   <div key={s.num} className="flex items-center">
@@ -249,7 +250,7 @@ export default function ForgotPassword() {
                       Quên mật khẩu?
                     </h2>
                     <p className="mt-1 text-[13px] sm:text-[13.5px] text-neutral-500 leading-relaxed">
-                      Nhập email đã đăng ký của bạn. Chúng tôi sẽ gửi mã OTP gồm 6 chữ số để xác thực tài khoản.
+                      Nhập email đã đăng ký của bạn. Chúng tôi sẽ gửi mã xác nhận gồm 6 chữ số để xác thực tài khoản.
                     </p>
                   </div>
 
@@ -312,7 +313,7 @@ export default function ForgotPassword() {
                 <div>
                   <div className="text-left">
                     <h2 className="text-[25px] sm:text-[27px] font-bold text-fg tracking-tight leading-tight">
-                      Nhập mã xác thực OTP
+                      Nhập mã xác nhận
                     </h2>
                     <p className="mt-1 text-[13px] sm:text-[13.5px] text-neutral-500 leading-relaxed">
                       Mã xác thực gồm 6 số đã được gửi đến: <br />
@@ -334,7 +335,7 @@ export default function ForgotPassword() {
                           value={digit}
                           onChange={(e) => handleOtpChange(idx, e.target.value)}
                           onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                          aria-label={`Mã OTP số ${idx + 1}`}
+                          aria-label={`Mã xác nhận số ${idx + 1}`}
                           className="w-11 h-13 sm:w-12 sm:h-14 text-center text-[22px] font-bold text-fg bg-neutral-50 border border-neutral-200 rounded-brand-md focus:bg-white focus:border-brand-primary-600 focus:ring-2 focus:ring-brand-primary-600/10 outline-none transition-all"
                         />
                       ))}
@@ -362,7 +363,7 @@ export default function ForgotPassword() {
                           className="font-bold text-brand-primary-600 hover:text-brand-primary-700 hover:underline transition-colors inline-flex items-center gap-1 cursor-pointer"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
-                          <span>Gửi lại mã OTP</span>
+                          <span>Gửi lại mã xác nhận</span>
                         </button>
                       ) : (
                         <span className="text-neutral-400">
@@ -383,7 +384,7 @@ export default function ForgotPassword() {
                         </>
                       ) : (
                         <>
-                          <span>Xác nhận mã OTP</span>
+                          <span>Xác nhận mã xác nhận</span>
                           <ArrowRight className="w-4 h-4" />
                         </>
                       )}

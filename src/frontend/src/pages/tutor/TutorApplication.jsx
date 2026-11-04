@@ -38,7 +38,7 @@ const PERKS = [
   'Tiếp cận hàng ngàn học viên tiềm năng',
   'Linh hoạt thời gian giảng dạy',
   'Được hỗ trợ marketing và công cụ dạy học',
-  'Thanh toán an toàn qua hệ thống Escrow',
+  "TutorHub giữ học phí và trả theo từng buổi học",
   'Đồng hành cùng đội ngũ chuyên nghiệp',
 ];
 
@@ -434,12 +434,12 @@ export default function TutorApplication() {
               <div className="relative rounded-brand-lg overflow-hidden pt-2 bg-surface flex items-end justify-center">
                 <img
                   src="/images/transparent-student-clean.png"
-                  alt="TutorHub Learning"
+                  alt="TutorHub"
                   className="w-48 h-auto object-contain drop-shadow-md"
                 />
                 <span className="absolute top-2 left-2 px-2.5 py-1 rounded-pill bg-surface backdrop-blur-sm border border-border shadow-brand-sm">
                   <span className="text-[11px] font-bold text-brand-primary-700 tracking-wide">
-                    Better Learning. Brighter Future.
+                    Học tốt hơn. Tương lai rộng mở.
                   </span>
                 </span>
               </div>

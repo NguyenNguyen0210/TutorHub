@@ -72,9 +72,9 @@ export const NAV = {
     { path: '/admin/withdrawals', label: 'Yêu cầu rút tiền', icon: 'payments', match: (p) => p.startsWith('/admin/withdrawals') },
     { path: '/admin/disputes', label: 'Tranh chấp', icon: 'gavel', match: (p) => p.startsWith('/admin/disputes') },
     { path: '/admin/trust-reports', label: 'Báo cáo vi phạm', icon: 'flag', match: (p) => p.startsWith('/admin/trust-reports') },
-    { path: '/admin/users', label: 'Người dùng & hồ sơ', icon: 'group', match: (p) => p.startsWith('/admin/users') || p.startsWith('/admin/tutor-applications') },
+    { path: '/admin/users', label: "Người dùng và hồ sơ", icon: 'group', match: (p) => p.startsWith('/admin/users') || p.startsWith('/admin/tutor-applications') },
     { path: '/admin/categories', label: 'Danh mục & môn học', icon: 'category', match: (p) => p.startsWith('/admin/categories') || p.startsWith('/admin/subjects') },
-    { path: '/admin/audit-logs', label: 'Sổ kiểm toán', icon: 'history', match: (p) => p.startsWith('/admin/audit-logs') },
+    { path: '/admin/audit-logs', label: 'Nhật ký kiểm toán', icon: 'history', match: (p) => p.startsWith('/admin/audit-logs') },
   ],
 };
 
@@ -105,7 +105,7 @@ export function getWorkspaceNavGroups(role, items) {
   const finances = ['/student/bookings', '/student/wallet', '/student/disputes'];
   const groups = role === 'Student' ? [
     { label: 'Học tập', items: items.filter(item => item.path.startsWith('/student/') && !finances.includes(item.path)) },
-    { label: 'Học phí & đơn hàng', items: items.filter(item => finances.includes(item.path)) },
+    { label: "Học phí và đơn hàng", items: items.filter(item => finances.includes(item.path)) },
   ] : [
     { label: role === 'Tutor' ? 'Giảng dạy' : 'Quản lý', items: items.filter(item => !item.path.startsWith('/app/') && item.path !== '/') },
   ];
@@ -116,9 +116,9 @@ export function getWorkspaceNavGroups(role, items) {
 }
 
 export const ROLE_SUBTITLE = {
-  Student: 'Student Learning Hub',
-  Tutor: 'Verified Master Tutor',
-  Admin: 'Governance Console',
+  Student: "Không gian học tập",
+  Tutor: "Không gian giảng dạy",
+  Admin: "Không gian quản trị",
 };
 
 export default NAV;
