@@ -29,8 +29,8 @@ public class DashboardStatsTests
             new() { Type = TransactionType.SessionPayoutCredit, Status = TransactionStatus.Released, CreatedAt = boundary.AddDays(-1), ReleasedAt = boundary, PayoutAmount = 900, PlatformFeeAmount = 100 },
             new() { Type = TransactionType.SessionPayoutCredit, Status = TransactionStatus.Released, CreatedAt = boundary.AddSeconds(-1), ReleasedAt = boundary.AddSeconds(-1), PayoutAmount = 9000 },
             new() { Type = TransactionType.StudentRefund, Status = TransactionStatus.Succeeded, CreatedAt = boundary.AddDays(-1), RefundedAt = boundary, Amount = 50 },
-            new() { Type = TransactionType.StudentRefund, Status = TransactionStatus.Pending, CreatedAt = boundary, Amount = 70 },
-            new() { Type = TransactionType.StudentRefund, Status = TransactionStatus.Failed, CreatedAt = boundary, Amount = 800 },
+            new() { Type = TransactionType.StudentRefund, Status = TransactionStatus.Pending, SettlementRequired = true, CreatedAt = boundary, Amount = 70 },
+            new() { Type = TransactionType.StudentRefund, Status = TransactionStatus.Failed, SettlementRequired = true, CreatedAt = boundary, Amount = 800 },
             new() { Type = TransactionType.PlatformFeeReversal, Status = TransactionStatus.Succeeded, CreatedAt = boundary, PlatformFeeAmount = 120 },
             new() { Type = TransactionType.PlatformFeeReversal, Status = TransactionStatus.Pending, CreatedAt = boundary, PlatformFeeAmount = 900 }
         }).Object);
@@ -45,6 +45,19 @@ public class DashboardStatsTests
             Case(DisputeStatus.RequiresAdminRefundSettlement),
             Case(DisputeStatus.Resolved)
         }).Object);
+        var studentUser = new User { Role = UserRole.Student };
+        var studentWallet = new Wallet { User = studentUser, StudentProfile = new StudentProfile { User = studentUser } };
+        context.Setup(c => c.TopUpRequests).Returns(MockDbSetHelper.CreateMockDbSet(new List<TopUpRequest> {
+            new() { Wallet = studentWallet, Status = TopUpRequestStatus.Pending, TransferReference = "BANK-1", RequestedAt = boundary.AddYears(-1) },
+            new() { Wallet = studentWallet, Status = TopUpRequestStatus.Pending, TransferReference = "topup-1" },
+            new() { Wallet = studentWallet, Status = TopUpRequestStatus.Pending, TransferReference = "BANK-2", AdminNote = "VNPay transaction" },
+            new() { Wallet = studentWallet, Status = TopUpRequestStatus.Confirmed, TransferReference = "BANK-3" }
+        }).Object);
+        context.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> {
+            new() { Wallet = studentWallet, Status = WithdrawalStatus.Pending, RequestedAt = boundary.AddYears(-1) },
+            new() { Wallet = studentWallet, Status = WithdrawalStatus.Processing },
+            new() { Wallet = new Wallet { User = new User { Role = UserRole.Tutor } }, Status = WithdrawalStatus.Pending }
+        }).Object);
         var result = await new GetAdminDashboardStatsQueryHandler(context.Object, new StubClock(now))
             .Handle(new GetAdminDashboardStatsQuery(period), CancellationToken.None);
         result.FromUtc.Should().Be(boundary);
@@ -56,6 +69,10 @@ public class DashboardStatsTests
         result.Financials.PendingRefundAmount.Should().Be(70);
         result.Bookings.TotalBookings.Should().Be(1);
         result.ActionQueue.OpenDisputesCount.Should().Be(2);
+        result.ActionQueue.PendingStudentWithdrawalsCount.Should().Be(1);
+        result.ActionQueue.PendingWithdrawalsCount.Should().Be(1);
+        result.ActionQueue.ReviewableTopUpsCount.Should().Be(1);
+        result.ActionQueue.OutstandingRefundsCount.Should().Be(2);
     }
 
     [Fact]
@@ -83,6 +100,7 @@ public class DashboardStatsTests
         context.Setup(c => c.Bookings).Returns(MockDbSetHelper.CreateMockDbSet(new List<Booking>()).Object);
         context.Setup(c => c.Transactions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Transaction>()).Object);
         context.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal>()).Object);
+        context.Setup(c => c.TopUpRequests).Returns(MockDbSetHelper.CreateMockDbSet(new List<TopUpRequest>()).Object);
         context.Setup(c => c.Reports).Returns(MockDbSetHelper.CreateMockDbSet(new List<Report>()).Object);
         context.Setup(c => c.Disputes).Returns(MockDbSetHelper.CreateMockDbSet(new List<Dispute>()).Object);
         return context;
