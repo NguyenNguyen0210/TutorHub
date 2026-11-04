@@ -566,6 +566,10 @@ public class AdminController : ControllerBase
     /// <summary>
     /// Get detailed profile, teaching/learning stats, and recent bookings for a specific user (Admin only).
     /// </summary>
+    [HttpGet("users/summary")]
+    public async Task<IActionResult> GetUserSummary(CancellationToken cancellationToken) =>
+        Ok(ApiResponse<AdminUserCounts>.SuccessResult(await _sender.Send(new GetAdminUserSummaryQuery(), cancellationToken)));
+
     [HttpGet("users/{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<AdminUserDetailDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]

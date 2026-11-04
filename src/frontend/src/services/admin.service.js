@@ -113,6 +113,7 @@ function normalizeAdminUser(raw = {}) {
     status: raw.status || 'Active',
     accessFailedCount: toNumber(raw.accessFailedCount, 0),
     isLockedOut: Boolean(raw.isLockedOut),
+    avatarUrl: raw.avatarUrl ?? null,
     tutorApplicationStatus: raw.tutorApplicationStatus ?? null,
     createdAt: raw.createdAt ?? null,
   };
@@ -239,6 +240,8 @@ export const adminService = {
   /**
    * GET /admin/users → PagedResult<AdminUserSummaryDto>
    */
+  getUserSummary: () => api.get('/admin/users/summary'),
+  getUserById: id => api.get(`/admin/users/${id}`),
   async getUsers({ search = '', role = null, status = null, pageNumber = 1, pageSize = 10 } = {}) {
     const params = { pageNumber, pageSize };
     if (search) params.search = search;
