@@ -23,7 +23,8 @@ public class GetBookingByIdQueryHandler : IRequestHandler<GetBookingByIdQuery, B
         var userId = _currentUserService.UserIdOrThrow();
         var role = _currentUserService.Role;
 
-        var booking = await _context.Bookings
+        var query = role == UserRole.Admin ? _context.Bookings.IgnoreQueryFilters() : _context.Bookings;
+        var booking = await query
             .AsNoTracking()
             .Include(b => b.StudentProfile).ThenInclude(s => s.User)
             .Include(b => b.TutorProfile).ThenInclude(t => t.User)

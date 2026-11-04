@@ -31,6 +31,11 @@ public class AdminEnrollmentSearchTests(IntegrationWebApplicationFactory factory
         var data = json.RootElement.GetProperty("data");
         data.GetProperty("totalCount").GetInt32().Should().Be(1);
         data.GetProperty("items")[0].GetProperty("id").GetGuid().Should().Be(contract.Id);
+        var detail = await client.GetAsync($"/api/v1/enrollments/{contract.Id}");
+        detail.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var detailJson = JsonDocument.Parse(await detail.Content.ReadAsStringAsync());
+        detailJson.RootElement.GetProperty("data").GetProperty("serviceArchived").GetBoolean().Should().BeTrue();
+        (await client.GetAsync($"/api/v1/bookings/{booking.Id}")).StatusCode.Should().Be(HttpStatusCode.OK);
         var wrong = await client.GetAsync($"/api/v1/admin/enrollments?search={contract.Id}&status=Cancelled");
         using var empty = JsonDocument.Parse(await wrong.Content.ReadAsStringAsync());
         empty.RootElement.GetProperty("data").GetProperty("totalCount").GetInt32().Should().Be(0);

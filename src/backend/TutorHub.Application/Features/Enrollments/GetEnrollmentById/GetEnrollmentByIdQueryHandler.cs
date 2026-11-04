@@ -23,7 +23,8 @@ public class GetEnrollmentByIdQueryHandler : IRequestHandler<GetEnrollmentByIdQu
         var userId = _currentUserService.UserIdOrThrow();
         var role = _currentUserService.Role;
 
-        var enrollment = await _context.Enrollments
+        var query = role == UserRole.Admin ? _context.Enrollments.IgnoreQueryFilters() : _context.Enrollments;
+        var enrollment = await query
             .Include(e => e.StudentProfile).ThenInclude(s => s.User)
             .Include(e => e.TutorProfile).ThenInclude(t => t.User)
             .Include(e => e.Subject)

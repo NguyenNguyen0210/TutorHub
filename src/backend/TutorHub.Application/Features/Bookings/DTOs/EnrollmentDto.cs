@@ -21,5 +21,7 @@ public record EnrollmentDto(
     CancelledBy? CancelledBy,
     string? CancellationReason,
     List<SessionDto> Sessions,
-    decimal PlatformFeeRate = 0.10m
+    decimal PlatformFeeRate = 0.10m,
+    string? ServiceTitle = null,
+    bool ServiceArchived = false
 );
