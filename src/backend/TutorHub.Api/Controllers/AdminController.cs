@@ -704,9 +704,10 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ForceUnpublishService(
         [FromRoute] Guid serviceId,
+        [FromBody] AdminServiceModerationRequest request,
         CancellationToken cancellationToken)
     {
-        var command = new AdminForceUnpublishServiceCommand(serviceId);
+        var command = new AdminForceUnpublishServiceCommand(serviceId, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service force-unpublished successfully by administrator."));
     }

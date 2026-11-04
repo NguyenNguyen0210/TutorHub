@@ -68,7 +68,11 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
                     WalletBalance: tutorProfile.Wallet?.AvailableBalance,
                     Subjects: subjects,
                     TotalCompletedSessions: totalCompletedSessions
-                );
+                ) {
+                    ApplicationId = latestApplication?.Id,
+                    PublishedServices = await _context.Services.AsNoTracking().CountAsync(s => s.TutorProfileId == tutorProfile.Id && s.Status == ServiceStatus.Published, cancellationToken),
+                    ActiveEnrollments = await _context.Enrollments.IgnoreQueryFilters().AsNoTracking().CountAsync(e => e.TutorProfileId == tutorProfile.Id && e.Status == EnrollmentStatus.Active, cancellationToken)
+                };
             }
         }
 

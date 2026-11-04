@@ -4,6 +4,7 @@ using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Tutors.Services.DTOs;
 using TutorHub.Application.Common.Caching;
+using TutorHub.Domain.Enums;
 
 namespace TutorHub.Application.Features.Admin.Services.AdminForceUnpublishService;
 
@@ -32,6 +33,8 @@ public class AdminForceUnpublishServiceCommandHandler : IRequestHandler<AdminFor
     public async Task<ServiceDto> Handle(AdminForceUnpublishServiceCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserIdOrThrow();
+        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length is < 5 or > 500)
+            throw new BadRequestException("Lý do ngừng xuất bản cần từ 5 đến 500 ký tự.");
 
         var service = await _context.Services
             .Include(s => s.Subject)
@@ -43,7 +46,9 @@ public class AdminForceUnpublishServiceCommandHandler : IRequestHandler<AdminFor
             throw new NotFoundException("Service", request.ServiceId);
         }
 
-        // Domain state transition — throws if Draft or already Unpublished
+        if (service.Status is not (ServiceStatus.Published or ServiceStatus.Paused))
+            throw new ConflictException("Gói học không ở trạng thái có thể ngừng xuất bản.");
+        var previousStatus = service.Status.ToString();
         service.Unpublish();
 
         await _auditLogService.LogAsync(
@@ -51,8 +56,8 @@ public class AdminForceUnpublishServiceCommandHandler : IRequestHandler<AdminFor
             entityName: "Service",
             entityId: service.Id.ToString(),
             userId: userId,
-            oldValues: new { status = "Published" },
-            newValues: new { status = service.Status.ToString() },
+            oldValues: new { status = previousStatus },
+            newValues: new { status = service.Status.ToString(), reason = request.Reason.Trim() },
             cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);

@@ -100,6 +100,7 @@ const AdminCatalog = loadPage(() => import('../pages/admin/AdminCatalog'));
 const AdminTransactions = loadPage(() => import('../pages/admin/AdminTransactions'));
 const AdminEnrollmentDetail = loadPage(() => import('../pages/admin/AdminEnrollmentDetail'));
 const AdminEnrollments = loadPage(() => import('../pages/admin/AdminEnrollments'));
+const AdminServices = loadPage(() => import('../pages/admin/AdminServices'));
 const AdminConversations = loadPage(() => import('../pages/admin/AdminConversations'));
 const AdminRevenue = loadPage(() => import('../pages/admin/AdminRevenue'));
 const AdminTrustReports = loadPage(() => import('../pages/admin/AdminTrustReports'));
@@ -228,6 +229,7 @@ export default function AppRoutes() {
         <Route path="conversations" element={<AdminConversations />} />
         <Route path="revenue" element={<AdminRevenue />} />
         <Route path="enrollments" element={<AdminEnrollments />} />
+        <Route path="services" element={<AdminServices />} />
         <Route path="enrollments/:id" element={<AdminEnrollmentDetail />} />
         <Route path="subjects" element={<AdminCatalog key="subjects" />} />
         <Route path="trust-reports" element={<AdminTrustReports />} />

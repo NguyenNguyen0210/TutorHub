@@ -44,6 +44,8 @@ const STATIC_TITLES = {
 
   // Admin Space
   '/admin/dashboard': 'Tổng quan quản trị',
+  '/admin/enrollments': 'Hợp đồng học tập',
+  '/admin/services': 'Kiểm duyệt gói học',
   '/admin/student-wallets': 'Quản lý ví học viên',
   '/admin/withdrawals': 'Quản lý rút tiền',
   '/admin/disputes': 'Quản lý tranh chấp',

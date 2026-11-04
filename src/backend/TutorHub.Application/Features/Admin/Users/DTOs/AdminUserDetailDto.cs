@@ -39,7 +39,12 @@ public record AdminUserTutorProfileDto(
     decimal? WalletBalance,
     IReadOnlyList<AdminUserSubjectDto> Subjects,
     int TotalCompletedSessions
-);
+)
+{
+    public Guid? ApplicationId { get; init; }
+    public int PublishedServices { get; init; }
+    public int ActiveEnrollments { get; init; }
+}
 
 public record AdminUserStudentProfileDto(
     int TotalBookingsAsStudent,
