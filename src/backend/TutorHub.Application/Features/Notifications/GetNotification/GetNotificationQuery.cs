@@ -53,7 +53,24 @@ public class GetNotificationQueryHandler(IAppDbContext context, ICurrentUserServ
             var disputeId = Id("DisputeId");
             var applicationId = Id("ApplicationId");
             var bookingId = Id("BookingId");
+            if ((item.Type is "RefundCreated" or "RefundCompleted" or "RefundFailed") && Id("TransactionId") is Guid transactionId)
+            {
+                // Recover authoritative provenance for old late-IPN events that stored
+                // a BookingId in EnrollmentId. The notification owner must own the payment.
+                var refundBookingId = await context.Transactions.AsNoTracking()
+                    .Where(t => t.Id == transactionId && t.Booking.StudentProfile.UserId == userId)
+                    .Select(t => (Guid?)t.BookingId).FirstOrDefaultAsync(cancellationToken);
+                if (refundBookingId.HasValue)
+                {
+                    bookingId = refundBookingId;
+                    enrollmentId = await context.Enrollments.AsNoTracking()
+                        .Where(e => e.BookingId == refundBookingId.Value)
+                        .Select(e => (Guid?)e.Id).FirstOrDefaultAsync(cancellationToken);
+                }
+            }
             item.DeepLink = item.Type switch {
+                "RefundCreated" or "RefundCompleted" or "RefundFailed" when bookingId.HasValue && (!enrollmentId.HasValue || enrollmentId == Guid.Empty)
+                    => $"/student/wallet?tab=payments&bookingId={bookingId}",
                 "PaymentSucceeded" or "EnrollmentActivated" or "EnrollmentCancelled"
                     or "RefundCreated" or "RefundCompleted" or "RefundFailed" when enrollmentId.HasValue
                     => $"/{workspace}/enrollments/{enrollmentId}",

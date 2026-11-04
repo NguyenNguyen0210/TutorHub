@@ -217,6 +217,9 @@ public class Session
                 $"Cannot reschedule a session in '{Status}' status. Session must be Scheduled with an existing schedule.");
         }
 
+        if (StartAt.Value <= now)
+            throw new InvalidOperationException("Cannot reschedule a session that has already started.");
+
         if (newEndAt <= newStartAt)
         {
             throw new InvalidOperationException(

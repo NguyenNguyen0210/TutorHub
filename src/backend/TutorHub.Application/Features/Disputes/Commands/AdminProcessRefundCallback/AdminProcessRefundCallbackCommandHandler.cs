@@ -97,7 +97,7 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
                     enrollmentId,
                     studentUserId,
                     new MoneyDto(refundTx.Amount),
-                    refundTx.Id));
+                    refundTx.Id) { BookingId = refundTx.BookingId });
             }
             else
             {
@@ -122,7 +122,7 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
                     studentUserId,
                     new MoneyDto(refundTx.Amount),
                     refundTx.Id,
-                    request.FailureReason ?? "External refund settlement failed"));
+                    request.FailureReason ?? "External refund settlement failed") { BookingId = refundTx.BookingId });
             }
 
             // Central audit log (Slice D3)

@@ -309,6 +309,8 @@ public record RefundCreatedEvent(
     DateTime OccurredAt = default
 ) : IBusinessEvent
 {
+    public Guid? BookingId { get; init; }
+
     public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
     public string EventType => BusinessEventTypes.RefundCreated;
     public int EventVersion { get; init; } = EventVersion;
@@ -327,6 +329,8 @@ public record RefundCompletedEvent(
     DateTime OccurredAt = default
 ) : IBusinessEvent
 {
+    public Guid? BookingId { get; init; }
+
     public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
     public string EventType => BusinessEventTypes.RefundCompleted;
     public int EventVersion { get; init; } = EventVersion;
@@ -346,6 +350,8 @@ public record RefundFailedEvent(
     DateTime OccurredAt = default
 ) : IBusinessEvent
 {
+    public Guid? BookingId { get; init; }
+
     public Guid EventId { get; init; } = EventId == default ? Guid.NewGuid() : EventId;
     public string EventType => BusinessEventTypes.RefundFailed;
     public int EventVersion { get; init; } = EventVersion;

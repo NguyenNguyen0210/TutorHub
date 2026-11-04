@@ -71,7 +71,9 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             $"SELECT 1 FROM \"Disputes\" WHERE \"Id\" = {request.DisputeId} FOR UPDATE",
             cancellationToken);
 
+        // Completion must see every sibling, not only the session fixed up by EF.
         var dispute = await _context.Disputes
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.Sessions)
             .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(sp => sp.User)
             .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(tp => tp.User)
             .Include(d => d.InitiatorUser)

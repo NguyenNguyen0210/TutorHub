@@ -13,7 +13,7 @@ public class UploadMediaCommandValidator : AbstractValidator<UploadMediaCommand>
     {
         RuleFor(x => x.MediaType).IsInEnum();
         RuleFor(x => x.OriginalFileName)
-            .Must(name => new[] { ".jpg", ".jpeg", ".png", ".webp" }.Contains(Path.GetExtension(name ?? "").ToLowerInvariant()))
+            .Must(name => UploadLimits.PublicImageExtensions.Contains(Path.GetExtension(name ?? "").ToLowerInvariant()))
             .When(x => x.MediaType is MediaType.Avatar or MediaType.ServiceCover)
             .WithMessage("Public images must be JPG, PNG or WebP images.");
         RuleFor(x => x.Stream)

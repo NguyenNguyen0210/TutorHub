@@ -27,6 +27,15 @@ public class OutboxDispatcherJob : BackgroundService
         [BusinessEventTypes.TutorApplicationSubmitted] = typeof(TutorApplicationSubmittedEvent),
         [BusinessEventTypes.TutorApplicationApproved] = typeof(TutorApplicationApprovedEvent),
         [BusinessEventTypes.TutorApplicationRejected] = typeof(TutorApplicationRejectedEvent),
+
+        // Wallet events are committed by both payments and administrative settlement.
+        [BusinessEventTypes.StudentTopUpRequested] = typeof(StudentTopUpRequestedEvent),
+        [BusinessEventTypes.StudentTopUpConfirmed] = typeof(StudentTopUpConfirmedEvent),
+        [BusinessEventTypes.StudentTopUpRejected] = typeof(StudentTopUpRejectedEvent),
+        [BusinessEventTypes.StudentWalletPaymentSucceeded] = typeof(StudentWalletPaymentSucceededEvent),
+        [BusinessEventTypes.StudentWithdrawalRequested] = typeof(StudentWithdrawalRequestedEvent),
+        [BusinessEventTypes.StudentWithdrawalCompleted] = typeof(StudentWithdrawalCompletedEvent),
+        [BusinessEventTypes.StudentWithdrawalFailed] = typeof(StudentWithdrawalFailedEvent),
 
         // 2. Enrollment
         [BusinessEventTypes.PaymentSucceeded] = typeof(PaymentSucceededEvent),

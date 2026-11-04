@@ -268,6 +268,75 @@ public class LatePaymentWebhookTests : IntegrationTestBase
             t.Type == TransactionType.StudentRefund && t.SettlementRequired)).Should().Be(1);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LateRefund_NotificationTargetsExistingContractOrPaymentHistory_AndRepairsLegacyPayload(bool hasEnrollment)
+    {
+        var (booking, tx) = await SeedNonHoldingBookingAsync(hasEnrollment ? BookingStatus.Paid : BookingStatus.Cancelled, CancelledBy.Student);
+        Guid? enrollmentId = null;
+        if (hasEnrollment)
+        {
+            tx.Status = TransactionStatus.Pending;
+            var enrollment = await Scope.ServiceProvider.GetRequiredService<IEnrollmentActivationService>()
+                .ActivateAsync(booking, DateTime.UtcNow, CancellationToken.None);
+            enrollmentId = enrollment.Id;
+            await Db.SaveChangesAsync();
+        }
+        await CreateHandler().Handle(new HandlePaymentWebhookCommand(BuildSuccessIpn(tx)), CancellationToken.None);
+        var outbox = await Db.OutboxMessages.SingleAsync(m => m.EventType == "RefundCreated" && m.AggregateId == Db.Transactions
+            .Where(t => t.BookingId == booking.Id && t.Type == TransactionType.StudentRefund).Select(t => t.Id).First());
+        var evt = System.Text.Json.JsonSerializer.Deserialize<TutorHub.Application.Common.Events.RefundCreatedEvent>(outbox.Payload,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+        evt.EnrollmentId.Should().Be(enrollmentId ?? Guid.Empty);
+        evt.BookingId.Should().Be(booking.Id);
+        var handler = new TutorHub.Application.Features.Notifications.EventHandlers.BusinessEventNotificationHandler(
+            Db, StubIntegrationClock.Instance,
+            NullLogger<TutorHub.Application.Features.Notifications.EventHandlers.BusinessEventNotificationHandler>.Instance);
+        await handler.Handle(evt, CancellationToken.None);
+        var notification = await Db.Notifications.SingleAsync(n => n.EventId == evt.EventId);
+        var expected = hasEnrollment ? $"/enrollments/{enrollmentId}" : $"/student/wallet?tab=payments&bookingId={booking.Id}";
+        var resolvedExpected = hasEnrollment ? $"/student/enrollments/{enrollmentId}" : expected;
+        notification.DeepLink.Should().Be(expected);
+        (await SendAsync(new TutorHub.Application.Features.Notifications.GetNotification.GetNotificationQuery(notification.Id))).DeepLink.Should().Be(resolvedExpected);
+
+        // Historical events had no BookingId and put the booking in EnrollmentId.
+        outbox.Payload = System.Text.Json.JsonSerializer.Serialize(evt with { EnrollmentId = booking.Id, BookingId = null });
+        notification.DeepLink = $"/enrollments/{booking.Id}";
+        await Db.SaveChangesAsync();
+        (await SendAsync(new TutorHub.Application.Features.Notifications.GetNotification.GetNotificationQuery(notification.Id))).DeepLink.Should().Be(resolvedExpected);
+
+        var admin = await Db.Users.AsNoTracking().FirstAsync(u => u.Role == UserRole.Admin);
+        foreach (var outcome in new[] { TransactionStatus.Failed, TransactionStatus.Succeeded })
+        {
+            SetCurrentUser(admin.Id, UserRole.Admin);
+            await SendAsync(new TutorHub.Application.Features.Disputes.Commands.AdminProcessRefundCallback.AdminProcessRefundCallbackCommand(
+                evt.TransactionId, outcome, $"settlement-{Guid.NewGuid():N}", outcome == TransactionStatus.Failed ? "Bank unavailable" : null));
+            SetCurrentUser(booking.StudentProfile.UserId, UserRole.Student);
+            var type = outcome == TransactionStatus.Succeeded ? "RefundCompleted" : "RefundFailed";
+            var message = await Db.OutboxMessages.AsNoTracking().SingleAsync(m => m.AggregateId == evt.TransactionId && m.EventType == type);
+            var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            Guid eventId;
+            if (outcome == TransactionStatus.Succeeded)
+            {
+                var settled = System.Text.Json.JsonSerializer.Deserialize<TutorHub.Application.Common.Events.RefundCompletedEvent>(message.Payload, options)!;
+                settled.BookingId.Should().Be(booking.Id);
+                await handler.Handle(settled, CancellationToken.None);
+                eventId = settled.EventId;
+            }
+            else
+            {
+                var failed = System.Text.Json.JsonSerializer.Deserialize<TutorHub.Application.Common.Events.RefundFailedEvent>(message.Payload, options)!;
+                failed.BookingId.Should().Be(booking.Id);
+                await handler.Handle(failed, CancellationToken.None);
+                eventId = failed.EventId;
+            }
+            var notice = await Db.Notifications.AsNoTracking().SingleAsync(n => n.EventId == eventId);
+            notice.DeepLink.Should().Be(expected);
+            (await SendAsync(new TutorHub.Application.Features.Notifications.GetNotification.GetNotificationQuery(notice.Id))).DeepLink.Should().Be(resolvedExpected);
+        }
+    }
+
     private sealed class AlwaysValidPaymentGateway : IPaymentGateway
     {
         public string CreateRedirect(PaymentRedirectRequest request) => "https://sandbox.test/pay";

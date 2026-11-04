@@ -67,6 +67,11 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
         // 4. Minimum-notice rule.
         _policy.RequireSchedulable(request.StartAt, request.EndAt);
 
+        var previousStartAt = session.StartAt;
+        var previousEndAt = session.EndAt;
+        if (session.Status == SessionStatus.Scheduled && previousStartAt.HasValue && previousEndAt.HasValue)
+            _policy.RequireMinimumNotice(previousStartAt.Value, previousEndAt.Value, "rescheduled");
+
         var tutorProfileId = session.Enrollment.TutorProfileId;
         var studentId = session.Enrollment.StudentProfileId;
 
@@ -135,13 +140,20 @@ public class ScheduleSessionCommandHandler : IRequestHandler<ScheduleSessionComm
             }
 
             // 7. Enqueue Outbox Message in same DB transaction.
-            _context.AddOutboxMessage(new SessionScheduledEvent(
-                session.Id,
-                session.EnrollmentId,
-                session.Enrollment.StudentProfile.UserId,
-                session.Enrollment.TutorProfile.UserId,
-                request.StartAt,
-                request.EndAt));
+            if (previousStartAt.HasValue && previousEndAt.HasValue)
+            {
+                _context.AddOutboxMessage(new SessionRescheduledEvent(
+                    session.Id, session.EnrollmentId,
+                    session.Enrollment.StudentProfile.UserId, session.Enrollment.TutorProfile.UserId,
+                    previousStartAt.Value, previousEndAt.Value, request.StartAt, request.EndAt));
+            }
+            else
+            {
+                _context.AddOutboxMessage(new SessionScheduledEvent(
+                    session.Id, session.EnrollmentId,
+                    session.Enrollment.StudentProfile.UserId, session.Enrollment.TutorProfile.UserId,
+                    request.StartAt, request.EndAt));
+            }
 
             // Cancel any previous reminder if rescheduled
             await _context.CancelPendingOutboxMessagesAsync(session.Id, BusinessEventTypes.SessionReminderDue, cancellationToken);

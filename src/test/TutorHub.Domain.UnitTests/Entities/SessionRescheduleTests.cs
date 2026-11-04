@@ -125,4 +125,18 @@ public class SessionRescheduleTests
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*EndAt must be after StartAt*");
     }
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-2)]
+    public void Reschedule_WhenOriginalSessionHasStarted_PreservesOriginalTimes(int oldStartHours)
+    {
+        var now = DateTime.UtcNow;
+        var session = new Session();
+        var start = now.AddHours(oldStartHours);
+        session.Schedule(start, start.AddHours(1));
+        var act = () => session.Reschedule(now.AddDays(1), now.AddDays(1).AddHours(1), now);
+        act.Should().Throw<InvalidOperationException>().WithMessage("*already started*");
+        session.StartAt.Should().Be(start);
+        session.EndAt.Should().Be(start.AddHours(1));
+    }
 }

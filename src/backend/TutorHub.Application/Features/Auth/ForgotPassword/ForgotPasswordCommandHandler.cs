@@ -46,8 +46,7 @@ public class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswordComman
         // Save to Redis with 5 minutes TTL
         await _otpStore.SetOtpAsync(normalizedEmail, otp, TimeSpan.FromMinutes(5), cancellationToken);
 
-        // Dev logger for rapid terminal verification
-        _logger.LogInformation("[DEV AUTH] >>> Password reset OTP for {Email}: {Otp} (Valid for 5 minutes) <<<", normalizedEmail, otp);
+        // OTPs are credentials and must never be included in logs.
 
         // Send Email via configured email sender
         if (_emailSender != null)
