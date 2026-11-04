@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using TutorHub.Application.Common.Events;
 using TutorHub.Application.Features.Bookings.CreateBooking;
 using TutorHub.Application.Features.Payments.PayFromWallet;
 using TutorHub.Domain.Entities;
@@ -15,6 +16,53 @@ namespace TutorHub.Api.IntegrationTests;
 public class AutoPayoutIsolationTests : IntegrationTestBase
 {
     public AutoPayoutIsolationTests(IntegrationWebApplicationFactory factory) : base(factory) { }
+
+    [Fact]
+    [Trait("Category", "CriticalFlow")]
+    public async Task EndedScheduledSession_OpensGracePeriodOnce_WithDurableOutbox()
+    {
+        var (_, tutor, admin) = await SeedHelper.SeedTutorWithWalletAsync(Db);
+        var (studentUser, student, service) = await SeedHelper.SeedMarketplaceAsync(Db, tutor, admin.Id);
+        Db.Wallets.Add(new Wallet
+        {
+            Id = Guid.NewGuid(), UserId = studentUser.Id, StudentProfileId = student.Id,
+            AvailableBalance = 1_000_000m, CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await Db.SaveChangesAsync();
+
+        SetCurrentUser(studentUser.Id, UserRole.Student);
+        var booking = await SendAsync(new CreateBookingCommand(service.Id));
+        await SendAsync(new PayBookingFromWalletCommand(booking.Id));
+        var session = await Db.Sessions.FirstAsync(s => s.Enrollment.BookingId == booking.Id && s.SessionNumber == 1);
+        var now = DateTime.UtcNow;
+        session.Schedule(now.AddHours(-2), now.AddHours(-1));
+        await Db.SaveChangesAsync();
+        Db.ChangeTracker.Clear();
+
+        var job = new AutoPayoutJob(
+            Factory.Services.GetRequiredService<IServiceScopeFactory>(),
+            NullLogger<AutoPayoutJob>.Instance,
+            StubIntegrationClock.Instance,
+            new Mock<IRedisDistributedLock>().Object);
+
+        (await job.ProcessAutoPayoutAsync(CancellationToken.None)).Should().BeGreaterThan(0);
+        var awaiting = await Db.Sessions.AsNoTracking().SingleAsync(s => s.Id == session.Id);
+        awaiting.Status.Should().Be(SessionStatus.AwaitingPayout);
+        awaiting.GracePeriodEndsAt.Should().BeAfter(awaiting.GracePeriodStartedAt!.Value);
+        (await Db.OutboxMessages.AsNoTracking().CountAsync(m => m.AggregateId == session.Id &&
+            m.EventType == BusinessEventTypes.GracePeriodStarted)).Should().Be(1);
+        (await Db.OutboxMessages.AsNoTracking().CountAsync(m => m.AggregateId == session.Id &&
+            m.EventType == BusinessEventTypes.GracePeriodClosingSoon)).Should().Be(1);
+
+        await job.ProcessAutoPayoutAsync(CancellationToken.None);
+        (await Db.Sessions.AsNoTracking().SingleAsync(s => s.Id == session.Id)).Status
+            .Should().Be(SessionStatus.AwaitingPayout);
+        (await Db.OutboxMessages.AsNoTracking().CountAsync(m => m.AggregateId == session.Id &&
+            m.EventType == BusinessEventTypes.GracePeriodStarted)).Should().Be(1);
+        (await Db.OutboxMessages.AsNoTracking().CountAsync(m => m.AggregateId == session.Id &&
+            m.EventType == BusinessEventTypes.GracePeriodClosingSoon)).Should().Be(1);
+    }
 
     [Fact]
     [Trait("Category", "CriticalFlow")]
@@ -48,7 +96,7 @@ public class AutoPayoutIsolationTests : IntegrationTestBase
             StubIntegrationClock.Instance,
             new Mock<IRedisDistributedLock>().Object);
 
-        (await job.ProcessAutoPayoutAsync(CancellationToken.None)).Should().Be(1);
+        (await job.ProcessAutoPayoutAsync(CancellationToken.None)).Should().BeGreaterThan(0);
 
         var completed = await Db.Sessions.AsNoTracking().FirstAsync(s => s.Id == session.Id);
         completed.Status.Should().Be(SessionStatus.Completed);

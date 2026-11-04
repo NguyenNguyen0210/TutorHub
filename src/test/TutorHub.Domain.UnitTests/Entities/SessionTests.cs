@@ -248,6 +248,39 @@ public class SessionTests
         session.CancelledAt.Should().NotBeNull();
     }
 
+    [Theory]
+    [InlineData(-2)]
+    [InlineData(0)]
+    public void CancelFromEnrollment_WhenScheduledSessionAlreadyStarted_RejectsCancellation(int startOffsetHours)
+    {
+        var now = DateTime.UtcNow;
+        var session = new Session();
+        session.Schedule(now.AddHours(startOffsetHours), now.AddHours(startOffsetHours + 1));
+
+        var act = () => session.CancelFromEnrollment(now);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Cannot cancel a session that has already started.");
+        session.Status.Should().Be(SessionStatus.Scheduled);
+        session.CancelledAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void CancelFromEnrollment_WhenAwaitingPayout_DoesNotCancelEscrow()
+    {
+        var now = DateTime.UtcNow;
+        var session = new Session();
+        session.Schedule(now.AddHours(-2), now.AddHours(-1));
+        session.TryStartGracePeriod(now, TimeSpan.FromHours(12)).Should().BeTrue();
+
+        var act = () => session.CancelFromEnrollment(now);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Cannot cancel a session that is awaiting payout. Use issue report instead.");
+        session.Status.Should().Be(SessionStatus.AwaitingPayout);
+        session.CancelledAt.Should().BeNull();
+    }
+
     [Fact]
     public void CancelFromEnrollment_FromCompleted_ThrowsInvalidOperationException()
     {

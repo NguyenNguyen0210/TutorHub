@@ -5,6 +5,9 @@ using TutorHub.Application.Features.Bookings.CreateBooking;
 using TutorHub.Application.Features.Enrollments.CancelEnrollment;
 using TutorHub.Application.Features.Enrollments.Common;
 using TutorHub.Application.Features.Enrollments.TutorCannotContinue;
+using TutorHub.Application.Features.Enrollments.AdminCancelEnrollment;
+using TutorHub.Application.Features.Bookings.DTOs;
+using MediatR;
 using TutorHub.Domain.Enums;
 using System.Net;
 using System.Net.Http.Headers;
@@ -118,5 +121,58 @@ public class EnrollmentRefundLifecycleTests : IntegrationTestBase
         var enrollment = await Db.Enrollments.AsNoTracking().SingleAsync(e => e.Id == enrollmentId);
         enrollment.CancelledBy.Should().Be(CancelledBy.Admin);
         (await Db.Transactions.AsNoTracking().CountAsync(t => t.BookingId == enrollment.BookingId && t.Type == TransactionType.StudentRefund)).Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(UserRole.Student)]
+    [InlineData(UserRole.Tutor)]
+    [InlineData(UserRole.Admin)]
+    public async Task Cancel_WhenScheduledSessionAlreadyStarted_RejectsWithoutRefund(UserRole actor)
+    {
+        var (studentUserId, tutorUserId, enrollmentId) = await SetupActiveEnrollmentAsync();
+        var now = DateTime.UtcNow;
+        var startedSession = await Db.Sessions.FirstAsync(s => s.EnrollmentId == enrollmentId && s.SessionNumber == 1);
+        startedSession.Schedule(now.AddHours(-2), now.AddHours(-1));
+        await Db.SaveChangesAsync();
+        Db.ChangeTracker.Clear();
+
+        var enrollmentBefore = await Db.Enrollments.AsNoTracking().SingleAsync(e => e.Id == enrollmentId);
+        var pendingBefore = await Db.Wallets.AsNoTracking()
+            .Where(w => w.TutorProfileId == enrollmentBefore.TutorProfileId)
+            .Select(w => w.PendingBalance)
+            .SingleAsync();
+
+        var actingUserId = actor switch
+        {
+            UserRole.Student => studentUserId,
+            UserRole.Tutor => tutorUserId,
+            UserRole.Admin => await Db.Users.AsNoTracking()
+                .Where(u => u.Role == UserRole.Admin && u.Status == AccountStatus.Active)
+                .Select(u => u.Id).FirstAsync(),
+            _ => throw new ArgumentOutOfRangeException(nameof(actor))
+        };
+        SetCurrentUser(actingUserId, actor);
+
+        IRequest<EnrollmentDto> command = actor switch
+        {
+            UserRole.Student => new CancelEnrollmentCommand(enrollmentId, "Cancel after session starts"),
+            UserRole.Tutor => new TutorCannotContinueCommand(enrollmentId, "Cancel after session starts"),
+            UserRole.Admin => new AdminCancelEnrollmentCommand(enrollmentId, "Cancel after session starts"),
+            _ => throw new ArgumentOutOfRangeException(nameof(actor))
+        };
+
+        Func<Task> act = async () => await SendAsync(command);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Cannot cancel a session that has already started.");
+
+        var enrollmentAfter = await Db.Enrollments.AsNoTracking().SingleAsync(e => e.Id == enrollmentId);
+        enrollmentAfter.Status.Should().Be(EnrollmentStatus.Active);
+        enrollmentAfter.CancelledAt.Should().BeNull();
+        (await Db.Sessions.AsNoTracking().SingleAsync(s => s.Id == startedSession.Id)).Status
+            .Should().Be(SessionStatus.Scheduled);
+        (await Db.Wallets.AsNoTracking().Where(w => w.TutorProfileId == enrollmentBefore.TutorProfileId)
+            .Select(w => w.PendingBalance).SingleAsync()).Should().Be(pendingBefore);
+        (await Db.Transactions.AsNoTracking().CountAsync(t => t.BookingId == enrollmentBefore.BookingId
+            && t.Type == TransactionType.StudentRefund)).Should().Be(0);
     }
 }

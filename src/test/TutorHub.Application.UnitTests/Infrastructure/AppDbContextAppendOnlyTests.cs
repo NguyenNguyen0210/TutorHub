@@ -10,6 +10,69 @@ namespace TutorHub.Application.UnitTests.Infrastructure;
 public class AppDbContextAppendOnlyTests
 {
     [Fact]
+    public async Task SaveChangesAsync_VerifiedGatewaySuccessAfterRejection_AllowsStatusCorrection()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        await using var context = new AppDbContext(options);
+        var topUp = NewTopUp($"TOPUP{Guid.NewGuid():N}");
+        topUp.RejectViaGateway("Failed callback", DateTime.UtcNow);
+        context.TopUpRequests.Add(topUp);
+        await context.SaveChangesAsync();
+
+        topUp.ConfirmViaGateway("987654321", DateTime.UtcNow.AddMinutes(1));
+        await context.SaveChangesAsync();
+
+        var persisted = await context.TopUpRequests.AsNoTracking().SingleAsync();
+        persisted.Status.Should().Be(TopUpRequestStatus.Confirmed);
+        persisted.RejectionReason.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_ManualRejectionCannotBeReopenedThroughGatewayMethod()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        await using var context = new AppDbContext(options);
+        var topUp = NewTopUp($"TOPUP{Guid.NewGuid():N}");
+        topUp.Reject(Guid.NewGuid(), "Manually rejected", DateTime.UtcNow);
+        context.TopUpRequests.Add(topUp);
+        await context.SaveChangesAsync();
+
+        topUp.ConfirmViaGateway("987654321", DateTime.UtcNow.AddMinutes(1));
+        var save = () => context.SaveChangesAsync();
+        await save.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Settled TopUpRequest records are immutable*");
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_GatewayStatusCorrectionCannotChangeOriginalAmount()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        await using var context = new AppDbContext(options);
+        var topUp = NewTopUp($"TOPUP{Guid.NewGuid():N}");
+        topUp.RejectViaGateway("Failed callback", DateTime.UtcNow);
+        context.TopUpRequests.Add(topUp);
+        await context.SaveChangesAsync();
+
+        topUp.ConfirmViaGateway("987654321", DateTime.UtcNow.AddMinutes(1));
+        topUp.Amount = 1m;
+        var save = () => context.SaveChangesAsync();
+        await save.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Settled TopUpRequest records are immutable*");
+    }
+
+    private static TopUpRequest NewTopUp(string reference) => new()
+    {
+        Id = Guid.NewGuid(),
+        WalletId = Guid.NewGuid(),
+        Amount = 150_000m,
+        TransferReference = reference,
+        RequestedAt = DateTime.UtcNow
+    };
+
+    [Fact]
     public async Task SaveChangesAsync_WhenModifyingTransaction_ThrowsInvalidOperationException()
     {
         // Arrange

@@ -286,7 +286,40 @@ public class AppDbContext : DbContext, IAppDbContext
             .Where(e =>
             {
                 var origStatus = (TopUpRequestStatus)e.OriginalValues[nameof(TopUpRequest.Status)]!;
-                return origStatus == TopUpRequestStatus.Confirmed || origStatus == TopUpRequestStatus.Rejected;
+                if (origStatus == TopUpRequestStatus.Confirmed)
+                    return true;
+
+                if (origStatus != TopUpRequestStatus.Rejected)
+                    return false;
+
+                // VNPay may deliver a verified success after an earlier failed callback.
+                // Permit only that gateway-specific correction; historical financial
+                // details and manually rejected requests must remain immutable.
+                var originalReference = e.OriginalValues[nameof(TopUpRequest.TransferReference)] as string;
+                var originalNote = e.OriginalValues[nameof(TopUpRequest.AdminNote)] as string;
+                var gatewayRejection = originalReference?.StartsWith("TOPUP", StringComparison.OrdinalIgnoreCase) == true
+                    && originalNote == "Auto-rejected via VNPay"
+                    && e.OriginalValues[nameof(TopUpRequest.ProcessedByAdminId)] == null;
+
+                const string approvalPrefix = "Auto-approved via VNPay (Txn: ";
+                var gatewayApproval = e.Entity.Status == TopUpRequestStatus.Confirmed
+                    && e.Entity.ProcessedByAdminId == null
+                    && e.Entity.ProcessedAt.HasValue
+                    && e.Entity.RejectionReason == null
+                    && e.Entity.AdminNote?.StartsWith(approvalPrefix, StringComparison.Ordinal) == true
+                    && e.Entity.AdminNote.Length > approvalPrefix.Length + 1
+                    && e.Entity.AdminNote.EndsWith(')');
+
+                var allowedFields = new[]
+                {
+                    nameof(TopUpRequest.Status), nameof(TopUpRequest.RejectionReason),
+                    nameof(TopUpRequest.ProcessedAt), nameof(TopUpRequest.AdminNote)
+                };
+                var onlyLifecycleFieldsChanged = e.Properties
+                    .Where(p => p.IsModified)
+                    .All(p => allowedFields.Contains(p.Metadata.Name));
+
+                return !gatewayRejection || !gatewayApproval || !onlyLifecycleFieldsChanged;
             })
             .ToList();
 
