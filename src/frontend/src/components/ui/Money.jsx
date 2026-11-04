@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/cn';
 
+const preciseFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 });
 const groupFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
 
 /**
@@ -13,8 +14,8 @@ const groupFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0
  * JetBrains Mono (`font-mono`) chỉ giữ cho: mã GD, correlationId, countdown,
  * traceId — KHÔNG dùng cho tiền.
  */
-export default function Money({ value, className, unitClassName, unit = '₫' }) {
-  const num = groupFormatter.format(Number(value) || 0);
+export default function Money({ value, className, unitClassName, maximumFractionDigits = 0, unit = '₫' }) {
+  const num = (maximumFractionDigits === 2 ? preciseFormatter : groupFormatter).format(Number(value) || 0);
   return (
     <span className={cn('tabular-nums tracking-tight', className)}>
       {num}

@@ -33,9 +33,10 @@ public class AdminDisputesController : ControllerBase
         [FromQuery] DisputeStatus? status = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
         CancellationToken cancellationToken = default)
     {
-        var query = new AdminGetDisputesQuery(status, pageNumber, pageSize);
+        var query = new AdminGetDisputesQuery(status, pageNumber, pageSize, search);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<AdminDisputeListResponseDto>.SuccessResult(result, "Disputes retrieved successfully."));
     }
@@ -71,7 +72,19 @@ public class AdminDisputesController : ControllerBase
     /// <summary>
     /// Admin: Terminal dispute resolution with financial settlement and transaction adjustments.
     /// </summary>
+    [HttpPost("{id:guid}/allocation-preview")]
+    public async Task<IActionResult> PreviewAllocation(Guid id, [FromBody] AdminResolveDisputeRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new AdminPreviewDisputeQuery(id, request.Decision, request.CustomRefundAmount), cancellationToken);
+        return Ok(ApiResponse<DisputeAllocationPreviewDto>.SuccessResult(result));
+    }
+
+    [HttpGet("summary")]
+    public async Task<IActionResult> GetSummary(CancellationToken cancellationToken) =>
+        Ok(ApiResponse<AdminDisputeSummaryDto>.SuccessResult(await _sender.Send(new AdminDisputeSummaryQuery(), cancellationToken)));
+
     [HttpPost("{id:guid}/resolve")]
+    [TutorHub.Api.Filters.Idempotent(RequireKey = true)]
     [ProducesResponseType(typeof(ApiResponse<DisputeDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ResolveDispute(
         [FromRoute] Guid id,

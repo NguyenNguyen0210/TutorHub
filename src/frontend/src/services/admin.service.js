@@ -222,9 +222,10 @@ export const adminService = {
   },
 
   /** GET /admin/disputes → PagedResult<DisputeDto> */
-  async getDisputes({ status = null, pageNumber = 1, pageSize = 10 } = {}) {
+  async getDisputes({ status = null, search = '', pageNumber = 1, pageSize = 10 } = {}) {
     const params = { pageNumber, pageSize };
     if (status) params.status = status;
+    if (search) params.search = search;
     const res = await api.get('/admin/disputes', { params });
     return res;
   },
@@ -301,8 +302,10 @@ export const adminService = {
    * Body: { decision, customRefundAmount, adminNotes }
    * decision ∈ StudentWinsFullRefund | StudentWinsPartialRefund | TutorWinsReleaseEarning | DismissedNoFinancialChange
    */
-  applyDisputeVerdict: (caseId, { decision, customRefundAmount = null, adminNotes = '' }) =>
-    api.post(`/admin/disputes/${caseId}/resolve`, { decision, customRefundAmount, adminNotes }),
+  getDisputeSummary: () => api.get('/admin/disputes/summary'),
+  previewDisputeAllocation: (id, payload) => api.post(`/admin/disputes/${id}/allocation-preview`, { ...payload, adminNotes: '' }),
+  applyDisputeVerdict: (caseId, payload, key) =>
+    api.post(`/admin/disputes/${caseId}/resolve`, payload, { headers: idempotencyHeaders(key) }),
 
   /**
    * GET /admin/withdrawals → PagedResult<WithdrawalDto>

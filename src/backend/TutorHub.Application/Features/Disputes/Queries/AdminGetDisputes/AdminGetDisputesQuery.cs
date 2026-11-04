@@ -7,7 +7,8 @@ namespace TutorHub.Application.Features.Disputes.Queries.AdminGetDisputes;
 public record AdminGetDisputesQuery(
     DisputeStatus? Status = null,
     int PageNumber = 1,
-    int PageSize = 20
+    int PageSize = 20,
+    string? Search = null
 ) : IRequest<AdminDisputeListResponseDto>;
 
 public class AdminDisputeListResponseDto

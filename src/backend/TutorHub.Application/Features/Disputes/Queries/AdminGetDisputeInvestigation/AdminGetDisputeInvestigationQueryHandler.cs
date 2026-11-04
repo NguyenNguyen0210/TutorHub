@@ -23,6 +23,7 @@ public class AdminGetDisputeInvestigationQueryHandler : IRequestHandler<AdminGet
             .AsNoTracking()
             .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(sp => sp.User)
             .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(tp => tp.User)
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.Service)
             .Include(d => d.InitiatorUser)
             .Include(d => d.RespondentUser)
             .Include(d => d.Evidences)
@@ -78,6 +79,9 @@ public class AdminGetDisputeInvestigationQueryHandler : IRequestHandler<AdminGet
                 SessionId = dispute.SessionId,
                 SessionNumber = session.SessionNumber,
                 EnrollmentId = session.EnrollmentId,
+                ServiceTitle = enrollment.Service?.Title ?? string.Empty,
+                StudentName = enrollment.StudentProfile.User.FullName,
+                TutorName = enrollment.TutorProfile.User.FullName,
                 InitiatorUserId = dispute.InitiatorUserId,
                 InitiatorName = dispute.InitiatorUser?.FullName ?? "Unknown",
                 RespondentUserId = dispute.RespondentUserId,
