@@ -27,7 +27,7 @@ public class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaCommand, boo
         var role = _currentUserService.Role;
 
         var media = await _context.Media
-            .FirstOrDefaultAsync(m => m.Id == request.MediaId && m.Status == MediaStatus.Active, cancellationToken);
+            .FirstOrDefaultAsync(m => m.Id == request.MediaId, cancellationToken);
 
         if (media == null)
         {
@@ -44,10 +44,14 @@ public class DeleteMediaCommandHandler : IRequestHandler<DeleteMediaCommand, boo
         }
 
         // 2. Soft-delete in Database
-        media.Status = MediaStatus.Deleted;
-        media.DeletedAt = _clock.UtcNow;
-
-        await _context.SaveChangesAsync(cancellationToken);
+        if (media.Status != MediaStatus.Deleted)
+        {
+            media.Status = MediaStatus.Deleted;
+            media.DeletedAt = _clock.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        // Retain the tombstone when storage fails so the owner/admin can retry.
+        // Managed storage deletion is idempotent for an already missing object.
 
         // 3. Delete physical object in object storage
         await _storageService.DeleteAsync(media.ObjectKey, cancellationToken);

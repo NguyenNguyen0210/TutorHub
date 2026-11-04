@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TutorHub.Application.Common.Events;
+using TutorHub.Application.Common.Concurrency;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Domain.Entities;
@@ -182,8 +183,11 @@ public class AutoPayoutJob : BackgroundService
             {
                 // ReportIssue and CreateDispute lock this row first. Recheck under
                 // the same lock before releasing any escrow.
+                await PostgresAdvisoryLock.LockRowAsync(sessionContext,
+                    $"SELECT 1 FROM \"Sessions\" WHERE \"Id\" = {sessionId} FOR UPDATE", cancellationToken);
+                await PostgresAdvisoryLock.LockEnrollmentForSessionAsync(sessionContext, sessionId, cancellationToken);
                 var session = await sessionContext.Sessions
-                    .FromSqlInterpolated($"SELECT * FROM \"Sessions\" WHERE \"Id\" = {sessionId} FOR UPDATE")
+                    .Where(s => s.Id == sessionId)
                     .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
                     .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
                     .Include(s => s.Enrollment).ThenInclude(e => e.Sessions)

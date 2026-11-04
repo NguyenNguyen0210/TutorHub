@@ -30,6 +30,11 @@ public static class PostgresAdvisoryLock
             ? context.Database.ExecuteSqlInterpolatedAsync(command, cancellationToken)
             : Task.CompletedTask;
 
+    // Lock the aggregate before loading sibling sessions used to calculate progress.
+    // Call only after locking the individual session, matching cancellation lock order.
+    public static Task LockEnrollmentForSessionAsync(IAppDbContext context, Guid sessionId, CancellationToken cancellationToken) =>
+        LockRowAsync(context, $"SELECT 1 FROM \"Enrollments\" WHERE \"Id\" = (SELECT \"EnrollmentId\" FROM \"Sessions\" WHERE \"Id\" = {sessionId}) FOR UPDATE", cancellationToken);
+
     public static Task AcquireAsync(
         IAppDbContext context,
         string resource,

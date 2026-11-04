@@ -47,6 +47,8 @@ public class CancelSessionCommandHandler : IRequestHandler<CancelSessionCommand,
         await PostgresAdvisoryLock.LockRowAsync(_context,
             $"SELECT 1 FROM \"Sessions\" WHERE \"Id\" = {request.SessionId} FOR UPDATE", cancellationToken);
 
+        await PostgresAdvisoryLock.LockEnrollmentForSessionAsync(_context, request.SessionId, cancellationToken);
+
         var session = await _context.Sessions
             .Include(s => s.Enrollment)
             .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);

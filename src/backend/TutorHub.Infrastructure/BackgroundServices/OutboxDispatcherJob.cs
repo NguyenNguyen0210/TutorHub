@@ -119,7 +119,6 @@ public class OutboxDispatcherJob : BackgroundService
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
-        var publisher = scope.ServiceProvider.GetRequiredService<IPublisher>();
 
         var now = _clock.UtcNow;
 
@@ -144,18 +143,21 @@ public class OutboxDispatcherJob : BackgroundService
         {
             if (cancellationToken.IsCancellationRequested) break;
 
-            var claimed = await TryClaimLeaseAsync(dbContext, messageId, now, cancellationToken);
+            using var messageScope = _scopeFactory.CreateScope();
+            var messageContext = messageScope.ServiceProvider.GetRequiredService<IAppDbContext>();
+            var publisher = messageScope.ServiceProvider.GetRequiredService<IPublisher>();
+            var claimed = await TryClaimLeaseAsync(messageContext, messageId, _clock.UtcNow, cancellationToken);
             if (!claimed)
             {
                 continue; // Another worker claimed this message
             }
 
-            var message = await dbContext.OutboxMessages
+            var message = await messageContext.OutboxMessages
                 .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
 
             if (message == null) continue;
 
-            await DispatchSingleMessageAsync(dbContext, publisher, message, cancellationToken);
+            await DispatchSingleMessageAsync(messageContext, publisher, message, cancellationToken);
             processedCount++;
         }
 

@@ -1,3 +1,4 @@
+using TutorHub.Application.Common.Concurrency;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Events;
@@ -62,6 +63,8 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
         {
             throw new NotFoundException(nameof(Session), sessionId.Value);
         }
+
+        await PostgresAdvisoryLock.LockEnrollmentForSessionAsync(_context, sessionId.Value, cancellationToken);
 
         // 2. Lock Dispute after Session.
         // NOTE: locked via separate SELECT ... FOR UPDATE (not FromSql entity
