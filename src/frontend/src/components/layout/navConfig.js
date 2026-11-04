@@ -4,7 +4,7 @@
  * `match(path)` quyết định trạng thái active (prefix match).
  *
  * Khám phá dùng PublicLayout; công cụ của từng role dùng WorkspaceShell.
- * Student và Admin có mục Khám phá → `/`; Tutor tập trung vào giảng dạy.
+ * Student có mục Khám phá → `/`; Tutor và Admin tập trung vào công việc theo vai trò.
  * Hồ sơ công khai của gia sư nằm trong menu tài khoản.
  */
 
@@ -76,7 +76,6 @@ export const NAV = {
     { path: '/admin/categories', label: 'Danh mục & môn học', icon: 'category', match: (p) => p.startsWith('/admin/categories') || p.startsWith('/admin/subjects') },
     { path: '/admin/audit-logs', label: 'Sổ kiểm toán', icon: 'history', match: (p) => p.startsWith('/admin/audit-logs') },
     { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },
-    { path: '/', label: 'Khám phá gia sư', icon: 'explore', match: () => false },
   ],
 };
 
@@ -101,7 +100,6 @@ export function getWorkspaceNavGroups(role, items) {
       { label: 'Kiểm duyệt', paths: ['/admin/tutor-applications', '/admin/disputes', '/admin/trust-reports', '/admin/conversations'] },
       { label: 'Quản lý nền tảng', paths: ['/admin/users', '/admin/categories', '/admin/audit-logs'] },
       { label: 'Thông báo', paths: ['/app/notifications'] },
-      { label: 'Khám phá', paths: ['/'] },
     ];
     return sections.map(section => ({ label: section.label, items: section.paths.map(path => items.find(item => item.path === path)).filter(Boolean) })).filter(group => group.items.length);
   }
