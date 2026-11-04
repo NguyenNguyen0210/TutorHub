@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Security;
 using TutorHub.Domain.Enums;
 
@@ -11,6 +12,21 @@ namespace TutorHub.Api.IntegrationTests;
 
 public class AdminCatalogWorkflowTests(IntegrationWebApplicationFactory factory) : IntegrationTestBase(factory)
 {
+    [Fact]
+    public async Task SubjectReferencedByPackage_CannotBeDeletedEvenWithoutTutorSubjectLink()
+    {
+        var (_, tutor, admin) = await SeedHelper.SeedTutorWithWalletAsync(Db);
+        var (_, _, service) = await SeedHelper.SeedMarketplaceAsync(Db, tutor, admin.Id);
+        Db.TutorSubjects.RemoveRange(await Db.TutorSubjects.Where(t => t.SubjectId == service.SubjectId).ToListAsync());
+        await Db.SaveChangesAsync();
+        SetCurrentUser(admin.Id, UserRole.Admin);
+        using var client = Factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Scope.ServiceProvider.GetRequiredService<IJwtService>().GenerateAccessToken(admin));
+        (await client.DeleteAsync($"/api/v1/admin/subjects/{service.SubjectId}")).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await Db.Subjects.AnyAsync(s => s.Id == service.SubjectId)).Should().BeTrue();
+        (await Db.Services.AnyAsync(s => s.Id == service.Id)).Should().BeTrue();
+    }
+
     [Fact]
     public async Task AdminCreatesUpdatesDeletesAndRestoresCatalog_WithRelationshipGuards()
     {
