@@ -8,5 +8,8 @@ namespace TutorHub.Application.Features.Enrollments.GetMyEnrollments;
 public record GetMyEnrollmentsQuery(
     EnrollmentStatus? Status = null,
     int PageNumber = 1,
-    int PageSize = 10
+    int PageSize = 10,
+    string? Search = null,
+    Guid? ParticipantUserId = null,
+    Guid? ServiceId = null
 ) : IRequest<PagedResult<EnrollmentSummaryDto>>;

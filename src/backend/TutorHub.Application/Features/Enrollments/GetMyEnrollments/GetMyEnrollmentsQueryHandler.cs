@@ -4,6 +4,7 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Enrollments.DTOs;
 using TutorHub.Domain.Enums;
+using TutorHub.Application.Common.Search;
 
 namespace TutorHub.Application.Features.Enrollments.GetMyEnrollments;
 
@@ -23,7 +24,8 @@ public class GetMyEnrollmentsQueryHandler : IRequestHandler<GetMyEnrollmentsQuer
         var userId = _currentUserService.UserIdOrThrow();
         var role = _currentUserService.Role;
 
-        var query = _context.Enrollments.AsNoTracking();
+        // Archived packages must not hide historical contracts from administrators.
+        var query = role == UserRole.Admin ? _context.Enrollments.IgnoreQueryFilters().AsNoTracking() : _context.Enrollments.AsNoTracking();
 
         if (role == UserRole.Student)
         {
@@ -37,6 +39,20 @@ public class GetMyEnrollmentsQueryHandler : IRequestHandler<GetMyEnrollmentsQuer
         if (request.Status.HasValue)
         {
             query = query.Where(e => e.Status == request.Status.Value);
+        }
+
+        if (request.ParticipantUserId.HasValue)
+            query = query.Where(e => e.StudentProfile.UserId == request.ParticipantUserId || e.TutorProfile.UserId == request.ParticipantUserId);
+        if (request.ServiceId.HasValue) query = query.Where(e => e.ServiceId == request.ServiceId);
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var term = request.Search.Trim();
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(term)) + "%";
+            var isId = Guid.TryParse(term, out var id);
+            query = query.Where(e => (isId && (e.Id == id || e.BookingId == id || e.ServiceId == id))
+                || EF.Functions.Like(VietnameseSearch.UnaccentImmutable(e.StudentProfile.User.FullName)!.ToLower(), pattern, @"\")
+                || EF.Functions.Like(VietnameseSearch.UnaccentImmutable(e.TutorProfile.User.FullName)!.ToLower(), pattern, @"\")
+                || EF.Functions.Like(VietnameseSearch.UnaccentImmutable(e.Service.Title)!.ToLower(), pattern, @"\"));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

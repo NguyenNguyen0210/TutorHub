@@ -188,6 +188,7 @@ export const adminService = {
   forceUnpublishService: id => api.post(`/admin/services/${id}/force-unpublish`),
   removeReview: (id, reason) => api.delete(`/admin/reviews/${id}`, { data: { reason } }),
   cancelEnrollment: (id, reason) => api.post(`/admin/enrollments/${id}/cancel`, { reason }),
+  getEnrollments: params => api.get('/admin/enrollments', { params }),
   getTransactions: params => api.get('/admin/transactions', { params }),
   getTransaction: id => api.get(`/admin/transactions/${id}`),
   getCatalog: (kind, params = {}, trash = false) => api.get(`/admin/${kind}${trash ? '/trash' : ''}`, { params }),
