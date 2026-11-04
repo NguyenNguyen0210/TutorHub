@@ -100,6 +100,10 @@ Desktop.ini
 # =====================
 # Local AI tooling artifacts (private)
 # =====================
+[Aa][Gg][Ee][Nn][Tt].md
+[Aa][Gg][Ee][Nn][Tt][Ss].md
+[Cc][Ll][Aa][Uu][Dd][Ee].md
+[Dd][Ee][Ss][Ii][Gg][Nn].md
 .commandcode/
 .kombai/
 .playwright-mcp/
