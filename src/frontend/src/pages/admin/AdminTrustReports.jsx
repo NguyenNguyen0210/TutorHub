@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useConfirm } from '@/components/ui/Dialog';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import TrustReportList from '@/components/admin/TrustReportList';
 import { Field, Select, Textarea } from '@/components/ui/Input';
 import { formatDateTime } from '@/utils/formatters';
 import { reportTypes, reportDecisions } from '@/utils/trustReports';
@@ -19,17 +20,17 @@ export default function AdminTrustReports() {
   const status = ['Open', 'Resolved'].includes(params.get('status')) ? params.get('status') : '';
   const queryClient = useQueryClient();
   const confirm = useConfirm();
-  const [decision, setDecision] = useState('Dismissed');
+  const [decision, setDecision] = useState('');
   const [resolution, setResolution] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const busy = useRef(false);
   const query = useQuery({ queryKey: ['admin-trust-reports', user?.id, id || { page, status }],
-    queryFn: () => id ? adminService.getTrustReport(id) : adminService.getTrustReports({ status, pageNumber: page }), retry: false });
+    enabled: Boolean(id), queryFn: () => id ? adminService.getTrustReport(id) : adminService.getTrustReports({ status, pageNumber: page }), retry: false });
   const item = id ? query.data : null;
   const resolve = async event => {
     event.preventDefault();
-    if (busy.current || resolution.trim().length < 5 || item?.status !== 'Open') return;
+    if (!decision || busy.current || resolution.trim().length < 5 || item?.status !== 'Open') return;
     busy.current = true; setError('');
     try {
       const ok = await confirm({ title: 'Xác nhận xử lý báo cáo', content: `${reportDecisions[decision]}. Kết luận sẽ được lưu và gửi cho người báo cáo.`, confirmText: 'Xác nhận xử lý', danger: ['BanUser', 'SuspendUser', 'RemoveContent'].includes(decision) });
@@ -45,8 +46,9 @@ export default function AdminTrustReports() {
       query.refetch();
     } finally { busy.current = false; setSaving(false); }
   };
+  if (!id) return <TrustReportList />;
   return <div className="space-y-6 lg:space-y-8">
-    {id && <Button as={Link} to="/admin/trust-reports" variant="ghost">Về danh sách báo cáo</Button>}<WorkspacePageHeader title={id ? 'Chi tiết báo cáo vi phạm' : 'Báo cáo vi phạm'} description="Xem xét hành vi và nội dung không phù hợp. Khiếu nại học phí được xử lý riêng tại mục Tranh chấp." />
+    {id && <Button as={Link} to={`/admin/trust-reports?${params.get('list') || ''}`} variant="ghost">Về danh sách báo cáo</Button>}<WorkspacePageHeader title={id ? 'Chi tiết báo cáo vi phạm' : 'Báo cáo vi phạm'} description="Xem xét hành vi và nội dung không phù hợp. Khiếu nại học phí được xử lý riêng tại mục Tranh chấp." />
     {!id && <Field label="Trạng thái" htmlFor="report-status"><Select id="report-status" value={status} onChange={e => setParams(e.target.value ? { status: e.target.value } : {})}><option value="">Tất cả</option><option value="Open">Chờ xử lý</option><option value="Resolved">Đã xử lý</option></Select></Field>}
     {query.isPending ? <p role="status">Đang tải báo cáo…</p> : query.isError ? <Card padding="lg"><p role="alert">{query.error?.status === 404 ? 'Báo cáo không còn tồn tại hoặc bạn không có quyền xem.' : 'Chưa tải được thông tin báo cáo.'}</p><Button className="mt-4" variant="outline" onClick={() => query.refetch()}>Thử lại</Button></Card>
       : id ? <>
@@ -58,7 +60,7 @@ export default function AdminTrustReports() {
           {item.bookingId && <details className="text-sm text-fg-secondary"><summary className="cursor-pointer">Đơn đặt chỗ liên quan</summary><p className="mt-2 break-all">{item.bookingId}</p>{item.studentName && <p>Học viên: {item.studentName}</p>}{item.tutorName && <p>Gia sư: {item.tutorName}</p>}</details>}
           {item.status === 'Resolved' && <section className="border-l-2 border-primary pl-4"><h3 className="font-semibold">{reportDecisions[item.adminDecision] || 'Kết quả xử lý'}</h3><p className="mt-2 whitespace-pre-wrap break-words">{item.resolution}</p><p className="mt-2 text-sm text-fg-secondary">{item.resolvedByAdminName} · {formatDateTime(item.resolvedAt)}</p></section>}
         </Card>
-        {item.status === 'Open' && <Card padding="lg" variant="outlined" className="rounded-2xl"><form onSubmit={resolve} className="space-y-4"><h2 className="text-lg font-semibold">Xử lý báo cáo</h2><Field label="Quyết định" htmlFor="report-decision"><Select id="report-decision" value={decision} disabled={saving} onChange={e => setDecision(e.target.value)}>{Object.entries(reportDecisions).filter(([key]) => !(['SuspendUser', 'BanUser'].includes(key) && !item.reportedUserId) && !(key === 'RemoveContent' && !['ReviewViolation', 'ServiceViolation'].includes(item.reportType))).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></Field><Field label="Kết luận gửi người báo cáo" htmlFor="report-resolution" hint="Từ 5 đến 1.000 ký tự"><Textarea id="report-resolution" value={resolution} maxLength={1000} disabled={saving} onChange={e => setResolution(e.target.value)} required /></Field>{error && <p role="alert" className="text-sm text-danger-strong">{error}</p>}<Button type="submit" loading={saving} disabled={saving || resolution.trim().length < 5}>Lưu kết quả xử lý</Button></form></Card>}
+        {item.status === 'Open' && <Card padding="lg" variant="outlined" className="rounded-2xl"><form onSubmit={resolve} className="space-y-4"><h2 className="text-lg font-semibold">Xử lý báo cáo</h2><Field label="Quyết định" htmlFor="report-decision"><Select id="report-decision" value={decision} disabled={saving} onChange={e => setDecision(e.target.value)}><option value="">Ch?n sau khi xem x?t b?o c?o</option>{Object.entries(reportDecisions).filter(([key]) => !(['SuspendUser', 'BanUser'].includes(key) && !item.reportedUserId) && !(key === 'RemoveContent' && !['ReviewViolation', 'ServiceViolation'].includes(item.reportType))).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></Field><Field label="Kết luận gửi người báo cáo" htmlFor="report-resolution" hint="Từ 5 đến 1.000 ký tự"><Textarea id="report-resolution" value={resolution} maxLength={1000} disabled={saving} onChange={e => setResolution(e.target.value)} required /></Field>{error && <p role="alert" className="text-sm text-danger-strong">{error}</p>}<Button type="submit" loading={saving} disabled={saving || !decision || resolution.trim().length < 5}>Lưu kết quả xử lý</Button></form></Card>}
       </> : <>
         {!query.data?.items?.length ? <Card padding="lg"><h2 className="font-semibold">Không có báo cáo phù hợp</h2><p className="mt-2 text-fg-secondary">Các báo cáo mới sẽ xuất hiện tại đây.</p></Card> : <div className="divide-y divide-border rounded-2xl border border-border bg-surface">{query.data.items.map(report => <article key={report.id} className="p-5"><div className="flex flex-wrap items-start justify-between gap-3"><h2 className="font-semibold">{reportTypes[report.reportType] || 'Báo cáo vi phạm'}</h2><span className="text-sm text-fg-secondary">{report.status === 'Open' ? 'Chờ xử lý' : 'Đã xử lý'}</span></div><p className="mt-2 text-sm text-fg-secondary">{report.reporterName} · {formatDateTime(report.createdAt)}</p><p className="mt-3 line-clamp-3 break-words text-sm">{report.description}</p><Button as={Link} to={`/admin/trust-reports/${report.id}`} variant="outline" className="mt-4">Xem báo cáo</Button></article>)}</div>}
         {(page > 1 || query.data?.hasNextPage) && <nav aria-label="Phân trang báo cáo" className="flex items-center justify-between gap-3"><Button variant="outline" disabled={page <= 1} onClick={() => setParams({ status, page: page - 1 })}>Trang trước</Button><span>Trang {page}</span><Button variant="outline" disabled={!query.data?.hasNextPage} onClick={() => setParams({ status, page: page + 1 })}>Trang sau</Button></nav>}

@@ -38,6 +38,14 @@ public class StudentReportWorkflowTests(IntegrationWebApplicationFactory factory
         SetCurrentUser(admin.Id, UserRole.Admin);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt.GenerateAccessToken(admin));
         (await client.GetAsync("/api/v1/admin/trust-reports?status=Open")).StatusCode.Should().Be(HttpStatusCode.OK);
+        var searched = await client.GetAsync($"/api/v1/admin/trust-reports?search={id}&status=Open");
+        searched.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var searchJson = JsonDocument.Parse(await searched.Content.ReadAsStringAsync());
+        searchJson.RootElement.GetProperty("data").GetProperty("totalCount").GetInt32().Should().Be(1);
+        searchJson.RootElement.GetProperty("data").GetProperty("items")[0].GetProperty("id").GetGuid().Should().Be(id);
+        var unmatched = await client.GetAsync($"/api/v1/admin/trust-reports?search={Guid.NewGuid()}");
+        using var unmatchedJson = JsonDocument.Parse(await unmatched.Content.ReadAsStringAsync());
+        unmatchedJson.RootElement.GetProperty("data").GetProperty("totalCount").GetInt32().Should().Be(0);
         (await client.GetAsync($"/api/v1/admin/trust-reports/{id}")).StatusCode.Should().Be(HttpStatusCode.OK);
         var verdict = new { decision = "WarningIssued", resolution = "The reported account has received a warning." };
         (await client.PostAsJsonAsync($"/api/v1/admin/trust-reports/{id}/resolve", verdict)).StatusCode.Should().Be(HttpStatusCode.OK);

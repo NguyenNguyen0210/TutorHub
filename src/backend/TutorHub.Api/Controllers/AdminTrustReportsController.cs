@@ -32,9 +32,11 @@ public class AdminTrustReportsController : ControllerBase
         [FromQuery] ReportStatus? status,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null,
+        [FromQuery] TrustReportType? reportType = null,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetAdminReportsQuery(status, pageNumber, pageSize);
+        var query = new GetAdminReportsQuery(status, pageNumber, pageSize, search, reportType);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<ReportSummaryDto>>.SuccessResult(result, "Trust & Safety reports retrieved successfully."));
     }

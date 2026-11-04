@@ -198,7 +198,7 @@ export const adminService = {
     do { page = await adminService.getCatalog('categories', { pageNumber, pageSize: 50 }); items.push(...page.items); pageNumber++; } while (page.hasNextPage);
     return items;
   },
-  getTrustReports: ({ status, pageNumber = 1 } = {}) => api.get('/admin/trust-reports', { params: { status: status || undefined, pageNumber, pageSize: 10 } }),
+  getTrustReports: ({ status, search, reportType, pageNumber = 1 } = {}) => api.get('/admin/trust-reports', { params: { status: status || undefined, search: search || undefined, reportType: reportType || undefined, pageNumber, pageSize: 10 } }),
   getTrustReport: id => api.get(`/admin/trust-reports/${id}`),
   resolveTrustReport: (id, payload) => api.post(`/admin/trust-reports/${id}/resolve`, payload),
   /** GET /admin/dashboard/stats → AdminDashboardStatsDto (nested) */

@@ -4,6 +4,7 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Reports.DTOs;
 using TutorHub.Domain.Enums;
+using TutorHub.Application.Common.Search;
 
 namespace TutorHub.Application.Features.Admin.Reports.GetAdminReports;
 
@@ -30,6 +31,16 @@ public class GetAdminReportsQueryHandler : IRequestHandler<GetAdminReportsQuery,
             query = query.Where(r => r.Status == request.Status.Value);
         }
 
+        if (request.ReportType.HasValue) query = query.Where(r => r.ReportType == request.ReportType.Value);
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var term = request.Search.Trim();
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(term)) + "%";
+            var isId = Guid.TryParse(term, out var id);
+            query = query.Where(r => (isId && r.Id == id)
+                || EF.Functions.Like(VietnameseSearch.UnaccentImmutable(r.ReporterUser.FullName)!.ToLower(), pattern, @"\")
+                || (r.ReportedUser != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(r.ReportedUser.FullName)!.ToLower(), pattern, @"\")));
+        }
         var totalCount = await query.CountAsync(cancellationToken);
         var pageNumber = request.PageNumber;
         var pageSize = request.PageSize;
@@ -55,7 +66,8 @@ public class GetAdminReportsQueryHandler : IRequestHandler<GetAdminReportsQuery,
                 r.Status,
                 r.AdminDecision,
                 r.CreatedAt,
-                r.ResolvedAt
+                r.ResolvedAt,
+                r.ReportedUser != null ? r.ReportedUser.FullName : null
             ))
             .ToListAsync(cancellationToken);
 
