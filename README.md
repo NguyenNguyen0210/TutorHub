@@ -1,76 +1,76 @@
-﻿# TutorHub
+# TutorHub
 
-**Nền tảng kết nối gia sư và học viên, quản lý gói học, lịch học và thanh toán theo từng buổi.**
+**An online tutoring marketplace with session-based payments, scheduling, and dispute resolution.**
 
-TutorHub là dự án full-stack sử dụng React và ASP.NET Core. Dự án triển khai quy trình từ mua gói học đến giải ngân: giữ chỗ thanh toán, tạo hợp đồng, xếp lịch, giữ học phí và giải quyết khiếu nại trước giải ngân.
+TutorHub connects students with tutors through structured learning packages. It covers the full workflow from purchasing a package and scheduling lessons to holding tuition, resolving disputes, and releasing tutor earnings.
 
-## Chức năng chính
+This personal full-stack project focuses on backend business rules, financial consistency, and asynchronous processing, with a React interface for students, tutors, and administrators.
 
-| Vai trò | Chức năng |
+[Features](#features) · [Architecture](#architecture) · [Local setup](#local-setup) · [Testing](#testing) · [Documentation](#documentation)
+
+## Features
+
+| Role | Capabilities |
 | --- | --- |
-| Học viên | Tìm gia sư và gói học, lưu yêu thích, thanh toán qua VNPay hoặc ví, theo dõi lịch học, nhắn tin, gửi khiếu nại và yêu cầu rút tiền. |
-| Gia sư | Nộp hồ sơ xét duyệt, quản lý gói học, xếp và đổi lịch, cập nhật nội dung buổi học, theo dõi thu nhập và yêu cầu rút tiền. |
-| Quản trị viên | Xét duyệt hồ sơ và gói học, xử lý tranh chấp, quản lý người dùng, danh mục, yêu cầu rút tiền và nhật ký kiểm toán. |
+| Student | Discover tutors and packages, save favorites, pay through VNPay or a wallet, view schedules, chat, submit disputes, and request withdrawals. |
+| Tutor | Submit an application for approval, manage learning packages, schedule and reschedule lessons, maintain lesson records, and track earnings. |
+| Administrator | Review tutor applications and packages, manage users and catalog data, resolve disputes, process withdrawal requests, and inspect audit logs. |
 
-### Quy trình học tập và học phí
+### Payment and escrow workflow
 
-1. Học viên chọn gói học; đơn đặt chỗ được giữ trong 15 phút để thanh toán.
-2. Thanh toán thành công kích hoạt hợp đồng và tạo các buổi học theo gói.
-3. Gia sư xếp lịch. Chính sách báo trước mặc định là 2 giờ đối với các thao tác lịch học có áp dụng giới hạn này.
-4. Sau khi buổi học kết thúc, tác vụ nền mở cửa sổ kiểm tra 12 giờ. Học phí chưa được giải ngân trong thời gian này.
-5. Nếu không có báo cáo sự cố, tác vụ nền giải ngân phần thu nhập của gia sư. Khi có khiếu nại, khoản học phí liên quan được giữ để quản trị viên xử lý.
+1. **Reserve:** a booking holds a package purchase for 15 minutes while awaiting payment.
+2. **Activate:** successful payment creates an enrollment and its learning sessions.
+3. **Schedule:** the tutor schedules lessons. Applicable scheduling and cancellation operations enforce a configurable notice period, defaulting to two hours.
+4. **Hold:** after a lesson ends, a background worker moves it into a 12-hour review window before releasing tuition.
+5. **Settle:** eligible sessions without an issue report are paid out to the tutor's wallet. A dispute holds the relevant funds for administrator review.
 
-Ví theo dõi riêng số dư khả dụng, tiền đang giữ và tiền chờ rút. Các thao tác tài chính ghi nhận biến động số dư để phục vụ đối soát.
+Administrators can issue a full or partial refund, release tutor earnings, or dismiss a dispute without an immediate financial adjustment. Wallets track available, pending, and withdrawing balances separately; balance movements are recorded for reconciliation. Wallet payout and external bank transfer are separate operations.
 
-## Công nghệ và kiến trúc
+## Architecture
 
-| Thành phần | Công nghệ |
+The backend follows **Clean Architecture** with **CQRS through MediatR**, organized around application features.
+
+| Project | Responsibility |
 | --- | --- |
+| `TutorHub.Domain` | Entities, lifecycle transitions, and business rules. |
+| `TutorHub.Application` | Commands, queries, validation, policies, and infrastructure interfaces. |
+| `TutorHub.Infrastructure` | EF Core persistence, Redis, background workers, SignalR, and external integrations. |
+| `TutorHub.Api` | REST controllers, authentication, middleware, endpoint registration, and dependency composition. |
+| React client | Role-specific screens, API integration, server-state caching, and realtime interactions. |
+
+### Engineering highlights
+
+- **Financial consistency:** PostgreSQL transactions, row locks, and advisory locks serialize relevant updates to wallets, enrollment progress, and review aggregates.
+- **Retry handling:** request idempotency protects supported operations from duplicate submissions; transactional outbox processing separates committed business changes from notification delivery.
+- **Background processing:** workers handle booking expiration, session payouts, outbox dispatch, email delivery, and idempotency cleanup. Redis coordinates distributed worker execution; database locks protect the underlying data updates.
+- **Authentication:** JWT access tokens, refresh-token rotation, and role-based authorization. Established SignalR connections revalidate account status and token version.
+- **Realtime and storage:** SignalR supports chat and notifications; Cloudflare R2 stores uploaded media and dispute evidence.
+- **Auditability:** append-only database triggers protect the corresponding financial and audit records.
+
+### Technology stack
+
+| Area | Technologies |
+| --- | --- |
+| Backend | C#, .NET 8, ASP.NET Core Web API, MediatR, FluentValidation |
+| Persistence | PostgreSQL 16, EF Core 8, Npgsql |
+| Cache and coordination | Redis 7 |
 | Frontend | React 18, Vite 5, Tailwind CSS, React Router, TanStack Query, Zustand, Axios |
-| Backend | .NET 8, ASP.NET Core Web API, MediatR, FluentValidation |
-| Dữ liệu | PostgreSQL 16, Entity Framework Core 8, Npgsql |
-| Cache và realtime | Redis 7, ASP.NET Core SignalR |
-| Tích hợp | VNPay, Cloudflare R2 qua S3 API, MailKit SMTP, Google sign-in tùy chọn |
-| Kiểm thử | xUnit, FluentAssertions, Moq, ASP.NET Core integration tests, Node.js test runner |
-| Vận hành | Docker Compose, GitHub Actions, Serilog, health checks |
+| Integrations | VNPay, ASP.NET Core SignalR, Cloudflare R2 / S3 API, MailKit SMTP, optional Google sign-in |
+| Testing | xUnit, FluentAssertions, Moq, ASP.NET Core integration tests, Node.js test runner |
+| Operations | Docker Compose, GitHub Actions, Serilog, health checks |
 
-Backend tổ chức theo **Clean Architecture và CQRS**:
+## Local setup
 
-```text
-React SPA ── REST / SignalR ── TutorHub.Api
-                                  │
-                     TutorHub.Application
-                                  │
-                         TutorHub.Domain
-                                  ▲
-                     TutorHub.Infrastructure
-                                  │
-             PostgreSQL / Redis / VNPay / R2 / SMTP
-```
-
-Domain chứa thực thể và quy tắc nghiệp vụ. Application triển khai commands, queries, validation và các interface. Infrastructure hiện thực persistence, tích hợp bên ngoài và tác vụ nền; API cung cấp HTTP endpoints và cấu hình host.
-
-Các điểm triển khai đáng chú ý:
-
-- JWT access token, refresh token rotation và kiểm tra trạng thái tài khoản cho kết nối SignalR đang hoạt động.
-- Transactional outbox và hàng đợi email lưu trong database để tách nghiệp vụ khỏi gửi thông báo.
-- Transaction, khóa hàng và advisory lock PostgreSQL cho các thao tác đồng thời trên hợp đồng, ví và thống kê đánh giá.
-- Idempotency cho các endpoint có áp dụng nhằm hạn chế xử lý lặp khi client gửi lại yêu cầu.
-- Trigger append-only bảo vệ các bảng giao dịch và nhật ký kiểm toán tương ứng.
-- Tác vụ nền xử lý đơn hết hạn, giải ngân, outbox, email và dọn dữ liệu idempotency.
-
-## Chạy trên máy local
-
-### Yêu cầu
+### Prerequisites
 
 - .NET 8 SDK.
-- Node.js 20 trở lên và npm.
-- Docker Compose, hoặc PostgreSQL 16 và Redis 7 đã chạy trên máy.
-- Cấu hình VNPay sandbox và Cloudflare R2 cho các luồng thanh toán và tải tệp. API yêu cầu các tùy chọn tích hợp hợp lệ khi khởi động.
+- Node.js 20 or later and npm.
+- Docker Compose, or an existing local PostgreSQL 16 and Redis 7 instance.
+- Valid VNPay and Cloudflare R2 configuration for API startup; use VNPay sandbox for development payments.
 
-Các lệnh dưới đây dùng PowerShell và chạy từ thư mục gốc repository, trừ phần frontend.
+The commands below use **PowerShell**. Run them from the repository root unless another directory is specified.
 
-### 1. Lấy mã nguồn và cấu hình
+### 1. Clone and configure
 
 ```powershell
 git clone https://github.com/NguyenNguyen0210/TutorHub.git
@@ -78,66 +78,59 @@ cd TutorHub
 Copy-Item .env.example .env
 ```
 
-Điền giá trị trong `.env` trước khi chạy API. API từ chối các secret mẫu như `change_me`.
+Update `.env` with your local connection details and integration credentials. The API rejects placeholder secrets such as `change_me`. In Development, its dotenv loader reads the local file without overriding existing process environment variables.
 
-| Nhóm cấu hình | Thiết lập |
+| Configuration | Purpose |
 | --- | --- |
-| PostgreSQL | `ConnectionStrings__DefaultConnection`; mẫu local dùng `localhost:5433`. |
-| Redis | `ConnectionStrings__Redis`; mặc định local là `localhost:6379`. |
-| Phiên đăng nhập | `Jwt__Secret` và `RefreshToken__Pepper`, mỗi giá trị tối thiểu 32 ký tự; dùng các giá trị ngẫu nhiên riêng biệt. |
-| VNPay | `VnPay__TmnCode`, `VnPay__HashSecret`, `VnPay__BaseUrl`, `VnPay__ReturnUrl`. |
-| Lưu trữ tệp | `CloudflareR2__AccountId`, `CloudflareR2__AccessKeyId`, `CloudflareR2__SecretAccessKey` và tên bucket. |
-| Trình duyệt | `Cors__AllowedOrigins=http://localhost:5173` cho frontend local. |
-| Email | `Smtp__*`; Development có thể dùng chế độ log-only khi bỏ trống SMTP host. |
-| Google sign-in | `ExternalAuth__Google__*`; để trống để tắt đăng nhập Google. |
+| `ConnectionStrings__DefaultConnection` | PostgreSQL connection; the template uses `localhost:5433`. |
+| `ConnectionStrings__Redis` | Redis connection; the local default is `localhost:6379`. |
+| `Jwt__Secret`, `RefreshToken__Pepper` | Separate random values of at least 32 characters each. |
+| `VnPay__TmnCode`, `VnPay__HashSecret`, `VnPay__BaseUrl` | VNPay merchant credentials and sandbox gateway URL. |
+| `VnPay__ReturnUrl` | Use `http://localhost:5173/payment/return` for the frontend payment result page. |
+| `CloudflareR2__AccountId`, `CloudflareR2__AccessKeyId`, `CloudflareR2__SecretAccessKey` | Object storage credentials. |
+| `CloudflareR2__BucketName` | Add this setting when running the API directly on the host. |
+| `Cors__AllowedOrigins` | Set to `http://localhost:5173` for the local frontend. |
+| `Smtp__*` | Email delivery; leaving the host empty enables log-only delivery in Development. |
+| `ExternalAuth__Google__*` | Optional Google sign-in; leave empty to disable. |
 
-Với API chạy trực tiếp trên máy, đặt thêm `CloudflareR2__BucketName` trong `.env`. Compose lấy tên bucket từ `CLOUDFLARE_R2_BUCKET` và truyền sang tùy chọn này cho container API.
+Compose maps `CLOUDFLARE_R2_BUCKET` to the API's `CloudflareR2__BucketName`. Host-based development needs the latter configuration key directly. Keep credentials in local environment files or deployment secrets; `VITE_*` variables are exposed to the browser.
 
-Để xem kết quả thanh toán trên giao diện, đặt `VnPay__ReturnUrl=http://localhost:5173/payment/return`. Không đưa secrets vào biến frontend `VITE_*` hoặc commit file `.env`.
-
-### 2. Khởi động PostgreSQL và Redis
+### 2. Start PostgreSQL and Redis
 
 ```powershell
 docker compose up -d postgres redis
 ```
 
-Theo cấu hình mặc định, PostgreSQL dùng database/user/password local là `tutorhub`, cổng host `5433`; Redis dùng cổng `6379`. Nếu đổi thông tin container, cập nhật connection string tương ứng. Thông tin khởi tạo PostgreSQL phải phù hợp với volume hiện có.
+Default PostgreSQL settings are database/user/password `tutorhub`, exposed on host port `5433`. Redis is exposed on `6379`. If you customize database credentials, keep the API connection string consistent with the PostgreSQL volume's existing credentials.
 
-### 3. Tạo schema và dữ liệu demo
+### 3. Initialize a local demo database
 
-Với database ứng dụng local rỗng:
+For an empty application database:
 
 ```powershell
 dotnet restore src/backend/TutorHub.sln
 dotnet run --project src/backend/TutorHub.Api --launch-profile http -- --seed-demo
 ```
 
-Lệnh áp dụng EF Core migrations và tạo dữ liệu minh họa gồm ba vai trò, một gói học và ví học viên. Chạy lại không đặt lại số dư. Lệnh chỉ cho phép Development, PostgreSQL localhost và không thay thế dữ liệu ứng dụng không thuộc bộ demo.
+This command applies EF Core migrations and creates three demo accounts, a published learning package, and a student wallet. It only runs in Development against localhost PostgreSQL. It refuses unrelated existing application data; rerunning with the demo accounts already present leaves accounts and balances unchanged.
 
-| Vai trò | Email | Mật khẩu demo |
+| Role | Email | Password |
 | --- | --- | --- |
-| Quản trị viên | `admin.demo@tutorhub.local` | `Demo@12345` |
-| Gia sư | `tutor.demo@tutorhub.local` | `Demo@12345` |
-| Học viên | `student.demo@tutorhub.local` | `Demo@12345` |
+| Administrator | `admin.demo@tutorhub.local` | `Demo@12345` |
+| Tutor | `tutor.demo@tutorhub.local` | `Demo@12345` |
+| Student | `student.demo@tutorhub.local` | `Demo@12345` |
 
-Ví học viên có **1.000.000 VND minh họa** để trải nghiệm thanh toán bằng ví. Các tài khoản và số dư này chỉ dùng cho demo local; đây không phải khoản nạp tiền thật. Bản clone mới không cần file SQL hay scripts bên ngoài repository.
+The student starts with **1,000,000 fictional VND** for wallet-based purchases. These are local demonstration accounts and balances, not real deposits. No external SQL files or local utility scripts are required.
 
-### 4. Chạy backend
+### 4. Run the API
 
 ```powershell
 dotnet run --project src/backend/TutorHub.Api --launch-profile http
 ```
 
-| Dịch vụ | Địa chỉ local |
-| --- | --- |
-| API | <http://localhost:5129> |
-| Swagger UI — Development | <http://localhost:5129/swagger> |
-| Readiness — PostgreSQL và Redis | <http://localhost:5129/health> |
-| Liveness | <http://localhost:5129/health/live> |
+### 5. Run the frontend
 
-### 5. Chạy frontend
-
-Mở terminal khác:
+In a separate terminal:
 
 ```powershell
 cd src/frontend
@@ -145,7 +138,15 @@ npm ci
 npm run dev
 ```
 
-Truy cập <http://localhost:5173>. Frontend mặc định kết nối API cổng `5129`. Khi đổi địa chỉ backend, tạo `src/frontend/.env.local`:
+| Service | Local URL |
+| --- | --- |
+| Web application | <http://localhost:5173> |
+| API | <http://localhost:5129> |
+| Swagger UI — Development only | <http://localhost:5129/swagger> |
+| Readiness — PostgreSQL and Redis | <http://localhost:5129/health> |
+| Liveness | <http://localhost:5129/health/live> |
+
+The frontend defaults to the API on port `5129`. To change endpoints, create `src/frontend/.env.local`:
 
 ```dotenv
 VITE_API_BASE_URL=http://localhost:5129/api/v1
@@ -153,9 +154,18 @@ VITE_SIGNALR_HUB_URL=http://localhost:5129/hubs/chat
 VITE_NOTIFICATION_HUB_URL=http://localhost:5129/hubs/notifications
 ```
 
-Cập nhật đồng thời CORS và URL trả về VNPay khi đổi địa chỉ frontend. Khởi động lại Vite sau khi thay biến môi trường.
+Restart Vite after changing environment variables. When changing the frontend address, update CORS and the VNPay return URL as well.
 
-## Kiểm thử
+### Suggested demo walkthrough
+
+1. Sign in as the student and purchase the demo package using the fictional wallet balance.
+2. Sign in as the tutor in a separate browser session and schedule the enrolled lessons.
+3. Open the student schedule and exchange messages with the tutor.
+4. Sign in as the administrator to explore enrollment, user, financial, and audit views.
+
+Dispute and automatic payout flows depend on session end times and the review window. Use a separate test database when exercising financial scenarios.
+
+## Testing
 
 ### Backend
 
@@ -164,9 +174,9 @@ dotnet build src/backend/TutorHub.sln --configuration Release /p:TreatWarningsAs
 dotnet test src/backend/TutorHub.sln --configuration Release --no-build
 ```
 
-Integration tests cần PostgreSQL local và Redis đang hoạt động. Bộ test đọc connection string từ môi trường hoặc `.env`, tạo lại database test riêng và từ chối PostgreSQL remote. User PostgreSQL chạy test cần quyền tạo/xóa database test.
+Integration tests use local PostgreSQL and Redis. The database connection is read from the environment or `.env`; the PostgreSQL user needs permission to create and drop the dedicated test database. The harness refuses remote hosts and restricts database names to `tutorhub_integration` or an allowed underscore suffix.
 
-Có thể đặt tên database test riêng trước khi chạy; dùng tiền tố `tutorhub_integration_` theo sau bởi chữ thường, số hoặc dấu gạch dưới:
+To use a separate test database name:
 
 ```powershell
 $env:POSTGRES_TEST_DATABASE='tutorhub_integration_local'
@@ -175,7 +185,7 @@ dotnet test src/test/TutorHub.Api.IntegrationTests --configuration Release
 
 ### Frontend
 
-Chạy từ `src/frontend`:
+From `src/frontend`:
 
 ```powershell
 npm run lint
@@ -183,11 +193,11 @@ npm test
 npm run build
 ```
 
-Regression tests được quản lý phiên bản trong `src/test` và `src/frontend/test`. E2E trên trình duyệt được kiểm tra riêng với Playwright; runner và báo cáo local không đóng gói trong repository. Khi kiểm tra các luồng thay đổi số dư, dùng database test riêng và VNPay sandbox.
+Versioned regression tests are in `src/test` and `src/frontend/test`. They cover domain rules, application handlers, infrastructure behavior, and API/database integration, including financial concurrency and authentication scenarios. Browser E2E checks use Playwright separately; local runners and generated reports are not distributed with this repository.
 
-Workflow [GitHub Actions](.github/workflows/ci.yml) định nghĩa build/test backend và kiểm tra frontend cho push hoặc pull request vào `main`. Kết quả CI cần đối chiếu với đúng commit đang xem.
+The [CI workflow](.github/workflows/ci.yml) defines backend build/tests and frontend lint/tests/build for pushes and pull requests targeting `main`. Check workflow results for the specific commit under review.
 
-## Cấu trúc repository
+## Repository structure
 
 ```text
 src/
@@ -198,24 +208,29 @@ src/
 │   ├── TutorHub.Infrastructure/
 │   └── TutorHub.sln
 ├── frontend/
-│   ├── src/                   # Pages, components, services, state, utilities
-│   └── test/                  # Frontend regression tests
-└── test/                      # Backend unit và integration tests
-docs/                          # Yêu cầu, user stories và OpenAPI snapshot
-docker-compose.yml             # PostgreSQL, Redis và API local
-docker-compose.prod.yml        # Cấu hình container production
-.env.example                   # Mẫu cấu hình local
-.env.production.example        # Mẫu cấu hình triển khai
+│   ├── src/                 # Pages, components, services, state, utilities
+│   └── test/                # Frontend regression tests
+└── test/                    # Backend unit and integration tests
+docs/                        # Requirements, user stories, OpenAPI snapshot
+docker-compose.yml           # Local PostgreSQL, Redis, and API services
+docker-compose.prod.yml      # Production container configuration
+.env.example                 # Local configuration template
+.env.production.example      # Deployment configuration template
 ```
 
-## Tài liệu và triển khai
+## Documentation
 
-- [Yêu cầu chức năng](docs/functional-requirements.md)
+- [Functional requirements](docs/functional-requirements.md)
 - [Product requirements](docs/prd.md)
 - [User stories](docs/user-stories.md)
-- [OpenAPI snapshot](docs/openapi.json) — tham khảo Swagger của API đang chạy để xem hợp đồng hiện tại.
-- [Cấu hình production](.env.production.example) và [Docker Compose production](docker-compose.prod.yml).
+- [OpenAPI snapshot](docs/openapi.json) — use the running API's Swagger UI for its current contract.
 
-Nếu chạy API trong Compose, cổng host là `8080`; frontend vẫn chạy riêng. Container API kết nối PostgreSQL/Redis qua hostname nội bộ và tự áp dụng migrations theo cấu hình Compose. Lệnh `--seed-demo` chỉ dành cho API chạy trên máy với PostgreSQL localhost.
+## Deployment notes
 
-Ngoài Development, ứng dụng lấy secrets từ môi trường triển khai và yêu cầu cấu hình SMTP cùng CORS hợp lệ. Khi dùng reverse proxy, khai báo IP tin cậy qua `ReverseProxy__KnownProxies__0`, `ReverseProxy__KnownProxies__1`, ... . `/health` phản ánh trạng thái PostgreSQL và Redis; `/health/live` kiểm tra tiến trình độc lập với các dịch vụ này.
+[Production Compose](docker-compose.prod.yml) and the [production environment template](.env.production.example) provide the deployment configuration starting point.
+
+- The local Compose API service exposes host port `8080`, uses internal PostgreSQL/Redis hostnames, and enables startup migrations. The frontend is run separately.
+- The `--seed-demo` command is intended for host-based local development; its localhost restriction excludes the Compose PostgreSQL hostname.
+- Outside Development, provide configuration through deployment environment variables, including valid SMTP and allowed browser origins. Swagger is Development-only.
+- Configure trusted reverse proxy IPs through `ReverseProxy__KnownProxies__0`, `ReverseProxy__KnownProxies__1`, and so on.
+- Use `/health` for dependency readiness and `/health/live` for process liveness.
