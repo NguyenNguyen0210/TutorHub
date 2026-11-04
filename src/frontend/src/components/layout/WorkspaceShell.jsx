@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import Icon from '@/components/ui/Icon';
 import Logo from '@/components/ui/Logo';
 import Avatar, { Drawer } from '@/components/ui/Avatar';
 import { useAuthStore } from '@/store/authStore';
+import { EMPTY_NAV_GROUPS, useWorkspaceNavigationStore } from '@/store/workspaceNavigationStore';
 import { useWorkspaceActivity } from '@/hooks/useWorkspaceActivity';
 import { useTutorApplication } from '@/hooks/useTutorApplication';
 import { getNavForRole, getDashboardPath, getWorkspaceNavGroups } from './navConfig';
@@ -19,11 +20,23 @@ export default function WorkspaceShell({ userRole: role, children }) {
   const tutorApplication = useTutorApplication(user?.id || user?.userId, isAuthenticated && role === 'Tutor');
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [closedGroups, setClosedGroups] = useState({});
+  const navigationScope = `${user?.id || user?.userId || 'anonymous'}:${role}`;
+  const closedGroups = useWorkspaceNavigationStore(state => state.workspaces[navigationScope]?.closedGroups || EMPTY_NAV_GROUPS);
+  const setGroupClosed = useWorkspaceNavigationStore(state => state.setGroupClosed);
+  const desktopNavRef = useRef(null);
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('tutorhub_sidebar_collapsed') === '1'; }
     catch { return false; }
   });
+  const scrollMode = collapsed ? 'compact' : 'expanded';
+  const rememberSidebarScroll = () => {
+    const nav = desktopNavRef.current;
+    if (nav?.clientHeight > 0) useWorkspaceNavigationStore.getState().rememberScroll(navigationScope, scrollMode, nav.scrollTop);
+  };
+  useLayoutEffect(() => {
+    const nav = desktopNavRef.current;
+    if (nav) nav.scrollTop = useWorkspaceNavigationStore.getState().workspaces[navigationScope]?.scroll?.[scrollMode] || 0;
+  }, [navigationScope, scrollMode]);
   const activity = useWorkspaceActivity(isAuthenticated ? user?.id || user?.userId : null, location.pathname);
   const roleLabel = role === 'Student' ? 'Học viên' : role === 'Tutor' ? 'Gia sư' : 'Quản trị viên';
   const settingsPath = role === 'Tutor' ? '/tutor/settings' : role === 'Admin' ? '/admin/settings' : '/student/settings';
@@ -56,13 +69,13 @@ export default function WorkspaceShell({ userRole: role, children }) {
           className="workspace-nav-control workspace-nav-focus flex h-9 w-9 items-center justify-center rounded-lg text-neutral-300 hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white">
           <Icon name="close" size="sm" />
         </button>}
-        {!mobile && !compact && <button type="button" onClick={() => setCollapsed(true)} aria-label="Thu gọn thanh điều hướng" title="Thu gọn thanh điều hướng" aria-controls="workspace-sidebar" aria-expanded="true"
+        {!mobile && !compact && <button type="button" onClick={() => { rememberSidebarScroll(); setCollapsed(true); }} aria-label="Thu gọn thanh điều hướng" title="Thu gọn thanh điều hướng" aria-controls="workspace-sidebar" aria-expanded="true"
           className="workspace-nav-control workspace-nav-focus flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-neutral-300 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"><Icon name="chevron_left" size="md" /></button>}
       </div>
-      {!mobile && compact && <div className="flex justify-center pt-3"><button type="button" onClick={() => setCollapsed(false)} aria-label="Mở rộng thanh điều hướng" title="Mở rộng thanh điều hướng" aria-controls="workspace-sidebar" aria-expanded="false"
+      {!mobile && compact && <div className="flex justify-center pt-3"><button type="button" onClick={() => { rememberSidebarScroll(); setCollapsed(false); }} aria-label="Mở rộng thanh điều hướng" title="Mở rộng thanh điều hướng" aria-controls="workspace-sidebar" aria-expanded="false"
         className="workspace-nav-control workspace-nav-focus flex h-10 w-10 items-center justify-center rounded-xl text-neutral-300 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"><Icon name="chevron_right" size="md" /></button></div>}
 
-      <nav id={mobile ? 'workspace-more-navigation' : undefined} className={cn('min-h-0 flex-1 space-y-5 overflow-y-auto py-5', compact ? 'px-2' : 'px-3')} aria-label={mobile ? 'Điều hướng bổ sung' : 'Điều hướng không gian làm việc'}>
+      <nav ref={mobile ? undefined : desktopNavRef} onScroll={mobile ? undefined : rememberSidebarScroll} onClickCapture={mobile ? undefined : rememberSidebarScroll} id={mobile ? 'workspace-more-navigation' : undefined} className={cn('min-h-0 flex-1 space-y-5 overflow-y-auto py-5', compact ? 'px-2' : 'px-3')} aria-label={mobile ? 'Điều hướng bổ sung' : 'Điều hướng không gian làm việc'}>
         {(mobile ? mobileGroups : navGroups).map((group, groupIndex) => {
           const collapsible = role === 'Admin' && ['Tài chính', 'Kiểm duyệt', 'Quản lý nền tảng'].includes(group.label) && !compact;
           const hasActive = group.items.some(item => item.match(location.pathname));
@@ -71,7 +84,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
           return <div key={group.label} className="space-y-1">
           {compact ? <div className="mx-2 mb-3 workspace-nav-divider border-t border-white/10" /> :
             collapsible ? <button type="button" aria-expanded={open} aria-controls={groupId} aria-disabled={hasActive}
-              onClick={() => { if (!hasActive) setClosedGroups(current => ({ ...current, [group.label]: !current[group.label] })); }}
+              onClick={() => { if (!hasActive) setGroupClosed(navigationScope, group.label, !closedGroups[group.label]); }}
               className="workspace-nav-label workspace-nav-focus mb-2 flex min-h-9 w-full items-center justify-between rounded-lg px-3 text-left text-[11px] font-medium text-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-500">
               {group.label}<Icon name={open ? 'expand_more' : 'chevron_right'} size="xs" />
             </button> : <p className="workspace-nav-label mb-2 px-3 text-[11px] font-medium text-neutral-300">{group.label}</p>}
