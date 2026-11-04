@@ -47,5 +47,8 @@ public record ActionQueueDto(
     int PendingTutorsCount,
     int PendingWithdrawalsCount,
     int OpenReportsCount,
-    int OpenDisputesCount = 0
+    int OpenDisputesCount = 0,
+    int PendingStudentWithdrawalsCount = 0,
+    int ReviewableTopUpsCount = 0,
+    int OutstandingRefundsCount = 0
 );

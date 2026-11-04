@@ -88,8 +88,9 @@ export const studentWalletService = {
   },
 
   // Admin endpoints
-  async adminGetTopUps({ status = null, pageNumber = 1, pageSize = 20, search, recordId, signal } = {}) {
+  async adminGetTopUps({ status = null, pageNumber = 1, pageSize = 20, search, recordId, reviewableOnly = false, signal } = {}) {
     const params = { pageNumber, pageSize, search, recordId };
+    if (reviewableOnly) params.reviewableOnly = true;
     if (status) params.status = status;
     const res = await api.get('/admin/student-wallets/top-ups', { params, signal });
     return normalizePaged(res);

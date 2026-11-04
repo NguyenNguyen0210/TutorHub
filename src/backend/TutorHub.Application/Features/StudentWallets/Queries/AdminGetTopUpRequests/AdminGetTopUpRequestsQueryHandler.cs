@@ -36,6 +36,9 @@ public class AdminGetTopUpRequestsQueryHandler
             query = query.Where(r => r.Status == request.Status.Value);
         }
         if (request.RecordId.HasValue) query = query.Where(r => r.Id == request.RecordId);
+        if (request.ReviewableOnly) query = query.Where(r => r.Status == TutorHub.Domain.Enums.TopUpRequestStatus.Pending
+            && !r.TransferReference.ToUpper().StartsWith("TOPUP")
+            && (r.AdminNote == null || !r.AdminNote.ToUpper().Contains("VNPAY")));
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Search)) + "%";

@@ -162,11 +162,24 @@ public class GetAdminDashboardStatsQueryHandler : IRequestHandler<GetAdminDashbo
             || d.Status == DisputeStatus.RequiresAdminFinancialIntervention
             || d.Status == DisputeStatus.RequiresAdminRefundSettlement, cancellationToken);
 
+        int pendingStudentWithdrawalsCount = await _context.Withdrawals.AsNoTracking()
+            .CountAsync(w => w.Status == WithdrawalStatus.Pending && w.Wallet.StudentProfile != null && w.Wallet.User.Role == UserRole.Student, cancellationToken);
+        int reviewableTopUpsCount = await _context.TopUpRequests.AsNoTracking()
+            .CountAsync(r => r.Wallet.StudentProfile != null && r.Wallet.User.Role == UserRole.Student
+                && r.Status == TopUpRequestStatus.Pending && !r.TransferReference.ToUpper().StartsWith("TOPUP")
+                && (r.AdminNote == null || !r.AdminNote.ToUpper().Contains("VNPAY")), cancellationToken);
+        int outstandingRefundsCount = await _context.Transactions.IgnoreQueryFilters().AsNoTracking()
+            .CountAsync(t => t.Type == TransactionType.StudentRefund && t.SettlementRequired
+                && (t.Status == TransactionStatus.Pending || t.Status == TransactionStatus.Failed), cancellationToken);
+
         var actionQueue = new ActionQueueDto(
             PendingTutorsCount: pendingReviewTutors,
             PendingWithdrawalsCount: pendingWithdrawalsCount,
             OpenReportsCount: openReportsCount,
-            OpenDisputesCount: openDisputesCount
+            OpenDisputesCount: openDisputesCount,
+            PendingStudentWithdrawalsCount: pendingStudentWithdrawalsCount,
+            ReviewableTopUpsCount: reviewableTopUpsCount,
+            OutstandingRefundsCount: outstandingRefundsCount
         );
 
         return new AdminDashboardStatsDto(

@@ -48,9 +48,10 @@ public class AdminStudentWalletController : ControllerBase
         [FromQuery] Guid? recordId = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] bool reviewableOnly = false,
         CancellationToken cancellationToken = default)
     {
-        var query = new AdminGetTopUpRequestsQuery(status, pageNumber, pageSize, search, recordId);
+        var query = new AdminGetTopUpRequestsQuery(status, pageNumber, pageSize, search, recordId, reviewableOnly);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<TopUpRequestDto>>.SuccessResult(result, "Top-up requests retrieved successfully."));
     }

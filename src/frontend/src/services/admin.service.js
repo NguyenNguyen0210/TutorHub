@@ -57,6 +57,9 @@ function normalizeAdminStats(source = {}) {
       pendingWithdrawalsCount: toNumber(source.actionQueue?.pendingWithdrawalsCount),
       openReportsCount: toNumber(source.actionQueue?.openReportsCount),
       openDisputesCount: toNumber(source.actionQueue?.openDisputesCount),
+      pendingStudentWithdrawalsCount: toNumber(source.actionQueue?.pendingStudentWithdrawalsCount),
+      reviewableTopUpsCount: toNumber(source.actionQueue?.reviewableTopUpsCount),
+      outstandingRefundsCount: toNumber(source.actionQueue?.outstandingRefundsCount),
     },
   };
 }

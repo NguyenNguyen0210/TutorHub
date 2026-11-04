@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import adminService from '@/services/admin.service';
+import { adminActionQueues } from '@/utils/adminActionQueues';
 import { cn } from '@/lib/cn';
 import { formatDateTime } from '@/utils/formatters';
 import { StatsSkeleton } from '@/components/common/Skeleton';
@@ -52,12 +53,7 @@ export default function AdminDashboard() {
   }, [period, reload]);
 
   const { users, bookings, financials, actionQueue } = stats || {};
-  const queues = actionQueue ? [
-    { label: 'Báo cáo vi phạm', count: actionQueue.openReportsCount, path: '/admin/trust-reports?status=Open', icon: 'flag', tone: 'danger' },
-    { label: 'Lệnh rút tiền', count: actionQueue.pendingWithdrawalsCount, path: '/admin/withdrawals', icon: 'payments', tone: 'blue' },
-    { label: 'Hồ sơ gia sư', count: actionQueue.pendingTutorsCount, path: '/admin/tutor-applications', icon: 'verified_user', tone: 'success' },
-    { label: 'Tranh chấp học phí', count: actionQueue.openDisputesCount, path: '/admin/disputes', icon: 'gavel', tone: 'holding' },
-  ] : [];
+  const queues = adminActionQueues(actionQueue);
   const pending = queues.filter(q => q.count > 0);
   const gmv = financials?.totalGmv || 0;
   const flows = financials ? [
@@ -104,16 +100,16 @@ export default function AdminDashboard() {
         <SectionHeader title="Công việc cần xử lý" description="Hiện tại · Tất cả thời gian" icon="flag" tone={pending.length ? 'holding' : 'success'} />
         {pending.length === 0 ? <div className="mt-5 flex items-start gap-3 rounded-xl border border-success/20 bg-success-subtle p-4">
           <Icon name="check_circle" size="md" className="mt-0.5 text-success-strong" />
-          <div><p className="text-sm font-semibold text-success-strong">Không có yêu cầu mới đang chờ</p><p className="mt-1 text-xs text-fg-secondary">Không có việc tồn đọng trong {queues.length} nhóm theo dõi.</p></div>
+          <div><p className="text-sm font-semibold text-success-strong">Không có yêu cầu mới đang chờ</p><p className="mt-1 text-xs text-fg-secondary">Không có yêu cầu mới trong {queues.length} nhóm theo dõi. Yêu cầu đã tiếp nhận được theo dõi tại danh sách tương ứng.</p></div>
         </div> : <div className="mt-2 divide-y divide-border">
           {pending.map(queue => <Link key={queue.path} to={queue.path} className="flex min-h-16 items-center gap-3 rounded-lg py-3 text-sm hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-500">
             <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', TONES[queue.tone].icon)}><Icon name={queue.icon} size="sm" /></span><span className="flex-1 font-medium">{queue.label}</span><span className="tabular-nums font-semibold text-holding-strong">{queue.count} chờ xử lý</span><Icon name="chevron_right" size="sm" />
           </Link>)}
         </div>}
         <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          {queues.map(queue => <div key={queue.path} className={cn('flex items-center gap-2 rounded-lg border px-3 py-2.5 text-xs', TONES[queue.tone].surface)}>
+          {queues.map(queue => <Link to={queue.path} key={queue.path} className={cn('flex items-center gap-2 rounded-lg border px-3 py-2.5 text-xs', TONES[queue.tone].surface)}>
             <Icon name={queue.icon} size="xs" className={TONES[queue.tone].icon.split(' ').find(value => value.startsWith('text-'))} /><span className="flex-1 text-fg-secondary">{queue.label}</span><strong className="text-sm tabular-nums text-fg">{queue.count}</strong>
-          </div>)}
+          </Link>)}
         </div>
       </Card>
 

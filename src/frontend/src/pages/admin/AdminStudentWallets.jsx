@@ -37,6 +37,7 @@ export default function AdminStudentWallets({ withdrawalsOnly = false }) {
   const activeTab = withdrawalsOnly ? 'withdrawals' : params.get('tab') === 'adjust' ? 'adjust' : 'topups';
   const recordId = params.get('recordId') || (withdrawalsOnly ? params.get('withdrawalId') : null) || undefined;
   const withdrawal = activeTab === 'withdrawals';
+  const reviewableOnly = !withdrawal && params.get('reviewableOnly') === 'true';
   const [status, setStatus] = useState(params.get('status') || '');
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
@@ -63,7 +64,7 @@ export default function AdminStudentWallets({ withdrawalsOnly = false }) {
     const controller = new AbortController();
     setLoading(true); setError(false);
     const request = withdrawal ? studentWalletService.adminGetWithdrawals : studentWalletService.adminGetTopUps;
-    request({ status: recordId ? null : status || null, search: recordId ? undefined : query, pageNumber: recordId ? 1 : page, pageSize: 10, recordId, signal: controller.signal })
+    request({ status: recordId ? null : status || null, search: recordId ? undefined : query, pageNumber: recordId ? 1 : page, pageSize: 10, recordId, reviewableOnly: !recordId && reviewableOnly, signal: controller.signal })
       .then(result => {
         if (controller.signal.aborted) return;
         setData(result);
@@ -74,7 +75,7 @@ export default function AdminStudentWallets({ withdrawalsOnly = false }) {
       }).catch(() => { if (!controller.signal.aborted) setError(true); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [activeTab, withdrawal, status, query, page, recordId, reload, legacyDestination]);
+  }, [activeTab, withdrawal, status, query, page, recordId, reload, legacyDestination, reviewableOnly]);
 
   const changeTab = tab => {
     setStatus(''); setSearch(''); setQuery(''); setPage(1); setData(null); setDetail(null); openedRecord.current = null;
@@ -115,6 +116,7 @@ export default function AdminStudentWallets({ withdrawalsOnly = false }) {
     {!withdrawalsOnly && <><WorkspacePageHeader title="Quản lý ví học viên" description="Theo dõi nạp tiền và điều chỉnh số dư." actions={<Button as={Link} to="/admin/withdrawals?audience=student" variant="outline" size="sm">Yêu cầu rút tiền học viên</Button>} />
     <Tabs tabs={[{ key: 'topups', label: 'Nạp tiền', icon: <Icon name="add_card" size="sm" /> }, { key: 'adjust', label: 'Điều chỉnh số dư', icon: <Icon name="tune" size="sm" /> }]} value={activeTab} onChange={changeTab} /></>}
     {activeTab === 'adjust' ? <StudentWalletAdjustment /> : <>
+      {reviewableOnly && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4 text-sm"><span>Đang lọc yêu cầu nạp tiền cần kiểm tra thủ công</span><Button as={Link} to="/admin/student-wallets?tab=topups" size="sm" variant="ghost">Xem tất cả yêu cầu nạp tiền</Button></div>}
       {!withdrawal && <div className="flex items-start gap-3 rounded-xl border border-brand-primary-100 bg-brand-primary-50 p-4 text-sm text-fg-secondary"><Icon name="verified_user" size="md" className="mt-0.5 text-brand-primary-600" /><p>VNPAY tự động ghi có sau khi xác thực thanh toán. Yêu cầu đang chờ chưa đồng nghĩa với học viên đã nạp tiền.</p></div>}
       <Card padding="lg">
         <div className="flex flex-col justify-between gap-4 border-b border-border pb-5 xl:flex-row xl:items-center">
