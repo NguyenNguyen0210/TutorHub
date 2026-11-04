@@ -49,7 +49,7 @@ export default function WorkspaceShell({ userRole: role, children }) {
   }, [collapsed]);
 
   const navItems = getNavForRole(role, isAuthenticated, tutorApplication.data?.status);
-  const primaryPaths = [getDashboardPath(role), role === 'Admin' ? '/admin/disputes' : '/app/messages', '/app/notifications'];
+  const primaryPaths = role === 'Admin' ? [getDashboardPath(role), '/admin/disputes'] : [getDashboardPath(role), '/app/messages', '/app/notifications'];
   const mobilePrimary = primaryPaths.map(path => navItems.find(item => item.path === path)).filter(Boolean)
     .map(item => ({ ...item, shortLabel: item.path === getDashboardPath(role) ? role === 'Student' ? 'Bàn học' : 'Tổng quan' : item.label }));
   const navGroups = getWorkspaceNavGroups(role, navItems);
@@ -141,13 +141,17 @@ export default function WorkspaceShell({ userRole: role, children }) {
       </Drawer>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur-md lg:hidden">
+        <header className={cn('sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur-md', role !== 'Admin' && 'lg:hidden')}>
           <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-8">
             <Link to={getDashboardPath(role)} className="rounded-lg focus-visible:ring-2 focus-visible:ring-brand-primary-500 lg:hidden" aria-label="TutorHub">
               <Logo variant="horizontal" size={32} />
             </Link>
+            {role === 'Admin' && <span className="hidden text-xs font-medium text-fg-secondary lg:block">Không gian quản trị</span>}
             <div className="ml-auto flex items-center gap-2 sm:gap-3">
-              <AccountDropdown label="Mở menu tài khoản"
+              {role === 'Admin' && <Link to="/app/notifications" aria-label={activity.notifications > 0 ? `Thông báo, ${activity.notifications} chưa đọc` : 'Thông báo'} aria-current={location.pathname.startsWith('/app/notifications') ? 'page' : undefined} title="Thông báo" className="relative flex h-11 w-11 items-center justify-center rounded-xl text-fg-secondary hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 aria-[current=page]:bg-brand-primary-50 aria-[current=page]:text-primary">
+                <Icon name="notifications" size="md" /><UnreadBadge count={activity.notifications} label="thông báo chưa đọc" floating />
+              </Link>}
+              <AccountDropdown label="Mở menu tài khoản" className={role === 'Admin' ? 'lg:hidden' : undefined}
                 trigger={<span className="flex min-h-11 items-center gap-2 rounded-xl p-1 transition-colors duration-150 hover:bg-neutral-100">
                   <Avatar src={user?.avatarUrl} name={fullName} size="sm" />
                   <Icon name="expand_more" size="xs" className="hidden text-fg-muted sm:block" />

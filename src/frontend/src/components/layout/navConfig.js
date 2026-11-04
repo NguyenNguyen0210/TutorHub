@@ -75,7 +75,6 @@ export const NAV = {
     { path: '/admin/users', label: 'Người dùng & hồ sơ', icon: 'group', match: (p) => p.startsWith('/admin/users') || p.startsWith('/admin/tutor-applications') },
     { path: '/admin/categories', label: 'Danh mục & môn học', icon: 'category', match: (p) => p.startsWith('/admin/categories') || p.startsWith('/admin/subjects') },
     { path: '/admin/audit-logs', label: 'Sổ kiểm toán', icon: 'history', match: (p) => p.startsWith('/admin/audit-logs') },
-    { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },
   ],
 };
 
@@ -100,7 +99,6 @@ export function getWorkspaceNavGroups(role, items) {
       { label: 'Tài chính', paths: ['/admin/student-wallets', '/admin/transactions', '/admin/revenue', '/admin/withdrawals'] },
       { label: 'Kiểm duyệt', paths: ['/admin/services', '/admin/disputes', '/admin/trust-reports'] },
       { label: 'Quản lý nền tảng', paths: ['/admin/categories', '/admin/audit-logs'] },
-      { label: 'Thông báo', paths: ['/app/notifications'] },
     ];
     return sections.map(section => ({ label: section.label, items: section.paths.map(path => items.find(item => item.path === path)).filter(Boolean) })).filter(group => group.items.length);
   }
