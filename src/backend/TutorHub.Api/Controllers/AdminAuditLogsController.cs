@@ -20,7 +20,7 @@ public class AdminAuditLogsController : ControllerBase
     }
 
     /// <summary>
-    /// Admin: Query immutable central audit logs with comprehensive filters.
+    /// Admin: Read audit records; date filters use inclusive Vietnam calendar days.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<AdminAuditLogListResponseDto>), StatusCodes.Status200OK)]
@@ -33,6 +33,9 @@ public class AdminAuditLogsController : ControllerBase
         [FromQuery] DateTime? dateTo = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
+        [FromQuery] string? action = null,
+        [FromQuery] bool oldestFirst = false,
         CancellationToken cancellationToken = default)
     {
         var query = new AdminGetAuditLogsQuery(
@@ -43,10 +46,26 @@ public class AdminAuditLogsController : ControllerBase
             DateFrom: dateFrom,
             DateTo: dateTo,
             PageNumber: pageNumber,
-            PageSize: pageSize
+            PageSize: pageSize,
+            Search: search,
+            Action: action,
+            OldestFirst: oldestFirst
         );
 
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<AdminAuditLogListResponseDto>.SuccessResult(result, "Audit logs retrieved successfully."));
+    }
+
+    [HttpGet("options")]
+    public async Task<IActionResult> GetOptions(CancellationToken cancellationToken) =>
+        Ok(ApiResponse<AdminAuditOptionsDto>.SuccessResult(await _sender.Send(new AdminGetAuditOptionsQuery(), cancellationToken)));
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new AdminGetAuditLogsQuery(PageSize: 1, LogId: id), cancellationToken);
+        var item = result.Items.SingleOrDefault();
+        return item == null ? NotFound(ApiResponse<object>.FailureResult("Không tìm thấy bản ghi kiểm toán."))
+            : Ok(ApiResponse<AuditLogDto>.SuccessResult(item));
     }
 }

@@ -1,467 +1,54 @@
 import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '@/store/authStore';
 import adminService from '@/services/admin.service';
-import { formatDateTime } from '@/utils/formatters';
+import AuditLogDrawer from '@/components/admin/AuditLogDrawer';
+import { AdminEmpty } from '@/components/admin/AdminWorkspacePrimitives';
+import { auditAction, auditEntity, auditEntityOption, auditTime, shortenAuditId } from '@/utils/auditPresentation';
 import { TableSkeleton } from '@/components/common/Skeleton';
-import EmptyState from '@/components/common/EmptyState';
-import ErrorState from '@/components/common/ErrorState';
-import Card from '@/components/ui/Card';
-import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
 import Icon from '@/components/ui/Icon';
-import Tabs from '@/components/ui/Tabs';
-
 import { useToast } from '@/components/ui/Toast';
 
-function formatJson(raw) {
-  if (!raw) return null;
-  try {
-    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    return JSON.stringify(parsed, null, 2);
-  } catch {
-    return String(raw);
-  }
+const CONTROL = 'mt-2 h-11 w-full min-w-0 rounded-lg border border-border bg-surface px-3 text-sm focus-visible:ring-2 focus-visible:ring-brand-primary-600';
+function AuditFilters({ applied, options, onApply, onClear }) {
+  const [draft, setDraft] = useState(applied), [error, setError] = useState('');
+  const set = (key, value) => { setDraft(current => ({ ...current, [key]: value })); setError(''); };
+  const entities = [...new Set([...(options.entities || []), draft.entityName].filter(Boolean))];
+  const actions = [...new Set([...(options.actions || []), draft.action].filter(Boolean))];
+  return <form className="space-y-4 border-b border-border p-5" onSubmit={event => { event.preventDefault(); if (draft.dateFrom && draft.dateTo && draft.dateFrom > draft.dateTo) { setError('Ngày bắt đầu cần trước hoặc bằng ngày kết thúc.'); return; } if (draft.userId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(draft.userId)) { setError('Vui lòng nhập đúng mã người thực hiện hoặc tìm theo tên ở ô tìm kiếm.'); return; } onApply({ ...draft, search: draft.search.trim(), entityId: draft.entityId.trim(), correlationId: draft.correlationId.trim() }); }}>
+    <div className="grid items-end gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(220px,1fr)_auto]"><label className="min-w-0 text-xs font-medium">Tìm sự kiện<input aria-label="Tìm sự kiện" value={draft.search} onChange={event => set('search', event.target.value)} placeholder="Tên người, mã liên kết, đối tượng hoặc mã hành động…" className={CONTROL} /></label><label className="min-w-0 text-xs font-medium">Đối tượng<select aria-label="Đối tượng" className={CONTROL} value={draft.entityName} onChange={event => set('entityName', event.target.value)}><option value="">Tất cả đối tượng</option>{entities.map(value => <option key={value} value={value}>{auditEntityOption(value)}</option>)}</select></label><Button type="submit" className="whitespace-nowrap">Áp dụng</Button></div>
+    <details><summary className="cursor-pointer rounded text-sm font-medium text-fg-secondary focus-visible:ring-2 focus-visible:ring-brand-primary-600">Lọc nâng cao</summary><div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><label className="min-w-0 text-xs font-medium">Hành động<select aria-label="Hành động" value={draft.action} onChange={event => set('action', event.target.value)} className={CONTROL}><option value="">Tất cả hành động</option>{actions.map(value => <option key={value} value={value}>{auditAction(value).kind === 'other' ? `${auditAction(value).title} (${value})` : auditAction(value).title}</option>)}</select></label>{[['dateFrom', 'Từ ngày'], ['dateTo', 'Đến ngày']].map(([key, label]) => <label className="min-w-0 text-xs font-medium" key={key}>{label}<input type="date" aria-label={label} value={draft[key]} onChange={event => set(key, event.target.value)} className={CONTROL} /></label>)}{[['entityId', 'Mã đối tượng'], ['correlationId', 'Mã liên kết chính xác'], ['userId', 'Mã người thực hiện']].map(([key, label]) => <label key={key} className="min-w-0 text-xs font-medium">{label}<input aria-label={label} value={draft[key]} onChange={event => set(key, event.target.value)} className={CONTROL} /></label>)}</div><p className="mt-3 text-xs text-fg-secondary">Khoảng ngày lọc luôn theo giờ Việt Nam, bao gồm cả ngày kết thúc.</p></details>
+    {error && <p role="alert" className="text-sm text-holding-strong">{error}</p>}
+    {Object.values(applied).some(Boolean) && <div className="flex flex-wrap items-center justify-between gap-3"><p className="min-w-0 break-words text-xs text-fg-secondary">{[applied.search, applied.entityName && auditEntityOption(applied.entityName), applied.action && auditAction(applied.action).title, applied.dateFrom && `Từ ${applied.dateFrom}`, applied.dateTo && `Đến ${applied.dateTo}`, applied.correlationId && 'Có mã liên kết', applied.entityId && 'Có mã đối tượng', applied.userId && 'Có mã người thực hiện'].filter(Boolean).join(' · ')}</p><Button type="button" variant="ghost" size="sm" onClick={onClear}>Xóa bộ lọc</Button></div>}
+  </form>;
 }
-
 export default function AdminAuditLogs() {
-  const toast = useToast();
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [entityFilter, setEntityFilter] = useState('All');
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(15);
-  const [totalPages, setTotalPages] = useState(1);
-  const [hasPrev, setHasPrev] = useState(false);
-  const [hasNext, setHasNext] = useState(false);
-  const [logs, setLogs] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedLog, setSelectedLog] = useState(null);
-  const [copiedId, setCopiedId] = useState(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  const fetchLogs = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = {
-        pageNumber: page,
-        pageSize,
-      };
-
-      if (debouncedSearch.trim()) {
-        const query = debouncedSearch.trim();
-        if (query.toLowerCase().startsWith('corr-')) {
-          params.correlationId = query;
-        } else {
-          params.entityName = query;
-        }
-      }
-
-      if (entityFilter !== 'All') {
-        params.entityName = entityFilter;
-      }
-
-      const res = await adminService.getAuditLogs(params);
-      setLogs(res?.items || []);
-      setTotalCount(res?.totalCount || 0);
-      setTotalPages(res?.totalPages || 1);
-      setHasPrev(res?.hasPreviousPage || false);
-      setHasNext(res?.hasNextPage || false);
-      setError(null);
-    } catch (err) {
-      setError(err);
-      toast.error(err?.message || 'Không thể tải dữ liệu sổ cái kiểm toán.');
-    } finally {
-      setLoading(false);
-    }
-  }, [debouncedSearch, entityFilter, page, pageSize, toast]);
-
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
-
-  const handleCopy = (text, id) => {
-    if (!text) return;
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    toast.success('Đã sao chép Correlation ID');
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const getActionBadgeVariant = (action) => {
-    const lower = (action || '').toLowerCase();
-    if (lower.includes('resolve') || lower.includes('approve') || lower.includes('complete')) return 'success';
-    if (lower.includes('reject') || lower.includes('ban') || lower.includes('suspend')) return 'danger';
-    if (lower.includes('update') || lower.includes('process')) return 'primary';
-    return 'neutral';
-  };
-
-  return (
-    <div className="space-y-6 lg:space-y-8">
-      <WorkspacePageHeader
-        title="Nhật ký kiểm toán hệ thống"
-        description="Ghi nhận minh bạch mọi biến động số dư, giao dịch bảo chứng, hợp đồng và phán quyết phân xử"
-      />
-
-      {/* Trust Banner */}
-      <div className="p-4 rounded-brand-lg bg-surface border border-border shadow-brand-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-caption">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-brand-md bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center shrink-0 border border-brand-primary-100">
-            <Icon name="verified_user" size="xs" />
-          </div>
-          <div className="space-y-0.5">
-            <span className="font-bold text-fg block">
-              Bảo toàn dữ liệu nhật ký kiểm toán
-            </span>
-            <p className="text-fg-secondary text-[12px] m-0">
-              Toàn bộ bản ghi kiểm toán được hệ thống bảo vệ tự động, không thể chỉnh sửa hoặc xóa bỏ, đảm bảo tính toàn vẹn và đối soát minh bạch.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Badge variant="primary" size="md">
-            Dữ liệu bất biến
-          </Badge>
-        </div>
-      </div>
-
-      {/* Filter & Search Bar */}
-      <div className="min-w-0 space-y-4">
-        <div className="relative w-full max-w-md">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted pointer-events-none">
-            <Icon name="search" size="sm" />
-          </span>
-          <Input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm theo CorrelationId (corr-...) hoặc tên thực thể..."
-            aria-label="Tìm kiếm sổ kiểm toán"
-            className="pl-9 pr-8"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch('')}
-              aria-label="Xóa tìm kiếm"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-muted hover:text-fg p-1 cursor-pointer"
-            >
-              <Icon name="close" size="xs" />
-            </button>
-          )}
-        </div>
-
-        <div className="min-w-0">
-          <Tabs
-            value={entityFilter}
-            onChange={(val) => {
-              setEntityFilter(val);
-              setPage(1);
-            }}
-            tabs={[
-              { key: 'All', label: 'Tất cả thực thể' },
-              { key: 'Dispute', label: 'Dispute' },
-              { key: 'TutorProfile', label: 'TutorProfile' },
-              { key: 'TutorApplication', label: 'TutorApplication' },
-              { key: 'PlatformSetting', label: 'PlatformSetting' },
-              { key: 'Withdrawal', label: 'Withdrawal' },
-            ]}
-          />
-        </div>
-      </div>
-
-      {error && (
-        <ErrorState
-          error={error}
-          title="Không thể tải sổ cái kiểm toán"
-          onRetry={fetchLogs}
-        />
-      )}
-
-      <Card padding="none" className="overflow-x-auto shadow-brand-sm">
-        {loading ? (
-          <div className="p-6">
-            <TableSkeleton rows={8} cols={6} />
-          </div>
-        ) : logs.length === 0 ? (
-          <div className="py-12">
-            <EmptyState
-              icon="receipt_long"
-              title="Không tìm thấy bản ghi kiểm toán nào"
-              description="Thử xóa từ khóa tìm kiếm hoặc chọn bộ lọc thực thể khác."
-              actionLabel="Đặt lại bộ lọc"
-              onAction={() => {
-                setSearch('');
-                setEntityFilter('All');
-                setPage(1);
-              }}
-            />
-          </div>
-        ) : (
-          <>
-            <table className="w-full min-w-[840px] text-caption text-left">
-              <thead>
-                <tr className="bg-neutral-50 border-b border-border">
-                  <th scope="col" className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">
-                    Thời gian (UTC)
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">
-                    CorrelationId
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">
-                    Hành động
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">
-                    Thực thể
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide">
-                    Người thực hiện
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-semibold text-fg-secondary uppercase tracking-wide text-right">
-                    Chi tiết thay đổi
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {logs.map((log) => {
-                  const isCopied = copiedId === log.id;
-                  return (
-                    <tr
-                      key={log.id}
-                      onClick={() => setSelectedLog(log)}
-                      className="hover:bg-neutral-50/80 transition-colors cursor-pointer"
-                    >
-                      <td className="px-4 py-3 font-mono text-fg-secondary whitespace-nowrap text-[12px]">
-                        {formatDateTime(log.createdAt, 'DD/MM/YYYY HH:mm:ss')}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-bold text-brand-primary-700 text-[12px]">
-                            {log.correlationId}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCopy(log.correlationId, log.id);
-                            }}
-                            title="Sao chép Correlation ID"
-                            aria-label={`Sao chép Correlation ID ${log.correlationId}`}
-                            className="text-fg-muted hover:text-brand-primary-600 p-0.5 rounded cursor-pointer transition-colors"
-                          >
-                            <Icon name={isCopied ? 'check' : 'content_copy'} size="xs" />
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={getActionBadgeVariant(log.action)} size="sm">
-                          {log.action}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 font-semibold text-fg">
-                        <span className="block">{log.entityName}</span>
-                        {log.entityId && (
-                          <span className="block text-[10px] font-mono text-fg-muted font-normal">
-                            #{log.entityId.slice(0, 8)}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-fg-secondary">
-                        <span className="block font-medium">{log.userName || log.userId || 'Hệ thống'}</span>
-                        {log.ipAddress && (
-                          <span className="text-[10px] text-fg-muted font-mono block">
-                            IP: {log.ipAddress}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedLog(log);
-                          }}
-                          icon={<Icon name="visibility" size="xs" />}
-                        >
-                          Kiểm tra JSON
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="p-3.5 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-neutral-50/50">
-                <span className="text-caption text-fg-muted font-mono">
-                  Trang <strong>{page}</strong> / {totalPages} (Tổng {totalCount} bản ghi)
-                </span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={!hasPrev || loading}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    icon={<Icon name="chevron_left" size="sm" />}
-                  >
-                    Trang trước
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={!hasNext || loading}
-                    onClick={() => setPage((p) => p + 1)}
-                    iconRight={<Icon name="chevron_right" size="sm" />}
-                  >
-                    Trang sau
-                  </Button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </Card>
-
-      {/* JSON State Diff Inspector Modal */}
-      {selectedLog && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="audit-log-inspector-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
-        >
-          <button
-            type="button"
-            aria-label="Đóng cửa sổ"
-            className="fixed inset-0 w-full h-full bg-brand-navy-950/60 backdrop-blur-sm cursor-default"
-            onClick={() => setSelectedLog(null)}
-            tabIndex={-1}
-          />
-          <div className="relative z-10 bg-surface rounded-brand-xl shadow-brand-xl border border-border w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-fadeIn">
-            {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between bg-neutral-50/70">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-brand-md bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center">
-                  <Icon name="code" size="sm" />
-                </div>
-                <div>
-                  <h3 id="audit-log-inspector-title" className="font-bold text-headline-3 text-fg m-0">
-                    Chi tiết thay đổi bản ghi kiểm toán
-                  </h3>
-                  <p className="text-[12px] text-fg-muted m-0 font-mono">
-                    ID: {selectedLog.id}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedLog(null)}
-                aria-label="Đóng cửa sổ chi tiết"
-                className="w-8 h-8 rounded-brand-md hover:bg-neutral-200 text-fg-muted hover:text-fg flex items-center justify-center cursor-pointer transition-colors"
-              >
-                <Icon name="close" size="sm" />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-5 space-y-4 overflow-y-auto">
-              {/* Metadata Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-brand-md bg-neutral-50 border border-border text-caption">
-                <div>
-                  <span className="text-[11px] text-fg-muted block uppercase font-semibold">Correlation ID</span>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="font-mono font-bold text-brand-primary-700">
-                      {selectedLog.correlationId}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(selectedLog.correlationId, 'modal')}
-                      title="Sao chép"
-                      className="text-fg-muted hover:text-brand-primary-600 cursor-pointer"
-                    >
-                      <Icon name="content_copy" size="xs" />
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <span className="text-[11px] text-fg-muted block uppercase font-semibold">Thời gian ghi nhận</span>
-                  <span className="font-mono text-fg font-medium">
-                    {formatDateTime(selectedLog.createdAt, 'DD/MM/YYYY HH:mm:ss')} (UTC)
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[11px] text-fg-muted block uppercase font-semibold">Hành động & Thực thể</span>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <Badge variant={getActionBadgeVariant(selectedLog.action)} size="sm">
-                      {selectedLog.action}
-                    </Badge>
-                    <span className="font-semibold text-fg font-mono">
-                      {selectedLog.entityName} #{selectedLog.entityId?.slice(0, 8) || 'N/A'}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <span className="text-[11px] text-fg-muted block uppercase font-semibold">Người thực hiện</span>
-                  <span className="font-medium text-fg">
-                    {selectedLog.userName || selectedLog.userId || 'Hệ thống'}
-                  </span>
-                  {selectedLog.ipAddress && (
-                    <span className="text-[11px] text-fg-muted block font-mono">
-                      IP: {selectedLog.ipAddress}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* JSON Diff Blocks */}
-              <div className="space-y-3">
-                {selectedLog.oldValuesJson && (
-                  <div>
-                    <span className="text-caption font-bold text-danger-strong flex items-center gap-1.5 mb-1.5">
-                      <Icon name="history" size="xs" /> Giá trị trước khi thay đổi (Old Values)
-                    </span>
-                    <pre className="p-3.5 rounded-brand-md bg-neutral-900 text-neutral-100 font-mono text-[12px] overflow-x-auto max-h-56 leading-relaxed border border-neutral-800">
-                      {formatJson(selectedLog.oldValuesJson)}
-                    </pre>
-                  </div>
-                )}
-
-                <div>
-                  <span className="text-caption font-bold text-success-strong flex items-center gap-1.5 mb-1.5">
-                    <Icon name="done_all" size="xs" /> Giá trị ghi nhận mới (New Values)
-                  </span>
-                  <pre className="p-3.5 rounded-brand-md bg-neutral-900 text-neutral-100 font-mono text-[12px] overflow-x-auto max-h-64 leading-relaxed border border-neutral-800">
-                    {selectedLog.newValuesJson ? formatJson(selectedLog.newValuesJson) : 'Không có payload dữ liệu mới.'}
-                  </pre>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-border flex justify-end bg-neutral-50/50">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedLog(null)}
-              >
-                Đóng
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  const userId = useAuthStore(state => state.user?.id);
+  const [params, setParams] = useSearchParams();
+  const toast = useToast(), opener = useRef(null);
+  const filters = Object.fromEntries(['search', 'entityName', 'action', 'dateFrom', 'dateTo', 'entityId', 'correlationId', 'userId'].map(key => [key, params.get(key) || '']));
+  const page = Math.max(1, Math.floor(Number(params.get('page')) || 1));
+  const oldest = params.get('order') === 'oldest', timezone = params.get('tz') === 'utc' ? 'utc' : 'vn';
+  const selected = params.get('eventId');
+  const update = (changes, reset = true) => setParams(previous => { const next = new URLSearchParams(previous); if (reset) next.delete('page'); Object.entries(changes).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key)); return next; }, { preventScrollReset: true });
+  const options = useQuery({ queryKey: ['admin-audit-options', userId], queryFn: adminService.getAuditOptions, retry: false });
+  const list = useQuery({ queryKey: ['admin-audit-logs', userId, filters, page, oldest], queryFn: () => adminService.getAuditLogs({ ...filters, pageNumber: page, pageSize: 15, oldestFirst: oldest }), enabled: options.isSuccess, retry: false });
+  const rows = list.data?.items || [], total = list.data?.totalCount || 0;
+  const copy = async value => { try { await navigator.clipboard.writeText(value); toast.success('Đã sao chép mã liên kết đầy đủ.'); } catch { toast.error('Chưa thể sao chép. Bạn có thể mở chi tiết và chọn mã để sao chép.'); } };
+  const open = (log, event) => { opener.current = event.currentTarget; update({ eventId: log.id }, false); };
+  const close = () => { update({ eventId: '' }, false); requestAnimationFrame(() => opener.current?.isConnected && opener.current.focus({ preventScroll: true })); };
+  const clear = () => update(Object.fromEntries(Object.keys(filters).map(key => [key, ''])));
+  const loading = options.isPending || (options.isSuccess && list.isPending), failed = options.isError || list.isError;
+  return <div className="space-y-6"><WorkspacePageHeader title="Nhật ký kiểm toán" description="Theo dõi và tra cứu lịch sử thao tác quản trị." actions={<Button variant="outline" loading={options.isFetching || list.isFetching} onClick={() => { options.refetch(); if (options.isSuccess) list.refetch(); }}>Làm mới</Button>} />
+    <section className="min-w-0 overflow-hidden rounded-2xl border border-border bg-surface"><div className="flex flex-wrap items-center justify-between gap-4 border-b border-border p-5"><div><h2 className="text-base font-semibold">Lịch sử hoạt động</h2><p className="mt-1 text-xs text-fg-secondary">Nhật ký chỉ đọc trên giao diện quản trị</p></div><div className="flex flex-wrap gap-3"><select aria-label="Sắp xếp thời gian" className="h-10 rounded-lg border border-border bg-surface px-3 text-sm" value={oldest ? 'oldest' : 'newest'} onChange={event => update({ order: event.target.value === 'oldest' ? 'oldest' : '' })}><option value="newest">Mới nhất trước</option><option value="oldest">Cũ nhất trước</option></select><select aria-label="Múi giờ hiển thị" className="h-10 rounded-lg border border-border bg-surface px-3 text-sm" value={timezone} onChange={event => update({ tz: event.target.value === 'utc' ? 'utc' : '' }, false)}><option value="vn">Giờ Việt Nam (UTC+7)</option><option value="utc">Giờ UTC</option></select></div></div>
+      {options.isSuccess && <AuditFilters key={JSON.stringify(filters)} applied={filters} options={options.data} onApply={value => update(value)} onClear={clear} />}
+      {loading ? <div className="p-5"><TableSkeleton rows={6} cols={6} /></div> : failed ? <AdminEmpty title="Chưa tải được nhật ký kiểm toán" description="Vui lòng làm mới dữ liệu để tiếp tục tra cứu."><Button className="mt-4" variant="outline" onClick={() => { if (options.isError) options.refetch(); else list.refetch(); }}>Thử lại</Button></AdminEmpty> : !rows.length ? <AdminEmpty title={Object.values(filters).some(Boolean) ? 'Không tìm thấy sự kiện phù hợp' : 'Chưa có bản ghi kiểm toán'} description="Các sự kiện được ghi nhận sẽ xuất hiện tại đây để tra cứu và đối chiếu." /> : <>
+        <div className="hidden max-h-[65vh] overflow-auto md:block"><table className="w-full min-w-[1040px] table-fixed text-left text-sm"><caption className="sr-only">Nhật ký kiểm toán theo thời gian {timezone === 'utc' ? 'UTC' : 'Việt Nam'}</caption><thead className="sticky top-0 z-10 border-b border-border bg-neutral-50 text-xs text-fg-secondary"><tr>{[['Thời gian', 'w-[162px]'], ['Hành động', 'w-[250px]'], ['Đối tượng', 'w-[150px]'], ['Người thực hiện', 'w-[160px]'], ['Mã liên kết', 'w-[180px]'], ['Chi tiết', 'w-[95px]']].map(([label, width]) => <th scope="col" key={label} className={`px-4 py-3 font-medium ${width}`}>{label}</th>)}</tr></thead><tbody className="divide-y divide-border">{rows.map(log => { const meta = auditAction(log.action); return <tr key={log.id} className="cursor-pointer hover:bg-neutral-50" onClick={event => { if (!event.target.closest('button,a')) open(log, event); }}><td className="px-4 py-4 text-xs leading-6 text-fg-secondary">{auditTime(log.createdAt, timezone)}</td><td className="px-4 py-4"><div className="flex items-center gap-3"><span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${meta.tone}`}><Icon name={meta.icon} size="sm" /></span><div className="min-w-0"><p className="text-[13px] font-semibold leading-6" title={log.action}>{meta.title}</p><p className="mt-1 text-xs text-fg-secondary">{meta.label}</p></div></div></td><td className="px-4 py-4"><p className="text-[13px]" title={log.entityName}>{auditEntity(log.entityName)}</p><p className="mt-1 truncate text-xs text-fg-secondary" title={log.entityId}>{shortenAuditId(log.entityId)}</p></td><td className="break-words px-4 py-4 text-[13px] leading-6">{log.userName}</td><td className="px-4 py-4"><div className="flex items-center gap-1"><span className="min-w-0 truncate text-xs text-fg-secondary" title={log.correlationId}>{shortenAuditId(log.correlationId)}</span>{log.correlationId && <button type="button" aria-label={`Sao chép mã liên kết ${log.id}`} onClick={() => copy(log.correlationId)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-fg-secondary hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-brand-primary-600"><Icon name="content_copy" size="xs" /></button>}</div></td><td className="px-4 py-4"><Button variant="ghost" size="sm" className="whitespace-nowrap text-brand-primary-700" onClick={event => open(log, event)}>Xem</Button></td></tr>; })}</tbody></table></div>
+        <ul className="divide-y divide-border md:hidden">{rows.map(log => { const meta = auditAction(log.action); return <li key={log.id} className="space-y-3 p-5"><div className="flex items-start gap-3"><span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${meta.tone}`}><Icon name={meta.icon} size="sm" /></span><div><h3 className="text-sm font-semibold leading-6">{meta.title}</h3><p className="mt-1 text-xs text-fg-secondary">{meta.label}</p></div></div><p className="text-sm">{log.userName}</p><p className="text-xs text-fg-secondary">{auditEntity(log.entityName)} · {auditTime(log.createdAt, timezone)}</p><Button variant="outline" size="sm" onClick={event => open(log, event)}>Xem chi tiết</Button></li>; })}</ul>
+        <nav aria-label="Phân trang kiểm toán" className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-5 text-xs text-fg-secondary"><span>{(page - 1) * 15 + 1}–{(page - 1) * 15 + rows.length} / {total} sự kiện</span><div className="flex items-center gap-3"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => update({ page: page - 1 }, false)}>Trước</Button><span>Trang {page}/{list.data.totalPages || 1}</span><Button size="sm" variant="outline" disabled={!list.data.hasNextPage} onClick={() => update({ page: page + 1 }, false)}>Sau</Button></div></nav>
+      </>}
+    </section>{selected && <AuditLogDrawer key={selected} id={selected} timezone={timezone} onClose={close} />}</div>;
 }

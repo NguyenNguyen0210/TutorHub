@@ -11,5 +11,9 @@ public record AdminGetAuditLogsQuery(
     DateTime? DateFrom = null,
     DateTime? DateTo = null,
     int PageNumber = 1,
-    int PageSize = 20
+    int PageSize = 20,
+    string? Search = null,
+    string? Action = null,
+    bool OldestFirst = false,
+    Guid? LogId = null
 ) : IRequest<AdminAuditLogListResponseDto>;

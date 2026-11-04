@@ -123,7 +123,7 @@ function normalizeAuditLog(raw = {}) {
   return {
     id: raw.id,
     userId: raw.userId ?? null,
-    userName: raw.userName || 'Hệ thống',
+    userName: raw.userName || (raw.userId ? 'Tài khoản chưa có tên hiển thị' : 'Hệ thống'),
     action: raw.action || '',
     entityName: raw.entityName || '',
     entityId: raw.entityId || '',
@@ -254,11 +254,16 @@ export const adminService = {
   /**
    * GET /admin/audit-logs → AdminAuditLogListResponseDto
    */
+  getAuditOptions: () => api.get('/admin/audit-logs/options'),
+  getAuditLog: async id => normalizeAuditLog(await api.get(`/admin/audit-logs/${id}`)),
   async getAuditLogs({
     userId = null,
     entityName = null,
     entityId = null,
     correlationId = null,
+    search = '',
+    action = '',
+    oldestFirst = false,
     dateFrom = null,
     dateTo = null,
     pageNumber = 1,
@@ -271,6 +276,9 @@ export const adminService = {
     if (correlationId) params.correlationId = correlationId;
     if (dateFrom) params.dateFrom = dateFrom;
     if (dateTo) params.dateTo = dateTo;
+    if (search) params.search = search;
+    if (action) params.action = action;
+    if (oldestFirst) params.oldestFirst = true;
     const res = await api.get('/admin/audit-logs', { params });
     return normalizePaged(res, normalizeAuditLog);
   },
