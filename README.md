@@ -6,7 +6,19 @@ TutorHub connects students with tutors through structured learning packages. It 
 
 This personal full-stack project focuses on backend business rules, financial consistency, and asynchronous processing, with a React interface for students, tutors, and administrators.
 
-[Features](#features) · [Architecture](#architecture) · [Local setup](#local-setup) · [Testing](#testing) · [Documentation](#documentation)
+[Technology stack](#technology-stack) · [Features](#features) · [Architecture](#architecture) · [Local setup](#local-setup) · [Testing](#testing) · [Documentation](#documentation)
+
+## Technology stack
+
+| Area | Technologies |
+| --- | --- |
+| Backend | C#, .NET 8, ASP.NET Core Web API, MediatR, FluentValidation |
+| Persistence | PostgreSQL 16, EF Core 8, Npgsql |
+| Cache and coordination | Redis 7 |
+| Frontend | React 18, Vite 5, Tailwind CSS, React Router, TanStack Query, Zustand, Axios |
+| Integrations | VNPay, ASP.NET Core SignalR, Cloudflare R2 / S3 API, MailKit SMTP, optional Google sign-in |
+| Testing | xUnit, FluentAssertions, Moq, ASP.NET Core integration tests, Node.js test runner |
+| Operations | Docker Compose, GitHub Actions, Serilog, health checks |
 
 ## Features
 
@@ -46,18 +58,6 @@ The backend follows **Clean Architecture** with **CQRS through MediatR**, organi
 - **Authentication:** JWT access tokens, refresh-token rotation, and role-based authorization. Established SignalR connections revalidate account status and token version.
 - **Realtime and storage:** SignalR supports chat and notifications; Cloudflare R2 stores uploaded media and dispute evidence.
 - **Auditability:** append-only database triggers protect the corresponding financial and audit records.
-
-### Technology stack
-
-| Area | Technologies |
-| --- | --- |
-| Backend | C#, .NET 8, ASP.NET Core Web API, MediatR, FluentValidation |
-| Persistence | PostgreSQL 16, EF Core 8, Npgsql |
-| Cache and coordination | Redis 7 |
-| Frontend | React 18, Vite 5, Tailwind CSS, React Router, TanStack Query, Zustand, Axios |
-| Integrations | VNPay, ASP.NET Core SignalR, Cloudflare R2 / S3 API, MailKit SMTP, optional Google sign-in |
-| Testing | xUnit, FluentAssertions, Moq, ASP.NET Core integration tests, Node.js test runner |
-| Operations | Docker Compose, GitHub Actions, Serilog, health checks |
 
 ## Local setup
 
