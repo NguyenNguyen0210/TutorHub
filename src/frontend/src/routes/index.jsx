@@ -90,12 +90,13 @@ const Notifications = loadPage(() => import('../pages/shared/Notifications'));
 const ProfileSettings = loadPage(() => import('../pages/shared/ProfileSettings'));
 const NotFound = loadPage(() => import('../pages/shared/NotFound'));
 const AdminDashboard = loadPage(() => import('../pages/admin/AdminDashboard'));
-const AdminWithdrawals = loadPage(() => import('../pages/admin/AdminWithdrawals'));
+const AdminWithdrawals = loadPage(() => import('../pages/admin/AdminWithdrawalRequests'));
 const AdminStudentWallets = loadPage(() => import('../pages/admin/AdminStudentWallets'));
-const AdminTutorApplications = loadPage(() => import('../pages/admin/AdminTutorApplications'));
+const AdminTutorApplications = loadPage(() => import('../pages/admin/AdminPeople').then(module => ({ default: module.AdminApplicationRedirect })));
+const AdminStudentWithdrawalRedirect = loadPage(() => import('../pages/admin/AdminPeople').then(module => ({ default: module.AdminStudentWithdrawalRedirect })));
 const AdminDisputes = loadPage(() => import('../pages/admin/AdminDisputes'));
 const AdminDisputeDetail = loadPage(() => import('../pages/admin/AdminDisputeDetail'));
-const AdminUsers = loadPage(() => import('../pages/admin/AdminUsers'));
+const AdminUsers = loadPage(() => import('../pages/admin/AdminPeople'));
 const AdminCatalog = loadPage(() => import('../pages/admin/AdminCatalog'));
 const AdminTransactions = loadPage(() => import('../pages/admin/AdminTransactions'));
 const AdminEnrollmentDetail = loadPage(() => import('../pages/admin/AdminEnrollmentDetail'));
@@ -241,7 +242,7 @@ export default function AppRoutes() {
 
       {/* Deep Link Redirections (from notifications & external URLs) */}
       <Route path="/admin/student-topups" element={<RequireAuth><Navigate to="/admin/student-wallets" replace /></RequireAuth>} />
-      <Route path="/admin/student-withdrawals" element={<RequireAuth><Navigate to="/admin/student-wallets" replace /></RequireAuth>} />
+      <Route path="/admin/student-withdrawals" element={<RequireAuth><AdminStudentWithdrawalRedirect /></RequireAuth>} />
       <Route path="/enrollments/:id" element={<RequireAuth><EnrollmentRedirect /></RequireAuth>} />
       <Route path="/sessions/:id" element={<RequireAuth><SessionRedirect /></RequireAuth>} />
       <Route path="/bookings/:id" element={<RequireAuth><BookingRedirect /></RequireAuth>} />

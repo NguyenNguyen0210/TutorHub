@@ -11,7 +11,7 @@ import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
 import { formatDateTime } from '@/utils/formatters';
 
-export default function AdminUsers() {
+export default function AdminUsers({ embedded = false }) {
   const [params, setParams] = useSearchParams();
   const selfId = useAuthStore(state => state.user?.id);
   const search = params.get('search') || '', role = params.get('role') || '', status = params.get('status') || '';
@@ -27,7 +27,7 @@ export default function AdminUsers() {
   const open = (row, event) => { opener.current = event.currentTarget; update({ userId: row.id }, false); };
   const close = () => { update({ userId: '' }, false); requestAnimationFrame(() => { if (opener.current?.isConnected) opener.current.focus(); else document.querySelector('[aria-label="Tìm người dùng"]')?.focus(); }); };
   const rows = list.data?.items || [];
-  return <div className="space-y-6"><WorkspacePageHeader title="Quản lý người dùng" description="Theo dõi tài khoản, vai trò và quyền truy cập." actions={<Button variant="outline" loading={list.isFetching || summary.isFetching} onClick={() => { list.refetch(); summary.refetch(); }}>Làm mới</Button>} />
+  return <div className="space-y-6">{embedded ? <div className="flex justify-end"><Button variant="outline" loading={list.isFetching || summary.isFetching} onClick={() => { list.refetch(); summary.refetch(); }}>Làm mới</Button></div> : <WorkspacePageHeader title="Quản lý người dùng" description="Theo dõi tài khoản, vai trò và quyền truy cập." actions={<Button variant="outline" loading={list.isFetching || summary.isFetching} onClick={() => { list.refetch(); summary.refetch(); }}>Làm mới</Button>} />}
     <AdminKpis items={[{ label: 'Tổng tài khoản', value: counts?.total }, { label: 'Đang hoạt động', value: counts?.active, tone: 'mint' }, { label: 'Tạm khóa / Cấm', value: counts ? counts.suspended + counts.banned : null, tone: 'amber' }]} />
     {summary.isError && <p role="alert" className="text-sm text-fg-secondary">Chưa tải được thống kê toàn bộ tài khoản.</p>}
     <section className="overflow-hidden rounded-2xl border border-border bg-surface"><div className="space-y-4 border-b border-border p-5"><nav aria-label="Vai trò" className="flex gap-5 overflow-x-auto">{[['', 'Tất cả'], ...Object.entries(USER_ROLES)].map(([key, label]) => <button type="button" key={key} aria-pressed={role === key} onClick={() => update({ role: key })} className={`min-h-10 shrink-0 text-sm font-medium ${role === key ? 'text-brand-primary-700' : 'text-fg-secondary'}`}>{label}</button>)}</nav><div className="flex flex-wrap gap-3"><input aria-label="Tìm người dùng" value={text} placeholder="Tên, email hoặc mã tài khoản…" onChange={event => { const value = event.target.value; setText(value); clearTimeout(timer.current); timer.current = setTimeout(() => update({ search: value.trim() }), 300); }} className="h-11 min-w-0 flex-1 rounded-lg border border-border px-3 text-sm focus-visible:ring-2 focus-visible:ring-brand-primary-600" /><select aria-label="Trạng thái tài khoản" value={status} onChange={event => update({ status: event.target.value })} className="h-11 rounded-lg border border-border bg-surface px-3 text-sm"><option value="">Tất cả trạng thái</option>{Object.entries(USER_STATES).map(([key, [label]]) => <option key={key} value={key}>{label}</option>)}</select></div><p className="text-xs text-fg-secondary">{list.isPending ? 'Đang tải…' : list.isError ? 'Chưa tải được kết quả' : `${list.data.totalCount} tài khoản phù hợp`}</p></div>

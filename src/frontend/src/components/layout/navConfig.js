@@ -69,11 +69,10 @@ export const NAV = {
     { path: '/admin/student-wallets', label: 'Ví học viên', icon: 'account_balance_wallet', match: (p) => p.startsWith('/admin/student-wallets') },
     { path: '/admin/transactions', label: 'Giao dịch toàn sàn', icon: 'receipt_long', match: (p) => p.startsWith('/admin/transactions') },
     { path: '/admin/revenue', label: 'Doanh thu nền tảng', icon: 'trending_up', match: (p) => p.startsWith('/admin/revenue') },
-    { path: '/admin/withdrawals', label: 'Rút tiền gia sư', icon: 'payments', match: (p) => p.startsWith('/admin/withdrawals') },
-    { path: '/admin/tutor-applications', label: 'Duyệt gia sư', icon: 'verified_user', match: (p) => p.startsWith('/admin/tutor-applications') },
+    { path: '/admin/withdrawals', label: 'Yêu cầu rút tiền', icon: 'payments', match: (p) => p.startsWith('/admin/withdrawals') },
     { path: '/admin/disputes', label: 'Tranh chấp', icon: 'gavel', match: (p) => p.startsWith('/admin/disputes') },
     { path: '/admin/trust-reports', label: 'Báo cáo vi phạm', icon: 'flag', match: (p) => p.startsWith('/admin/trust-reports') },
-    { path: '/admin/users', label: 'Người dùng', icon: 'group', match: (p) => p.startsWith('/admin/users') },
+    { path: '/admin/users', label: 'Người dùng & hồ sơ', icon: 'group', match: (p) => p.startsWith('/admin/users') || p.startsWith('/admin/tutor-applications') },
     { path: '/admin/categories', label: 'Danh mục & môn học', icon: 'category', match: (p) => p.startsWith('/admin/categories') || p.startsWith('/admin/subjects') },
     { path: '/admin/audit-logs', label: 'Sổ kiểm toán', icon: 'history', match: (p) => p.startsWith('/admin/audit-logs') },
     { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },
@@ -96,10 +95,11 @@ export function getDashboardPath(role) {
 export function getWorkspaceNavGroups(role, items) {
   if (role === 'Admin') {
     const sections = [
-      { label: 'Tổng quan', paths: ['/admin/dashboard', '/admin/enrollments'] },
+      { label: 'Tổng quan', paths: ['/admin/dashboard'] },
+      { label: 'Vận hành', paths: ['/admin/enrollments', '/admin/users'] },
       { label: 'Tài chính', paths: ['/admin/student-wallets', '/admin/transactions', '/admin/revenue', '/admin/withdrawals'] },
-      { label: 'Kiểm duyệt', paths: ['/admin/tutor-applications', '/admin/services', '/admin/disputes', '/admin/trust-reports'] },
-      { label: 'Quản lý nền tảng', paths: ['/admin/users', '/admin/categories', '/admin/audit-logs'] },
+      { label: 'Kiểm duyệt', paths: ['/admin/services', '/admin/disputes', '/admin/trust-reports'] },
+      { label: 'Quản lý nền tảng', paths: ['/admin/categories', '/admin/audit-logs'] },
       { label: 'Thông báo', paths: ['/app/notifications'] },
     ];
     return sections.map(section => ({ label: section.label, items: section.paths.map(path => items.find(item => item.path === path)).filter(Boolean) })).filter(group => group.items.length);

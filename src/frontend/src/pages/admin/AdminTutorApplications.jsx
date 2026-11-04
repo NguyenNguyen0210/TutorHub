@@ -20,7 +20,7 @@ const DATE_LABELS = { today: 'Hôm nay', '7days': '7 ngày qua', '30days': '30 n
 const CONTROL = 'h-11 min-w-0 rounded-lg border border-border bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600';
 const EMPTY = [];
 
-export default function AdminTutorApplications() {
+export default function AdminTutorApplications({ embedded = false }) {
   const [params, setParams] = useSearchParams();
   const userId = useAuthStore(state => state.user?.id);
   const client = useQueryClient();
@@ -110,7 +110,7 @@ export default function AdminTutorApplications() {
     ['Đã từ chối', items.filter(item => item.status === 'Rejected').length, 'bg-danger-subtle border-danger/20'],
   ];
   return <div className="space-y-6">
-    <WorkspacePageHeader title="Xét duyệt gia sư" description="Quản lý hồ sơ đăng ký và kết quả thẩm định." actions={<Button variant="outline" loading={query.isFetching} disabled={processing} onClick={() => query.refetch()}>Làm mới</Button>} />
+    {embedded ? <div className="flex justify-end"><Button variant="outline" loading={query.isFetching} disabled={processing} onClick={() => query.refetch()}>Làm mới</Button></div> : <WorkspacePageHeader title="Xét duyệt gia sư" description="Quản lý hồ sơ đăng ký và kết quả thẩm định." actions={<Button variant="outline" loading={query.isFetching} disabled={processing} onClick={() => query.refetch()}>Làm mới</Button>} />}
     {query.isPending ? <StatsSkeleton count={4} /> : <section aria-label="Thống kê hồ sơ" className="grid grid-cols-2 gap-3 lg:grid-cols-4">{metrics.map(([label, value, tone]) => <div key={label} className={cn('min-h-[104px] rounded-2xl border p-4', tone)}><h2 className="text-xs font-medium text-fg-secondary">{label}</h2><p className="mt-3 text-3xl font-semibold tabular-nums">{query.isError ? '—' : value}</p></div>)}</section>}
     <section aria-label="Lọc hồ sơ" className="space-y-4 rounded-2xl border border-border bg-surface p-4 sm:p-5">
       <label className="block"><span className="mb-2 block text-xs font-medium">Tìm hồ sơ</span><input aria-label="Tìm hồ sơ" className={cn(CONTROL, 'w-full')} value={filters.search} placeholder="Tên, email hoặc chuyên môn…" onChange={event => update({ search: event.target.value })} /></label>

@@ -31,7 +31,7 @@ function WithdrawalTools({ initialSearch, status, onSearch, onStatus, onClear })
   </div>;
 }
 
-export default function AdminWithdrawals() {
+export default function AdminWithdrawals({ embedded = false }) {
   const userId = useAuthStore(state => state.user?.id);
   const [params, setParams] = useSearchParams();
   const status = params.get('status') || 'All';
@@ -55,7 +55,7 @@ export default function AdminWithdrawals() {
     { label: 'Tổng yêu cầu', key: 'totalCount', icon: 'receipt_long', tone: 'border-insight-border bg-insight-subtle', iconTone: 'bg-insight-strong/10 text-insight-strong' },
   ];
   return <div className="space-y-6 lg:space-y-8">
-    <WorkspacePageHeader title="Yêu cầu rút tiền" description="Quản lý và theo dõi yêu cầu rút tiền của gia sư." actions={<Button variant="outline" size="sm" loading={list.isFetching || summary.isFetching} onClick={refresh} icon={<Icon name="refresh" size="sm" />}>Làm mới</Button>} />
+    {embedded ? <div className="flex justify-end"><Button variant="outline" size="sm" loading={list.isFetching || summary.isFetching} onClick={refresh} icon={<Icon name="refresh" size="sm" />}>Làm mới</Button></div> : <WorkspacePageHeader title="Yêu cầu rút tiền" description="Quản lý và theo dõi yêu cầu rút tiền của gia sư." actions={<Button variant="outline" size="sm" loading={list.isFetching || summary.isFetching} onClick={refresh} icon={<Icon name="refresh" size="sm" />}>Làm mới</Button>} />}
     <section aria-label="Thống kê yêu cầu gia sư" className="space-y-3">
       {summary.isPending ? <StatsSkeleton count={3} /> : <div className="grid gap-4 sm:grid-cols-3">{stats.map(stat => <div key={stat.key} className={cn('flex min-h-[108px] items-center justify-between gap-3 rounded-2xl border p-4', stat.tone)}><div><h2 className="text-xs font-medium text-fg-secondary">{stat.label}</h2><p className="mt-2 text-3xl font-semibold tabular-nums">{summary.isError || summary.data?.[stat.key] == null ? '—' : summary.data[stat.key]}<span className="ml-2 text-xs font-normal text-fg-secondary">lệnh</span></p></div><span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', stat.iconTone)}><Icon name={stat.icon} size="md" /></span></div>)}</div>}
       {summary.isError ? <div className="flex flex-wrap items-center gap-2 text-xs text-fg-secondary"><span role="alert">Chưa tải được thống kê yêu cầu.</span><Button variant="ghost" size="sm" onClick={() => summary.refetch()}>Thử lại thống kê</Button></div> : <p className="text-xs text-fg-secondary">Toàn bộ yêu cầu gia sư · Không phụ thuộc bộ lọc danh sách</p>}

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
+import { adminWorkspaceDestination } from '@/utils/adminWorkspaceNavigation';
 import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import StudentWalletAdjustment from '@/components/admin/StudentWalletAdjustment';
 import studentWalletService from '@/services/studentWallet.service';
@@ -28,14 +29,15 @@ function EmptyList({ withdrawal, filtered }) {
   </div>;
 }
 
-export default function AdminStudentWallets() {
+export default function AdminStudentWallets({ withdrawalsOnly = false }) {
   const toast = useToast();
   const confirm = useConfirm();
   const [params, setParams] = useSearchParams();
-  const activeTab = ['withdrawals', 'adjust'].includes(params.get('tab')) ? params.get('tab') : 'topups';
-  const recordId = params.get('recordId') || undefined;
+  const legacyDestination = !withdrawalsOnly && adminWorkspaceDestination('/admin/student-wallets', params.toString());
+  const activeTab = withdrawalsOnly ? 'withdrawals' : params.get('tab') === 'adjust' ? 'adjust' : 'topups';
+  const recordId = params.get('recordId') || (withdrawalsOnly ? params.get('withdrawalId') : null) || undefined;
   const withdrawal = activeTab === 'withdrawals';
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState(params.get('status') || '');
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -49,6 +51,7 @@ export default function AdminStudentWallets() {
   const [busy, setBusy] = useState(false);
   const actionLock = useRef(false);
   const openedRecord = useRef(null);
+  useEffect(() => { setStatus(params.get('status') || ''); }, [params]);
 
   useEffect(() => {
     setDetail(null); setNote(''); setChecked(false); openedRecord.current = null;
@@ -56,7 +59,7 @@ export default function AdminStudentWallets() {
 
   useEffect(() => { const timer = setTimeout(() => { setQuery(search.trim()); setPage(1); }, 300); return () => clearTimeout(timer); }, [search]);
   useEffect(() => {
-    if (activeTab === 'adjust') return;
+    if (activeTab === 'adjust' || legacyDestination) return;
     const controller = new AbortController();
     setLoading(true); setError(false);
     const request = withdrawal ? studentWalletService.adminGetWithdrawals : studentWalletService.adminGetTopUps;
@@ -71,7 +74,7 @@ export default function AdminStudentWallets() {
       }).catch(() => { if (!controller.signal.aborted) setError(true); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [activeTab, withdrawal, status, query, page, recordId, reload]);
+  }, [activeTab, withdrawal, status, query, page, recordId, reload, legacyDestination]);
 
   const changeTab = tab => {
     setStatus(''); setSearch(''); setQuery(''); setPage(1); setData(null); setDetail(null); openedRecord.current = null;
@@ -107,9 +110,10 @@ export default function AdminStudentWallets() {
   const pendingCount = rows.filter(row => row.status === 'Pending').length;
   const states = withdrawal ? WITHDRAWAL_STATES : TOPUP_STATES;
 
+  if (legacyDestination) return <Navigate to={legacyDestination} replace />;
   return <div className="space-y-6 lg:space-y-8">
-    <WorkspacePageHeader title="Quản lý ví học viên" description="Theo dõi nạp tiền, rút tiền và điều chỉnh số dư." />
-    <Tabs tabs={[{ key: 'topups', label: 'Nạp tiền', icon: <Icon name="add_card" size="sm" /> }, { key: 'withdrawals', label: 'Rút tiền', icon: <Icon name="payments" size="sm" /> }, { key: 'adjust', label: 'Điều chỉnh số dư', icon: <Icon name="tune" size="sm" /> }]} value={activeTab} onChange={changeTab} />
+    {!withdrawalsOnly && <><WorkspacePageHeader title="Quản lý ví học viên" description="Theo dõi nạp tiền và điều chỉnh số dư." actions={<Button as={Link} to="/admin/withdrawals?audience=student" variant="outline" size="sm">Yêu cầu rút tiền học viên</Button>} />
+    <Tabs tabs={[{ key: 'topups', label: 'Nạp tiền', icon: <Icon name="add_card" size="sm" /> }, { key: 'adjust', label: 'Điều chỉnh số dư', icon: <Icon name="tune" size="sm" /> }]} value={activeTab} onChange={changeTab} /></>}
     {activeTab === 'adjust' ? <StudentWalletAdjustment /> : <>
       {!withdrawal && <div className="flex items-start gap-3 rounded-xl border border-brand-primary-100 bg-brand-primary-50 p-4 text-sm text-fg-secondary"><Icon name="verified_user" size="md" className="mt-0.5 text-brand-primary-600" /><p>VNPAY tự động ghi có sau khi xác thực thanh toán. Yêu cầu đang chờ chưa đồng nghĩa với học viên đã nạp tiền.</p></div>}
       <Card padding="lg">
@@ -117,11 +121,11 @@ export default function AdminStudentWallets() {
           <div className="flex items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-primary-50 text-brand-primary-600"><Icon name={withdrawal ? 'payments' : 'add_card'} size="md" /></span><div><h2 className="text-lg font-semibold">{withdrawal ? 'Yêu cầu rút tiền học viên' : 'Yêu cầu nạp tiền'}</h2><p className="mt-1 text-xs text-fg-secondary">{data?.totalCount || 0} yêu cầu{!loading && pendingCount > 0 ? ` · ${pendingCount} chờ trong trang này` : ''}</p></div></div>
           <div className="flex flex-wrap items-center gap-2">
             {!withdrawal && <Input aria-label="Tìm yêu cầu nạp tiền" placeholder="Tên, email, mã tham chiếu" value={search} onChange={event => setSearch(event.target.value)} className="sm:w-56" />}
-            <select aria-label="Lọc trạng thái yêu cầu" value={status} onChange={event => { setStatus(event.target.value); setPage(1); }} className="min-h-11 max-w-full rounded-lg border border-border bg-surface px-3 text-sm"><option value="">Tất cả trạng thái</option>{Object.entries(states).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
+            <select aria-label="Lọc trạng thái yêu cầu" value={status} onChange={event => { const value = event.target.value; setStatus(value); setPage(1); setParams(previous => { const next = new URLSearchParams(previous); if (value) next.set('status', value); else next.delete('status'); return next; }); }} className="min-h-11 max-w-full rounded-lg border border-border bg-surface px-3 text-sm"><option value="">Tất cả trạng thái</option>{Object.entries(states).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
             <Button variant="ghost" size="sm" loading={loading} aria-label="Làm mới yêu cầu" onClick={() => setReload(value => value + 1)}><Icon name="refresh" size="sm" /></Button>
           </div>
         </div>
-        {recordId && <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-brand-primary-50 p-3 text-sm"><span>Đang xem yêu cầu từ thông báo</span><Button size="sm" variant="ghost" onClick={() => setParams({ tab: activeTab })}>Xem tất cả</Button></div>}
+        {recordId && <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-brand-primary-50 p-3 text-sm"><span>Đang xem yêu cầu từ thông báo</span><Button size="sm" variant="ghost" onClick={() => setParams(withdrawalsOnly ? { audience: 'student' } : { tab: activeTab })}>Xem tất cả</Button></div>}
         {loading ? <div className="pt-5"><TableSkeleton rows={3} /></div> : error ? <div className="py-12 text-center"><p role="alert" className="mb-4 text-sm text-danger-strong">Không thể tải danh sách yêu cầu.</p><Button variant="outline" onClick={() => setReload(value => value + 1)}>Thử lại</Button></div> : rows.length === 0 ? <EmptyList withdrawal={withdrawal} filtered={!!(status || query || recordId)} /> : <>
           <div className="divide-y divide-border">
             {rows.map(row => <article key={row.id} className="grid items-center gap-4 py-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto]">
