@@ -17,5 +17,6 @@ public record GetAdminTransactionsQuery(
     TransactionType? Type = null,
     AdminTransactionSort Sort = AdminTransactionSort.Newest,
     Guid? BookingId = null,
-    Guid? TransactionId = null
+    Guid? TransactionId = null,
+    bool? SettlementRequired = null
 ) : IRequest<PagedResult<AdminTransactionDto>>;

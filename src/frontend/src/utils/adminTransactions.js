@@ -22,6 +22,6 @@ export function transactionStatus(item) {
 }
 
 export function transactionFilters(params) {
-  return Object.fromEntries(['search', 'status', 'fromDate', 'toDate', 'type', 'sort', 'bookingId']
+  return Object.fromEntries(['search', 'status', 'fromDate', 'toDate', 'type', 'sort', 'bookingId', 'settlementRequired']
     .filter(key => params.get(key)).map(key => [key, params.get(key)]));
 }

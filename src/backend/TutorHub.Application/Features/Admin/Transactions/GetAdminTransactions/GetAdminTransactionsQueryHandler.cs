@@ -23,6 +23,7 @@ public class GetAdminTransactionsQueryHandler : IRequestHandler<GetAdminTransact
         if (request.Type.HasValue) query = query.Where(t => t.Type == request.Type);
         if (request.BookingId.HasValue) query = query.Where(t => t.BookingId == request.BookingId);
         if (request.TransactionId.HasValue) query = query.Where(t => t.Id == request.TransactionId);
+        if (request.SettlementRequired.HasValue) query = query.Where(t => t.SettlementRequired == request.SettlementRequired.Value);
 
         // 1. Search filter (accent-insensitive; trigram GIN on user/subject/ref columns)
         if (!string.IsNullOrWhiteSpace(request.Search))

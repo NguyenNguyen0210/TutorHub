@@ -677,11 +677,12 @@ public class AdminController : ControllerBase
         [FromQuery] TransactionType? type = null,
         [FromQuery] AdminTransactionSort sort = AdminTransactionSort.Newest,
         [FromQuery] Guid? bookingId = null,
+        [FromQuery] bool? settlementRequired = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetAdminTransactionsQuery(search, status, fromDate, toDate, pageNumber, pageSize, type, sort, bookingId);
+        var query = new GetAdminTransactionsQuery(search, status, fromDate, toDate, pageNumber, pageSize, type, sort, bookingId, SettlementRequired: settlementRequired);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<AdminTransactionDto>>.SuccessResult(result, "Transactions retrieved successfully."));
     }

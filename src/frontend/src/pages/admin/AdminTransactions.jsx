@@ -56,6 +56,7 @@ export default function AdminTransactions() {
 
   return <div className="space-y-6 lg:space-y-8">
     <WorkspacePageHeader title="Giao dịch toàn sàn" description="Theo dõi thanh toán, giải ngân và hoàn tiền." />
+    <div className="flex flex-wrap gap-3"><Button variant={filters.settlementRequired ? 'primary' : 'outline'} size="sm" onClick={() => update({ settlementRequired: filters.settlementRequired ? '' : 'true', type: 'StudentRefund', status: '' })}>Hoàn tiền cần đối soát</Button>{filters.settlementRequired && <span className="self-center text-xs text-fg-secondary">Chỉ hiển thị khoản còn nghĩa vụ đối soát</span>}</div>
     <Tabs tabs={[{ key: 'all', label: 'Tất cả giao dịch' }, ...Object.entries(TRANSACTION_TYPES).map(([key, value]) => ({ key, label: value.short, icon: <Icon name={value.icon} size="sm" /> }))]} value={filters.type || 'all'} onChange={type => update({ type: type === 'all' ? '' : type })} />
 
     <TransactionFilters key={filterKey} initial={draftFrom(params)} onApply={update} onClear={() => setParams({})} />

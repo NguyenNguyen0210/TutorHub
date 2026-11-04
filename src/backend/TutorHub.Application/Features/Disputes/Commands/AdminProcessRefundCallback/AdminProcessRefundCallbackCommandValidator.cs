@@ -16,7 +16,10 @@ public class AdminProcessRefundCallbackCommandValidator : AbstractValidator<Admi
         When(x => x.Outcome == TransactionStatus.Failed, () =>
         {
             RuleFor(x => x.FailureReason)
-                .NotEmpty().WithMessage("Failure reason is required when refund fails.");
+                .NotEmpty().MaximumLength(1000).WithMessage("Cần ghi rõ lý do hoàn tiền chưa thành công, tối đa 1.000 ký tự.");
         });
+        When(x => x.Outcome == TransactionStatus.Succeeded, () =>
+            RuleFor(x => x.ProviderReference).NotEmpty().MaximumLength(200)
+                .WithMessage("Cần mã tham chiếu đối soát, tối đa 200 ký tự."));
     }
 }

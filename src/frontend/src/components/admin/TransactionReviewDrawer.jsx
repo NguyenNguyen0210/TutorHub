@@ -11,6 +11,7 @@ import Money from '@/components/ui/Money';
 import Icon from '@/components/ui/Icon';
 import { useToast } from '@/components/ui/Toast';
 import { TransactionIcon, TransactionStatus } from './TransactionPresentation';
+import RefundSettlementPanel from './RefundSettlementPanel';
 
 export default function TransactionReviewDrawer({ id, onClose, onSelect }) {
   const userId = useAuthStore(state => state.user?.id);
@@ -49,6 +50,7 @@ export default function TransactionReviewDrawer({ id, onClose, onSelect }) {
         </div>
       </section>
 
+      <RefundSettlementPanel key={item.id} item={item} />
       <section><h3 className="text-sm font-semibold">Mốc thời gian ghi nhận</h3><p className="mt-1 text-xs text-fg-secondary">Giờ Việt Nam (UTC+7)</p>
         <ol className="mt-4 space-y-4 border-l border-border pl-4 text-sm">
           {[
