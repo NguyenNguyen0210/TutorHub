@@ -52,7 +52,7 @@ export default function ServiceFilterSidebar({
   };
 
   return (
-    <aside className={`w-full ${className}`} aria-label="Bộ lọc dịch vụ học tập">
+    <aside className={`w-full ${className}`} aria-label="Bộ lọc gói học">
       <div className={`filter-panel overflow-hidden rounded-[20px] border border-[color:var(--mkt-line)] bg-white shadow-[0_14px_38px_-22px_rgba(15,23,42,0.25)] ${sticky ? 'sticky top-[88px]' : ''}`}>
         <div className="border-b border-blue-100 bg-blue-50/80 p-5">
           <div className="flex items-start justify-between gap-3">
@@ -61,7 +61,7 @@ export default function ServiceFilterSidebar({
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white">
                   <Icon name="tune" size="sm" />
                 </span>
-                Bộ lọc dịch vụ
+                Bộ lọc gói học
                 {activeCount > 0 && (
                   <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-blue-600 px-2 py-0.5 text-xs font-bold text-white" aria-label={`${activeCount} bộ lọc đang áp dụng`}>
                     {activeCount}
@@ -87,7 +87,7 @@ export default function ServiceFilterSidebar({
           </div>
         </div>
 
-        <FilterSection title="Danh mục dịch vụ" icon="category" section="category" open={openSections.category} onToggle={toggle}>
+        <FilterSection title="Danh mục gói học" icon="category" section="category" open={openSections.category} onToggle={toggle}>
           <RadioOption
             name="service-category"
             checked={!selectedCategoryId}

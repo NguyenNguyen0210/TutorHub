@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -271,7 +272,7 @@ export default function Messages() {
       setContactError(null);
       select(conv.id);
     },
-    onError: err => setContactError(err?.message || 'Chưa mở được cuộc trò chuyện. Vui lòng thử lại.'),
+    onError: err => setContactError(userFacingError(err, 'Chưa mở được cuộc trò chuyện. Vui lòng thử lại.')),
   });
 
   const welcome = (noConversations) => (

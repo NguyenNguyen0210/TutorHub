@@ -48,6 +48,9 @@ public class DeleteSubjectCommandHandler : IRequestHandler<DeleteSubjectCommand,
             throw new ConflictException("Cannot delete subject because it has active bookings. Deactivate the subject instead.");
         }
 
+        if (await _context.Services.AnyAsync(s => s.SubjectId == request.Id, cancellationToken))
+            throw new ConflictException("Cannot delete subject because it is referenced by learning packages. Deactivate the subject instead.");
+
         var userId = _currentUserService.UserIdOrThrow();
 
         subject.SoftDelete(userId);

@@ -28,7 +28,7 @@ public class AdminTransactionWorkflowTests(IntegrationWebApplicationFactory fact
         var jwt = Scope.ServiceProvider.GetRequiredService<IJwtService>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt.GenerateAccessToken(admin));
         SetCurrentUser(admin.Id, UserRole.Admin);
-        var day = transaction.CreatedAt.ToString("yyyy-MM-dd");
+        var day = transaction.CreatedAt.AddHours(7).ToString("yyyy-MM-dd");
         var response = await client.GetAsync($"/api/v1/admin/transactions?search={reference}&status=Succeeded&fromDate={day}&toDate={day}");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());

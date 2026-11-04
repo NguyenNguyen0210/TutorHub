@@ -1,4 +1,5 @@
 using MediatR;
+using TutorHub.Application.Common.Concurrency;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TutorHub.Application.Common.Caching;
@@ -77,6 +78,11 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
             throw new ConflictException($"The {reviewWindowDays}-day review window for this completed enrollment has expired.");
         }
 
+        await using var transaction = await PostgresAdvisoryLock.BeginTransactionAsync(_context, cancellationToken);
+        await PostgresAdvisoryLock.AcquireAsync(_context, $"review:tutor:{enrollment.TutorProfileId:D}", cancellationToken);
+        if (PostgresAdvisoryLock.IsPostgres(_context))
+            await _context.TutorProfiles.Entry(enrollment.TutorProfile).ReloadAsync(cancellationToken);
+
         // 4. Cardinality / Uniqueness Guard: Max 1 review per enrollment
         var alreadyReviewed = await _context.Reviews
             .AnyAsync(r => r.EnrollmentId == request.EnrollmentId, cancellationToken);
@@ -131,6 +137,7 @@ public class CreateEnrollmentReviewCommandHandler : IRequestHandler<CreateEnroll
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
+            if (transaction != null) await transaction.CommitAsync(cancellationToken);
             await _serviceCache.InvalidateServiceDetailAsync(enrollment.ServiceId, cancellationToken);
             await _tutorCache.InvalidateTutorProfileAsync(enrollment.TutorProfileId, cancellationToken);
         }

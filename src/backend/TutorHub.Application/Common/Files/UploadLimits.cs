@@ -47,6 +47,9 @@ public static class UploadLimits
         "application/pdf"
     };
 
+    public static readonly string[] PublicImageExtensions = { ".jpg", ".jpeg", ".png", ".webp" };
+    public static readonly string[] PublicImageMimeTypes = { "image/jpeg", "image/png", "image/webp" };
+
     public static readonly string[] MediaExtensions =
     {
         ".jpg", ".jpeg", ".png", ".webp", ".pdf"

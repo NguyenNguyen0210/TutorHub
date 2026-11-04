@@ -14,7 +14,14 @@ public record AdminUserDetailDto(
     AdminUserTutorProfileDto? TutorProfile,
     AdminUserStudentProfileDto? StudentProfile,
     IReadOnlyList<AdminUserRecentBookingDto> RecentBookings
-);
+)
+{
+    public int AccessFailedCount { get; init; }
+    public DateTime? LockoutEndAt { get; init; }
+    public IReadOnlyList<AdminUserDisciplineDto> DisciplineHistory { get; init; } = Array.Empty<AdminUserDisciplineDto>();
+}
+
+public record AdminUserDisciplineDto(string Action, string? Reason, string? AdminName, DateTime CreatedAt);
 
 public record AdminUserSubjectDto(
     Guid Id,
@@ -32,7 +39,12 @@ public record AdminUserTutorProfileDto(
     decimal? WalletBalance,
     IReadOnlyList<AdminUserSubjectDto> Subjects,
     int TotalCompletedSessions
-);
+)
+{
+    public Guid? ApplicationId { get; init; }
+    public int PublishedServices { get; init; }
+    public int ActiveEnrollments { get; init; }
+}
 
 public record AdminUserStudentProfileDto(
     int TotalBookingsAsStudent,

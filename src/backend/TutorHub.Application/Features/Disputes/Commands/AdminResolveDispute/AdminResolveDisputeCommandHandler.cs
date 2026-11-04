@@ -1,3 +1,4 @@
+using TutorHub.Application.Common.Concurrency;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Events;
@@ -41,7 +42,31 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
 
         try
         {
-        // 1. Lock Dispute (Lock Order Level 1).
+        // Resolve the immutable session relation without tracking a stale entity.
+        // Auto-payout and dispute creation both lock Session first, so use the
+        // same lock order before touching the dispute or escrow wallet.
+        var sessionId = await _context.Disputes.AsNoTracking()
+            .Where(d => d.Id == request.DisputeId)
+            .Select(d => (Guid?)d.SessionId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (!sessionId.HasValue)
+        {
+            throw new NotFoundException(nameof(Dispute), request.DisputeId);
+        }
+
+        var lockedSession = await _context.Sessions
+            .FromSqlInterpolated($"SELECT * FROM \"Sessions\" WHERE \"Id\" = {sessionId.Value} FOR UPDATE")
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (lockedSession == null)
+        {
+            throw new NotFoundException(nameof(Session), sessionId.Value);
+        }
+
+        await PostgresAdvisoryLock.LockEnrollmentForSessionAsync(_context, sessionId.Value, cancellationToken);
+
+        // 2. Lock Dispute after Session.
         // NOTE: locked via separate SELECT ... FOR UPDATE (not FromSql entity
         // query) because the Disputes xmin row-version breaks FromSql+Include
         // composition on Npgsql ("column t.xmin does not exist").
@@ -49,7 +74,9 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
             $"SELECT 1 FROM \"Disputes\" WHERE \"Id\" = {request.DisputeId} FOR UPDATE",
             cancellationToken);
 
+        // Completion must see every sibling, not only the session fixed up by EF.
         var dispute = await _context.Disputes
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.Sessions)
             .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(sp => sp.User)
             .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(tp => tp.User)
             .Include(d => d.InitiatorUser)
@@ -80,7 +107,14 @@ public class AdminResolveDisputeCommandHandler : IRequestHandler<AdminResolveDis
         var enrollment = session.Enrollment;
         var now = _clock.UtcNow;
 
-        // 2. Lock Wallet (Lock Order Level 4)
+        // A payout completed before our session lock was obtained must never
+        // be resolved a second time, including via the no-financial-change path.
+        if (session.Status != SessionStatus.AwaitingPayout || session.IsPayoutReleased)
+        {
+            throw new ConflictException("The session is no longer awaiting payout and its dispute cannot be resolved financially.");
+        }
+
+        // 3. Lock Wallet after Session and Dispute.
         var tutorWallet = await _context.Wallets
             .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"TutorProfileId\" = {enrollment.TutorProfileId} FOR UPDATE")
             .FirstOrDefaultAsync(cancellationToken);

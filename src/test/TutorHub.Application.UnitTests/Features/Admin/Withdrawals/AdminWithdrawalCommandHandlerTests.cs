@@ -125,6 +125,8 @@ public class AdminWithdrawalCommandHandlerTests
         var (withdrawal, wallet, admin) = CreateTestAggregate(WithdrawalStatus.Pending);
 
         _contextMock.Setup(c => c.Withdrawals).Returns(MockDbSetHelper.CreateMockDbSet(new List<Withdrawal> { withdrawal }).Object);
+        _contextMock.Setup(c => c.WalletTransactions).Returns(MockDbSetHelper.CreateMockDbSet(new List<WalletTransaction>()).Object);
+        _contextMock.Setup(c => c.AuditLogs).Returns(MockDbSetHelper.CreateMockDbSet(new List<AuditLog>()).Object);
 
         var handler = new GetAdminWithdrawalByIdQueryHandler(_contextMock.Object);
 

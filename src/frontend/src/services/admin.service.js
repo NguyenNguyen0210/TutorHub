@@ -12,6 +12,7 @@
  * - GET /admin/disputes/{id}/investigation → DisputeInvestigationDto
  */
 import api from './api';
+import { idempotencyHeaders } from './idempotency';
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -20,6 +21,9 @@ function toNumber(value, fallback = 0) {
 
 function normalizeAdminStats(source = {}) {
   return {
+    updatedAt: source.updatedAt,
+    fromUtc: source.fromUtc,
+    period: source.period,
     users: {
       totalUsers: toNumber(source.users?.totalUsers),
       totalStudents: toNumber(source.users?.totalStudents),
@@ -46,11 +50,16 @@ function normalizeAdminStats(source = {}) {
       totalPlatformRevenue: toNumber(source.financials?.totalPlatformRevenue),
       totalTutorPayouts: toNumber(source.financials?.totalTutorPayouts),
       totalRefundedAmount: toNumber(source.financials?.totalRefundedAmount),
+      pendingRefundAmount: toNumber(source.financials?.pendingRefundAmount),
     },
     actionQueue: {
       pendingTutorsCount: toNumber(source.actionQueue?.pendingTutorsCount),
       pendingWithdrawalsCount: toNumber(source.actionQueue?.pendingWithdrawalsCount),
       openReportsCount: toNumber(source.actionQueue?.openReportsCount),
+      openDisputesCount: toNumber(source.actionQueue?.openDisputesCount),
+      pendingStudentWithdrawalsCount: toNumber(source.actionQueue?.pendingStudentWithdrawalsCount),
+      reviewableTopUpsCount: toNumber(source.actionQueue?.reviewableTopUpsCount),
+      outstandingRefundsCount: toNumber(source.actionQueue?.outstandingRefundsCount),
     },
   };
 }
@@ -79,6 +88,7 @@ function normalizeTutorApplication(raw = {}) {
     status: raw.status || 'Pending',
     submittedAt: raw.submittedAt ?? null,
     reviewedAt: raw.reviewedAt ?? null,
+    reviewedByAdminName: raw.reviewedByAdminName ?? null,
     rejectionReason: raw.rejectionReason ?? null,
     bio: raw.bio || '',
     education: raw.education || '',
@@ -106,6 +116,7 @@ function normalizeAdminUser(raw = {}) {
     status: raw.status || 'Active',
     accessFailedCount: toNumber(raw.accessFailedCount, 0),
     isLockedOut: Boolean(raw.isLockedOut),
+    avatarUrl: raw.avatarUrl ?? null,
     tutorApplicationStatus: raw.tutorApplicationStatus ?? null,
     createdAt: raw.createdAt ?? null,
   };
@@ -115,7 +126,7 @@ function normalizeAuditLog(raw = {}) {
   return {
     id: raw.id,
     userId: raw.userId ?? null,
-    userName: raw.userName || 'Hệ thống',
+    userName: raw.userName || (raw.userId ? 'Tài khoản chưa có tên hiển thị' : 'Hệ thống'),
     action: raw.action || '',
     entityName: raw.entityName || '',
     entityId: raw.entityId || '',
@@ -150,6 +161,11 @@ function normalizeWithdrawal(raw = {}) {
     processedByAdminId: raw.processedByAdminId ?? null,
     processedByAdminName: raw.processedByAdminName ?? null,
     failureReason: raw.failureReason ?? null,
+    tutorAvatarUrl: raw.tutorAvatarUrl ?? null,
+    availableBalanceAtRequest: raw.availableBalanceAtRequest ?? null,
+    availableBalanceAfterReservation: raw.availableBalanceAfterReservation ?? null,
+    bankTransferReference: raw.bankTransferReference ?? null,
+    reconciliationNote: raw.reconciliationNote ?? null,
   };
 }
 
@@ -170,12 +186,17 @@ function normalizePaged(raw, normalizeItem) {
 export const adminService = {
   getRevenueChart: months => api.get('/admin/dashboard/revenue-chart', { params: { months } }),
   getPlatformRevenue: () => api.get('/admin/analytics/platform-revenue'),
-  getConversations: params => api.get('/admin/conversations', { params }),
-  getConversationMessages: (id, params) => api.get(`/admin/conversations/${id}/messages`, { params }),
-  forceUnpublishService: id => api.post(`/admin/services/${id}/force-unpublish`),
+  getConversations: params => api.get('/admin/investigations/conversations', { params }),
+  getConversationMessages: (id, params) => api.get(`/admin/investigations/conversations/${id}/messages`, { params }),
+  forceUnpublishService: (id, reason) => api.post(`/admin/services/${id}/force-unpublish`, { reason }),
+  getServices: params => api.get('/admin/services', { params }),
+  getService: id => api.get(`/admin/services/${id}`),
   removeReview: (id, reason) => api.delete(`/admin/reviews/${id}`, { data: { reason } }),
   cancelEnrollment: (id, reason) => api.post(`/admin/enrollments/${id}/cancel`, { reason }),
+  getEnrollments: params => api.get('/admin/enrollments', { params }),
   getTransactions: params => api.get('/admin/transactions', { params }),
+  getTransaction: id => api.get(`/admin/transactions/${id}`),
+  settleRefund: (id, payload) => api.post(`/admin/disputes/refunds/${id}/callback`, payload),
   getCatalog: (kind, params = {}, trash = false) => api.get(`/admin/${kind}${trash ? '/trash' : ''}`, { params }),
   saveCatalog: (kind, id, payload) => id ? api.put(`/admin/${kind}/${id}`, payload) : api.post(`/admin/${kind}`, payload),
   deleteCatalog: (kind, id) => api.delete(`/admin/${kind}/${id}`),
@@ -185,12 +206,12 @@ export const adminService = {
     do { page = await adminService.getCatalog('categories', { pageNumber, pageSize: 50 }); items.push(...page.items); pageNumber++; } while (page.hasNextPage);
     return items;
   },
-  getTrustReports: ({ status, pageNumber = 1 } = {}) => api.get('/admin/trust-reports', { params: { status: status || undefined, pageNumber, pageSize: 10 } }),
+  getTrustReports: ({ status, search, reportType, pageNumber = 1 } = {}) => api.get('/admin/trust-reports', { params: { status: status || undefined, search: search || undefined, reportType: reportType || undefined, pageNumber, pageSize: 10 } }),
   getTrustReport: id => api.get(`/admin/trust-reports/${id}`),
   resolveTrustReport: (id, payload) => api.post(`/admin/trust-reports/${id}/resolve`, payload),
   /** GET /admin/dashboard/stats → AdminDashboardStatsDto (nested) */
-  async getStats() {
-    const res = await api.get('/admin/dashboard/stats');
+  async getStats(period = 'All', signal) {
+    const res = await api.get('/admin/dashboard/stats', { params: { period }, signal });
     return normalizeAdminStats(res);
   },
 
@@ -209,9 +230,10 @@ export const adminService = {
   },
 
   /** GET /admin/disputes → PagedResult<DisputeDto> */
-  async getDisputes({ status = null, pageNumber = 1, pageSize = 10 } = {}) {
+  async getDisputes({ status = null, search = '', pageNumber = 1, pageSize = 10 } = {}) {
     const params = { pageNumber, pageSize };
     if (status) params.status = status;
+    if (search) params.search = search;
     const res = await api.get('/admin/disputes', { params });
     return res;
   },
@@ -225,6 +247,8 @@ export const adminService = {
   /**
    * GET /admin/users → PagedResult<AdminUserSummaryDto>
    */
+  getUserSummary: () => api.get('/admin/users/summary'),
+  getUserById: id => api.get(`/admin/users/${id}`),
   async getUsers({ search = '', role = null, status = null, pageNumber = 1, pageSize = 10 } = {}) {
     const params = { pageNumber, pageSize };
     if (search) params.search = search;
@@ -237,11 +261,16 @@ export const adminService = {
   /**
    * GET /admin/audit-logs → AdminAuditLogListResponseDto
    */
+  getAuditOptions: () => api.get('/admin/audit-logs/options'),
+  getAuditLog: async id => normalizeAuditLog(await api.get(`/admin/audit-logs/${id}`)),
   async getAuditLogs({
     userId = null,
     entityName = null,
     entityId = null,
     correlationId = null,
+    search = '',
+    action = '',
+    oldestFirst = false,
     dateFrom = null,
     dateTo = null,
     pageNumber = 1,
@@ -254,6 +283,9 @@ export const adminService = {
     if (correlationId) params.correlationId = correlationId;
     if (dateFrom) params.dateFrom = dateFrom;
     if (dateTo) params.dateTo = dateTo;
+    if (search) params.search = search;
+    if (action) params.action = action;
+    if (oldestFirst) params.oldestFirst = true;
     const res = await api.get('/admin/audit-logs', { params });
     return normalizePaged(res, normalizeAuditLog);
   },
@@ -288,18 +320,22 @@ export const adminService = {
    * Body: { decision, customRefundAmount, adminNotes }
    * decision ∈ StudentWinsFullRefund | StudentWinsPartialRefund | TutorWinsReleaseEarning | DismissedNoFinancialChange
    */
-  applyDisputeVerdict: (caseId, { decision, customRefundAmount = null, adminNotes = '' }) =>
-    api.post(`/admin/disputes/${caseId}/resolve`, { decision, customRefundAmount, adminNotes }),
+  getDisputeSummary: () => api.get('/admin/disputes/summary'),
+  previewDisputeAllocation: (id, payload) => api.post(`/admin/disputes/${id}/allocation-preview`, { ...payload, adminNotes: '' }),
+  applyDisputeVerdict: (caseId, payload, key) =>
+    api.post(`/admin/disputes/${caseId}/resolve`, payload, { headers: idempotencyHeaders(key) }),
 
   /**
    * GET /admin/withdrawals → PagedResult<WithdrawalDto>
    */
-  async getWithdrawals({ status = null, pageNumber = 1, pageSize = 10 } = {}) {
-    const params = { pageNumber, pageSize };
+  async getWithdrawals({ status = null, pageNumber = 1, pageSize = 10, search } = {}) {
+    const params = { pageNumber, pageSize, search };
     if (status) params.status = status;
     const res = await api.get('/admin/withdrawals', { params });
     return normalizePaged(res, normalizeWithdrawal);
   },
+
+  getWithdrawalSummary: () => api.get('/admin/withdrawals/summary'),
 
   /** GET /admin/withdrawals/{id} → WithdrawalDto */
   async getWithdrawalById(id) {
@@ -311,7 +347,7 @@ export const adminService = {
   processWithdrawal: (id) => api.post(`/admin/withdrawals/${id}/process`),
 
   /** POST /admin/withdrawals/{id}/complete → WithdrawalDto */
-  completeWithdrawal: (id) => api.post(`/admin/withdrawals/${id}/complete`),
+  completeWithdrawal: (id, payload, key) => api.post(`/admin/withdrawals/${id}/complete`, payload, { headers: idempotencyHeaders(key) }),
 
   /** POST /admin/withdrawals/{id}/fail { reason } → WithdrawalDto */
   failWithdrawal: (id, reason) => api.post(`/admin/withdrawals/${id}/fail`, { reason }),

@@ -11,8 +11,16 @@ using TutorHub.Application.Common.Models;
 namespace TutorHub.Api.Filters;
 
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
-public class IdempotentAttribute : Attribute, IAsyncActionFilter
+public class IdempotentAttribute : Attribute, IAsyncActionFilter, IAsyncResourceFilter
 {
+    public async Task OnResourceExecutionAsync(ResourceExecutingContext context, ResourceExecutionDelegate next)
+    {
+        // Model binding consumes non-seekable request streams before action filters run.
+        // Buffer here so the fingerprint includes the actual body, not an empty stream.
+        context.HttpContext.Request.EnableBuffering();
+        await next();
+    }
+
     public const string IdempotencyKeyHeader = "Idempotency-Key";
     public const string AltIdempotencyKeyHeader = "X-Idempotency-Key";
     public const string IdempotencyReplayHeader = "Idempotency-Replay";

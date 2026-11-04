@@ -63,6 +63,11 @@ public class CompleteUploadCommandHandler : IRequestHandler<CompleteUploadComman
             ? UploadLimits.MediaAvatarMaxBytes
             : UploadLimits.MediaPresignedMaxBytes;
         var extension = Path.GetExtension(request.ObjectKey);
+        if (request.MediaType == MediaType.Avatar &&
+            (!UploadLimits.PublicImageExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase) ||
+             !UploadLimits.PublicImageMimeTypes.Contains(stored.ContentType, StringComparer.OrdinalIgnoreCase)))
+            throw new BadRequestException("Avatars must be JPG, PNG or WebP images.");
+
         if (stored.Size <= 0 || stored.Size > maxBytes || stored.Size != request.FileSize ||
             !UploadLimits.MediaExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase) ||
             !string.Equals(extension, Path.GetExtension(request.OriginalFileName), StringComparison.OrdinalIgnoreCase) ||

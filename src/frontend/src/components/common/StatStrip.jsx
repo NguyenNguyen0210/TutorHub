@@ -46,7 +46,7 @@ export default function StatStrip({ figures, className, columns = 4, appearance 
                 <span
                   className="w-2 h-2 rounded-full bg-holding shrink-0"
                   aria-hidden="true"
-                  title="Thời gian chờ / Ký quỹ"
+                  title="Học phí đang giữ"
                 />
               )}
               {!soft && isDanger && (

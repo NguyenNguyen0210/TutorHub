@@ -68,7 +68,11 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
                     WalletBalance: tutorProfile.Wallet?.AvailableBalance,
                     Subjects: subjects,
                     TotalCompletedSessions: totalCompletedSessions
-                );
+                ) {
+                    ApplicationId = latestApplication?.Id,
+                    PublishedServices = await _context.Services.AsNoTracking().CountAsync(s => s.TutorProfileId == tutorProfile.Id && s.Status == ServiceStatus.Published, cancellationToken),
+                    ActiveEnrollments = await _context.Enrollments.IgnoreQueryFilters().AsNoTracking().CountAsync(e => e.TutorProfileId == tutorProfile.Id && e.Status == EnrollmentStatus.Active, cancellationToken)
+                };
             }
         }
 
@@ -115,6 +119,19 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
             ))
             .ToListAsync(cancellationToken);
 
+        var logs = await _context.AuditLogs.AsNoTracking()
+            .Where(a => a.EntityName == "User" && a.EntityId == user.Id.ToString()
+                && (a.Action == "USER_SUSPENDED" || a.Action == "USER_BANNED" || a.Action == "USER_UNBANNED" || a.Action == "USER_REACTIVATED"))
+            .OrderByDescending(a => a.CreatedAt).Take(50)
+            .Select(a => new { a.Action, a.NewValuesJson, AdminName = a.User != null ? a.User.FullName : null, a.CreatedAt }).ToListAsync(cancellationToken);
+        var history = logs.Select(a => {
+            string? reason = null;
+            try { using var json = System.Text.Json.JsonDocument.Parse(a.NewValuesJson ?? "{}");
+                if (json.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object && json.RootElement.TryGetProperty("reason", out var value) && value.ValueKind == System.Text.Json.JsonValueKind.String) reason = value.GetString(); }
+            catch (System.Text.Json.JsonException) { }
+            return new AdminUserDisciplineDto(a.Action, reason, a.AdminName, a.CreatedAt);
+        }).ToList();
+
         return new AdminUserDetailDto(
             Id: user.Id,
             Email: user.Email,
@@ -127,6 +144,6 @@ public class GetAdminUserByIdQueryHandler : IRequestHandler<GetAdminUserByIdQuer
             TutorProfile: tutorProfileDto,
             StudentProfile: studentProfileDto,
             RecentBookings: recentBookings
-        );
+        ) { AccessFailedCount = user.AccessFailedCount, LockoutEndAt = user.LockoutEndAt, DisciplineHistory = history };
     }
 }

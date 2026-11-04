@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/authStore';
 import { externalAuthService } from '@/services/externalAuth.service';
 import { getPostAuthDestination } from '@/services/authRedirect.service';
 import AuthHeader from '@/components/layout/AuthHeader';
+import { userFacingError } from '@/utils/userFacingError';
 
 export default function OAuthCallback() {
   const navigate = useNavigate();
@@ -31,8 +32,8 @@ export default function OAuthCallback() {
         sessionStorage.removeItem(storageKey);
         const destination = await getPostAuthDestination(user.role, returnUrl);
         if (useAuthStore.getState().isAuthenticated) navigate(destination, { replace: true });
-      } catch {
-        setErrorMsg('Không thể hoàn tất đăng nhập bằng Google. Vui lòng quay lại trang đăng nhập để thử lại.');
+      } catch (err) {
+        setErrorMsg(userFacingError(err, 'Không thể hoàn tất đăng nhập bằng Google. Vui lòng quay lại trang đăng nhập để thử lại.'));
       }
     })();
   }, [searchParams, loginWithExternal, navigate]);

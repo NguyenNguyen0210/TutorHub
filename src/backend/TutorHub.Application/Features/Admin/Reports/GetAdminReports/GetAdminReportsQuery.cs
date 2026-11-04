@@ -8,5 +8,7 @@ namespace TutorHub.Application.Features.Admin.Reports.GetAdminReports;
 public record GetAdminReportsQuery(
     ReportStatus? Status = null,
     int PageNumber = 1,
-    int PageSize = 10
+    int PageSize = 10,
+    string? Search = null,
+    TrustReportType? ReportType = null
 ) : IRequest<PagedResult<ReportSummaryDto>>;

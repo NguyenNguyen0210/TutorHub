@@ -6,6 +6,13 @@ public class GetAdminTransactionsQueryValidator : AbstractValidator<GetAdminTran
 {
     public GetAdminTransactionsQueryValidator()
     {
+        RuleFor(x => x.Sort).IsInEnum();
+        RuleFor(x => x.Status).IsInEnum().When(x => x.Status.HasValue);
+        RuleFor(x => x.Type).IsInEnum().When(x => x.Type.HasValue);
+        RuleFor(x => x.FromDate).Must(date => date == null || date.Value.Year is >= 1900 and <= 9998)
+            .WithMessage("Ngày bắt đầu không hợp lệ.");
+        RuleFor(x => x.ToDate).Must(date => date == null || date.Value.Year is >= 1900 and <= 9998)
+            .WithMessage("Ngày kết thúc không hợp lệ.");
         RuleFor(x => x.PageNumber)
             .GreaterThanOrEqualTo(1)
             .WithMessage("PageNumber must be at least 1.");

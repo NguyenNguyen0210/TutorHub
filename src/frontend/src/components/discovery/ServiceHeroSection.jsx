@@ -32,7 +32,7 @@ export default function ServiceHeroSection({
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-7 text-[color:var(--mkt-body)] sm:text-[17px]">
-              So sánh số buổi, thời lượng và học phí trọn gói trước khi đăng ký. Mỗi dịch vụ đều gắn với hồ sơ gia sư minh bạch.
+              So sánh số buổi, thời lượng và học phí trọn gói trước khi đăng ký. Mỗi gói học đều gắn với hồ sơ gia sư minh bạch.
             </p>
 
             <form
@@ -42,7 +42,7 @@ export default function ServiceHeroSection({
               }}
               className="mt-7 flex min-h-16 w-full max-w-[680px] items-center gap-2 rounded-2xl border border-blue-200 bg-white p-1.5 shadow-[0_16px_40px_-20px_rgba(37,99,235,0.45)] transition focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100"
               role="search"
-              aria-label="Tìm kiếm dịch vụ học tập"
+              aria-label="Tìm kiếm gói học"
             >
               <Icon name="search" size="md" className="ml-3 text-blue-600" />
               <input
@@ -70,7 +70,7 @@ export default function ServiceHeroSection({
                 type="submit"
                 className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
               >
-                <span className="hidden sm:inline">Tìm dịch vụ</span>
+                <span className="hidden sm:inline">Tìm gói học</span>
                 <span className="sm:hidden">Tìm</span>
                 <Icon name="arrow_forward" size="sm" />
               </button>

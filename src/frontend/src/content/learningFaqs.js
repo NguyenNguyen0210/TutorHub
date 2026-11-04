@@ -7,8 +7,8 @@ export const LEARNING_FAQS = [
   },
   {
     "id": "bao-luu-escrow",
-    "question": "Học phí của tôi được bảo lưu và giải ngân như thế nào qua Escrow?",
-    "answer": "Toàn bộ học phí trọn gói của bạn được lưu giữ an toàn tại tài khoản tín thác TutorHub Escrow. Sau mỗi buổi học, hệ thống chờ 12 giờ để bạn đánh giá và xác nhận chất lượng trước khi giải ngân từng phần cho gia sư. Nếu có sự cố, bạn luôn có quyền khiếu nại để được hoàn tiền."
+    "question": "TutorHub giữ và chuyển học phí cho gia sư như thế nào?",
+    "answer": "TutorHub giữ học phí gói học của bạn. Sau mỗi buổi học, bạn có 12 giờ phản hồi trước khi học phí buổi đó được chuyển cho gia sư. Nếu có sự cố, hãy gửi khiếu nại để TutorHub xem xét giải quyết theo chính sách bảo vệ học viên."
   },
   {
     "id": "hoc-thu-doi-gia-su",

@@ -1,4 +1,5 @@
 using MediatR;
+using TutorHub.Application.Common.Concurrency;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
@@ -48,6 +49,15 @@ public class AdminModerateReviewCommandHandler : IRequestHandler<AdminModerateRe
             throw new ConflictException("Review has already been removed by moderation.");
         }
 
+        await using var transaction = await PostgresAdvisoryLock.BeginTransactionAsync(_context, cancellationToken);
+        await PostgresAdvisoryLock.AcquireAsync(_context, $"review:tutor:{review.Enrollment.TutorProfileId:D}", cancellationToken);
+        if (PostgresAdvisoryLock.IsPostgres(_context))
+        {
+            await _context.Reviews.Entry(review).ReloadAsync(cancellationToken);
+            await _context.TutorProfiles.Entry(review.Enrollment.TutorProfile).ReloadAsync(cancellationToken);
+            if (review.IsRemoved) throw new ConflictException("Review has already been removed by moderation.");
+        }
+
         // 1. Soft moderation domain action
         review.RemoveByAdmin(request.Reason, userId);
 
@@ -80,6 +90,7 @@ public class AdminModerateReviewCommandHandler : IRequestHandler<AdminModerateRe
             cancellationToken: cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
+        if (transaction != null) await transaction.CommitAsync(cancellationToken);
         await _serviceCache.InvalidateServiceDetailAsync(review.Enrollment.ServiceId, cancellationToken);
         await _tutorCache.InvalidateTutorProfileAsync(tutorProfileId, cancellationToken);
 

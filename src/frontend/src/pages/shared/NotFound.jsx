@@ -27,11 +27,11 @@ export default function NotFound() {
 
         <div className="space-y-2">
           <span className="font-mono text-xs font-bold uppercase tracking-widest text-brand-primary-700 bg-brand-primary-50 px-2.5 py-1 rounded-pill border border-brand-primary-200">
-            Mã lỗi 404
+            Liên kết không khả dụng
           </span>
           <h1 className="text-headline-1 text-fg m-0">Trang không tồn tại</h1>
           <p className="text-caption text-fg-muted max-w-sm mx-auto">
-            Địa chỉ liên kết bạn đang truy cập có thể đã bị gỡ bỏ, đổi đường dẫn hoặc tạm thời không khả dụng.
+            Không tìm thấy trang bạn muốn xem. Vui lòng kiểm tra địa chỉ hoặc quay lại trang trước.
           </p>
         </div>
 
@@ -56,7 +56,7 @@ export default function NotFound() {
 
         <div className="pt-6 border-t border-border flex items-center justify-center gap-2">
           <Logo variant="mark" size={20} />
-          <span className="text-xs text-fg-muted font-medium">TutorHub Learning Platform</span>
+          <span className="text-xs text-fg-muted font-medium">TutorHub – Nền tảng học cùng gia sư</span>
         </div>
       </div>
     </div>

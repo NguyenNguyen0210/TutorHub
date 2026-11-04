@@ -17,7 +17,7 @@ export const TRUST_POINTS = [
   {
     icon: 'shield',
     title: 'Dòng tiền được bảo chứng',
-    description: 'Ký quỹ an toàn với cơ chế 12 giờ nghiệm thu tự động trước khi giải ngân.',
+    description: "TutorHub giữ học phí và dành 12 giờ sau mỗi buổi để học viên phản hồi trước khi chuyển tiền cho gia sư.",
   },
 ];
 

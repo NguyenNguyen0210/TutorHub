@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import studentWalletService from '@/services/studentWallet.service';
@@ -50,7 +51,7 @@ export default function StudentWalletWithdraw() {
   const [selectedBank, setSelectedBank] = useState('VCB');
   const [accountNumber, setAccountNumber] = useState('');
   const [accountHolderName, setAccountHolderName] = useState('');
-  const [withdrawNote, setWithdrawNote] = useState('Rút tiền từ Ví Học Viên');
+  const [withdrawNote, setWithdrawNote] = useState("Rút tiền từ Ví học viên");
   const [submitting, setSubmitting] = useState(false);
   const [withdrawalResult, setWithdrawalResult] = useState(null);
   const [amountTouched, setAmountTouched] = useState(false);
@@ -149,7 +150,7 @@ export default function StudentWalletWithdraw() {
       });
       setWithdrawalResult(result);
     } catch (err) {
-      setSubmissionError(err?.message || 'Không thể gửi yêu cầu rút tiền. Vui lòng kiểm tra thông tin và thử lại.');
+      setSubmissionError(userFacingError(err, 'Không thể gửi yêu cầu rút tiền. Vui lòng kiểm tra thông tin và thử lại.'));
     } finally {
       setSubmitting(false);
     }
@@ -168,7 +169,7 @@ export default function StudentWalletWithdraw() {
       <div className="py-12">
         <ErrorState
           error={error}
-          title="Không thể tải Ví Học Viên"
+          title="Không thể tải Ví học viên"
           onRetry={() => window.location.reload()}
         />
       </div>
@@ -177,13 +178,13 @@ export default function StudentWalletWithdraw() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
-      <nav aria-label="Breadcrumb">
+      <nav aria-label="Đường dẫn trang">
         <Link
           to="/student/wallet"
           className="inline-flex items-center gap-1.5 text-caption font-semibold text-fg-secondary hover:text-brand-primary-700 transition-colors"
         >
           <Icon name="arrow_back" size="sm" />
-          Quay lại Ví Học Viên
+          Quay lại Ví học viên
         </Link>
       </nav>
 

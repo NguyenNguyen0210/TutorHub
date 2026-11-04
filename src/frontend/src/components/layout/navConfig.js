@@ -4,7 +4,7 @@
  * `match(path)` quyết định trạng thái active (prefix match).
  *
  * Khám phá dùng PublicLayout; công cụ của từng role dùng WorkspaceShell.
- * Student và Admin có mục Khám phá → `/`; Tutor tập trung vào giảng dạy.
+ * Student có mục Khám phá → `/`; Tutor và Admin tập trung vào công việc theo vai trò.
  * Hồ sơ công khai của gia sư nằm trong menu tài khoản.
  */
 
@@ -64,19 +64,17 @@ export const NAV = {
 
   Admin: [
     { path: '/admin/dashboard', label: 'Tổng quan sàn', icon: 'space_dashboard', match: (p) => p === '/admin/dashboard' },
+    { path: '/admin/enrollments', label: 'Hợp đồng học tập', icon: 'school', match: (p) => p.startsWith('/admin/enrollments') },
+    { path: '/admin/services', label: 'Kiểm duyệt gói học', icon: 'inventory_2', match: (p) => p.startsWith('/admin/services') },
     { path: '/admin/student-wallets', label: 'Ví học viên', icon: 'account_balance_wallet', match: (p) => p.startsWith('/admin/student-wallets') },
-    { path: '/admin/transactions', label: 'Giao dịch toàn sàn', icon: 'receipt_long', match: (p) => p.startsWith('/admin/transactions') || p.startsWith('/admin/enrollments/') },
+    { path: '/admin/transactions', label: 'Giao dịch toàn sàn', icon: 'receipt_long', match: (p) => p.startsWith('/admin/transactions') },
     { path: '/admin/revenue', label: 'Doanh thu nền tảng', icon: 'trending_up', match: (p) => p.startsWith('/admin/revenue') },
-    { path: '/admin/withdrawals', label: 'Lệnh rút tiền', icon: 'payments', match: (p) => p.startsWith('/admin/withdrawals') },
-    { path: '/admin/tutor-applications', label: 'Duyệt gia sư', icon: 'verified_user', match: (p) => p.startsWith('/admin/tutor-applications') },
+    { path: '/admin/withdrawals', label: 'Yêu cầu rút tiền', icon: 'payments', match: (p) => p.startsWith('/admin/withdrawals') },
     { path: '/admin/disputes', label: 'Tranh chấp', icon: 'gavel', match: (p) => p.startsWith('/admin/disputes') },
     { path: '/admin/trust-reports', label: 'Báo cáo vi phạm', icon: 'flag', match: (p) => p.startsWith('/admin/trust-reports') },
-    { path: '/admin/users', label: 'Người dùng', icon: 'group', match: (p) => p.startsWith('/admin/users') },
-    { path: '/admin/conversations', label: 'Điều tra hội thoại', icon: 'chat', match: (p) => p.startsWith('/admin/conversations') },
+    { path: '/admin/users', label: "Người dùng và hồ sơ", icon: 'group', match: (p) => p.startsWith('/admin/users') || p.startsWith('/admin/tutor-applications') },
     { path: '/admin/categories', label: 'Danh mục & môn học', icon: 'category', match: (p) => p.startsWith('/admin/categories') || p.startsWith('/admin/subjects') },
-    { path: '/admin/audit-logs', label: 'Sổ kiểm toán', icon: 'history', match: (p) => p.startsWith('/admin/audit-logs') },
-    { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },
-    { path: '/', label: 'Khám phá gia sư', icon: 'explore', match: () => false },
+    { path: '/admin/audit-logs', label: 'Nhật ký kiểm toán', icon: 'history', match: (p) => p.startsWith('/admin/audit-logs') },
   ],
 };
 
@@ -97,18 +95,17 @@ export function getWorkspaceNavGroups(role, items) {
   if (role === 'Admin') {
     const sections = [
       { label: 'Tổng quan', paths: ['/admin/dashboard'] },
+      { label: 'Vận hành', paths: ['/admin/enrollments', '/admin/users'] },
       { label: 'Tài chính', paths: ['/admin/student-wallets', '/admin/transactions', '/admin/revenue', '/admin/withdrawals'] },
-      { label: 'Kiểm duyệt', paths: ['/admin/tutor-applications', '/admin/disputes', '/admin/trust-reports', '/admin/conversations'] },
-      { label: 'Quản lý nền tảng', paths: ['/admin/users', '/admin/categories', '/admin/audit-logs'] },
-      { label: 'Thông báo', paths: ['/app/notifications'] },
-      { label: 'Khám phá', paths: ['/'] },
+      { label: 'Kiểm duyệt', paths: ['/admin/services', '/admin/disputes', '/admin/trust-reports'] },
+      { label: 'Quản lý nền tảng', paths: ['/admin/categories', '/admin/audit-logs'] },
     ];
     return sections.map(section => ({ label: section.label, items: section.paths.map(path => items.find(item => item.path === path)).filter(Boolean) })).filter(group => group.items.length);
   }
   const finances = ['/student/bookings', '/student/wallet', '/student/disputes'];
   const groups = role === 'Student' ? [
     { label: 'Học tập', items: items.filter(item => item.path.startsWith('/student/') && !finances.includes(item.path)) },
-    { label: 'Học phí & đơn hàng', items: items.filter(item => finances.includes(item.path)) },
+    { label: "Học phí và đơn hàng", items: items.filter(item => finances.includes(item.path)) },
   ] : [
     { label: role === 'Tutor' ? 'Giảng dạy' : 'Quản lý', items: items.filter(item => !item.path.startsWith('/app/') && item.path !== '/') },
   ];
@@ -119,9 +116,9 @@ export function getWorkspaceNavGroups(role, items) {
 }
 
 export const ROLE_SUBTITLE = {
-  Student: 'Student Learning Hub',
-  Tutor: 'Verified Master Tutor',
-  Admin: 'Governance Console',
+  Student: "Không gian học tập",
+  Tutor: "Không gian giảng dạy",
+  Admin: "Không gian quản trị",
 };
 
 export default NAV;

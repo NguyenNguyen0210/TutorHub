@@ -98,7 +98,7 @@ public class CompleteWithdrawalCommandHandler : IRequestHandler<CompleteWithdraw
             entityId: withdrawal.Id.ToString(),
             userId: userId,
             oldValues: new { Status = WithdrawalStatus.Processing.ToString() },
-            newValues: new { Status = withdrawal.Status.ToString() },
+            newValues: new { Status = withdrawal.Status.ToString(), BankTransferReference = request.BankTransferReference?.Trim(), ReconciliationNote = request.ReconciliationNote?.Trim() },
             cancellationToken: cancellationToken);
 
         // Enqueue Outbox Message in same DB transaction
@@ -134,6 +134,6 @@ public class CompleteWithdrawalCommandHandler : IRequestHandler<CompleteWithdraw
             ProcessedByAdminId: withdrawal.ProcessedByAdminId,
             ProcessedByAdminName: admin.FullName,
             FailureReason: withdrawal.FailureReason
-        );
+        ) { BankTransferReference = request.BankTransferReference?.Trim(), ReconciliationNote = request.ReconciliationNote?.Trim() };
     }
 }

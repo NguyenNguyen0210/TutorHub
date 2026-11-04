@@ -162,6 +162,7 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAdminWithdrawals(
         [FromQuery] WithdrawalStatus? status,
+        [FromQuery] string? search = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
@@ -169,11 +170,19 @@ public class AdminController : ControllerBase
         var query = new GetAdminWithdrawalsQuery(
             Status: status,
             PageNumber: pageNumber,
-            PageSize: pageSize
+            PageSize: pageSize,
+            Search: search
         );
 
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<WithdrawalDto>>.SuccessResult(result, "Admin withdrawals list retrieved successfully."));
+    }
+
+    [HttpGet("withdrawals/summary")]
+    public async Task<IActionResult> GetAdminWithdrawalSummary(CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new GetAdminWithdrawalSummaryQuery(), cancellationToken);
+        return Ok(ApiResponse<AdminWithdrawalSummaryDto>.SuccessResult(result));
     }
 
     /// <summary>
@@ -211,14 +220,17 @@ public class AdminController : ControllerBase
     /// Complete a processing withdrawal request and finalize payout (Admin only).
     /// </summary>
     [HttpPost("withdrawals/{id:guid}/complete")]
+    [TutorHub.Api.Filters.Idempotent(RequireKey = true)]
     [ProducesResponseType(typeof(ApiResponse<WithdrawalDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> CompleteWithdrawal([FromRoute] Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> CompleteWithdrawal([FromRoute] Guid id, [FromBody] CompleteWithdrawalApiRequest request, CancellationToken cancellationToken)
     {
-        var command = new CompleteWithdrawalCommand(id);
+        if (string.IsNullOrWhiteSpace(request.BankTransferReference))
+            return BadRequest(ApiResponse<object>.FailureResult("Vui lòng nhập mã giao dịch chuyển khoản để đối soát."));
+        var command = new CompleteWithdrawalCommand(id, request.BankTransferReference, request.ReconciliationNote);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<WithdrawalDto>.SuccessResult(result, "Withdrawal completed successfully."));
     }
@@ -506,9 +518,9 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<AdminDashboardStatsDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetDashboardStats(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetDashboardStats(CancellationToken cancellationToken, [FromQuery] DashboardPeriod period = DashboardPeriod.All)
     {
-        var query = new GetAdminDashboardStatsQuery();
+        var query = new GetAdminDashboardStatsQuery(period);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<AdminDashboardStatsDto>.SuccessResult(result, "Dashboard stats retrieved successfully."));
     }
@@ -554,6 +566,10 @@ public class AdminController : ControllerBase
     /// <summary>
     /// Get detailed profile, teaching/learning stats, and recent bookings for a specific user (Admin only).
     /// </summary>
+    [HttpGet("users/summary")]
+    public async Task<IActionResult> GetUserSummary(CancellationToken cancellationToken) =>
+        Ok(ApiResponse<AdminUserCounts>.SuccessResult(await _sender.Send(new GetAdminUserSummaryQuery(), cancellationToken)));
+
     [HttpGet("users/{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<AdminUserDetailDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -658,13 +674,24 @@ public class AdminController : ControllerBase
         [FromQuery] TransactionStatus? status,
         [FromQuery] DateTime? fromDate,
         [FromQuery] DateTime? toDate,
+        [FromQuery] TransactionType? type = null,
+        [FromQuery] AdminTransactionSort sort = AdminTransactionSort.Newest,
+        [FromQuery] Guid? bookingId = null,
+        [FromQuery] bool? settlementRequired = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetAdminTransactionsQuery(search, status, fromDate, toDate, pageNumber, pageSize);
+        var query = new GetAdminTransactionsQuery(search, status, fromDate, toDate, pageNumber, pageSize, type, sort, bookingId, SettlementRequired: settlementRequired);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<AdminTransactionDto>>.SuccessResult(result, "Transactions retrieved successfully."));
+    }
+
+    [HttpGet("transactions/{id:guid}")]
+    public async Task<IActionResult> GetAdminTransaction(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new GetAdminTransactionQuery(id), cancellationToken);
+        return Ok(ApiResponse<AdminTransactionDto>.SuccessResult(result));
     }
 
     /// <summary>
@@ -677,9 +704,10 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ForceUnpublishService(
         [FromRoute] Guid serviceId,
+        [FromBody] AdminServiceModerationRequest request,
         CancellationToken cancellationToken)
     {
-        var command = new AdminForceUnpublishServiceCommand(serviceId);
+        var command = new AdminForceUnpublishServiceCommand(serviceId, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<ServiceDto>.SuccessResult(result, "Service force-unpublished successfully by administrator."));
     }
@@ -729,6 +757,7 @@ public class AdminController : ControllerBase
     /// Admin: Inspect conversations with operational access reason.
     /// </summary>
     [HttpGet("conversations")]
+    [HttpGet("investigations/conversations")]
     [ProducesResponseType(typeof(ApiResponse<TutorHub.Application.Features.Conversations.DTOs.CursorPagedResult<TutorHub.Application.Features.Conversations.DTOs.ConversationDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -737,10 +766,12 @@ public class AdminController : ControllerBase
         [FromQuery] string operationalReason,
         [FromQuery] string? cursor,
         [FromQuery] int pageSize = 20,
+        [FromQuery] Guid? disputeId = null, [FromQuery] Guid? reportId = null,
+        [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
         var query = new TutorHub.Application.Features.Admin.Conversations.AdminGetConversations.AdminGetConversationsQuery(
-            operationalReason, cursor, pageSize);
+            operationalReason, cursor, pageSize, disputeId, reportId, fromDate, toDate);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<TutorHub.Application.Features.Conversations.DTOs.CursorPagedResult<TutorHub.Application.Features.Conversations.DTOs.ConversationDto>>.SuccessResult(result));
     }
@@ -749,6 +780,7 @@ public class AdminController : ControllerBase
     /// Admin: Inspect messages in a conversation with operational access reason.
     /// </summary>
     [HttpGet("conversations/{id:guid}/messages")]
+    [HttpGet("investigations/conversations/{id:guid}/messages")]
     [ProducesResponseType(typeof(ApiResponse<TutorHub.Application.Features.Conversations.DTOs.CursorPagedResult<TutorHub.Application.Features.Conversations.DTOs.MessageDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -759,10 +791,12 @@ public class AdminController : ControllerBase
         [FromQuery] string operationalReason,
         [FromQuery] string? cursor,
         [FromQuery] int pageSize = 50,
+        [FromQuery] Guid? disputeId = null, [FromQuery] Guid? reportId = null,
+        [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
         var query = new TutorHub.Application.Features.Admin.Conversations.AdminGetConversationMessages.AdminGetConversationMessagesQuery(
-            id, operationalReason, cursor, pageSize);
+            id, operationalReason, cursor, pageSize, disputeId, reportId, fromDate, toDate);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<TutorHub.Application.Features.Conversations.DTOs.CursorPagedResult<TutorHub.Application.Features.Conversations.DTOs.MessageDto>>.SuccessResult(result));
     }

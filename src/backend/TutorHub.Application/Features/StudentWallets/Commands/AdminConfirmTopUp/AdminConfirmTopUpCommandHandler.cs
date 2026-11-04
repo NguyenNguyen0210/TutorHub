@@ -50,6 +50,10 @@ public class AdminConfirmTopUpCommandHandler : IRequestHandler<AdminConfirmTopUp
             {
                 throw new BadRequestException("Cannot confirm an already rejected top-up request.");
             }
+            if (topUp.IsGatewayTopUp)
+                throw new BadRequestException("Giao dịch VNPAY chỉ được ghi có sau khi cổng thanh toán xác thực thành công.");
+            if (string.IsNullOrWhiteSpace(request.AdminNote) || request.AdminNote.Trim().Length < 10 || request.AdminNote.Length > 500)
+                throw new BadRequestException("Vui lòng nhập ghi chú đối soát từ 10 đến 500 ký tự.");
 
             // Pessimistic row-level lock on StudentWallet
             var wallet = await _context.StudentWallets
@@ -61,6 +65,8 @@ public class AdminConfirmTopUpCommandHandler : IRequestHandler<AdminConfirmTopUp
                 throw new NotFoundException(nameof(StudentWallet), topUp.StudentWalletId);
             }
             topUp.Wallet = wallet;
+            if (!await _context.StudentProfiles.AnyAsync(s => s.Id == wallet.StudentProfileId && s.User.Role == UserRole.Student, cancellationToken))
+                throw new BadRequestException("Yêu cầu này không thuộc ví học viên.");
 
             var balanceBefore = wallet.AvailableBalance;
             wallet.Credit(topUp.Amount, now);

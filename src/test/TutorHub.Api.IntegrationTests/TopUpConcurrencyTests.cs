@@ -42,7 +42,7 @@ public class TopUpConcurrencyTests : IntegrationTestBase
         await Db.SaveChangesAsync();
         SetCurrentUser(admin.Id, UserRole.Admin);
 
-        var command = new AdminConfirmTopUpCommand(topUp.Id);
+        var command = new AdminConfirmTopUpCommand(topUp.Id, "Matched legacy bank settlement receipt");
         await Task.WhenAll(SendAsync(command), SendAsync(command));
 
         var balance = await Db.Wallets.AsNoTracking().Where(w => w.Id == wallet.Id)
@@ -52,8 +52,10 @@ public class TopUpConcurrencyTests : IntegrationTestBase
             t.ReferenceId == topUp.Id && t.Type == WalletTransactionType.TopUpCredit)).Should().Be(1);
     }
 
-    [Fact]
-    public async Task TwoGatewayCallbacks_OnlyCreditWalletOnce()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TwoGatewayCallbacks_OnlyCreditWalletOnce(bool earlierFailure)
     {
         var (_, tutor, admin) = await SeedHelper.SeedTutorWithWalletAsync(Db);
         var (studentUser, student, _) = await SeedHelper.SeedMarketplaceAsync(Db, tutor, admin.Id);
@@ -67,6 +69,10 @@ public class TopUpConcurrencyTests : IntegrationTestBase
             Id = Guid.NewGuid(), WalletId = wallet.Id, Amount = 150_000m,
             TransferReference = $"TOPUP{Guid.NewGuid():N}", RequestedAt = DateTime.UtcNow
         };
+        if (earlierFailure)
+        {
+            topUp.RejectViaGateway("Previous failed gateway attempt", DateTime.UtcNow);
+        }
         Db.Wallets.Add(wallet);
         Db.TopUpRequests.Add(topUp);
         await Db.SaveChangesAsync();
@@ -90,6 +96,8 @@ public class TopUpConcurrencyTests : IntegrationTestBase
         var replies = await Task.WhenAll(
             InvokeAsync(firstScope.ServiceProvider), InvokeAsync(secondScope.ServiceProvider));
         replies.Should().OnlyContain(reply => reply.Code == "00");
+        (await Db.TopUpRequests.AsNoTracking().SingleAsync(t => t.Id == topUp.Id)).Status
+            .Should().Be(TopUpRequestStatus.Confirmed);
         (await Db.Wallets.AsNoTracking().Where(w => w.Id == wallet.Id)
             .Select(w => w.AvailableBalance).SingleAsync()).Should().Be(150_000m);
         (await Db.WalletTransactions.AsNoTracking().CountAsync(t =>

@@ -50,6 +50,9 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
                 throw new ConflictException("Refund has already settled successfully.");
             }
 
+            if (!refundTx.SettlementRequired || refundTx.Status is not (TransactionStatus.Pending or TransactionStatus.Failed))
+                throw new ConflictException("Khoản hoàn tiền này không cần đối soát ngoài hệ thống.");
+
             if (refundTx.Status == TransactionStatus.Failed && request.Outcome == TransactionStatus.Failed)
             {
                 return new RefundCallbackResultDto
@@ -94,7 +97,7 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
                     enrollmentId,
                     studentUserId,
                     new MoneyDto(refundTx.Amount),
-                    refundTx.Id));
+                    refundTx.Id) { BookingId = refundTx.BookingId });
             }
             else
             {
@@ -119,7 +122,7 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
                     studentUserId,
                     new MoneyDto(refundTx.Amount),
                     refundTx.Id,
-                    request.FailureReason ?? "External refund settlement failed"));
+                    request.FailureReason ?? "External refund settlement failed") { BookingId = refundTx.BookingId });
             }
 
             // Central audit log (Slice D3)
@@ -129,7 +132,7 @@ public class AdminProcessRefundCallbackCommandHandler : IRequestHandler<AdminPro
                 entityId: refundTx.Id.ToString(),
                 userId: userId,
                 oldValues: new { Status = oldStatus.ToString() },
-                newValues: new { Status = refundTx.Status.ToString(), SettlementRequired = refundTx.SettlementRequired, Reason = request.FailureReason },
+                newValues: new { Status = refundTx.Status.ToString(), SettlementRequired = refundTx.SettlementRequired, Reason = request.FailureReason, ProviderReference = request.ProviderReference },
                 cancellationToken: cancellationToken);
 
             // Failed refunds with an outstanding settlement obligation may be

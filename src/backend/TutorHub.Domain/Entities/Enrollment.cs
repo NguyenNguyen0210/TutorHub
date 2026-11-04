@@ -144,15 +144,22 @@ public class Enrollment
 
         var effectiveNow = now ?? DateTime.UtcNow;
 
-        Status = EnrollmentStatus.Cancelled;
-        CancelledAt = effectiveNow;
-        CancellationReason = reason;
-        CancelledBy = cancelledBy;
-
         // Cancel all non-completed and not-already-cancelled sessions
         var newlyCancelledSessions = Sessions
             .Where(s => s.Status != SessionStatus.Completed && s.Status != SessionStatus.Cancelled)
             .ToList();
+
+        // Validate every escrow allocation before mutating the tracked enrollment or
+        // any session. A started session must not be refunded while awaiting the job.
+        foreach (var session in newlyCancelledSessions)
+        {
+            session.EnsureCanCancelFromEnrollment(effectiveNow);
+        }
+
+        Status = EnrollmentStatus.Cancelled;
+        CancelledAt = effectiveNow;
+        CancellationReason = reason;
+        CancelledBy = cancelledBy;
 
         foreach (var session in newlyCancelledSessions)
         {

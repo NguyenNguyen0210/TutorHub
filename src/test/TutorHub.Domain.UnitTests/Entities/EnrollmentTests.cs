@@ -418,6 +418,49 @@ public class EnrollmentTests
         s4.Status.Should().Be(SessionStatus.Cancelled);
     }
 
+    [Fact]
+    public void Cancel_WhenOneSessionAlreadyStarted_LeavesAllStatesUnchanged()
+    {
+        var now = DateTime.UtcNow;
+        var enrollment = CreateEnrollmentWithSessions(900_000m, 3);
+        var future = enrollment.Sessions.ElementAt(0);
+        var started = enrollment.Sessions.ElementAt(1);
+        var unscheduled = enrollment.Sessions.ElementAt(2);
+        future.Schedule(now.AddDays(1), now.AddDays(1).AddHours(1));
+        started.Schedule(now.AddHours(-2), now.AddHours(-1));
+
+        var act = () => enrollment.Cancel("Cancel remaining sessions", CancelledBy.Student, now);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Cannot cancel a session that has already started.");
+        enrollment.Status.Should().Be(EnrollmentStatus.Active);
+        enrollment.CancelledAt.Should().BeNull();
+        enrollment.CancellationReason.Should().BeNull();
+        enrollment.CancelledBy.Should().BeNull();
+        future.Status.Should().Be(SessionStatus.Scheduled);
+        started.Status.Should().Be(SessionStatus.Scheduled);
+        unscheduled.Status.Should().Be(SessionStatus.Unscheduled);
+    }
+
+    [Fact]
+    public void Cancel_WhenOneSessionAwaitsPayout_LeavesOtherSessionsUntouched()
+    {
+        var now = DateTime.UtcNow;
+        var enrollment = CreateEnrollmentWithSessions(600_000m, 2);
+        var awaiting = enrollment.Sessions.ElementAt(1);
+        awaiting.Schedule(now.AddHours(-2), now.AddHours(-1));
+        awaiting.TryStartGracePeriod(now, TimeSpan.FromHours(12)).Should().BeTrue();
+
+        var act = () => enrollment.Cancel("Cancel remaining sessions", CancelledBy.Tutor, now);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Cannot cancel a session that is awaiting payout. Use issue report instead.");
+        enrollment.Status.Should().Be(EnrollmentStatus.Active);
+        enrollment.CancelledAt.Should().BeNull();
+        enrollment.Sessions.ElementAt(0).Status.Should().Be(SessionStatus.Unscheduled);
+        awaiting.Status.Should().Be(SessionStatus.AwaitingPayout);
+    }
+
     // Raw enrollment in default Pending state, without auto-activation.
     private static Enrollment CreateRawEnrollment(decimal totalPrice, int totalSessions)
     {

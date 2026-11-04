@@ -1,3 +1,5 @@
+using TutorHub.Infrastructure.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using TutorHub.Application.Common.Settings;
 using Amazon;
 using Amazon.Runtime;
@@ -303,7 +305,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IRedisDistributedLock, RedisDistributedLock>();
 
         // Redis SignalR Backplane
-        var signalR = services.AddSignalR();
+        services.AddSingleton<ActiveAccountHubFilter>();
+        var signalR = services.AddSignalR(options => options.AddFilter<ActiveAccountHubFilter>());
         signalR.AddStackExchangeRedis(redisConnStr, o =>
         {
             o.Configuration.ChannelPrefix = RedisChannel.Literal("TutorHub");

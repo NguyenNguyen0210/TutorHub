@@ -7,5 +7,6 @@ public record AdminGetConversationMessagesQuery(
     Guid ConversationId,
     string OperationalReason,
     string? Cursor = null,
-    int PageSize = 50
+    int PageSize = 50,
+    Guid? DisputeId = null, Guid? ReportId = null, DateTime? FromDate = null, DateTime? ToDate = null
 ) : IRequest<CursorPagedResult<MessageDto>>;

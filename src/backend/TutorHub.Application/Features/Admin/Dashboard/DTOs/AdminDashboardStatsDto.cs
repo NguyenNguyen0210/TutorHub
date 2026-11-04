@@ -5,7 +5,10 @@ public record AdminDashboardStatsDto(
     TutorStatsDto Tutors,
     BookingStatsDto Bookings,
     FinancialStatsDto Financials,
-    ActionQueueDto ActionQueue
+    ActionQueueDto ActionQueue,
+    DateTime UpdatedAt = default,
+    DateTime? FromUtc = null,
+    string Period = "All"
 );
 
 public record UserStatsDto(
@@ -36,11 +39,16 @@ public record FinancialStatsDto(
     decimal NetGmv,
     decimal TotalPlatformRevenue,
     decimal TotalTutorPayouts,
-    decimal TotalRefundedAmount
+    decimal TotalRefundedAmount,
+    decimal PendingRefundAmount = 0
 );
 
 public record ActionQueueDto(
     int PendingTutorsCount,
     int PendingWithdrawalsCount,
-    int OpenReportsCount
+    int OpenReportsCount,
+    int OpenDisputesCount = 0,
+    int PendingStudentWithdrawalsCount = 0,
+    int ReviewableTopUpsCount = 0,
+    int OutstandingRefundsCount = 0
 );

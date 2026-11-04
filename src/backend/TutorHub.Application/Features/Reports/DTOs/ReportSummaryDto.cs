@@ -16,5 +16,6 @@ public record ReportSummaryDto(
     ReportStatus Status,
     ReportDecision? AdminDecision,
     DateTime CreatedAt,
-    DateTime? ResolvedAt
+    DateTime? ResolvedAt,
+    string? ReportedUserName = null
 );

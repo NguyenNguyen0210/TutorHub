@@ -4,6 +4,7 @@ import { cn } from '@/lib/cn';
 import Icon from '@/components/ui/Icon';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import { userFacingError } from '@/utils/userFacingError';
 
 /**
  * ErrorState — phân biệt network / unauthorized / conflict / notFound / server.
@@ -39,30 +40,27 @@ export default function ErrorState({
     defaultMessage =
       'Vui lòng kiểm tra kết nối mạng rồi thử lại.';
   } else if (kind === 'notFound' || status === 404) {
-    defaultTitle = 'Không tìm thấy dữ liệu';
+    defaultTitle = 'Không tìm thấy nội dung';
     defaultMessage =
-      'Nội dung bạn tìm kiếm không còn khả dụng hoặc đã bị xóa.';
+      'Vui lòng kiểm tra liên kết hoặc quay lại trang trước.';
+  } else if (status === 401) {
+    defaultTitle = 'Cần đăng nhập';
+    defaultMessage = 'Vui lòng đăng nhập để tiếp tục.';
   } else if (kind === 'forbidden' || status === 403) {
     defaultTitle = 'Không có quyền truy cập';
     defaultMessage =
       'Tài khoản hiện tại không có quyền xem nội dung này.';
   } else if (kind === 'conflict' || status === 409) {
-    defaultTitle = 'Thông tin đã thay đổi';
+    defaultTitle = 'Chưa thể hoàn tất thao tác';
     defaultMessage =
-      'Thông tin đã được cập nhật. Vui lòng tải lại trang rồi thử lại.';
+      'Vui lòng tải lại thông tin, kiểm tra rồi thử lại.';
   } else if (kind === 'throttled' || status === 429) {
-    defaultTitle = 'Quá nhiều yêu cầu';
-    defaultMessage = 'Hệ thống đang bận. Vui lòng chờ vài giây trước khi thử lại.';
+    defaultTitle = 'Vui lòng chờ một chút';
+    defaultMessage = 'Chưa thể tiếp tục lúc này. Vui lòng chờ một chút rồi thử lại.';
   }
 
   const displayTitle = title || defaultTitle;
-  const isNetwork = kind === 'network' || status === 0;
-  const trimmedMessage = typeof message === 'string' ? message.trim() : message;
-  const isRawNetworkError =
-    typeof trimmedMessage === 'string' && trimmedMessage.toLowerCase() === 'network error';
-  const isTechnicalMessage = typeof trimmedMessage === 'string' && /request failed|status code|network error|exception|stack trace|\bat (?:System|Microsoft)\.|traceid|correlation|sqlstate|\bhttps?:\/\/|ECONN|ENOTFOUND/i.test(trimmedMessage);
-  const displayMessage =
-    isNetwork && (!trimmedMessage || isRawNetworkError) || isTechnicalMessage ? defaultMessage : message || defaultMessage;
+  const displayMessage = userFacingError(message || error, defaultMessage);
   const errorDetails =
     showTechnicalDetails && Array.isArray(error?.errors) && error.errors.length > 0 ? error.errors : null;
   const traceId = showTechnicalDetails ? error?.traceId : null;
@@ -91,7 +89,7 @@ export default function ErrorState({
       {errorDetails && (
         <ul className="text-left text-caption text-danger-strong bg-surface p-3 rounded-brand-md border border-danger/25 space-y-1 list-disc list-inside">
           {errorDetails.map((err, idx) => (
-            <li key={idx}>{err}</li>
+            <li key={idx}>{userFacingError(err, 'Vui lòng kiểm tra thông tin và thử lại.')}</li>
           ))}
         </ul>
       )}
@@ -106,7 +104,7 @@ export default function ErrorState({
       <div className="pt-2 flex items-center justify-center gap-3">
         {onRetry && (
           <Button variant="danger" size="md" onClick={onRetry} icon={<Icon name="refresh" size="sm" />}>
-            Thử Lại
+            Thử lại
           </Button>
         )}
 

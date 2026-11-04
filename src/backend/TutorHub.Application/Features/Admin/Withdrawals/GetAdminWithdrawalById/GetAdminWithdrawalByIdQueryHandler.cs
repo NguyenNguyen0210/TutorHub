@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Wallets.DTOs;
+using TutorHub.Domain.Enums;
+using System.Text.Json;
 
 namespace TutorHub.Application.Features.Admin.Withdrawals.GetAdminWithdrawalById;
 
@@ -22,11 +24,33 @@ public class GetAdminWithdrawalByIdQueryHandler : IRequestHandler<GetAdminWithdr
             .Include(w => w.Wallet).ThenInclude(wall => wall.User)
             .Include(w => w.ProcessingStartedByAdmin)
             .Include(w => w.ProcessedByAdmin)
-            .FirstOrDefaultAsync(w => w.Id == request.WithdrawalId, cancellationToken);
+            .FirstOrDefaultAsync(w => w.Id == request.WithdrawalId
+                && ((w.Wallet.User != null && w.Wallet.User.Role == UserRole.Tutor)
+                    || (w.Wallet.TutorProfile != null && w.Wallet.TutorProfile.User.Role == UserRole.Tutor)), cancellationToken);
 
         if (withdrawal == null)
         {
             throw new NotFoundException("Withdrawal", request.WithdrawalId);
+        }
+        var reservation = await _context.WalletTransactions.AsNoTracking()
+            .Where(t => t.WithdrawalId == withdrawal.Id && t.Type == WalletTransactionType.WithdrawalDebit)
+            .OrderBy(t => t.CreatedAt).Select(t => new { t.BalanceBefore, t.BalanceAfter }).FirstOrDefaultAsync(cancellationToken);
+        var evidence = await _context.AuditLogs.AsNoTracking()
+            .Where(a => a.EntityName == "Withdrawal" && a.EntityId == withdrawal.Id.ToString() && a.Action == "WithdrawalCompleted")
+            .OrderByDescending(a => a.CreatedAt).Select(a => a.NewValuesJson).FirstOrDefaultAsync(cancellationToken);
+        string? reference = null, note = null;
+        if (evidence != null)
+        {
+            try
+            {
+                using var json = JsonDocument.Parse(evidence);
+                if (json.RootElement.ValueKind == JsonValueKind.Object)
+                {
+                    if (json.RootElement.TryGetProperty("bankTransferReference", out var value) && value.ValueKind == JsonValueKind.String) reference = value.GetString();
+                    if (json.RootElement.TryGetProperty("reconciliationNote", out value) && value.ValueKind == JsonValueKind.String) note = value.GetString();
+                }
+            }
+            catch (JsonException) { /* Legacy audit text has no structured reconciliation metadata. */ }
         }
 
         return new WithdrawalDto(
@@ -50,6 +74,12 @@ public class GetAdminWithdrawalByIdQueryHandler : IRequestHandler<GetAdminWithdr
             ProcessedByAdminId: withdrawal.ProcessedByAdminId,
             ProcessedByAdminName: withdrawal.ProcessedByAdmin?.FullName,
             FailureReason: withdrawal.FailureReason
-        );
+        ) {
+            TutorAvatarUrl = withdrawal.Wallet.User?.AvatarUrl,
+            AvailableBalanceAtRequest = reservation?.BalanceBefore,
+            AvailableBalanceAfterReservation = reservation?.BalanceAfter,
+            BankTransferReference = reference,
+            ReconciliationNote = note
+        };
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TutorHub.Application.Common.Events;
+using TutorHub.Application.Common.Concurrency;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Bookings.DTOs;
 using TutorHub.Domain.Entities;
@@ -86,30 +87,48 @@ public class AutoPayoutJob : BackgroundService
         var count = 0;
 
         // Phase 1: Open 12-hour grace period for ended sessions
-        var endedSessions = await dbContext.Sessions
-            .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
-            .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
+        var endedSessionIds = await dbContext.Sessions
+            .AsNoTracking()
             .Where(s => s.Status == SessionStatus.Scheduled &&
                         s.EndAt.HasValue &&
                         s.EndAt.Value <= now &&
                         s.GracePeriodStartedAt == null)
+            .Select(s => s.Id)
             .ToListAsync(cancellationToken);
 
-        foreach (var session in endedSessions)
+        foreach (var sessionId in endedSessionIds)
         {
-            if (session.TryStartGracePeriod(now, TimeSpan.FromHours(12)))
+            // Cancellation also locks Sessions first. Re-read after taking the row
+            // lock so an enrollment refund cannot race a grace-period transition.
+            // Give each session its own context to isolate failures/rollback.
+            using var sessionScope = _scopeFactory.CreateScope();
+            var sessionContext = sessionScope.ServiceProvider.GetRequiredService<IAppDbContext>();
+            await using var tx = await sessionContext.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
+                var session = await sessionContext.Sessions
+                    .FromSqlInterpolated($"SELECT * FROM \"Sessions\" WHERE \"Id\" = {sessionId} FOR UPDATE")
+                    .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
+                    .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (session == null || !session.TryStartGracePeriod(now, TimeSpan.FromHours(12)))
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    continue;
+                }
+
                 var studentUserId = session.Enrollment?.StudentProfile?.UserId ?? Guid.Empty;
                 var tutorUserId = session.Enrollment?.TutorProfile?.UserId ?? Guid.Empty;
 
-                dbContext.AddOutboxMessage(new GracePeriodStartedEvent(
+                sessionContext.AddOutboxMessage(new GracePeriodStartedEvent(
                     session.Id,
                     session.EnrollmentId,
                     studentUserId,
                     tutorUserId,
                     session.GracePeriodEndsAt!.Value));
 
-                dbContext.AddOutboxMessage(new GracePeriodClosingSoonEvent(
+                sessionContext.AddOutboxMessage(new GracePeriodClosingSoonEvent(
                     session.Id,
                     session.EnrollmentId,
                     studentUserId,
@@ -118,13 +137,19 @@ public class AutoPayoutJob : BackgroundService
                     session.GracePeriodEndsAt!.Value),
                     scheduledAt: session.GracePeriodEndsAt!.Value.AddHours(-2));
 
+                await sessionContext.SaveChangesAsync(cancellationToken);
+                await tx.CommitAsync(cancellationToken);
                 count++;
             }
-        }
-
-        if (endedSessions.Count > 0)
-        {
-            await dbContext.SaveChangesAsync(cancellationToken);
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                _logger.LogError(ex, "Failed to start grace period for session {SessionId}", sessionId);
+            }
         }
 
         // Phase 2: Auto-complete and release payout for expired grace periods
@@ -158,8 +183,11 @@ public class AutoPayoutJob : BackgroundService
             {
                 // ReportIssue and CreateDispute lock this row first. Recheck under
                 // the same lock before releasing any escrow.
+                await PostgresAdvisoryLock.LockRowAsync(sessionContext,
+                    $"SELECT 1 FROM \"Sessions\" WHERE \"Id\" = {sessionId} FOR UPDATE", cancellationToken);
+                await PostgresAdvisoryLock.LockEnrollmentForSessionAsync(sessionContext, sessionId, cancellationToken);
                 var session = await sessionContext.Sessions
-                    .FromSqlInterpolated($"SELECT * FROM \"Sessions\" WHERE \"Id\" = {sessionId} FOR UPDATE")
+                    .Where(s => s.Id == sessionId)
                     .Include(s => s.Enrollment).ThenInclude(e => e.StudentProfile)
                     .Include(s => s.Enrollment).ThenInclude(e => e.TutorProfile)
                     .Include(s => s.Enrollment).ThenInclude(e => e.Sessions)

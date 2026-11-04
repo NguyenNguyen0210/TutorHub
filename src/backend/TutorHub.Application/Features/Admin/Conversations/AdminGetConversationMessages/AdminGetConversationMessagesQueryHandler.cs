@@ -46,11 +46,12 @@ public class AdminGetConversationMessagesQueryHandler : IRequestHandler<AdminGet
             throw new BadRequestException("A valid operational reason (at least 5 characters) is required.");
         }
 
+        var scope = await ConversationInvestigationScope.CreateAsync(_dbContext, request.DisputeId, request.ReportId, request.FromDate, request.ToDate, cancellationToken);
         var adminUserId = _currentUserService.UserId.Value;
 
         var conversation = await _dbContext.Conversations
             .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == request.ConversationId, cancellationToken);
+            .Where(scope.Match).FirstOrDefaultAsync(c => c.Id == request.ConversationId, cancellationToken);
 
         if (conversation == null)
         {
@@ -67,7 +68,7 @@ public class AdminGetConversationMessagesQueryHandler : IRequestHandler<AdminGet
 
         var query = _dbContext.Messages
             .AsNoTracking()
-            .Where(m => m.ConversationId == request.ConversationId);
+            .Where(m => m.ConversationId == request.ConversationId && m.CreatedAt >= scope.From && m.CreatedAt < scope.To);
 
         if (!string.IsNullOrWhiteSpace(request.Cursor))
         {
@@ -117,7 +118,7 @@ public class AdminGetConversationMessagesQueryHandler : IRequestHandler<AdminGet
 
         await _audit.LogAsync(action: "ADMIN_CONVERSATION_INSPECTED", entityName: "Conversation",
             entityId: request.ConversationId.ToString(), userId: adminUserId,
-            newValues: new { operationalReason = request.OperationalReason.Trim(), returnedCount = dtos.Count },
+            newValues: new { operationalReason = request.OperationalReason.Trim(), returnedCount = dtos.Count, request.DisputeId, request.ReportId, from = scope.From, to = scope.To },
             cancellationToken: cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 

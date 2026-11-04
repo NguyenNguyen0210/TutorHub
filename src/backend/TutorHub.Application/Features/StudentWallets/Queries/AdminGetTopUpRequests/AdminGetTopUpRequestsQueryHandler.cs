@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.StudentWallets.DTOs;
+using TutorHub.Application.Common.Search;
 
 namespace TutorHub.Application.Features.StudentWallets.Queries.AdminGetTopUpRequests;
 
@@ -25,6 +26,7 @@ public class AdminGetTopUpRequestsQueryHandler
 
         var query = _context.TopUpRequests
             .AsNoTracking()
+            .Where(r => r.Wallet.StudentProfile != null && r.Wallet.StudentProfile.User.Role == TutorHub.Domain.Enums.UserRole.Student)
             .Include(r => r.Wallet)
                 .ThenInclude(w => w.User)
             .AsQueryable();
@@ -32,6 +34,17 @@ public class AdminGetTopUpRequestsQueryHandler
         if (request.Status.HasValue)
         {
             query = query.Where(r => r.Status == request.Status.Value);
+        }
+        if (request.RecordId.HasValue) query = query.Where(r => r.Id == request.RecordId);
+        if (request.ReviewableOnly) query = query.Where(r => r.Status == TutorHub.Domain.Enums.TopUpRequestStatus.Pending
+            && !r.TransferReference.ToUpper().StartsWith("TOPUP")
+            && (r.AdminNote == null || !r.AdminNote.ToUpper().Contains("VNPAY")));
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Search)) + "%";
+            query = query.Where(r => EF.Functions.Like(r.TransferReference.ToLower(), pattern, @"\")
+                || EF.Functions.Like(VietnameseSearch.UnaccentImmutable(r.Wallet.StudentProfile!.User.FullName)!.ToLower(), pattern, @"\")
+                || EF.Functions.Like(VietnameseSearch.UnaccentImmutable(r.Wallet.StudentProfile!.User.Email)!.ToLower(), pattern, @"\"));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -52,6 +65,9 @@ public class AdminGetTopUpRequestsQueryHandler
                 ProcessedAt = r.ProcessedAt,
                 RejectionReason = r.RejectionReason,
                 AdminNote = r.AdminNote,
+                CanManuallyReview = r.Status == TutorHub.Domain.Enums.TopUpRequestStatus.Pending
+                    && !r.TransferReference.ToUpper().StartsWith("TOPUP")
+                    && (r.AdminNote == null || !r.AdminNote.ToUpper().Contains("VNPAY")),
                 StudentName = r.Wallet.User != null ? r.Wallet.User.FullName : (r.Wallet.StudentProfile != null && r.Wallet.StudentProfile.User != null ? r.Wallet.StudentProfile.User.FullName : null),
                 StudentEmail = r.Wallet.User != null ? r.Wallet.User.Email : (r.Wallet.StudentProfile != null && r.Wallet.StudentProfile.User != null ? r.Wallet.StudentProfile.User.Email : null)
             })

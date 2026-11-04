@@ -26,7 +26,8 @@ public class GetAdminUsersQueryHandler : IRequestHandler<GetAdminUsersQuery, Pag
         {
             // Term normalization is client-side by design; DB unaccent is authoritative column-side.
             var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Search)) + "%";
-            query = query.Where(u =>
+            var isId = Guid.TryParse(request.Search.Trim(), out var id);
+            query = query.Where(u => (isId && u.Id == id) ||
                 EF.Functions.Like(VietnameseSearch.UnaccentImmutable(u.FullName)!.ToLower(), pattern, @"\") ||
                 EF.Functions.Like(VietnameseSearch.UnaccentImmutable(u.Email)!.ToLower(), pattern, @"\") ||
                 (u.Phone != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(u.Phone)!.ToLower(), pattern, @"\")));

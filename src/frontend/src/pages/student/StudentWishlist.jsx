@@ -18,7 +18,7 @@ function ServiceCardSkeleton({ count = 6 }) {
   return (
     <div
       role="status"
-      aria-label="Đang tải danh sách dịch vụ đã lưu..."
+      aria-label="Đang tải danh sách gói học đã lưu..."
       className="grid grid-cols-1 gap-6 md:grid-cols-2"
     >
       {Array.from({ length: count }).map((_, idx) => (
@@ -120,7 +120,7 @@ export default function StudentWishlist() {
       key: 'Service',
       label: (
         <span className="flex items-center gap-2">
-          <span>Dịch vụ đã lưu</span>
+          <span>Gói học đã lưu</span>
           <span
             className="inline-flex min-w-5 h-5 items-center justify-center rounded-full bg-neutral-100 px-1.5 text-[11px] font-medium tabular-nums text-fg-secondary"
           >
@@ -144,7 +144,7 @@ export default function StudentWishlist() {
             Danh sách đã lưu
           </h1>
           <p className="text-body-reg text-fg-secondary mt-1">
-            Quản lý các gia sư và gói dịch vụ học tập bạn đã đánh dấu quan tâm để dễ dàng so sánh và đăng ký học.
+            Quản lý các gia sư và gói học bạn đã đánh dấu quan tâm để dễ dàng so sánh và đăng ký học.
           </p>
         </div>
       </div>
@@ -166,11 +166,11 @@ export default function StudentWishlist() {
             title={
               activeTab === 'Tutor'
                 ? 'Không thể tải danh sách gia sư đã lưu'
-                : 'Không thể tải danh sách dịch vụ đã lưu'
+                : "Không thể tải danh sách gói học đã lưu"
             }
             message={
               error?.message ||
-              'Đã có lỗi xảy ra khi kết nối máy chủ. Vui lòng nhấn thử lại.'
+              "Chưa tải được danh sách đã lưu. Vui lòng thử lại."
             }
             onRetry={() => refetch()}
             className="border-border bg-surface shadow-none"
@@ -181,15 +181,15 @@ export default function StudentWishlist() {
             title={
               activeTab === 'Tutor'
                 ? 'Bạn chưa lưu gia sư nào'
-                : 'Bạn chưa lưu dịch vụ nào'
+                : "Bạn chưa lưu gói học nào"
             }
             description={
               activeTab === 'Tutor'
                 ? 'Khám phá gia sư, xem hồ sơ và nhấn trái tim để lưu lại những người phù hợp với bạn.'
-                : 'Khám phá các dịch vụ và gói học chuyên sâu phù hợp với lộ trình học của bạn.'
+                : "Khám phá các gói học và gói học chuyên sâu phù hợp với lộ trình học của bạn."
             }
             actionLabel={
-              activeTab === 'Tutor' ? 'Khám phá gia sư' : 'Xem danh mục dịch vụ'
+              activeTab === 'Tutor' ? 'Khám phá gia sư' : "Xem danh mục gói học"
             }
             actionPath={activeTab === 'Tutor' ? '/tutors' : '/services'}
             className="rounded-2xl border-border bg-surface shadow-none [&_p]:text-fg-secondary"
@@ -241,7 +241,7 @@ export default function StudentWishlist() {
               <div className="flex flex-col items-center justify-between gap-3 border-t border-border pt-6 sm:flex-row">
                 <p className="text-caption text-fg-secondary">
                   Hiển thị {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalCount)} trong{' '}
-                  {totalCount} {activeTab === 'Tutor' ? 'gia sư' : 'dịch vụ'}
+                  {totalCount} {activeTab === 'Tutor' ? 'gia sư' : "gói học"}
                 </p>
                 <Pagination
                   page={page}

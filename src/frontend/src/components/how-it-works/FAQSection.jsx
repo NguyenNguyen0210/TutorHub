@@ -6,13 +6,13 @@ const FAQ_ITEMS = [
     id: 'faq-1',
     question: 'TutorHub hoạt động như thế nào?',
     answer:
-      'TutorHub kết nối học viên với gia sư chất lượng thông qua quy trình 4 bước: Tìm kiếm gia sư phù hợp, thống nhất mục tiêu & chọn gói học, thanh toán giữ chỗ qua hệ thống ký quỹ an toàn (Escrow), và xếp lịch học tương tác trực tuyến 1:1. Sau mỗi buổi học, học viên có 12 giờ nghiệm thu tự động trước khi giải ngân cho gia sư.',
+      "Bạn tìm gia sư, thống nhất mục tiêu, chọn gói học rồi thanh toán và xếp lịch học trực tuyến 1:1. TutorHub giữ học phí. Sau mỗi buổi học, bạn có 12 giờ phản hồi trước khi học phí buổi đó được chuyển cho gia sư.",
   },
   {
     id: 'faq-2',
     question: 'Thanh toán trên TutorHub có an toàn không?',
     answer:
-      'Tuyệt đối an toàn. Toàn bộ tiền học được giữ trong tài khoản Escrow trung lập và chỉ giải ngân theo từng buổi học thực tế đã hoàn thành. Nếu có sự cố về lịch học hoặc chất lượng không đúng cam kết, tiền của buổi học đó sẽ được bảo lưu để giải quyết tranh chấp công bằng.',
+      "TutorHub giữ học phí và chuyển cho gia sư theo từng buổi học đã hoàn thành. Nếu có sự cố về lịch học hoặc chất lượng không đúng cam kết, hãy gửi khiếu nại trong thời gian quy định để tạm giữ học phí buổi đó và xem xét giải quyết.",
   },
   {
     id: 'faq-3',

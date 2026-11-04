@@ -49,8 +49,8 @@ export default function TutorWallet() {
           <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-surface text-holding-strong"><Icon name="shield" size="md" /></span>
           <span className="text-body-reg font-medium text-holding-strong">Học phí chờ giải ngân</span>
           <span className="mt-2 text-2xl font-semibold text-holding-strong"><Money value={wallet.pendingBalance} /></span>
-          <span className="mt-3 text-body-reg leading-relaxed text-fg-secondary">Học phí đang giữ trong Escrow, trước phí sàn.</span>
-          <span className="mt-auto inline-flex items-center gap-2 pt-5 text-body-reg font-semibold text-holding-strong">{showEscrow ? 'Thu gọn chi tiết ký quỹ' : 'Xem chi tiết ký quỹ'}<Icon name={showEscrow ? 'expand_less' : 'expand_more'} size="sm" /></span>
+          <span className="mt-3 text-body-reg leading-relaxed text-fg-secondary">Học phí đang được TutorHub giữ, chưa trừ phí nền tảng.</span>
+          <span className="mt-auto inline-flex items-center gap-2 pt-5 text-body-reg font-semibold text-holding-strong">{showEscrow ? 'Thu gọn chi tiết học phí đang giữ' : 'Xem học phí đang giữ'}<Icon name={showEscrow ? 'expand_less' : 'expand_more'} size="sm" /></span>
         </button>
         <div className="flex min-w-0 flex-col rounded-2xl border border-brand-primary-100 bg-brand-primary-50 p-5 sm:p-6">
           <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-surface text-primary"><Icon name="account_balance" size="md" /></div>
@@ -67,8 +67,8 @@ export default function TutorWallet() {
       <summary className="cursor-pointer text-body-reg font-semibold text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Học phí được giải ngân như thế nào?</summary>
       <p className="mt-3 text-body-reg text-fg-secondary">Tìm hiểu cách TutorHub giữ học phí và chuyển thu nhập vào ví.</p>
       <ol className="mt-4 grid gap-4 text-body-reg leading-relaxed text-fg-secondary md:grid-cols-3">
-        <li><h3 className="mb-2 font-semibold text-holding-strong">1. Học viên ký quỹ</h3>Học phí gói học được giữ trong Escrow cho các buổi học của hợp đồng.</li>
-        <li><h3 className="mb-2 font-semibold text-success-strong">2. Thu nhập vào ví</h3>Sau buổi học và thời gian bảo lưu 12 giờ, học phí được giải ngân nếu không có sự cố cần xử lý. Thu nhập sau phí sàn được cộng vào số dư có thể rút.</li>
+        <li><h3 className="mb-2 font-semibold text-holding-strong">1. Học viên thanh toán</h3>TutorHub giữ học phí cho các buổi học trong hợp đồng.</li>
+        <li><h3 className="mb-2 font-semibold text-success-strong">2. Thu nhập vào ví</h3>Sau buổi học và 12 giờ để học viên phản hồi, học phí được giải ngân nếu không có sự cố cần xử lý. Thu nhập sau phí sàn được cộng vào số dư có thể rút.</li>
         <li><h3 className="mb-2 font-semibold text-fg">3. Rút về ngân hàng</h3>Gửi yêu cầu từ 50.000 ₫. Theo dõi trạng thái trong lịch sử rút tiền đến khi chuyển tiền hoàn tất.</li>
       </ol>
     </details>

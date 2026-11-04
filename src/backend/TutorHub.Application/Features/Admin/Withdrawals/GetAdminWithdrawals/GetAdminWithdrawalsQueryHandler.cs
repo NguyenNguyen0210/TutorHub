@@ -4,6 +4,7 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Wallets.DTOs;
 using TutorHub.Domain.Enums;
+using TutorHub.Application.Common.Search;
 
 namespace TutorHub.Application.Features.Admin.Withdrawals.GetAdminWithdrawals;
 
@@ -20,6 +21,7 @@ public class GetAdminWithdrawalsQueryHandler : IRequestHandler<GetAdminWithdrawa
     {
         var query = _context.Withdrawals
             .AsNoTracking()
+            .Where(w => w.Wallet.User.Role == UserRole.Tutor)
             .Include(w => w.Wallet).ThenInclude(wall => wall.User)
             .Include(w => w.ProcessingStartedByAdmin)
             .Include(w => w.ProcessedByAdmin)
@@ -28,6 +30,17 @@ public class GetAdminWithdrawalsQueryHandler : IRequestHandler<GetAdminWithdrawa
         if (request.Status.HasValue)
         {
             query = query.Where(w => w.Status == request.Status.Value);
+        }
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Search.Trim())) + "%";
+            var id = Guid.TryParse(request.Search.Trim(), out var parsed) ? parsed : Guid.Empty;
+            query = query.Where(w => w.Id == id
+                || EF.Functions.Like(VietnameseSearch.UnaccentImmutable(w.Wallet.User.FullName)!.ToLower(), pattern, @"\")
+                || EF.Functions.Like(w.Wallet.User.Email.ToLower(), pattern, @"\")
+                || EF.Functions.Like(VietnameseSearch.UnaccentImmutable(w.BankName)!.ToLower(), pattern, @"\")
+                || EF.Functions.Like(VietnameseSearch.UnaccentImmutable(w.AccountHolderName)!.ToLower(), pattern, @"\")
+                || EF.Functions.Like(w.AccountNumber, pattern, @"\"));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -60,7 +73,7 @@ public class GetAdminWithdrawalsQueryHandler : IRequestHandler<GetAdminWithdrawa
                 w.ProcessedByAdminId,
                 w.ProcessedByAdmin != null ? w.ProcessedByAdmin.FullName : null,
                 w.FailureReason
-            ))
+            ) { TutorAvatarUrl = w.Wallet.User != null ? w.Wallet.User.AvatarUrl : null })
             .ToListAsync(cancellationToken);
 
         return new PagedResult<WithdrawalDto>(

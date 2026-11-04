@@ -64,6 +64,13 @@ if (builder.Environment.IsDevelopment())
 
 builder.Configuration.AddEnvironmentVariables();
 
+// An explicit CLI command, never an HTTP endpoint or automatic production seed.
+if (args.Contains("--seed-demo", StringComparer.Ordinal))
+{
+    await TutorHub.Api.DevelopmentDemoSeeder.RunAsync(builder.Environment, builder.Configuration);
+    return;
+}
+
 // Forwarded headers are accepted only from explicitly configured reverse proxies.
 // Direct deployments use the connection address and ignore client-supplied headers.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -377,8 +384,8 @@ app.UseAuthorization();
 
 
 app.MapControllers();
-app.MapHub<ChatHub>("/hubs/chat");
-app.MapHub<NotificationHub>("/hubs/notifications");
+app.MapHub<ChatHub>("/hubs/chat", options => options.CloseOnAuthenticationExpiration = true);
+app.MapHub<NotificationHub>("/hubs/notifications", options => options.CloseOnAuthenticationExpiration = true);
 
 app.Run();
 

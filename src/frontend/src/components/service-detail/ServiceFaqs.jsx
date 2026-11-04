@@ -20,7 +20,7 @@ export default function ServiceFaqs({ faqs }) {
       <div className="flex items-center gap-2 mb-6">
         <span className="w-2.5 h-2.5 rounded-full bg-brand-primary-600" />
         <h2 className="text-xl sm:text-2xl font-bold text-fg tracking-tight">
-          Câu hỏi thường gặp về dịch vụ
+          Câu hỏi thường gặp về gói học
         </h2>
       </div>
 

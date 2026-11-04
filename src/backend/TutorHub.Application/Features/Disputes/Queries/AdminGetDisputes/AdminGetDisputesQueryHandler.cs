@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.Disputes.DTOs;
+using TutorHub.Application.Common.Search;
 
 namespace TutorHub.Application.Features.Disputes.Queries.AdminGetDisputes;
 
@@ -18,7 +19,10 @@ public class AdminGetDisputesQueryHandler : IRequestHandler<AdminGetDisputesQuer
     {
         var query = _context.Disputes
             .AsNoTracking()
-            .Include(d => d.Session)
+            .AsSplitQuery()
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.Service)
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(p => p.User)
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(p => p.User)
             .Include(d => d.InitiatorUser)
             .Include(d => d.RespondentUser)
             .Include(d => d.Evidences)
@@ -29,6 +33,16 @@ public class AdminGetDisputesQueryHandler : IRequestHandler<AdminGetDisputesQuer
             query = query.Where(d => d.Status == request.Status.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var term = request.Search.Trim();
+            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(term)) + "%";
+            var isId = Guid.TryParse(term, out var id);
+            query = query.Where(d => (isId && d.Id == id)
+                || EF.Functions.Like(VietnameseSearch.UnaccentImmutable(d.InitiatorUser.FullName)!.ToLower(), pattern, @"\")
+                || EF.Functions.Like(VietnameseSearch.UnaccentImmutable(d.RespondentUser.FullName)!.ToLower(), pattern, @"\")
+                || (d.Session.Enrollment.Service != null && EF.Functions.Like(VietnameseSearch.UnaccentImmutable(d.Session.Enrollment.Service.Title)!.ToLower(), pattern, @"\")));
+        }
         var totalCount = await query.CountAsync(cancellationToken);
 
         var page = request.PageNumber <= 0 ? 1 : request.PageNumber;
@@ -52,6 +66,11 @@ public class AdminGetDisputesQueryHandler : IRequestHandler<AdminGetDisputesQuer
                 SessionId = d.SessionId,
                 SessionNumber = d.Session.SessionNumber,
                 EnrollmentId = d.Session.EnrollmentId,
+                ServiceTitle = d.Session.Enrollment.Service?.Title ?? string.Empty,
+                StudentName = d.Session.Enrollment.StudentProfile.User.FullName,
+                StudentAvatarUrl = d.Session.Enrollment.StudentProfile.User.AvatarUrl,
+                TutorName = d.Session.Enrollment.TutorProfile.User.FullName,
+                TutorAvatarUrl = d.Session.Enrollment.TutorProfile.User.AvatarUrl,
                 InitiatorUserId = d.InitiatorUserId,
                 InitiatorName = d.InitiatorUser?.FullName ?? "Unknown",
                 RespondentUserId = d.RespondentUserId,

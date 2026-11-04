@@ -25,6 +25,7 @@ public class AdminGetStudentWithdrawalsQueryHandler
 
         var query = _context.StudentWithdrawals
             .AsNoTracking()
+            .Where(w => w.Wallet.StudentProfile != null && w.Wallet.StudentProfile.User.Role == TutorHub.Domain.Enums.UserRole.Student)
             .Include(w => w.Wallet)
                 .ThenInclude(w => w.User)
             .AsQueryable();
@@ -33,6 +34,7 @@ public class AdminGetStudentWithdrawalsQueryHandler
         {
             query = query.Where(w => w.Status == request.Status.Value);
         }
+        if (request.RecordId.HasValue) query = query.Where(w => w.Id == request.RecordId);
 
         var totalCount = await query.CountAsync(cancellationToken);
 

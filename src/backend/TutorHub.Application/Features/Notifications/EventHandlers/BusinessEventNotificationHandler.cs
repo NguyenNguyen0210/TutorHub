@@ -49,20 +49,17 @@ public class BusinessEventNotificationHandler :
     private readonly INotificationService? _notificationService;
     private readonly IClock _clock;
     private readonly ILogger<BusinessEventNotificationHandler> _logger;
-    private readonly IEmailSender? _emailSender;
 
     public BusinessEventNotificationHandler(
         IAppDbContext dbContext,
         IClock clock,
         ILogger<BusinessEventNotificationHandler> logger,
-        INotificationService? notificationService = null,
-        IEmailSender? emailSender = null)
+        INotificationService? notificationService = null)
     {
         _dbContext = dbContext;
         _clock = clock;
         _logger = logger;
         _notificationService = notificationService;
-        _emailSender = emailSender;
     }
 
     public async Task Handle(TutorApplicationSubmittedEvent notification, CancellationToken cancellationToken)
@@ -682,6 +679,12 @@ public class BusinessEventNotificationHandler :
                 Type = domainEvent.EventType,
                 DeepLink = domainEvent switch
                 {
+                    RefundCreatedEvent e when e.EnrollmentId == Guid.Empty && e.BookingId.HasValue
+                        => $"/student/wallet?tab=payments&bookingId={e.BookingId}",
+                    RefundCompletedEvent e when e.EnrollmentId == Guid.Empty && e.BookingId.HasValue
+                        => $"/student/wallet?tab=payments&bookingId={e.BookingId}",
+                    RefundFailedEvent e when e.EnrollmentId == Guid.Empty && e.BookingId.HasValue
+                        => $"/student/wallet?tab=payments&bookingId={e.BookingId}",
                     StudentWalletPaymentSucceededEvent e => $"/student/wallet?tab=payments&bookingId={e.BookingId}",
                     StudentTopUpConfirmedEvent e => $"/student/wallet?tab=topups&recordId={e.TopUpRequestId}",
                     StudentTopUpRejectedEvent e => $"/student/wallet?tab=topups&recordId={e.TopUpRequestId}",
@@ -739,26 +742,7 @@ public class BusinessEventNotificationHandler :
             return;
         }
 
-        // Direct email dispatch if IEmailSender is injected
-        if (_emailSender != null)
-        {
-            foreach (var email in emailDeliveriesToInsert)
-            {
-                try
-                {
-                    await _emailSender.SendEmailAsync(email.ToEmail, email.Subject, email.Body, $"email:{email.Id}", cancellationToken);
-                    email.Status = EmailDeliveryStatus.Sent;
-                    email.SentAt = _clock.UtcNow;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Direct email delivery failed for {ToEmail}", email.ToEmail);
-                    email.Status = EmailDeliveryStatus.Failed;
-                    email.LastError = ex.Message;
-                }
-            }
-            await _dbContext.SaveChangesAsync(cancellationToken);
-        }
+        // EmailDeliveryJob owns SMTP delivery and its durable lease/retry lifecycle.
 
         // Best-effort Realtime Push (Note: SignalR failure never rolls back the committed state)
         foreach (var notif in notificationsToInsert)

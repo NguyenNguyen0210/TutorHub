@@ -217,6 +217,19 @@ TutorHub/
 
 ---
 
+### Dữ liệu demo cho bản clone mới
+
+Git không chứa `Data.sql` hay thư mục `scripts/`. Với PostgreSQL local và database ứng dụng rỗng được cấu hình trong `.env`, chạy:
+
+```powershell
+$env:ASPNETCORE_ENVIRONMENT='Development'
+dotnet run --project src/backend/TutorHub.Api -- --seed-demo
+```
+
+Lệnh áp dụng migrations và tạo ba tài khoản `admin.demo@tutorhub.local`, `tutor.demo@tutorhub.local`, `student.demo@tutorhub.local`, cùng mật khẩu `Demo@12345`. Có một gói học và 1.000.000 VND minh họa trong ví học viên. Chạy lại không đặt lại số dư. Lệnh chỉ cho phép Development trên PostgreSQL localhost, không thay thế dữ liệu ứng dụng đã có. Đây là dữ liệu giả để demo, không phải tiền nạp thật. Khi chạy API bình thường, tiếp tục cấu hình các dịch vụ và secrets theo `.env.example`.
+
+Các hướng dẫn `Data.sql` bên dưới dành cho bộ dữ liệu mở rộng lưu riêng trên máy tác giả; không cần chúng để khởi tạo bản clone mới.
+
 ### 2. Khởi Chạy Nhanh Bằng Docker Compose (Khuyến Nghị)
 
 Phương pháp nhanh nhất để chạy các dịch vụ; dữ liệu mẫu được nạp riêng ở bước cuối:
@@ -236,7 +249,7 @@ cp .env.example .env
 docker compose up -d --build
 
 # 5. Tiện ích nạp dữ liệu cục bộ (nếu đã có scripts/ trên máy).
-# scripts/ không được đưa vào Git; bản clone mới có thể nạp Data.sql bằng psql như hướng dẫn bên dưới.
+# Bản clone mới: dùng --seed-demo theo hướng dẫn phía trên; scripts/ và Data.sql không nằm trong Git.
 # Script sẽ TRUNCATE dữ liệu hiện có và yêu cầu xác nhận.
 ./scripts/seed-data.sh     # Linux/macOS/Git Bash
 # hoặc trên Windows PowerShell:

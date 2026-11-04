@@ -13,6 +13,44 @@ namespace TutorHub.Api.IntegrationTests;
 
 public class PreReleaseDisputeResolutionTests : IntegrationTestBase
 {
+    [Fact]
+    public async Task AllocationPreview_IsReadOnly_UsesSnapshotFee_AndHttpResolutionReplaysSafely()
+    {
+        var (adminId, studentId, session) = await SetupPaidSessionAsync();
+        SetCurrentUser(studentId, UserRole.Student);
+        var dispute = await SendAsync(new CreateDisputeCommand(session.Id, DisputeReason.QualityIssue, "Original report for allocation review."));
+        SetCurrentUser(adminId, UserRole.Admin);
+        await SendAsync(new TutorHub.Application.Features.Disputes.Commands.AdminMoveDisputeUnderReview.AdminMoveDisputeUnderReviewCommand(dispute.Id));
+        var blocked = await SendAsync(new TutorHub.Application.Features.Disputes.Queries.AdminGetDisputeInvestigation.AdminPreviewDisputeQuery(dispute.Id, DisputeResolutionDecision.StudentWinsFullRefund));
+        blocked.CanResolve.Should().BeFalse();
+        SetCurrentUser(studentId, UserRole.Student);
+        await SendAsync(new UploadDisputeEvidenceCommand(dispute.Id, "evidence.png", new MemoryStream(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0x0D }), 12));
+        SetCurrentUser(adminId, UserRole.Admin);
+        var before = await Db.Transactions.CountAsync();
+        var preview = await SendAsync(new TutorHub.Application.Features.Disputes.Queries.AdminGetDisputeInvestigation.AdminPreviewDisputeQuery(dispute.Id, DisputeResolutionDecision.StudentWinsPartialRefund, 12345.67m));
+        preview.CanResolve.Should().BeTrue();
+        (preview.StudentRefund + preview.TutorNet + preview.PlatformFee).Should().Be(session.SessionPrice);
+        preview.PlatformFee.Should().Be(Math.Round((session.SessionPrice - 12345.67m) * session.Enrollment.PlatformFeeRate, 2, MidpointRounding.AwayFromZero));
+        (await Db.Transactions.CountAsync()).Should().Be(before);
+        var list = await SendAsync(new TutorHub.Application.Features.Disputes.Queries.AdminGetDisputes.AdminGetDisputesQuery(Search: dispute.Id.ToString()));
+        list.Items.Should().ContainSingle(d => d.Id == dispute.Id && d.ServiceTitle != "");
+        var admin = await Db.Users.SingleAsync(u => u.Id == adminId);
+        using var client = Factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Scope.ServiceProvider.GetRequiredService<TutorHub.Application.Common.Security.IJwtService>().GenerateAccessToken(admin));
+        var payload = new { decision = "StudentWinsPartialRefund", customRefundAmount = 12345.67m, adminNotes = "Reviewed all evidence and allocated tuition." };
+        using var missingKey = await System.Net.Http.Json.HttpClientJsonExtensions.PostAsJsonAsync(client, $"/api/v1/admin/disputes/{dispute.Id}/resolve", payload);
+        missingKey.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
+        client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.NewGuid().ToString());
+        using var first = await System.Net.Http.Json.HttpClientJsonExtensions.PostAsJsonAsync(client, $"/api/v1/admin/disputes/{dispute.Id}/resolve", payload);
+        first.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        using var replay = await System.Net.Http.Json.HttpClientJsonExtensions.PostAsJsonAsync(client, $"/api/v1/admin/disputes/{dispute.Id}/resolve", payload);
+        replay.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        (await replay.Content.ReadAsStringAsync()).Should().Be(await first.Content.ReadAsStringAsync());
+        (await Db.Transactions.CountAsync(t => t.DisputeId == dispute.Id && t.Type == TransactionType.StudentRefund)).Should().Be(1);
+        var after = await SendAsync(new TutorHub.Application.Features.Disputes.Queries.AdminGetDisputeInvestigation.AdminPreviewDisputeQuery(dispute.Id, DisputeResolutionDecision.StudentWinsFullRefund));
+        after.CanResolve.Should().BeFalse();
+    }
+
     public PreReleaseDisputeResolutionTests(IntegrationWebApplicationFactory factory)
         : base(factory)
     {

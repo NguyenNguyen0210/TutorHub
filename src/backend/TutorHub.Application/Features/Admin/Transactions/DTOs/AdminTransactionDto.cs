@@ -24,7 +24,13 @@ public record AdminTransactionDto(
     TransactionType Type = TransactionType.BookingPayment,
     Guid? SessionId = null,
     Guid? DisputeId = null,
-    Guid? EnrollmentId = null
+    Guid? EnrollmentId = null,
+    string? ServiceTitle = null,
+    int? SessionNumber = null,
+    DateTime? BookingConfirmedAt = null,
+    Guid? RelatedTransactionId = null,
+    string? Description = null,
+    bool SettlementRequired = false
 )
 {
     public decimal CommissionRate => PlatformFeeRate;

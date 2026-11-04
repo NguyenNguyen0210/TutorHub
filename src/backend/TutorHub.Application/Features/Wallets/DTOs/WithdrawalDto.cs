@@ -27,6 +27,11 @@ public record WithdrawalDto(
 {
     public Guid? UserId { get; init; }
     public Guid? StudentProfileId { get; init; }
+    public string? TutorAvatarUrl { get; init; }
+    public decimal? AvailableBalanceAtRequest { get; init; }
+    public decimal? AvailableBalanceAfterReservation { get; init; }
+    public string? BankTransferReference { get; init; }
+    public string? ReconciliationNote { get; init; }
 
     /// <summary>
     /// Backward-compatibility aliases for frontend components expecting student withdrawal fields.

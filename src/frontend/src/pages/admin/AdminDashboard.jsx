@@ -1,461 +1,171 @@
-import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { cn } from '@/lib/cn';
+import WorkspacePageHeader from '@/components/layout/WorkspacePageHeader';
 import adminService from '@/services/admin.service';
-import { formatCurrency } from '@/utils/formatters';
+import { adminActionQueues } from '@/utils/adminActionQueues';
+import { cn } from '@/lib/cn';
+import { formatDateTime } from '@/utils/formatters';
 import { StatsSkeleton } from '@/components/common/Skeleton';
 import ErrorState from '@/components/common/ErrorState';
-import Card, { CardHeader } from '@/components/ui/Card';
+import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Money from '@/components/ui/Money';
 import Icon from '@/components/ui/Icon';
-import StatStrip from '@/components/common/StatStrip';
 
-import { useToast } from '@/components/ui/Toast';
+const PERIODS = { All: 'Toàn thời gian', Today: 'Hôm nay', SevenDays: '7 ngày', ThirtyDays: '30 ngày' };
+const percent = (value, total) => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(total > 0 ? value / total * 100 : 0);
 
-// Tông của thẻ hành động: dùng đúng bảng màu của `ActionQueue` trong
-// components/common/ để bàn trọng tài Admin đồng bộ giao diện
-// workspace (chờ tiền = holding, tranh chấp = danger).
-const ACTION_TONE_CLASS = {
-  danger: 'bg-danger-subtle text-danger-strong',
-  holding: 'bg-holding-subtle text-holding-strong',
-  success: 'bg-success-subtle text-success-strong',
+const TONES = {
+  blue: { surface: 'bg-brand-primary-50 border-brand-primary-100', icon: 'bg-brand-primary-100 text-brand-primary-700' },
+  insight: { surface: 'bg-insight-subtle border-insight-border', icon: 'bg-insight-strong/10 text-insight-strong' },
+  success: { surface: 'bg-success-subtle border-success/20', icon: 'bg-success/10 text-success-strong' },
+  holding: { surface: 'bg-holding-subtle border-holding/20', icon: 'bg-holding/10 text-holding-strong' },
+  danger: { surface: 'bg-danger-subtle border-danger/20', icon: 'bg-danger/10 text-danger-strong' },
+  neutral: { surface: 'bg-neutral-50 border-border', icon: 'bg-neutral-100 text-fg-secondary' },
 };
 
+function SectionHeader({ title, description, icon, tone }) {
+  return <div className="flex items-center gap-3">
+    <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', TONES[tone].icon)}><Icon name={icon} size="md" /></span>
+    <div className="min-w-0"><h2 className="text-lg font-semibold text-fg">{title}</h2>{description && <p className="mt-0.5 text-xs text-fg-secondary">{description}</p>}</div>
+  </div>;
+}
+
 export default function AdminDashboard() {
-  const toast = useToast();
+  const [period, setPeriod] = useState('All');
+  const [reload, setReload] = useState(0);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  const loadStats = useCallback(async (isSilent = false) => {
-    try {
-      if (!isSilent) setLoading(true);
-      else setRefreshing(true);
-      const data = await adminService.getStats();
-      setStats(data);
-      setError(null);
-      if (isSilent) {
-        toast.success('Dữ liệu điều hành đã được làm mới');
-      }
-    } catch (err) {
-      setError(err);
-      if (isSilent) {
-        toast.error(err?.message || 'Không thể làm mới dữ liệu.');
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [toast]);
-
   useEffect(() => {
-    loadStats();
-  }, [loadStats]);
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+    adminService.getStats(period, controller.signal).then(data => {
+      if (!controller.signal.aborted) setStats(data);
+    }).catch(err => {
+      if (!controller.signal.aborted) setError(err);
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoading(false);
+    });
+    return () => controller.abort();
+  }, [period, reload]);
 
-  if (loading) {
-    return (
-      <div className="space-y-6 lg:space-y-8">
-        <div className="h-16 bg-neutral-200 rounded-brand-md animate-pulse" />
-        <StatsSkeleton count={4} />
+  const { users, bookings, financials, actionQueue } = stats || {};
+  const queues = adminActionQueues(actionQueue);
+  const pending = queues.filter(q => q.count > 0);
+  const gmv = financials?.totalGmv || 0;
+  const flows = financials ? [
+    { label: 'Đã giải ngân cho gia sư', value: financials.totalTutorPayouts, color: 'bg-success-strong', icon: 'payments', tone: 'success', description: 'Thu nhập gia sư từ các giao dịch giải ngân đã xác nhận trong kỳ.' },
+    { label: 'Phí sàn sau điều chỉnh', value: financials.totalPlatformRevenue, color: 'bg-insight-strong', icon: 'trending_up', tone: 'insight', description: 'Phí từ giao dịch giải ngân, trừ các khoản đảo phí phát sinh trong kỳ.' },
+    { label: "Đã hoàn tiền", value: financials.totalRefundedAmount, color: 'bg-holding', icon: 'refresh', tone: 'holding', description: 'Các giao dịch hoàn tiền đã hoàn tất trong kỳ.' },
+  ] : [];
+  const difference = gmv - flows.reduce((sum, item) => sum + item.value, 0);
+  const canShowComposition = gmv > 0 && difference >= 0 && flows.every(flow => flow.value >= 0);
+  const chartFlows = [...flows, { label: "Chênh lệch so với tiền thanh toán", value: difference, color: 'bg-neutral-300' }];
+  const kpis = financials ? [
+    { label: "Giá trị gói đã thanh toán", value: gmv, icon: 'receipt_long', hint: 'Gói học đã thanh toán', primary: true, tone: 'blue' },
+    { label: 'Phí sàn sau điều chỉnh', value: financials.totalPlatformRevenue, icon: 'trending_up', hint: `${percent(financials.totalPlatformRevenue, gmv)}% tổng tiền thanh toán`, tone: 'insight' },
+    { label: 'Đã giải ngân', value: financials.totalTutorPayouts, icon: 'payments', hint: `${percent(financials.totalTutorPayouts, gmv)}% tổng tiền thanh toán`, tone: 'success' },
+    { label: "Đã hoàn tiền", value: financials.totalRefundedAmount, icon: 'refresh', hint: financials.totalRefundedAmount ? 'Giao dịch đã hoàn tất' : 'Chưa phát sinh hoàn tiền', tone: 'holding' },
+  ] : [];
+
+  return <div className="space-y-6 lg:space-y-8">
+    <WorkspacePageHeader title="Tổng quan quản trị" description="Theo dõi hoạt động, xử lý yêu cầu và quản lý học phí."
+      actions={<div className="flex flex-wrap items-center gap-2">
+        <label className="sr-only" htmlFor="dashboard-period">Phạm vi thống kê</label>
+        <select id="dashboard-period" value={period} onChange={event => setPeriod(event.target.value)} className="min-h-10 rounded-lg border border-border bg-surface px-3 text-sm text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-500">
+          {Object.entries(PERIODS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+        </select>
+        <Button variant="outline" size="sm" loading={loading} onClick={() => setReload(value => value + 1)} icon={<Icon name="refresh" size="sm" />}>Làm mới</Button>
+      </div>} />
+
+    {loading ? <StatsSkeleton count={4} /> : error || !stats ? <ErrorState error={error} title="Không thể tải dữ liệu điều hành" onRetry={() => setReload(value => value + 1)} /> : <>
+      <div className="flex flex-wrap justify-between gap-2 text-xs text-fg-secondary">
+        <p>Số liệu phát sinh: <strong className="font-medium text-fg">{PERIODS[stats.period] || PERIODS[period]}</strong> · Giờ Việt Nam</p>
+        {stats.updatedAt && <p>Cập nhật lúc {formatDateTime(stats.updatedAt)}</p>}
       </div>
-    );
-  }
 
-  if (error || !stats) {
-    return (
-      <div className="py-12">
-        <ErrorState
-          error={error}
-          title="Không thể tải dữ liệu điều hành"
-          onRetry={() => loadStats(false)}
-        />
-      </div>
-    );
-  }
+      <section aria-label="Chỉ số tài chính" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {kpis.map(kpi => <div key={kpi.label} className={cn('min-w-0 rounded-2xl border p-5', TONES[kpi.tone].surface)}>
+          <span className={cn('mb-4 flex h-10 w-10 items-center justify-center rounded-full', TONES[kpi.tone].icon)}><Icon name={kpi.icon} size="md" /></span>
+          <h2 className="mb-2 text-sm font-medium text-fg-secondary">{kpi.label}</h2>
+          <Money value={kpi.value} className={cn('block font-semibold text-fg', kpi.primary ? 'text-2xl' : 'text-xl')} />
+          <p className="mt-2 text-xs leading-5 text-fg-secondary">{kpi.hint}</p>
+        </div>)}
+      </section>
 
-  const { users, tutors, bookings, financials, actionQueue } = stats;
-
-  // Derived financial ratios
-  const totalGmv = financials.totalGmv || 0;
-  const payoutRate = totalGmv > 0 ? ((financials.totalTutorPayouts / totalGmv) * 100).toFixed(1) : '0';
-  const feeRate = totalGmv > 0 ? ((financials.totalPlatformRevenue / totalGmv) * 100).toFixed(1) : '0';
-  const refundRate = totalGmv > 0 ? ((financials.totalRefundedAmount / totalGmv) * 100).toFixed(1) : '0';
-
-  // Booking conversion ratio
-  const totalBookingsCount = bookings.totalBookings || 0;
-  const paidRatio = totalBookingsCount > 0 ? Math.round((bookings.paidBookings / totalBookingsCount) * 100) : 0;
-
-  // Tutor verification ratio
-  const totalTutorsCount = users.totalTutors || 0;
-  const verifiedTutorRatio = totalTutorsCount > 0 ? Math.round((tutors.verifiedTutors / totalTutorsCount) * 100) : 0;
-
-  const actionCards = [
-    {
-      id: 'reports',
-      title: 'Báo cáo vi phạm cần xử lý',
-      count: `${actionQueue.openReportsCount} vụ việc`,
-      urgent: actionQueue.openReportsCount > 0,
-      desc:
-        actionQueue.openReportsCount > 0
-          ? 'Có báo cáo về hành vi hoặc nội dung đang chờ xem xét.'
-          : 'Không có báo cáo vi phạm đang chờ xử lý.',
-      link: '/admin/trust-reports?status=Open',
-      btnText: 'Xem báo cáo',
-      tone: 'danger',
-      icon: 'gavel',
-    },
-    {
-      id: 'withdrawals',
-      title: 'Lệnh rút tiền gia sư chờ xử lý',
-      count: `${actionQueue.pendingWithdrawalsCount} lệnh`,
-      urgent: actionQueue.pendingWithdrawalsCount > 0,
-      desc:
-        actionQueue.pendingWithdrawalsCount > 0
-          ? 'Gia sư yêu cầu rút thu nhập khả dụng về tài khoản ngân hàng đã liên kết.'
-          : 'Không có yêu cầu rút tiền mới chờ đối soát.',
-      link: '/admin/withdrawals',
-      btnText: 'Duyệt lệnh rút tiền',
-      tone: 'holding',
-      icon: 'payments',
-    },
-    {
-      id: 'applications',
-      title: 'Hồ sơ gia sư chờ duyệt',
-      count: `${actionQueue.pendingTutorsCount} hồ sơ`,
-      urgent: actionQueue.pendingTutorsCount > 0,
-      desc:
-        actionQueue.pendingTutorsCount > 0
-          ? 'Ứng viên gia sư đã tải lên bằng đại học, chứng chỉ sư phạm và giấy tờ định danh KYC.'
-          : 'Toàn bộ hồ sơ gia sư mới đã được thẩm định.',
-      link: '/admin/tutor-applications',
-      btnText: 'Kiểm duyệt hồ sơ',
-      tone: 'success',
-      icon: 'verified_user',
-    },
-  ];
-
-  return (
-    <div className="space-y-6">
-      <WorkspacePageHeader
-        title="Tổng quan quản trị"
-        description="Theo dõi hoạt động TutorHub, xử lý yêu cầu và quản lý học phí."
-        actions={
-          <div className="flex items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              loading={refreshing}
-              onClick={() => loadStats(true)}
-              icon={!refreshing && <Icon name="refresh" size="sm" />}
-            >
-              Làm mới
-            </Button>
-          </div>
-        }
-      />
-
-      {/* Top 4 Primary Financial & Volume KPIs — hàng số liệu phẳng (StatStrip) */}
-      <StatStrip appearance="soft" className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4"
-        columns={4}
-        figures={[
-          {
-            key: 'gmv',
-            label: 'Tổng GMV Giao dịch sàn',
-            value: <Money value={financials.totalGmv} />,
-            hint: `Net GMV thực: ${formatCurrency(financials.netGmv)}`,
-          },
-          {
-            // Phí sàn là dòng tiền trung tính, không phải "thành công".
-            key: 'platformFee',
-            label: 'Doanh thu phí sàn đã thu',
-            value: <Money value={financials.totalPlatformRevenue} />,
-            hint: `Hiệu suất thu phí: ~${feeRate}% tổng GMV`,
-          },
-          {
-            key: 'payouts',
-            label: 'Đã giải ngân cho Gia sư',
-            value: <Money value={financials.totalTutorPayouts} />,
-            hint: `Tỷ trọng giải ngân: ~${payoutRate}% GMV`,
-          },
-          {
-            key: 'refunds',
-            label: 'Tổng bồi hoàn / Hoàn tiền',
-            value: <Money value={financials.totalRefundedAmount} />,
-            hint: `Tỷ lệ hoàn tiền: ~${refundRate}% (Bảo chứng)`,
-            tone: 'holding',
-          },
-        ]}
-      />
-
-      {/* Action Queue: Urgent Operational Tasks */}
-      <Card padding="lg" className="space-y-4 shadow-brand-sm border border-border">
-        <CardHeader
-          title="Yêu cầu cần xử lý"
-          subtitle="Giám sát khiếu nại phát sinh và yêu cầu rút tiền của thành viên"
-          icon={<Icon name="emergency" size="sm" className="text-danger" />}
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {actionCards.map((q) => (
-            <div
-              key={q.id}
-              className="flex flex-col justify-between gap-4 rounded-2xl border border-border bg-surface p-5"
-            >
-              <div className="space-y-2">
-                <span className={cn('mb-3 flex h-9 w-9 items-center justify-center rounded-lg', ACTION_TONE_CLASS[q.tone])}><Icon name={q.icon} size="sm" /></span>
-                <div className="flex justify-between items-start gap-2">
-                  <span className="text-caption font-bold text-fg leading-snug">
-                    {q.title}
-                  </span>
-                  <span className="shrink-0 text-xs font-medium tabular-nums text-fg-secondary">
-                    {q.count}
-                  </span>
-                </div>
-                <p className="text-caption text-fg-secondary leading-relaxed m-0">
-                  {q.desc}
-                </p>
-              </div>
-
-              <div className="pt-2">
-                <Button
-                  as={Link}
-                  to={q.link}
-                  variant={q.urgent ? 'primary' : 'outline'}
-                  size="sm"
-                  fullWidth
-                  iconRight={<Icon name="arrow_forward" size="sm" />}
-                >
-                  {q.btnText}
-                </Button>
-              </div>
-            </div>
-          ))}
+      <Card padding="lg">
+        <SectionHeader title="Công việc cần xử lý" description="Hiện tại · Tất cả thời gian" icon="flag" tone={pending.length ? 'holding' : 'success'} />
+        {pending.length === 0 ? <div className="mt-5 flex items-start gap-3 rounded-xl border border-success/20 bg-success-subtle p-4">
+          <Icon name="check_circle" size="md" className="mt-0.5 text-success-strong" />
+          <div><p className="text-sm font-semibold text-success-strong">Không có yêu cầu mới đang chờ</p><p className="mt-1 text-xs text-fg-secondary">Không có yêu cầu mới trong {queues.length} nhóm theo dõi. Yêu cầu đã tiếp nhận được theo dõi tại danh sách tương ứng.</p></div>
+        </div> : <div className="mt-2 divide-y divide-border">
+          {pending.map(queue => <Link key={queue.path} to={queue.path} className="flex min-h-16 items-center gap-3 rounded-lg py-3 text-sm hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-500">
+            <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', TONES[queue.tone].icon)}><Icon name={queue.icon} size="sm" /></span><span className="flex-1 font-medium">{queue.label}</span><span className="tabular-nums font-semibold text-holding-strong">{queue.count} chờ xử lý</span><Icon name="chevron_right" size="sm" />
+          </Link>)}
+        </div>}
+        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {queues.map(queue => <Link to={queue.path} key={queue.path} className={cn('flex items-center gap-2 rounded-lg border px-3 py-2.5 text-xs', TONES[queue.tone].surface)}>
+            <Icon name={queue.icon} size="xs" className={TONES[queue.tone].icon.split(' ').find(value => value.startsWith('text-'))} /><span className="flex-1 text-fg-secondary">{queue.label}</span><strong className="text-sm tabular-nums text-fg">{queue.count}</strong>
+          </Link>)}
         </div>
       </Card>
 
-      {/* Detailed Ecosystem & Balance Panels: 2 Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column: Financial Stream Settlement Matrix */}
-        <Card padding="lg" className="space-y-4 shadow-brand-sm border border-border">
-          <CardHeader
-            title="Dòng tiền học phí"
-            subtitle="Phân rã GMV sàn thành thu nhập gia sư, phí sàn và dự phòng hoàn tiền"
-            icon={<Icon name="pie_chart" size="sm" className="text-brand-primary-600" />}
-          />
-
-          {/* Visual Distribution Progress Bar
-              Mảng "Phí sàn" cố tình TRUNG TÍNH (neutral) — phí sàn không phải
-              dòng tiền "thành công"; mảng hoàn trả dùng brand-secondary. */}
-          <div className="space-y-1.5 pt-1">
-            <div className="flex justify-between text-[11px] font-semibold text-fg-muted">
-              <span>Cơ cấu GMV sàn ({formatCurrency(totalGmv)})</span>
-              <span>100% Khép kín</span>
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-5">
+        <Card padding="lg" className="xl:col-span-3">
+          <SectionHeader title="Dòng tiền học phí" description="Tổng hợp dòng tiền trong kỳ" icon="pie_chart" tone="blue" />
+          {canShowComposition && <figure className="mt-6" aria-label="Các khoản thu, chi so với tiền thanh toán">
+            <figcaption className="mb-3 flex items-center justify-between gap-2 text-xs text-fg-secondary"><span>So với tiền thanh toán</span><Money value={gmv} className="font-semibold text-fg" /></figcaption>
+            <div className="flex h-4 overflow-hidden rounded-full bg-neutral-100" aria-hidden="true">
+              {chartFlows.filter(flow => flow.value > 0).map(flow => <div key={flow.label} className={flow.color} style={{ width: `${flow.value / gmv * 100}%` }} />)}
             </div>
-            <div className="h-3 w-full rounded-full bg-neutral-200 overflow-hidden flex" role="progressbar" aria-label="Cơ cấu GMV sàn">
-              <div
-                style={{ width: `${Math.max(5, Number(payoutRate))}%` }}
-                className="bg-brand-primary-600 h-full transition-all"
-                title={`Thu nhập gia sư: ${payoutRate}%`}
-              />
-              <div
-                style={{ width: `${Math.max(3, Number(feeRate))}%` }}
-                className="bg-neutral-400 h-full transition-all"
-                title={`Phí sàn: ${feeRate}%`}
-              />
-              <div
-                style={{ width: `${Math.max(2, Number(refundRate))}%` }}
-                className="bg-brand-secondary-500 h-full transition-all"
-                title={`Hoàn trả: ${refundRate}%`}
-              />
-            </div>
-            <div className="flex items-center gap-4 text-[11px] text-fg-muted pt-1 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-brand-primary-600" />
-                <span>Thu nhập Gia sư ({payoutRate}%)</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-neutral-400" />
-                <span>Phí sàn ({feeRate}%)</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-brand-secondary-500" />
-                <span>Hoàn tiền ({refundRate}%)</span>
-              </div>
-            </div>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-fg-secondary">{chartFlows.map(flow => <span key={flow.label} className="inline-flex items-center gap-1.5"><span className={cn('h-2 w-2 rounded-full', flow.color)} />{flow.label}: {percent(flow.value, gmv)}%</span>)}</div>
+          </figure>}
+          <dl className="mt-5 divide-y divide-border text-sm">
+            {flows.map(flow => <div key={flow.label} className="py-3 first:pt-0">
+              <div className="flex flex-wrap items-center justify-between gap-2"><dt className="flex items-center gap-2"><span className={cn('flex h-8 w-8 items-center justify-center rounded-lg', TONES[flow.tone].icon)}><Icon name={flow.icon} size="sm" /></span><span>{flow.label}</span></dt><dd><Money value={flow.value} className="font-semibold" /></dd></div>
+            </div>)}
+          </dl>
+          {financials.pendingRefundAmount > 0 && <p className="mb-3 flex flex-wrap justify-between gap-2 text-sm text-holding-strong"><span>Hoàn tiền đang chờ</span><Money value={financials.pendingRefundAmount} /></p>}
+          <div className="mt-2 rounded-xl border border-insight-border bg-insight-subtle p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm"><span className="inline-flex items-center gap-2 font-medium"><Icon name="info" size="sm" className="text-insight-strong" />Chênh lệch so với tiền thanh toán</span><Money value={difference} className="font-semibold text-insight-strong" /></div>
+            <p className="mt-2 text-xs text-fg-secondary">Khoản này không phải số học phí đang được giữ.</p>
+            <details className="mt-3 text-xs leading-5 text-fg-secondary">
+              <summary className="w-fit cursor-pointer rounded font-medium text-insight-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-500">Xem giải thích cách tính</summary>
+              <p className="mt-2">Tổng tiền gói đã thanh toán, trừ tiền đã chuyển cho gia sư, phí nền tảng và tiền đã hoàn. Các khoản có thể thuộc gói mua ở kỳ khác, nên chênh lệch này không thể dùng làm số học phí đang giữ.</p>
+              <ul className="mt-2 list-disc space-y-1 pl-4">{flows.map(flow => <li key={flow.label}>{flow.description}</li>)}</ul>
+            </details>
           </div>
-
-          <div className="grid grid-cols-2 gap-3 pt-2 text-caption">
-            <div className="p-3 rounded-brand-md bg-neutral-50 border border-border space-y-1">
-              <span className="text-[11px] text-fg-muted uppercase font-semibold block">
-                Tổng giá trị GMV
-              </span>
-              <span className="text-fg block">
-                <Money value={financials.totalGmv} />
-              </span>
-              <span className="text-[10px] text-fg-muted block">
-                Bao gồm toàn bộ gói dịch vụ đã kích hoạt
-              </span>
-            </div>
-
-            <div className="p-3 rounded-brand-md bg-neutral-50 border border-border space-y-1">
-              <span className="text-[11px] text-fg-muted uppercase font-semibold block">
-                Net GMV Quyết toán
-              </span>
-              <span className="text-brand-primary-700 block">
-                <Money value={financials.netGmv} />
-              </span>
-              <span className="text-[10px] text-fg-muted block">
-                GMV sau khi trừ phần hoàn tiền tranh chấp
-              </span>
-            </div>
-          </div>
+          <Link to="/admin/transactions" className="mt-4 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-brand-primary-600 focus-visible:ring-2 focus-visible:ring-brand-primary-500">Xem sổ giao dịch<Icon name="arrow_forward" size="sm" /></Link>
         </Card>
 
-        {/* Right Column: Bookings & User Health Matrix */}
-        <Card padding="lg" className="space-y-4 shadow-brand-sm border border-border">
-          <CardHeader
-            title="Người dùng và gói học"
-            subtitle="Hiệu suất đặt chỗ 15 phút và mức độ thẩm định hồ sơ giảng dạy"
-            icon={<Icon name="group" size="sm" className="text-success-strong" />}
-          />
-
-          <div className="space-y-4 pt-1">
-            {/* Booking Conversion Bar */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-[11px] font-semibold text-fg">
-                <span>Tỷ lệ thanh toán thành công ({bookings.paidBookings}/{totalBookingsCount})</span>
-                <span className="text-success-strong tabular-nums">{paidRatio}%</span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-neutral-200 overflow-hidden">
-                <div
-                  style={{ width: `${paidRatio}%` }}
-                  className="bg-success-strong h-full rounded-full transition-all"
-                />
-              </div>
-              <div className="flex justify-between text-[10px] text-fg-muted">
-                <span>Đang giữ chỗ 15p: <strong className="tabular-nums">{bookings.holdingBookings}</strong></span>
-                <span>Hết hạn / Hủy: <strong className="tabular-nums">{bookings.expiredBookings + bookings.cancelledBookings}</strong></span>
-              </div>
-            </div>
-
-            {/* Tutor Verification Bar */}
-            <div className="space-y-1.5 pt-1">
-              <div className="flex justify-between text-[11px] font-semibold text-fg">
-                <span>Tỷ lệ gia sư đã cấp Verified Badge ({tutors.verifiedTutors}/{totalTutorsCount})</span>
-                <span className="text-brand-primary-700 tabular-nums">{verifiedTutorRatio}%</span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-neutral-200 overflow-hidden">
-                <div
-                  style={{ width: `${verifiedTutorRatio}%` }}
-                  className="bg-brand-primary-600 h-full rounded-full transition-all"
-                />
-              </div>
-              <div className="flex justify-between text-[10px] text-fg-muted">
-                <span>Chờ thẩm định bằng cấp: <strong className="tabular-nums">{tutors.pendingReviewTutors}</strong></span>
-                <span>Tạm đình chỉ: <strong className="tabular-nums">{tutors.suspendedTutors}</strong></span>
-              </div>
-            </div>
-
-            {/* Quick Community Stats Chips */}
-            <div className="grid grid-cols-3 gap-2 pt-2 text-center text-caption">
-              <div className="p-2 rounded-brand-md bg-neutral-50 border border-border">
-                <span className="text-[10px] text-fg-muted block uppercase font-semibold">Học viên</span>
-                <span className="text-fg block tabular-nums">{users.totalStudents}</span>
-              </div>
-              <div className="p-2 rounded-brand-md bg-neutral-50 border border-border">
-                <span className="text-[10px] text-fg-muted block uppercase font-semibold">Gia sư</span>
-                <span className="text-fg block tabular-nums">{users.totalTutors}</span>
-              </div>
-              <div className="p-2 rounded-brand-md bg-neutral-50 border border-border">
-                <span className="text-[10px] text-fg-muted block uppercase font-semibold">Đang hoạt động</span>
-                <span className="text-success-strong block tabular-nums">{users.activeUsers}</span>
-              </div>
-            </div>
+        <Card padding="lg" className="xl:col-span-2">
+          <SectionHeader title="Sức khỏe nền tảng" icon="group" tone="success" />
+          <div className="mt-5 rounded-xl border border-success/20 bg-success-subtle p-4">
+            <h3 className="flex items-center gap-2 text-sm font-medium"><Icon name="receipt_long" size="sm" className="text-success-strong" />Thanh toán</h3>
+            <p className="mt-1 text-xs text-fg-secondary">Theo đơn được tạo trong kỳ</p>
+            <div className="mt-4 flex items-baseline justify-between gap-3"><span className="text-sm text-fg-secondary">Đã thanh toán</span><strong className="text-3xl tabular-nums text-success-strong">{percent(bookings.paidBookings, bookings.totalBookings)}%</strong></div>
+            <p className="mt-1 text-right text-xs tabular-nums text-fg-secondary">{bookings.paidBookings}/{bookings.totalBookings} đơn đặt chỗ</p>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-100" aria-hidden="true"><div className="h-full bg-success-strong" style={{ width: `${bookings.totalBookings ? bookings.paidBookings / bookings.totalBookings * 100 : 0}%` }} /></div>
+          </div>
+          <div className="pt-5">
+            <h3 className="text-sm font-medium">Người dùng hiện tại</h3>
+            <dl className="mt-4 grid grid-cols-2 gap-3">
+              {[
+                { label: 'Học viên', value: users.totalStudents, icon: 'school', tone: 'blue' },
+                { label: 'Gia sư', value: users.totalTutors, icon: 'person', tone: 'insight' },
+                { label: 'Tổng tài khoản', value: users.totalUsers, icon: 'group', tone: 'neutral' },
+                { label: 'Đang hoạt động', value: users.activeUsers, icon: 'check_circle', tone: 'success' },
+              ].map(tile => <div key={tile.label} className={cn('rounded-xl border p-3', TONES[tile.tone].surface)}>
+                <dt className="text-xs text-fg-secondary"><span className={cn('mb-2 flex h-7 w-7 items-center justify-center rounded-lg', TONES[tile.tone].icon)}><Icon name={tile.icon} size="sm" /></span>{tile.label}</dt><dd className="mt-1 text-2xl font-semibold tabular-nums">{tile.value}</dd>
+              </div>)}
+            </dl>
+            <details className="mt-4 text-xs leading-5 text-fg-secondary"><summary className="w-fit cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-500">Phạm vi thống kê tài khoản</summary><p className="mt-2">Tổng tài khoản gồm cả quản trị viên. Đang hoạt động là số tài khoản có trạng thái hoạt động ở tất cả vai trò.</p></details>
           </div>
         </Card>
       </div>
-
-      {/* Governance Quick Navigation Links */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Link
-          to="/admin/disputes"
-          className="p-4 rounded-brand-lg bg-surface border border-border hover:border-brand-primary-500 hover:shadow-brand-md transition-all group block text-left"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-brand-md bg-danger-subtle text-danger flex items-center justify-center shrink-0 border border-danger/20 group-hover:scale-105 transition-transform">
-              <Icon name="gavel" size="sm" />
-            </div>
-            <div>
-              <span className="font-bold text-caption text-fg group-hover:text-brand-primary-700 block">
-                Bàn trọng tài tranh chấp
-              </span>
-              <span className="text-[11px] text-fg-muted block">
-                Phân xử bồi hoàn & bảo vệ quyền lợi
-              </span>
-            </div>
-          </div>
-        </Link>
-
-        <Link
-          to="/admin/tutor-applications"
-          className="p-4 rounded-brand-lg bg-surface border border-border hover:border-brand-primary-500 hover:shadow-brand-md transition-all group block text-left"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-brand-md bg-success-subtle text-success-strong flex items-center justify-center shrink-0 border border-success/20 group-hover:scale-105 transition-transform">
-              <Icon name="verified_user" size="sm" />
-            </div>
-            <div>
-              <span className="font-bold text-caption text-fg group-hover:text-brand-primary-700 block">
-                Xác minh hồ sơ Gia sư
-              </span>
-              <span className="text-[11px] text-fg-muted block">
-                Thẩm định văn bằng & cấp badge
-              </span>
-            </div>
-          </div>
-        </Link>
-
-        <Link
-          to="/admin/users"
-          className="p-4 rounded-brand-lg bg-surface border border-border hover:border-brand-primary-500 hover:shadow-brand-md transition-all group block text-left"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-brand-md bg-brand-primary-50 text-brand-primary-600 flex items-center justify-center shrink-0 border border-brand-primary-100 group-hover:scale-105 transition-transform">
-              <Icon name="group" size="sm" />
-            </div>
-            <div>
-              <span className="font-bold text-caption text-fg group-hover:text-brand-primary-700 block">
-                Người dùng & Tài khoản
-              </span>
-              <span className="text-[11px] text-fg-muted block">
-                Quản lý trạng thái & khóa tài khoản
-              </span>
-            </div>
-          </div>
-        </Link>
-
-        <Link
-          to="/admin/audit-logs"
-          className="p-4 rounded-brand-lg bg-surface border border-border hover:border-brand-primary-500 hover:shadow-brand-md transition-all group block text-left"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-brand-md bg-neutral-100 text-fg-secondary flex items-center justify-center shrink-0 border border-neutral-200 group-hover:scale-105 transition-transform">
-              <Icon name="receipt_long" size="sm" />
-            </div>
-            <div>
-              <span className="font-bold text-caption text-fg group-hover:text-brand-primary-700 block">
-                Sổ cái kiểm toán Append-Only
-              </span>
-              <span className="text-[11px] text-fg-muted block">
-                Tra cứu CorrelationId bất biến
-              </span>
-            </div>
-          </div>
-        </Link>
-      </div>
-    </div>
-  );
+    </>}
+  </div>;
 }

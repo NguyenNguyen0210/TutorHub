@@ -237,7 +237,7 @@ export default function StudentWallet() {
           <Tabs tabs={HISTORY_TABS} value={activeTab === 'payments' ? 'payments' : 'wallet'} onChange={key => changeTab(key === 'payments' ? 'payments' : 'statement')} />
           {activeTab !== 'payments' && <div className="mt-4"><Tabs tabs={TABS} value={activeTab} onChange={changeTab} /></div>}
           <p className="my-4 text-caption leading-relaxed text-fg-secondary">
-            {activeTab === 'payments' ? 'Theo dõi thanh toán qua VNPAY và Ví học viên, cùng tình trạng ký quỹ, giải ngân và hoàn tiền của hợp đồng.'
+            {activeTab === 'payments' ? 'Theo dõi các khoản thanh toán, học phí đang giữ, tiền đã chuyển cho gia sư và tiền hoàn của hợp đồng.'
               : activeTab === 'statement' ? 'Tất cả biến động số dư, gồm thanh toán bằng ví, hoàn tiền và điều chỉnh. Thanh toán trực tiếp qua VNPAY nằm trong tab Thanh toán khóa học.'
               : activeTab === 'topups' ? 'Theo dõi các yêu cầu nạp tiền. Số dư chỉ được cập nhật khi thanh toán được xác nhận.'
               : 'Theo dõi yêu cầu rút tiền và kết quả chuyển khoản về ngân hàng.'}
@@ -258,13 +258,13 @@ export default function StudentWallet() {
                 <p className="mt-2 max-w-md text-body-reg leading-relaxed text-fg-secondary">{empty.description}</p>
               </div>
             ) : (
-              <DataTable caption={activeTab === 'payments' ? 'Thanh toán khóa học' : activeTab === 'statement' ? 'Biến động số dư ví học viên' : activeTab === 'topups' ? 'Yêu cầu nạp tiền' : 'Yêu cầu rút tiền'} columns={COLUMNS[activeTab]} minWidth={activeTab === 'payments' ? 900 : activeTab === 'statement' ? 650 : 740}>
+              <DataTable caption={activeTab === 'payments' ? 'Thanh toán khóa học' : activeTab === 'statement' ? "Lịch sử số dư ví học viên" : activeTab === 'topups' ? 'Yêu cầu nạp tiền' : 'Yêu cầu rút tiền'} columns={COLUMNS[activeTab]} minWidth={activeTab === 'payments' ? 900 : activeTab === 'statement' ? 650 : 740}>
                 {activeTab === 'payments' ? items.map(item => <CoursePaymentHistoryRow key={item.id} payment={item} focused={matchesTarget(item)} />) : items.map(item => (
                   <tr id={`wallet-record-${item.id}`} key={item.id} className={matchesTarget(item) ? 'bg-brand-primary-50 ring-1 ring-inset ring-brand-primary-200' : 'transition-colors hover:bg-neutral-50'}>
                     {activeTab === 'statement' ? (
                       <>
                         <td className="px-4 py-4">
-                          <p className="font-semibold text-fg">{TRANSACTION_LABELS[item.type] || 'Biến động số dư'}</p>
+                          <p className="font-semibold text-fg">{TRANSACTION_LABELS[item.type] || "Thay đổi số dư"}</p>
                           <details open={matchesTarget(item) || undefined} className="mt-2 text-fg-secondary">
                             <summary className="w-fit cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Chi tiết giao dịch</summary>
                             <div className="mt-2 max-w-xs space-y-1 break-words">

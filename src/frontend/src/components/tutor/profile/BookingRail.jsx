@@ -51,7 +51,7 @@ export default function BookingRail({ tutor }) {
             </div>
             <p className="text-[12px] text-slate-600 m-0 pt-0.5 flex items-center gap-1.5">
               <Icon name="verified_user" size="xs" className="text-brand-primary-600 shrink-0" />
-              <span>Bảo lưu học phí 12 giờ sau mỗi buổi qua Escrow</span>
+              <span>TutorHub giữ học phí trong 12 giờ sau mỗi buổi để bạn phản hồi</span>
             </p>
           </div>
 
@@ -90,7 +90,7 @@ export default function BookingRail({ tutor }) {
             <div className="flex items-start gap-2.5 text-[12px] text-fg-secondary leading-relaxed">
               <Icon name="security" size="xs" className="text-brand-primary-600 shrink-0 mt-0.5" />
               <div>
-                <strong className="text-fg font-semibold block">Học phí bảo chứng Escrow</strong>
+                <strong className="text-fg font-semibold block">Học phí được TutorHub giữ an toàn</strong>
                 <span>
                   Học phí được giữ an toàn tuyệt đối, chỉ giải ngân cho gia sư sau khi từng buổi học
                   hoàn tất và bạn xác nhận.

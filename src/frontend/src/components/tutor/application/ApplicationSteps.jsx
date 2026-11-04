@@ -715,7 +715,7 @@ export function ReviewStep({ formData, onFieldChange }) {
           id="tutor-agreed"
           checked={formData.agreed}
           onChange={(e) => onFieldChange('agreed', e.target.checked)}
-          label="Tôi cam kết mọi thông tin cung cấp về bằng cấp, kinh nghiệm và chứng chỉ là hoàn toàn chính xác. Tôi đồng ý tuân thủ quy chế giải ngân học phí bảo chứng Escrow của TutorHub và chịu hoàn toàn trách nhiệm trước quy định của pháp luật."
+          label="Tôi cam kết mọi thông tin cung cấp về bằng cấp, kinh nghiệm và chứng chỉ là hoàn toàn chính xác. Tôi đồng ý tuân thủ quy định giữ và chuyển học phí theo từng buổi học của TutorHub và chịu hoàn toàn trách nhiệm trước quy định của pháp luật."
         />
       </div>
     </div>

@@ -6,5 +6,6 @@ namespace TutorHub.Application.Features.Admin.Conversations.AdminGetConversation
 public record AdminGetConversationsQuery(
     string OperationalReason,
     string? Cursor = null,
-    int PageSize = 20
+    int PageSize = 20,
+    Guid? DisputeId = null, Guid? ReportId = null, DateTime? FromDate = null, DateTime? ToDate = null
 ) : IRequest<CursorPagedResult<ConversationDto>>;

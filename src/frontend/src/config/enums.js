@@ -22,7 +22,7 @@ export const ACCOUNT_STATUS = {
 export const ACCOUNT_STATUS_META = {
   [ACCOUNT_STATUS.ACTIVE]: { label: 'Đang hoạt động', color: 'success' },
   [ACCOUNT_STATUS.SUSPENDED]: { label: 'Tạm khóa', color: 'holding' },
-  [ACCOUNT_STATUS.BANNED]: { label: 'Cấm vĩnh viễn', color: 'danger' },
+  [ACCOUNT_STATUS.BANNED]: { label: "Đã cấm truy cập", color: 'danger' },
 };
 
 export const SESSION_STATUS = {
@@ -69,13 +69,13 @@ export const WITHDRAWAL_STATUS_META = {
 
 /**
  * Resolve an enum value against a meta map without throwing on unknown input.
- * Unknown values are shown verbatim (so a new backend enum is visible, not hidden).
+ * Unknown values receive a neutral display label; the underlying value is unchanged.
  */
 export function enumMeta(metaMap, value, fallbackLabel = '—') {
   if (value === null || value === undefined || value === '') {
     return { label: fallbackLabel, color: 'neutral' };
   }
-  return metaMap[value] ?? { label: String(value), color: 'neutral' };
+  return metaMap[value] ?? { label: 'Chưa rõ trạng thái', color: 'neutral' };
 }
 
 export const getAccountStatusMeta = (value) => enumMeta(ACCOUNT_STATUS_META, value, 'Không rõ');

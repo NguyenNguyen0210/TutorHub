@@ -15,7 +15,7 @@ const GUIDELINES = [
     body: 'Đối chiếu bằng tốt nghiệp, bảng điểm và chứng chỉ sư phạm, bảo đảm có dấu mộc của trường đại học hoặc cơ quan cấp phép uy tín.',
   },
   {
-    title: 'Kiểm tra danh tính KYC & liên lạc:',
+    title: "Kiểm tra danh tính và thông tin liên hệ:",
     body: 'Xác minh số điện thoại, email và thông tin danh tính có trùng khớp với hồ sơ đăng ký.',
   },
   {
@@ -23,7 +23,7 @@ const GUIDELINES = [
     body: 'Đảm bảo gia sư có phong cách giảng dạy rõ ràng, giáo trình minh bạch và cam kết chất lượng đầu ra cho học viên.',
   },
   {
-    title: 'Thời hạn SLA cam kết:',
+    title: "Thời gian xét duyệt:",
     body: 'Phê duyệt hoặc từ chối có lý do trong vòng tối đa 1–3 ngày làm việc kể từ thời điểm nhận hồ sơ.',
   },
 ];

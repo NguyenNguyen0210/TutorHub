@@ -50,7 +50,7 @@ public class AdminCancelEnrollmentCommandHandler : IRequestHandler<AdminCancelEn
         await PostgresAdvisoryLock.LockRowAsync(_context,
             $"SELECT 1 FROM \"Enrollments\" WHERE \"Id\" = {request.EnrollmentId} FOR UPDATE", cancellationToken);
 
-        var enrollment = await _context.Enrollments
+        var enrollment = await _context.Enrollments.IgnoreQueryFilters()
             .Include(e => e.StudentProfile).ThenInclude(s => s.User)
             .Include(e => e.TutorProfile).ThenInclude(t => t.User)
             .Include(e => e.Subject)

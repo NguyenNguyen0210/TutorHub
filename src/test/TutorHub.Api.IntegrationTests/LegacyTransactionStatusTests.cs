@@ -65,6 +65,15 @@ public class LegacyTransactionStatusTests(IntegrationWebApplicationFactory facto
         json.RootElement.GetProperty("data").GetProperty("items").GetArrayLength().Should().Be(2);
         using var restoredStats = JsonDocument.Parse(await client.GetStringAsync("/api/v1/admin/dashboard/stats"));
         restoredStats.RootElement.GetProperty("data").GetProperty("financials").GetProperty("totalTutorPayouts").GetDecimal().Should().Be(baselinePayout + 90m);
+        foreach (var period in new[] { "Today", "SevenDays", "ThirtyDays" })
+        {
+            using var periodStats = JsonDocument.Parse(await client.GetStringAsync("/api/v1/admin/dashboard/stats?period=" + period));
+            var data = periodStats.RootElement.GetProperty("data");
+            data.GetProperty("period").GetString().Should().Be(period);
+            data.GetProperty("fromUtc").GetDateTime().Hour.Should().Be(17);
+            data.GetProperty("actionQueue").GetProperty("openDisputesCount").GetInt32().Should().BeGreaterThanOrEqualTo(0);
+        }
+        (await client.GetAsync("/api/v1/admin/dashboard/stats?period=99")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var tamper = () => Db.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"Transactions\" SET \"Amount\"={1m} WHERE \"Id\"={payoutId}");
         (await tamper.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be("P0001");
         // The normalized payment is immutable; new invalid statuses are covered below.

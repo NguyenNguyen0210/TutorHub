@@ -172,4 +172,38 @@ public class ScheduleSessionCommandHandlerTests : IDisposable
 
         await act.Should().ThrowAsync<ConflictException>();
     }
+    [Theory]
+    [InlineData(-2)]
+    [InlineData(-0.5)]
+    [InlineData(1)]
+    public async Task Reschedule_RejectsOldScheduleInsideNoticeWindow_WithoutChangingIt(double oldStartHours)
+    {
+        var oldStart = _fixedNow.AddHours(oldStartHours);
+        var (session, _, _, tutorUser) = await SeedAggregateAsync(oldStart);
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
+        var newStart = _fixedNow.AddDays(1);
+        var act = () => CreateHandler().Handle(new ScheduleSessionCommand(session.Id, newStart, newStart.AddHours(1)), CancellationToken.None);
+        await act.Should().ThrowAsync<BadRequestException>();
+        (await _context.Sessions.FindAsync(session.Id))!.StartAt.Should().Be(oldStart);
+        (await _context.OutboxMessages.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Reschedule_EmitsOldAndNewTimes_InsteadOfInitialScheduleEvent()
+    {
+        var oldStart = _fixedNow.AddDays(2);
+        var (session, _, _, tutorUser) = await SeedAggregateAsync(oldStart);
+        _currentUserService.Set(tutorUser.Id, UserRole.Tutor);
+        var newStart = _fixedNow.AddDays(3);
+        await CreateHandler().Handle(new ScheduleSessionCommand(session.Id, newStart, newStart.AddHours(1)), CancellationToken.None);
+        var messages = await _context.OutboxMessages.ToListAsync();
+        messages.Should().NotContain(m => m.EventType == "SessionScheduled");
+        var message = messages.Single(m => m.EventType == "SessionRescheduled");
+        var payload = System.Text.Json.JsonSerializer.Deserialize<TutorHub.Application.Common.Events.SessionRescheduledEvent>(message.Payload,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+        payload.PreviousStartAt.Should().Be(oldStart);
+        payload.PreviousEndAt.Should().Be(oldStart.AddHours(1));
+        payload.NewStartAt.Should().Be(newStart);
+        payload.NewEndAt.Should().Be(newStart.AddHours(1));
+    }
 }

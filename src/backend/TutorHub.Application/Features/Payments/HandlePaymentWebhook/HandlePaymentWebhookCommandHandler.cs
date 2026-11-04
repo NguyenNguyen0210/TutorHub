@@ -239,11 +239,14 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
         refundTx.SettlementRequired = true;
         _context.Transactions.Add(refundTx);
 
+        var enrollmentId = await _context.Enrollments.AsNoTracking()
+            .Where(e => e.BookingId == booking.Id)
+            .Select(e => (Guid?)e.Id).FirstOrDefaultAsync(cancellationToken);
         _context.AddOutboxMessage(new RefundCreatedEvent(
-            booking.Id,
+            enrollmentId ?? Guid.Empty,
             booking.StudentProfile.UserId,
             new MoneyDto(transaction.Amount),
-            refundTx.Id));
+            refundTx.Id) { BookingId = booking.Id });
 
         await _auditLogService.LogAsync(
             action: "LateIpnRefundRequired",

@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useState, useEffect, useMemo } from 'react';
 import ReportAction from '@/components/reports/ReportAction';
 import { discoveryReturn } from '@/utils/discoveryReturn';
@@ -131,7 +132,7 @@ export default function TutorProfile() {
       toast.success('Đã khóa giữ chỗ trong 15 phút. Vui lòng hoàn tất thanh toán bên dưới.');
       navigate(`/student/bookings/${newBookingId}/checkout`);
     } catch (err) {
-      toast.error(err?.message || 'Không tạo được đơn giữ chỗ. Vui lòng thử lại.');
+      toast.error(userFacingError(err, 'Không tạo được đơn giữ chỗ. Vui lòng thử lại.'));
     } finally {
       setBookingId(null);
     }
@@ -140,7 +141,7 @@ export default function TutorProfile() {
   const anchorSections = useMemo(
     () => [
       { id: SECTION_IDS.about, label: 'Giới thiệu' },
-      { id: SECTION_IDS.services, label: 'Dịch vụ học tập' },
+      { id: SECTION_IDS.services, label: "Gói học" },
       { id: SECTION_IDS.reviews, label: 'Đánh giá' },
       { id: SECTION_IDS.certificates, label: 'Bằng cấp' },
       { id: SECTION_IDS.schedule, label: 'Lịch dạy' },
@@ -186,7 +187,7 @@ export default function TutorProfile() {
       <div className="page-shell pt-6">
         {/* Breadcrumb */}
         {listingContext && <Link to={listingContext.listingReturn} state={{ restoreScrollKey: listingContext.listingKey }} className="mb-4 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-caption font-semibold text-primary hover:bg-brand-primary-50 focus-visible:ring-2 focus-visible:ring-ring"><Icon name="arrow_back" size="sm" />Quay lại danh sách trước đó</Link>}
-        <nav aria-label="Breadcrumb">
+        <nav aria-label="Đường dẫn trang">
           <ol className="flex items-center gap-1.5 text-caption text-fg-muted">
             <li>
               <Link to="/" className="hover:text-brand-primary-700 transition-colors">

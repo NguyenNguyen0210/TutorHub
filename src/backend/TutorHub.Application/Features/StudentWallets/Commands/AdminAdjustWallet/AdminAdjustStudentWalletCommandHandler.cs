@@ -5,6 +5,7 @@ using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Features.StudentWallets.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
+using System.Text.Json;
 
 namespace TutorHub.Application.Features.StudentWallets.Commands.AdminAdjustWallet;
 
@@ -41,6 +42,11 @@ public class AdminAdjustStudentWalletCommandHandler : IRequestHandler<AdminAdjus
             }
 
             var balanceBefore = wallet.AvailableBalance;
+            var isStudentWallet = await _context.StudentProfiles.AnyAsync(s => s.Id == wallet.StudentProfileId
+                && s.User.Role == UserRole.Student, cancellationToken);
+            if (!isStudentWallet) throw new BadRequestException("Ví này không thuộc học viên.");
+            if (request.ExpectedAvailableBalance.HasValue && request.ExpectedAvailableBalance != balanceBefore)
+                throw new ConflictException("Số dư đã thay đổi. Vui lòng kiểm tra lại ví trước khi xác nhận.");
 
             if (request.Direction == FinancialDirection.Credit)
             {
@@ -75,6 +81,13 @@ public class AdminAdjustStudentWalletCommandHandler : IRequestHandler<AdminAdjus
             };
 
             _context.StudentWalletTransactions.Add(ledger);
+            _context.AuditLogs.Add(new AuditLog
+            {
+                Id = Guid.NewGuid(), UserId = adminId, Action = "STUDENT_WALLET_ADJUSTED", EntityName = "Wallet",
+                EntityId = wallet.Id.ToString(), CorrelationId = ledger.Id.ToString(), CreatedAt = now,
+                OldValuesJson = JsonSerializer.Serialize(new { AvailableBalance = balanceBefore }),
+                NewValuesJson = JsonSerializer.Serialize(new { AvailableBalance = balanceAfter, request.Amount, request.Direction, request.Reason, request.ReferenceId, LedgerId = ledger.Id })
+            });
 
             await _context.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);

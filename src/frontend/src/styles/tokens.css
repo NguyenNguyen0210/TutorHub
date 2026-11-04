@@ -79,6 +79,9 @@
   --edtech-violet-strong: 109 40 217;
   --edtech-violet-subtle: 245 243 255;
   --edtech-violet-border: 221 214 254;
+  --semantic-insight-strong: var(--edtech-violet-strong);
+  --semantic-insight-subtle: var(--edtech-violet-subtle);
+  --semantic-insight-border: var(--edtech-violet-border);
   --course-trial-strong: var(--edtech-violet-strong);
   --course-trial-subtle: var(--edtech-violet-subtle);
   --course-trial-border: var(--edtech-violet-border);

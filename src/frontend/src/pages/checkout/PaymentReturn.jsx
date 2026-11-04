@@ -192,12 +192,12 @@ export default function PaymentReturn() {
         <div className="space-y-1">
           <h1 className="text-headline-1 text-fg">
             {isSuccess
-              ? (isTopUp ? 'Nạp tiền vào ví thành công!' : 'Thanh toán ký quỹ thành công!')
+              ? (isTopUp ? 'Nạp tiền vào ví thành công!' : "Thanh toán thành công!")
               : isPending ? 'Giao dịch đang chờ xác nhận' : isRefundPending ? 'Khoản thanh toán đang chờ hoàn tiền' : 'Thanh toán chưa được xác nhận'}
           </h1>
           <p className="text-caption text-fg-muted">
             {isSuccess && !isTopUp && bookingConfirmed
-              ? 'Thanh toán đã được xác nhận. Học phí của bạn đã được tiếp nhận vào tài khoản ký quỹ.'
+              ? 'Thanh toán đã được xác nhận. TutorHub đang giữ học phí cho các buổi học trong gói.'
               : getPaymentReturnMessage(result, isTopUp)}
           </p>
         </div>
@@ -221,7 +221,7 @@ export default function PaymentReturn() {
           </div>
           {result?.transactionNo && (
             <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 pb-2 border-b border-border">
-              <dt className="text-fg-muted">Mã giao dịch VNPay:</dt>
+              <dt className="text-fg-muted">Mã giao dịch VNPAY:</dt>
               <dd className="min-w-0 break-all font-mono font-bold text-fg">{result.transactionNo}</dd>
             </div>
           )}
@@ -251,7 +251,7 @@ export default function PaymentReturn() {
           <>
             <Callout
               variant="success"
-              title={isTopUp ? 'Tiền đã được cộng vào Ví Học Viên' : bookingConfirmed ? 'Hệ thống Escrow đã tiếp nhận học phí' : 'Thanh toán đang được xác nhận'}
+              title={isTopUp ? "Tiền đã được cộng vào Ví học viên" : bookingConfirmed ? "TutorHub đã tiếp nhận học phí" : 'Thanh toán đang được xác nhận'}
               icon={<Icon name="verified_user" size="md" />}
               className="text-left"
             >
@@ -268,7 +268,7 @@ export default function PaymentReturn() {
                     ? totalSessions ? `Lộ trình của bạn gồm ${totalSessions} buổi học.` : 'Bạn có thể xem lộ trình học trong Bàn học.'
                     : totalSessions ? `Lộ trình gồm ${totalSessions} buổi học và sẽ xuất hiện trong Bàn học sau khi thanh toán được xác nhận.` : 'Bạn có thể xem lộ trình trong Bàn học sau khi thanh toán được xác nhận.'}</li>
                   <li>
-                    Học phí được giải ngân sau mỗi buổi học thành công và qua thời gian bảo lưu 12 giờ.
+                    Học phí được giải ngân sau mỗi buổi học thành công và qua 12 giờ để học viên phản hồi.
                   </li>
                 </ul>
               )}
@@ -326,7 +326,7 @@ export default function PaymentReturn() {
                 className="sm:flex-1"
                 icon={<Icon name={isTopUp ? 'account_balance_wallet' : 'arrow_back'} size="sm" />}
               >
-                {isTopUp ? 'Quay lại Ví Học Viên' : 'Khám phá gia sư khác'}
+                {isTopUp ? "Quay lại Ví học viên" : 'Khám phá gia sư khác'}
               </Button>
               {!isPending && !isRefundPending && result?.bookingId && result?.bookingId !== '00000000-0000-0000-0000-000000000000' && (
                 <Button

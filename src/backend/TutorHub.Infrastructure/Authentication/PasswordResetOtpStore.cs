@@ -7,7 +7,40 @@ namespace TutorHub.Infrastructure.Authentication;
 public class PasswordResetOtpStore : IPasswordResetOtpStore
 {
     private const int MaxAllowedAttempts = 5;
-    private readonly IConnectionMultiplexer? _multiplexer;
+    // Check, consume, and count failed attempts in one Redis operation across all nodes.
+    private const string VerifyOtpScript = """
+        local value = redis.call('GET', KEYS[1])
+        if not value then return 2 end
+        local ok, record = pcall(cjson.decode, value)
+        if not ok or type(record) ~= 'table' or type(record.Otp) ~= 'string' then
+            redis.call('DEL', KEYS[1])
+            return 2
+        end
+        local ttl = redis.call('PTTL', KEYS[1])
+        if ttl <= 0 then
+            redis.call('DEL', KEYS[1])
+            return 2
+        end
+        if record.Otp == ARGV[1] then
+            redis.call('DEL', KEYS[1])
+            return 0
+        end
+        record.Attempts = (tonumber(record.Attempts) or 0) + 1
+        if record.Attempts >= tonumber(ARGV[2]) then
+            redis.call('DEL', KEYS[1])
+            return 3
+        end
+        redis.call('SET', KEYS[1], cjson.encode(record), 'PX', ttl)
+        return 1
+        """;
+
+    private const string ConsumeResetTokenScript = """
+        if redis.call('GET', KEYS[1]) == ARGV[1] then
+            return redis.call('DEL', KEYS[1])
+        end
+        return 0
+        """;
+
     private readonly IDatabase? _database;
 
     private sealed class OtpRecord
@@ -18,11 +51,7 @@ public class PasswordResetOtpStore : IPasswordResetOtpStore
 
     public PasswordResetOtpStore(IConnectionMultiplexer? multiplexer = null)
     {
-        _multiplexer = multiplexer;
-        if (_multiplexer != null && _multiplexer.IsConnected)
-        {
-            _database = _multiplexer.GetDatabase();
-        }
+        _database = multiplexer?.GetDatabase();
     }
 
     private static string GetOtpKey(string email) =>
@@ -33,106 +62,34 @@ public class PasswordResetOtpStore : IPasswordResetOtpStore
 
     public async Task SetOtpAsync(string email, string otp, TimeSpan expiry, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (_database == null) return;
-
-        var key = GetOtpKey(email);
-        var record = new OtpRecord
-        {
-            Otp = otp.Trim(),
-            Attempts = 0
-        };
-
-        var json = JsonSerializer.Serialize(record);
-        await _database.StringSetAsync(key, json, expiry);
+        var record = new OtpRecord { Otp = otp.Trim(), Attempts = 0 };
+        await _database.StringSetAsync(GetOtpKey(email), JsonSerializer.Serialize(record), expiry);
     }
 
     public async Task<OtpVerificationStatus> VerifyAndConsumeOtpAsync(string email, string otp, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (_database == null) return OtpVerificationStatus.ExpiredOrNotFound;
-
-        var key = GetOtpKey(email);
-        var value = await _database.StringGetAsync(key);
-
-        if (value.IsNullOrEmpty)
-        {
-            return OtpVerificationStatus.ExpiredOrNotFound;
-        }
-
-        OtpRecord? record;
-        try
-        {
-            record = JsonSerializer.Deserialize<OtpRecord>(value.ToString());
-        }
-        catch
-        {
-            await _database.KeyDeleteAsync(key);
-            return OtpVerificationStatus.ExpiredOrNotFound;
-        }
-
-        if (record == null)
-        {
-            await _database.KeyDeleteAsync(key);
-            return OtpVerificationStatus.ExpiredOrNotFound;
-        }
-
-        if (string.Equals(record.Otp, otp.Trim(), StringComparison.Ordinal))
-        {
-            // Valid OTP -> Delete it to avoid replay
-            await _database.KeyDeleteAsync(key);
-            return OtpVerificationStatus.Success;
-        }
-
-        // Invalid OTP -> increase attempts
-        record.Attempts++;
-        if (record.Attempts >= MaxAllowedAttempts)
-        {
-            await _database.KeyDeleteAsync(key);
-            return OtpVerificationStatus.MaxAttemptsExceeded;
-        }
-
-        // Keep remaining TTL
-        var ttl = await _database.KeyTimeToLiveAsync(key);
-        if (ttl.HasValue && ttl.Value > TimeSpan.Zero)
-        {
-            var updatedJson = JsonSerializer.Serialize(record);
-            await _database.StringSetAsync(key, updatedJson, ttl.Value);
-        }
-        else
-        {
-            await _database.KeyDeleteAsync(key);
-            return OtpVerificationStatus.ExpiredOrNotFound;
-        }
-
-        return OtpVerificationStatus.InvalidOtp;
+        var result = await _database.ScriptEvaluateAsync(VerifyOtpScript,
+            new RedisKey[] { GetOtpKey(email) }, new RedisValue[] { otp.Trim(), MaxAllowedAttempts });
+        return (OtpVerificationStatus)(int)result;
     }
 
     public async Task SetResetTokenAsync(string email, string resetToken, TimeSpan expiry, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (_database == null) return;
-
-        var key = GetResetTokenKey(email);
-        await _database.StringSetAsync(key, resetToken.Trim(), expiry);
+        await _database.StringSetAsync(GetResetTokenKey(email), resetToken.Trim(), expiry);
     }
 
     public async Task<bool> ValidateAndConsumeResetTokenAsync(string email, string resetToken, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (_database == null) return false;
-
-        var key = GetResetTokenKey(email);
-        var storedToken = await _database.StringGetAsync(key);
-
-        if (storedToken.IsNullOrEmpty)
-        {
-            return false;
-        }
-
-        if (string.Equals(storedToken.ToString(), resetToken.Trim(), StringComparison.Ordinal))
-        {
-            // Consume token so it cannot be used twice
-            await _database.KeyDeleteAsync(key);
-            return true;
-        }
-
-        return false;
+        var result = await _database.ScriptEvaluateAsync(ConsumeResetTokenScript,
+            new RedisKey[] { GetResetTokenKey(email) }, new RedisValue[] { resetToken.Trim() });
+        return (int)result == 1;
     }
 }

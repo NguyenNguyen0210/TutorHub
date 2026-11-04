@@ -32,10 +32,9 @@ export default class ErrorBoundary extends React.Component {
             <div className="w-16 h-16 rounded-brand-lg bg-danger-subtle border border-danger/30 flex items-center justify-center text-danger mx-auto mb-4">
               <Icon name="warning" size="xl" />
             </div>
-            <h2 className="text-headline-2 text-white mb-2">Đã Xảy Ra Sự Cố Bất Ngờ</h2>
+            <h2 className="text-headline-2 text-white mb-2">Không thể hiển thị trang</h2>
             <p className="text-caption text-fg-muted mb-6 leading-relaxed">
-              Hệ thống đã tự động bảo vệ trạng thái an toàn. Bạn có thể thử tải lại trang hoặc quay
-              lại trang khám phá gia sư.
+              Vui lòng tải lại trang. Nếu vẫn chưa mở được, bạn có thể quay về trang tìm gia sư.
             </p>
             <div className="flex gap-3 justify-center">
               <Button
@@ -44,14 +43,14 @@ export default class ErrorBoundary extends React.Component {
                 onClick={this.handleReload}
                 className="border-brand-navy-800 bg-brand-navy-800 text-fg-inverse hover:bg-brand-navy-700"
               >
-                Tải Lại Trang
+                Tải lại trang
               </Button>
               <Button
                 variant="primary"
                 icon={<Icon name="explore" size="sm" />}
                 onClick={this.handleGoHome}
               >
-                Về Trang Khám Phá
+                Về trang tìm gia sư
               </Button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { userFacingError } from '@/utils/userFacingError';
 import { useLocation, Link } from 'react-router-dom';
 import {
   Mail,
@@ -70,7 +71,7 @@ export default function Login() {
 
       // GuestGuard owns the redirect after authentication, avoiding competing navigations.
     } catch (err) {
-      const displayError = err.message || 'Email hoặc mật khẩu không chính xác.';
+      const displayError = userFacingError(err, 'Chưa đăng nhập được. Vui lòng thử lại.');
       toast.error(displayError);
     } finally {
       setLoading(false);

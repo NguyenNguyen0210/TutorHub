@@ -34,7 +34,7 @@ function ContractEscrow({ summary }) {
     </summary>
     <div className="space-y-4 border-t border-border p-4">
       {loading ? <p role="status" className="text-body-reg text-fg-secondary">Đang tải các buổi học…</p> : error ? <div className="space-y-2"><p className="text-body-reg text-fg-secondary">Chưa tải được chi tiết học phí.</p><Button variant="outline" size="sm" onClick={load}>Thử lại</Button></div> : contract && <>
-        {rate != null && Number.isFinite(Number(rate)) && <p className="text-body-reg text-fg-secondary">Phí sàn theo hợp đồng: {new Intl.NumberFormat('vi-VN', { style: 'percent', maximumFractionDigits: 2 }).format(Number(rate))}. Thu nhập thực nhận sau phí được ghi trong Biến động ví khi giải ngân.</p>}
+        {rate != null && Number.isFinite(Number(rate)) && <p className="text-body-reg text-fg-secondary">Phí sàn theo hợp đồng: {new Intl.NumberFormat('vi-VN', { style: 'percent', maximumFractionDigits: 2 }).format(Number(rate))}. Thu nhập thực nhận sau phí được ghi trong Lịch sử ví khi giải ngân.</p>}
         {pending.length ? <ul className="divide-y divide-border">{pending.map(session => <li key={session.id} className="flex flex-wrap justify-between gap-3 py-3">
           <div className="min-w-0 space-y-1"><Link to={`/tutor/sessions/${session.id}`} className="inline-flex min-h-11 items-center font-medium text-primary hover:underline">Buổi #{session.sessionNumber}</Link><p className="text-caption text-fg-secondary">{session.startAt ? formatDateTime(session.startAt) : 'Chưa có lịch học'}</p><StateBadge status={session.status} domain="session" />{session.hasIssueReport ? <p className="text-caption text-holding-strong">Đang xử lý báo cáo sự cố</p> : session.status === 'AwaitingPayout' && session.gracePeriodEndsAt && <p className="text-caption text-fg-secondary">Bảo lưu đến {formatDateTime(session.gracePeriodEndsAt)}</p>}</div>
           <p className="self-center text-body-reg font-semibold text-holding-strong"><Money value={session.sessionPrice} /></p>
@@ -60,7 +60,7 @@ export default function TutorEscrowDetails() {
   }, [reload]);
   return <section id="escrow-details" aria-labelledby="escrow-details-title" className="scroll-mt-24 space-y-4 rounded-2xl border border-border bg-surface p-5 sm:p-6">
     <h2 id="escrow-details-title" className="text-xl font-semibold text-fg">Học phí chờ giải ngân theo hợp đồng</h2>
-    <p className="text-body-reg leading-relaxed text-fg-secondary">Đây là học phí học viên ký quỹ trước phí sàn. Khoản này chưa phải số dư có thể rút. Mở từng hợp đồng để xem các buổi học.</p>
+    <p className="text-body-reg leading-relaxed text-fg-secondary">Đây là học phí TutorHub đang giữ, chưa trừ phí nền tảng. Bạn chưa thể rút khoản này. Mở từng hợp đồng để xem các buổi học.</p>
     {loading ? <p role="status" className="text-body-reg text-fg-secondary">Đang tải học phí theo hợp đồng…</p> : error ? <div className="space-y-3"><p className="text-body-reg text-fg-secondary">Chưa tải được các hợp đồng.</p><Button variant="outline" onClick={retry}>Thử lại</Button></div> : contracts.length ? <div className="space-y-3">{contracts.map(contract => <ContractEscrow key={contract.id} summary={contract} />)}</div> : <p className="py-4 text-body-reg text-fg-secondary">Chưa có hợp đồng còn học phí chờ giải ngân.</p>}
   </section>;
 }

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Features.Admin.TutorApplications.ApproveTutorApplication;
 using TutorHub.Application.Features.Admin.TutorApplications.RejectTutorApplication;
+using TutorHub.Application.Features.Admin.TutorApplications.GetAdminTutorApplications;
 using TutorHub.Application.Features.Media.UploadMedia;
 using TutorHub.Application.Features.Tutors.GetTutorById;
 using TutorHub.Application.Features.Tutors.ResubmitTutorApplication;
@@ -16,6 +17,31 @@ namespace TutorHub.Api.IntegrationTests;
 
 public class TutorApplicationQualificationsTests(IntegrationWebApplicationFactory factory) : IntegrationTestBase(factory)
 {
+    [Fact]
+    public async Task AdminReviewList_ExposesRecordedReviewerAndPreventsReReviewOfApprovedApplication()
+    {
+        var (applicant, admin) = await CreateApplicant();
+        var submitted = await SendAsync(new SubmitTutorApplicationCommand("Applicant introduction", "Submitted education", 2));
+        SetCurrentUser(admin.Id, UserRole.Admin);
+        var before = await SendAsync(new GetAdminTutorApplicationsQuery(Search: applicant.Email));
+        var pending = before.Items.Single(a => a.Id == submitted.Id);
+        pending.ReviewedAt.Should().BeNull();
+        pending.ReviewedByAdminName.Should().BeNull();
+
+        await SendAsync(new ApproveTutorApplicationCommand(submitted.Id));
+        var after = await SendAsync(new GetAdminTutorApplicationsQuery(Search: applicant.Email));
+        var approved = after.Items.Single(a => a.Id == submitted.Id);
+        approved.Status.Should().Be("Approved");
+        approved.ReviewedAt.Should().NotBeNull();
+        approved.ReviewedByAdminName.Should().Be(admin.FullName);
+
+        var approveAgain = () => SendAsync(new ApproveTutorApplicationCommand(submitted.Id));
+        await approveAgain.Should().ThrowAsync<InvalidOperationException>();
+        var rejectApproved = () => SendAsync(new RejectTutorApplicationCommand(submitted.Id, "Cannot reject an approved application"));
+        await rejectApproved.Should().ThrowAsync<InvalidOperationException>();
+        (await Db.TutorProfiles.CountAsync(p => p.UserId == applicant.Id)).Should().Be(1);
+    }
+
     private async Task<(User Applicant, User Admin)> CreateApplicant()
     {
         var (_, _, admin) = await SeedHelper.SeedTutorWithWalletAsync(Db);

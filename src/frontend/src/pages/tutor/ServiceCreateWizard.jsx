@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import { resolveServiceCover } from '@/utils/serviceCover';
 import { CoverPreview } from '@/components/tutor/services/ServiceCoverPicker';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -34,7 +35,7 @@ const STEPS = [
   { id: 2, label: 'Nội dung & mục tiêu' },
   { id: 3, label: 'Gói học & học phí' },
   { id: 4, label: 'Học thử' },
-  { id: 5, label: 'Xem trước & xuất bản' },
+  { id: 5, label: "Xem trước & đăng" },
 ];
 
 /** Per-step gate: returns an error message or null. Final step reuses full validation. */
@@ -197,7 +198,7 @@ export default function ServiceCreateWizard() {
   const [reached, setReached] = useState(1);
 
   useEffect(() => {
-    document.title = 'Tạo gói dịch vụ mới';
+    document.title = "Tạo gói học mới";
   }, []);
 
   useEffect(() => {
@@ -254,13 +255,13 @@ export default function ServiceCreateWizard() {
       const created = await tutorService.createService(payload);
       if (publishAfterCreate && created?.id) {
         await tutorService.publishService(created.id);
-        toast.success('Gói dịch vụ đã được xuất bản công khai.');
+        toast.success("Đã đăng gói học. Học viên có thể xem và đăng ký.");
       } else {
-        toast.success('Đã tạo gói dịch vụ mới ở trạng thái Bản nháp (Draft).');
+        toast.success("Đã lưu bản nháp gói học. Bạn có thể kiểm tra nội dung trước khi đăng.");
       }
       navigate('/tutor/services');
     } catch (e) {
-      toast.error(e?.message || 'Không thể lưu gói dịch vụ.');
+      toast.error(userFacingError(e, "Chưa lưu được gói học. Vui lòng thử lại. Nội dung đang nhập vẫn được giữ."));
     } finally {
       submitLock.current = false;
       setSubmitting(false);
@@ -280,7 +281,7 @@ export default function ServiceCreateWizard() {
       <div className="max-w-[880px] mx-auto">
         <ErrorState
           error={loadError}
-          title="Không thể tải dữ liệu tạo dịch vụ"
+          title="Không thể tải dữ liệu tạo gói học"
           onRetry={() => window.location.reload()}
         />
       </div>
@@ -309,7 +310,7 @@ export default function ServiceCreateWizard() {
       </div>
 
       {/* Stepper */}
-      <ol className="flex items-center gap-1 sm:gap-2" aria-label="Tiến trình tạo dịch vụ">
+      <ol className="flex items-center gap-1 sm:gap-2" aria-label="Tiến trình tạo gói học">
         {STEPS.map((s, i) => {
           const current = s.id === step;
           const reachable = s.id <= reached && !submitting;
@@ -386,15 +387,15 @@ export default function ServiceCreateWizard() {
         )}
 
         {step === 5 && (
-          <section className="space-y-4" aria-label="Xem trước và xuất bản">
-            <SectionTitle step={5}>Xem trước &amp; xuất bản</SectionTitle>
+          <section className="space-y-4" aria-label="Xem trước và đăng">
+            <SectionTitle step={5}>Xem trước & đăng</SectionTitle>
             <p className="text-caption text-fg-secondary">
               Đây là cách học viên sẽ thấy gói học của bạn trên sàn giao dịch.
             </p>
             <WizardPreview formData={formData} subjects={subjects} />
             {finalError && (
               <div className="p-3 bg-danger-subtle text-danger-strong rounded-brand-md text-caption" role="alert">
-                <strong>Chưa thể xuất bản:</strong> {finalError} Quay lại các bước trước để bổ sung.
+                <strong>Chưa thể đăng:</strong> {finalError} Quay lại các bước trước để bổ sung.
               </div>
             )}
           </section>
@@ -428,7 +429,7 @@ export default function ServiceCreateWizard() {
                 disabled={Boolean(finalError)}
                 icon={<Icon name="rocket_launch" size="xs" />}
               >
-                Xuất bản ngay
+                Đăng ngay
               </Button>
             </div>
           )}

@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import enrollmentService from '@/services/enrollment.service';
@@ -292,7 +293,7 @@ export default function SessionDetail() {
       toast.success('Đã hủy buổi học và thực hiện hoàn tiền ký quỹ thành công.');
       await loadSessionData();
     } catch (err) {
-      toast.error(err?.message || 'Không thể hủy buổi học.');
+      toast.error(userFacingError(err, 'Chưa hủy được buổi học. Vui lòng tải lại lịch học rồi thử lại.'));
     } finally {
       setActionLoading(false);
     }

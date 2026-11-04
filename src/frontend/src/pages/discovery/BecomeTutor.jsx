@@ -48,7 +48,7 @@ const STEPS = [
   {
     num: 3,
     icon: 'menu_book',
-    title: 'Thiết lập dịch vụ',
+    title: "Thiết lập gói học",
     desc: 'Tạo các gói học trực tuyến, đặt giá và mô tả nội dung rõ ràng.',
   },
   {

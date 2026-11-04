@@ -43,7 +43,7 @@ public class AdminProcessRefundCallbackCommandHandlerTests
             BookingId = Guid.NewGuid(),
             Type = TransactionType.StudentRefund,
             Amount = 1_000_000m,
-            Status = TransactionStatus.Pending
+            SettlementRequired = true, Status = TransactionStatus.Pending
         };
 
         var transactions = new List<Transaction> { refundTx };
@@ -117,7 +117,7 @@ public class AdminProcessRefundCallbackCommandHandlerTests
             BookingId = booking.Id,
             Type = TransactionType.StudentRefund,
             Amount = 500_000m,
-            Status = TransactionStatus.Pending
+            SettlementRequired = true, Status = TransactionStatus.Pending
         };
 
         var outbox = new List<OutboxMessage>();
@@ -162,7 +162,7 @@ public class AdminProcessRefundCallbackCommandHandlerTests
             DisputeId = dispute.Id,
             Type = TransactionType.StudentRefund,
             Amount = 1_000_000m,
-            Status = TransactionStatus.Pending
+            SettlementRequired = true, Status = TransactionStatus.Pending
         };
 
         var transactions = new List<Transaction> { refundTx };
@@ -242,7 +242,7 @@ public class AdminProcessRefundCallbackCommandHandlerTests
         {
             Id = Guid.NewGuid(),
             Type = TransactionType.BookingPayment,
-            Status = TransactionStatus.Pending
+            SettlementRequired = true, Status = TransactionStatus.Pending
         };
         _contextMock.Setup(c => c.Transactions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Transaction> { tx }).Object);
 

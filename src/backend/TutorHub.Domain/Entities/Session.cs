@@ -217,6 +217,9 @@ public class Session
                 $"Cannot reschedule a session in '{Status}' status. Session must be Scheduled with an existing schedule.");
         }
 
+        if (StartAt.Value <= now)
+            throw new InvalidOperationException("Cannot reschedule a session that has already started.");
+
         if (newEndAt <= newStartAt)
         {
             throw new InvalidOperationException(
@@ -303,20 +306,42 @@ public class Session
     /// </summary>
     public void CancelFromEnrollment(DateTime? now = null)
     {
-        if (Status == SessionStatus.Completed)
-        {
-            throw new InvalidOperationException(
-                "Cannot cancel a completed session.");
-        }
-
         if (Status == SessionStatus.Cancelled)
         {
             return; // idempotent for bulk cancel
         }
 
         var effectiveNow = now ?? DateTime.UtcNow;
+        EnsureCanCancelFromEnrollment(effectiveNow);
         Status = SessionStatus.Cancelled;
         CancelledAt = effectiveNow;
         UpdatedAt = effectiveNow;
+    }
+
+    /// <summary>
+    /// Validates the escrow boundary before an enrollment-wide refund is calculated.
+    /// Called for every remaining session before any enrollment state is changed.
+    /// </summary>
+    internal void EnsureCanCancelFromEnrollment(DateTime now)
+    {
+        if (Status == SessionStatus.Completed)
+        {
+            throw new InvalidOperationException("Cannot cancel a completed session.");
+        }
+
+        if (Status == SessionStatus.AwaitingPayout)
+        {
+            throw new InvalidOperationException("Cannot cancel a session that is awaiting payout. Use issue report instead.");
+        }
+
+        if (Status == SessionStatus.Scheduled && StartAt.HasValue && StartAt.Value <= now)
+        {
+            throw new InvalidOperationException("Cannot cancel a session that has already started.");
+        }
+
+        if (Status != SessionStatus.Unscheduled && Status != SessionStatus.Scheduled && Status != SessionStatus.Cancelled)
+        {
+            throw new InvalidOperationException($"Cannot cancel a session in '{Status}' status.");
+        }
     }
 }

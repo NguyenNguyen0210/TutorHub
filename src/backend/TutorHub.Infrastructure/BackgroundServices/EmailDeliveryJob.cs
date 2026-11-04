@@ -61,7 +61,6 @@ public class EmailDeliveryJob : BackgroundService
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<IAppDbContext>();
-        var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
 
         var now = _clock.UtcNow;
 
@@ -85,15 +84,18 @@ public class EmailDeliveryJob : BackgroundService
         {
             if (cancellationToken.IsCancellationRequested) break;
 
-            var claimed = await TryClaimLeaseAsync(dbContext, deliveryId, now, cancellationToken);
+            using var deliveryScope = _scopeFactory.CreateScope();
+            var deliveryContext = deliveryScope.ServiceProvider.GetRequiredService<IAppDbContext>();
+            var emailSender = deliveryScope.ServiceProvider.GetRequiredService<IEmailSender>();
+            var claimed = await TryClaimLeaseAsync(deliveryContext, deliveryId, _clock.UtcNow, cancellationToken);
             if (!claimed) continue;
 
-            var delivery = await dbContext.EmailDeliveries
+            var delivery = await deliveryContext.EmailDeliveries
                 .FirstOrDefaultAsync(e => e.Id == deliveryId, cancellationToken);
 
             if (delivery == null) continue;
 
-            await DispatchSingleEmailAsync(dbContext, emailSender, delivery, cancellationToken);
+            await DispatchSingleEmailAsync(deliveryContext, emailSender, delivery, cancellationToken);
             processedCount++;
         }
 

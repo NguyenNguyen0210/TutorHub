@@ -28,7 +28,9 @@ public static class EnrollmentMapper
             CancelledBy: enrollment.CancelledBy,
             CancellationReason: enrollment.CancellationReason,
             Sessions: SessionMapper.ToOrderedList(enrollment.Sessions),
-            PlatformFeeRate: enrollment.PlatformFeeRate
+            PlatformFeeRate: enrollment.PlatformFeeRate,
+            ServiceTitle: enrollment.Service?.Title,
+            ServiceArchived: enrollment.Service?.IsDeleted ?? false
         );
     }
 }

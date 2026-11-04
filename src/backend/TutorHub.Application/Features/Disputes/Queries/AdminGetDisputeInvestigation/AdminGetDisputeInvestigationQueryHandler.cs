@@ -23,6 +23,7 @@ public class AdminGetDisputeInvestigationQueryHandler : IRequestHandler<AdminGet
             .AsNoTracking()
             .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.StudentProfile).ThenInclude(sp => sp.User)
             .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.TutorProfile).ThenInclude(tp => tp.User)
+            .Include(d => d.Session).ThenInclude(s => s.Enrollment).ThenInclude(e => e.Service)
             .Include(d => d.InitiatorUser)
             .Include(d => d.RespondentUser)
             .Include(d => d.Evidences)
@@ -37,24 +38,8 @@ public class AdminGetDisputeInvestigationQueryHandler : IRequestHandler<AdminGet
         var session = dispute.Session;
         var enrollment = session.Enrollment;
 
-        // Fetch conversation snippet between the two participants if exists
-        var messages = await _context.Messages
-            .AsNoTracking()
-            .Include(m => m.SenderUser)
-            .Where(m => m.Conversation.StudentProfileId == enrollment.StudentProfileId &&
-                         m.Conversation.TutorProfileId == enrollment.TutorProfileId)
-            .OrderByDescending(m => m.CreatedAt)
-            .Take(15)
-            .OrderBy(m => m.CreatedAt)
-            .Select(m => new InvestigationMessageDto
-            {
-                Id = m.Id,
-                SenderUserId = m.SenderUserId,
-                SenderName = m.SenderUser.FullName,
-                Content = m.Content,
-                SentAt = m.CreatedAt
-            })
-            .ToListAsync(cancellationToken);
+        // Conversation contents require a separate scoped, reasoned and audited access.
+        var messages = new List<InvestigationMessageDto>();
 
         // Fetch tutor wallet
         var tutorWallet = await _context.Wallets
@@ -78,6 +63,9 @@ public class AdminGetDisputeInvestigationQueryHandler : IRequestHandler<AdminGet
                 SessionId = dispute.SessionId,
                 SessionNumber = session.SessionNumber,
                 EnrollmentId = session.EnrollmentId,
+                ServiceTitle = enrollment.Service?.Title ?? string.Empty,
+                StudentName = enrollment.StudentProfile.User.FullName,
+                TutorName = enrollment.TutorProfile.User.FullName,
                 InitiatorUserId = dispute.InitiatorUserId,
                 InitiatorName = dispute.InitiatorUser?.FullName ?? "Unknown",
                 RespondentUserId = dispute.RespondentUserId,

@@ -46,6 +46,7 @@ public class AdminGetConversationsQueryHandler : IRequestHandler<AdminGetConvers
             throw new BadRequestException("A valid operational reason (at least 5 characters) is required.");
         }
 
+        var scope = await ConversationInvestigationScope.CreateAsync(_dbContext, request.DisputeId, request.ReportId, request.FromDate, request.ToDate, cancellationToken);
         var adminUserId = _currentUserService.UserId.Value;
 
         // Structured Operational Security Logging
@@ -55,7 +56,8 @@ public class AdminGetConversationsQueryHandler : IRequestHandler<AdminGetConvers
             request.OperationalReason.Trim(),
             _clock.UtcNow);
 
-        var query = _dbContext.Conversations.AsNoTracking();
+        var query = _dbContext.Conversations.AsNoTracking().Where(scope.Match)
+            .Where(c => _dbContext.Messages.Any(m => m.ConversationId == c.Id && m.CreatedAt >= scope.From && m.CreatedAt < scope.To));
 
         if (!string.IsNullOrWhiteSpace(request.Cursor))
         {
@@ -101,9 +103,9 @@ public class AdminGetConversationsQueryHandler : IRequestHandler<AdminGetConvers
             TutorName = c.TutorProfile.User?.FullName ?? string.Empty,
             TutorAvatarUrl = c.TutorProfile.User?.AvatarUrl,
             CreatedAt = c.CreatedAt,
-            LastMessageId = c.LastMessageId,
-            LastMessageAt = c.LastMessageAt,
-            LastMessagePreview = c.LastMessagePreview,
+            LastMessageId = c.LastMessageAt >= scope.From && c.LastMessageAt < scope.To ? c.LastMessageId : null,
+            LastMessageAt = c.LastMessageAt >= scope.From && c.LastMessageAt < scope.To ? c.LastMessageAt : null,
+            LastMessagePreview = c.LastMessageAt >= scope.From && c.LastMessageAt < scope.To ? c.LastMessagePreview : null,
             UnreadCount = 0
         }).ToList();
 
@@ -116,7 +118,7 @@ public class AdminGetConversationsQueryHandler : IRequestHandler<AdminGetConvers
 
         await _audit.LogAsync(action: "ADMIN_CONVERSATION_INSPECTED", entityName: "Conversation",
             entityId: "list", userId: adminUserId,
-            newValues: new { operationalReason = request.OperationalReason.Trim(), returnedCount = dtos.Count },
+            newValues: new { operationalReason = request.OperationalReason.Trim(), returnedCount = dtos.Count, request.DisputeId, request.ReportId, from = scope.From, to = scope.To },
             cancellationToken: cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 

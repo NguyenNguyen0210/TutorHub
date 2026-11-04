@@ -3,4 +3,6 @@ using TutorHub.Application.Features.Admin.Dashboard.DTOs;
 
 namespace TutorHub.Application.Features.Admin.Dashboard.GetAdminDashboardStats;
 
-public record GetAdminDashboardStatsQuery : IRequest<AdminDashboardStatsDto>;
+public enum DashboardPeriod { All, Today, SevenDays, ThirtyDays }
+
+public record GetAdminDashboardStatsQuery(DashboardPeriod Period = DashboardPeriod.All) : IRequest<AdminDashboardStatsDto>;

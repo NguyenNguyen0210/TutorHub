@@ -1,3 +1,4 @@
+import { userFacingError } from '@/utils/userFacingError';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import chatService from '@/services/chat.service';
@@ -127,7 +128,7 @@ export default function StudentDashboard() {
       if (!conversation?.id) throw new Error('Không thể mở cuộc trò chuyện.');
       navigate(`/app/messages?conversationId=${conversation.id}`);
     } catch (err) {
-      toast.error(err?.message || 'Không thể mở cuộc trò chuyện. Vui lòng thử lại.');
+      toast.error(userFacingError(err, 'Không thể mở cuộc trò chuyện. Vui lòng thử lại.'));
     } finally {
       setOpeningTutorId(null);
     }
@@ -320,7 +321,7 @@ export default function StudentDashboard() {
           <Card as="section" aria-labelledby="tuition-title" padding="lg" variant="outlined" className="rounded-2xl shadow-[var(--learning-card-shadow)]">
             <div className="flex items-center justify-between gap-3"><h2 id="tuition-title" className="text-[18px] font-semibold text-fg">Học phí của bạn</h2><Icon name="shield" size="md" className="text-fg-secondary" /></div>
             <dl className="mt-5 space-y-4">
-              <div><dt className="text-caption text-fg-secondary">Học phí đang ký quỹ</dt><dd className="mt-2 text-[24px] font-semibold text-holding-strong"><Money value={escrowRemaining} /></dd></div>
+              <div><dt className="text-caption text-fg-secondary">Học phí đang giữ</dt><dd className="mt-2 text-[24px] font-semibold text-holding-strong"><Money value={escrowRemaining} /></dd></div>
               <div className="flex flex-wrap items-center justify-between gap-2"><dt className="text-caption text-fg-secondary">Tổng học phí ban đầu</dt><dd className="text-caption font-medium text-fg"><Money value={totalTuition} /></dd></div>
               <div className="flex flex-wrap items-center justify-between gap-2"><dt className="text-caption text-fg-secondary">Đã giải ngân</dt><dd className="text-caption font-medium text-success-strong"><Money value={escrowReleased} /></dd></div>
               {escrowRefunded > 0 && <div className="flex flex-wrap items-center justify-between gap-2"><dt className="text-caption text-fg-secondary">Đã hoàn tiền</dt><dd className="text-caption font-medium text-fg"><Money value={escrowRefunded} /></dd></div>}
