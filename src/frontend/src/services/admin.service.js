@@ -183,8 +183,8 @@ function normalizePaged(raw, normalizeItem) {
 export const adminService = {
   getRevenueChart: months => api.get('/admin/dashboard/revenue-chart', { params: { months } }),
   getPlatformRevenue: () => api.get('/admin/analytics/platform-revenue'),
-  getConversations: params => api.get('/admin/conversations', { params }),
-  getConversationMessages: (id, params) => api.get(`/admin/conversations/${id}/messages`, { params }),
+  getConversations: params => api.get('/admin/investigations/conversations', { params }),
+  getConversationMessages: (id, params) => api.get(`/admin/investigations/conversations/${id}/messages`, { params }),
   forceUnpublishService: id => api.post(`/admin/services/${id}/force-unpublish`),
   removeReview: (id, reason) => api.delete(`/admin/reviews/${id}`, { data: { reason } }),
   cancelEnrollment: (id, reason) => api.post(`/admin/enrollments/${id}/cancel`, { reason }),

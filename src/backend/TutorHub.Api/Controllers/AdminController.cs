@@ -755,6 +755,7 @@ public class AdminController : ControllerBase
     /// Admin: Inspect conversations with operational access reason.
     /// </summary>
     [HttpGet("conversations")]
+    [HttpGet("investigations/conversations")]
     [ProducesResponseType(typeof(ApiResponse<TutorHub.Application.Features.Conversations.DTOs.CursorPagedResult<TutorHub.Application.Features.Conversations.DTOs.ConversationDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -777,6 +778,7 @@ public class AdminController : ControllerBase
     /// Admin: Inspect messages in a conversation with operational access reason.
     /// </summary>
     [HttpGet("conversations/{id:guid}/messages")]
+    [HttpGet("investigations/conversations/{id:guid}/messages")]
     [ProducesResponseType(typeof(ApiResponse<TutorHub.Application.Features.Conversations.DTOs.CursorPagedResult<TutorHub.Application.Features.Conversations.DTOs.MessageDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]

@@ -34,15 +34,15 @@ public class AdminConversationAuditTests(IntegrationWebApplicationFactory factor
         var jwt = Scope.ServiceProvider.GetRequiredService<IJwtService>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt.GenerateAccessToken(admin));
         SetCurrentUser(admin.Id, UserRole.Admin);
-        (await client.GetAsync("/api/v1/admin/conversations?operationalReason=abc")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await client.GetAsync("/api/v1/admin/conversations?operationalReason=Investigate%20case%20123")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var scopedList = await client.GetAsync("/api/v1/admin/conversations?operationalReason=Investigate%20case%20123" + scopeQuery);
+        (await client.GetAsync("/api/v1/admin/investigations/conversations?operationalReason=abc")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await client.GetAsync("/api/v1/admin/investigations/conversations?operationalReason=Investigate%20case%20123")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var scopedList = await client.GetAsync("/api/v1/admin/investigations/conversations?operationalReason=Investigate%20case%20123" + scopeQuery);
         scopedList.StatusCode.Should().Be(HttpStatusCode.OK);
         (await scopedList.Content.ReadAsStringAsync()).Should().Contain(conversation.Id.ToString()).And.NotContain(unrelated.Id.ToString());
-        var messages = await client.GetAsync($"/api/v1/admin/conversations/{conversation.Id}/messages?operationalReason=Investigate%20case%20123" + scopeQuery);
+        var messages = await client.GetAsync($"/api/v1/admin/investigations/conversations/{conversation.Id}/messages?operationalReason=Investigate%20case%20123" + scopeQuery);
         messages.StatusCode.Should().Be(HttpStatusCode.OK);
         (await messages.Content.ReadAsStringAsync()).Should().Contain("Private conversation text").And.NotContain("Outside permitted date range");
-        var foreignScope = await client.GetAsync($"/api/v1/admin/conversations/{unrelated.Id}/messages?operationalReason=Investigate%20case%20123" + scopeQuery);
+        var foreignScope = await client.GetAsync($"/api/v1/admin/investigations/conversations/{unrelated.Id}/messages?operationalReason=Investigate%20case%20123" + scopeQuery);
         foreignScope.StatusCode.Should().Be(HttpStatusCode.NotFound);
         var audits = await Db.AuditLogs.AsNoTracking().Where(a => a.UserId == admin.Id && a.Action == "ADMIN_CONVERSATION_INSPECTED").ToListAsync();
         audits.Should().HaveCount(2);
@@ -51,6 +51,6 @@ public class AdminConversationAuditTests(IntegrationWebApplicationFactory factor
         audits.Should().OnlyContain(a => a.NewValuesJson!.Contains("Investigate case 123") && !a.NewValuesJson.Contains("Private conversation text"));
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt.GenerateAccessToken(student));
         SetCurrentUser(student.Id, UserRole.Student);
-        (await client.GetAsync("/api/v1/admin/conversations?operationalReason=Investigate%20case%20123")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await client.GetAsync("/api/v1/admin/investigations/conversations?operationalReason=Investigate%20case%20123")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 }
