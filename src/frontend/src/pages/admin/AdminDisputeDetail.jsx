@@ -45,6 +45,7 @@ export default function AdminDisputeDetail() {
         {review && <DisputeDecisionPanel key={id} id={id} gross={financialSummary?.disputedGrossAmount ?? session.sessionPrice} onSaved={refresh} />}
         {closed && <div className="space-y-3 border-t border-border pt-4"><h3 className="text-sm font-semibold">Kết luận đã ghi nhận</h3><p className="text-sm leading-6">{VERDICTS[dispute.resolutionDecision] || 'Vụ việc đã kết thúc.'}</p><p className="text-xs text-fg-secondary">{dispute.resolvedAt && formatDateTime(dispute.resolvedAt)}</p></div>}
         {enrollment?.id && <Button as={Link} to={`/admin/enrollments/${enrollment.id}`} variant="outline" fullWidth>Xem hợp đồng liên quan</Button>}
+        {dispute.status === 'RequiresAdminRefundSettlement' && enrollment?.bookingId && <Button as={Link} to={`/admin/transactions?type=StudentRefund&settlementRequired=true&bookingId=${enrollment.bookingId}`} fullWidth>Đối soát khoản hoàn tiền</Button>}
         <details className="border-t border-border pt-4 text-xs text-fg-secondary"><summary className="cursor-pointer">Mã đối soát vụ việc</summary><p className="mt-3 select-all break-all">{id}</p></details>
       </aside>
     </div></div>;

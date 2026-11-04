@@ -74,7 +74,6 @@ export const NAV = {
     { path: '/admin/disputes', label: 'Tranh chấp', icon: 'gavel', match: (p) => p.startsWith('/admin/disputes') },
     { path: '/admin/trust-reports', label: 'Báo cáo vi phạm', icon: 'flag', match: (p) => p.startsWith('/admin/trust-reports') },
     { path: '/admin/users', label: 'Người dùng', icon: 'group', match: (p) => p.startsWith('/admin/users') },
-    { path: '/admin/conversations', label: 'Điều tra hội thoại', icon: 'chat', match: (p) => p.startsWith('/admin/conversations') },
     { path: '/admin/categories', label: 'Danh mục & môn học', icon: 'category', match: (p) => p.startsWith('/admin/categories') || p.startsWith('/admin/subjects') },
     { path: '/admin/audit-logs', label: 'Sổ kiểm toán', icon: 'history', match: (p) => p.startsWith('/admin/audit-logs') },
     { path: '/app/notifications', label: 'Thông báo', icon: 'notifications', match: (p) => p.startsWith('/app/notifications') },
@@ -99,7 +98,7 @@ export function getWorkspaceNavGroups(role, items) {
     const sections = [
       { label: 'Tổng quan', paths: ['/admin/dashboard', '/admin/enrollments'] },
       { label: 'Tài chính', paths: ['/admin/student-wallets', '/admin/transactions', '/admin/revenue', '/admin/withdrawals'] },
-      { label: 'Kiểm duyệt', paths: ['/admin/tutor-applications', '/admin/services', '/admin/disputes', '/admin/trust-reports', '/admin/conversations'] },
+      { label: 'Kiểm duyệt', paths: ['/admin/tutor-applications', '/admin/services', '/admin/disputes', '/admin/trust-reports'] },
       { label: 'Quản lý nền tảng', paths: ['/admin/users', '/admin/categories', '/admin/audit-logs'] },
       { label: 'Thông báo', paths: ['/app/notifications'] },
     ];
