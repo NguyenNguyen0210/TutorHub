@@ -55,7 +55,7 @@ public class AdminConversationHandlerTests
     }
 
     [Fact]
-    public async Task AdminGetConversationMessages_WhenAdminWithValidReason_ReturnsMessages()
+    public async Task AdminGetConversationMessages_WhenReasonProvidedWithoutCase_RejectsUnscopedAccess()
     {
         // Arrange
         var adminId = Guid.NewGuid();
@@ -76,10 +76,9 @@ public class AdminConversationHandlerTests
         var handler = new AdminGetConversationMessagesQueryHandler(_dbContextMock.Object, StubClock.Instance, _currentUserServiceMock.Object, _messagesLoggerMock.Object, Mock.Of<IAuditLogService>());
 
         // Act
-        var result = await handler.Handle(new AdminGetConversationMessagesQuery(conversation.Id, "Dispute investigation #456"), CancellationToken.None);
+        var action = () => handler.Handle(new AdminGetConversationMessagesQuery(conversation.Id, "Dispute investigation #456"), CancellationToken.None);
 
         // Assert
-        result.Items.Should().HaveCount(1);
-        result.Items[0].Content.Should().Be("Admin read test");
+        await action.Should().ThrowAsync<BadRequestException>();
     }
 }

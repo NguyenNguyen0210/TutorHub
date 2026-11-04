@@ -38,24 +38,8 @@ public class AdminGetDisputeInvestigationQueryHandler : IRequestHandler<AdminGet
         var session = dispute.Session;
         var enrollment = session.Enrollment;
 
-        // Fetch conversation snippet between the two participants if exists
-        var messages = await _context.Messages
-            .AsNoTracking()
-            .Include(m => m.SenderUser)
-            .Where(m => m.Conversation.StudentProfileId == enrollment.StudentProfileId &&
-                         m.Conversation.TutorProfileId == enrollment.TutorProfileId)
-            .OrderByDescending(m => m.CreatedAt)
-            .Take(15)
-            .OrderBy(m => m.CreatedAt)
-            .Select(m => new InvestigationMessageDto
-            {
-                Id = m.Id,
-                SenderUserId = m.SenderUserId,
-                SenderName = m.SenderUser.FullName,
-                Content = m.Content,
-                SentAt = m.CreatedAt
-            })
-            .ToListAsync(cancellationToken);
+        // Conversation contents require a separate scoped, reasoned and audited access.
+        var messages = new List<InvestigationMessageDto>();
 
         // Fetch tutor wallet
         var tutorWallet = await _context.Wallets

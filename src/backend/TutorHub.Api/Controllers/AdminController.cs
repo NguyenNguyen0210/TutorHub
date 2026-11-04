@@ -759,10 +759,12 @@ public class AdminController : ControllerBase
         [FromQuery] string operationalReason,
         [FromQuery] string? cursor,
         [FromQuery] int pageSize = 20,
+        [FromQuery] Guid? disputeId = null, [FromQuery] Guid? reportId = null,
+        [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
         var query = new TutorHub.Application.Features.Admin.Conversations.AdminGetConversations.AdminGetConversationsQuery(
-            operationalReason, cursor, pageSize);
+            operationalReason, cursor, pageSize, disputeId, reportId, fromDate, toDate);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<TutorHub.Application.Features.Conversations.DTOs.CursorPagedResult<TutorHub.Application.Features.Conversations.DTOs.ConversationDto>>.SuccessResult(result));
     }
@@ -781,10 +783,12 @@ public class AdminController : ControllerBase
         [FromQuery] string operationalReason,
         [FromQuery] string? cursor,
         [FromQuery] int pageSize = 50,
+        [FromQuery] Guid? disputeId = null, [FromQuery] Guid? reportId = null,
+        [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
         var query = new TutorHub.Application.Features.Admin.Conversations.AdminGetConversationMessages.AdminGetConversationMessagesQuery(
-            id, operationalReason, cursor, pageSize);
+            id, operationalReason, cursor, pageSize, disputeId, reportId, fromDate, toDate);
         var result = await _sender.Send(query, cancellationToken);
         return Ok(ApiResponse<TutorHub.Application.Features.Conversations.DTOs.CursorPagedResult<TutorHub.Application.Features.Conversations.DTOs.MessageDto>>.SuccessResult(result));
     }
