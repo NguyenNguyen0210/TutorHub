@@ -2,6 +2,8 @@
 
 **An online tutoring marketplace with session-based payments, scheduling, and dispute resolution.**
 
+[Live Demo](https://tutorhub.id.vn/) | [API Documentation](#api-documentation)
+
 [![CI](https://github.com/NguyenNguyen0210/TutorHub/actions/workflows/ci.yml/badge.svg)](https://github.com/NguyenNguyen0210/TutorHub/actions/workflows/ci.yml)
 ![.NET 8](https://img.shields.io/badge/.NET-8-512BD4)
 ![React 18](https://img.shields.io/badge/React-18-149ECA)
@@ -17,9 +19,11 @@ This personal full-stack project focuses on backend business rules, financial co
 
 ## Demo & Screenshots
 
-Run the [local demo](#getting-started) to explore the application at <http://localhost:5173> with seeded student, tutor, and administrator accounts. A public demo URL and product screenshots have not been verified for this README.
+Explore the deployed application at **[tutorhub.id.vn](https://tutorhub.id.vn/)**.
 
-### Suggested demo walkthrough
+For a walkthrough with seeded student, tutor, and administrator accounts, run the [local demo](#getting-started) at <http://localhost:5173>. The seeded accounts below are for local development. Product screenshots have not yet been added to this README.
+
+### Suggested local demo walkthrough
 
 1. Sign in as the student and purchase the demo package using the fictional wallet balance.
 2. Sign in as the tutor in a separate browser session and schedule the enrolled lessons.
@@ -288,6 +292,8 @@ The [CI workflow](.github/workflows/ci.yml) defines backend build/tests and fron
 
 ## Deployment
 
+The web application is deployed at **[https://tutorhub.id.vn/](https://tutorhub.id.vn/)**.
+
 ### Production containers
 
 Copy the production template and fill in its required values before starting the stack:
@@ -313,10 +319,10 @@ GitHub Actions runs backend build/tests and frontend lint/tests/build on pushes 
 
 ## Roadmap
 
-The following are proposed portfolio improvements, not a committed delivery schedule:
+Completed milestones and proposed portfolio improvements are listed below. Unchecked items are not a committed delivery schedule.
 
 - [ ] Add product screenshots covering discovery, scheduling, and administration.
-- [ ] Publish a documented public demo with a controlled demonstration dataset.
+- [x] Deploy the public web application at [tutorhub.id.vn](https://tutorhub.id.vn/).
 - [ ] Add a shared browser E2E suite to CI for the main student and tutor journeys.
 
 Implemented capabilities are listed under [Key Features](#key-features).
