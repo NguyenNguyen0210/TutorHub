@@ -170,7 +170,7 @@ public class ChangePasswordCommandHandlerTests
         emailDeliveriesList.Should().ContainSingle(e => e.ToEmail == "security@example.com" && e.UserId == user.Id);
 
         var email = emailDeliveriesList.Single();
-        email.Subject.Should().Contain("Mật khẩu tài khoản TutorHub vừa được thay đổi");
+        email.Subject.Should().Contain("Mật khẩu của bạn đã được thay đổi");
         email.Status.Should().Be(EmailDeliveryStatus.Pending);
     }
 }
