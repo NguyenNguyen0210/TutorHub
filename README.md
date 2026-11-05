@@ -2,25 +2,33 @@
 
 **An online tutoring marketplace with session-based payments, scheduling, and dispute resolution.**
 
-TutorHub connects students with tutors through structured learning packages. It covers the full workflow from purchasing a package and scheduling lessons to holding tuition, resolving disputes, and releasing tutor earnings.
+[![CI](https://github.com/NguyenNguyen0210/TutorHub/actions/workflows/ci.yml/badge.svg)](https://github.com/NguyenNguyen0210/TutorHub/actions/workflows/ci.yml)
+![.NET 8](https://img.shields.io/badge/.NET-8-512BD4)
+![React 18](https://img.shields.io/badge/React-18-149ECA)
+![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1)
+
+[Overview](#overview) | [Demo & Screenshots](#demo--screenshots) | [Key Features](#key-features) | [Tech Stack](#tech-stack) | [Architecture](#architecture) | [Project Structure](#project-structure) | [Getting Started](#getting-started) | [Configuration](#configuration) | [API Documentation](#api-documentation) | [Testing](#testing) | [Deployment](#deployment) | [Roadmap](#roadmap) | [License & Author](#license--author)
+
+## Overview
+
+TutorHub connects students with tutors through structured learning packages. It brings tutor discovery, package purchases, lesson scheduling, and tuition settlement into one workflow, including dispute resolution when a lesson does not go as expected.
 
 This personal full-stack project focuses on backend business rules, financial consistency, and asynchronous processing, with a React interface for students, tutors, and administrators.
 
-[Technology stack](#technology-stack) · [Features](#features) · [Architecture](#architecture) · [Local setup](#local-setup) · [Testing](#testing) · [Documentation](#documentation)
+## Demo & Screenshots
 
-## Technology stack
+Run the [local demo](#getting-started) to explore the application at <http://localhost:5173> with seeded student, tutor, and administrator accounts. A public demo URL and product screenshots have not been verified for this README.
 
-| Area | Technologies |
-| --- | --- |
-| Backend | C#, .NET 8, ASP.NET Core Web API, MediatR, FluentValidation |
-| Persistence | PostgreSQL 16, EF Core 8, Npgsql |
-| Cache and coordination | Redis 7 |
-| Frontend | React 18, Vite 5, Tailwind CSS, React Router, TanStack Query, Zustand, Axios |
-| Integrations | VNPay, ASP.NET Core SignalR, Cloudflare R2 / S3 API, MailKit SMTP, optional Google sign-in |
-| Testing | xUnit, FluentAssertions, Moq, ASP.NET Core integration tests, Node.js test runner |
-| Operations | Docker Compose, GitHub Actions, Serilog, health checks |
+### Suggested demo walkthrough
 
-## Features
+1. Sign in as the student and purchase the demo package using the fictional wallet balance.
+2. Sign in as the tutor in a separate browser session and schedule the enrolled lessons.
+3. Open the student schedule and exchange messages with the tutor.
+4. Sign in as the administrator to explore enrollment, user, financial, and audit views.
+
+Dispute and automatic payout flows depend on session end times and the review window. Use a separate test database when exercising financial scenarios.
+
+## Key Features
 
 | Role | Capabilities |
 | --- | --- |
@@ -38,9 +46,37 @@ This personal full-stack project focuses on backend business rules, financial co
 
 Administrators can issue a full or partial refund, release tutor earnings, or dismiss a dispute without an immediate financial adjustment. Wallets track available, pending, and withdrawing balances separately; balance movements are recorded for reconciliation. Wallet payout and external bank transfer are separate operations.
 
+## Tech Stack
+
+| Area | Technologies |
+| --- | --- |
+| Backend | C#, .NET 8, ASP.NET Core Web API, MediatR, FluentValidation |
+| Persistence | PostgreSQL 16, EF Core 8, Npgsql |
+| Cache and coordination | Redis 7 |
+| Frontend | React 18, Vite 5, Tailwind CSS, React Router, TanStack Query, Zustand, Axios |
+| Integrations | VNPay, ASP.NET Core SignalR, Cloudflare R2 / S3 API, MailKit SMTP, optional Google sign-in |
+| Testing | xUnit, FluentAssertions, Moq, ASP.NET Core integration tests, Node.js test runner |
+| Operations | Docker Compose, GitHub Actions, Serilog, health checks |
+
 ## Architecture
 
 The backend follows **Clean Architecture** with **CQRS through MediatR**, organized around application features.
+
+```mermaid
+flowchart LR
+    Browser[React client] -->|REST and SignalR| API[ASP.NET Core API]
+    API --> Application[Application: MediatR commands and queries]
+    Application --> Domain[Domain: entities and business rules]
+    API -->|Dependency composition| Infrastructure[Infrastructure: adapters and workers]
+    Infrastructure -->|Implements application interfaces| Application
+    Infrastructure --> PostgreSQL[(PostgreSQL)]
+    Infrastructure --> Redis[(Redis)]
+    Infrastructure --> VNPay[VNPay]
+    Infrastructure --> R2[Cloudflare R2]
+    Infrastructure --> SMTP[SMTP]
+```
+
+Arrows between backend layers show project references; arrows to external services show runtime communication. Background workers run inside the API process.
 
 | Project | Responsibility |
 | --- | --- |
@@ -59,7 +95,28 @@ The backend follows **Clean Architecture** with **CQRS through MediatR**, organi
 - **Realtime and storage:** SignalR supports chat and notifications; Cloudflare R2 stores uploaded media and dispute evidence.
 - **Auditability:** append-only database triggers protect the corresponding financial and audit records.
 
-## Local setup
+## Project Structure
+
+```text
+src/
+├── backend/
+│   ├── TutorHub.Api/
+│   ├── TutorHub.Application/
+│   ├── TutorHub.Domain/
+│   ├── TutorHub.Infrastructure/
+│   └── TutorHub.sln
+├── frontend/
+│   ├── src/                 # Pages, components, services, state, utilities
+│   └── test/                # Frontend regression tests
+└── test/                    # Backend unit and integration tests
+docs/                        # Requirements, user stories, OpenAPI snapshot
+docker-compose.yml           # Local PostgreSQL, Redis, and API services
+docker-compose.prod.yml      # Production container configuration
+.env.example                 # Local configuration template
+.env.production.example      # Deployment configuration template
+```
+
+## Getting Started
 
 ### Prerequisites
 
@@ -80,20 +137,7 @@ Copy-Item .env.example .env
 
 Update `.env` with your local connection details and integration credentials. The API rejects placeholder secrets such as `change_me`. In Development, its dotenv loader reads the local file without overriding existing process environment variables.
 
-| Configuration | Purpose |
-| --- | --- |
-| `ConnectionStrings__DefaultConnection` | PostgreSQL connection; the template uses `localhost:5433`. |
-| `ConnectionStrings__Redis` | Redis connection; the local default is `localhost:6379`. |
-| `Jwt__Secret`, `RefreshToken__Pepper` | Separate random values of at least 32 characters each. |
-| `VnPay__TmnCode`, `VnPay__HashSecret`, `VnPay__BaseUrl` | VNPay merchant credentials and sandbox gateway URL. |
-| `VnPay__ReturnUrl` | Use `http://localhost:5173/payment/return` for the frontend payment result page. |
-| `CloudflareR2__AccountId`, `CloudflareR2__AccessKeyId`, `CloudflareR2__SecretAccessKey` | Object storage credentials. |
-| `CloudflareR2__BucketName` | Add this setting when running the API directly on the host. |
-| `Cors__AllowedOrigins` | Set to `http://localhost:5173` for the local frontend. |
-| `Smtp__*` | Email delivery; leaving the host empty enables log-only delivery in Development. |
-| `ExternalAuth__Google__*` | Optional Google sign-in; leave empty to disable. |
-
-Compose maps `CLOUDFLARE_R2_BUCKET` to the API's `CloudflareR2__BucketName`. Host-based development needs the latter configuration key directly. Keep credentials in local environment files or deployment secrets; `VITE_*` variables are exposed to the browser.
+See [Configuration](#configuration) for the required backend settings before continuing.
 
 ### 2. Start PostgreSQL and Redis
 
@@ -146,6 +190,29 @@ npm run dev
 | Readiness — PostgreSQL and Redis | <http://localhost:5129/health> |
 | Liveness | <http://localhost:5129/health/live> |
 
+## Configuration
+
+### Backend
+
+The [local environment template](.env.example) documents backend settings. The API uses .NET configuration paths with double underscores (`Jwt__Secret`); the [production template](.env.production.example) uses Compose variable names that are mapped to those API settings.
+
+| Configuration | Purpose |
+| --- | --- |
+| `ConnectionStrings__DefaultConnection` | PostgreSQL connection; the template uses `localhost:5433`. |
+| `ConnectionStrings__Redis` | Redis connection; the local default is `localhost:6379`. |
+| `Jwt__Secret`, `RefreshToken__Pepper` | Separate random values of at least 32 characters each. |
+| `VnPay__TmnCode`, `VnPay__HashSecret`, `VnPay__BaseUrl` | VNPay merchant credentials and sandbox gateway URL. |
+| `VnPay__ReturnUrl` | Use `http://localhost:5173/payment/return` for the frontend payment result page. |
+| `CloudflareR2__AccountId`, `CloudflareR2__AccessKeyId`, `CloudflareR2__SecretAccessKey` | Object storage credentials. |
+| `CloudflareR2__BucketName` | Add this setting when running the API directly on the host. |
+| `Cors__AllowedOrigins` | Set to `http://localhost:5173` for the local frontend. |
+| `Smtp__*` | Email delivery; leaving the host empty enables log-only delivery in Development. |
+| `ExternalAuth__Google__*` | Optional Google sign-in; leave empty to disable. |
+
+Compose maps `CLOUDFLARE_R2_BUCKET` to the API's `CloudflareR2__BucketName`. Host-based development needs the latter configuration key directly. Keep credentials in local environment files or deployment secrets; `VITE_*` variables are exposed to the browser.
+
+### Frontend
+
 The frontend defaults to the API on port `5129`. To change endpoints, create `src/frontend/.env.local`:
 
 ```dotenv
@@ -156,14 +223,36 @@ VITE_NOTIFICATION_HUB_URL=http://localhost:5129/hubs/notifications
 
 Restart Vite after changing environment variables. When changing the frontend address, update CORS and the VNPay return URL as well.
 
-### Suggested demo walkthrough
+## API Documentation
 
-1. Sign in as the student and purchase the demo package using the fictional wallet balance.
-2. Sign in as the tutor in a separate browser session and schedule the enrolled lessons.
-3. Open the student schedule and exchange messages with the tutor.
-4. Sign in as the administrator to explore enrollment, user, financial, and audit views.
+The local API base URL is `http://localhost:5129/api/v1`. [Swagger UI](http://localhost:5129/swagger) is available in Development and describes request bodies, responses, and authorization requirements.
 
-Dispute and automatic payout flows depend on session end times and the review window. Use a separate test database when exercising financial scenarios.
+### Authentication
+
+1. Call `POST /api/v1/auth/login` with an email and password from the local demo accounts or a registered account.
+2. Use the returned `data.accessToken` in `Authorization: Bearer <access-token>` for protected requests. In Swagger's **Authorize** dialog, paste only the token; Swagger adds the prefix.
+3. Call `POST /api/v1/auth/refresh` with the refresh token when needed. Refresh tokens rotate; retain the new token pair returned by the API.
+4. Call `POST /api/v1/auth/logout` with the refresh token to revoke it. Protected operations also enforce student, tutor, or administrator permissions.
+
+### Endpoint groups
+
+Paths below are relative to `/api/v1`; consult Swagger for individual operations and permissions.
+
+| Group | Paths | Purpose |
+| --- | --- | --- |
+| Authentication | `/auth` | Registration, login, token refresh, password recovery, optional Google sign-in. |
+| Discovery | `/tutors`, `/services`, `/subjects`, `/categories` | Tutor profiles, learning packages, and catalog data. |
+| Learning | `/bookings`, `/enrollments`, `/sessions` | Package reservations, enrollments, and lesson scheduling. |
+| Finance | `/payments`, `/wallets/me`, `/transactions`, `/disputes` | VNPay payments, wallet balances, transactions, and disputes. |
+| Communication | `/conversations`, `/notifications`, `/media` | Messaging, notifications, and uploaded media. |
+| Administration | `/admin` | Moderation, disputes, withdrawals, platform settings, and audit records. |
+
+### Further documentation
+
+- [Functional requirements](docs/functional-requirements.md)
+- [Product requirements](docs/prd.md)
+- [User stories](docs/user-stories.md)
+- [OpenAPI snapshot](docs/openapi.json) — use the running API's Swagger UI for its current contract.
 
 ## Testing
 
@@ -197,35 +286,18 @@ Versioned regression tests are in `src/test` and `src/frontend/test`. They cover
 
 The [CI workflow](.github/workflows/ci.yml) defines backend build/tests and frontend lint/tests/build for pushes and pull requests targeting `main`. Check workflow results for the specific commit under review.
 
-## Repository structure
+## Deployment
 
-```text
-src/
-├── backend/
-│   ├── TutorHub.Api/
-│   ├── TutorHub.Application/
-│   ├── TutorHub.Domain/
-│   ├── TutorHub.Infrastructure/
-│   └── TutorHub.sln
-├── frontend/
-│   ├── src/                 # Pages, components, services, state, utilities
-│   └── test/                # Frontend regression tests
-└── test/                    # Backend unit and integration tests
-docs/                        # Requirements, user stories, OpenAPI snapshot
-docker-compose.yml           # Local PostgreSQL, Redis, and API services
-docker-compose.prod.yml      # Production container configuration
-.env.example                 # Local configuration template
-.env.production.example      # Deployment configuration template
+### Production containers
+
+Copy the production template and fill in its required values before starting the stack:
+
+```powershell
+Copy-Item .env.production.example .env.production
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 ```
 
-## Documentation
-
-- [Functional requirements](docs/functional-requirements.md)
-- [Product requirements](docs/prd.md)
-- [User stories](docs/user-stories.md)
-- [OpenAPI snapshot](docs/openapi.json) — use the running API's Swagger UI for its current contract.
-
-## Deployment notes
+This starts the API, PostgreSQL, and Redis; host the frontend separately. From `src/frontend`, set the production `VITE_*` endpoints and run `npm ci` followed by `npm run build`. Publish `dist/` to a static host with an SPA fallback to `index.html`, and route HTTPS traffic to the API through your reverse proxy.
 
 [Production Compose](docker-compose.prod.yml) and the [production environment template](.env.production.example) provide the deployment configuration starting point.
 
@@ -234,3 +306,23 @@ docker-compose.prod.yml      # Production container configuration
 - Outside Development, provide configuration through deployment environment variables, including valid SMTP and allowed browser origins. Swagger is Development-only.
 - Configure trusted reverse proxy IPs through `ReverseProxy__KnownProxies__0`, `ReverseProxy__KnownProxies__1`, and so on.
 - Use `/health` for dependency readiness and `/health/live` for process liveness.
+
+### Continuous integration
+
+GitHub Actions runs backend build/tests and frontend lint/tests/build on pushes and pull requests to `main`. The workflow validates changes; deployment is performed separately.
+
+## Roadmap
+
+The following are proposed portfolio improvements, not a committed delivery schedule:
+
+- [ ] Add product screenshots covering discovery, scheduling, and administration.
+- [ ] Publish a documented public demo with a controlled demonstration dataset.
+- [ ] Add a shared browser E2E suite to CI for the main student and tutor journeys.
+
+Implemented capabilities are listed under [Key Features](#key-features).
+
+## License & Author
+
+Developed by [Nguyen Nguyen](https://github.com/NguyenNguyen0210).
+
+No license file is currently included in this repository; a project license has not been specified.
