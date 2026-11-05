@@ -1,6 +1,25 @@
 import React from 'react';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
+import Logo from '@/components/ui/Logo';
+import StatePanel from './StatePanel';
+
+// Router-level errors and errors outside the router use the same safe fallback.
+export function PageErrorFallback() {
+  return (
+    <div className="flex min-h-screen flex-col bg-background px-4 py-8 sm:py-12">
+      <a href="/" aria-label="TutorHub — Về trang tìm gia sư" className="mx-auto mb-8 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Logo size={36} /></a>
+      <StatePanel title="Chưa thể hiển thị trang này" headingAs="h1" icon="cloud_off" alert className="my-auto"
+        description="Vui lòng tải lại trang. Nếu vẫn chưa mở được, bạn có thể quay về trang tìm gia sư."
+        actions={<>
+          <Button icon={<Icon name="refresh" size="sm" />} onClick={() => window.location.reload()}>Tải lại trang</Button>
+          <Button as="a" href="/" variant="outline" icon={<Icon name="explore" size="sm" />}>Về trang tìm gia sư</Button>
+        </>}
+      />
+      <p className="mt-8 text-center text-xs leading-5 text-fg-secondary">TutorHub · Kết nối gia sư, tiếp nối hành trình học</p>
+    </div>
+  );
+}
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -16,46 +35,9 @@ export default class ErrorBoundary extends React.Component {
     console.error('[ErrorBoundary caught error]:', error, errorInfo);
   }
 
-  handleReload = () => {
-    window.location.reload();
-  };
-
-  handleGoHome = () => {
-    window.location.href = '/tutors';
-  };
-
   render() {
     if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-brand-navy-950 p-6 text-center">
-          <div className="max-w-md w-full bg-brand-navy-900 border border-brand-navy-800 rounded-brand-xl p-8 shadow-brand-xl">
-            <div className="w-16 h-16 rounded-brand-lg bg-danger-subtle border border-danger/30 flex items-center justify-center text-danger mx-auto mb-4">
-              <Icon name="warning" size="xl" />
-            </div>
-            <h2 className="text-headline-2 text-white mb-2">Không thể hiển thị trang</h2>
-            <p className="text-caption text-fg-muted mb-6 leading-relaxed">
-              Vui lòng tải lại trang. Nếu vẫn chưa mở được, bạn có thể quay về trang tìm gia sư.
-            </p>
-            <div className="flex gap-3 justify-center">
-              <Button
-                variant="outline"
-                icon={<Icon name="refresh" size="sm" />}
-                onClick={this.handleReload}
-                className="border-brand-navy-800 bg-brand-navy-800 text-fg-inverse hover:bg-brand-navy-700"
-              >
-                Tải lại trang
-              </Button>
-              <Button
-                variant="primary"
-                icon={<Icon name="explore" size="sm" />}
-                onClick={this.handleGoHome}
-              >
-                Về trang tìm gia sư
-              </Button>
-            </div>
-          </div>
-        </div>
-      );
+      return <PageErrorFallback />;
     }
 
     return this.props.children;

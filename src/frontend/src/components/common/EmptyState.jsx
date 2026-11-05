@@ -1,9 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { cn } from '@/lib/cn';
 import Icon from '@/components/ui/Icon';
 import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
+import StatePanel from './StatePanel';
 
 /**
  * EmptyState — trạng thái rỗng: hướng hành động, không trang trí thừa.
@@ -13,7 +12,7 @@ import Card from '@/components/ui/Card';
  */
 export default function EmptyState({
   icon = 'inbox',
-  title = 'Không có dữ liệu',
+  title = 'Chưa có nội dung tại đây',
   description = 'Chưa có thông tin để hiển thị tại mục này.',
   actionLabel,
   actionPath,
@@ -27,37 +26,30 @@ export default function EmptyState({
 }) {
   const hasFilterActions = Array.isArray(filters) && filters.length > 0;
   return (
-    <Card
-      padding="lg"
-      className={cn('text-center space-y-4 max-w-lg mx-auto', className)}
+    <StatePanel
+      title={title}
+      description={description}
+      icon={icon}
+      className={className}
     >
-      <div className="w-16 h-16 mx-auto rounded-brand-lg bg-brand-primary-50 border border-brand-primary-100 flex items-center justify-center text-brand-primary-600">
-        <Icon name={icon} size="xl" strokeWidth={1.5} />
-      </div>
-
-      <div className="space-y-1">
-        <h3 className="text-headline-3 text-fg">{title}</h3>
-        <p className="text-caption text-fg-muted leading-relaxed m-0">{description}</p>
-      </div>
-
       {hasFilterActions && (
         <div className="pt-1">
           <p className="text-caption font-semibold text-fg-secondary m-0 pb-2">
-            Bộ lọc đang dùng — bấm để gỡ từng cái:
+            Bạn có thể gỡ bớt bộ lọc:
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2">
             {filters.map((filter) => (
               <span
                 key={filter.key}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface text-brand-primary-600 text-[12px] font-semibold border border-brand-primary-200/90 shadow-sm"
+                className="inline-flex max-w-full items-center gap-1 rounded-xl border border-border bg-muted pl-3 text-xs font-medium text-fg-secondary"
               >
-                <span>{filter.label}</span>
+                <span className="min-w-0 break-words text-left">{filter.label}</span>
                 <button
                   type="button"
                   onClick={filter.clear}
                   aria-label={`Xóa bộ lọc ${filter.label}`}
                   title="Gỡ bộ lọc này"
-                  className="hover:text-danger transition-colors font-bold text-[14px] leading-none cursor-pointer ml-0.5 -mr-3 -my-3 min-w-[44px] min-h-[44px] inline-flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary-600 focus-visible:ring-offset-2 rounded-full"
+                  className="inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl text-fg-secondary transition-colors hover:bg-neutral-200 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Icon name="close" size="xs" className="w-3.5 h-3.5" />
                 </button>
@@ -104,6 +96,6 @@ export default function EmptyState({
           </button>
         </div>
       )}
-    </Card>
+    </StatePanel>
   );
 }

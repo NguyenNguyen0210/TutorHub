@@ -15,6 +15,7 @@ import {
 import { useToast } from '@/components/ui/Toast';
 import AuthHeader from '@/components/layout/AuthHeader';
 import forgotPasswordService from '@/services/forgotPassword.service';
+import { getResetEmailError } from '@/utils/resetEmail';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -26,6 +27,8 @@ export default function ForgotPassword() {
 
   // Form states
   const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const emailInputRef = useRef(null);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -75,22 +78,33 @@ export default function ForgotPassword() {
   // STEP 1: Request Reset OTP
   const handleRequestOtp = async (e) => {
     e.preventDefault();
-    const cleanEmail = email.trim();
-    if (!cleanEmail) {
-      toast.error('Vui lòng nhập địa chỉ email của bạn.');
+    if (loading) return;
+    const validationError = getResetEmailError(email);
+    if (validationError) {
+      setEmailError(validationError);
+      emailInputRef.current?.focus();
       return;
     }
+    const cleanEmail = email.trim().toLowerCase();
+    setEmailError('');
 
     try {
       setLoading(true);
       await forgotPasswordService.requestResetOtp(cleanEmail);
+      setEmail(cleanEmail);
       toast.success("Đã gửi mã xác nhận. Vui lòng kiểm tra email của bạn.");
       setStep(2);
       setCountdown(60);
       setCanResend(false);
       setOtp(['', '', '', '', '', '']);
     } catch (err) {
-      toast.error(userFacingError(err, 'Không thể gửi mã xác nhận. Vui lòng thử lại sau.'));
+      const message = userFacingError(err, 'Không thể gửi mã xác nhận. Vui lòng thử lại sau.');
+      if ([400, 403, 404].includes(err?.status)) {
+        setEmailError(message);
+        emailInputRef.current?.focus();
+      } else {
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -257,22 +271,27 @@ export default function ForgotPassword() {
                   <form noValidate onSubmit={handleRequestOtp} className="mt-5 text-left space-y-4">
                     <div>
                       <label htmlFor="reset-email" className="block text-[13px] font-bold text-fg mb-1">
-                        Địa chỉ Email
+                        Địa chỉ email
                       </label>
                       <div className="relative flex items-center h-12 bg-white border border-border rounded-brand-md px-3.5 focus-within:border-brand-primary-600 focus-within:ring-2 focus-within:ring-brand-primary-600/10 transition-all">
                         <Mail className="w-4 h-4 text-fg-muted shrink-0 mr-2.5 pointer-events-none" />
                         <input
                           id="reset-email"
+                          ref={emailInputRef}
                           type="email"
                           inputMode="email"
                           required
+                          maxLength={256}
+                          aria-invalid={Boolean(emailError)}
+                          aria-describedby={emailError ? 'reset-email-error' : undefined}
                           autoComplete="email"
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="vidu@tutorhub.vn"
+                          onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
+                          placeholder="ban@example.com"
                           className="w-full h-full text-[14px] text-fg placeholder:text-fg-muted bg-transparent outline-none"
                         />
                       </div>
+                      {emailError && <p id="reset-email-error" role="alert" className="mt-2 text-xs leading-5 text-danger-strong">{emailError}</p>}
                     </div>
 
                     <button

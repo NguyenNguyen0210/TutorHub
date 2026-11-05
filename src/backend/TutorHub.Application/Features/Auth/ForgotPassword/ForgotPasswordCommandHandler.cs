@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Exceptions;
 
 namespace TutorHub.Application.Features.Auth.ForgotPassword;
 
@@ -32,12 +33,16 @@ public class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswordComman
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail, cancellationToken);
 
-        // Security best practice: User enumeration prevention
-        // Always return success even if user does not exist
-        if (user == null || user.Status != Domain.Enums.AccountStatus.Active)
+        // This flow explicitly confirms registration before moving to OTP entry.
+        // Neither missing nor inactive accounts may receive a reset credential.
+        if (user == null)
         {
-            _logger.LogWarning("[AUTH] Forgot password request for non-existent or inactive user: {Email}", normalizedEmail);
-            return true;
+            throw new NotFoundException("Email này chưa được đăng ký trên TutorHub.");
+        }
+
+        if (user.Status != Domain.Enums.AccountStatus.Active)
+        {
+            throw new ForbiddenException("Tài khoản này hiện chưa thể đặt lại mật khẩu. Vui lòng liên hệ hỗ trợ.");
         }
 
         // Generate cryptographically secure 6-digit OTP
@@ -68,7 +73,7 @@ Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua emai
 
 Trân trọng,
 Đội ngũ TutorHub
-https://tutorhub.vn";
+https://tutorhub.id.vn";
 
             try
             {

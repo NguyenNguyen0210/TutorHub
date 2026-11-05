@@ -554,8 +554,8 @@ export default function Marketplace() {
                 >
                   {loading
                     ? 'Đang tìm kiếm gia sư...'
-                    : totalCount === 0
-                      ? 'Không tìm thấy gia sư phù hợp'
+                    : error || totalCount === 0
+                      ? 'Danh sách gia sư'
                       : `${formatCount(totalCount)} gia sư phù hợp`}
                 </h2>
                 {searchKeyword.trim() ? (
@@ -668,12 +668,13 @@ export default function Marketplace() {
             ) : tutors.length === 0 ? (
               <EmptyState
                 icon="person_search"
-                title="Không tìm thấy gia sư phù hợp"
-                description="Bộ lọc hiện tại quá hẹp. Hãy thử nới khoảng học phí, chọn danh mục khác, hoặc gỡ bớt từng bộ lọc bên dưới."
+                title={activeFilters.length ? 'Không tìm thấy gia sư phù hợp' : 'Chưa có gia sư để hiển thị'}
+                description={activeFilters.length ? 'Thử đổi từ khóa, mở rộng khoảng học phí hoặc gỡ bớt bộ lọc để xem thêm lựa chọn.' : 'Các hồ sơ gia sư sẽ xuất hiện tại đây khi được duyệt. Bạn có thể quay lại sau hoặc tìm hiểu cách học trên TutorHub.'}
                 filters={activeFilters}
-                actionLabel="Xóa bộ lọc"
+                actionLabel={activeFilters.length ? 'Xóa bộ lọc' : 'Tìm hiểu cách hoạt động'}
+                actionPath={activeFilters.length ? undefined : '/how-it-works'}
                 onAction={handleResetFilters}
-                secondaryActionLabel="Khám phá danh mục"
+                secondaryActionLabel={activeFilters.length ? 'Khám phá danh mục' : undefined}
                 onSecondaryAction={handleExploreCategories}
                 className="!max-w-xl !border-[color:var(--mkt-line)] !bg-white"
               />

@@ -76,11 +76,11 @@ services:
 
       Cors__AllowedOrigins__0: ${CORS_ORIGIN:?CORS_ORIGIN is required}
 
-      Smtp__Host: ${SMTP_HOST:-}
-      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__Host: ${SMTP_HOST:-smtp.resend.com}
+      Smtp__Port: ${SMTP_PORT:-465}
       Smtp__UseSsl: ${SMTP_USESSL:-true}
-      Smtp__UserName: ${SMTP_USERNAME:-}
-      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__UserName: ${SMTP_USERNAME:-resend}
+      Smtp__Password: ${SMTP_PASSWORD:?SMTP_PASSWORD must contain a Resend API key}
       Smtp__FromAddress: ${SMTP_FROM_ADDRESS:?SMTP_FROM_ADDRESS is required}
       Smtp__FromDisplayName: ${SMTP_FROM_DISPLAY_NAME:-TutorHub}
 

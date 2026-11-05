@@ -3,7 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import AppRoutes from './routes';
 import ScrollToTop from './components/common/ScrollToTop';
-import ErrorBoundary from './components/common/ErrorBoundary';
+import ErrorBoundary, { PageErrorFallback } from './components/common/ErrorBoundary';
+import NetworkStatus from './components/common/NetworkStatus';
 import { ToastProvider } from './components/ui/Toast';
 import { DialogProvider } from './components/ui/Dialog';
 import { useAuthStore } from './store/authStore';
@@ -19,7 +20,7 @@ const queryClient = new QueryClient({
 });
 
 // A data router lets editors block in-app navigation and browser Back before losing changes.
-const router = createBrowserRouter([{ path: '*', element: <><ScrollToTop /><AppRoutes /></> }]);
+const router = createBrowserRouter([{ path: '*', element: <><ScrollToTop /><AppRoutes /></>, errorElement: <PageErrorFallback /> }]);
 
 export default function App() {
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <NetworkStatus />
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <DialogProvider>

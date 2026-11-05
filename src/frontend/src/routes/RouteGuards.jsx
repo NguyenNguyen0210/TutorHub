@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate, useLocation, useNavigate, Link } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import ErrorState from '@/components/common/ErrorState';
+import { getDashboardPath } from '@/components/layout/navConfig';
 import { useAuthStore } from '../store/authStore';
 import { getAuthReturnUrl } from '../utils/authRedirect';
 import { getPostAuthDestination } from '../services/authRedirect.service';
@@ -25,14 +27,8 @@ export function RequireRole({ allowedRoles, children }) {
 
   if (!allowedRoles.includes(role)) {
     return (
-      <div className="p-8 text-center bg-surface rounded-brand-lg border border-danger/25">
-        <h2 className="text-danger-strong font-bold text-headline-3 mb-2">403 — Không đủ thẩm quyền truy cập</h2>
-        <p className="text-caption text-fg-secondary mb-4">
-          Tài khoản hiện tại của bạn (<strong>{role}</strong>) không có quyền truy cập khu vực này.
-        </p>
-        <Link to="/" className="text-brand-primary-700 font-bold text-xs hover:underline">
-          Về trang tìm gia sư
-        </Link>
+      <div className="flex min-h-screen items-center bg-background px-4 py-12">
+        <ErrorState error={{ status: 403 }} backPath={getDashboardPath(role)} backLabel="Về không gian của tôi" />
       </div>
     );
   }

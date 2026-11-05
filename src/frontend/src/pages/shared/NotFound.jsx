@@ -1,12 +1,13 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import Logo from '@/components/ui/Logo';
 import { useAuthStore } from '@/store/authStore';
 import { getDashboardPath } from '@/components/layout/navConfig';
+import StatePanel from '@/components/common/StatePanel';
 
-export default function NotFound() {
+export default function NotFound({ embedded = false }) {
   const navigate = useNavigate();
   const { isAuthenticated, role } = useAuthStore();
 
@@ -14,51 +15,22 @@ export default function NotFound() {
     document.title = 'Không tìm thấy trang';
   }, []);
 
-  const homePath = isAuthenticated ? getDashboardPath(role) : '/tutors';
+  const homePath = isAuthenticated ? getDashboardPath(role) : '/';
+  const goBack = () => {
+    if (window.history.state?.idx > 0) navigate(-1);
+    else navigate(homePath, { replace: true });
+  };
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full text-center space-y-6">
-        <div className="flex justify-center">
-          <div className="w-20 h-20 rounded-brand-xl bg-brand-primary-50 border border-brand-primary-200 flex items-center justify-center text-brand-primary-600 shadow-brand-sm">
-            <Icon name="search_off" size="xl" />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <span className="font-mono text-xs font-bold uppercase tracking-widest text-brand-primary-700 bg-brand-primary-50 px-2.5 py-1 rounded-pill border border-brand-primary-200">
-            Liên kết không khả dụng
-          </span>
-          <h1 className="text-headline-1 text-fg m-0">Trang không tồn tại</h1>
-          <p className="text-caption text-fg-muted max-w-sm mx-auto">
-            Không tìm thấy trang bạn muốn xem. Vui lòng kiểm tra địa chỉ hoặc quay lại trang trước.
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-          <Button
-            variant="primary"
-            size="md"
-            icon={<Icon name="home" size="sm" />}
-            onClick={() => navigate(homePath)}
-          >
-            Về trang chính
-          </Button>
-          <Button
-            variant="outline"
-            size="md"
-            icon={<Icon name="arrow_back" size="sm" />}
-            onClick={() => navigate(-1)}
-          >
-            Quay lại trang trước
-          </Button>
-        </div>
-
-        <div className="pt-6 border-t border-border flex items-center justify-center gap-2">
-          <Logo variant="mark" size={20} />
-          <span className="text-xs text-fg-muted font-medium">TutorHub – Nền tảng học cùng gia sư</span>
-        </div>
-      </div>
+    <div className={embedded ? 'flex min-h-[65vh] items-center justify-center px-4 py-10' : 'flex min-h-screen flex-col bg-background px-4 py-8 sm:py-12'}>
+      {!embedded && <Link to={homePath} aria-label="TutorHub — Về trang chính" className="mx-auto mb-8 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Logo size={36} /></Link>}
+      <StatePanel code="404" title="Không tìm thấy trang" headingAs="h1" description="Liên kết này không dẫn đến trang nào trên TutorHub. Bạn có thể quay lại trang trước hoặc tiếp tục từ trang chính." className="my-auto"
+        actions={<>
+          <Button as={Link} to={homePath} icon={<Icon name="home" size="sm" />}>{isAuthenticated ? 'Về không gian của tôi' : 'Tìm gia sư'}</Button>
+          <Button variant="outline" icon={<Icon name="arrow_back" size="sm" />} onClick={goBack}>Quay lại trang trước</Button>
+        </>}
+      />
+      {!embedded && <p className="mx-auto mt-8 text-center text-xs leading-5 text-fg-secondary">TutorHub · Kết nối gia sư, tiếp nối hành trình học</p>}
     </div>
   );
 }

@@ -464,8 +464,8 @@ export default function ServicesMarketplace() {
                 <h2 className="mt-1 text-[22px] font-bold tracking-[-0.02em] text-[color:var(--mkt-ink)] sm:text-[26px]">
                   {loading
                     ? "Đang tìm kiếm gói học..."
-                    : totalCount === 0
-                      ? "Không tìm thấy gói học phù hợp"
+                    : error || totalCount === 0
+                      ? 'Danh sách gói học'
                       : `${totalCount} gói học phù hợp`}
                 </h2>
                 <p className="mt-1 text-sm font-medium text-[color:var(--mkt-body)]">
@@ -559,8 +559,10 @@ export default function ServicesMarketplace() {
             {!loading && !error && services.length === 0 && (
               <EmptyState
                 icon="search_off"
-                title="Không tìm thấy gói học phù hợp"
-                description="Bộ lọc hiện tại quá hẹp. Hãy thử nới khoảng giá, đổi danh mục/môn học, tìm từ khóa khác, hoặc gỡ bớt từng bộ lọc bên dưới."
+                title={activeFilters.length ? 'Không tìm thấy gói học phù hợp' : 'Chưa có gói học để hiển thị'}
+                description={activeFilters.length ? 'Thử đổi từ khóa, mở rộng khoảng học phí hoặc gỡ bớt bộ lọc để xem thêm lựa chọn.' : 'Các gói học sẽ xuất hiện tại đây khi được đăng. Trong lúc chờ, bạn có thể tìm gia sư phù hợp với mục tiêu của mình.'}
+                actionLabel={activeFilters.length ? undefined : 'Tìm gia sư'}
+                actionPath={activeFilters.length ? undefined : '/'}
                 filters={activeFilters}
                 onClearAll={handleResetFilters}
               />

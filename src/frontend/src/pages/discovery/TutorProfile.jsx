@@ -159,7 +159,7 @@ export default function TutorProfile() {
       <div className="py-16">
         <ErrorState
           error={error}
-          title="Không tải được hồ sơ gia sư"
+          title={error.status === 404 ? 'Không tìm thấy hồ sơ gia sư' : undefined}
           onRetry={() => setReloadToken((token) => token + 1)}
           backPath="/tutors"
           backLabel="Quay lại danh sách gia sư"

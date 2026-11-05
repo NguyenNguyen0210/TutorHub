@@ -108,10 +108,12 @@ public class AuthController : ControllerBase
     [HttpPost("forgot-password")]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command, CancellationToken cancellationToken)
     {
         var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<bool>.SuccessResult(result, "Nếu email tồn tại trong hệ thống, mã xác nhận OTP đã được gửi đến hộp thư của bạn."));
+        return Ok(ApiResponse<bool>.SuccessResult(result, "Đã gửi mã xác nhận. Vui lòng kiểm tra email của bạn."));
     }
 
     /// <summary>
