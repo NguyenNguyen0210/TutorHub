@@ -1,6 +1,6 @@
 import { userFacingError } from '@/utils/userFacingError';
 import React, { useState } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   GraduationCap,
   User,
@@ -45,6 +45,7 @@ function GoogleSvg() {
 export default function Register() {
   const toast = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
   const authLinkState = { returnUrl: getAuthReturnUrl(location) };
   const { registerWithCredentials } = useAuthStore();
 
@@ -164,9 +165,8 @@ export default function Register() {
         selectedRole
       );
 
-      toast.success(`Đăng ký thành công! Chào mừng ${normalizedName} gia nhập TutorHub.`);
-
-      // Auto-login is followed by the same redirect policy in GuestGuard.
+      toast.success('Tạo tài khoản thành công. Vui lòng đăng nhập để tiếp tục.');
+      navigate('/auth/login', { replace: true, state: authLinkState });
     } catch (err) {
       console.error('Đăng ký tài khoản thất bại:', err);
 
