@@ -210,10 +210,32 @@ The [local environment template](.env.example) documents backend settings. The A
 | `CloudflareR2__AccountId`, `CloudflareR2__AccessKeyId`, `CloudflareR2__SecretAccessKey` | Object storage credentials. |
 | `CloudflareR2__BucketName` | Add this setting when running the API directly on the host. |
 | `Cors__AllowedOrigins` | Set to `http://localhost:5173` for the local frontend. |
-| `Smtp__*` | Email delivery; leaving the host empty enables log-only delivery in Development. |
+| `Smtp__*` | Resend via MailKit SMTP; leaving the host empty enables log-only delivery in Development. |
 | `ExternalAuth__Google__*` | Optional Google sign-in; leave empty to disable. |
 
 Compose maps `CLOUDFLARE_R2_BUCKET` to the API's `CloudflareR2__BucketName`. Host-based development needs the latter configuration key directly. Keep credentials in local environment files or deployment secrets; `VITE_*` variables are exposed to the browser.
+
+### Email delivery: Resend over SMTP
+
+Email still uses `IEmailSender` and MailKit, including the existing notification delivery job and retries. No Resend SDK or HTTP email endpoint is used. Verify the sending domain `tutorhub.id.vn` in Resend, then create an API key with permission to send from that domain.
+
+```dotenv
+Smtp__Host=smtp.resend.com
+Smtp__Port=465
+Smtp__UseSsl=true
+Smtp__UserName=resend
+Smtp__Password=
+Smtp__FromAddress=no-reply@tutorhub.id.vn
+Smtp__FromDisplayName=TutorHub
+```
+
+Set `Smtp__Password` to the actual Resend API key in the local `.env` or deployment secret settings. It is not a Gmail App Password or the password of the sender mailbox. Do not commit the key or expose it in frontend variables. Restart the API after updating configuration.
+
+For production Compose, use `SMTP_HOST`, `SMTP_PORT`, `SMTP_USESSL`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_ADDRESS`, and `SMTP_FROM_DISPLAY_NAME` from `.env.production.example`. For a host running .NET directly, use the `Smtp__*` names above.
+
+Port `465` (or `2465`) uses implicit SSL/TLS with `UseSsl=true`. If the hosting environment requires STARTTLS, use port `587` (or `25`/`2587`) with `UseSsl=false`; MailKit requires the TLS upgrade before authenticating. Resend-specific credential and TLS settings are validated at startup. See [Resend SMTP documentation](https://resend.com/docs/send-with-smtp).
+
+Development can explicitly leave `Smtp__Host` empty to use the log-only sender. Production requires a real SMTP configuration. SMTP acceptance confirms handoff to Resend; delivery to the recipient should be checked in the Resend dashboard.
 
 ### Frontend
 

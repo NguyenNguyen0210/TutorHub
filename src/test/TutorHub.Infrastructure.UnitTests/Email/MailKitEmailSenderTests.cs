@@ -79,4 +79,43 @@ public class MailKitEmailSenderTests
         _smtpClientMock.Verify(c => c.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<CancellationToken>(), It.IsAny<ITransferProgress>()), Times.Once);
         _smtpClientMock.Verify(c => c.DisconnectAsync(true, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Theory]
+    [InlineData(465, true, SecureSocketOptions.SslOnConnect)]
+    [InlineData(2465, true, SecureSocketOptions.SslOnConnect)]
+    [InlineData(587, false, SecureSocketOptions.StartTls)]
+    [InlineData(2587, false, SecureSocketOptions.StartTls)]
+    [InlineData(25, false, SecureSocketOptions.StartTls)]
+    public async Task Resend_UsesEncryptedSmtpAndPreservesApiKey(int port, bool useSsl, SecureSocketOptions transport)
+    {
+        _options.Host = "smtp.resend.com";
+        _options.Port = port;
+        _options.UseSsl = useSsl;
+        _options.UserName = "resend";
+        _options.Password = "re_test_key_with_underscores";
+        _options.FromAddress = "no-reply@tutorhub.id.vn";
+        _options.FromDisplayName = "TutorHub";
+        var mechanisms = new HashSet<string> { "XOAUTH2", "PLAIN", "LOGIN" };
+        _smtpClientMock.SetupGet(c => c.AuthenticationMechanisms).Returns(mechanisms);
+        MimeMessage? message = null;
+        _smtpClientMock.Setup(c => c.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<CancellationToken>(), It.IsAny<ITransferProgress>()))
+            .Callback<MimeMessage, CancellationToken, ITransferProgress>((value, _, _) => message = value)
+            .ReturnsAsync("250 Accepted");
+        var sender = new MailKitEmailSender(Options.Create(_options), NullLogger<MailKitEmailSender>.Instance, () => _smtpClientMock.Object);
+        using var cancellation = new CancellationTokenSource();
+
+        await sender.SendEmailAsync("student@example.com", "Notification", "<p>Course update</p>", "email:delivery-123", cancellation.Token);
+
+        _smtpClientMock.Verify(c => c.ConnectAsync("smtp.resend.com", port, transport, cancellation.Token), Times.Once);
+        _smtpClientMock.Verify(c => c.AuthenticateAsync("resend", "re_test_key_with_underscores", cancellation.Token), Times.Once);
+        _smtpClientMock.Verify(c => c.SendAsync(It.IsAny<MimeMessage>(), cancellation.Token, It.IsAny<ITransferProgress>()), Times.Once);
+        _smtpClientMock.Verify(c => c.DisconnectAsync(true, cancellation.Token), Times.Once);
+        mechanisms.Should().NotContain("XOAUTH2");
+        mechanisms.Should().Contain("PLAIN");
+        message!.From.Mailboxes.Single().Name.Should().Be("TutorHub");
+        message.From.Mailboxes.Single().Address.Should().Be("no-reply@tutorhub.id.vn");
+        message.MessageId.Should().Be("delivery-123@tutorhub.id.vn");
+        message.HtmlBody.Should().Be("<p>Course update</p>");
+        message.Headers["X-Correlation-ID"].Should().Be("email:delivery-123");
+    }
 }

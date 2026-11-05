@@ -81,9 +81,9 @@ services:
       # instead of silently logging email away; in Development the container falls back
       # to the log-only sender.
       Smtp__Host: ${Smtp__Host:-}
-      Smtp__Port: ${Smtp__Port:-587}
-      Smtp__UseSsl: ${Smtp__UseSsl:-false}
-      Smtp__UserName: ${Smtp__UserName:-}
+      Smtp__Port: ${Smtp__Port:-465}
+      Smtp__UseSsl: ${Smtp__UseSsl:-true}
+      Smtp__UserName: ${Smtp__UserName:-resend}
       Smtp__Password: ${Smtp__Password:-}
       Smtp__FromAddress: ${Smtp__FromAddress:-}
       Smtp__FromDisplayName: ${Smtp__FromDisplayName:-TutorHub}

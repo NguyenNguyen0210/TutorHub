@@ -42,7 +42,8 @@ public class MailKitEmailSender : IEmailSender
             var cleanId = correlationId.Replace("email:", "").Trim();
             if (!string.IsNullOrWhiteSpace(cleanId))
             {
-                message.MessageId = $"<{cleanId}@tutorhub.vn>";
+                var senderDomain = message.From.Mailboxes.First().Address.Split('@')[^1];
+                message.MessageId = $"<{cleanId}@{senderDomain}>";
             }
         }
 
@@ -61,27 +62,18 @@ public class MailKitEmailSender : IEmailSender
 
         var socketOptions = _options.UseSsl
             ? SecureSocketOptions.SslOnConnect
-            : (_options.Port == 587
+            : (_options.Port is 25 or 587 or 2587
                 ? SecureSocketOptions.StartTls
-                : (_options.Port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.Auto));
+                : (_options.Port is 465 or 2465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.Auto));
 
         await client.ConnectAsync(_options.Host, _options.Port, socketOptions, cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(_options.UserName) && !string.IsNullOrWhiteSpace(_options.Password))
         {
-            // Remove XOAUTH2 so MailKit falls back to standard PLAIN/LOGIN password auth.
-            // When connecting to smtp.gmail.com with App Passwords, MailKit otherwise negotiates
-            // XOAUTH2 which Google rejects with 535: 5.7.8 BadCredentials.
+            // Resend authenticates with the fixed username and an API key as the
+            // SMTP password. Keep credentials intact, including underscores.
             client.AuthenticationMechanisms?.Remove("XOAUTH2");
-
-            var password = _options.Password;
-            if (_options.Host.Contains("gmail.com", StringComparison.OrdinalIgnoreCase))
-            {
-                // Google App Passwords are 16 letters, frequently copied with spaces or underscores.
-                password = password.Replace(" ", "").Replace("_", "");
-            }
-
-            await client.AuthenticateAsync(_options.UserName, password, cancellationToken);
+            await client.AuthenticateAsync(_options.UserName, _options.Password, cancellationToken);
         }
 
         await client.SendAsync(message, cancellationToken);
