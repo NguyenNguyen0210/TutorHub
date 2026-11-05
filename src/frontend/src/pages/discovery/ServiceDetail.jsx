@@ -85,7 +85,7 @@ export default function ServiceDetail() {
       } catch (err) {
         if (!cancelled) {
           console.error('[ServiceDetail] Error loading service:', err);
-          setError(userFacingError(err, "Không thể tải thông tin gói học."));
+          setError(err);
         }
       } finally {
         if (!cancelled) {
@@ -167,9 +167,11 @@ export default function ServiceDetail() {
     return (
       <div className="min-h-[70vh] flex items-center justify-center p-6">
         <ErrorState
-          title="Không thể tải khóa học"
-          description={error}
-          onRetry={() => window.location.reload()}
+          error={error}
+          title={error.status === 404 ? 'Không tìm thấy gói học' : undefined}
+          onRetry={() => setReloadToken(token => token + 1)}
+          backPath="/services"
+          backLabel="Xem các gói học"
         />
       </div>
     );
@@ -179,9 +181,9 @@ export default function ServiceDetail() {
     return (
       <div className="min-h-[70vh] flex items-center justify-center p-6">
         <EmptyState
-          title="Gói học không tồn tại"
-          description="Gói học bạn đang tìm kiếm có thể đã bị gỡ hoặc không tồn tại."
-          actionText="Về danh sách dịch vụ"
+          title="Không tìm thấy gói học"
+          description="Gói học này hiện không có trong danh sách. Bạn có thể xem các gói học khác để tiếp tục lựa chọn."
+          actionLabel="Xem các gói học"
           onAction={() => navigate('/services')}
         />
       </div>

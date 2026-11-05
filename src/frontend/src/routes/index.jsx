@@ -45,8 +45,8 @@ import { RequireAuth, RequireRole, GuestGuard } from './RouteGuards';
 
 function loadPage(loader) {
   const Page = lazy(loader);
-  return function LazyPage() {
-    return <Suspense fallback={<div role="status" aria-live="polite" className="mx-auto max-w-[1200px] px-4 py-10 text-sm text-fg-secondary">Đang tải nội dung…</div>}><Page /></Suspense>;
+  return function LazyPage(props) {
+    return <Suspense fallback={<div role="status" aria-live="polite" className="mx-auto max-w-[1200px] px-4 py-10 text-sm text-fg-secondary">Đang tải nội dung…</div>}><Page {...props} /></Suspense>;
   };
 }
 
@@ -147,6 +147,7 @@ export default function AppRoutes() {
         <Route path="notifications/:id" element={<NotificationTarget />} />
         <Route path="reports" element={<StudentReports />} />
         <Route path="disputes/:id" element={<DisputeDetail />} />
+        <Route path="*" element={<NotFound embedded />} />
       </Route>
 
       {/* 2. Auth Routes */}
@@ -180,6 +181,7 @@ export default function AppRoutes() {
         <Route path="wishlist" element={<StudentWishlist />} />
         <Route path="settings" element={<ProfileSettings />} />
         <Route path="profile" element={<Navigate to="/student/settings" replace />} />
+        <Route path="*" element={<NotFound embedded />} />
       </Route>
 
       {/* Applications retain the signed-in role's workspace, including first-time applicants. */}
@@ -208,6 +210,7 @@ export default function AppRoutes() {
         <Route path="sessions/:id" element={<SessionDetail />} />
         <Route path="settings" element={<ProfileSettings />} />
         <Route path="profile" element={<Navigate to="/tutor/settings" replace />} />
+        <Route path="*" element={<NotFound embedded />} />
       </Route>
 
       {/* 5. Admin Routes (auth + Admin role) */}
@@ -238,6 +241,7 @@ export default function AppRoutes() {
         <Route path="audit-logs" element={<AdminAuditLogs />} />
         <Route path="settings" element={<ProfileSettings />} />
         <Route path="profile" element={<Navigate to="/admin/settings" replace />} />
+        <Route path="*" element={<NotFound embedded />} />
       </Route>
 
       {/* Deep Link Redirections (from notifications & external URLs) */}
