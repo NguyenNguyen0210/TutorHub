@@ -97,7 +97,7 @@ Arrows between backend layers show project references; arrows to external servic
 - **Background processing:** workers handle booking expiration, session payouts, outbox dispatch, email delivery, and idempotency cleanup. Redis coordinates distributed worker execution; database locks protect the underlying data updates.
 - **Authentication:** JWT access tokens, refresh-token rotation, and role-based authorization. Established SignalR connections revalidate account status and token version.
 - **Realtime and storage:** SignalR supports chat and notifications; Cloudflare R2 stores uploaded media and dispute evidence.
-- **Auditability:** append-only database triggers protect the corresponding financial and audit records.
+- **Auditability:** append-only database triggers protect `Transactions` and `AuditLogs`. Wallet balances, the wallet ledger, withdrawals, and top-up requests are guarded in the EF Core change tracker instead, so raw SQL bypasses those application-level checks.
 
 ## Project Structure
 
