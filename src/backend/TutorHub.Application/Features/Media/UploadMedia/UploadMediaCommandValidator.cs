@@ -24,13 +24,30 @@ public class UploadMediaCommandValidator : AbstractValidator<UploadMediaCommand>
             .GreaterThan(0)
             .WithMessage("File cannot be empty.")
             .LessThanOrEqualTo(MaxFileSizeInBytes)
-            .WithMessage("File size exceeds the maximum allowed limit of 5MB.");
+            .WithMessage("File size exceeds the maximum allowed limit of 5MB.")
+            .When(x => x.MediaType != MediaType.ServiceDemoVideo);
+
+        // Demo videos are MP4 only and get a much larger budget than documents.
+        RuleFor(x => x.FileSize)
+            .GreaterThan(0)
+            .WithMessage("File cannot be empty.")
+            .LessThanOrEqualTo(UploadLimits.ServiceDemoVideoMaxBytes)
+            .WithMessage("Video demo vượt quá giới hạn 100MB.")
+            .When(x => x.MediaType == MediaType.ServiceDemoVideo);
 
         RuleFor(x => x.OriginalFileName)
             .NotEmpty()
             .WithMessage("Original file name is required.")
             .Must(HaveAllowedExtension)
-            .WithMessage("File extension is not supported. Allowed formats: .jpg, .jpeg, .png, .webp, .pdf.");
+            .WithMessage("File extension is not supported. Allowed formats: .jpg, .jpeg, .png, .webp, .pdf.")
+            .When(x => x.MediaType != MediaType.ServiceDemoVideo);
+
+        RuleFor(x => x.OriginalFileName)
+            .NotEmpty()
+            .WithMessage("Original file name is required.")
+            .Must(HaveAllowedVideoExtension)
+            .WithMessage("Video demo phải là tệp .mp4.")
+            .When(x => x.MediaType == MediaType.ServiceDemoVideo);
     }
 
     private static bool HaveAllowedExtension(string fileName)
@@ -38,5 +55,12 @@ public class UploadMediaCommandValidator : AbstractValidator<UploadMediaCommand>
         if (string.IsNullOrWhiteSpace(fileName)) return false;
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
         return AllowedExtensions.Contains(ext);
+    }
+
+    private static bool HaveAllowedVideoExtension(string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName)) return false;
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        return UploadLimits.ServiceDemoVideoExtensions.Contains(ext);
     }
 }

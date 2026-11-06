@@ -29,7 +29,18 @@ public class Service
     public decimal Price { get; set; }
 
     // Trial Lesson & Media preview
+    /// <summary>
+    /// Legacy external trial-lesson link (YouTube/Vimeo/MP4 URL). Kept for
+    /// packages published before demo videos were uploaded to our storage.
+    /// </summary>
     public string? TrialLessonUrl { get; set; }
+
+    /// <summary>
+    /// Public playback URL of the uploaded MP4 demo video
+    /// (points at /api/v1/media/{id}/demo-video).
+    /// </summary>
+    public string? TrialVideoUrl { get; set; }
+
     public string? CoverImageUrl { get; set; }
 
     // Extended Course Details (JSONB-backed)

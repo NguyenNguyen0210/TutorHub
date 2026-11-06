@@ -12,6 +12,7 @@ public record CreateServiceRequest(
     int SessionDurationMinutes,
     decimal Price,
     string? TrialLessonUrl,
+    string? TrialVideoUrl,
     string? CoverImageUrl,
     List<CurriculumItemInput>? Curriculum = null,
     List<string>? TargetAudience = null,

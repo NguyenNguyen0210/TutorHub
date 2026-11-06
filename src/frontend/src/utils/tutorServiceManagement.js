@@ -19,6 +19,8 @@ export function serviceToForm(service) {
     sessionDurationMinutes: service.sessionDurationMinutes ?? 60,
     price: service.price ?? 0,
     trialLessonUrl: service.trialLessonUrl || '',
+    trialVideoUrl: service.trialVideoUrl || '',
+    trialVideoFile: null,
     coverImageUrl: service.coverImageUrl || '',
     coverImageFile: null,
     tags: Array.isArray(service.tags) ? service.tags.join(', ') : service.tags || '',

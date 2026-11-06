@@ -31,6 +31,7 @@ public class CreateServiceCommandValidatorTests
             SessionDurationMinutes: 60,
             Price: 3500000m,
             TrialLessonUrl: null,
+            TrialVideoUrl: null,
             CoverImageUrl: coverImageUrl,
             Curriculum: curriculum,
             TargetAudience: targetAudience,

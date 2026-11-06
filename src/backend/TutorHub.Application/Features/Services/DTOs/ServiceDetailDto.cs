@@ -57,6 +57,7 @@ public record ServiceDetailDto(
     string Description,
     string? CoverImageUrl,
     string? TrialLessonUrl,
+    string? TrialVideoUrl,
     string? LearningScope,
     string? ExpectedOutcome,
     List<string> TargetAudience,

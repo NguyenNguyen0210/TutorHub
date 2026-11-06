@@ -29,8 +29,8 @@ public class CompleteUploadCommandHandler : IRequestHandler<CompleteUploadComman
 
     public async Task<MediaDto> Handle(CompleteUploadCommand request, CancellationToken cancellationToken)
     {
-        if (request.MediaType == MediaType.ServiceCover)
-            throw new BadRequestException("Service covers require validated image upload through /media/upload.");
+        if (request.MediaType is MediaType.ServiceCover or MediaType.ServiceDemoVideo)
+            throw new BadRequestException("Service covers and demo videos require validated upload through /media/upload.");
         var userId = _currentUserService.UserIdOrThrow();
         var role = _currentUserService.Role;
 

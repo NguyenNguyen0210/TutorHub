@@ -14,7 +14,7 @@ test('service editor returns only to its own listing with filters and scroll key
 
 test('clearing optional fields in the editor sends explicit empty values for PATCH', () => {
   const payload = buildServicePayload(createInitialFormState(), { mode: 'update' });
-  for (const key of ['learningScope', 'expectedOutcome', 'trialLessonUrl', 'shortDescription', 'coverImageUrl']) assert.equal(payload[key], '');
+  for (const key of ['learningScope', 'expectedOutcome', 'trialVideoUrl', 'shortDescription', 'coverImageUrl']) assert.equal(payload[key], '');
   for (const key of ['tags', 'curriculum', 'targetAudience', 'prerequisites', 'faqs']) assert.deepEqual(payload[key], []);
 });
 

@@ -16,11 +16,16 @@ test('trial media recognizes real providers without embedding meeting links or l
   assert.equal(validImageLink('data:image/png;base64,abc'), false);
 });
 
-test('unchanged legacy meeting links do not block unrelated edits but new meeting URLs require a video', () => {
+test('legacy trial links stay read-only while the uploaded demo video is validated instead', () => {
   const form = serviceToForm(service);
   assert.equal(validateServiceEditor(form, service), null);
-  assert.equal(validateServiceEditor({ ...form, trialLessonUrl: 'https://meet.google.com/new-link' }, service).fieldId, 'service-trial');
-  assert.equal(validateServiceEditor({ ...form, trialLessonUrl: '' }, service), null);
+  // The old external link is no longer editable, so changing it cannot block a save.
+  assert.equal(validateServiceEditor({ ...form, trialLessonUrl: 'https://meet.google.com/new-link' }, service), null);
+
+  const videoError = (file) => validateServiceEditor({ ...form, trialVideoFile: file }, service);
+  assert.equal(videoError({ name: 'clip.mov', type: 'video/quicktime', size: 1024 }).fieldId, 'service-demo-video');
+  assert.equal(videoError({ name: 'clip.mp4', type: 'video/mp4', size: 101 * 1024 * 1024 }).fieldId, 'service-demo-video');
+  assert.equal(videoError({ name: 'clip.mp4', type: 'video/mp4', size: 12 * 1024 * 1024 }), null);
 });
 
 test('validation targets collapsed lesson and FAQ fields and enforces actual curriculum constraints', () => {

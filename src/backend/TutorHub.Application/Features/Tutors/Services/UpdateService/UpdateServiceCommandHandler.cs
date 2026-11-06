@@ -103,6 +103,9 @@ public class UpdateServiceCommandHandler : IRequestHandler<UpdateServiceCommand,
         if (request.TrialLessonUrl != null)
             service.TrialLessonUrl = request.TrialLessonUrl;
 
+        if (request.TrialVideoUrl != null)
+            service.TrialVideoUrl = request.TrialVideoUrl;
+
         if (request.CoverImageUrl != null)
             service.CoverImageUrl = request.CoverImageUrl;
 

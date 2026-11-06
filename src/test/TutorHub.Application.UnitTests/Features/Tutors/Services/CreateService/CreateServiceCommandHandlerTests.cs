@@ -77,6 +77,7 @@ public class CreateServiceCommandHandlerTests
             SessionDurationMinutes: 60,
             Price: 3500000m,
             TrialLessonUrl: "https://example.com/trial",
+            TrialVideoUrl: null,
             CoverImageUrl: "https://example.com/cover.png"
         );
 
@@ -159,6 +160,7 @@ public class CreateServiceCommandHandlerTests
             SessionDurationMinutes: 60,
             Price: 3500000m,
             TrialLessonUrl: null,
+            TrialVideoUrl: null,
             CoverImageUrl: null,
             Curriculum: new List<CurriculumItemInput>
             {
@@ -238,6 +240,7 @@ public class CreateServiceCommandHandlerTests
             SessionDurationMinutes: 60,
             Price: 1000000m,
             TrialLessonUrl: null,
+            TrialVideoUrl: null,
             CoverImageUrl: null
         );
 
@@ -270,6 +273,7 @@ public class CreateServiceCommandHandlerTests
             SessionDurationMinutes: 60,
             Price: 1000000m,
             TrialLessonUrl: null,
+            TrialVideoUrl: null,
             CoverImageUrl: null
         );
 
@@ -304,6 +308,7 @@ public class CreateServiceCommandHandlerTests
             SessionDurationMinutes: 60,
             Price: 1000000m,
             TrialLessonUrl: null,
+            TrialVideoUrl: null,
             CoverImageUrl: null
         );
 
@@ -342,6 +347,7 @@ public class CreateServiceCommandHandlerTests
             SessionDurationMinutes: 60,
             Price: 1000000m,
             TrialLessonUrl: null,
+            TrialVideoUrl: null,
             CoverImageUrl: null
         );
 

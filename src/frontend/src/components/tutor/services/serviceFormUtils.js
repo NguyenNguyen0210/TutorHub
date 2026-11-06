@@ -1,3 +1,5 @@
+import { validateServiceDemoVideo } from '../../../utils/serviceDemoVideo.js';
+
 export const SHORT_DESCRIPTION_MAX = 200;
 export const DESCRIPTION_MAX = 2000;
 export const TAGS_MAX = 10;
@@ -47,7 +49,8 @@ export function createInitialFormState(subjectId = '') {
     totalSessions: 10,
     sessionDurationMinutes: 60,
     price: 2000000,
-    trialLessonUrl: '',
+    trialVideoUrl: '',
+    trialVideoFile: null,
     tags: '',
     coverImageUrl: '',
     coverImageFile: null,
@@ -88,6 +91,11 @@ export function validateServiceForm(formData, mode = 'update') {
 
   if (Number(formData.price) <= 0) {
     return 'Học phí gói học phải lớn hơn 0 ₫.';
+  }
+
+  const videoError = validateServiceDemoVideo(formData.trialVideoFile);
+  if (videoError) {
+    return videoError;
   }
 
   const totalSessionsNum = Number(formData.totalSessions) || 0;
@@ -169,6 +177,7 @@ export function buildServicePayload(formData, { mode = 'create', lockCommercialT
   const shortDescription = (formData.shortDescription || '').trim();
   const tags = parseTags(formData.tags);
   const coverImageUrl = (formData.coverImageUrl || '').trim();
+  const trialVideoUrl = (formData.trialVideoUrl || '').trim();
   const updating = mode === 'update';
 
   const payload = {
@@ -176,7 +185,7 @@ export function buildServicePayload(formData, { mode = 'create', lockCommercialT
     description: formData.description.trim(),
     learningScope: formData.learningScope.trim() || (updating ? '' : null),
     expectedOutcome: formData.expectedOutcome.trim() || (updating ? '' : null),
-    trialLessonUrl: formData.trialLessonUrl.trim() || (updating ? '' : null),
+    trialVideoUrl: trialVideoUrl || (updating ? '' : null),
     ...(!lockCommercialTerms && (updating || shortDescription) ? { shortDescription } : {}),
     ...(!lockCommercialTerms && (updating || tags.length) ? { tags } : {}),
     ...(!lockCommercialTerms && (updating || coverImageUrl) ? { coverImageUrl } : {}),

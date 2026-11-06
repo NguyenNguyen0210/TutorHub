@@ -8,7 +8,7 @@ import StretchedCardLink from '@/components/ui/StretchedCardLink';
 
 /** Profile packages share the same comparison prices and accents as marketplace cards. */
 export default function ServicePackageCard({ service, isBooking = false, onBook }) {
-  const hasTrial = Boolean(service.trialLessonUrl?.trim() || service.hasTrialLesson);
+  const hasTrial = Boolean(service.trialVideoUrl?.trim() || service.trialLessonUrl?.trim() || service.hasTrialLesson);
   const commitments = [
     service.expectedOutcome && { key: 'outcome', icon: 'verified', text: service.expectedOutcome },
     service.learningScope && { key: 'scope', icon: 'menu_book', text: service.learningScope },
@@ -57,6 +57,7 @@ ServicePackageCard.propTypes = {
     price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     hasTrialLesson: PropTypes.bool,
     trialLessonUrl: PropTypes.string,
+    trialVideoUrl: PropTypes.string,
     expectedOutcome: PropTypes.string,
     learningScope: PropTypes.string,
     shortDescription: PropTypes.string,

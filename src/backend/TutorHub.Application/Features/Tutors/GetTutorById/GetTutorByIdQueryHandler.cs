@@ -108,7 +108,7 @@ public class GetTutorByIdQueryHandler : IRequestHandler<GetTutorByIdQuery, Tutor
                 s.TotalSessions,
                 s.SessionDurationMinutes,
                 s.Price,
-                !string.IsNullOrWhiteSpace(s.TrialLessonUrl), s.LearningScope, s.ExpectedOutcome
+                !string.IsNullOrWhiteSpace(s.TrialVideoUrl) || !string.IsNullOrWhiteSpace(s.TrialLessonUrl), s.LearningScope, s.ExpectedOutcome
             ))
             .ToList();
 
