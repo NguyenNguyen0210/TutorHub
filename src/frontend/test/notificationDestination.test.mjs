@@ -17,6 +17,7 @@ test('registry deep links resolve to real routes for the matching role', () => {
   assert.equal(notificationDestination(`/admin/tutor-applications/${id}`, 'Admin'), `/admin/tutor-applications?applicationId=${id}`);
   assert.equal(notificationDestination(`/admin/withdrawals/${id}`, 'Admin'), `/admin/withdrawals?withdrawalId=${id}`);
   assert.equal(notificationDestination(`/admin/reports/${id}`, 'Admin'), `/admin/trust-reports/${id}`);
+  assert.equal(notificationDestination(`/admin/trust-reports/${id}`, 'Admin'), `/admin/trust-reports/${id}`);
   assert.equal(notificationDestination('/wallet/withdrawals', 'Tutor'), '/tutor/wallet?tab=withdrawals');
 });
 

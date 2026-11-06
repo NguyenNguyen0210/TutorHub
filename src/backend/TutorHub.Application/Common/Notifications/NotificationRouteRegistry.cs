@@ -16,7 +16,7 @@ public static class NotificationRouteRegistry
     public static string WalletWithdrawals() => "/wallet/withdrawals";
     public static string AdminWithdrawal(Guid withdrawalId) => $"/admin/withdrawals/{withdrawalId}";
     public static string AdminDispute(Guid disputeId) => $"/admin/disputes/{disputeId}";
-    public static string AdminReport(Guid reportId) => $"/admin/reports/{reportId}";
+    public static string AdminReport(Guid reportId) => $"/admin/trust-reports/{reportId}";
     public static string Conversation(Guid conversationId) => $"/conversations/{conversationId}";
     public static string StudentWallet() => "/student/wallet";
     /// <summary>

@@ -15,10 +15,6 @@ using TutorHub.Application.Features.Admin.Subjects.RestoreSubject;
 using TutorHub.Application.Features.Admin.Dashboard.DTOs;
 using TutorHub.Application.Features.Admin.Dashboard.GetAdminDashboardStats;
 using TutorHub.Application.Features.Admin.Dashboard.GetAdminRevenueChart;
-using TutorHub.Application.Features.Admin.Reports.DTOs;
-using TutorHub.Application.Features.Admin.Reports.GetAdminReportById;
-using TutorHub.Application.Features.Admin.Reports.GetAdminReports;
-using TutorHub.Application.Features.Admin.Reports.ResolveReport;
 using TutorHub.Application.Features.Admin.Services.AdminForceUnpublishService;
 using TutorHub.Application.Features.Admin.Subjects.CreateSubject;
 using TutorHub.Application.Features.Admin.Subjects.DeleteSubject;
@@ -253,59 +249,6 @@ public class AdminController : ControllerBase
         var command = new FailWithdrawalCommand(id, request.Reason);
         var result = await _sender.Send(command, cancellationToken);
         return Ok(ApiResponse<WithdrawalDto>.SuccessResult(result, "Withdrawal marked as Failed and amount restored to tutor's wallet."));
-    }
-
-    /// <summary>
-    /// Get paginated list of all dispute reports with status filter (Admin only).
-    /// </summary>
-    [HttpGet("reports")]
-    [ProducesResponseType(typeof(ApiResponse<PagedResult<ReportSummaryDto>>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetAdminReports(
-        [FromQuery] ReportStatus? status,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10,
-        CancellationToken cancellationToken = default)
-    {
-        var query = new GetAdminReportsQuery(status, pageNumber, pageSize);
-        var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<PagedResult<ReportSummaryDto>>.SuccessResult(result, "Admin dispute reports list retrieved successfully."));
-    }
-
-    /// <summary>
-    /// Get full detail of a dispute report by ID (Admin only).
-    /// </summary>
-    [HttpGet("reports/{id:guid}")]
-    [ProducesResponseType(typeof(ApiResponse<AdminReportDetailDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetAdminReportById([FromRoute] Guid id, CancellationToken cancellationToken)
-    {
-        var query = new GetAdminReportByIdQuery(id);
-        var result = await _sender.Send(query, cancellationToken);
-        return Ok(ApiResponse<AdminReportDetailDto>.SuccessResult(result, "Dispute report details retrieved successfully."));
-    }
-
-    /// <summary>
-    /// Resolve a dispute report with decision and optional financial refund (Admin only).
-    /// </summary>
-    [HttpPost("reports/{id:guid}/resolve")]
-    [ProducesResponseType(typeof(ApiResponse<AdminReportDetailDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> ResolveReport(
-        [FromRoute] Guid id,
-        [FromBody] ResolveReportRequest request,
-        CancellationToken cancellationToken)
-    {
-        var command = new ResolveReportCommand(id, request.Decision, request.Resolution);
-        var result = await _sender.Send(command, cancellationToken);
-        return Ok(ApiResponse<AdminReportDetailDto>.SuccessResult(result, "Dispute report resolved successfully."));
     }
 
     // ==========================================
