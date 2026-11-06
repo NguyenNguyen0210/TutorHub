@@ -443,7 +443,7 @@ public class BusinessEventNotificationHandler :
                 UserId: notification.TutorUserId,
                 Title: "New Student Review",
                 Message: $"A student left a {notification.Rating}-star review on your profile.",
-                DeepLink: NotificationRouteRegistry.TutorReviews()
+                DeepLink: NotificationRouteRegistry.Enrollment(notification.EnrollmentId)
             )
         };
 
@@ -541,7 +541,7 @@ public class BusinessEventNotificationHandler :
             UserId: adminId,
             Title: "New Top-Up Request",
             Message: $"A student submitted a top-up request for {notification.Amount.Amount:N0} VND (Ref: {notification.TransferReference}).",
-            DeepLink: NotificationRouteRegistry.AdminStudentTopUps()
+            DeepLink: NotificationRouteRegistry.AdminStudentTopUps(notification.TopUpRequestId)
         ));
 
         await ProcessNotificationIntentAsync(notification, recipients, cancellationToken);
