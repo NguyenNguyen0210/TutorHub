@@ -98,8 +98,7 @@ export default function PayoutAccountForm({
     setEditing(!complete);
   };
 
-  const save = async event => {
-    event.preventDefault();
+  const save = async () => {
     if (saving || disabled) return;
     setTouched({ bankName: true, accountNumber: true, accountHolderName: true });
     if (Object.keys(errors).length) return;
@@ -119,6 +118,14 @@ export default function PayoutAccountForm({
     } finally {
       setSaving(false);
     }
+  };
+
+  // Component này được nhúng trong <form> rút tiền, nên không được render <form> lồng nhau.
+  // Enter trong ô nhập được xử lý tại đây thay vì để nó submit form bao ngoài.
+  const onKeyDown = event => {
+    if (event.key !== 'Enter' || event.target?.tagName === 'BUTTON') return;
+    event.preventDefault();
+    save();
   };
 
   if (loading) {
@@ -148,7 +155,7 @@ export default function PayoutAccountForm({
     ? VIETNAM_BANKS
     : [...VIETNAM_BANKS, { code: draft.bankCode, name: draft.bankCode }];
 
-  return <form onSubmit={save} noValidate className="space-y-4 rounded-xl border border-border bg-neutral-50 p-4">
+  return <div className="space-y-4 rounded-xl border border-border bg-neutral-50 p-4">
     {!complete && <p className="text-body-reg leading-relaxed text-fg-secondary">
       Bạn cần khai báo tài khoản nhận tiền trước khi gửi yêu cầu rút thu nhập.
     </p>}
@@ -159,6 +166,7 @@ export default function PayoutAccountForm({
         disabled={disabled || saving}
         state={fieldError('bankName') ? 'error' : 'default'}
         aria-invalid={Boolean(fieldError('bankName'))}
+        onKeyDown={onKeyDown}
         onChange={event => change('bankCode', event.target.value)}
       >
         {bankOptions.map(bank => <option key={bank.code} value={bank.code}>{bank.name} ({bank.code})</option>)}
@@ -182,6 +190,7 @@ export default function PayoutAccountForm({
         state={fieldError('accountNumber') ? 'error' : 'default'}
         aria-invalid={Boolean(fieldError('accountNumber'))}
         onChange={event => change('accountNumber', event.target.value.replace(/[^\d]/g, ''))}
+        onKeyDown={onKeyDown}
         onBlur={() => blur('accountNumber')}
       />
     </Field>
@@ -201,6 +210,7 @@ export default function PayoutAccountForm({
         state={fieldError('accountHolderName') ? 'error' : 'default'}
         aria-invalid={Boolean(fieldError('accountHolderName'))}
         onChange={event => change('accountHolderName', normalizeAccountHolder(event.target.value))}
+        onKeyDown={onKeyDown}
         onBlur={() => blur('accountHolderName')}
       />
     </Field>
@@ -208,9 +218,9 @@ export default function PayoutAccountForm({
     {saveError && <p role="alert" className="rounded-lg bg-danger-subtle p-3 text-caption text-danger-strong">{saveError}</p>}
     <div className="flex flex-wrap justify-end gap-2">
       {complete && <Button type="button" variant="outline" size="sm" disabled={saving} onClick={cancelEditing}>Hủy</Button>}
-      <Button type="submit" size="sm" loading={saving} disabled={disabled || saving} icon={!saving && <Icon name="check" size="sm" />}>
+      <Button type="button" size="sm" loading={saving} disabled={disabled || saving} onClick={save} icon={!saving && <Icon name="check" size="sm" />}>
         {saving ? 'Đang lưu…' : 'Lưu tài khoản'}
       </Button>
     </div>
-  </form>;
+  </div>;
 }
