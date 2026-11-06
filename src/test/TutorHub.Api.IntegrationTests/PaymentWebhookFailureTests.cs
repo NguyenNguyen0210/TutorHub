@@ -82,6 +82,14 @@ public class PaymentWebhookFailureTests : IntegrationTestBase
         var freshAttempt = await Db.Transactions.AsNoTracking().FirstAsync(t => t.Id == paymentAttempt.Id);
         freshAttempt.Status.Should().Be(TransactionStatus.Pending);
 
+        // FR-PAY-004: the decline itself must still be traceable even though the
+        // attempt stays Pending (so a later verified success can settle it).
+        var declined = await Db.AuditLogs.AsNoTracking()
+            .Where(a => a.Action == "PaymentAttemptDeclined" && a.EntityId == paymentAttempt.Id.ToString())
+            .ToListAsync();
+        declined.Should().ContainSingle();
+        declined[0].NewValuesJson.Should().Contain("\"gatewayResponseCode\":\"24\"");
+
         var activated = await Db.Enrollments.AsNoTracking().AnyAsync(e => e.BookingId == booking.Id);
         activated.Should().BeFalse("a declined payment must never activate an enrollment");
 
