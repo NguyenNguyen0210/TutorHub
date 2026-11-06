@@ -63,6 +63,7 @@ public class UpdateServiceCommandHandlerTests
             SessionDurationMinutes: 60,
             Price: 3000000m,
             TrialLessonUrl: "https://example.com/trial",
+            TrialVideoUrl: null,
             CoverImageUrl: "https://example.com/cover.png"
         );
 
@@ -122,6 +123,7 @@ public class UpdateServiceCommandHandlerTests
             SessionDurationMinutes: null,
             Price: null,
             TrialLessonUrl: null,
+            TrialVideoUrl: null,
             CoverImageUrl: null
         );
 
@@ -172,6 +174,7 @@ public class UpdateServiceCommandHandlerTests
             SessionDurationMinutes: null,
             Price: 4000000m, // Changed price
             TrialLessonUrl: null,
+            TrialVideoUrl: null,
             CoverImageUrl: null
         );
 
@@ -218,6 +221,7 @@ public class UpdateServiceCommandHandlerTests
             SessionDurationMinutes: null,
             Price: null,
             TrialLessonUrl: null,
+            TrialVideoUrl: null,
             CoverImageUrl: "https://example.com/new-cover.png"
         );
 
@@ -269,6 +273,7 @@ public class UpdateServiceCommandHandlerTests
             SessionDurationMinutes: null,
             Price: null,
             TrialLessonUrl: null,
+            TrialVideoUrl: null,
             CoverImageUrl: null,
             Curriculum: new List<CurriculumItemInput>
             {
@@ -340,6 +345,7 @@ public class UpdateServiceCommandHandlerTests
             SessionDurationMinutes: null,
             Price: null,
             TrialLessonUrl: null,
+            TrialVideoUrl: null,
             CoverImageUrl: null,
             Curriculum: new List<CurriculumItemInput> { new(SessionIndex: 1, Title: "Updated session") },
             TargetAudience: new List<string> { "Everyone" },
@@ -397,6 +403,7 @@ public class UpdateServiceCommandHandlerTests
             SessionDurationMinutes: null,
             Price: null,
             TrialLessonUrl: null,
+            TrialVideoUrl: null,
             CoverImageUrl: null,
             Curriculum: new List<CurriculumItemInput>
             {
@@ -447,6 +454,7 @@ public class UpdateServiceCommandHandlerTests
             SessionDurationMinutes: null,
             Price: null,
             TrialLessonUrl: null,
+            TrialVideoUrl: null,
             CoverImageUrl: null
         );
 

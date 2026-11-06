@@ -1,4 +1,5 @@
 import { resolveServiceCover } from '@/utils/serviceCover';
+import { resolveServiceDemoVideo } from '@/utils/serviceVideoUpload';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBlocker, useLocation, useNavigate, useParams } from 'react-router-dom';
 import tutorService from '@/services/tutor.service';
@@ -39,10 +40,12 @@ export default function ServiceEdit() {
   const [validation, setValidation] = useState(null);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [videoPercent, setVideoPercent] = useState(null);
   const [preview, setPreview] = useState(false);
   const [activeSection, setActiveSection] = useState('basics');
   const submitting = useRef(false);
   const coverUpload = useRef(null);
+  const videoUpload = useRef(null);
   const requestVersion = useRef(0);
   const asking = useRef(false);
   const initialForm = useMemo(() => service ? serviceToForm(service) : null, [service]);
@@ -69,6 +72,7 @@ export default function ServiceEdit() {
       const result = await tutorService.getMyServiceById(id);
       if (version !== requestVersion.current) return;
       coverUpload.current = null;
+      videoUpload.current = null;
       setService(result); setForm(serviceToForm(result)); setSaved(false); setSaveError(''); setValidation(null);
     } catch (err) { if (version === requestVersion.current) setError(err); }
     finally { if (version === requestVersion.current) setLoading(false); }
@@ -111,16 +115,18 @@ export default function ServiceEdit() {
     const invalid = validateServiceEditor(form, service);
     if (invalid) { setValidation(invalid); return; }
     submitting.current = true; setSaving(true); setSaveError('');
+    setVideoPercent(form.trialVideoFile ? 0 : null);
     const version = requestVersion.current;
     try {
       const coverImageUrl = await resolveServiceCover(form, coverUpload);
-      const updated = await tutorService.updateService(id, buildServicePayload({ ...form, coverImageUrl }, { mode: 'update', lockCommercialTerms: service.status === 'Published' }));
+      const trialVideoUrl = await resolveServiceDemoVideo(form, videoUpload, setVideoPercent);
+      const updated = await tutorService.updateService(id, buildServicePayload({ ...form, coverImageUrl, trialVideoUrl }, { mode: 'update', lockCommercialTerms: service.status === 'Published' }));
       if (version !== requestVersion.current) return;
       setService(updated); setForm(serviceToForm(updated)); setSaved(true); setValidation(null);
       toast.success('Đã lưu thay đổi gói học.');
     } catch (err) {
-      if (version === requestVersion.current) setSaveError(err?.status === 409 ? "Thông tin gói học đã thay đổi. Vui lòng kiểm tra việc nhận học viên trước khi sửa số buổi, thời lượng hoặc học phí." : 'Chưa lưu được gói học. Nội dung bạn nhập vẫn được giữ lại. Vui lòng thử lại.');
-    } finally { submitting.current = false; setSaving(false); }
+      if (version === requestVersion.current) setSaveError(err?.status === 409 ? "Thông tin gói học đã thay đổi. Vui lòng kiểm tra việc nhận học viên trước khi sửa số buổi, thời lượng hoặc học phí." : (err?.message?.startsWith('Chưa thể tải video demo') ? err.message : 'Chưa lưu được gói học. Nội dung bạn nhập vẫn được giữ lại. Vui lòng thử lại.'));
+    } finally { submitting.current = false; setSaving(false); setVideoPercent(null); }
   };
 
   if (loading) return <div role="status" aria-label="Đang tải gói học"><DetailSkeleton /></div>;
@@ -143,7 +149,7 @@ export default function ServiceEdit() {
           <ul className="hidden space-y-1 lg:block">{EDITOR_SECTIONS.map(([key, label]) => <li key={key}><button type="button" aria-current={activeSection === key ? 'location' : undefined} onClick={() => jump(key)} className={cn('min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', activeSection === key ? 'bg-brand-primary-50 text-primary' : 'text-fg-secondary hover:bg-neutral-50')}>{label}</button></li>)}</ul>
         </nav>
         <fieldset disabled={saving} className="min-w-0 space-y-6 pb-28">
-          {section('basics', <><BasicInfoFields {...fields} locked={locked} readOnlyLocked hideCover descriptionMax={5000} /><ScopeOutcomeFields {...fields} /><EditorMediaFields form={form} service={service} onChange={changeField} locked={locked} /></>)}
+          {section('basics', <><BasicInfoFields {...fields} locked={locked} readOnlyLocked hideCover descriptionMax={5000} /><ScopeOutcomeFields {...fields} /><EditorMediaFields form={form} onChange={changeField} locked={locked} /></>)}
           {section('subject', <><dl className="grid gap-4 rounded-xl bg-neutral-50 p-4 text-body-reg sm:grid-cols-2"><div><dt className="text-fg-secondary">Môn học · Không thể chỉnh sửa</dt><dd className="mt-1 font-medium text-fg">{service.subjectName}</dd></div><div><dt className="text-fg-secondary">Danh mục</dt><dd className="mt-1 font-medium text-fg">{service.subjectCategoryName || 'Chưa có danh mục'}</dd></div></dl>{locked ? <div><p className="mb-3 text-body-reg font-medium text-fg">Thẻ liên quan · Không thể chỉnh sửa</p><div className="flex flex-wrap gap-2">{parseTags(form.tags).map(tag => <span key={tag} className="rounded-lg bg-brand-primary-50 px-3 py-2 text-caption text-primary">{tag}</span>)}{!parseTags(form.tags).length && <p className="text-body-reg text-fg-secondary">Chưa có thẻ liên quan.</p>}</div></div> : <ChipEditor id="service-tags" label="Thẻ liên quan" items={parseTags(form.tags)} max={10} maxLength={30} onChange={items => changeField('tags', items.join(', '))} />}</>)}
           {section('terms', locked ? <><p className="font-medium text-fg">Số buổi, thời lượng và học phí đang được khóa</p><dl className="divide-y divide-border rounded-xl bg-neutral-50 px-4 text-body-reg">{[['Số buổi học', `${form.totalSessions} buổi`], ['Thời lượng mỗi buổi', `${form.sessionDurationMinutes} phút`], ['Học phí trọn gói', <Money key="price" value={form.price} />]].map(([label, value]) => <div key={label} className="flex flex-wrap justify-between gap-2 py-4"><dt className="text-fg-secondary">{label}</dt><dd className="font-semibold text-fg">{value}</dd></div>)}</dl><details className="text-body-reg text-fg-secondary"><summary className="cursor-pointer font-medium text-primary">Tìm hiểu cách chỉnh sửa điều khoản</summary><p className="mt-3 leading-relaxed">Trong Gói học của tôi, chọn Thêm thao tác → Tạm dừng nhận học viên hoặc Ẩn gói học, rồi mở lại trang chỉnh sửa. Các hợp đồng đã mua vẫn giữ điều khoản ban đầu.</p><Button variant="ghost" className="mt-2 px-0 text-primary" onClick={goBack}>Về quản lý gói học</Button></details></> : <div className="grid gap-4 sm:grid-cols-2"><Field label="Số buổi học" htmlFor="service-sessions" required><Input id="service-sessions" type="number" min={1} step={1} value={form.totalSessions} onChange={event => changeField('totalSessions', event.target.value)} /></Field><Field label="Phút mỗi buổi" htmlFor="service-duration" required><Input id="service-duration" type="number" min={1} step={1} value={form.sessionDurationMinutes} onChange={event => changeField('sessionDurationMinutes', event.target.value)} /></Field><Field label="Học phí trọn gói (₫)" htmlFor="service-price" required className="sm:col-span-2"><Input id="service-price" type="number" min={0.01} step={0.01} value={form.price} onChange={event => changeField('price', event.target.value)} /></Field></div>)}
           {section('curriculum', <CurriculumEditor form={form} onChange={changeField} errorField={validation?.fieldId} />)}
@@ -153,7 +159,7 @@ export default function ServiceEdit() {
       </div>
       <div data-testid="service-save-bar" className="sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 space-y-3 rounded-2xl border border-border bg-surface p-4 shadow-brand-md lg:bottom-4">
         {saveError && <p role="alert" className="text-body-reg text-danger-strong">{saveError}</p>}
-        <div className="flex flex-wrap items-center justify-between gap-3"><p role="status" aria-live="polite" className="text-caption text-fg-secondary">{saving ? 'Đang lưu thay đổi…' : dirty ? 'Có thay đổi chưa lưu' : saved ? 'Đã lưu thay đổi' : 'Không có thay đổi cần lưu'}</p><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={goBack} disabled={saving}>Hủy</Button><Button type="submit" loading={saving} disabled={!dirty} icon={<Icon name="check" size="sm" />}>{saving ? 'Đang lưu…' : 'Lưu thay đổi'}</Button></div></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><p role="status" aria-live="polite" className="text-caption text-fg-secondary">{saving ? (videoPercent !== null ? `Đang tải video demo… ${videoPercent}%` : 'Đang lưu thay đổi…') : dirty ? 'Có thay đổi chưa lưu' : saved ? 'Đã lưu thay đổi' : 'Không có thay đổi cần lưu'}</p><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={goBack} disabled={saving}>Hủy</Button><Button type="submit" loading={saving} disabled={!dirty} icon={<Icon name="check" size="sm" />}>{saving ? 'Đang lưu…' : 'Lưu thay đổi'}</Button></div></div>
       </div>
     </form>
     <ServiceEditorPreview open={preview} onClose={() => setPreview(false)} form={form} service={service} />

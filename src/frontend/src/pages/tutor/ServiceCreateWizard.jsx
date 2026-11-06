@@ -1,5 +1,6 @@
 import { userFacingError } from '@/utils/userFacingError';
 import { resolveServiceCover } from '@/utils/serviceCover';
+import { resolveServiceDemoVideo } from '@/utils/serviceVideoUpload';
 import { CoverPreview } from '@/components/tutor/services/ServiceCoverPicker';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -34,7 +35,7 @@ const STEPS = [
   { id: 1, label: 'Thông tin cơ bản' },
   { id: 2, label: 'Nội dung & mục tiêu' },
   { id: 3, label: 'Gói học & học phí' },
-  { id: 4, label: 'Học thử' },
+  { id: 4, label: 'Video demo' },
   { id: 5, label: "Xem trước & đăng" },
 ];
 
@@ -189,12 +190,14 @@ export default function ServiceCreateWizard() {
 
   const [step, setStep] = useState(1);
   const coverUpload = useRef(null);
+  const videoUpload = useRef(null);
   const submitLock = useRef(false);
   const [formData, setFormData] = useState(() => createInitialFormState());
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [videoPercent, setVideoPercent] = useState(null);
   const [reached, setReached] = useState(1);
 
   useEffect(() => {
@@ -250,8 +253,10 @@ export default function ServiceCreateWizard() {
     try {
       submitLock.current = true;
       setSubmitting(true);
+      setVideoPercent(formData.trialVideoFile ? 0 : null);
       const coverImageUrl = await resolveServiceCover(formData, coverUpload);
-      const payload = buildServicePayload({ ...formData, coverImageUrl }, { mode: 'create' });
+      const trialVideoUrl = await resolveServiceDemoVideo(formData, videoUpload, setVideoPercent);
+      const payload = buildServicePayload({ ...formData, coverImageUrl, trialVideoUrl }, { mode: 'create' });
       const created = await tutorService.createService(payload);
       if (publishAfterCreate && created?.id) {
         await tutorService.publishService(created.id);
@@ -265,6 +270,7 @@ export default function ServiceCreateWizard() {
     } finally {
       submitLock.current = false;
       setSubmitting(false);
+      setVideoPercent(null);
     }
   };
 
@@ -380,9 +386,12 @@ export default function ServiceCreateWizard() {
         )}
 
         {step === 4 && (
-          <section className="space-y-4" aria-label="Video học thử">
-            <SectionTitle step={4}>Video học thử</SectionTitle>
-            <TrialFields formData={formData} onFieldChange={handleFieldChange} />
+          <section className="space-y-4" aria-label="Video demo gói học">
+            <SectionTitle step={4}>Video demo</SectionTitle>
+            <p className="text-caption text-fg-secondary">
+              Tải lên video MP4 giới thiệu gói học để học viên tin tưởng hơn trước khi đăng ký. Không bắt buộc.
+            </p>
+            <TrialFields formData={formData} onFieldChange={handleFieldChange} disabled={submitting} />
           </section>
         )}
 
@@ -399,6 +408,12 @@ export default function ServiceCreateWizard() {
               </div>
             )}
           </section>
+        )}
+
+        {videoPercent !== null && (
+          <p role="status" aria-live="polite" className="mt-4 text-caption text-fg-secondary">
+            Đang tải video demo… {videoPercent}%
+          </p>
         )}
 
         {/* Nav */}

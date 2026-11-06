@@ -27,6 +27,13 @@ public class PresentationContentMigrationTests
             var options = new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(settings.ConnectionString).Options;
             await using var db = new AppDbContext(options);
             await db.Database.GetService<IMigrator>().MigrateAsync("20261102034726_AddSeededSiteContent");
+
+            // Seeding runs through the CURRENT EF model, which maps columns added
+            // after the pinned target above. Create the newest such column just for
+            // the seed, then drop it so the forward migration adds it exactly once.
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE \"Services\" ADD COLUMN \"TrialVideoUrl\" character varying(1000);");
+
             var (_, tutor, admin) = await SeedHelper.SeedTutorWithWalletAsync(db, 1234567m);
             var (_, _, service) = await SeedHelper.SeedMarketplaceAsync(db, tutor, admin.Id);
             var application = await db.TutorApplications.SingleAsync(a => a.UserId == tutor.UserId);
@@ -48,6 +55,7 @@ public class PresentationContentMigrationTests
             });
             await db.Database.ExecuteSqlInterpolatedAsync(
                 $"UPDATE \"TutorProfiles\" SET \"PublicContentJson\"={legacy}::jsonb WHERE \"Id\"={tutor.Id}");
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Services\" DROP COLUMN \"TrialVideoUrl\";");
             await db.Database.MigrateAsync();
             db.ChangeTracker.Clear();
             var migrated = await db.TutorApplications.SingleAsync(a => a.Id == application.Id);

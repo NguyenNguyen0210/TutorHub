@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TutorHub.Application.Common.Exceptions;
+using TutorHub.Application.Common.Files;
 using TutorHub.Application.Common.Models;
 using TutorHub.Application.Features.Media.CompleteUpload;
 using TutorHub.Application.Features.Media.DeleteMedia;
@@ -12,6 +13,7 @@ using TutorHub.Application.Features.Media.UploadMedia;
 using TutorHub.Domain.Enums;
 using TutorHub.Application.Features.Media.GetPublicAvatar;
 using TutorHub.Application.Features.Media.GetPublicCover;
+using TutorHub.Application.Features.Media.GetPublicDemoVideo;
 
 namespace TutorHub.Api.Controllers;
 
@@ -43,6 +45,21 @@ public class MediaController : ControllerBase
     {
         var url = await _sender.Send(new GetPublicAvatarQuery(id), cancellationToken);
         Response.Headers.CacheControl = "no-store";
+        return Redirect(url);
+    }
+
+    /// <summary>
+    /// Public playback URL for a service package demo video. Returns a 302 to a
+    /// short-lived signed storage URL so the raw object key never leaks.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("{id:guid}/demo-video")]
+    public async Task<IActionResult> GetPublicDemoVideo(Guid id, CancellationToken cancellationToken)
+    {
+        var url = await _sender.Send(new GetPublicDemoVideoQuery(id), cancellationToken);
+        // The signed target is valid for 60 minutes; cache just long enough to
+        // avoid a redirect round-trip on every playback start.
+        Response.Headers.CacheControl = "private, max-age=300";
         return Redirect(url);
     }
 
@@ -86,6 +103,10 @@ public class MediaController : ControllerBase
     [Authorize]
     [HttpPost("upload")]
     [Consumes("multipart/form-data")]
+    // Demo videos are up to 100 MB; the extra 1 MB covers multipart framing.
+    // Per-action limits keep the default 30 MB ceiling for every other route.
+    [RequestSizeLimit(UploadLimits.ServiceDemoVideoMaxBytes + UploadLimits.BytesPerMb)]
+    [RequestFormLimits(MultipartBodyLengthLimit = UploadLimits.ServiceDemoVideoMaxBytes + UploadLimits.BytesPerMb)]
     [ProducesResponseType(typeof(ApiResponse<MediaDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]

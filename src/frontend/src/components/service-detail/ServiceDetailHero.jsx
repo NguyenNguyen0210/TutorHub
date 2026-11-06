@@ -11,7 +11,11 @@ export default function ServiceDetailHero({ service }) {
   const tutor = service.tutor || {};
   const subject = service.subject || {};
 
-  const trialMedia = trialLessonMedia(service.trialLessonUrl);
+  // Uploaded MP4 demo wins over the legacy external link.
+  const demoVideoUrl = service.trialVideoUrl?.trim() || '';
+  const trialMedia = demoVideoUrl
+    ? { kind: 'video', href: demoVideoUrl, direct: true }
+    : trialLessonMedia(service.trialLessonUrl);
   const rating = Number(tutor.ratingAvg) > 0 ? Number(tutor.ratingAvg) : null;
   const totalReviews = Number(tutor.totalReviews) || 0;
   const enrolledCount = Number(service.metrics?.enrolledCount ?? tutor.totalStudents) || 0;

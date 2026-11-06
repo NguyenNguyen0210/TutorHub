@@ -23,8 +23,8 @@ public class GenerateUploadUrlCommandHandler : IRequestHandler<GenerateUploadUrl
     {
         var userId = _currentUserService.UserIdOrThrow();
         var role = _currentUserService.Role;
-        if (request.MediaType == MediaType.ServiceCover)
-            throw new BadRequestException("Service covers require validated image upload through /media/upload.");
+        if (request.MediaType is MediaType.ServiceCover or MediaType.ServiceDemoVideo)
+            throw new BadRequestException("Service covers and demo videos require validated upload through /media/upload.");
 
         if (request.MediaType == MediaType.Certificate && role is not UserRole.Tutor and not UserRole.Admin)
         {

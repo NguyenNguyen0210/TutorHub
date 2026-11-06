@@ -20,7 +20,7 @@ export default function ServiceCard({ service }) {
   const reviewsCount = Number(service.tutorTotalReviews) || 0;
   const hasRating = reviewsCount > 0 && rating > 0;
   const subjectLabel = service.subjectName || service.categoryName;
-  const hasTrial = Boolean(service.trialLessonUrl?.trim() || service.hasTrialLesson);
+  const hasTrial = Boolean(service.trialVideoUrl?.trim() || service.trialLessonUrl?.trim() || service.hasTrialLesson);
   const description = service.expectedOutcome?.trim() || service.shortDescription?.trim() || service.description?.trim();
 
   const tutorInfo = (
@@ -75,6 +75,7 @@ ServiceCard.propTypes = {
     shortDescription: PropTypes.string,
     expectedOutcome: PropTypes.string,
     trialLessonUrl: PropTypes.string,
+    trialVideoUrl: PropTypes.string,
     hasTrialLesson: PropTypes.bool,
     subjectName: PropTypes.string,
     categoryName: PropTypes.string,

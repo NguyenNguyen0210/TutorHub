@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using TutorHub.Application.Common.Events;
 using TutorHub.Application.Common.Interfaces;
 using TutorHub.Application.Common.Notifications;
+using TutorHub.Application.Common.Email;
 using TutorHub.Application.Features.Notifications.DTOs;
 using TutorHub.Domain.Entities;
 using TutorHub.Domain.Enums;
@@ -712,6 +713,7 @@ public class BusinessEventNotificationHandler :
 
             if (shouldSendEmail && !string.IsNullOrWhiteSpace(user.Email))
             {
+                var emailContent = BusinessEmailTemplates.Create(domainEvent, user.FullName, user.Role, notification.DeepLink);
                 var emailDelivery = new EmailDelivery
                 {
                     Id = Guid.NewGuid(),
@@ -719,8 +721,8 @@ public class BusinessEventNotificationHandler :
                     Notification = notification,
                     UserId = userId,
                     ToEmail = user.Email,
-                    Subject = title,
-                    Body = message,
+                    Subject = emailContent.Subject,
+                    Body = emailContent.Html,
                     Status = EmailDeliveryStatus.Pending,
                     CreatedAt = now
                 };

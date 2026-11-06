@@ -18,6 +18,7 @@ public record ServiceDto(
     int SessionDurationMinutes,
     decimal Price,
     string? TrialLessonUrl,
+    string? TrialVideoUrl,
     string? CoverImageUrl,
     string Status,
     int StudentCount,

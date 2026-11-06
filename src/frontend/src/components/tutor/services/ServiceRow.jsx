@@ -54,7 +54,7 @@ export default function ServiceRow({ pkg, isActing, disabled, editState, onPubli
           <div className="flex flex-wrap items-center gap-2">
             <ServiceLessonChips totalSessions={pkg.totalSessions} sessionDurationMinutes={pkg.sessionDurationMinutes} />
             {pkg.studentCount != null && <span className="inline-flex items-center gap-1.5 py-1 text-caption text-fg-secondary"><Icon name="group" size="sm" />{pkg.studentCount} học viên</span>}
-            {pkg.trialLessonUrl && <ServiceTrialBadge />}
+            {(pkg.trialVideoUrl || pkg.trialLessonUrl) && <ServiceTrialBadge />}
           </div>
         </div>
       </div>

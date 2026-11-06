@@ -46,6 +46,9 @@ public class ServiceConfiguration : IEntityTypeConfiguration<Service>
         builder.Property(s => s.TrialLessonUrl)
             .HasMaxLength(1000);
 
+        builder.Property(s => s.TrialVideoUrl)
+            .HasMaxLength(1000);
+
         builder.Property(s => s.CoverImageUrl)
             .HasMaxLength(1000);
 
