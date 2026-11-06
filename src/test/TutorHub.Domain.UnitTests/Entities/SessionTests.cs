@@ -396,5 +396,35 @@ public class SessionTests
         act.Should().Throw<ArgumentException>()
             .WithMessage("*Cancellation reason is required.*");
     }
+
+    [Fact]
+    public void ClearIssueReport_AfterAdminDismissal_UnblocksTheAutoPayoutPath()
+    {
+        // Arrange: session ended, grace period running, student reported an issue.
+        var now = DateTime.UtcNow;
+        var session = new Session
+        {
+            Id = Guid.NewGuid(),
+            EnrollmentId = Guid.NewGuid(),
+            SessionNumber = 1,
+            SessionPrice = 300_000m
+        };
+        session.Schedule(now.AddHours(-2), now.AddHours(-1), now);
+        session.TryStartGracePeriod(now, TimeSpan.FromHours(12)).Should().BeTrue();
+        session.ReportIssue(Guid.NewGuid(), "QualityConcern", "Buổi học không diễn ra như mô tả.", now);
+
+        // An active issue report must freeze settlement.
+        session.Invoking(s => s.AutoComplete(now.AddHours(13))).Should().Throw<InvalidOperationException>();
+
+        // Act: admin dismisses the dispute without a financial change.
+        session.ClearIssueReport(now.AddMinutes(5));
+
+        // Assert: the session stays pre-release, and the normal 12h job can now pay out.
+        session.Status.Should().Be(SessionStatus.AwaitingPayout);
+        session.HasIssueReport.Should().BeFalse();
+        session.Invoking(s => s.AutoComplete(now.AddHours(13))).Should().NotThrow();
+        session.Status.Should().Be(SessionStatus.Completed);
+        session.IsPayoutReleased.Should().BeTrue();
+    }
 }
 
