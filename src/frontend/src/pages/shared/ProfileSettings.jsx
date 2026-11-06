@@ -5,6 +5,7 @@ import userService from '@/services/user.service';
 import { mediaService } from '@/services/media.service';
 import { profilePayload, profileValues, validateProfile } from '@/utils/profileSettings';
 import AvatarPicker from '@/components/settings/AvatarPicker';
+import PayoutAccountForm from '@/components/tutor/wallet/PayoutAccountForm';
 import Card, { CardHeader } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input, { Textarea, Field } from '@/components/ui/Input';
@@ -210,6 +211,12 @@ export default function ProfileSettings() {
     </Card>
   </form>;
 
+  // Card này là form riêng nên phải nằm NGOÀI <form> hồ sơ (không lồng form trong form).
+  const payoutCard = teaching && <Card id="payout-account" padding="lg" className="space-y-4 rounded-2xl border border-border shadow-none">
+    <CardHeader title="Tài khoản nhận tiền" subtitle="Nơi TutorHub chuyển thu nhập giảng dạy khi bạn yêu cầu rút." />
+    <PayoutAccountForm />
+  </Card>;
+
   const passwordForm = (
     <form onSubmit={changePassword} noValidate aria-labelledby="password-form-title" aria-busy={changingPassword} className="mx-auto w-full max-w-[680px]">
       <Card padding="lg" className="space-y-6 rounded-2xl border border-border shadow-none sm:p-7">
@@ -251,6 +258,6 @@ export default function ProfileSettings() {
   return <div className="mx-auto max-w-3xl space-y-6 py-2 sm:py-4">
     <header className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-headline-page text-fg">Cài đặt tài khoản</h1><p className="mt-2 text-body-reg text-fg-secondary">Quản lý hồ sơ cá nhân và bảo mật tài khoản.</p></div><Badge variant="neutral">{role === 'Tutor' ? 'Gia sư' : role === 'Admin' ? 'Quản trị viên' : 'Học viên'}</Badge></header>
     <Tabs value={searchParams.get('tab') === 'password' ? 'password' : 'profile'} onChange={tab => setSearchParams(previous => { const next = new URLSearchParams(previous); next.set('tab', tab); return next; }, { replace: true })}
-      tabs={[{ key: 'profile', label: 'Hồ sơ cá nhân', icon: <Icon name="person" size="sm" />, content: profileForm }, { key: 'password', label: 'Đổi mật khẩu', icon: <Icon name="lock" size="sm" />, content: passwordForm }]} />
+      tabs={[{ key: 'profile', label: 'Hồ sơ cá nhân', icon: <Icon name="person" size="sm" />, content: <div className="space-y-6">{profileForm}{payoutCard}</div> }, { key: 'password', label: 'Đổi mật khẩu', icon: <Icon name="lock" size="sm" />, content: passwordForm }]} />
   </div>;
 }

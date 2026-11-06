@@ -14,19 +14,7 @@ import { useConfirm } from '@/components/ui/Dialog';
 import Money from '@/components/ui/Money';
 import StateBadge from '@/components/common/StateBadge';
 import Callout from '@/components/ui/Callout';
-
-const VIETNAM_BANKS = [
-  { code: 'VCB', name: 'Vietcombank' },
-  { code: 'TCB', name: 'Techcombank' },
-  { code: 'MB', name: 'MBBank' },
-  { code: 'ACB', name: 'ACB' },
-  { code: 'BIDV', name: 'BIDV' },
-  { code: 'VTB', name: 'VietinBank' },
-  { code: 'VPB', name: 'VPBank' },
-  { code: 'TPB', name: 'TPBank' },
-  { code: 'HDB', name: 'HDBank' },
-  { code: 'STB', name: 'Sacombank' },
-];
+import { VIETNAM_BANKS } from '@/config/vietnamBanks';
 
 const MIN_WITHDRAW = 50000;
 
