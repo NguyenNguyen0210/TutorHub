@@ -83,7 +83,8 @@ public class VnPayPaymentGateway : IPaymentGateway
             MerchantReference: txnRef,
             Amount: rawAmount / 100m,
             IsSuccessful: responseCode == "00" && (string.IsNullOrWhiteSpace(transactionStatus) || transactionStatus == "00"),
-            ProviderTransactionId: transactionNo);
+            ProviderTransactionId: transactionNo,
+            GatewayResponseCode: responseCode);
     }
 
     public PaymentWebhookAck BuildAcknowledgement(PaymentWebhookOutcome outcome)

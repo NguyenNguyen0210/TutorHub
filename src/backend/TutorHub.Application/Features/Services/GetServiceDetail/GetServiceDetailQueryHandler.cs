@@ -180,6 +180,7 @@ public class GetServiceDetailQueryHandler : IRequestHandler<GetServiceDetailQuer
             service.Description,
             service.CoverImageUrl,
             service.TrialLessonUrl,
+            service.TrialVideoUrl,
             service.LearningScope,
             service.ExpectedOutcome,
             targetAudience,

@@ -262,4 +262,26 @@ public class GetMySessionsQueryHandlerTests
         // Assert
         result.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task Handle_ExposesGracePeriodStateSoClientsNeedNoPerSessionLookup()
+    {
+        // Arrange
+        var now = DateTime.UtcNow;
+        var (session, _, student, _) = CreateSession(now.AddHours(-2), now.AddHours(-1), SessionStatus.Scheduled);
+        session.TryStartGracePeriod(now, TimeSpan.FromHours(12)).Should().BeTrue();
+        session.ReportIssue(student.Id, "QualityConcern", "Buổi học không diễn ra như mô tả.", now);
+
+        _contextMock.Setup(c => c.Sessions).Returns(MockDbSetHelper.CreateMockDbSet(new List<Session> { session }).Object);
+        _currentUserService.Set(student.Id, UserRole.Student);
+
+        // Act
+        var result = await _handler.Handle(new GetMySessionsQuery(), CancellationToken.None);
+
+        // Assert
+        result.Should().ContainSingle();
+        result[0].Status.Should().Be(SessionStatus.AwaitingPayout);
+        result[0].GracePeriodEndsAt.Should().Be(session.GracePeriodEndsAt);
+        result[0].HasIssueReport.Should().BeTrue();
+    }
 }

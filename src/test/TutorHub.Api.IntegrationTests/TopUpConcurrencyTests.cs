@@ -109,7 +109,7 @@ public class TopUpConcurrencyTests : IntegrationTestBase
         public string CreateRedirect(PaymentRedirectRequest request) => "https://payment.test";
 
         public PaymentCallbackResult VerifyAndParseCallback(IReadOnlyDictionary<string, string> parameters)
-            => new(true, null, parameters["reference"], 150_000m, true, "123456789");
+            => new(true, null, parameters["reference"], 150_000m, true, "123456789", "00");
 
         public PaymentWebhookAck BuildAcknowledgement(PaymentWebhookOutcome outcome)
             => new(outcome == PaymentWebhookOutcome.Success ? "00" : "99", outcome.ToString());

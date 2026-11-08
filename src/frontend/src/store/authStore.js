@@ -151,8 +151,8 @@ export const useAuthStore = create((set, get) => ({
     const res = await api.post('/auth/register', { email, password, fullName, phone, role });
 
     if (res && res.userId) {
-      // After successful registration, auto-login
-      return await get().loginWithCredentials(email, password);
+      // Registration does not create a session; the user signs in explicitly.
+      return res;
     }
 
     throw new Error('Phản hồi đăng ký không hợp lệ từ máy chủ.');

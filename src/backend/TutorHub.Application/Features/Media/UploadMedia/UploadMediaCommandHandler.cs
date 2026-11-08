@@ -42,6 +42,11 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
             throw new ForbiddenException("You do not have permission to upload certificates. Only Tutors and Admins can upload certificates.");
         }
 
+        if (request.MediaType == MediaType.ServiceDemoVideo && role is not UserRole.Tutor and not UserRole.Admin)
+        {
+            throw new ForbiddenException("Only Tutors and Admins can upload service demo videos.");
+        }
+
         var ext = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
 
         // 1. Deep Binary Magic Bytes Validation
@@ -51,7 +56,7 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
         }
 
         // 2. Determine Privacy & Partitioned Object Storage Key
-        var isPrivate = request.MediaType is not MediaType.Avatar and not MediaType.ServiceCover;
+        var isPrivate = request.MediaType is not MediaType.Avatar and not MediaType.ServiceCover and not MediaType.ServiceDemoVideo;
 
 
         var now = _clock.UtcNow;
@@ -61,6 +66,7 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
         {
             MediaType.Avatar => $"profiles/{userId}/avatar/{storedFileName}",
             MediaType.ServiceCover => $"tutors/{userId}/covers/{storedFileName}",
+            MediaType.ServiceDemoVideo => $"tutors/{userId}/demo-videos/{storedFileName}",
             MediaType.Certificate => $"tutors/{userId}/documents/{storedFileName}",
             MediaType.DisputeEvidence => $"reports/{userId}/attachments/{storedFileName}",
             _ => $"general/{userId}/{now:yyyy}/{now:MM}/{storedFileName}"
@@ -112,8 +118,11 @@ public class UploadMediaCommandHandler : IRequestHandler<UploadMediaCommand, Med
             throw;
         }
 
-        // 5. Generate short-lived download URL
-        var accessUrl = await _storageService.GenerateDownloadUrlAsync(media.ObjectKey, TimeSpan.FromMinutes(15), cancellationToken);
+        // 5. Generate short-lived download URL (videos live longer so playback can finish)
+        var accessLifetime = media.MediaType == MediaType.ServiceDemoVideo
+            ? TimeSpan.FromMinutes(60)
+            : TimeSpan.FromMinutes(15);
+        var accessUrl = await _storageService.GenerateDownloadUrlAsync(media.ObjectKey, accessLifetime, cancellationToken);
 
         return new MediaDto(
             Id: media.Id,

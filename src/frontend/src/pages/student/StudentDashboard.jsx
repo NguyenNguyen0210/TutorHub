@@ -48,26 +48,9 @@ export default function StudentDashboard() {
         setEnrollments(enrollmentRes?.items || []);
         setError(null);
 
-        // `GET /sessions` trả `SessionCalendarDto` — KHÔNG có
-        // `gracePeriodEndsAt` / `hasIssueReport`.
-        // Để hiển thị các buổi trong thời gian chờ giải ngân (AwaitingPayout),
-        // ta hydrate các buổi có status === 'AwaitingPayout'.
-        const candidates = calendar.filter((s) => s.status === 'AwaitingPayout');
-        if (candidates.length === 0) {
-          setSessions(calendar);
-          return;
-        }
-
-        const details = await Promise.all(
-          candidates.map((s) =>
-            sessionService.getSessionById(s.id).catch(() => null)
-          )
-        );
-        if (isMounted) {
-          const byId = new Map();
-          details.filter(Boolean).forEach((d) => byId.set(d.id, d));
-          setSessions(calendar.map((s) => ({ ...s, ...(byId.get(s.id) || {}) })));
-        }
+        // `SessionCalendarDto` đã mang `gracePeriodEndsAt` / `hasIssueReport`,
+        // nên không cần gọi `getSessionById` cho từng buổi AwaitingPayout nữa.
+        setSessions(calendar);
       } catch (err) {
         if (isMounted) {
           setError(err);

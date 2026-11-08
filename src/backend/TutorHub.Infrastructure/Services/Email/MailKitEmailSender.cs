@@ -3,6 +3,8 @@ using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
+using System.Net;
+using System.Text.RegularExpressions;
 using TutorHub.Application.Common.Interfaces;
 
 namespace TutorHub.Infrastructure.Services.Email;
@@ -51,6 +53,13 @@ public class MailKitEmailSender : IEmailSender
         if (body.TrimStart().StartsWith("<") && (body.Contains("</html>") || body.Contains("</div>") || body.Contains("</p>")))
         {
             bodyBuilder.HtmlBody = body;
+            // Multipart/alternative keeps transactional emails readable without HTML.
+            var plain = Regex.Replace(body, @"<!--.*?-->", "", RegexOptions.Singleline);
+            plain = Regex.Replace(plain, @"<head\b[^>]*>.*?</head>", "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            plain = Regex.Replace(plain, @"<br\s*/?>|</(?:p|h[1-6]|tr|div|table)>", "\n", RegexOptions.IgnoreCase);
+            plain = Regex.Replace(plain, @"</td>\s*<td\b[^>]*>", ": ", RegexOptions.IgnoreCase);
+            plain = Regex.Replace(plain, @"<[^>]+>", "");
+            bodyBuilder.TextBody = WebUtility.HtmlDecode(plain).Trim();
         }
         else
         {

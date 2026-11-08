@@ -7,6 +7,8 @@ using Microsoft.Extensions.Options;
 using MimeKit;
 using Moq;
 using TutorHub.Infrastructure.Services.Email;
+using TutorHub.Application.Common.Email;
+using TutorHub.Domain.Enums;
 using Xunit;
 
 namespace TutorHub.Infrastructure.UnitTests.Email;
@@ -116,6 +118,24 @@ public class MailKitEmailSenderTests
         message.From.Mailboxes.Single().Address.Should().Be("no-reply@tutorhub.id.vn");
         message.MessageId.Should().Be("delivery-123@tutorhub.id.vn");
         message.HtmlBody.Should().Be("<p>Course update</p>");
+        message.TextBody.Should().Be("Course update");
         message.Headers["X-Correlation-ID"].Should().Be("email:delivery-123");
+    }
+
+    [Fact]
+    public async Task HtmlTemplate_IncludesReadablePlainTextAlternative()
+    {
+        MimeMessage? message = null;
+        _smtpClientMock.Setup(c => c.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<CancellationToken>(), It.IsAny<ITransferProgress>()))
+            .Callback<MimeMessage, CancellationToken, ITransferProgress>((value, _, _) => message = value).ReturnsAsync("250 OK");
+        var template = EmailTemplates.Welcome("Minh Anh", "owner@example.com", UserRole.Student, DateTime.UtcNow);
+        var sender = new MailKitEmailSender(Options.Create(_options), NullLogger<MailKitEmailSender>.Instance, () => _smtpClientMock.Object);
+
+        await sender.SendEmailAsync("owner@example.com", template.Subject, template.Html);
+
+        message!.HtmlBody.Should().Contain("<html lang=\"vi\">");
+        message.TextBody.Should().Contain("Email đăng ký: owner@example.com");
+        message.TextBody.Should().Contain("https://tutorhub.id.vn/auth/login");
+        message.TextBody.Should().NotContain("<table").And.NotContain("[if mso]").And.NotContain("font-family");
     }
 }

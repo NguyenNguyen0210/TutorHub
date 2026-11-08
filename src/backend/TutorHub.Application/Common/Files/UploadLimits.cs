@@ -54,4 +54,12 @@ public static class UploadLimits
     {
         ".jpg", ".jpeg", ".png", ".webp", ".pdf"
     };
+
+    // Service demo video (MP4): 100 MB streamed upload. Demo clips are short,
+    // so a hard cap keeps a single request bounded while still allowing
+    // 2–3 minutes of 720p footage.
+    public const long ServiceDemoVideoMaxBytes = 100 * BytesPerMb;
+
+    public static readonly string[] ServiceDemoVideoExtensions = { ".mp4" };
+    public static readonly string[] ServiceDemoVideoMimeTypes = { "video/mp4" };
 }

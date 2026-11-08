@@ -1,4 +1,5 @@
 using FluentValidation;
+using TutorHub.Application.Common.Files;
 using TutorHub.Application.Features.Tutors.Services.Common;
 
 namespace TutorHub.Application.Features.Tutors.Services.CreateService;
@@ -50,6 +51,11 @@ public class CreateServiceCommandValidator : AbstractValidator<CreateServiceComm
         RuleFor(x => x.TrialLessonUrl)
             .MaximumLength(1000).WithMessage("Trial lesson URL cannot exceed 1000 characters.")
             .When(x => !string.IsNullOrEmpty(x.TrialLessonUrl));
+
+        RuleFor(x => x.TrialVideoUrl)
+            .Must(ServiceDemoVideoUrl.IsValid)
+            .WithMessage("Demo video must be uploaded through the media endpoint (/api/v1/media/{id}/demo-video).")
+            .When(x => !string.IsNullOrEmpty(x.TrialVideoUrl));
 
         RuleFor(x => x.CoverImageUrl)
             .MaximumLength(1000).WithMessage("Cover image URL cannot exceed 1000 characters.")

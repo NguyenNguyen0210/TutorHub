@@ -80,6 +80,7 @@ public class VnPayPaymentGatewayTests
         result.Amount.Should().Be(900_000m);
         result.IsSuccessful.Should().BeTrue();
         result.ProviderTransactionId.Should().Be("555000111");
+        result.GatewayResponseCode.Should().Be("00");
     }
 
     [Fact]
@@ -91,6 +92,9 @@ public class VnPayPaymentGatewayTests
 
         result.IsVerified.Should().BeTrue();
         result.IsSuccessful.Should().BeFalse();
+        // Traceability: the decline reason must survive parsing so the webhook can
+        // persist it in the PaymentAttemptDeclined audit entry (FR-PAY-004).
+        result.GatewayResponseCode.Should().Be("24");
     }
 
     [Fact]

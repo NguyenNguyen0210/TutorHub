@@ -62,6 +62,9 @@ public class BusinessEventNotificationHandlerTests
         emailDeliveries.Should().HaveCount(1);
         emailDeliveries[0].ToEmail.Should().Be("admin@tutorhub.com");
         emailDeliveries[0].Status.Should().Be(EmailDeliveryStatus.Pending);
+        emailDeliveries[0].Subject.Should().Contain("hồ sơ gia sư");
+        emailDeliveries[0].Body.Should().Contain("<html lang=\"vi\">");
+        emailDeliveries[0].Body.Should().Contain("/admin/tutor-applications?applicationId=");
     }
 
     [Fact]

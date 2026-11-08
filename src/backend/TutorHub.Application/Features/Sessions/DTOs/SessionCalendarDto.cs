@@ -12,5 +12,9 @@ public record SessionCalendarDto(
     DateTime? StartAt,
     DateTime? EndAt,
     int DurationMinutes,
-    SessionStatus Status
+    SessionStatus Status,
+    // Grace-period state is part of the calendar contract so clients do not have to
+    // fetch every AwaitingPayout session individually to render its countdown.
+    DateTime? GracePeriodEndsAt = null,
+    bool HasIssueReport = false
 );

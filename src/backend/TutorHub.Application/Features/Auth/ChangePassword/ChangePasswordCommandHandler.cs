@@ -1,3 +1,4 @@
+using TutorHub.Application.Common.Email;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
@@ -69,6 +70,7 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
         };
         _context.Notifications?.Add(securityNotif);
 
+        var emailContent = EmailTemplates.PasswordUpdated(user.FullName, user.Email, now, isReset: false);
         var securityEmail = new Domain.Entities.EmailDelivery
         {
             Id = Guid.NewGuid(),
@@ -76,19 +78,8 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
             Notification = securityNotif,
             UserId = user.Id,
             ToEmail = user.Email,
-            Subject = "Cảnh báo bảo mật: Mật khẩu tài khoản TutorHub vừa được thay đổi",
-            Body = $@"Kính gửi {user.FullName},
-
-Hệ thống ghi nhận mật khẩu tài khoản TutorHub của bạn ({user.Email}) vừa được thay đổi thành công vào lúc:
-{now:dd/MM/yyyy HH:mm:ss} UTC.
-
-Để bảo đảm an toàn, toàn bộ các phiên đăng nhập khác của bạn đã được thu hồi tự động.
-
-NẾU BẠN KHÔNG THỰC HIỆN YÊU CẦU NÀY:
-Vui lòng liên hệ ngay với Quản trị viên hệ thống TutorHub hoặc gửi email khẩn cấp tới support@tutorhub.vn để khóa tài khoản và bảo vệ số dư ví bảo chứng.
-
-Trân trọng,
-Trung tâm An toàn & Bảo mật TutorHub",
+            Subject = emailContent.Subject,
+            Body = emailContent.Html,
             Status = Domain.Enums.EmailDeliveryStatus.Pending,
             CreatedAt = now
         };

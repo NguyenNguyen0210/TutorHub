@@ -1,3 +1,4 @@
+using TutorHub.Application.Common.Email;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
@@ -95,6 +96,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
         };
         _context.Notifications.Add(welcomeNotif);
 
+        var emailContent = EmailTemplates.Welcome(user.FullName, user.Email, user.Role, _clock.UtcNow);
         var welcomeEmail = new EmailDelivery
         {
             Id = Guid.NewGuid(),
@@ -102,24 +104,8 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
             Notification = welcomeNotif,
             UserId = user.Id,
             ToEmail = user.Email,
-            Subject = "Chào mừng bạn đến với TutorHub — Đăng ký tài khoản thành công",
-            Body = $@"Kính gửi {user.FullName},
-
-Chào mừng bạn đã gia nhập nền tảng học tập trực tuyến TutorHub!
-
-Thông tin tài khoản đã đăng ký:
-- Họ và tên: {user.FullName}
-- Email định danh: {user.Email}
-- Vai trò: {user.Role}
-- Thời gian tạo: {_clock.UtcNow:dd/MM/yyyy HH:mm:ss} UTC
-
-Tài khoản của bạn đã được kích hoạt thành công. Bạn có thể đăng nhập ngay tại:
-https://tutorhub.vn/login
-
-Nếu bạn cần hỗ trợ, vui lòng liên hệ đội ngũ chăm sóc khách hàng TutorHub.
-
-Trân trọng,
-Đội ngũ TutorHub",
+            Subject = emailContent.Subject,
+            Body = emailContent.Html,
             Status = EmailDeliveryStatus.Pending,
             CreatedAt = _clock.UtcNow
         };

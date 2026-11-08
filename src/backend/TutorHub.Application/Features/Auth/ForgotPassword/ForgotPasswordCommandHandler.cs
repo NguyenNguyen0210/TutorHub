@@ -1,3 +1,4 @@
+using TutorHub.Application.Common.Email;
 using System.Security.Cryptography;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -56,24 +57,9 @@ public class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswordComman
         // Send Email via configured email sender
         if (_emailSender != null)
         {
-            var subject = "[TutorHub] Mã xác nhận đặt lại mật khẩu";
-            var body = $@"Xin chào {user.FullName},
-
-Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản TutorHub của bạn ({user.Email}).
-
-Mã xác thực OTP của bạn là:
-=============================
-        {otp}
-=============================
-
-Mã này có hiệu lực trong vòng 5 phút và chỉ được sử dụng một lần duy nhất.
-Vì lý do bảo mật, TUYỆT ĐỐI KHÔNG chia sẻ mã này với bất kỳ ai, kể cả nhân viên TutorHub.
-
-Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này hoặc đổi mật khẩu ngay nếu nghi ngờ tài khoản bị xâm nhập.
-
-Trân trọng,
-Đội ngũ TutorHub
-https://tutorhub.id.vn";
+            var emailContent = EmailTemplates.PasswordResetCode(user.FullName, otp);
+            var subject = emailContent.Subject;
+            var body = emailContent.Html;
 
             try
             {

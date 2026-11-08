@@ -43,7 +43,7 @@ export default function TutorWallet() {
           <h2 className="text-body-reg font-medium text-success-strong">Số dư có thể rút</h2>
           <p className="mt-2 text-[30px] font-semibold leading-tight text-success-strong sm:text-[32px]"><Money value={available} /></p>
           <p className="mt-3 text-body-reg leading-relaxed text-fg-secondary">Thu nhập đã được giải ngân vào ví, sau phí sàn.</p>
-          <div className="mt-auto pt-5"><p className="mb-3 text-caption text-fg-secondary">Rút tối thiểu 50.000 ₫</p><Button as={canWithdraw ? Link : 'button'} to={canWithdraw ? '/tutor/wallet/withdraw' : undefined} disabled={!canWithdraw} fullWidth icon={<Icon name="payments" size="sm" />}>Rút tiền</Button></div>
+          <div className="mt-auto pt-5"><p className="mb-3 text-caption text-fg-secondary">Rút tối thiểu 50.000 ₫</p><Button as={canWithdraw ? Link : 'button'} to={canWithdraw ? '/tutor/wallet/withdraw' : undefined} disabled={!canWithdraw} fullWidth icon={<Icon name="payments" size="sm" />}>Rút tiền</Button><p className="mt-2 text-caption text-fg-secondary">Chưa khai báo ngân hàng? <Link to="/tutor/settings#payout-account" className="font-medium text-primary underline">Cập nhật tài khoản nhận tiền</Link></p></div>
         </div>
         <button type="button" aria-expanded={showEscrow} aria-controls="escrow-details" onClick={() => setShowEscrow(value => !value)} className="flex min-w-0 flex-col rounded-2xl border border-holding/20 bg-holding-subtle p-5 text-left transition-colors hover:border-holding/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-6">
           <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-surface text-holding-strong"><Icon name="shield" size="md" /></span>

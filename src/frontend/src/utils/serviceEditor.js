@@ -1,5 +1,6 @@
 import { parseTags, splitLines } from '../components/tutor/services/serviceFormUtils.js';
-import { trialLessonMedia, validImageLink } from './trialLessonMedia.js';
+import { validImageLink } from './trialLessonMedia.js';
+import { validateServiceDemoVideo } from './serviceDemoVideo.js';
 
 export const EDITOR_SECTIONS = [
   ['basics', 'Thông tin cơ bản'], ['subject', 'Môn học & thẻ'], ['terms', 'Học phí & thời lượng'],
@@ -15,8 +16,8 @@ export function validateServiceEditor(form, service) {
   if (form.learningScope.length > 2000) return fail('basics', 'service-scope', 'Phạm vi kiến thức tối đa 2.000 ký tự.');
   if (form.expectedOutcome.length > 2000) return fail('basics', 'service-outcome', 'Cam kết đầu ra tối đa 2.000 ký tự.');
   if (service.status !== 'Published' && !form.coverImageFile && (!validImageLink(form.coverImageUrl) || form.coverImageUrl.length > 1000)) return fail('basics', 'service-cover', 'Ảnh bìa hiện tại không hợp lệ. Vui lòng chọn ảnh khác hoặc xóa ảnh.');
-  if (form.trialLessonUrl.length > 1000) return fail('basics', 'service-trial', 'Liên kết học thử tối đa 1.000 ký tự.');
-  if (form.trialLessonUrl.trim() && form.trialLessonUrl !== (service.trialLessonUrl || '') && trialLessonMedia(form.trialLessonUrl)?.kind !== 'video') return fail('basics', 'service-trial', 'Dùng liên kết video YouTube, Vimeo hoặc tệp MP4/WebM/OGG. Liên kết cuộc họp không phải video phát lại.');
+  const videoError = validateServiceDemoVideo(form.trialVideoFile);
+  if (videoError) return fail('basics', 'service-demo-video', videoError);
   if (service.status !== 'Published') {
     if (!Number.isInteger(Number(form.totalSessions)) || Number(form.totalSessions) < 1) return fail('terms', 'service-sessions', 'Số buổi phải là số nguyên từ 1 trở lên.');
     if (!Number.isInteger(Number(form.sessionDurationMinutes)) || Number(form.sessionDurationMinutes) < 1) return fail('terms', 'service-duration', 'Thời lượng mỗi buổi phải là số phút nguyên lớn hơn 0.');

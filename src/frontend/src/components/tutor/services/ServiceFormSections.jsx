@@ -1,4 +1,5 @@
 import ServiceCoverPicker from './ServiceCoverPicker';
+import ServiceDemoVideoPicker from './ServiceDemoVideoPicker';
 import React, { useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import Input, { Textarea, Select, Field } from '@/components/ui/Input';
@@ -63,6 +64,8 @@ const formDataShape = PropTypes.shape({
   sessionDurationMinutes: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   price: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   trialLessonUrl: PropTypes.string,
+  trialVideoUrl: PropTypes.string,
+  trialVideoFile: PropTypes.object,
   tags: PropTypes.string,
   coverImageUrl: PropTypes.string,
   sessions: PropTypes.array,
@@ -238,29 +241,23 @@ ScopeOutcomeFields.propTypes = {
   onFieldChange: PropTypes.func.isRequired,
 };
 
-/* ── Trial lesson video ── */
-export function TrialFields({ formData, onFieldChange }) {
+/* ── Demo video (uploaded MP4) ── */
+export function TrialFields({ formData, onFieldChange, locked = false, disabled = false }) {
   return (
-    <Field
-      label="Link video học thử"
-      htmlFor="service-trial"
-      hint="Không bắt buộc — video giới thiệu giúp học viên tin tưởng hơn."
-    >
-      <Input
-        id="service-trial"
-        type="url"
-        inputMode="url"
-        placeholder="https://..."
-        value={formData.trialLessonUrl}
-        onChange={(e) => onFieldChange('trialLessonUrl', e.target.value)}
-      />
-    </Field>
+    <ServiceDemoVideoPicker
+      form={formData}
+      onChange={onFieldChange}
+      locked={locked}
+      disabled={disabled}
+    />
   );
 }
 
 TrialFields.propTypes = {
   formData: formDataShape.isRequired,
   onFieldChange: PropTypes.func.isRequired,
+  locked: PropTypes.bool,
+  disabled: PropTypes.bool,
 };
 
 /* ── Subject: select (create) or locked box (edit) + category + tags ── */

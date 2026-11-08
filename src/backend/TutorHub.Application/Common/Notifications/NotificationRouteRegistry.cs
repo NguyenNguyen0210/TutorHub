@@ -15,11 +15,14 @@ public static class NotificationRouteRegistry
     public static string WalletTransaction(Guid transactionId) => $"/wallet/transactions/{transactionId}";
     public static string WalletWithdrawals() => "/wallet/withdrawals";
     public static string AdminWithdrawal(Guid withdrawalId) => $"/admin/withdrawals/{withdrawalId}";
-    public static string TutorReviews() => "/tutor/reviews";
     public static string AdminDispute(Guid disputeId) => $"/admin/disputes/{disputeId}";
-    public static string AdminReport(Guid reportId) => $"/admin/reports/{reportId}";
+    public static string AdminReport(Guid reportId) => $"/admin/trust-reports/{reportId}";
     public static string Conversation(Guid conversationId) => $"/conversations/{conversationId}";
     public static string StudentWallet() => "/student/wallet";
-    public static string AdminStudentTopUps() => "/admin/student-topups";
+    /// <summary>
+    /// Admin top-up review. There is no dedicated page: the wallet console opens the
+    /// top-up tab and highlights the request by id (same pattern as withdrawals).
+    /// </summary>
+    public static string AdminStudentTopUps(Guid topUpRequestId) => $"/admin/student-wallets?tab=topups&recordId={topUpRequestId}";
     public static string AdminStudentWithdrawals() => "/admin/student-withdrawals";
 }

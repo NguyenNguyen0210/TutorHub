@@ -130,7 +130,7 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
             if (transaction.Booking.Status != BookingStatus.Holding)
             {
                 return await HandleNonHoldingBookingAsync(
-                    transaction, txnRef, transactionNo, parsed.IsSuccessful, dbTx, cancellationToken);
+                    transaction, txnRef, transactionNo, parsed.GatewayResponseCode, parsed.IsSuccessful, dbTx, cancellationToken);
             }
 
             var now = _clock.UtcNow;
@@ -165,6 +165,12 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
             }
 
             _logger.LogInformation("Payment webhook: Payment reported unsuccessful for TxnRef={TxnRef}", txnRef);
+
+            // FR-PAY-004 traceability: the attempt stays Pending so a later successful
+            // callback for the same reference can still settle, but the decline itself
+            // must be recorded. Audit log is the durable record (no schema change).
+            await LogDeclinedAttemptAsync(transaction, parsed.GatewayResponseCode, transactionNo, amount, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
             await dbTx.CommitAsync(cancellationToken);
             return _paymentGateway.BuildAcknowledgement(PaymentWebhookOutcome.Success);
         });
@@ -174,6 +180,7 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
         Transaction transaction,
         string txnRef,
         string? transactionNo,
+        string? gatewayResponseCode,
         bool isSuccessful,
         IDbContextTransaction dbTx,
         CancellationToken cancellationToken)
@@ -182,6 +189,8 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
 
         if (!isSuccessful)
         {
+            await LogDeclinedAttemptAsync(transaction, gatewayResponseCode, transactionNo, transaction.Amount, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
             await dbTx.CommitAsync(cancellationToken);
             return _paymentGateway.BuildAcknowledgement(PaymentWebhookOutcome.Success);
         }
@@ -261,6 +270,35 @@ public class HandlePaymentWebhookCommandHandler : IRequestHandler<HandlePaymentW
         await dbTx.CommitAsync(cancellationToken);
         _logger.LogInformation("Payment webhook: captured payment on cancelled Booking #{BookingId} flagged for refund.", booking.Id);
         return _paymentGateway.BuildAcknowledgement(PaymentWebhookOutcome.Success);
+    }
+
+    /// <summary>
+    /// Records a declined payment attempt without moving money or changing the
+    /// attempt's status. Kept separate from the settlement paths so the
+    /// "attempt stays Pending until a verified success arrives" invariant is
+    /// unchanged (see PaymentWebhookFailureTests).
+    /// </summary>
+    private Task LogDeclinedAttemptAsync(
+        Transaction transaction,
+        string? gatewayResponseCode,
+        string? transactionNo,
+        decimal amount,
+        CancellationToken cancellationToken)
+    {
+        return _auditLogService.LogAsync(
+            action: "PaymentAttemptDeclined",
+            entityName: "Transaction",
+            entityId: transaction.Id.ToString(),
+            userId: transaction.Booking?.StudentProfile?.UserId,
+            oldValues: new { Status = transaction.Status.ToString() },
+            newValues: new
+            {
+                BookingId = transaction.BookingId,
+                Amount = amount,
+                GatewayResponseCode = gatewayResponseCode,
+                ProviderTransactionId = transactionNo
+            },
+            cancellationToken: cancellationToken);
     }
 
     private static bool IsDuplicateEnrollmentViolation(DbUpdateException ex)

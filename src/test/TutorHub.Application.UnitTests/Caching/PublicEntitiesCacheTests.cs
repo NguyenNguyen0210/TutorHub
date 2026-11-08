@@ -365,6 +365,7 @@ public class PublicEntitiesCacheTests
             CoverImageUrl: null,
 
             TrialLessonUrl: null,
+            TrialVideoUrl: null,
 
             LearningScope: null,
 

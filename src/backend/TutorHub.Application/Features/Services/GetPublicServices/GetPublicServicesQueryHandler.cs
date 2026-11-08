@@ -110,7 +110,7 @@ public class GetPublicServicesQueryHandler : IRequestHandler<GetPublicServicesQu
                 s.TotalSessions,
                 s.SessionDurationMinutes,
                 s.Price,
-                !string.IsNullOrWhiteSpace(s.TrialLessonUrl),
+                !string.IsNullOrWhiteSpace(s.TrialVideoUrl) || !string.IsNullOrWhiteSpace(s.TrialLessonUrl),
                 s.TutorProfileId,
                 s.TutorProfile.UserId,
                 s.TutorProfile.User.FullName,

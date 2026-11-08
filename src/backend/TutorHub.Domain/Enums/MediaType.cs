@@ -6,5 +6,8 @@ public enum MediaType
     Certificate,
     DisputeEvidence,
     General,
-    ServiceCover
+    ServiceCover,
+
+    /// <summary>MP4 demo video attached to a service package; publicly playable.</summary>
+    ServiceDemoVideo
 }

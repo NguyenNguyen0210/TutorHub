@@ -770,9 +770,11 @@ A Session SHALL reach `Completed` after the 12h grace period expires without an 
 Admin resolves the dispute with a financial decision (`StudentWinsFullRefund` / `StudentWinsPartialRefund` /
 `TutorWinsReleaseEarning`).
 
-> **Current-behavior note:** `DismissedNoFinancialChange` dismisses the dispute but does not call
-> `session.CompleteByAdmin(...)`, so the Session remains `AwaitingPayout` with `HasIssueReport = true`. This is a
-> known implementation gap, not the intended completion rule.
+> **Current-behavior note:** `DismissedNoFinancialChange` clears the session's issue report
+> (`session.ClearIssueReport(...)`) and does not call `session.CompleteByAdmin(...)`, so the Session stays
+> `AwaitingPayout` with `HasIssueReport = false`. The next `AutoPayoutJob` tick then releases the tutor's earning
+> through the normal grace-period path. Dismissal therefore has no immediate financial effect but does not block
+> settlement.
 
 ### Flow
 

@@ -4,6 +4,7 @@ import walletService from '@/services/wallet.service';
 import { formatCurrency, formatDateTime } from '@/utils/formatters';
 import { maskBankAccount, MIN_TUTOR_WITHDRAWAL, withdrawalBlocker } from '@/utils/tutorWallet';
 import Money from '@/components/ui/Money';
+import PayoutAccountForm from '@/components/tutor/wallet/PayoutAccountForm';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/Dialog';
 import ErrorState from '@/components/common/ErrorState';
@@ -40,7 +41,6 @@ export default function TutorWithdraw() {
   }, []);
   const available = wallet?.availableBalance || 0;
   const blocker = withdrawalBlocker(amount, available, account);
-  const hasAccount = Boolean(account?.bankName && account?.accountNumber && account?.accountHolderName);
   const submit = async event => {
     event.preventDefault();
     if (busy.current || blocker) return;
@@ -86,7 +86,7 @@ export default function TutorWithdraw() {
               <Input id="withdraw-amount" type="number" inputMode="decimal" min={MIN_TUTOR_WITHDRAWAL} max={available} step="0.01" required value={amount} onChange={event => { setAmount(event.target.value); setSaveError(''); }} aria-invalid={!Number.isFinite(Number(amount)) || Number(amount) < MIN_TUTOR_WITHDRAWAL || Number(amount) > available} aria-describedby={blocker ? 'withdraw-blocker' : undefined} className="text-lg font-semibold tabular-nums" />
               <Button variant="ghost" size="sm" className="mt-2 px-0 text-primary" disabled={available < MIN_TUTOR_WITHDRAWAL} onClick={() => { setAmount(String(available)); setSaveError(''); }}>Rút toàn bộ</Button>
             </Field>
-            <section aria-labelledby="payout-account-title"><h2 id="payout-account-title" className="mb-2 text-body-reg font-medium text-fg">Ngân hàng nhận tiền</h2><div className="space-y-2 rounded-xl border border-border bg-neutral-50 p-4 text-body-reg">{hasAccount ? <><p className="font-semibold text-fg">{account.bankName}</p><p className="text-fg-secondary">{maskBankAccount(account.accountNumber)}</p><p className="break-words text-fg-secondary">{account.accountHolderName}</p></> : <p className="text-fg-secondary">Chưa có đủ thông tin tài khoản nhận tiền.</p>}</div></section>
+            <section aria-labelledby="payout-account-title" className="space-y-2"><h2 id="payout-account-title" className="text-body-reg font-medium text-fg">Ngân hàng nhận tiền</h2><PayoutAccountForm account={account} onSaved={next => { setAccount(next); setSaveError(''); }} disabled={Boolean(phase)} /></section>
             <Field label="Ghi chú" htmlFor="withdraw-note"><Input id="withdraw-note" value={note} maxLength={500} onChange={event => { setNote(event.target.value); setSaveError(''); }} /></Field>
           </fieldset>
           {blocker && <p id="withdraw-blocker" role="status" className="text-body-reg text-danger-strong">{blocker}</p>}

@@ -72,7 +72,9 @@ public class GetMySessionsQueryHandler : IRequestHandler<GetMySessionsQuery, IRe
                 s.StartAt,
                 s.EndAt,
                 s.Enrollment.SessionDurationMinutes,
-                s.Status
+                s.Status,
+                s.GracePeriodEndsAt,
+                s.HasIssueReport
             ))
             .ToListAsync(cancellationToken);
     }

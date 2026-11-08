@@ -1234,6 +1234,10 @@ namespace TutorHub.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("TrialVideoUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<Guid>("TutorProfileId")
                         .HasColumnType("uuid");
 

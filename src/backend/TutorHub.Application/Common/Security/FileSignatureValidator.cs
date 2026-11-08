@@ -8,6 +8,17 @@ public static class FileSignatureValidator
     private static readonly byte[] RiffHeader = [0x52, 0x49, 0x46, 0x46]; // RIFF
     private static readonly byte[] WebpHeader = [0x57, 0x45, 0x42, 0x50]; // WEBP
     private static readonly byte[] GifHeader = [0x47, 0x49, 0x46, 0x38]; // GIF8
+    private static readonly byte[] FtypHeader = [0x66, 0x74, 0x79, 0x70]; // ftyp
+
+    /// <summary>
+    /// ISO Base Media brands accepted as MP4. QuickTime ("qt  ") is deliberately
+    /// excluded: browsers cannot always play it inline.
+    /// </summary>
+    private static readonly string[] Mp4Brands =
+    {
+        "isom", "iso2", "iso3", "iso4", "iso5", "iso6", "mp41", "mp42",
+        "avc1", "M4V ", "M4VH", "dash", "mmp4", "f4v ", "MSNV"
+    };
 
     public static bool IsValidSignature(Stream stream, string extension, out string detectedMime)
     {
@@ -78,7 +89,20 @@ public static class FileSignatureValidator
             return ext is "gif";
         }
 
-        // 6. Check plain text (.txt)
+        // 6. Check MP4 (ISO BMFF: 'ftyp' box at offset 4, brand at offset 8)
+        if (bytesRead >= 12 &&
+            header[4] == FtypHeader[0] && header[5] == FtypHeader[1] &&
+            header[6] == FtypHeader[2] && header[7] == FtypHeader[3])
+        {
+            var brand = System.Text.Encoding.ASCII.GetString(header, 8, 4);
+            if (Mp4Brands.Contains(brand))
+            {
+                detectedMime = "video/mp4";
+                return ext is "mp4";
+            }
+        }
+
+        // 7. Check plain text (.txt)
         if (ext is "txt")
         {
             detectedMime = "text/plain";

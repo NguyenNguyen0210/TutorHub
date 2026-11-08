@@ -46,7 +46,13 @@ public record PaymentCallbackResult(
     string? MerchantReference,
     decimal Amount,
     bool IsSuccessful,
-    string? ProviderTransactionId);
+    string? ProviderTransactionId,
+    /// <summary>
+    /// Raw gateway response code (VNPay: <c>vnp_ResponseCode</c>). Optional so
+    /// existing fakes and non-VNPay gateways keep working; used for traceability
+    /// when a payment attempt is declined.
+    /// </summary>
+    string? GatewayResponseCode = null);
 
 public record PaymentWebhookAck(
     string Code,
