@@ -107,6 +107,8 @@ public class PaymentWebhookFlowTests : IntegrationTestBase
             parameters.TryGetValue("vnp_TxnRef", out var txnRef);
             parameters.TryGetValue("vnp_Amount", out var amountStr);
             parameters.TryGetValue("vnp_TransactionNo", out var transactionNo);
+            // Mirror VnPayPaymentGateway so the fake cannot hide contract drift.
+            parameters.TryGetValue("vnp_ResponseCode", out var responseCode);
             decimal.TryParse(amountStr, out var rawAmount);
 
             return new PaymentCallbackResult(
@@ -115,7 +117,8 @@ public class PaymentWebhookFlowTests : IntegrationTestBase
                 MerchantReference: txnRef,
                 Amount: rawAmount / 100m,
                 IsSuccessful: true,
-                ProviderTransactionId: transactionNo);
+                ProviderTransactionId: transactionNo,
+                GatewayResponseCode: responseCode);
         }
 
         public PaymentWebhookAck BuildAcknowledgement(PaymentWebhookOutcome outcome)

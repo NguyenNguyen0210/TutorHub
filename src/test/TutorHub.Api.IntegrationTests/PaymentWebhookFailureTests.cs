@@ -107,6 +107,9 @@ public class PaymentWebhookFailureTests : IntegrationTestBase
             parameters.TryGetValue("vnp_TxnRef", out var txnRef);
             parameters.TryGetValue("vnp_Amount", out var amountStr);
             parameters.TryGetValue("vnp_TransactionNo", out var transactionNo);
+            // Mirror VnPayPaymentGateway: the raw response code is part of the parsed
+            // contract, so a fake that drops it would hide a real traceability gap.
+            parameters.TryGetValue("vnp_ResponseCode", out var responseCode);
             decimal.TryParse(amountStr, NumberStyles.Number, CultureInfo.InvariantCulture, out var rawAmount);
 
             return new PaymentCallbackResult(
@@ -115,7 +118,8 @@ public class PaymentWebhookFailureTests : IntegrationTestBase
                 MerchantReference: txnRef,
                 Amount: rawAmount / 100m,
                 IsSuccessful: false,
-                ProviderTransactionId: transactionNo);
+                ProviderTransactionId: transactionNo,
+                GatewayResponseCode: responseCode);
         }
 
         public PaymentWebhookAck BuildAcknowledgement(PaymentWebhookOutcome outcome)
