@@ -64,13 +64,6 @@ if (builder.Environment.IsDevelopment())
 
 builder.Configuration.AddEnvironmentVariables();
 
-// An explicit CLI command, never an HTTP endpoint or automatic production seed.
-if (args.Contains("--seed-demo", StringComparer.Ordinal))
-{
-    await TutorHub.Api.DevelopmentDemoSeeder.RunAsync(builder.Environment, builder.Configuration);
-    return;
-}
-
 // Forwarded headers are accepted only from explicitly configured reverse proxies.
 // Direct deployments use the connection address and ignore client-supplied headers.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
