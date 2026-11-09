@@ -35,6 +35,9 @@ export default function TutorServices() {
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Packages only exist for approved tutors: the API answers 404 until an admin
+  // approves the application, so the page explains the gate instead of failing.
+  const [applicationStatus, setApplicationStatus] = useState(null);
 
   // Tabs & Filters
   const activeTab = STATUS_TABS.some(tab => tab.id === params.get('status')) ? params.get('status') : 'All';
@@ -56,14 +59,20 @@ export default function TutorServices() {
     try {
       setLoading(true);
       setError(null);
-      const [servicesRes, subjectsRes] = await Promise.allSettled([
+      const [applicationRes, servicesRes, subjectsRes] = await Promise.allSettled([
+        tutorService.getMyApplication(),
         tutorService.getMyServices(),
         tutorService.getSubjects(),
       ]);
 
+      const application = applicationRes.status === 'fulfilled' ? applicationRes.value : null;
+      const approved = application?.status === 'Approved';
+      setApplicationStatus(application?.status ?? null);
+
       if (servicesRes.status === 'fulfilled') {
         setServices(Array.isArray(servicesRes.value) ? servicesRes.value : []);
-      } else {
+      } else if (approved) {
+        // Before approval the 404 is expected, not a failure worth showing.
         setError(servicesRes.reason);
       }
 
@@ -276,11 +285,37 @@ export default function TutorServices() {
     });
   }, [services, activeTab, subjectFilter, search]);
 
+  const approved = applicationStatus === 'Approved';
+
+  if (!loading && !approved) {
+    const title = applicationStatus === 'Pending'
+      ? 'Hồ sơ gia sư đang chờ duyệt'
+      : applicationStatus === 'Rejected' ? 'Hồ sơ gia sư đã bị từ chối' : 'Bạn chưa gửi hồ sơ gia sư';
+    const hint = applicationStatus === 'Pending'
+      ? 'Bạn tạo được gói học ngay sau khi quản trị viên duyệt hồ sơ. Trong lúc chờ, hãy kiểm tra lại thông tin hồ sơ của mình.'
+      : applicationStatus === 'Rejected'
+        ? 'Gói học chỉ mở sau khi hồ sơ được duyệt. Hãy xem lý do từ chối và gửi lại hồ sơ.'
+        : 'Gói học chỉ mở sau khi hồ sơ gia sư của bạn được duyệt.';
+
+    return (
+      <div className="space-y-6 lg:space-y-8">
+        <WorkspacePageHeader title="Gói học của tôi" description="Quản lý nội dung, học phí và trạng thái tuyển sinh của các gói học." />
+        <div className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
+          <p className="text-body-reg font-semibold text-fg">{title}</p>
+          <p className="mt-2 max-w-2xl text-caption leading-relaxed text-fg-secondary">{hint}</p>
+          <Button variant="primary" size="md" className="mt-4" onClick={() => navigate('/tutor/application')}>
+            {applicationStatus === 'Rejected' ? 'Xem lý do và gửi lại hồ sơ' : 'Mở hồ sơ gia sư'}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 lg:space-y-8" data-discovery-loading={loading}>
       {/* Title row */}
       <WorkspacePageHeader title="Gói học của tôi" description="Quản lý nội dung, học phí và trạng thái tuyển sinh của các gói học."
-        actions={<Button
+        actions={approved ? <Button
           variant="primary"
           size="md"
           onClick={handleOpenCreate}
@@ -288,7 +323,7 @@ export default function TutorServices() {
           className="shrink-0"
         >
           Tạo gói học
-        </Button>} />
+        </Button> : undefined} />
 
       {!loading && !error && <dl aria-label="Tóm tắt gói học" className="flex flex-wrap gap-x-8 gap-y-4 rounded-2xl border border-border bg-surface px-5 py-4 sm:px-6">
         {[[stats.total, 'Tổng gói học'], [stats.published, 'Đang tuyển sinh'], [stats.draft, 'Bản nháp'], [stats.paused, 'Tạm dừng']].map(([value, label]) => <div key={label} className="flex items-baseline gap-2"><dt className="text-caption text-fg-secondary">{label}</dt><dd className="text-xl font-semibold text-fg">{value}</dd></div>)}

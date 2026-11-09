@@ -32,22 +32,37 @@ public class CreateServiceCommandHandler : IRequestHandler<CreateServiceCommand,
     {
         var userId = _currentUserService.UserIdOrThrow();
 
-        // 1. Verify TutorProfile exists
+        // 1. Onboarding gate first. The TutorProfile only exists after an admin
+        // approves the application, so checking the profile first answered a
+        // pending tutor with a misleading "profile not found" 404. Answer with
+        // the real reason instead.
+        var applicationStatus = await _context.TutorApplications
+            .AsNoTracking()
+            .Where(a => a.UserId == userId)
+            .OrderByDescending(a => a.SubmittedAt)
+            .Select(a => (TutorApplicationStatus?)a.Status)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (applicationStatus == null)
+        {
+            throw new ForbiddenException(
+                "You have not submitted a tutor application yet. Submit it before creating a service package.");
+        }
+
+        if (applicationStatus != TutorApplicationStatus.Approved)
+        {
+            throw new ForbiddenException(applicationStatus == TutorApplicationStatus.Pending
+                ? "Your tutor application is still under review. You can create service packages once an admin approves it."
+                : "Your tutor application was rejected. Resubmit it before creating a service package.");
+        }
+
+        // 2. Verify TutorProfile exists
         var tutor = await _context.TutorProfiles
             .FirstOrDefaultAsync(t => t.UserId == userId, cancellationToken);
 
         if (tutor == null)
         {
             throw new NotFoundException("Tutor profile not found for this user account.");
-        }
-
-        // 2. Verify Approved TutorApplication
-        var isApprovedTutor = await _context.TutorApplications
-            .AnyAsync(a => a.UserId == userId && a.Status == TutorApplicationStatus.Approved, cancellationToken);
-
-        if (!isApprovedTutor)
-        {
-            throw new ForbiddenException("Only approved tutors can create services.");
         }
 
         // 3. Verify Subject is in tutor's active TutorSubjects

@@ -5,6 +5,7 @@ import { getDashboardPath } from '@/components/layout/navConfig';
 import { useAuthStore } from '../store/authStore';
 import { getAuthReturnUrl } from '../utils/authRedirect';
 import { getPostAuthDestination } from '../services/authRedirect.service';
+import tutorService from '../services/tutor.service';
 
 export function RequireAuth({ children }) {
   const { isAuthenticated } = useAuthStore();
@@ -34,6 +35,39 @@ export function RequireRole({ allowedRoles, children }) {
   }
 
   return children;
+}
+
+/**
+ * Pages that create tutor content require an approved application: without one
+ * the API answers 403 and no TutorProfile exists yet. Send the tutor to the
+ * application page instead of letting them fill a form that cannot be saved.
+ */
+export function RequireApprovedTutor({ children }) {
+  const location = useLocation();
+  const [state, setState] = useState('checking');
+
+  useEffect(() => {
+    let cancelled = false;
+    tutorService.getMyApplication()
+      .then((application) => {
+        if (!cancelled) setState(application?.status === 'Approved' ? 'approved' : 'blocked');
+      })
+      .catch(() => {
+        if (!cancelled) setState('failed');
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (state === 'approved') return children;
+  if (state === 'blocked') return <Navigate to="/tutor/application" state={{ from: location }} replace />;
+  if (state === 'failed') {
+    return (
+      <div className="flex min-h-[60vh] items-center px-4 py-12">
+        <ErrorState error={{ status: 500 }} backPath="/tutor/dashboard" backLabel="Về tổng quan" />
+      </div>
+    );
+  }
+  return <p role="status" className="p-8 text-center text-fg-secondary">Đang kiểm tra hồ sơ gia sư…</p>;
 }
 
 export function GuestGuard({ children }) {

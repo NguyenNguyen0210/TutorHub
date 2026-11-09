@@ -35,6 +35,9 @@ const MESSAGES = {
   'Máy chủ chưa cấu hình đăng nhập Google.': 'Đăng nhập bằng Google tạm thời chưa khả dụng. Vui lòng đăng nhập bằng email.',
   'Liên kết đăng nhập thiếu code hoặc state.': 'Không thể hoàn tất đăng nhập bằng Google. Vui lòng quay lại trang đăng nhập và thử lại.',
   'Không tìm thấy thông tin giao dịch trong URL chuyển hướng.': 'Chưa có thông tin thanh toán. Vui lòng kiểm tra lịch sử thanh toán hoặc liên hệ hỗ trợ.',
+  'You have not submitted a tutor application yet. Submit it before creating a service package.': 'Bạn chưa gửi hồ sơ gia sư. Hãy gửi hồ sơ trước khi tạo gói học.',
+  'Your tutor application is still under review. You can create service packages once an admin approves it.': 'Hồ sơ gia sư đang chờ duyệt. Bạn tạo được gói học ngay sau khi hồ sơ được duyệt.',
+  'Your tutor application was rejected. Resubmit it before creating a service package.': 'Hồ sơ gia sư đã bị từ chối. Hãy gửi lại hồ sơ trước khi tạo gói học.',
 };
 const TECHNICAL = /request failed|status code|network error|internal server error|exception|stack trace|\bat (?:System|Microsoft)\.|sqlstate|correlation|traceid|\b(?:entity|DTO|payload|endpoint|undefined|null|enum|boolean|fetch|execute|trigger|process|JWT|token|callback|backend|frontend)\b|https?:\/\/|ECONN|ENOTFOUND|\b[A-Za-z_]+(?:Id|At)\b/iu;
 const VIETNAMESE = /[\u00c0-\u1ef9\u0110\u0111]/u;

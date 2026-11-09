@@ -41,7 +41,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import WorkspaceLayout from '../layouts/WorkspaceLayout';
 
 // Guards
-import { RequireAuth, RequireRole, GuestGuard } from './RouteGuards';
+import { RequireAuth, RequireRole, RequireApprovedTutor, GuestGuard } from './RouteGuards';
 
 function loadPage(loader) {
   const Page = lazy(loader);
@@ -202,7 +202,7 @@ export default function AppRoutes() {
         <Route path="schedule" element={<TutorSchedule />} />
         <Route path="availability" element={<Navigate to="/tutor/schedule" replace />} />
         <Route path="services" element={<TutorServices />} />
-        <Route path="services/new" element={<ServiceCreateWizard />} />
+        <Route path="services/new" element={<RequireApprovedTutor><ServiceCreateWizard /></RequireApprovedTutor>} />
         <Route path="services/:id/edit" element={<ServiceEdit />} />
         <Route path="enrollments/:id" element={<EnrollmentDetail />} />
         <Route path="wallet" element={<TutorWallet />} />
