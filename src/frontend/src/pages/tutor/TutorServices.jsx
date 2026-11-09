@@ -97,6 +97,18 @@ export default function TutorServices() {
 
   // Publish Action
   const handlePublish = async (pkg) => {
+    // The API rejects an incomplete draft with a generic 400, so explain the
+    // missing fields before asking the tutor to confirm.
+    const incomplete = !pkg.title?.trim()
+      || !pkg.description?.trim()
+      || !(Number(pkg.totalSessions) > 0)
+      || !(Number(pkg.sessionDurationMinutes) > 0)
+      || !(Number(pkg.price) > 0);
+    if (incomplete) {
+      toast.error('Chưa thể đăng gói học: cần có tiêu đề, mô tả, số buổi, thời lượng và học phí. Hãy mở trang chỉnh sửa để bổ sung.');
+      return;
+    }
+
     const ok = await confirm({
       title: "Đăng gói học",
       content: (

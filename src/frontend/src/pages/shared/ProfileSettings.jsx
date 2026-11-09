@@ -86,7 +86,9 @@ export default function ProfileSettings() {
         if (role === 'Tutor') {
           try { data = await userService.getMyTutorProfile(); }
           catch (err) {
-            if ((err?.status ?? err?.response?.status) !== 404) throw err;
+            // 403 = onboarding not finished (no profile yet), 404 = legacy answer.
+            const status = err?.status ?? err?.response?.status;
+            if (status !== 404 && status !== 403) throw err;
             missing = true;
             data = await userService.getMyProfile();
           }
