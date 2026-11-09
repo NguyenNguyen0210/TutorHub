@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Features.Tutors.Common;
 using TutorHub.Application.Features.Tutors.Services.DTOs;
 
 namespace TutorHub.Application.Features.Tutors.Services.GetMyServices;
@@ -27,6 +28,7 @@ public class GetMyServicesQueryHandler : IRequestHandler<GetMyServicesQuery, IRe
 
         if (tutor == null)
         {
+            await TutorOnboarding.EnsureApprovedAsync(_context, userId, cancellationToken);
             throw new NotFoundException("Tutor profile not found for this user account.");
         }
 

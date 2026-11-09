@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Caching;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Features.Tutors.Common;
 using TutorHub.Application.Features.Tutors.DTOs;
 using TutorHub.Domain.Enums;
 
@@ -37,6 +38,7 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
 
         if (tutor == null)
         {
+            await TutorOnboarding.EnsureApprovedAsync(_context, userId, cancellationToken);
             throw new NotFoundException("Tutor profile not found for this user account.");
         }
 

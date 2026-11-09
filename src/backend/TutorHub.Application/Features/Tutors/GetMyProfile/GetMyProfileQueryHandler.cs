@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Features.Tutors.Common;
 using TutorHub.Application.Features.Tutors.DTOs;
 using TutorHub.Domain.Enums;
 
@@ -31,7 +32,8 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, Tutor
 
         if (tutor == null)
         {
-            throw new NotFoundException("Tutor profile not found for this user account. You may need to submit an application first.");
+            await TutorOnboarding.EnsureApprovedAsync(_context, userId, cancellationToken);
+            throw new NotFoundException("Tutor profile not found for this user account.");
         }
 
         var latestApplication = await _context.TutorApplications
