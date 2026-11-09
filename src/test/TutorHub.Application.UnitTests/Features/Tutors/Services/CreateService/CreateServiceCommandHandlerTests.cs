@@ -255,12 +255,50 @@ public class CreateServiceCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ProfileNotFound_ShouldThrowNotFoundException()
+    public async Task Handle_NoApplication_ShouldThrowForbiddenException()
     {
-        // Arrange
+        // Arrange: a tutor account that has never submitted an application.
         _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorProfile>()).Object);
+        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication>()).Object);
 
         _currentUser.Set(Guid.NewGuid(), UserRole.Tutor);
+        var command = new CreateServiceCommand(
+            SubjectId: Guid.NewGuid(),
+            Title: "Title",
+            Description: "Desc",
+            ShortDescription: null,
+            Tags: null,
+            LearningScope: null,
+            ExpectedOutcome: null,
+            TotalSessions: 5,
+            SessionDurationMinutes: 60,
+            Price: 1000000m,
+            TrialLessonUrl: null,
+            TrialVideoUrl: null,
+            CoverImageUrl: null
+        );
+
+        // Act
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        // Assert: onboarding gate explains the real state instead of "profile not found".
+        var ex = await act.Should().ThrowAsync<ForbiddenException>();
+        ex.Which.Errors.Should().Contain("You have not submitted a tutor application yet. Submit your application first.");
+        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ApprovedButProfileMissing_ShouldThrowNotFoundException()
+    {
+        // Arrange: approved application without a profile is an inconsistent state.
+        var userId = Guid.NewGuid();
+        var approvedApp = new TutorApplication { Id = Guid.NewGuid(), UserId = userId };
+        approvedApp.Approve(Guid.NewGuid());
+
+        _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorProfile>()).Object);
+        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { approvedApp }).Object);
+
+        _currentUser.Set(userId, UserRole.Tutor);
         var command = new CreateServiceCommand(
             SubjectId: Guid.NewGuid(),
             Title: "Title",
@@ -288,12 +326,13 @@ public class CreateServiceCommandHandlerTests
     [Fact]
     public async Task Handle_TutorNotApproved_ShouldThrowForbiddenException()
     {
-        // Arrange
+        // Arrange: application submitted but still waiting for an admin.
         var user = new UserBuilder().WithRole(UserRole.Tutor).Build();
         var tutorProfile = new TutorProfile { Id = Guid.NewGuid(), UserId = user.Id };
+        var pendingApp = new TutorApplication { Id = Guid.NewGuid(), UserId = user.Id };
 
         _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorProfile> { tutorProfile }).Object);
-        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication>()).Object);
+        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { pendingApp }).Object);
 
         _currentUser.Set(user.Id, UserRole.Tutor);
         var command = new CreateServiceCommand(
@@ -317,7 +356,45 @@ public class CreateServiceCommandHandlerTests
 
         // Assert
         var ex = await act.Should().ThrowAsync<ForbiddenException>();
-        ex.Which.Errors.Should().Contain("Only approved tutors can create services.");
+        ex.Which.Errors.Should().Contain("Your tutor application is still under review. This feature unlocks once an admin approves it.");
+        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_RejectedApplication_ShouldThrowForbiddenException()
+    {
+        // Arrange: latest application was rejected and not resubmitted yet.
+        var user = new UserBuilder().WithRole(UserRole.Tutor).Build();
+        var tutorProfile = new TutorProfile { Id = Guid.NewGuid(), UserId = user.Id };
+        var rejectedApp = new TutorApplication { Id = Guid.NewGuid(), UserId = user.Id };
+        rejectedApp.Reject("Documents are unreadable.", Guid.NewGuid());
+
+        _contextMock.Setup(c => c.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorProfile> { tutorProfile }).Object);
+        _contextMock.Setup(c => c.TutorApplications).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorApplication> { rejectedApp }).Object);
+
+        _currentUser.Set(user.Id, UserRole.Tutor);
+        var command = new CreateServiceCommand(
+            SubjectId: Guid.NewGuid(),
+            Title: "Title",
+            Description: "Desc",
+            ShortDescription: null,
+            Tags: null,
+            LearningScope: null,
+            ExpectedOutcome: null,
+            TotalSessions: 5,
+            SessionDurationMinutes: 60,
+            Price: 1000000m,
+            TrialLessonUrl: null,
+            TrialVideoUrl: null,
+            CoverImageUrl: null
+        );
+
+        // Act
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        var ex = await act.Should().ThrowAsync<ForbiddenException>();
+        ex.Which.Errors.Should().Contain("Your tutor application was rejected. Resubmit it to unlock tutor features.");
         _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
