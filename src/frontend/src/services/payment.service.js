@@ -33,15 +33,6 @@ export const paymentService = {
   },
 
   /**
-   * POST /dev/payments/simulate-ipn body { bookingId, success } → SimulatedPaymentDto
-   * Chỉ hoạt động ở Development (backend dev simulator).
-   */
-  async simulateIpn(bookingId, success = true) {
-    const res = await api.post('/dev/payments/simulate-ipn', { bookingId, success });
-    return res;
-  },
-
-  /**
    * GET /payments/vnpay/return → PaymentResultDto
    * { success, status, message, bookingId, merchantReference, transactionNo, amount }
    * Backend verifies and settles the signed callback; success requires committed activation.

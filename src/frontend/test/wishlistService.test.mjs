@@ -84,24 +84,3 @@ test('wishlistService: toggleWishlist posts itemType and itemId', async () => {
     apiClient.post = originalPost;
   }
 });
-
-test('wishlistService: removeWishlistItem sends DELETE with path params', async () => {
-  const originalDelete = apiClient.delete;
-  try {
-    let capturedUrl = '';
-    apiClient.delete = async (url) => {
-      capturedUrl = url;
-      return {
-        data: {
-          data: true,
-        },
-      };
-    };
-
-    const res = await wishlistService.removeWishlistItem('Tutor', 'tutor-456');
-    assert.equal(capturedUrl, '/api/v1/wishlist/Tutor/tutor-456');
-    assert.equal(res, true);
-  } finally {
-    apiClient.delete = originalDelete;
-  }
-});

@@ -28,12 +28,6 @@ export const sessionService = {
     return res;
   },
 
-  /** POST /sessions/{id}/report-issue body { reason, description } → SessionDto */
-  async reportSessionIssue(id, reason, description) {
-    const res = await api.post(`/sessions/${id}/report-issue`, { reason, description });
-    return res;
-  },
-
   /** POST /sessions/{id}/schedule body { startAt, endAt } → SessionDto */
   async scheduleSession(id, startAt, endAt) {
     const res = await api.post(`/sessions/${id}/schedule`, { startAt, endAt });

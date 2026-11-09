@@ -298,9 +298,6 @@ public class Session
         ResolutionSource = "SingleSessionCancel";
     }
 
-    [Obsolete("Use Cancel(reason, now) instead.")]
-    public void CancelSingle(string reason, DateTime now) => Cancel(reason, now);
-
     /// <summary>
     /// Cancels the session. Called by Enrollment.Cancel() for bulk cancellation.
     /// </summary>

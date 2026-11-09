@@ -49,7 +49,4 @@ export const mediaService = {
     body.append('mediaType', 'Certificate');
     return api.post('/media/upload', body, { headers: { 'Content-Type': 'multipart/form-data' } });
   },
-  async getDownloadUrl(id) {
-    return api.get(`/media/${id}/download-url`);
-  },
 };

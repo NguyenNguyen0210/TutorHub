@@ -2,12 +2,6 @@ import { api } from './api';
 import { safeReturnUrl } from '../utils/authRedirect';
 
 export const externalAuthService = {
-  async getProviders() {
-    const res = await api.get('/auth/oauth/providers');
-    const providers = Array.isArray(res?.providers) ? res.providers : [];
-    return { providers, enabled: res?.enabled === true && providers.length > 0 };
-  },
-
   async startGoogleLogin(returnUrl) {
     const res = await api.get('/auth/oauth/google/start');
     if (!res?.authorizeUrl || !res?.state) {

@@ -249,14 +249,6 @@ export const tutorService = {
     return normalizeTutorProfile(res);
   },
 
-  /** GET /tutors/{id}/services → ServiceSummaryDto[] */
-  async getTutorServices(id) {
-    const res = await api.get(`/tutors/${id}/services`);
-    if (Array.isArray(res)) return res.map(normalizeServiceSummary);
-    if (Array.isArray(res?.items)) return res.items.map(normalizeServiceSummary);
-    return [];
-  },
-
   /** GET /tutors/{id}/busy-slots → TutorBusySlotDto[] */
   async getTutorBusySlots(id, params = {}) {
     const res = await api.get(`/tutors/${id}/busy-slots`, { params });

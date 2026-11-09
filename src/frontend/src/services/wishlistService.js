@@ -17,11 +17,6 @@ export const wishlistService = {
     const response = await apiClient.post('/api/v1/wishlist/toggle', { itemType, itemId });
     return response.data?.data;
   },
-
-  async removeWishlistItem(itemType, itemId) {
-    const response = await apiClient.delete(`/api/v1/wishlist/${itemType}/${itemId}`);
-    return response.data?.data;
-  },
 };
 
 export default wishlistService;
