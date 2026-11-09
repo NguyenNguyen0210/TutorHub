@@ -151,24 +151,14 @@ docker compose up -d postgres redis
 
 Default PostgreSQL settings are database/user/password `tutorhub`, exposed on host port `5433`. Redis is exposed on `6379`. If you customize database credentials, keep the API connection string consistent with the PostgreSQL volume's existing credentials.
 
-### 3. Initialize a local demo database
-
-For an empty application database:
+### 3. Apply migrations
 
 ```powershell
 dotnet restore src/backend/TutorHub.sln
-dotnet run --project src/backend/TutorHub.Api --launch-profile http -- --seed-demo
+dotnet ef database update --project src/backend/TutorHub.Infrastructure --startup-project src/backend/TutorHub.Api
 ```
 
-This command applies EF Core migrations and creates three demo accounts, a published learning package, and a student wallet. It only runs in Development against localhost PostgreSQL. It refuses unrelated existing application data; rerunning with the demo accounts already present leaves accounts and balances unchanged.
-
-| Role | Email | Password |
-| --- | --- | --- |
-| Administrator | `admin.demo@tutorhub.local` | `Demo@12345` |
-| Tutor | `tutor.demo@tutorhub.local` | `Demo@12345` |
-| Student | `student.demo@tutorhub.local` | `Demo@12345` |
-
-The student starts with **1,000,000 fictional VND** for wallet-based purchases. These are local demonstration accounts and balances, not real deposits. No external SQL files or local utility scripts are required.
+This creates the schema in the local database (`dotnet tool install --global dotnet-ef` once if the EF CLI is missing). The Compose API service applies the same migrations on startup through `Database__MigrateOnStartup`.
 
 ### 4. Run the API
 
@@ -330,7 +320,6 @@ This starts the API, PostgreSQL, and Redis; host the frontend separately. From `
 [Production Compose](docker-compose.prod.yml) and the [production environment template](.env.production.example) provide the deployment configuration starting point.
 
 - The local Compose API service exposes host port `8080`, uses internal PostgreSQL/Redis hostnames, and enables startup migrations. The frontend is run separately.
-- The `--seed-demo` command is intended for host-based local development; its localhost restriction excludes the Compose PostgreSQL hostname.
 - Outside Development, provide configuration through deployment environment variables, including valid SMTP and allowed browser origins. Swagger is Development-only.
 - Configure trusted reverse proxy IPs through `ReverseProxy__KnownProxies__0`, `ReverseProxy__KnownProxies__1`, and so on.
 - Use `/health` for dependency readiness and `/health/live` for process liveness.
