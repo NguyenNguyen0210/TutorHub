@@ -1,3 +1,4 @@
+import { SUPPORT_HOURS } from '@/content/servicePolicies';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mail } from 'lucide-react';
@@ -65,7 +66,7 @@ export default function PublicFooter() {
               <span className="break-all font-medium">support@tutorhub.vn</span>
             </a>
             <p className="mt-2 text-xs leading-5 text-slate-500">
-              Hỗ trợ học viên &amp; gia sư từ 8:00 đến 21:00 hàng ngày.
+              Hỗ trợ học viên &amp; gia sư trong khung giờ {SUPPORT_HOURS}.
             </p>
           </section>
         </div>

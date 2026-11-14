@@ -1,3 +1,5 @@
+import ApprovedProfileBadge from '@/components/discovery/ApprovedProfileBadge';
+import { reviewSummary } from '@/utils/reviewSummary';
 import { userFacingError } from '@/utils/userFacingError';
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
@@ -408,10 +410,7 @@ export default function ServiceDetail() {
                     >
                       {tutor.fullName}
                     </Link>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand-primary-100 text-brand-primary-700">
-                      <Icon name="verified" size="xs" className="w-3.5 h-3.5" />
-                      Gia sư xác thực
-                    </span>
+                    {tutor.isVerified && <ApprovedProfileBadge />}
                   </div>
 
                   {tutor.education && (
@@ -419,7 +418,7 @@ export default function ServiceDetail() {
                   )}
 
                   <div className="flex items-center gap-4 text-xs text-fg-secondary mt-1 flex-wrap">
-                    {Number(tutor.ratingAvg) > 0 && (
+                    {reviewSummary(tutor.ratingAvg, tutor.totalReviews).hasRating && (
                       <span className="flex items-center gap-1 font-bold text-slate-900">
                         <Icon name="star" size="xs" filled className="w-4 h-4 text-amber-500 fill-amber-500" />
                         <span className="tabular-nums">{Number(tutor.ratingAvg).toFixed(1)}</span>

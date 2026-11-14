@@ -19,6 +19,7 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
 
     public async Task<PagedResult<TutorSummaryDto>> Handle(GetTutorsQuery request, CancellationToken cancellationToken)
     {
+        var publicReviews = _context.Reviews.AsNoTracking().Where(r => !r.IsRemoved);
         // Marketplace visibility: Approved Application + Active User + At least one Published Service
         var query = _context.TutorProfiles
             .AsNoTracking()
@@ -59,7 +60,7 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
         // Filter by Minimum Rating
         if (request.MinRating.HasValue)
         {
-            query = query.Where(t => t.RatingAvg >= request.MinRating.Value);
+            query = query.Where(t => (publicReviews.Where(r => r.Enrollment.TutorProfileId == t.Id).Average(r => (decimal?)r.Rating) ?? 0m) >= request.MinRating.Value);
         }
 
         // Filter by Experience Range
@@ -142,10 +143,10 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
         {
             "price_asc" => query.OrderBy(t => t.Services.Where(s => s.Status == ServiceStatus.Published).Min(s => s.Price)).ThenBy(t => t.Id),
             "price_desc" => query.OrderByDescending(t => t.Services.Where(s => s.Status == ServiceStatus.Published).Max(s => s.Price)).ThenBy(t => t.Id),
-            "reviews" => query.OrderByDescending(t => t.TotalReviews).ThenByDescending(t => t.RatingAvg).ThenBy(t => t.Id),
-            "exp_desc" or "experience_desc" => query.OrderByDescending(t => t.ExperienceYears).ThenByDescending(t => t.RatingAvg).ThenBy(t => t.Id),
-            "rating_desc" => query.OrderByDescending(t => t.RatingAvg).ThenByDescending(t => t.TotalReviews).ThenBy(t => t.Id),
-            _ => query.OrderByDescending(t => t.RatingAvg).ThenByDescending(t => t.TotalReviews).ThenBy(t => t.Id)
+            "reviews" => query.OrderByDescending(t => publicReviews.Count(r => r.Enrollment.TutorProfileId == t.Id)).ThenByDescending(t => (publicReviews.Where(r => r.Enrollment.TutorProfileId == t.Id).Average(r => (decimal?)r.Rating) ?? 0m)).ThenBy(t => t.Id),
+            "exp_desc" or "experience_desc" => query.OrderByDescending(t => t.ExperienceYears).ThenByDescending(t => (publicReviews.Where(r => r.Enrollment.TutorProfileId == t.Id).Average(r => (decimal?)r.Rating) ?? 0m)).ThenBy(t => t.Id),
+            "rating_desc" => query.OrderByDescending(t => (publicReviews.Where(r => r.Enrollment.TutorProfileId == t.Id).Average(r => (decimal?)r.Rating) ?? 0m)).ThenByDescending(t => publicReviews.Count(r => r.Enrollment.TutorProfileId == t.Id)).ThenBy(t => t.Id),
+            _ => query.OrderByDescending(t => (publicReviews.Where(r => r.Enrollment.TutorProfileId == t.Id).Average(r => (decimal?)r.Rating) ?? 0m)).ThenByDescending(t => publicReviews.Count(r => r.Enrollment.TutorProfileId == t.Id)).ThenBy(t => t.Id)
         };
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -164,8 +165,8 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
                 t.Bio,
                 t.Education,
                 t.ExperienceYears,
-                t.RatingAvg,
-                t.TotalReviews,
+                (publicReviews.Where(r => r.Enrollment.TutorProfileId == t.Id).Average(r => (decimal?)r.Rating) ?? 0m),
+                publicReviews.Count(r => r.Enrollment.TutorProfileId == t.Id),
                 t.TutorSubjects.Where(ts => ts.IsActive).Select(ts => ts.Subject.Name).ToList(),
                 t.Services.Where(s => s.Status == ServiceStatus.Published).Select(s => (decimal?)s.Price).Min(),
                 t.User.TutorApplications.Any(a => a.Status == TutorApplicationStatus.Approved),

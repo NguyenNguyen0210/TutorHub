@@ -46,6 +46,7 @@ public class AuditRegressionTests
         // An inactive registration must not advertise a subject either.
         physicsTutor.TutorSubjects.Add(new TutorSubject { Subject = math, SubjectId = math.Id, IsActive = false });
         var db = new Mock<IAppDbContext>();
+        db.Setup(x => x.Reviews).Returns(MockDbSetHelper.CreateMockDbSet(new List<Review>()).Object);
         db.Setup(x => x.Subjects).Returns(MockDbSetHelper.CreateMockDbSet(new List<Subject> { math, physics }).Object);
         db.Setup(x => x.TutorProfiles).Returns(MockDbSetHelper.CreateMockDbSet(new List<TutorProfile> { mathTutor, physicsTutor }).Object);
         var result = await new GetTutorsQueryHandler(db.Object).Handle(new GetTutorsQuery(Search: search), default);

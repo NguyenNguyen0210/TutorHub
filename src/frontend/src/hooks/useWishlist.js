@@ -108,7 +108,7 @@ export function useWishlist() {
       } else if (typeof toast?.showToast === 'function') {
         toast.showToast({ title: 'Yêu cầu đăng nhập', message, type: 'info' });
       }
-      const returnUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/';
+      const returnUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search + window.location.hash : '/';
       navigate('/auth/login', { state: { returnUrl } });
       return;
     }

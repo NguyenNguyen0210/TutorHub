@@ -1,3 +1,5 @@
+import ApprovedProfileBadge from '@/components/discovery/ApprovedProfileBadge';
+import { reviewSummary } from '@/utils/reviewSummary';
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import Badge, { Tag } from '@/components/ui/Badge';
@@ -10,7 +12,7 @@ import { useWishlist } from '@/hooks/useWishlist';
  * ProfileHeadline — Khối thông tin cốt lõi của gia sư (Hero Card).
  *
  * Tích hợp ảnh đại diện tiêu chuẩn 140px–160px sắc nét cạnh họ tên,
- * tích xanh xác thực danh tính & bằng cấp, điểm đánh giá với ngôi sao vàng đặc
+ * biểu tượng hồ sơ đã phê duyệt, điểm đánh giá với ngôi sao vàng đặc
  * và các thông tin uy tín được trình bày mạch lạc, không trùng lặp.
  */
 export default function ProfileHeadline({ tutor }) {
@@ -24,12 +26,11 @@ export default function ProfileHeadline({ tutor }) {
 
   const services = Array.isArray(tutor.services) ? tutor.services : [];
   const subjects = Array.isArray(tutor.subjects) ? tutor.subjects : [];
-  const ratingValue = Number(tutor.ratingAvg);
-  const hasRating = Number.isFinite(ratingValue) && ratingValue > 0;
+  const { rating: ratingValue, hasRating } = reviewSummary(tutor.ratingAvg, tutor.totalReviews);
   const accepting = services.length > 0;
   const avatarUrl = tutor.avatarUrl;
   const hasAvatar = Boolean(avatarUrl) && !imgError;
-  const isVerified = tutor.isVerified ?? true;
+  const isVerified = Boolean(tutor.isVerified);
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -92,15 +93,7 @@ export default function ProfileHeadline({ tutor }) {
             <h1 className="text-headline-page sm:text-[32px] leading-[1.15] font-bold text-fg tracking-tight">
               {tutor.fullName}
             </h1>
-            {isVerified && (
-              <span
-                className="inline-flex items-center text-blue-600 fill-blue-600 shrink-0"
-                title="Gia sư đã xác thực danh tính & bằng cấp"
-              >
-                <Icon name="verified" size="md" filled className="text-blue-600 fill-blue-600" />
-                <span className="sr-only">Đã xác minh</span>
-              </span>
-            )}
+            {isVerified && <ApprovedProfileBadge />}
           </div>
 
           {/* Học vấn / bằng cấp chính */}

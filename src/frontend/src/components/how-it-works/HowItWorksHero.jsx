@@ -6,7 +6,7 @@ import HowItWorksHeroVisual from './HowItWorksHeroVisual';
 export const TRUST_POINTS = [
   {
     icon: 'verified_user',
-    title: 'Hồ sơ được xác thực',
+    title: 'Hồ sơ được phê duyệt',
     description: 'Thông tin chuyên môn, chứng chỉ và bằng cấp được xét duyệt chặt chẽ.',
   },
   {
@@ -94,7 +94,7 @@ export default function HowItWorksHero() {
             {/* Dòng cam kết cốt lõi */}
             <div className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] font-semibold text-slate-500 sm:text-[13px]">
               <span>Cam kết:</span>
-              <span className="text-slate-800">Hồ sơ xác thực</span>
+              <span className="text-slate-800">Hồ sơ đã phê duyệt</span>
               <span className="text-blue-300" aria-hidden="true">•</span>
               <span className="text-slate-800">Tiến độ minh bạch</span>
               <span className="text-blue-300" aria-hidden="true">•</span>

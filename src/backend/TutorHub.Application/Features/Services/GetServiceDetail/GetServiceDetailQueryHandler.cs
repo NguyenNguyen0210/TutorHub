@@ -39,15 +39,32 @@ public class GetServiceDetailQueryHandler : IRequestHandler<GetServiceDetailQuer
             },
             cancellationToken);
 
-        // 2. If cached and caller is NOT the owner -> return cached data immediately
+        // 2. Reuse cached content for non-owners, with current cross-package tutor ratings.
         bool isOwner = cached is not null && request.CurrentUserId.HasValue && cached.Tutor.UserId == request.CurrentUserId.Value;
         if (cached is not null && !isOwner)
         {
-            return cached;
+            // A review on another package can change the tutor's rating without
+            // invalidating this package's cached content.
+            var (rating, count) = await GetTutorRatingAsync(cached.Tutor.TutorProfileId, cancellationToken);
+            return cached with { Tutor = cached.Tutor with
+            {
+                RatingAvg = rating,
+                TotalReviews = count
+            } };
         }
 
         // 3. Fallback to DB (Owner preview for live edits/metrics, or draft services not in public cache)
         return await LoadFromDbAsync(request.Id, request.CurrentUserId, cancellationToken);
+    }
+
+    private async Task<(decimal Rating, int Count)> GetTutorRatingAsync(Guid tutorProfileId, CancellationToken cancellationToken)
+    {
+        var stats = await _context.Reviews.AsNoTracking()
+            .Where(r => !r.IsRemoved && r.Enrollment.TutorProfileId == tutorProfileId)
+            .GroupBy(r => r.Enrollment.TutorProfileId)
+            .Select(group => new { Rating = Math.Round(group.Average(r => (decimal)r.Rating), 2), Count = group.Count() })
+            .FirstOrDefaultAsync(cancellationToken);
+        return (stats?.Rating ?? 0m, stats?.Count ?? 0);
     }
 
     private async Task<ServiceDetailDto> LoadFromDbAsync(Guid serviceId, Guid? currentUserId, CancellationToken cancellationToken)
@@ -104,7 +121,7 @@ public class GetServiceDetailQueryHandler : IRequestHandler<GetServiceDetailQuer
             .Distinct()
             .CountAsync(cancellationToken);
 
-        // Fetch recent reviews for this service (or fallback to tutor's reviews if brand new service)
+        // Visible reviews for this package only; tutor ratings are computed separately.
         var reviewsQuery = _context.Reviews
             .AsNoTracking()
             .Include(r => r.Enrollment)
@@ -147,6 +164,8 @@ public class GetServiceDetailQueryHandler : IRequestHandler<GetServiceDetailQuer
 
         double satisfactionRate = ratings.Count == 0 ? 0 : Math.Round(100.0 * ratings.Count(r => r >= 4) / ratings.Count, 1);
 
+        var (tutorRating, tutorReviewCount) = await GetTutorRatingAsync(service.TutorProfileId, cancellationToken);
+
         var tutorSnapshot = new ServiceTutorSnapshotDto(
             service.TutorProfileId,
             service.TutorProfile.UserId,
@@ -155,8 +174,8 @@ public class GetServiceDetailQueryHandler : IRequestHandler<GetServiceDetailQuer
             service.TutorProfile.Bio,
             service.TutorProfile.Education,
             service.TutorProfile.ExperienceYears,
-            service.TutorProfile.RatingAvg,
-            service.TutorProfile.TotalReviews,
+            tutorRating,
+            tutorReviewCount,
             totalStudentsTaught,
             service.TutorProfile.User.TutorApplications.Any(a => a.Status == TutorApplicationStatus.Approved)
         );

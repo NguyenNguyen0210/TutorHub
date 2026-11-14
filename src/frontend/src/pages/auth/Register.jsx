@@ -281,7 +281,7 @@ export default function Register() {
             {/* Dòng đặc quyền / cam kết cốt lõi tinh gọn (không đẩy ảnh xuống quá thấp) */}
             <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] font-semibold text-neutral-500 sm:text-[12.5px]">
               <span>{isTutor ? 'Đặc quyền:' : 'Cam kết:'}</span>
-              <span className="text-neutral-800">{isTutor ? 'Tự đặt học phí' : 'Gia sư xác thực'}</span>
+              <span className="text-neutral-800">{isTutor ? 'Tự đặt học phí' : 'Hồ sơ đã phê duyệt'}</span>
               <span className="text-brand-primary-300" aria-hidden="true">•</span>
               <span className="text-neutral-800">{isTutor ? 'Linh hoạt lịch dạy' : 'Tiến độ minh bạch'}</span>
               <span className="text-brand-primary-300" aria-hidden="true">•</span>

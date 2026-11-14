@@ -622,7 +622,7 @@ export default function Marketplace() {
                 className="mkt-chip"
               >
                 <Icon name="payments" size="xs" strokeWidth={1.7} className="h-3.5 w-3.5" />
-                <span>Dưới 1 triệu</span>
+                <span>Đến 1 triệu</span>
               </button>
 
               <button

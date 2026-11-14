@@ -520,7 +520,7 @@ export default function ServicesMarketplace() {
                 }`}
               >
                 <Icon name="payments" size="xs" className="w-3.5 h-3.5" />
-                <span>Dưới 1 triệu</span>
+                <span>Đến 1 triệu</span>
               </button>
               <button
                 type="button"

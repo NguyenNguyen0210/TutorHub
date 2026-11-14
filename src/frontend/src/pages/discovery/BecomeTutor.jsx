@@ -1,3 +1,4 @@
+import { TUTOR_REVIEW_TIME } from '@/content/servicePolicies';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/ui/Icon';
@@ -43,7 +44,7 @@ const STEPS = [
     num: 2,
     icon: 'verified_user',
     title: 'Xác minh & phê duyệt',
-    desc: 'Đội ngũ TutorHub sẽ xem xét hồ sơ và bằng cấp của bạn trong 1–3 ngày làm việc.',
+    desc: `Đội ngũ TutorHub sẽ xem xét hồ sơ và bằng cấp của bạn trong ${TUTOR_REVIEW_TIME}.`,
   },
   {
     num: 3,
@@ -338,7 +339,7 @@ export default function BecomeTutor() {
                   Sẵn sàng chia sẻ tri thức?
                 </h2>
                 <p className="mt-2.5 text-[15px] sm:text-[16px] text-slate-600 leading-relaxed">
-                  Đăng ký miễn phí, xét duyệt trong 1–3 ngày làm việc. Thu nhập minh bạch qua ví bảo chứng an toàn của TutorHub.
+                  Đăng ký miễn phí, xét duyệt trong {TUTOR_REVIEW_TIME}. Thu nhập minh bạch qua ví bảo chứng an toàn của TutorHub.
                 </p>
               </div>
 

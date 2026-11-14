@@ -34,10 +34,10 @@ public class ServiceDetailCacheService : IServiceDetailCacheService
         Guid serviceId,
         Func<Task<ServiceDetailDto?>> factory,
         CancellationToken cancellationToken = default) =>
-        GetOrCreateAsync($"service:detail:v3:{serviceId:D}", factory, DetailTtl, cancellationToken);
+        GetOrCreateAsync($"service:detail:v4:{serviceId:D}", factory, DetailTtl, cancellationToken);
 
     public Task InvalidateServiceDetailAsync(Guid serviceId, CancellationToken cancellationToken = default) =>
-        TryRemoveAsync($"service:detail:v3:{serviceId:D}", cancellationToken);
+        TryRemoveAsync($"service:detail:v4:{serviceId:D}", cancellationToken);
 
     private async Task<T?> GetOrCreateAsync<T>(
         string key,
