@@ -5,6 +5,7 @@ import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tansta
 import { cn } from '@/lib/cn';
 import chatService, { createChatHubConnection } from '@/services/chat.service';
 import { startHubConnection } from '@/services/signalrConnection';
+import { includeActiveConversation } from '@/utils/chatInbox';
 import enrollmentService from '@/services/enrollment.service';
 import tutorService from '@/services/tutor.service';
 import { useAuthStore } from '@/store/authStore';
@@ -99,10 +100,9 @@ export default function Messages() {
     },
     refetchInterval: 30000,
   });
-  const conversations = (conversationQuery.data || []).filter(item => item.lastMessageId);
-  const listedConversation = conversations.find(item => item.id === activeConversationId);
-  // An empty composer is opened independently from the inbox, so opening a
-  // contact never adds a blank conversation to either participant's list.
+  const inbox = (conversationQuery.data || []).filter(item => item.lastMessageId);
+  const listedConversation = inbox.find(item => item.id === activeConversationId);
+  // Show the opened contact immediately without exposing other empty threads.
   const requestedConversationQuery = useQuery({
     queryKey: ['chat', 'conversation', currentUserId, activeConversationId],
     enabled: Boolean(currentUserId && activeConversationId && !listedConversation),
@@ -110,6 +110,7 @@ export default function Messages() {
     retry: false,
   });
   const activeConv = listedConversation || requestedConversationQuery.data;
+  const conversations = includeActiveConversation(inbox, activeConv);
   const hasActiveConversation = Boolean(activeConv);
   const waitingForRequested = activeConversationId && !activeConv && requestedConversationQuery.isLoading;
   const hasConversations = conversations.length > 0;

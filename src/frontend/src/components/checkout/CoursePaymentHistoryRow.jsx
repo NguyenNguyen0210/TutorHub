@@ -4,6 +4,7 @@ import Badge from '@/components/ui/Badge';
 import Money from '@/components/ui/Money';
 import { formatDateTime } from '@/utils/formatters';
 import { summarizeTuition } from '@/utils/studentDashboard';
+import { coursePaymentSource } from '@/utils/coursePaymentSource';
 
 export default function CoursePaymentHistoryRow({ payment, focused = false }) {
   const enrollment = payment.enrollment;
@@ -13,8 +14,7 @@ export default function CoursePaymentHistoryRow({ payment, focused = false }) {
     : payment.status === 'Pending' ? { label: ['Expired', 'Cancelled'].includes(payment.bookingStatus) ? 'Chưa thanh toán' : 'Chờ xác nhận', tone: 'neutral' }
     : { label: 'Chưa có thông tin', tone: 'neutral' };
   const reference = payment.paymentGatewayRef || '';
-  const source = reference.startsWith('STUDENT_WALLET:') ? 'Ví học viên'
-    : /^THB\d{12}[A-Z0-9]{6}(?:\||$)/.test(reference) || reference.startsWith('VNPAY') ? 'VNPAY' : 'Chưa có thông tin';
+  const source = coursePaymentSource(payment);
   const tuition = enrollment ? summarizeTuition([enrollment]) : null;
   let escrow = { label: 'Chưa có thông tin', tone: 'neutral' };
   if (!captured) escrow = { label: 'Không áp dụng', tone: 'neutral' };

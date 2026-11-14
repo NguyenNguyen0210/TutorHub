@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Notifications;
 
 namespace TutorHub.Application.Features.Notifications.GetUnreadNotificationCount;
 
@@ -31,6 +32,7 @@ public class GetUnreadNotificationCountQueryHandler : IRequestHandler<GetUnreadN
 
         return await _dbContext.Notifications
             .AsNoTracking()
-            .CountAsync(n => n.UserId == currentUserId && !n.IsRead, cancellationToken);
+            .VisibleToUser(currentUserId)
+            .CountAsync(n => !n.IsRead, cancellationToken);
     }
 }

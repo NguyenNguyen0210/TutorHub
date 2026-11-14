@@ -654,6 +654,7 @@ public class BusinessEventNotificationHandler :
         }
 
         var now = _clock.UtcNow;
+        var deduplicationKey = NotificationIdentity.ForEvent(domainEvent);
         var notificationsToInsert = new List<Notification>();
         var emailDeliveriesToInsert = new List<EmailDelivery>();
 
@@ -670,6 +671,8 @@ public class BusinessEventNotificationHandler :
         foreach (var (userId, title, message, deepLink) in recipientList)
         {
             if (!users.TryGetValue(userId, out var user)) continue;
+            if (await _dbContext.Notifications.AnyAsync(n => n.UserId == userId &&
+                n.Type == domainEvent.EventType && n.DeduplicationKey == deduplicationKey, cancellationToken)) continue;
 
             var notification = new Notification
             {
@@ -705,7 +708,7 @@ public class BusinessEventNotificationHandler :
                 },
                 IsCritical = isCritical,
                 EventId = domainEvent.EventId,
-                DeduplicationKey = $"event:{domainEvent.EventId}",
+                DeduplicationKey = deduplicationKey,
                 CreatedAt = now
             };
 

@@ -21,5 +21,6 @@ public record UserTransactionDto(
     public string? ServiceTitle { get; init; }
     public BookingStatus BookingStatus { get; init; }
     public Guid? EnrollmentId { get; init; }
+    public string? PaymentSource { get; init; }
     public decimal? CommissionAmount => PlatformFeeAmount;
 }

@@ -5,7 +5,7 @@ import { cn } from '@/lib/cn';
 import notificationService from '@/services/notification.service';
 import { formatRelativeTime, formatDateTime } from '@/utils/formatters';
 import { presentNotification } from '@/utils/notificationPresentation';
-import { WORKSPACE_ACTIVITY_CHANGED } from '@/utils/workspaceActivity';
+import { WORKSPACE_ACTIVITY_CHANGED, notifyWorkspaceActivityChanged } from '@/utils/workspaceActivity';
 import { useToast } from '@/components/ui/Toast';
 import Card from '@/components/ui/Card';
 import Button, { IconButton } from '@/components/ui/Button';
@@ -63,6 +63,7 @@ export default function Notifications() {
     } : previous);
     queryClient.setQueryData(countKey, previous => typeof previous === 'number' ? id ? Math.max(0, previous - 1) : 0 : previous);
     queryClient.invalidateQueries({ queryKey: rootKey });
+    notifyWorkspaceActivityChanged({ userId, unreadNotifications: queryClient.getQueryData(countKey) });
   };
   const markOne = useMutation({
     mutationFn: async ({ item }) => {

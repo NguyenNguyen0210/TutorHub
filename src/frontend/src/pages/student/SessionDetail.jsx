@@ -158,7 +158,8 @@ export default function SessionDetail() {
     if (openingChat) return;
     setOpeningChat(true);
     try {
-      const contract = enrollment || await enrollmentService.getEnrollmentById(session.enrollmentId);
+      const knownTarget = isTutor ? enrollment?.studentUserId : enrollment?.tutorUserId;
+      const contract = knownTarget ? enrollment : await enrollmentService.getEnrollmentById(session.enrollmentId);
       const targetUserId = isTutor ? contract.studentUserId : contract.tutorUserId
         || (await tutorService.getTutorById(contract.tutorProfileId)).userId;
       if (!targetUserId) throw new Error();
@@ -412,7 +413,7 @@ export default function SessionDetail() {
             <p className="text-caption text-fg-secondary">{isTutor ? 'Học viên' : 'Gia sư phụ trách'}</p>
             <p className="text-body-reg font-semibold text-fg break-words">{participantName || (isTutor ? 'Học viên của lớp' : 'Chưa có thông tin gia sư')}</p>
           </div>
-          <Button variant="outline" size="sm" className={isTutor ? 'w-full sm:w-auto' : undefined} disabled={isTutor && !enrollment?.studentUserId} onClick={messageParticipant} loading={openingChat} icon={<Icon name="chat" size="xs" />}>{isTutor ? 'Nhắn tin học viên' : 'Nhắn tin'}</Button>
+          <Button variant="outline" size="sm" className={isTutor ? 'w-full sm:w-auto' : undefined} onClick={messageParticipant} loading={openingChat} icon={<Icon name="chat" size="xs" />}>{isTutor ? 'Nhắn tin học viên' : 'Nhắn tin'}</Button>
         </div>
       </Card>
 

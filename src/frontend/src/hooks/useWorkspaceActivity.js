@@ -12,10 +12,12 @@ export function useWorkspaceActivity(userId, pathname) {
     let cancelled = false;
     let running = false;
     let queued = false;
+    let notificationVersion = 0;
     async function refresh() {
       if (document.hidden || cancelled) return;
       if (running) { queued = true; return; }
       running = true;
+      const version = notificationVersion;
       const results = await Promise.allSettled([
         notificationService.getUnreadCount(),
         (async () => {
@@ -35,7 +37,7 @@ export function useWorkspaceActivity(userId, pathname) {
       if (!cancelled) {
         setSnapshot(previous => ({
           userId,
-          notifications: results[0].status === 'fulfilled' ? results[0].value : previous.userId === userId ? previous.notifications : 0,
+          notifications: version === notificationVersion && results[0].status === 'fulfilled' ? results[0].value : previous.userId === userId ? previous.notifications : 0,
           conversations: results[1].status === 'fulfilled' ? results[1].value : previous.userId === userId ? previous.conversations : 0,
         }));
       }
@@ -43,15 +45,26 @@ export function useWorkspaceActivity(userId, pathname) {
       if (queued && !cancelled) { queued = false; refresh(); }
     }
     refresh();
+    const activityChanged = event => {
+      const count = event.detail?.unreadNotifications;
+      if (event.detail?.userId === userId && Number.isInteger(count) && count >= 0) {
+        notificationVersion++;
+        setSnapshot(previous => ({
+          userId, notifications: count,
+          conversations: previous.userId === userId ? previous.conversations : 0,
+        }));
+      }
+      refresh();
+    };
     const interval = window.setInterval(refresh, 30000);
     window.addEventListener('focus', refresh);
-    window.addEventListener(WORKSPACE_ACTIVITY_CHANGED, refresh);
+    window.addEventListener(WORKSPACE_ACTIVITY_CHANGED, activityChanged);
     document.addEventListener('visibilitychange', refresh);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
       window.removeEventListener('focus', refresh);
-      window.removeEventListener(WORKSPACE_ACTIVITY_CHANGED, refresh);
+      window.removeEventListener(WORKSPACE_ACTIVITY_CHANGED, activityChanged);
       document.removeEventListener('visibilitychange', refresh);
     };
   }, [userId, pathname]);

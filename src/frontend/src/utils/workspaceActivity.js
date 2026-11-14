@@ -1,7 +1,7 @@
 export const WORKSPACE_ACTIVITY_CHANGED = 'tutorhub:workspace-activity-changed';
 
-export function notifyWorkspaceActivityChanged() {
-  window.dispatchEvent(new Event(WORKSPACE_ACTIVITY_CHANGED));
+export function notifyWorkspaceActivityChanged(detail) {
+  window.dispatchEvent(new CustomEvent(WORKSPACE_ACTIVITY_CHANGED, { detail }));
 }
 
 export function notificationDestination(link, role) {

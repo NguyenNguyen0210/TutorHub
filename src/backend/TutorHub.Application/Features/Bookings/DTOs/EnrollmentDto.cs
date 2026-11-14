@@ -23,5 +23,7 @@ public record EnrollmentDto(
     List<SessionDto> Sessions,
     decimal PlatformFeeRate = 0.10m,
     string? ServiceTitle = null,
-    bool ServiceArchived = false
+    bool ServiceArchived = false,
+    Guid? TutorUserId = null,
+    Guid? StudentUserId = null
 );

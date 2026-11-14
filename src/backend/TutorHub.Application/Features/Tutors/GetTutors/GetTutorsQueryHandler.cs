@@ -110,16 +110,31 @@ public class GetTutorsQueryHandler : IRequestHandler<GetTutorsQuery, PagedResult
         // Search by keyword (tutor full name, service title, subject name, or category name)
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            // Term normalization is client-side by design; DB unaccent is authoritative column-side.
-            var pattern = "%" + VietnameseSearch.EscapeLikePattern(VietnameseSearch.NormalizeTerm(request.Search)) + "%";
-            query = query.Where(t =>
-                EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.User.FullName)!.ToLower(), pattern, @"\") ||
-                t.Services.Any(s => s.Status == ServiceStatus.Published && (
-                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Title)!.ToLower(), pattern, @"\") ||
-                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Subject.Name)!.ToLower(), pattern, @"\"))) ||
-                t.TutorSubjects.Any(ts => ts.IsActive && (
-                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(ts.Subject.Name)!.ToLower(), pattern, @"\") ||
-                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(ts.Subject.Category.Name)!.ToLower(), pattern, @"\"))));
+            var term = VietnameseSearch.NormalizeTerm(request.Search);
+            // A subject query must match a subject actually taught, rather than
+            // a broad parent category or incidental words in a package title.
+            var subjectIds = await _context.Subjects.AsNoTracking()
+                .Where(s => VietnameseSearch.UnaccentImmutable(s.Name)!.ToLower() == term ||
+                    VietnameseSearch.UnaccentImmutable(s.Name)!.ToLower().StartsWith(term + " "))
+                .Select(s => s.Id).ToListAsync(cancellationToken);
+            if (subjectIds.Count > 0)
+            {
+                query = query.Where(t =>
+                    t.Services.Any(s => s.Status == ServiceStatus.Published && subjectIds.Contains(s.SubjectId)) ||
+                    t.TutorSubjects.Any(ts => ts.IsActive && subjectIds.Contains(ts.SubjectId)));
+            }
+            else
+            {
+                var pattern = "%" + VietnameseSearch.EscapeLikePattern(term) + "%";
+                query = query.Where(t =>
+                    EF.Functions.Like(VietnameseSearch.UnaccentImmutable(t.User.FullName)!.ToLower(), pattern, @"\") ||
+                    t.Services.Any(s => s.Status == ServiceStatus.Published && (
+                        EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Title)!.ToLower(), pattern, @"\") ||
+                        EF.Functions.Like(VietnameseSearch.UnaccentImmutable(s.Subject.Name)!.ToLower(), pattern, @"\"))) ||
+                    t.TutorSubjects.Any(ts => ts.IsActive && (
+                        EF.Functions.Like(VietnameseSearch.UnaccentImmutable(ts.Subject.Name)!.ToLower(), pattern, @"\") ||
+                        EF.Functions.Like(VietnameseSearch.UnaccentImmutable(ts.Subject.Category.Name)!.ToLower(), pattern, @"\"))));
+            }
         }
 
         // Sorting (deterministic: business key first, Id tiebreaker last per repo convention)
