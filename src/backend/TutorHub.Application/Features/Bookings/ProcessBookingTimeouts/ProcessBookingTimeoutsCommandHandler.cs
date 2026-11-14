@@ -8,6 +8,10 @@ namespace TutorHub.Application.Features.Bookings.ProcessBookingTimeouts;
 
 public class ProcessBookingTimeoutsCommandHandler : IRequestHandler<ProcessBookingTimeoutsCommand, int>
 {
+    // Bounds one run so a large backlog cannot turn a single tick into thousands of
+    // sequential transactions (and outlive the worker's distributed lock).
+    private const int MaxBookingsPerRun = 50;
+
     private readonly IAppDbContext _context;
     private readonly ILogger<ProcessBookingTimeoutsCommandHandler> _logger;
     private readonly IClock _clock;
@@ -32,7 +36,9 @@ public class ProcessBookingTimeoutsCommandHandler : IRequestHandler<ProcessBooki
             .Where(b => b.Status == BookingStatus.Holding &&
                         b.HoldingExpiresAt.HasValue &&
                         b.HoldingExpiresAt.Value <= now)
+            .OrderBy(b => b.HoldingExpiresAt)
             .Select(b => b.Id)
+            .Take(MaxBookingsPerRun)
             .ToListAsync(cancellationToken);
 
         foreach (var bookingId in expiredIds)
