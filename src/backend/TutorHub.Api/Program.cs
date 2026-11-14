@@ -366,7 +366,22 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TutorHub API v1"));
 }
 
-app.UseHttpsRedirection();
+// TLS terminates at the platform edge (Railway/Render), and the container only listens
+// on http://+:8080 (see Dockerfile). With no HTTPS endpoint configured, the redirect
+// middleware cannot resolve a port: it logs "Failed to determine the https port for
+// redirect" and answers 500 on every request. Only enable it when an HTTPS endpoint exists.
+var configuredUrls = builder.Configuration["ASPNETCORE_URLS"]
+    ?? builder.Configuration["urls"]
+    ?? string.Empty;
+var hasHttpsEndpoint =
+    !string.IsNullOrWhiteSpace(builder.Configuration["ASPNETCORE_HTTPS_PORT"])
+    || !string.IsNullOrWhiteSpace(builder.Configuration["HTTPS_PORT"])
+    || configuredUrls.Contains("https://", StringComparison.OrdinalIgnoreCase);
+
+if (hasHttpsEndpoint)
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseRouting();
 

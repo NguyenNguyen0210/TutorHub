@@ -17,6 +17,12 @@ public class EmailDeliveryJob : BackgroundService
     public const int LeaseDurationSeconds = 60;
     public const int MaxRetries = 5;
 
+    // Idle polling starts fast so a newly queued email is sent promptly, then backs off
+    // exponentially. Without this the loop issued one query every 3 seconds (~29k queries/day)
+    // even when the queue was empty, which dominated database egress.
+    private static readonly TimeSpan MinIdleDelay = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan MaxIdleDelay = TimeSpan.FromSeconds(30);
+
     private readonly IClock _clock;
 
     public EmailDeliveryJob(
@@ -33,15 +39,24 @@ public class EmailDeliveryJob : BackgroundService
     {
         _logger.LogInformation("EmailDeliveryJob started on worker {WorkerId}", _workerId);
 
+        var idleDelay = MinIdleDelay;
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 var processedCount = await ProcessPendingEmailsBatchAsync(stoppingToken);
-                if (processedCount == 0)
+
+                if (processedCount > 0)
                 {
-                    await Task.Delay(3000, stoppingToken);
+                    // Work was found: reset the backoff and pick up the next batch immediately.
+                    idleDelay = MinIdleDelay;
+                    continue;
                 }
+
+                await Task.Delay(idleDelay, stoppingToken);
+                idleDelay = TimeSpan.FromMilliseconds(
+                    Math.Min(idleDelay.TotalMilliseconds * 2, MaxIdleDelay.TotalMilliseconds));
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -50,7 +65,7 @@ public class EmailDeliveryJob : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error in EmailDeliveryJob loop on worker {WorkerId}", _workerId);
-                await Task.Delay(5000, stoppingToken);
+                await Task.Delay(MaxIdleDelay, stoppingToken);
             }
         }
 
@@ -87,13 +102,11 @@ public class EmailDeliveryJob : BackgroundService
             using var deliveryScope = _scopeFactory.CreateScope();
             var deliveryContext = deliveryScope.ServiceProvider.GetRequiredService<IAppDbContext>();
             var emailSender = deliveryScope.ServiceProvider.GetRequiredService<IEmailSender>();
-            var claimed = await TryClaimLeaseAsync(deliveryContext, deliveryId, _clock.UtcNow, cancellationToken);
-            if (!claimed) continue;
 
-            var delivery = await deliveryContext.EmailDeliveries
-                .FirstOrDefaultAsync(e => e.Id == deliveryId, cancellationToken);
-
-            if (delivery == null) continue;
+            // The claim read already materialises the row, so it is reused for sending.
+            // A second read here used to transfer the body (and every other column) twice.
+            var delivery = await TryClaimLeaseAsync(deliveryContext, deliveryId, _clock.UtcNow, cancellationToken);
+            if (delivery is null) continue;
 
             await DispatchSingleEmailAsync(deliveryContext, emailSender, delivery, cancellationToken);
             processedCount++;
@@ -102,7 +115,7 @@ public class EmailDeliveryJob : BackgroundService
         return processedCount;
     }
 
-    private async Task<bool> TryClaimLeaseAsync(
+    private async Task<EmailDelivery?> TryClaimLeaseAsync(
         IAppDbContext dbContext,
         Guid deliveryId,
         DateTime now,
@@ -115,7 +128,7 @@ public class EmailDeliveryJob : BackgroundService
                 (e.Status == EmailDeliveryStatus.Pending || (e.Status == EmailDeliveryStatus.Processing && e.LockedUntil < now)) &&
                 (e.NextAttemptAt == null || e.NextAttemptAt <= now), cancellationToken);
 
-        if (delivery == null) return false;
+        if (delivery == null) return null;
 
         delivery.Status = EmailDeliveryStatus.Processing;
         delivery.LockedUntil = leaseUntil;
@@ -124,16 +137,16 @@ public class EmailDeliveryJob : BackgroundService
         try
         {
             await dbContext.SaveChangesAsync(cancellationToken);
-            return true;
+            return delivery;
         }
         catch (DbUpdateConcurrencyException)
         {
-            return false;
+            return null;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to claim lease for EmailDelivery {DeliveryId}", deliveryId);
-            return false;
+            return null;
         }
     }
 
