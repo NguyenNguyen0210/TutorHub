@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 import Icon from '@/components/ui/Icon';
 import Avatar from '@/components/ui/Avatar';
 import { formatDateTime } from '@/utils/formatters';
+import { reviewSummary } from '@/utils/reviewSummary';
 
 export default function ServiceReviews({
   reviews,
@@ -18,8 +19,9 @@ export default function ServiceReviews({
   const [filterRating, setFilterRating] = useState('all');
 
   const rawList = Array.isArray(reviews) ? reviews : [];
-  const avg = (Number(ratingAvg) || 0).toFixed(1);
-  const total = Number(totalReviews) || 0;
+  const summary = reviewSummary(ratingAvg, totalReviews);
+  const avg = summary.rating?.toFixed(1) ?? '—';
+  const total = summary.total;
   const reviewList = rawList;
   const distribution = ratingDistribution || [0, 0, 0, 0, 0];
   const displaySatisfaction = satisfactionRate ?? 0;

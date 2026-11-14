@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import PendingLabel from '@/components/ui/PendingLabel';
 import { userFacingError } from '@/utils/userFacingError';
 import { useLocation, Link } from 'react-router-dom';
 import {
@@ -49,10 +50,13 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
+  const [submitError, setSubmitError] = useState('');
   const [socialLoading, setSocialLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting.current || loading || socialLoading) return;
     if (!email || !email.trim()) {
       toast.error('Vui lòng nhập địa chỉ email.');
       return;
@@ -62,6 +66,8 @@ export default function Login() {
       return;
     }
 
+    submitting.current = true;
+    setSubmitError('');
     try {
       setLoading(true);
       const res = await loginWithCredentials(email, password, rememberMe);
@@ -72,8 +78,10 @@ export default function Login() {
       // GuestGuard owns the redirect after authentication, avoiding competing navigations.
     } catch (err) {
       const displayError = userFacingError(err, 'Chưa đăng nhập được. Vui lòng thử lại.');
+      setSubmitError(displayError);
       toast.error(displayError);
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };
@@ -215,14 +223,16 @@ export default function Login() {
                 </div>
 
                 {/* 4. Primary CTA Button */}
+                {submitError && <p role="alert" className="rounded-xl border border-danger/30 bg-danger-subtle p-3 text-sm text-danger-strong">{submitError}</p>}
                 <div className="pt-2">
                   <button
                     type="submit"
                     disabled={loading}
+                    aria-busy={loading || undefined}
                     className="w-full h-12 rounded-brand-md bg-brand-primary-600 hover:bg-brand-primary-700 active:bg-brand-primary-800 disabled:opacity-60 text-white font-semibold text-[15px] shadow-brand-sm flex items-center justify-center gap-2 transition-colors cursor-pointer select-none"
                   >
                     {loading ? (
-                      <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <><span aria-hidden="true" className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /><PendingLabel label="Đang đăng nhập…" /></>
                     ) : (
                       <>
                         <span>Đăng nhập</span>

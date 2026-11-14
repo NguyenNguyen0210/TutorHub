@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/cn';
+import PendingLabel from './PendingLabel';
 
 const VARIANT_CLASS = {
   primary:
@@ -80,7 +81,7 @@ export default function Button({
       ) : (
         icon
       )}
-      {children}
+      {loading ? <PendingLabel /> : children}
       {iconRight}
     </Component>
   );

@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import Avatar from '@/components/ui/Avatar';
 import Icon from '@/components/ui/Icon';
 import { trialLessonMedia } from '@/utils/trialLessonMedia';
+import { reviewSummary } from '@/utils/reviewSummary';
+import VideoPreviewDialog from './VideoPreviewDialog';
 
 export default function ServiceDetailHero({ service }) {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
@@ -16,8 +18,7 @@ export default function ServiceDetailHero({ service }) {
   const trialMedia = demoVideoUrl
     ? { kind: 'video', href: demoVideoUrl, direct: true }
     : trialLessonMedia(service.trialLessonUrl);
-  const rating = Number(tutor.ratingAvg) > 0 ? Number(tutor.ratingAvg) : null;
-  const totalReviews = Number(tutor.totalReviews) || 0;
+  const { rating, total: totalReviews } = reviewSummary(tutor.ratingAvg, tutor.totalReviews);
   const enrolledCount = Number(service.metrics?.enrolledCount ?? tutor.totalStudents) || 0;
   const totalSessions = Number(service.totalSessions) || 0;
   const sessionDuration = Number(service.sessionDurationMinutes) || 0;
@@ -198,32 +199,7 @@ export default function ServiceDetailHero({ service }) {
       </div>
 
       {/* Video Modal */}
-      {isVideoModalOpen && trialMedia?.kind === 'video' && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative w-full max-w-4xl bg-black rounded-2xl overflow-hidden shadow-2xl">
-            <button
-              type="button"
-              onClick={() => setIsVideoModalOpen(false)}
-              aria-label="Đóng video học thử"
-              className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black text-white flex items-center justify-center transition-colors"
-            >
-              <Icon name="close" size="sm" className="w-5 h-5" />
-            </button>
-            <div className="aspect-video w-full">
-              {trialMedia.direct
-                // The service API does not provide caption tracks for recordings.
-                // eslint-disable-next-line jsx-a11y/media-has-caption
-                ? <video controls src={trialMedia.href} className="h-full w-full" aria-label="Video học thử" /> : <iframe
-                src={trialMedia.embed}
-                title="Video học thử giới thiệu gói học"
-                className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />}
-            </div>
-          </div>
-        </div>
-      )}
+      {isVideoModalOpen && trialMedia?.kind === 'video' && <VideoPreviewDialog media={trialMedia} onClose={() => setIsVideoModalOpen(false)} />}
     </div>
   );
 }

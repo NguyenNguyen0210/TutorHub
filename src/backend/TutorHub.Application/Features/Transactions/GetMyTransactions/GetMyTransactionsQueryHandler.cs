@@ -88,6 +88,15 @@ public class GetMyTransactionsQueryHandler : IRequestHandler<GetMyTransactionsQu
                 Type = t.Type,
                 ServiceTitle = t.Booking.Service.Title,
                 BookingStatus = t.Booking.Status,
+                PaymentSource = t.Type != TransactionType.BookingPayment ? null
+                    : t.PaymentGatewayRef != null && t.PaymentGatewayRef.StartsWith("STUDENT_WALLET:") ? "StudentWallet"
+                    : t.PaymentGatewayRef != null && (t.PaymentGatewayRef.StartsWith("THB") || t.PaymentGatewayRef.StartsWith("VNPAY")) ? "VnPay"
+                    : t.Status != TransactionStatus.Pending && t.Status != TransactionStatus.Failed &&
+                        _context.WalletTransactions.Any(w => (w.Wallet.UserId == t.Booking.StudentProfile.UserId ||
+                            w.Wallet.StudentProfileId == t.Booking.StudentProfileId) &&
+                            w.Type == WalletTransactionType.CoursePaymentDebit && w.ReferenceType == "Booking" &&
+                            w.ReferenceId == t.BookingId && w.Amount == t.Amount &&
+                            w.CreatedAt >= t.CreatedAt.AddMinutes(-5) && w.CreatedAt <= t.CreatedAt.AddMinutes(5)) ? "StudentWallet" : null,
                 EnrollmentId = _context.Enrollments.Where(e => e.BookingId == t.BookingId)
                     .Select(e => (Guid?)e.Id).FirstOrDefault()
             })

@@ -43,7 +43,7 @@ export default function CategoryFilterBar({ categories = [], selectedCategoryId,
             <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[color:var(--mkt-cobalt)]">Khám phá nhanh</p>
             <h2 id="category-heading" className="mkt-display mt-1 text-[24px] leading-[1.25] tracking-[-0.02em] sm:text-[30px]">Bạn muốn chinh phục môn nào?</h2>
           </div>
-          <div className="hidden items-center gap-2 sm:flex" aria-label="Cuộn danh mục">
+          <div className="flex items-center gap-2 lg:hidden" aria-label="Cuộn danh mục">
             <button type="button" className="mkt-category-arrow" onClick={() => scrollCategories(-1)} aria-label="Xem danh mục trước">
               <Icon name="arrow_back" size="sm" />
             </button>

@@ -8,6 +8,7 @@ import NetworkStatus from './components/common/NetworkStatus';
 import { ToastProvider } from './components/ui/Toast';
 import { DialogProvider } from './components/ui/Dialog';
 import { useAuthStore } from './store/authStore';
+import RequestFeedback from './components/common/RequestFeedback';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +33,7 @@ export default function App() {
       <NetworkStatus />
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
+          <RequestFeedback />
           <DialogProvider>
             <RouterProvider router={router} />
           </DialogProvider>

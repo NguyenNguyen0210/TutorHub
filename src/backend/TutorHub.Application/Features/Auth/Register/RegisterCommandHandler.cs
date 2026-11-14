@@ -14,17 +14,14 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
     private readonly IAppDbContext _context;
     private readonly IClock _clock;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IEmailSender? _emailSender;
 
     public RegisterCommandHandler(
         IAppDbContext context, IClock clock,
-        IPasswordHasher passwordHasher,
-        IEmailSender? emailSender = null)
+        IPasswordHasher passwordHasher)
     {
         _context = context;
         _clock = clock;
         _passwordHasher = passwordHasher;
-        _emailSender = emailSender;
     }
 
     public async Task<RegisterResponseDto> Handle(RegisterCommand request, CancellationToken cancellationToken)
@@ -113,20 +110,8 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        if (_emailSender != null)
-        {
-            try
-            {
-                await _emailSender.SendEmailAsync(user.Email, welcomeEmail.Subject, welcomeEmail.Body, $"email:{welcomeEmail.Id}", cancellationToken);
-                welcomeEmail.Status = EmailDeliveryStatus.Sent;
-                welcomeEmail.SentAt = _clock.UtcNow;
-                await _context.SaveChangesAsync(cancellationToken);
-            }
-            catch
-            {
-                // Non-blocking welcome email delivery
-            }
-        }
+        // EmailDeliveryJob delivers the durable welcome email. SMTP must not
+        // delay the response after the account has already been committed.
 
         return new RegisterResponseDto(
             user.Id,

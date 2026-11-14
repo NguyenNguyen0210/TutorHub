@@ -1,5 +1,7 @@
+import ApprovedProfileBadge from '@/components/discovery/ApprovedProfileBadge';
+import { reviewSummary } from '@/utils/reviewSummary';
 import { userFacingError } from '@/utils/userFacingError';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { discoveryReturn } from '@/utils/discoveryReturn';
 import tutorService from '@/services/tutor.service';
@@ -22,11 +24,13 @@ import { useWishlist } from '@/hooks/useWishlist';
 
 export default function ServiceDetail() {
   const { id } = useParams();
-  const listingContext = discoveryReturn(useLocation());
+  const location = useLocation();
+  const listingContext = discoveryReturn(location);
   const navigate = useNavigate();
   const toast = useToast();
   const { isAuthenticated, role } = useAuthStore();
-  const { isFavorited, toggle } = useWishlist();
+  const { isFavorited, toggle, isPending: favoritePending } = useWishlist();
+  const bookingInFlight = useRef(false);
 
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -44,16 +48,17 @@ export default function ServiceDetail() {
   };
 
   const handleBookNow = async () => {
-    if (!service) return;
+    if (!service || bookingInFlight.current) return;
     if (!isAuthenticated) {
       toast.info('Vui lòng đăng nhập với tài khoản học viên để tiến hành đăng ký.');
-      navigate(`/auth/login?redirect=/services/${service.id}`);
+      navigate(`/auth/login?redirect=${encodeURIComponent(location.pathname + location.search + location.hash)}`);
       return;
     }
     if (role === 'Tutor') {
       toast.warning('Bạn đang đăng nhập bằng tài khoản Gia sư. Vui lòng dùng tài khoản Học viên để đặt lịch.');
       return;
     }
+    bookingInFlight.current = true;
     try {
       setBookingLoading(true);
       const booking = await bookingService.createBooking(service.id);
@@ -64,6 +69,7 @@ export default function ServiceDetail() {
     } catch (err) {
       toast.error(userFacingError(err, 'Không tạo được đơn giữ chỗ. Vui lòng thử lại.'));
     } finally {
+      bookingInFlight.current = false;
       setBookingLoading(false);
     }
   };
@@ -408,10 +414,7 @@ export default function ServiceDetail() {
                     >
                       {tutor.fullName}
                     </Link>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand-primary-100 text-brand-primary-700">
-                      <Icon name="verified" size="xs" className="w-3.5 h-3.5" />
-                      Gia sư xác thực
-                    </span>
+                    {tutor.isVerified && <ApprovedProfileBadge />}
                   </div>
 
                   {tutor.education && (
@@ -419,7 +422,7 @@ export default function ServiceDetail() {
                   )}
 
                   <div className="flex items-center gap-4 text-xs text-fg-secondary mt-1 flex-wrap">
-                    {Number(tutor.ratingAvg) > 0 && (
+                    {reviewSummary(tutor.ratingAvg, tutor.totalReviews).hasRating && (
                       <span className="flex items-center gap-1 font-bold text-slate-900">
                         <Icon name="star" size="xs" filled className="w-4 h-4 text-amber-500 fill-amber-500" />
                         <span className="tabular-nums">{Number(tutor.ratingAvg).toFixed(1)}</span>
@@ -475,6 +478,8 @@ export default function ServiceDetail() {
               <ServiceSidebarCard
                 service={service}
                 onBookNow={handleBookNow}
+                isBookingPending={bookingLoading}
+                isFavoritePending={favoritePending}
                 isFavorite={isFavorite}
                 onToggleFavorite={handleToggleFavorite}
               />
@@ -496,6 +501,8 @@ export default function ServiceDetail() {
             variant={isFavorite ? 'primary' : 'outline'}
             size="md"
             onClick={handleToggleFavorite}
+            disabled={favoritePending}
+            aria-busy={favoritePending || undefined}
             aria-label={isFavorite ? "Bỏ lưu gói học" : "Lưu gói học"}
             className={`!rounded-xl px-3 min-h-[44px] ${isFavorite ? 'text-danger bg-danger-subtle' : ''}`}
           >

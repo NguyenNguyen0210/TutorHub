@@ -11,6 +11,7 @@ import TutorCard from '@/components/discovery/TutorCard';
 import ServiceCard from '@/components/discovery/ServiceCard';
 import { wishlistService } from '@/services/wishlistService';
 import { useWishlist } from '@/hooks/useWishlist';
+import { useAuthStore } from '@/store/authStore';
 
 const PAGE_SIZE = 10;
 
@@ -64,6 +65,7 @@ export default function StudentWishlist() {
   const [page, setPage] = useState(1);
 
   const { wishlistIds } = useWishlist();
+  const userId = useAuthStore(state => state.user?.id);
 
   const {
     data,
@@ -72,7 +74,7 @@ export default function StudentWishlist() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['wishlist', 'items', activeTab, page],
+    queryKey: ['wishlist', 'items', userId, activeTab, page],
     queryFn: () => wishlistService.getWishlistItems(activeTab, page, PAGE_SIZE),
   });
 

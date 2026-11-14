@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import api from '../services/api';
-import { getStoredItem, getSavedRememberMe, persistLogin } from './authPersistence';
+import api from '../services/api.js';
+import { getStoredItem, getSavedRememberMe, persistLogin } from './authPersistence.js';
 
 const savedRememberMe = getSavedRememberMe();
 

@@ -19,6 +19,7 @@ public class GetPublicServicesQueryHandler : IRequestHandler<GetPublicServicesQu
 
     public async Task<PagedResult<PublicServiceListItemDto>> Handle(GetPublicServicesQuery request, CancellationToken cancellationToken)
     {
+        var publicReviews = _context.Reviews.AsNoTracking().Where(r => !r.IsRemoved);
         // Public visibility: Published status + Active Tutor Account + Approved Tutor Application
         var query = _context.Services
             .AsNoTracking()
@@ -56,7 +57,7 @@ public class GetPublicServicesQueryHandler : IRequestHandler<GetPublicServicesQu
         // Filter by Tutor's Minimum Rating
         if (request.MinRating.HasValue)
         {
-            query = query.Where(s => s.TutorProfile.RatingAvg >= request.MinRating.Value);
+            query = query.Where(s => (publicReviews.Where(r => r.Enrollment.TutorProfileId == s.TutorProfileId).Average(r => (decimal?)r.Rating) ?? 0m) >= request.MinRating.Value);
         }
 
         // Filter by Search Keyword (accent-insensitive via unaccent_immutable + LIKE;
@@ -78,13 +79,13 @@ public class GetPublicServicesQueryHandler : IRequestHandler<GetPublicServicesQu
         {
             "price_asc" => query.OrderBy(s => s.Price).ThenBy(s => s.Id),
             "price_desc" => query.OrderByDescending(s => s.Price).ThenBy(s => s.Id),
-            "rating_desc" => query.OrderByDescending(s => s.TutorProfile.RatingAvg)
-                                  .ThenByDescending(s => s.TutorProfile.TotalReviews)
+            "rating_desc" => query.OrderByDescending(s => (publicReviews.Where(r => r.Enrollment.TutorProfileId == s.TutorProfileId).Average(r => (decimal?)r.Rating) ?? 0m))
+                                  .ThenByDescending(s => publicReviews.Count(r => r.Enrollment.TutorProfileId == s.TutorProfileId))
                                   .ThenBy(s => s.Id),
             "newest" => query.OrderByDescending(s => s.CreatedAt).ThenBy(s => s.Id),
             "sessions_desc" => query.OrderByDescending(s => s.TotalSessions).ThenBy(s => s.Id),
-            _ => query.OrderByDescending(s => s.TutorProfile.RatingAvg)
-                      .ThenByDescending(s => s.TutorProfile.TotalReviews)
+            _ => query.OrderByDescending(s => (publicReviews.Where(r => r.Enrollment.TutorProfileId == s.TutorProfileId).Average(r => (decimal?)r.Rating) ?? 0m))
+                      .ThenByDescending(s => publicReviews.Count(r => r.Enrollment.TutorProfileId == s.TutorProfileId))
                       .ThenByDescending(s => s.CreatedAt)
                       .ThenBy(s => s.Id)
         };
@@ -115,8 +116,8 @@ public class GetPublicServicesQueryHandler : IRequestHandler<GetPublicServicesQu
                 s.TutorProfile.UserId,
                 s.TutorProfile.User.FullName,
                 s.TutorProfile.User.AvatarUrl,
-                s.TutorProfile.RatingAvg,
-                s.TutorProfile.TotalReviews,
+                (publicReviews.Where(r => r.Enrollment.TutorProfileId == s.TutorProfileId).Average(r => (decimal?)r.Rating) ?? 0m),
+                publicReviews.Count(r => r.Enrollment.TutorProfileId == s.TutorProfileId),
                 _context.Enrollments.Count(e => e.ServiceId == s.Id),
                 s.CreatedAt
             ))

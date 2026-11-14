@@ -1,3 +1,4 @@
+import { SUPPORT_HOURS, TUTOR_REVIEW_TIME } from '@/content/servicePolicies';
 import React, { useState } from 'react';
 import Icon from '@/components/ui/Icon';
 
@@ -18,7 +19,7 @@ const FAQ_ITEMS = [
     id: 'faq-3',
     question: 'Làm thế nào để trở thành gia sư trên TutorHub?',
     answer:
-      'Bạn chỉ cần nhấn "Gửi hồ sơ gia sư", điền thông tin chuyên môn, kinh nghiệm giảng dạy và tải lên các chứng chỉ, bằng cấp liên quan. Đội ngũ TutorHub sẽ kiểm duyệt hồ sơ trong vòng 24–48 giờ làm việc trước khi kích hoạt tài khoản giảng dạy của bạn.',
+      `Bạn chỉ cần nhấn "Gửi hồ sơ gia sư", điền thông tin chuyên môn, kinh nghiệm giảng dạy và tải lên các chứng chỉ, bằng cấp liên quan. Đội ngũ TutorHub sẽ kiểm duyệt hồ sơ trong vòng ${TUTOR_REVIEW_TIME} trước khi kích hoạt tài khoản giảng dạy của bạn.`,
   },
   {
     id: 'faq-4',
@@ -83,7 +84,7 @@ export default function FAQSection() {
                 Vẫn còn thắc mắc?
               </h3>
               <p className="mt-1.5 text-[13px] text-slate-500 leading-relaxed">
-                Đội ngũ chuyên viên tư vấn luôn sẵn sàng giải đáp chi tiết và đồng hành cùng bạn 24/7.
+                Đội ngũ TutorHub hỗ trợ học viên và gia sư trong khung giờ {SUPPORT_HOURS}.
               </p>
               <div className="mt-4 pt-3 border-t border-slate-100">
                 <a

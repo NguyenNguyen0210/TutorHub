@@ -30,7 +30,9 @@ public static class EnrollmentMapper
             Sessions: SessionMapper.ToOrderedList(enrollment.Sessions),
             PlatformFeeRate: enrollment.PlatformFeeRate,
             ServiceTitle: enrollment.Service?.Title,
-            ServiceArchived: enrollment.Service?.IsDeleted ?? false
+            ServiceArchived: enrollment.Service?.IsDeleted ?? false,
+            TutorUserId: enrollment.TutorProfile?.UserId,
+            StudentUserId: enrollment.StudentProfile?.UserId
         );
     }
 }

@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TutorHub.Application.Common.Exceptions;
 using TutorHub.Application.Common.Interfaces;
+using TutorHub.Application.Common.Notifications;
 using TutorHub.Application.Features.Conversations.DTOs;
 using TutorHub.Application.Features.Notifications.DTOs;
 
@@ -32,7 +33,7 @@ public class GetMyNotificationsQueryHandler : IRequestHandler<GetMyNotifications
 
         var query = _dbContext.Notifications
             .AsNoTracking()
-            .Where(n => n.UserId == currentUserId);
+            .VisibleToUser(currentUserId);
 
         if (request.UnreadOnly.HasValue && request.UnreadOnly.Value)
         {

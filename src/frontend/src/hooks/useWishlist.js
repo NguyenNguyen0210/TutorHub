@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useIsMutating } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { wishlistService } from '../services/wishlistService.js';
 import { useAuthStore } from '../store/authStore';
@@ -9,11 +9,14 @@ import WishlistUndoAction from '@/components/discovery/WishlistUndoAction';
 export function useWishlist() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const toast = useToast();
+  const idsQueryKey = ['wishlist', 'ids', user?.id];
+  const mutationKey = ['wishlist', 'toggle', user?.id];
+  const isPending = useIsMutating({ mutationKey }) > 0;
 
   const { data: wishlistIds = { tutorIds: [], serviceIds: [] } } = useQuery({
-    queryKey: ['wishlist', 'ids'],
+    queryKey: idsQueryKey,
     queryFn: wishlistService.getWishlistIds,
     enabled: Boolean(isAuthenticated),
     staleTime: 5 * 60 * 1000,
@@ -32,10 +35,11 @@ export function useWishlist() {
   };
 
   const toggleMutation = useMutation({
+    mutationKey,
     mutationFn: ({ itemType, itemId }) => wishlistService.toggleWishlist(itemType, itemId),
     onMutate: async ({ itemType, itemId }) => {
-      await queryClient.cancelQueries({ queryKey: ['wishlist', 'ids'] });
-      const previousIds = queryClient.getQueryData(['wishlist', 'ids']) || { tutorIds: [], serviceIds: [] };
+      await queryClient.cancelQueries({ queryKey: idsQueryKey });
+      const previousIds = queryClient.getQueryData(idsQueryKey) || { tutorIds: [], serviceIds: [] };
       const strId = String(itemId).toLowerCase();
 
       const newIds = {
@@ -53,15 +57,15 @@ export function useWishlist() {
         else newIds.serviceIds.push(itemId);
       }
 
-      queryClient.setQueryData(['wishlist', 'ids'], newIds);
-      return { previousIds };
+      queryClient.setQueryData(idsQueryKey, newIds);
+      return { previousIds, idsQueryKey, userId: user?.id };
     },
     onError: (err, variables, context) => {
       if (context?.previousIds) {
         const field = variables.itemType === 'Tutor' ? 'tutorIds' : 'serviceIds';
         const sameId = (id) => String(id).toLowerCase() === String(variables.itemId).toLowerCase();
         const wasSaved = (context.previousIds[field] || []).some(sameId);
-        queryClient.setQueryData(['wishlist', 'ids'], (current = context.previousIds) => ({
+        queryClient.setQueryData(context.idsQueryKey, (current = context.previousIds) => ({
           ...current,
           [field]: [...(current[field] || []).filter(id => !sameId(id)), ...(wasSaved ? [variables.itemId] : [])],
         }));
@@ -74,14 +78,15 @@ export function useWishlist() {
         toast.showToast({ title: 'Thao tác không thành công', message, type: 'error' });
       }
     },
-    onSuccess: (data, { itemType, itemId }) => {
-      queryClient.invalidateQueries({ queryKey: ['wishlist', 'items'] });
-      queryClient.invalidateQueries({ queryKey: ['wishlist', 'ids'] });
+    onSuccess: (data, { itemType, itemId }, context) => {
+      queryClient.invalidateQueries({ queryKey: ['wishlist', 'items', context.userId] });
+      queryClient.invalidateQueries({ queryKey: context.idsQueryKey });
+      if (useAuthStore.getState().user?.id !== context.userId) return;
       if (typeof data?.isFavorited === 'boolean') {
         let notificationId;
         notificationId = toast.success(createElement(WishlistUndoAction, {
           itemType, itemId, saved: data.isFavorited,
-          userId: useAuthStore.getState().user?.id,
+          userId: context.userId,
           dismiss: () => toast.dismiss(notificationId),
         }), 10000);
         return;
@@ -98,7 +103,7 @@ export function useWishlist() {
   });
 
   const toggle = (itemType, itemId) => {
-    if (toggleMutation.isPending || !itemId) return;
+    if (queryClient.isMutating({ mutationKey }) > 0 || !itemId) return;
     if (!isAuthenticated) {
       const message = 'Vui lòng đăng nhập để lưu vào danh sách yêu thích.';
       if (typeof toast?.info === 'function') {
@@ -106,7 +111,7 @@ export function useWishlist() {
       } else if (typeof toast?.showToast === 'function') {
         toast.showToast({ title: 'Yêu cầu đăng nhập', message, type: 'info' });
       }
-      const returnUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/';
+      const returnUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search + window.location.hash : '/';
       navigate('/auth/login', { state: { returnUrl } });
       return;
     }
@@ -117,7 +122,7 @@ export function useWishlist() {
     wishlistIds,
     isFavorited,
     toggle,
-    isPending: toggleMutation.isPending,
+    isPending,
   };
 }
 

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { cn } from '@/lib/cn';
 import Icon from './Icon';
 import { userFacingError } from '@/utils/userFacingError';
+import { appendToast } from '@/utils/toastQueue';
 
 const ToastContext = createContext(null);
 
@@ -30,7 +31,7 @@ export function ToastProvider({ children }) {
   const push = useCallback(
     (type, content, duration = 4000) => {
       const id = ++idRef.current;
-      setToasts((prev) => [...prev, { id, type, content }]);
+      setToasts((prev) => appendToast(prev, { id, type, content }));
       if (duration > 0) {
         window.setTimeout(() => dismiss(id), duration);
       }

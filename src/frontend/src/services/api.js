@@ -1,6 +1,7 @@
 import axios from 'axios';
-import { API_BASE_URL } from '../config/constants';
-import { useAuthStore } from '../store/authStore';
+import { API_BASE_URL } from '../config/constants.js';
+import { useAuthStore } from '../store/authStore.js';
+import { startRequestFeedback, finishRequestFeedback, timeoutMessage } from '../utils/requestFeedback.js';
 
 // Tạo hàm sinh UUID v4 đơn giản cho X-Correlation-ID
 export function generateCorrelationId() {
@@ -40,12 +41,16 @@ function kindForStatus(status) {
 
 /** Chuẩn hoá lỗi axios/envelope thành ApiError (giữ errors[] + traceId của backend). */
 export function toApiError(error) {
+  if (error instanceof ApiError) return error;
   const response = error?.response;
   const payload = response?.data;
   const status = response?.status ?? 0;
   const errorsList = Array.isArray(payload?.errors) ? payload.errors : [];
 
   let msg = payload?.message || error?.message || 'Đã có lỗi xảy ra';
+  const timedOut = ['ECONNABORTED', 'ETIMEDOUT'].includes(error?.code);
+  if (timedOut) msg = timeoutMessage(error.config);
+  else if (!response && error?.code === 'ERR_NETWORK') msg = 'Kết nối bị gián đoạn. Chưa nhận được kết quả; hãy kiểm tra trạng thái trước khi gửi lại.';
 
   const isGeneric =
     !msg ||
@@ -62,7 +67,7 @@ export function toApiError(error) {
     status,
     errors: errorsList,
     traceId: payload?.traceId ?? response?.headers?.['x-correlation-id'] ?? null,
-    kind: kindForStatus(status),
+    kind: timedOut ? 'timeout' : kindForStatus(status),
   });
 }
 
@@ -77,6 +82,7 @@ export const api = axios.create({
 // Request Interceptor: Gắn Bearer Token và Correlation ID
 api.interceptors.request.use(
   (config) => {
+    startRequestFeedback(config, useAuthStore.getState().user?.id);
     const token = useAuthStore.getState().accessToken;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -113,6 +119,7 @@ api.interceptors.response.use(
 
     if (resData && typeof resData.success === 'boolean') {
       if (resData.success) {
+        finishRequestFeedback(response.config);
         // Caller nhận thẳng payload; KHÔNG đọc thêm `.data` ở tầng service/page.
         return resData.data;
       }
@@ -121,20 +128,26 @@ api.interceptors.response.use(
       if ((!msg || msg.includes('Validation failed') || msg.includes('A business conflict')) && errorsList.length > 0) {
         msg = errorsList[0];
       }
-      return Promise.reject(
-        new ApiError(msg, {
+      const error = new ApiError(msg, {
           status: response.status,
           errors: errorsList,
           traceId: resData.traceId ?? null,
           kind: 'business',
-        })
-      );
+        });
+      finishRequestFeedback(response.config, error);
+      return Promise.reject(error);
     }
 
+    finishRequestFeedback(response.config);
     return resData;
   },
   async (error) => {
     const originalRequest = error.config ?? {};
+    const reject = failure => {
+      const publicError = toApiError(failure);
+      finishRequestFeedback(originalRequest, publicError);
+      return Promise.reject(publicError);
+    };
     const status = error.response?.status;
     const url = originalRequest.url ?? '';
     const isCredentialCall = CREDENTIAL_URL_PATTERN.test(url);
@@ -151,23 +164,26 @@ api.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${token}`;
             return api(originalRequest);
           })
-          .catch((err) => Promise.reject(err));
+          .catch(reject);
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
+      const refreshingSession = useAuthStore.getState();
+      const refreshToken = refreshingSession.refreshToken;
 
       try {
-        const refreshToken = useAuthStore.getState().refreshToken;
-
         // Gọi thẳng axios để không đi qua interceptor (tránh đệ quy refresh).
         const refreshResponse = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           refreshToken,
-        });
+        }, { timeout: 15000 });
 
+        const authState = useAuthStore.getState();
+        if (authState.user?.id !== refreshingSession.user?.id || authState.refreshToken !== refreshToken) {
+          throw new ApiError('Session changed during token refresh.', { status: 401, kind: 'unauthorized' });
+        }
         const newAccessToken = refreshResponse.data?.data?.accessToken;
         if (newAccessToken) {
-          const authState = useAuthStore.getState();
           authState.login(authState.user, {
             accessToken: newAccessToken,
             refreshToken: refreshResponse.data?.data?.refreshToken || refreshToken,
@@ -180,17 +196,20 @@ api.interceptors.response.use(
         const missingTokenErr = new Error('No access token returned from refresh.');
         processQueue(missingTokenErr, null);
         useAuthStore.getState().logout();
-        return Promise.reject(toApiError(missingTokenErr));
+        return reject(missingTokenErr);
       } catch (refreshErr) {
         processQueue(refreshErr, null);
-        useAuthStore.getState().logout();
-        return Promise.reject(toApiError(refreshErr));
+        const currentSession = useAuthStore.getState();
+        if (currentSession.user?.id === refreshingSession.user?.id && currentSession.refreshToken === refreshToken) {
+          currentSession.logout();
+        }
+        return reject(refreshErr);
       } finally {
         isRefreshing = false;
       }
     }
 
-    return Promise.reject(toApiError(error));
+    return reject(error);
   }
 );
 

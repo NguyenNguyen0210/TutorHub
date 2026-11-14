@@ -14,9 +14,9 @@ const RATING_OPTIONS = [
 
 const buildPricePresets = (limit) => [
   { label: 'Tất cả', min: 0, max: limit },
-  { label: 'Dưới 1 triệu', min: 0, max: 1000000 },
+  { label: 'Đến 1 triệu', min: 0, max: 1000000 },
   { label: '1 – 2 triệu', min: 1000000, max: 2000000 },
-  { label: 'Trên 2 triệu', min: 2000000, max: limit },
+  { label: 'Từ 2 triệu', min: 2000000, max: limit },
 ];
 
 export default function ServiceFilterSidebar({

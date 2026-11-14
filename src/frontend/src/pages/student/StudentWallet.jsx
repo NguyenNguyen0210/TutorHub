@@ -16,6 +16,7 @@ import StateBadge from '@/components/common/StateBadge';
 import paymentService from '@/services/payment.service';
 import enrollmentService from '@/services/enrollment.service';
 import CoursePaymentHistoryRow from '@/components/checkout/CoursePaymentHistoryRow';
+import { statementIssues } from '@/utils/walletStatement';
 
 const PAGE_SIZE = 15;
 const HISTORY_TABS = [{ key: 'wallet', label: 'Giao dịch ví' }, { key: 'payments', label: 'Thanh toán khóa học' }];
@@ -80,13 +81,13 @@ export default function StudentWallet() {
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get('tab');
+  const activeTab = Object.hasOwn(EMPTY, requestedTab) ? requestedTab : 'statement';
   const recordId = searchParams.get('recordId');
   const bookingId = searchParams.get('bookingId');
   const matchesTarget = item => Boolean(recordId && item.id === recordId) || Boolean(bookingId && item.bookingId === bookingId);
   const [wallet, setWallet] = useState(null);
   const [loadingWallet, setLoadingWallet] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('statement');
   const [page, setPage] = useState(1);
   const [history, setHistory] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(true);
@@ -94,7 +95,7 @@ export default function StudentWallet() {
   const [reloadHistory, setReloadHistory] = useState(0);
   useEffect(() => {
     if (['statement', 'payments', 'topups', 'withdrawals'].includes(requestedTab)) {
-      setActiveTab(requestedTab); setPage(1); setHistory(null); setHistoryLoading(true);
+      setPage(1); setHistory(null); setHistoryLoading(true);
     }
   }, [requestedTab, recordId, bookingId]);
   useEffect(() => {
@@ -173,6 +174,7 @@ export default function StudentWallet() {
   }
 
   const items = history?.items || [];
+  const balanceIssues = activeTab === 'statement' ? statementIssues(items, wallet, page) : new Set();
   const empty = EMPTY[activeTab];
   const total = history?.totalCount ?? 0;
   const changeTab = key => {
@@ -180,7 +182,7 @@ export default function StudentWallet() {
     const next = new URLSearchParams(searchParams);
     next.set('tab', key); next.delete('recordId'); next.delete('bookingId');
     setSearchParams(next, { replace: true });
-    setActiveTab(key); setPage(1); setHistory(null); setHistoryLoading(true); setHistoryError(null);
+    setPage(1); setHistory(null); setHistoryLoading(true); setHistoryError(null);
   };
 
   return (
@@ -244,6 +246,7 @@ export default function StudentWallet() {
           </p>
         </div>
         <div aria-busy={historyLoading}>
+          {!historyLoading && !historyError && balanceIssues.size > 0 && <p role="alert" className="mx-6 mb-4 rounded-xl border border-holding/30 bg-holding-subtle p-4 text-body-reg text-holding-strong">Lịch sử số dư có giao dịch chưa khớp để đối soát. Các dòng liên quan được đánh dấu “Chưa đối soát”; số dư được ghi nhận trong chi tiết cần được kiểm tra trước khi sử dụng.</p>}
           {!historyLoading && !historyError && (recordId || bookingId) && !items.some(matchesTarget) && <p role="status" className="px-6 pb-4 text-caption text-fg-secondary">Không tìm thấy giao dịch được liên kết trong danh sách của bạn.</p>}
           {historyLoading ? <div className="px-5 pb-6 sm:px-6"><TableSkeleton rows={4} /></div>
             : historyError ? (
@@ -269,7 +272,8 @@ export default function StudentWallet() {
                             <summary className="w-fit cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Chi tiết giao dịch</summary>
                             <div className="mt-2 max-w-xs space-y-1 break-words">
                               {(item.description || item.reason) && <p>{item.description || item.reason}</p>}
-                              <p>Số dư trước: <Money value={item.balanceBefore} /></p>
+                              <p>Số dư trước được ghi nhận: {item.balanceBefore != null ? <Money value={item.balanceBefore} /> : 'Chưa có thông tin'}</p>
+                              {balanceIssues.has(item.id) && item.balanceAfter != null && <p>Số dư sau được ghi nhận: <Money value={item.balanceAfter} /></p>}
                               <p>Mã giao dịch: <span className="break-all">{item.id}</span></p>
                               {item.referenceId && <p>Mã tham chiếu: <span className="break-all">{item.referenceId}</span></p>}
                             </div>
@@ -278,7 +282,7 @@ export default function StudentWallet() {
                         <td className="whitespace-nowrap px-4 py-4 text-fg-secondary">{formatDateTime(item.createdAt)}</td>
                         <td className="whitespace-nowrap px-4 py-4 text-right"><SignedAmount amount={item.amount} direction={item.direction} /></td>
                         <td className="whitespace-nowrap px-4 py-4 text-right font-medium text-fg">
-                          <Money value={item.balanceAfter} />
+                          {balanceIssues.has(item.id) ? <span className="text-holding-strong">Chưa đối soát</span> : <Money value={item.balanceAfter} />}
                           {item.type === 'WithdrawalSuccessSettlement' && <span className="mt-1 block text-[11px] text-fg-secondary">Số dư chờ rút</span>}
                         </td>
                       </>

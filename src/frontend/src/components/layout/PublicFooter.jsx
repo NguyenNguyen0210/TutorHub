@@ -1,3 +1,4 @@
+import { SUPPORT_HOURS } from '@/content/servicePolicies';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mail } from 'lucide-react';
@@ -39,8 +40,8 @@ export default function PublicFooter() {
             <h3 id="footer-support" className={footerHeadingClass}>Hỗ trợ</h3>
             <ul className="space-y-1">
               <li><Link to="/how-it-works" className={footerLinkClass}>Cách hoạt động</Link></li>
-              <li><Link to="/how-it-works" className={footerLinkClass}>Hỗ trợ học viên</Link></li>
-              <li><Link to="/how-it-works" className={footerLinkClass}>Hoàn tiền &amp; tranh chấp</Link></li>
+              <li><Link to="/support" className={footerLinkClass}>Hỗ trợ học viên</Link></li>
+              <li><Link to="/refunds" className={footerLinkClass}>Hoàn tiền &amp; tranh chấp</Link></li>
             </ul>
           </nav>
 
@@ -48,7 +49,7 @@ export default function PublicFooter() {
           <nav className="col-span-1 md:col-span-1 lg:col-span-2" aria-labelledby="footer-about">
             <h3 id="footer-about" className={footerHeadingClass}>Về TutorHub</h3>
             <ul className="space-y-1">
-              <li><Link to="/how-it-works" className={footerLinkClass}>Về chúng tôi</Link></li>
+              <li><Link to="/about" className={footerLinkClass}>Về chúng tôi</Link></li>
               <li><Link to="/become-tutor" className={footerLinkClass}>Cộng đồng gia sư</Link></li>
               <li><Link to="/services" className={footerLinkClass}>Gói học nổi bật</Link></li>
             </ul>
@@ -65,7 +66,7 @@ export default function PublicFooter() {
               <span className="break-all font-medium">support@tutorhub.vn</span>
             </a>
             <p className="mt-2 text-xs leading-5 text-slate-500">
-              Hỗ trợ học viên &amp; gia sư từ 8:00 đến 21:00 hàng ngày.
+              Hỗ trợ học viên &amp; gia sư trong khung giờ {SUPPORT_HOURS}.
             </p>
           </section>
         </div>
