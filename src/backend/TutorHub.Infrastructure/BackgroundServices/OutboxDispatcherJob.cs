@@ -21,6 +21,12 @@ public class OutboxDispatcherJob : BackgroundService
     public const int HandlerTimeoutSeconds = 45;
     public const int MaxRetries = 5;
 
+    // Idle polling starts fast so newly written outbox rows are picked up quickly, then
+    // backs off exponentially. Without this the loop issued one query every 2 seconds
+    // (~43k queries/day) even when the outbox was empty, which dominated database egress.
+    private static readonly TimeSpan MinIdleDelay = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan MaxIdleDelay = TimeSpan.FromSeconds(30);
+
     private static readonly Dictionary<string, Type> EventTypeRegistry = new()
     {
         // 1. Marketplace
@@ -91,15 +97,24 @@ public class OutboxDispatcherJob : BackgroundService
     {
         _logger.LogInformation("OutboxDispatcherJob started on worker {WorkerId}", _workerId);
 
+        var idleDelay = MinIdleDelay;
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 var processedCount = await ProcessPendingMessagesBatchAsync(stoppingToken);
-                if (processedCount == 0)
+
+                if (processedCount > 0)
                 {
-                    await Task.Delay(2000, stoppingToken);
+                    // Work was found: reset the backoff and pick up the next batch immediately.
+                    idleDelay = MinIdleDelay;
+                    continue;
                 }
+
+                await Task.Delay(idleDelay, stoppingToken);
+                idleDelay = TimeSpan.FromMilliseconds(
+                    Math.Min(idleDelay.TotalMilliseconds * 2, MaxIdleDelay.TotalMilliseconds));
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -108,7 +123,7 @@ public class OutboxDispatcherJob : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error in OutboxDispatcherJob loop on worker {WorkerId}", _workerId);
-                await Task.Delay(5000, stoppingToken);
+                await Task.Delay(MaxIdleDelay, stoppingToken);
             }
         }
 
@@ -146,16 +161,14 @@ public class OutboxDispatcherJob : BackgroundService
             using var messageScope = _scopeFactory.CreateScope();
             var messageContext = messageScope.ServiceProvider.GetRequiredService<IAppDbContext>();
             var publisher = messageScope.ServiceProvider.GetRequiredService<IPublisher>();
-            var claimed = await TryClaimLeaseAsync(messageContext, messageId, _clock.UtcNow, cancellationToken);
-            if (!claimed)
+
+            // The claim read already materialises the row, so it is reused for dispatch.
+            // A second read here used to transfer the payload (and every other column) twice.
+            var message = await TryClaimLeaseAsync(messageContext, messageId, _clock.UtcNow, cancellationToken);
+            if (message is null)
             {
                 continue; // Another worker claimed this message
             }
-
-            var message = await messageContext.OutboxMessages
-                .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
-
-            if (message == null) continue;
 
             await DispatchSingleMessageAsync(messageContext, publisher, message, cancellationToken);
             processedCount++;
@@ -164,7 +177,7 @@ public class OutboxDispatcherJob : BackgroundService
         return processedCount;
     }
 
-    private async Task<bool> TryClaimLeaseAsync(
+    private async Task<OutboxMessage?> TryClaimLeaseAsync(
         IAppDbContext dbContext,
         Guid messageId,
         DateTime now,
@@ -177,7 +190,7 @@ public class OutboxDispatcherJob : BackgroundService
                 (m.Status == OutboxMessageStatus.Pending || (m.Status == OutboxMessageStatus.Processing && m.LockedUntil < now)) &&
                 (m.NextAttemptAt == null || m.NextAttemptAt <= now), cancellationToken);
 
-        if (message == null) return false;
+        if (message == null) return null;
 
         message.Status = OutboxMessageStatus.Processing;
         message.LockedUntil = leaseUntil;
@@ -186,16 +199,16 @@ public class OutboxDispatcherJob : BackgroundService
         try
         {
             await dbContext.SaveChangesAsync(cancellationToken);
-            return true;
+            return message;
         }
         catch (DbUpdateConcurrencyException)
         {
-            return false;
+            return null;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to claim lease for OutboxMessage {MessageId}", messageId);
-            return false;
+            return null;
         }
     }
 
