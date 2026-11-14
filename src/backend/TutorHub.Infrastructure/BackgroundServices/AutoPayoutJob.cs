@@ -18,6 +18,11 @@ public class AutoPayoutJob : BackgroundService
     public const string LockKey = "cron:auto-payout";
     public static readonly TimeSpan LockTtl = TimeSpan.FromSeconds(90);
 
+    // Bounds one tick. Without a cap a large backlog (for example after restoring a
+    // dataset) would run for far longer than LockTtl, letting another node start a
+    // second concurrent pass, and would issue thousands of queries in a single cycle.
+    private const int MaxSessionsPerTick = 50;
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<AutoPayoutJob> _logger;
     private readonly IClock _clock;
@@ -93,7 +98,9 @@ public class AutoPayoutJob : BackgroundService
                         s.EndAt.HasValue &&
                         s.EndAt.Value <= now &&
                         s.GracePeriodStartedAt == null)
+            .OrderBy(s => s.EndAt)
             .Select(s => s.Id)
+            .Take(MaxSessionsPerTick)
             .ToListAsync(cancellationToken);
 
         foreach (var sessionId in endedSessionIds)
@@ -169,7 +176,9 @@ public class AutoPayoutJob : BackgroundService
                         s.GracePeriodEndsAt.Value <= now &&
                         !s.HasIssueReport &&
                         !s.IsPayoutReleased)
+            .OrderBy(s => s.GracePeriodEndsAt)
             .Select(s => s.Id)
+            .Take(MaxSessionsPerTick)
             .ToListAsync(cancellationToken);
 
         foreach (var sessionId in expiredSessions)
@@ -216,8 +225,16 @@ public class AutoPayoutJob : BackgroundService
 
                 if (wallet == null || wallet.PendingBalance < gross)
                 {
-                    _logger.LogError("Financial invariant violated during auto-payout: insufficient pending balance for session {SessionId}", session.Id);
+                    // Not transient: the tutor wallet does not hold the escrow this session
+                    // needs. Rolling back and retrying would spin the same session every tick,
+                    // so quarantine it for manual review instead.
                     await tx.RollbackAsync(cancellationToken);
+                    _logger.LogWarning(
+                        "Auto-payout blocked for session {SessionId}: pending balance {PendingBalance} is below session price {SessionPrice}. Session quarantined for review.",
+                        session.Id,
+                        wallet?.PendingBalance,
+                        gross);
+                    await QuarantineSessionAsync(sessionContext, session.Id, now, cancellationToken);
                     continue;
                 }
 
@@ -289,5 +306,32 @@ public class AutoPayoutJob : BackgroundService
         }
 
         return count;
+    }
+
+    /// <summary>
+    /// Flags a session whose escrow cannot be released so it stops being picked up on
+    /// every tick. The payout stays blocked; an administrator has to resolve it.
+    /// </summary>
+    private async Task QuarantineSessionAsync(
+        IAppDbContext dbContext,
+        Guid sessionId,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await dbContext.Sessions
+                .Where(s => s.Id == sessionId && !s.HasIssueReport)
+                .ExecuteUpdateAsync(
+                    setters => setters
+                        .SetProperty(s => s.HasIssueReport, true)
+                        .SetProperty(s => s.IssueReportReason, "auto-payout blocked: tutor pending balance is below the session price")
+                        .SetProperty(s => s.IssueReportedAt, (DateTime?)now),
+                    cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to quarantine session {SessionId} after an auto-payout invariant violation", sessionId);
+        }
     }
 }
