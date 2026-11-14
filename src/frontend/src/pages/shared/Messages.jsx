@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
 import chatService, { createChatHubConnection } from '@/services/chat.service';
+import { startHubConnection } from '@/services/signalrConnection';
 import enrollmentService from '@/services/enrollment.service';
 import tutorService from '@/services/tutor.service';
 import { useAuthStore } from '@/store/authStore';
@@ -165,6 +166,7 @@ export default function Messages() {
     if (!hasActiveConversation) return undefined;
     let cancelled = false;
     const connection = createChatHubConnection();
+    const controller = new AbortController();
     hubRef.current = connection;
     const receive = message => {
       if (cancelled || message?.conversationId !== activeConversationId) return;
@@ -196,12 +198,13 @@ export default function Messages() {
         if (!cancelled) queryClient.invalidateQueries({ queryKey: messageKey });
       }).catch(() => {});
     });
-    connection.start().then(() => {
+    startHubConnection(connection, controller.signal).then(() => {
       if (cancelled) return connection.stop();
       return connection.invoke('JoinConversation', activeConversationId);
     }).catch(() => {});
     return () => {
       cancelled = true;
+      controller.abort();
       window.clearTimeout(typingTimer.current);
       if (hubRef.current === connection) hubRef.current = null;
       connection.stop().catch(() => {});

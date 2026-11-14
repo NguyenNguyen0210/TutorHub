@@ -156,18 +156,21 @@ api.interceptors.response.use(
 
       originalRequest._retry = true;
       isRefreshing = true;
+      const refreshingSession = useAuthStore.getState();
+      const refreshToken = refreshingSession.refreshToken;
 
       try {
-        const refreshToken = useAuthStore.getState().refreshToken;
-
         // Gọi thẳng axios để không đi qua interceptor (tránh đệ quy refresh).
         const refreshResponse = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           refreshToken,
         });
 
+        const authState = useAuthStore.getState();
+        if (authState.user?.id !== refreshingSession.user?.id || authState.refreshToken !== refreshToken) {
+          throw new ApiError('Session changed during token refresh.', { status: 401, kind: 'unauthorized' });
+        }
         const newAccessToken = refreshResponse.data?.data?.accessToken;
         if (newAccessToken) {
-          const authState = useAuthStore.getState();
           authState.login(authState.user, {
             accessToken: newAccessToken,
             refreshToken: refreshResponse.data?.data?.refreshToken || refreshToken,
@@ -183,8 +186,11 @@ api.interceptors.response.use(
         return Promise.reject(toApiError(missingTokenErr));
       } catch (refreshErr) {
         processQueue(refreshErr, null);
-        useAuthStore.getState().logout();
-        return Promise.reject(toApiError(refreshErr));
+        const currentSession = useAuthStore.getState();
+        if (currentSession.user?.id === refreshingSession.user?.id && currentSession.refreshToken === refreshToken) {
+          currentSession.logout();
+        }
+        return Promise.reject(refreshErr instanceof ApiError ? refreshErr : toApiError(refreshErr));
       } finally {
         isRefreshing = false;
       }

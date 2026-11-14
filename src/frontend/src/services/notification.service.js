@@ -8,7 +8,7 @@
  * - GET   /notifications/unread-count → { unreadCount: number }
  */
 import api from './api';
-import { HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
+import { createAuthenticatedHubConnection } from './signalrConnection.js';
 import { useAuthStore } from '@/store/authStore';
 import { notifyWorkspaceActivityChanged } from '@/utils/workspaceActivity';
 
@@ -17,14 +17,7 @@ import { notifyWorkspaceActivityChanged } from '@/utils/workspaceActivity';
  */
 export function createNotificationHubConnection() {
   const hubUrl = import.meta.env.VITE_NOTIFICATION_HUB_URL || 'http://localhost:5129/hubs/notifications';
-  return new HubConnectionBuilder()
-    .withUrl(hubUrl, {
-      accessTokenFactory: () => useAuthStore.getState().accessToken || '',
-      transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling,
-    })
-    .withAutomaticReconnect([0, 2000, 5000, 10000])
-    .configureLogging(LogLevel.Warning)
-    .build();
+  return createAuthenticatedHubConnection(hubUrl);
 }
 
 function normalizeNotification(raw = {}) {

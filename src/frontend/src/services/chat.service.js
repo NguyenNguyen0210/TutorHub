@@ -11,22 +11,14 @@
  */
 import api from './api';
 import { notifyWorkspaceActivityChanged } from '@/utils/workspaceActivity';
-import { HubConnectionBuilder, LogLevel, HttpTransportType } from '@microsoft/signalr';
-import { useAuthStore } from '@/store/authStore';
+import { createAuthenticatedHubConnection } from './signalrConnection.js';
 
 /**
  * Tạo kết nối SignalR realtime tới /hubs/chat.
  */
 export function createChatHubConnection() {
   const hubUrl = import.meta.env.VITE_SIGNALR_HUB_URL || 'http://localhost:5129/hubs/chat';
-  return new HubConnectionBuilder()
-    .withUrl(hubUrl, {
-      accessTokenFactory: () => useAuthStore.getState().accessToken || '',
-      transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling,
-    })
-    .withAutomaticReconnect([0, 2000, 5000, 10000])
-    .configureLogging(LogLevel.Warning)
-    .build();
+  return createAuthenticatedHubConnection(hubUrl);
 }
 
 function toNumber(value, fallback = 0) {
