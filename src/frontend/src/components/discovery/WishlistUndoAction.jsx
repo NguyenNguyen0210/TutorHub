@@ -27,8 +27,8 @@ export default function WishlistUndoAction({ itemType, itemId, userId, saved = f
         if (result?.isFavorited !== desiredSaved) throw new Error('Chưa thể hoàn tác. Vui lòng thử lại.');
       }
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['wishlist', 'ids'] }),
-        queryClient.invalidateQueries({ queryKey: ['wishlist', 'items'] }),
+        queryClient.invalidateQueries({ queryKey: ['wishlist', 'ids', userId] }),
+        queryClient.invalidateQueries({ queryKey: ['wishlist', 'items', userId] }),
       ]);
       dismiss();
       toast.success(`${desiredSaved ? 'Đã lưu lại' : 'Đã bỏ lưu'} ${itemType === 'Tutor' ? 'gia sư' : "gói học"}.`);

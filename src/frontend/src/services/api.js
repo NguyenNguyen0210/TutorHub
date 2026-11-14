@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { API_BASE_URL } from '../config/constants';
-import { useAuthStore } from '../store/authStore';
+import { API_BASE_URL } from '../config/constants.js';
+import { useAuthStore } from '../store/authStore.js';
 
 // Tạo hàm sinh UUID v4 đơn giản cho X-Correlation-ID
 export function generateCorrelationId() {
