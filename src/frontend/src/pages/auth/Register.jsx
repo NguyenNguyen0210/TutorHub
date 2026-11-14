@@ -1,5 +1,6 @@
 import { userFacingError } from '@/utils/userFacingError';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import PendingLabel from '@/components/ui/PendingLabel';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   GraduationCap,
@@ -59,6 +60,8 @@ export default function Register() {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
+  const [submitError, setSubmitError] = useState('');
   const [socialLoading, setSocialLoading] = useState(false);
 
   // Xóa lỗi inline của trường khi người dùng nhập liệu lại
@@ -141,7 +144,7 @@ export default function Register() {
     e.preventDefault();
 
     // Guard: ngăn gửi yêu cầu trùng lặp khi đang xử lý
-    if (loading || socialLoading) return;
+    if (submitting.current || loading || socialLoading) return;
 
     const { isValid, errors, normalizedName, normalizedEmail, normalizedPhone } = validateForm();
 
@@ -153,6 +156,8 @@ export default function Register() {
       return;
     }
 
+    submitting.current = true;
+    setSubmitError('');
     try {
       setLoading(true);
 
@@ -169,6 +174,12 @@ export default function Register() {
       navigate('/auth/login', { replace: true, state: authLinkState });
     } catch (err) {
       console.error('Đăng ký tài khoản thất bại:', err);
+      if (err?.kind === 'timeout') {
+        const message = userFacingError(err);
+        setSubmitError(message);
+        toast.error(message, 0);
+        return;
+      }
 
       let displayError = 'Đăng ký không thành công. Vui lòng kiểm tra lại thông tin và thử lại.';
       const specificError = err?.errors?.[0] || err?.message;
@@ -220,8 +231,11 @@ export default function Register() {
         }
       }
 
-      toast.error(displayError);
+      const message = userFacingError(displayError);
+      setSubmitError(message);
+      toast.error(message, 0);
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };
@@ -620,14 +634,16 @@ export default function Register() {
                 </div>
 
                 {/* 6. Primary CTA Button */}
+                {submitError && <p role="alert" className="rounded-xl border border-danger/30 bg-danger-subtle p-3 text-sm text-danger-strong">{submitError}</p>}
                 <div className="pt-2">
                   <button
                     type="submit"
                     disabled={loading || socialLoading}
+                    aria-busy={loading || undefined}
                     className="w-full h-12 rounded-brand-md bg-brand-primary-600 hover:bg-brand-primary-700 active:bg-brand-primary-800 disabled:opacity-60 text-white font-semibold text-[15px] shadow-brand-sm flex items-center justify-center gap-2 transition-colors cursor-pointer select-none"
                   >
                     {loading ? (
-                      <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <><span aria-hidden="true" className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /><PendingLabel label="Đang tạo tài khoản…" /></>
                     ) : (
                       <>
                         <span>Tạo tài khoản</span>

@@ -3,6 +3,9 @@
  * Chuẩn hóa gọn gàng: Chỉ hiển thị nội dung chính của trang, không kèm hậu tố "| TutorHub".
  */
 const STATIC_TITLES = {
+  '/support': 'Hỗ trợ',
+  '/refunds': 'Hoàn tiền và tranh chấp',
+  '/about': 'Về chúng tôi',
   // Discovery & Public
   '/': 'Tìm gia sư',
   '/services': "Gói học",

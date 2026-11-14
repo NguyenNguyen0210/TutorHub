@@ -1,7 +1,7 @@
 import { userFacingError } from '@/utils/userFacingError';
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Money from '@/components/ui/Money';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
@@ -13,13 +13,17 @@ import { useWishlist } from '@/hooks/useWishlist';
 export default function ServiceSidebarCard({
   service,
   onBookNow,
+  isBookingPending = false,
+  isFavoritePending = false,
   isFavorite: isFavoriteProp,
   onToggleFavorite: onToggleFavoriteProp,
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const loginUrl = `/auth/login?redirect=${encodeURIComponent(location.pathname + location.search + location.hash)}`;
   const toast = useToast();
   const { isAuthenticated, role } = useAuthStore();
-  const { isFavorited, toggle } = useWishlist();
+  const { isFavorited, toggle, isPending: localFavoritePending } = useWishlist();
   const [bookingLoading, setBookingLoading] = useState(false);
 
   const serviceId = service?.id || service?.serviceId;
@@ -40,7 +44,7 @@ export default function ServiceSidebarCard({
 
   const handleMessageTutor = () => {
     if (!isAuthenticated) {
-      navigate(`/auth/login?redirect=/services/${service.id}`);
+      navigate(loginUrl);
       return;
     }
     // Navigate to messages with tutor's userId
@@ -54,7 +58,7 @@ export default function ServiceSidebarCard({
     }
     if (!isAuthenticated) {
       toast.info('Vui lòng đăng nhập với tài khoản học viên để tiến hành đăng ký.');
-      navigate(`/auth/login?redirect=/services/${service.id}`);
+      navigate(loginUrl);
       return;
     }
     if (role === 'Tutor') {
@@ -127,7 +131,7 @@ export default function ServiceSidebarCard({
             type="button"
             variant="primary"
             size="lg"
-            loading={bookingLoading}
+            loading={bookingLoading || isBookingPending}
             onClick={handlePrimaryAction}
             className="flex-1 !rounded-xl !py-3.5 text-base font-bold shadow-brand-sm hover:shadow-brand-md gap-2"
           >
@@ -140,6 +144,8 @@ export default function ServiceSidebarCard({
             variant={isFavorite ? 'primary' : 'outline'}
             size="lg"
             onClick={handleToggleFavorite}
+            disabled={isFavoritePending || localFavoritePending}
+            aria-busy={isFavoritePending || localFavoritePending || undefined}
             aria-label={isFavorite ? "Bỏ lưu gói học" : "Lưu gói học"}
             title={isFavorite ? "Bỏ lưu gói học" : "Lưu gói học"}
             className={`!rounded-xl !p-3.5 shrink-0 ${
@@ -198,6 +204,8 @@ export default function ServiceSidebarCard({
 ServiceSidebarCard.propTypes = {
   service: PropTypes.object.isRequired,
   onBookNow: PropTypes.func,
+  isBookingPending: PropTypes.bool,
+  isFavoritePending: PropTypes.bool,
   isFavorite: PropTypes.bool,
   onToggleFavorite: PropTypes.func,
 };

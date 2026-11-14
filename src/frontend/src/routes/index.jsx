@@ -78,6 +78,7 @@ const StudentBookings = loadPage(() => import('../pages/student/StudentBookings'
 const StudentReports = loadPage(() => import('../pages/student/StudentReports'));
 const MyDisputes = loadPage(() => import('../pages/shared/MyDisputes'));
 const LegalPolicy = loadPage(() => import('../pages/shared/LegalPolicy'));
+const InformationPage = loadPage(() => import('../pages/shared/InformationPage'));
 const TutorDashboard = loadPage(() => import('../pages/tutor/TutorDashboard'));
 const TutorSchedule = loadPage(() => import('../pages/tutor/TutorSchedule'));
 const TutorServices = loadPage(() => import('../pages/tutor/TutorServices'));
@@ -120,6 +121,9 @@ export default function AppRoutes() {
         <Route path="/service" element={<Navigate to="/services" replace />} />
         <Route path="/service/:id" element={<ServiceDetail />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/support" element={<InformationPage kind="support" />} />
+        <Route path="/refunds" element={<InformationPage kind="refunds" />} />
+        <Route path="/about" element={<InformationPage kind="about" />} />
         <Route path="/terms" element={<LegalPolicy kind="terms" />} />
         <Route path="/privacy" element={<LegalPolicy kind="privacy" />} />
         <Route path="/become-tutor" element={<BecomeTutor />} />

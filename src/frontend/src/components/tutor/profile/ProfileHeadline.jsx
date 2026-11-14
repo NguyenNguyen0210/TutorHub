@@ -19,7 +19,7 @@ export default function ProfileHeadline({ tutor }) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
   const [imgError, setImgError] = useState(false);
-  const { isFavorited, toggle } = useWishlist();
+  const { isFavorited, toggle, isPending } = useWishlist();
 
   const tutorId = tutor?.id || tutor?.tutorProfileId;
   const isFavorite = isFavorited('Tutor', tutorId);
@@ -145,6 +145,8 @@ export default function ProfileHeadline({ tutor }) {
               variant={isFavorite ? 'primary' : 'outline'}
               size="md"
               onClick={() => toggle('Tutor', tutorId)}
+              disabled={isPending}
+              aria-busy={isPending || undefined}
               icon={<Icon name="favorite" size="xs" filled={isFavorite} />}
             >
               {isFavorite ? 'Đã lưu gia sư' : 'Lưu gia sư'}

@@ -46,7 +46,7 @@ test('opened empty conversation is visible immediately and is never duplicated',
   assert.deepEqual(includeActiveConversation([], null), []);
 });
 
-test('toasts suppress identical strings and limit visible entries while preserving undo content', () => {
+test('each new toast replaces the previous toast, including custom content', () => {
   let queue = [];
   for (let id = 0; id < 5; id++) queue = appendToast(queue, { id, type: 'success', content: 'Saved' });
   assert.equal(queue.length, 1); assert.equal(queue[0].id, 4);
@@ -54,5 +54,5 @@ test('toasts suppress identical strings and limit visible entries while preservi
   queue = appendToast(queue, { id: 5, type: 'success', content: undo });
   queue = appendToast(queue, { id: 6, type: 'info', content: 'Next' });
   queue = appendToast(queue, { id: 7, type: 'error', content: 'Error' });
-  assert.equal(queue.length, 3); assert.equal(queue[0].content, undo);
+  assert.equal(queue.length, 1); assert.equal(queue[0].content, 'Error');
 });

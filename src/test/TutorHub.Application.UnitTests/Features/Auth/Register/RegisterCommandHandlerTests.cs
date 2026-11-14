@@ -175,5 +175,6 @@ public class RegisterCommandHandlerTests
         email.Subject.Should().Contain("Đăng ký tài khoản thành công");
         email.Body.Should().Contain("Nguyen Van D");
         email.Status.Should().Be(EmailDeliveryStatus.Pending);
+        _contextMock.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 }
