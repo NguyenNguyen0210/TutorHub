@@ -12,7 +12,7 @@
  * - POST /tutors/me/application     → TutorApplicationDto
  * - GET /tutors/me/application      → TutorApplicationDto
  */
-import { api } from './api';
+import { api } from './api.js';
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -276,7 +276,7 @@ export const tutorService = {
 
   /** PATCH /tutors/me/services/{serviceId} → ServiceDto */
   async updateService(serviceId, data) {
-    const res = await api.patch(`/tutors/me/services/${serviceId}`, data);
+    const res = await api.patch(`/tutors/me/services/${serviceId}`, data, { errorPresentation: 'local' });
     return res;
   },
 
@@ -330,12 +330,12 @@ export const tutorService = {
   /** PUT /tutors/me/subjects body { subjects: [{ subjectId, isActive }] } → TutorSubjectDto[] */
   async updateMySubjects(subjects) {
     const payload = Array.isArray(subjects) ? { subjects } : subjects;
-    return api.put('/tutors/me/subjects', payload);
+    return api.put('/tutors/me/subjects', payload, { errorPresentation: 'local' });
   },
 
   /** POST /reviews/{reviewId}/reply body { reply } → ReviewDto */
   async replyReview(reviewId, reply) {
-    return api.post(`/reviews/${reviewId}/reply`, { reply });
+    return api.post(`/reviews/${reviewId}/reply`, { reply }, { errorPresentation: 'local' });
   },
 };
 

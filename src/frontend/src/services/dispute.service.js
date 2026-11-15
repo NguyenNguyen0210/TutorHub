@@ -6,7 +6,7 @@
  * - POST /disputes/{id}/evidence     multipart/form-data with file OR application/json metadata → 201 DisputeEvidenceDto
  * - GET  /disputes/my                 → List<DisputeDto>
  */
-import { api } from './api';
+import { api } from './api.js';
 
 export const disputeService = {
   /** POST /disputes → DisputeDto */
@@ -24,6 +24,7 @@ export const disputeService = {
     formData.append('file', file);
     if (responseId) formData.append('responseId', responseId);
     const res = await api.post(`/disputes/${disputeId}/evidence`, formData, {
+      errorPresentation: 'local',
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -32,7 +33,7 @@ export const disputeService = {
   },
 
   async submitResponse(disputeId, { submissionId, content }) {
-    return api.post(`/disputes/${disputeId}/responses`, { submissionId, content });
+    return api.post(`/disputes/${disputeId}/responses`, { submissionId, content }, { errorPresentation: 'local' });
   },
   async downloadEvidence(disputeId, evidenceId) {
     return api.get(`/disputes/${disputeId}/evidence/${evidenceId}/download`, { responseType: 'blob' });

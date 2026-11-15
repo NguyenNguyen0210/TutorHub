@@ -1,5 +1,4 @@
 import React, { useRef, useState } from 'react';
-import PendingLabel from '@/components/ui/PendingLabel';
 import { userFacingError } from '@/utils/userFacingError';
 import { useLocation, Link } from 'react-router-dom';
 import {
@@ -58,11 +57,11 @@ export default function Login() {
     e.preventDefault();
     if (submitting.current || loading || socialLoading) return;
     if (!email || !email.trim()) {
-      toast.error('Vui lòng nhập địa chỉ email.');
+      setSubmitError('Vui lòng nhập địa chỉ email.');
       return;
     }
     if (!password) {
-      toast.error('Vui lòng nhập mật khẩu.');
+      setSubmitError('Vui lòng nhập mật khẩu.');
       return;
     }
 
@@ -79,7 +78,6 @@ export default function Login() {
     } catch (err) {
       const displayError = userFacingError(err, 'Chưa đăng nhập được. Vui lòng thử lại.');
       setSubmitError(displayError);
-      toast.error(displayError);
     } finally {
       submitting.current = false;
       setLoading(false);
@@ -92,7 +90,7 @@ export default function Login() {
       const { authorizeUrl } = await externalAuthService.startGoogleLogin(authLinkState.returnUrl);
       window.location.href = authorizeUrl;
     } catch {
-      toast.error('Đăng nhập bằng Google tạm thời chưa khả dụng. Vui lòng đăng nhập bằng email và mật khẩu.');
+      setSubmitError('Đăng nhập bằng Google tạm thời chưa khả dụng. Vui lòng đăng nhập bằng email và mật khẩu.');
     } finally {
       setSocialLoading(false);
     }
@@ -232,7 +230,7 @@ export default function Login() {
                     className="w-full h-12 rounded-brand-md bg-brand-primary-600 hover:bg-brand-primary-700 active:bg-brand-primary-800 disabled:opacity-60 text-white font-semibold text-[15px] shadow-brand-sm flex items-center justify-center gap-2 transition-colors cursor-pointer select-none"
                   >
                     {loading ? (
-                      <><span aria-hidden="true" className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /><PendingLabel label="Đang đăng nhập…" /></>
+                      <><span aria-hidden="true" className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>Đang đăng nhập…</span></>
                     ) : (
                       <>
                         <span>Đăng nhập</span>

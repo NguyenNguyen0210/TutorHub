@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api } from './api.js';
 
 export const forgotPasswordService = {
   /**
@@ -8,7 +8,7 @@ export const forgotPasswordService = {
   async requestResetOtp(email) {
     return await api.post('/auth/forgot-password', {
       email: email.trim().toLowerCase(),
-    });
+    }, { errorPresentation: 'local' });
   },
 
   /**

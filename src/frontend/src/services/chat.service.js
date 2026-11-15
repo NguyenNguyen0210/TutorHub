@@ -9,8 +9,8 @@
  * - PUT  /conversations/{id}/read           → số message đã đọc
  * - POST /conversations/{id}/messages/attachment → AttachmentUploadResponseDto (body FormData { file })
  */
-import api from './api';
-import { notifyWorkspaceActivityChanged } from '@/utils/workspaceActivity';
+import api from './api.js';
+import { notifyWorkspaceActivityChanged } from '../utils/workspaceActivity.js';
 import { createAuthenticatedHubConnection } from './signalrConnection.js';
 
 /**
@@ -107,7 +107,7 @@ export const chatService = {
       body.attachmentContentType = attachment.attachmentContentType ?? null;
       body.attachmentSize = attachment.attachmentSize ?? null;
     }
-    const res = await api.post(`/conversations/${conversationId}/messages`, body);
+    const res = await api.post(`/conversations/${conversationId}/messages`, body, { errorPresentation: 'local' });
     return normalizeMessage(res);
   },
 
@@ -123,7 +123,7 @@ export const chatService = {
    * Get or create a 1-to-1 conversation with the target user.
    */
   async getOrCreateConversation(targetUserId) {
-    const res = await api.post('/conversations', { targetUserId });
+    const res = await api.post('/conversations', { targetUserId }, { errorPresentation: 'local' });
     return normalizeConversation(res);
   },
 
@@ -136,6 +136,7 @@ export const chatService = {
     const formData = new FormData();
     formData.append('file', file);
     return api.post(`/conversations/${conversationId}/messages/attachment`, formData, {
+      errorPresentation: 'local',
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },

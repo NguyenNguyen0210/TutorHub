@@ -18,6 +18,7 @@ test('write lifecycle reports completion and never exposes submitted credentials
   assert.deepEqual(await api.post('/auth/register', { password: 'secret' }), { id: 1 });
   assert.deepEqual(events.map(e => e.status), ['pending', 'complete']);
   assert.equal(events[0].id, events[1].id);
+  assert.equal(events[0].errorPresentation, 'toast');
   assert.equal(JSON.stringify(events).includes('secret'), false);
   events.length = 0;
   await api.get('/catalog');
@@ -42,6 +43,24 @@ test('business errors in successful HTTP responses are also visible', async () =
   api.defaults.adapter = async config => ({ config, status: 200, headers: {}, data: { success: false, message: 'Không đủ số dư' } });
   await assert.rejects(api.post('/payments', {}), /Không đủ số dư/);
   assert.equal(events.at(-1).status, 'error');
+});
+
+test('authentication forms own error presentation without losing write progress events', async () => {
+  api.defaults.adapter = async config => {
+    throw new axios.AxiosError('Request failed', 'ERR_BAD_REQUEST', config, null, {
+      status: config.url.endsWith('login') ? 401 : 409,
+      data: { message: 'Không thể hoàn tất thao tác.' },
+    });
+  };
+  for (const operation of [
+    () => useAuthStore.getState().loginWithCredentials('audit@example.test', 'secret'),
+    () => useAuthStore.getState().registerWithCredentials('audit@example.test', 'secret', 'Audit Student', null),
+  ]) {
+    events.length = 0;
+    await assert.rejects(operation());
+    assert.deepEqual(events.map(e => e.status), ['pending', 'error']);
+    assert.ok(events.every(e => e.errorPresentation === 'inline'));
+  }
 });
 
 test('concurrent expired writes keep one pending lifecycle each while sharing a bounded refresh', async () => {

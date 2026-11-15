@@ -1,8 +1,8 @@
 /**
  * Student Wallet Service — /api/v1/students/me/wallet and /api/v1/admin/student-wallets
  */
-import api from './api';
-import { idempotencyHeaders } from './idempotency';
+import api from './api.js';
+import { idempotencyHeaders } from './idempotency.js';
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -51,7 +51,7 @@ export const studentWalletService = {
 
   async createVnPayTopUp({ amount }, idempotencyKey = null) {
     const headers = idempotencyHeaders(idempotencyKey);
-    const res = await api.post('/students/me/wallet/top-up/vnpay', { amount: Number(amount) }, { headers });
+    const res = await api.post('/students/me/wallet/top-up/vnpay', { amount: Number(amount) }, { headers, errorPresentation: 'local' });
     return res;
   },
 
@@ -71,7 +71,7 @@ export const studentWalletService = {
       accountNumber: payload.accountNumber,
       accountHolderName: payload.accountHolderName,
       note: payload.note || null,
-    }, { headers });
+    }, { headers, errorPresentation: 'local' });
     return res;
   },
   async getMyWithdrawals({ pageNumber = 1, pageSize = 20 } = {}) {
@@ -83,7 +83,7 @@ export const studentWalletService = {
 
   async payBookingFromWallet(bookingId, idempotencyKey = null) {
     const headers = idempotencyHeaders(idempotencyKey);
-    const res = await api.post(`/payments/${bookingId}/wallet`, {}, { headers });
+    const res = await api.post(`/payments/${bookingId}/wallet`, {}, { headers, errorPresentation: 'local' });
     return res;
   },
 

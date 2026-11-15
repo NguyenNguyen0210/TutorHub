@@ -6,8 +6,8 @@
  * - GET  /payments/vnpay/return      → PaymentResultDto (verified, idempotent settlement)
  * - POST /dev/payments/simulate-ipn  body { bookingId, success } → SimulatedPaymentDto (chỉ ở Development)
  */
-import { api } from './api';
-import { idempotencyHeaders } from './idempotency';
+import { api } from './api.js';
+import { idempotencyHeaders } from './idempotency.js';
 
 function normalizeRedirect(raw = {}) {
   return {
@@ -28,7 +28,7 @@ export const paymentService = {
    */
   async createVnPayUrl(bookingId, idempotencyKey = null) {
     const headers = idempotencyHeaders(idempotencyKey);
-    const res = await api.post('/payments/vnpay/create-url', { bookingId }, { headers });
+    const res = await api.post('/payments/vnpay/create-url', { bookingId }, { headers, errorPresentation: 'local' });
     return normalizeRedirect(res);
   },
 

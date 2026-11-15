@@ -55,7 +55,7 @@ export const useAuthStore = create((set, get) => ({
 
   // Login via real backend API
   loginWithCredentials: async (email, password, rememberMe = true) => {
-    const res = await api.post('/auth/login', { email, password });
+    const res = await api.post('/auth/login', { email, password }, { errorPresentation: 'inline' });
 
     if (res && res.accessToken) {
       const u = res.user;
@@ -148,7 +148,7 @@ export const useAuthStore = create((set, get) => ({
 
   // Register via real backend API
   registerWithCredentials: async (email, password, fullName, phone, role = 'Student') => {
-    const res = await api.post('/auth/register', { email, password, fullName, phone, role });
+    const res = await api.post('/auth/register', { email, password, fullName, phone, role }, { errorPresentation: 'inline' });
 
     if (res && res.userId) {
       // Registration does not create a session; the user signs in explicitly.
