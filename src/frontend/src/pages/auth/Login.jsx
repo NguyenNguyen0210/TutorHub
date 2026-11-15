@@ -58,11 +58,11 @@ export default function Login() {
     e.preventDefault();
     if (submitting.current || loading || socialLoading) return;
     if (!email || !email.trim()) {
-      toast.error('Vui lòng nhập địa chỉ email.');
+      setSubmitError('Vui lòng nhập địa chỉ email.');
       return;
     }
     if (!password) {
-      toast.error('Vui lòng nhập mật khẩu.');
+      setSubmitError('Vui lòng nhập mật khẩu.');
       return;
     }
 
@@ -79,7 +79,6 @@ export default function Login() {
     } catch (err) {
       const displayError = userFacingError(err, 'Chưa đăng nhập được. Vui lòng thử lại.');
       setSubmitError(displayError);
-      toast.error(displayError);
     } finally {
       submitting.current = false;
       setLoading(false);
@@ -92,7 +91,7 @@ export default function Login() {
       const { authorizeUrl } = await externalAuthService.startGoogleLogin(authLinkState.returnUrl);
       window.location.href = authorizeUrl;
     } catch {
-      toast.error('Đăng nhập bằng Google tạm thời chưa khả dụng. Vui lòng đăng nhập bằng email và mật khẩu.');
+      setSubmitError('Đăng nhập bằng Google tạm thời chưa khả dụng. Vui lòng đăng nhập bằng email và mật khẩu.');
     } finally {
       setSocialLoading(false);
     }

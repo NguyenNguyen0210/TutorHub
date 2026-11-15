@@ -11,7 +11,12 @@ function emit(detail) {
 
 export function startRequestFeedback(config, userId) {
   if (!isWriteRequest(config) || config._requestFeedback) return;
-  config._requestFeedback = { id: ++nextId, startedAt: Date.now(), userId: userId ?? null };
+  config._requestFeedback = {
+    id: ++nextId,
+    startedAt: Date.now(),
+    userId: userId ?? null,
+    errorPresentation: config.errorPresentation === 'inline' ? 'inline' : 'toast',
+  };
   emit({ ...config._requestFeedback, status: 'pending' });
 }
 

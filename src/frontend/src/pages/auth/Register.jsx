@@ -145,14 +145,11 @@ export default function Register() {
 
     // Guard: ngăn gửi yêu cầu trùng lặp khi đang xử lý
     if (submitting.current || loading || socialLoading) return;
+    setSubmitError('');
 
-    const { isValid, errors, normalizedName, normalizedEmail, normalizedPhone } = validateForm();
+    const { isValid, normalizedName, normalizedEmail, normalizedPhone } = validateForm();
 
     if (!isValid) {
-      const firstErrorMessage = Object.values(errors)[0];
-      if (firstErrorMessage) {
-        toast.error(firstErrorMessage);
-      }
       return;
     }
 
@@ -177,7 +174,6 @@ export default function Register() {
       if (err?.kind === 'timeout') {
         const message = userFacingError(err);
         setSubmitError(message);
-        toast.error(message, 0);
         return;
       }
 
@@ -231,9 +227,8 @@ export default function Register() {
         }
       }
 
-      const message = userFacingError(displayError);
-      setSubmitError(message);
-      toast.error(message, 0);
+      // Field errors already explain what to fix; reserve the summary for other failures.
+      setSubmitError(Object.keys(backendFieldErrors).length ? '' : userFacingError(err, displayError));
     } finally {
       submitting.current = false;
       setLoading(false);
@@ -249,7 +244,7 @@ export default function Register() {
       window.location.href = authorizeUrl;
     } catch (err) {
       console.error('Khởi tạo đăng ký qua Google thất bại:', err);
-      toast.error('Đăng ký bằng Google tạm thời chưa khả dụng. Vui lòng đăng ký bằng email.');
+      setSubmitError('Đăng ký bằng Google tạm thời chưa khả dụng. Vui lòng đăng ký bằng email.');
     } finally {
       setSocialLoading(false);
     }
