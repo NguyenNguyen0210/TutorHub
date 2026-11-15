@@ -1,5 +1,4 @@
 import React, { useRef, useState } from 'react';
-import PendingLabel from '@/components/ui/PendingLabel';
 import { userFacingError } from '@/utils/userFacingError';
 import { useLocation, Link } from 'react-router-dom';
 import {
@@ -231,7 +230,7 @@ export default function Login() {
                     className="w-full h-12 rounded-brand-md bg-brand-primary-600 hover:bg-brand-primary-700 active:bg-brand-primary-800 disabled:opacity-60 text-white font-semibold text-[15px] shadow-brand-sm flex items-center justify-center gap-2 transition-colors cursor-pointer select-none"
                   >
                     {loading ? (
-                      <><span aria-hidden="true" className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /><PendingLabel label="Đang đăng nhập…" /></>
+                      <><span aria-hidden="true" className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>Đang đăng nhập…</span></>
                     ) : (
                       <>
                         <span>Đăng nhập</span>
