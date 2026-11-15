@@ -9,7 +9,7 @@
  * - GET  /sessions/{id}/learning-record → LearningRecordDto
  * - POST /sessions/{id}/learning-record body { content } → LearningRecordDto
  */
-import { api } from './api';
+import { api } from './api.js';
 
 export const sessionService = {
   /**
@@ -30,13 +30,13 @@ export const sessionService = {
 
   /** POST /sessions/{id}/schedule body { startAt, endAt } → SessionDto */
   async scheduleSession(id, startAt, endAt) {
-    const res = await api.post(`/sessions/${id}/schedule`, { startAt, endAt });
+    const res = await api.post(`/sessions/${id}/schedule`, { startAt, endAt }, { errorPresentation: 'local' });
     return res;
   },
 
   /** POST /sessions/schedule-batch body { items: [{ sessionId, startAt, endAt }] } → SessionDto[] */
   async scheduleSessionsBatch(items) {
-    const res = await api.post('/sessions/schedule-batch', { items });
+    const res = await api.post('/sessions/schedule-batch', { items }, { errorPresentation: 'local' });
     return Array.isArray(res) ? res : [];
   },
 
@@ -48,7 +48,7 @@ export const sessionService = {
 
   /** POST /sessions/{id}/learning-record body { content } → LearningRecordDto */
   async createLearningRecord(id, content) {
-    const res = await api.post(`/sessions/${id}/learning-record`, { content });
+    const res = await api.post(`/sessions/${id}/learning-record`, { content }, { errorPresentation: 'local' });
     return res;
   },
 

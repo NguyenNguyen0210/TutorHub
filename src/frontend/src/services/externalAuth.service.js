@@ -1,5 +1,5 @@
-import { api } from './api';
-import { safeReturnUrl } from '../utils/authRedirect';
+import { api } from './api.js';
+import { safeReturnUrl } from '../utils/authRedirect.js';
 
 export const externalAuthService = {
   async startGoogleLogin(returnUrl) {
@@ -17,7 +17,7 @@ export const externalAuthService = {
     if (!code || !state) {
       throw new Error('Liên kết đăng nhập thiếu code hoặc state.');
     }
-    const res = await api.post('/auth/oauth/google/callback', { code, state });
+    const res = await api.post('/auth/oauth/google/callback', { code, state }, { errorPresentation: 'local' });
     if (!res?.accessToken || !res?.user) {
       throw new Error('Phản hồi đăng nhập không hợp lệ từ máy chủ.');
     }

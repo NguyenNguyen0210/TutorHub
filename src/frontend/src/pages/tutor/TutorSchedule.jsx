@@ -100,7 +100,6 @@ export default function TutorSchedule() {
         ? 'Khung giờ này không còn khả dụng hoặc buổi học vừa được cập nhật. Chọn giờ khác hoặc tải lại lịch để kiểm tra.'
         : 'Chưa lưu được lịch học. Thời gian bạn chọn vẫn được giữ lại. Vui lòng thử lại.';
       setSaveErrors(previous => ({ ...previous, ...Object.fromEntries(items.map(item => [item.sessionId, message])) }));
-      toast.error(message);
     } finally { submitting.current = false; setBusyKey(null); }
   };
 

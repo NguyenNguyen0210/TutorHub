@@ -10,8 +10,8 @@
  * - PUT  /tutors/me/wallet/payout-account → TutorPayoutAccountDto
  * - GET  /tutors/me/wallet/statement    → PagedResult<WalletTransactionDto>
  */
-import api from './api';
-import { idempotencyHeaders } from './idempotency';
+import api from './api.js';
+import { idempotencyHeaders } from './idempotency.js';
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -63,7 +63,7 @@ export const walletService = {
    * Body: { bankName, bankCode, accountNumber, accountHolderName }
    */
   async updatePayoutAccount(payload) {
-    return api.put('/tutors/me/wallet/payout-account', payload);
+    return api.put('/tutors/me/wallet/payout-account', payload, { errorPresentation: 'local' });
   },
 
   /**
@@ -82,7 +82,7 @@ export const walletService = {
    */
   async createWithdrawal(payload, idempotencyKey = null) {
     const headers = idempotencyHeaders(idempotencyKey);
-    return api.post('/tutors/me/wallet/withdrawals', payload, { headers });
+    return api.post('/tutors/me/wallet/withdrawals', payload, { headers, errorPresentation: 'local' });
   },
 
   /**

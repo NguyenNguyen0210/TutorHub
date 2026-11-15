@@ -1,14 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { URL } from 'node:url';
-import { Buffer } from 'node:buffer';
 import { getDetailedSyllabus } from '../src/components/service-detail/syllabusHelper.js';
 
-const source = await readFile(new URL('../src/services/tutor.service.js', import.meta.url), 'utf8');
-const { normalizeTutorReview, normalizeTutorProfile, normalizeServiceSummary } = await import(
-  'data:text/javascript;base64,' + Buffer.from(source.replace("import { api } from './api';", 'const api = {};')).toString('base64')
-);
+globalThis.localStorage = { getItem: () => null };
+globalThis.sessionStorage = { getItem: () => null };
+const { normalizeTutorReview, normalizeTutorProfile, normalizeServiceSummary } = await import('../src/services/tutor.service.js');
 
 test('reviews preserve programming feedback and replies exactly as submitted', () => {
   const review = { comment: 'Learning code and React', tutorReply: 'Keep practising code!', rating: 4 };

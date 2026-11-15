@@ -11,8 +11,8 @@
  * - GET /admin/disputes → PagedResult<DisputeDto>
  * - GET /admin/disputes/{id}/investigation → DisputeInvestigationDto
  */
-import api from './api';
-import { idempotencyHeaders } from './idempotency';
+import api from './api.js';
+import { idempotencyHeaders } from './idempotency.js';
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -188,19 +188,19 @@ export const adminService = {
   getPlatformRevenue: () => api.get('/admin/analytics/platform-revenue'),
   getConversations: params => api.get('/admin/investigations/conversations', { params }),
   getConversationMessages: (id, params) => api.get(`/admin/investigations/conversations/${id}/messages`, { params }),
-  forceUnpublishService: (id, reason) => api.post(`/admin/services/${id}/force-unpublish`, { reason }),
+  forceUnpublishService: (id, reason) => api.post(`/admin/services/${id}/force-unpublish`, { reason }, { errorPresentation: 'local' }),
   getServices: params => api.get('/admin/services', { params }),
   getService: id => api.get(`/admin/services/${id}`),
-  removeReview: (id, reason) => api.delete(`/admin/reviews/${id}`, { data: { reason } }),
-  cancelEnrollment: (id, reason) => api.post(`/admin/enrollments/${id}/cancel`, { reason }),
+  removeReview: (id, reason) => api.delete(`/admin/reviews/${id}`, { data: { reason }, errorPresentation: 'local' }),
+  cancelEnrollment: (id, reason) => api.post(`/admin/enrollments/${id}/cancel`, { reason }, { errorPresentation: 'local' }),
   getEnrollments: params => api.get('/admin/enrollments', { params }),
   getTransactions: params => api.get('/admin/transactions', { params }),
   getTransaction: id => api.get(`/admin/transactions/${id}`),
-  settleRefund: (id, payload) => api.post(`/admin/disputes/refunds/${id}/callback`, payload),
+  settleRefund: (id, payload) => api.post(`/admin/disputes/refunds/${id}/callback`, payload, { errorPresentation: 'local' }),
   getCatalog: (kind, params = {}, trash = false) => api.get(`/admin/${kind}${trash ? '/trash' : ''}`, { params }),
-  saveCatalog: (kind, id, payload) => id ? api.put(`/admin/${kind}/${id}`, payload) : api.post(`/admin/${kind}`, payload),
-  deleteCatalog: (kind, id) => api.delete(`/admin/${kind}/${id}`),
-  restoreCatalog: (kind, id) => api.post(`/admin/${kind}/${id}/restore`),
+  saveCatalog: (kind, id, payload) => id ? api.put(`/admin/${kind}/${id}`, payload, { errorPresentation: 'local' }) : api.post(`/admin/${kind}`, payload, { errorPresentation: 'local' }),
+  deleteCatalog: (kind, id) => api.delete(`/admin/${kind}/${id}`, { errorPresentation: 'local' }),
+  restoreCatalog: (kind, id) => api.post(`/admin/${kind}/${id}/restore`, undefined, { errorPresentation: 'local' }),
   async getAllCategories() {
     const items = []; let pageNumber = 1; let page;
     do { page = await adminService.getCatalog('categories', { pageNumber, pageSize: 50 }); items.push(...page.items); pageNumber++; } while (page.hasNextPage);
@@ -208,7 +208,7 @@ export const adminService = {
   },
   getTrustReports: ({ status, search, reportType, pageNumber = 1 } = {}) => api.get('/admin/trust-reports', { params: { status: status || undefined, search: search || undefined, reportType: reportType || undefined, pageNumber, pageSize: 10 } }),
   getTrustReport: id => api.get(`/admin/trust-reports/${id}`),
-  resolveTrustReport: (id, payload) => api.post(`/admin/trust-reports/${id}/resolve`, payload),
+  resolveTrustReport: (id, payload) => api.post(`/admin/trust-reports/${id}/resolve`, payload, { errorPresentation: 'local' }),
   /** GET /admin/dashboard/stats → AdminDashboardStatsDto (nested) */
   async getStats(period = 'All', signal) {
     const res = await api.get('/admin/dashboard/stats', { params: { period }, signal });
@@ -321,9 +321,9 @@ export const adminService = {
    * decision ∈ StudentWinsFullRefund | StudentWinsPartialRefund | TutorWinsReleaseEarning | DismissedNoFinancialChange
    */
   getDisputeSummary: () => api.get('/admin/disputes/summary'),
-  previewDisputeAllocation: (id, payload) => api.post(`/admin/disputes/${id}/allocation-preview`, { ...payload, adminNotes: '' }),
+  previewDisputeAllocation: (id, payload) => api.post(`/admin/disputes/${id}/allocation-preview`, { ...payload, adminNotes: '' }, { errorPresentation: 'local' }),
   applyDisputeVerdict: (caseId, payload, key) =>
-    api.post(`/admin/disputes/${caseId}/resolve`, payload, { headers: idempotencyHeaders(key) }),
+    api.post(`/admin/disputes/${caseId}/resolve`, payload, { headers: idempotencyHeaders(key), errorPresentation: 'local' }),
 
   /**
    * GET /admin/withdrawals → PagedResult<WithdrawalDto>

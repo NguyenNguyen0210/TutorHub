@@ -17,7 +17,7 @@ export default function RequestFeedback() {
         setPending(previous => ({ ...previous, [detail.id]: detail }));
       } else {
         setPending(previous => { const next = { ...previous }; delete next[detail.id]; return next; });
-        if (detail.status === 'error' && detail.errorPresentation !== 'inline') {
+        if (detail.status === 'error' && !['inline', 'local'].includes(detail.errorPresentation)) {
           showError(userFacingError(detail.error), 0);
         }
       }

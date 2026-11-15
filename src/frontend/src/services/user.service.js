@@ -8,7 +8,7 @@
  * - GET   /tutors/me              → TutorMyProfileDto
  * - PATCH /tutors/me              → TutorMyProfileDto
  */
-import { api } from './api';
+import { api } from './api.js';
 
 export const userService = {
   /** GET /users/me → MyProfileDto */
@@ -19,13 +19,13 @@ export const userService = {
 
   /** PUT /users/me body { fullName, phone, avatarUrl } → MyProfileDto */
   async updateMyProfile(data) {
-    const res = await api.put('/users/me', data);
+    const res = await api.put('/users/me', data, { errorPresentation: 'local' });
     return res;
   },
 
   /** POST /auth/change-password body { currentPassword, newPassword } → bool */
   async changePassword(currentPassword, newPassword) {
-    const res = await api.post('/auth/change-password', { currentPassword, newPassword });
+    const res = await api.post('/auth/change-password', { currentPassword, newPassword }, { errorPresentation: 'local' });
     return res;
   },
 
@@ -37,7 +37,7 @@ export const userService = {
 
   /** PATCH /tutors/me body UpdateMyProfileRequest → TutorMyProfileDto */
   async updateMyTutorProfile(data) {
-    const res = await api.patch('/tutors/me', data);
+    const res = await api.patch('/tutors/me', data, { errorPresentation: 'local' });
     return res;
   },
 };
