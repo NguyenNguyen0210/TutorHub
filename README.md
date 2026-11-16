@@ -21,7 +21,6 @@ Explore **[tutorhub.id.vn](https://tutorhub.id.vn/)** with these shared demo acc
 | Tutor | `tutor.bao@tutorhub.vn` | Package management, scheduling, lesson records, and earnings. |
 | Administrator | `admin@tutorhub.vn` | Tutor approval, dispute resolution, withdrawal review, and audit logs. |
 
-For a payment walkthrough, [run locally](#quick-start) with VNPay sandbox configuration.
 
 ## Engineering highlights
 
