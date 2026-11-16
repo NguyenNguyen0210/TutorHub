@@ -1,66 +1,40 @@
-# TutorHub
+﻿# TutorHub
 
 **An online tutoring marketplace with session-based payments, scheduling, and dispute resolution.**
-
-[Live Demo](https://tutorhub.id.vn/) | [API Documentation](#api-documentation)
 
 [![CI](https://github.com/NguyenNguyen0210/TutorHub/actions/workflows/ci.yml/badge.svg)](https://github.com/NguyenNguyen0210/TutorHub/actions/workflows/ci.yml)
 ![.NET 8](https://img.shields.io/badge/.NET-8-512BD4)
 ![React 18](https://img.shields.io/badge/React-18-149ECA)
 ![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1)
 
-[Overview](#overview) | [Demo & Screenshots](#demo--screenshots) | [Key Features](#key-features) | [Tech Stack](#tech-stack) | [Architecture](#architecture) | [Project Structure](#project-structure) | [Getting Started](#getting-started) | [Configuration](#configuration) | [API Documentation](#api-documentation) | [Testing](#testing) | [Deployment](#deployment) | [Roadmap](#roadmap) | [License & Author](#license--author)
+[Live demo](https://tutorhub.id.vn/) · [Engineering highlights](#engineering-highlights) · [Architecture](#architecture) · [Quick start](#quick-start)
 
-## Overview
+TutorHub connects students with tutors through learning packages. Students purchase a package, tutors schedule lessons, and tuition is held through a post-lesson review window before settlement. This personal full-stack project focuses on financial consistency, concurrent workflows, and asynchronous delivery.
 
-TutorHub connects students with tutors through structured learning packages. It brings tutor discovery, package purchases, lesson scheduling, and tuition settlement into one workflow, including dispute resolution when a lesson does not go as expected.
+## Try it now
 
-This personal full-stack project focuses on backend business rules, financial consistency, and asynchronous processing, with a React interface for students, tutors, and administrators.
+Explore **[tutorhub.id.vn](https://tutorhub.id.vn/)** with these shared demo accounts. The password for all three is `Test@123`.
 
-## Demo & Screenshots
+| Workspace | Email | What to explore |
+| --- | --- | --- |
+| Student | `hocvien.baokhanh@tutorhub.vn` | Package checkout, lesson schedules, chat, reviews, and disputes. |
+| Tutor | `tutor.bao@tutorhub.vn` | Package management, scheduling, lesson records, and earnings. |
+| Administrator | `admin@tutorhub.vn` | Tutor approval, dispute resolution, withdrawal review, and audit logs. |
 
-Explore the deployed application at **[tutorhub.id.vn](https://tutorhub.id.vn/)**.
+For a payment walkthrough, [run locally](#quick-start) with VNPay sandbox configuration.
 
-For a walkthrough with seeded student, tutor, and administrator accounts, run the [local demo](#getting-started) at <http://localhost:5173>. The seeded accounts below are for local development. Product screenshots have not yet been added to this README.
+## Engineering highlights
 
-### Suggested local demo walkthrough
-
-1. Sign in as the student and purchase the demo package using the fictional wallet balance.
-2. Sign in as the tutor in a separate browser session and schedule the enrolled lessons.
-3. Open the student schedule and exchange messages with the tutor.
-4. Sign in as the administrator to explore enrollment, user, financial, and audit views.
-
-Dispute and automatic payout flows depend on session end times and the review window. Use a separate test database when exercising financial scenarios.
-
-## Key Features
-
-| Role | Capabilities |
+| Problem | Solution |
 | --- | --- |
-| Student | Discover tutors and packages, save favorites, pay through VNPay or a wallet, view schedules, chat, submit disputes, and request withdrawals. |
-| Tutor | Submit an application for approval, manage learning packages, schedule and reschedule lessons, maintain lesson records, and track earnings. |
-| Administrator | Review tutor applications and packages, manage users and catalog data, resolve disputes, process withdrawal requests, and inspect audit logs. |
+| Concurrent financial requests must not settle the same funds twice | PostgreSQL transactions, row locks, and advisory locks serialize relevant wallet and settlement updates; integration tests exercise financial concurrency. |
+| Client retries can repeat a completed operation | Idempotency keys on supported operations prevent duplicate processing. |
+| Notifications must follow committed business changes | A transactional outbox records events with the business transaction; background workers dispatch notifications and retry email delivery. |
+| Multiple API instances can compete for scheduled work | Redis distributed locks coordinate workers; database locks protect underlying financial updates. |
+| Tuition needs a review period before release | Booking reservation → payment activation → scheduled lesson → 12-hour post-lesson review window → settlement or dispute handling. |
+| Financial and administrative history must remain auditable | Append-only database triggers protect transaction and audit records; wallet movements have a separate ledger. |
 
-### Payment and escrow workflow
-
-1. **Reserve:** a booking holds a package purchase for 15 minutes while awaiting payment.
-2. **Activate:** successful payment creates an enrollment and its learning sessions.
-3. **Schedule:** the tutor schedules lessons. Applicable scheduling and cancellation operations enforce a configurable notice period, defaulting to two hours.
-4. **Hold:** after a lesson ends, a background worker moves it into a 12-hour review window before releasing tuition.
-5. **Settle:** eligible sessions without an issue report are paid out to the tutor's wallet. A dispute holds the relevant funds for administrator review.
-
-Administrators can issue a full or partial refund, release tutor earnings, or dismiss a dispute without an immediate financial adjustment. Wallets track available, pending, and withdrawing balances separately; balance movements are recorded for reconciliation. Wallet payout and external bank transfer are separate operations.
-
-## Tech Stack
-
-| Area | Technologies |
-| --- | --- |
-| Backend | C#, .NET 8, ASP.NET Core Web API, MediatR, FluentValidation |
-| Persistence | PostgreSQL 16, EF Core 8, Npgsql |
-| Cache and coordination | Redis 7 |
-| Frontend | React 18, Vite 5, Tailwind CSS, React Router, TanStack Query, Zustand, Axios |
-| Integrations | VNPay, ASP.NET Core SignalR, Cloudflare R2 / S3 API, MailKit SMTP, optional Google sign-in |
-| Testing | xUnit, FluentAssertions, Moq, ASP.NET Core integration tests, Node.js test runner |
-| Operations | Docker Compose, GitHub Actions, Serilog, health checks |
+Authentication uses JWT access tokens, rotating refresh tokens, and role-based authorization. SignalR connections revalidate account status and token version.
 
 ## Architecture
 
@@ -90,83 +64,36 @@ Arrows between backend layers show project references; arrows to external servic
 | `TutorHub.Api` | REST controllers, authentication, middleware, endpoint registration, and dependency composition. |
 | React client | Role-specific screens, API integration, server-state caching, and realtime interactions. |
 
-### Engineering highlights
+## Tech stack
 
-- **Financial consistency:** PostgreSQL transactions, row locks, and advisory locks serialize relevant updates to wallets, enrollment progress, and review aggregates.
-- **Retry handling:** request idempotency protects supported operations from duplicate submissions; transactional outbox processing separates committed business changes from notification delivery.
-- **Background processing:** workers handle booking expiration, session payouts, outbox dispatch, email delivery, and idempotency cleanup. Redis coordinates distributed worker execution; database locks protect the underlying data updates.
-- **Authentication:** JWT access tokens, refresh-token rotation, and role-based authorization. Established SignalR connections revalidate account status and token version.
-- **Realtime and storage:** SignalR supports chat and notifications; Cloudflare R2 stores uploaded media and dispute evidence.
-- **Auditability:** append-only database triggers protect `Transactions` and `AuditLogs`. Wallet balances, the wallet ledger, withdrawals, and top-up requests are guarded in the EF Core change tracker instead, so raw SQL bypasses those application-level checks.
+| Area | Technologies |
+| --- | --- |
+| API | C#, .NET 8, ASP.NET Core, MediatR, FluentValidation |
+| Data | PostgreSQL 16, EF Core 8, Redis 7 |
+| Web | React 18, Vite 5, Tailwind CSS, TanStack Query, Zustand |
+| Integrations | VNPay, SignalR, Cloudflare R2, MailKit SMTP |
+| Quality | xUnit, FluentAssertions, Moq, Node.js test runner |
+| Operations | Docker Compose, GitHub Actions, Serilog, health checks |
 
-## Project Structure
+## Quick start
 
-```text
-src/
-├── backend/
-│   ├── TutorHub.Api/
-│   ├── TutorHub.Application/
-│   ├── TutorHub.Domain/
-│   ├── TutorHub.Infrastructure/
-│   └── TutorHub.sln
-├── frontend/
-│   ├── src/                 # Pages, components, services, state, utilities
-│   └── test/                # Frontend regression tests
-└── test/                    # Backend unit and integration tests
-docs/                        # Requirements, user stories, OpenAPI snapshot
-docker-compose.yml           # Local PostgreSQL, Redis, and API services
-docker-compose.prod.yml      # Production container configuration
-.env.example                 # Local configuration template
-.env.production.example      # Deployment configuration template
-```
-
-## Getting Started
-
-### Prerequisites
-
-- .NET 8 SDK.
-- Node.js 20 or later and npm.
-- Docker Compose, or an existing local PostgreSQL 16 and Redis 7 instance.
-- Valid VNPay and Cloudflare R2 configuration for API startup; use VNPay sandbox for development payments.
-
-The commands below use **PowerShell**. Run them from the repository root unless another directory is specified.
-
-### 1. Clone and configure
+**Requires VNPay sandbox and Cloudflare R2 configuration**, plus .NET 8, Node.js 20+, and Docker Compose. Follow the [setup and environment guide](docs/configuration.md) to fill in `.env` before starting the API.
 
 ```powershell
 git clone https://github.com/NguyenNguyen0210/TutorHub.git
 cd TutorHub
 Copy-Item .env.example .env
-```
-
-Update `.env` with your local connection details and integration credentials. The API rejects placeholder secrets such as `change_me`. In Development, its dotenv loader reads the local file without overriding existing process environment variables.
-
-See [Configuration](#configuration) for the required backend settings before continuing.
-
-### 2. Start PostgreSQL and Redis
-
-```powershell
+# Fill in .env using docs/configuration.md, then:
 docker compose up -d postgres redis
 ```
 
-Default PostgreSQL settings are database/user/password `tutorhub`, exposed on host port `5433`. Redis is exposed on `6379`. If you customize database credentials, keep the API connection string consistent with the PostgreSQL volume's existing credentials.
-
-### 3. Apply migrations
+Apply migrations and start the API:
 
 ```powershell
 dotnet restore src/backend/TutorHub.sln
 dotnet ef database update --project src/backend/TutorHub.Infrastructure --startup-project src/backend/TutorHub.Api
-```
-
-This creates the schema in the local database (`dotnet tool install --global dotnet-ef` once if the EF CLI is missing). The Compose API service applies the same migrations on startup through `Database__MigrateOnStartup`.
-
-### 4. Run the API
-
-```powershell
 dotnet run --project src/backend/TutorHub.Api --launch-profile http
 ```
-
-### 5. Run the frontend
 
 In a separate terminal:
 
@@ -176,170 +103,30 @@ npm ci
 npm run dev
 ```
 
-| Service | Local URL |
-| --- | --- |
-| Web application | <http://localhost:5173> |
-| API | <http://localhost:5129> |
-| Swagger UI — Development only | <http://localhost:5129/swagger> |
-| Readiness — PostgreSQL and Redis | <http://localhost:5129/health> |
-| Liveness | <http://localhost:5129/health/live> |
+Web: <http://localhost:5173> · API: <http://localhost:5129> · Swagger (Development): <http://localhost:5129/swagger>
 
-## Configuration
+The frontend runs separately from Compose. The Development-only payment simulator can exercise the VNPay callback flow, but does not remove startup configuration requirements. See [API documentation](docs/api.md) and [production deployment](docs/deployment.md).
 
-### Backend
+## Testing & CI
 
-The [local environment template](.env.example) documents backend settings. The API uses .NET configuration paths with double underscores (`Jwt__Secret`); the [production template](.env.production.example) uses Compose variable names that are mapped to those API settings.
+Backend tests cover domain rules, application handlers, infrastructure, and API integration, including payment concurrency and authentication. API integration tests use PostgreSQL and Redis.
 
-| Configuration | Purpose |
-| --- | --- |
-| `ConnectionStrings__DefaultConnection` | PostgreSQL connection; the template uses `localhost:5433`. |
-| `ConnectionStrings__Redis` | Redis connection; the local default is `localhost:6379`. |
-| `Jwt__Secret`, `RefreshToken__Pepper` | Separate random values of at least 32 characters each. |
-| `VnPay__TmnCode`, `VnPay__HashSecret`, `VnPay__BaseUrl` | VNPay merchant credentials and sandbox gateway URL. |
-| `VnPay__ReturnUrl` | Use `http://localhost:5173/payment/return` for the frontend payment result page. |
-| `CloudflareR2__AccountId`, `CloudflareR2__AccessKeyId`, `CloudflareR2__SecretAccessKey` | Object storage credentials. |
-| `CloudflareR2__BucketName` | Add this setting when running the API directly on the host. |
-| `Cors__AllowedOrigins` | Set to `http://localhost:5173` for the local frontend. |
-| `Smtp__*` | Resend via MailKit SMTP; leaving the host empty enables log-only delivery in Development. |
-| `ExternalAuth__Google__*` | Optional Google sign-in; leave empty to disable. |
+[GitHub Actions](.github/workflows/ci.yml) builds the backend with warnings treated as errors, runs backend tests, and runs frontend lint, regression tests, and production build on pushes and pull requests to `main`.
 
-Compose maps `CLOUDFLARE_R2_BUCKET` to the API's `CloudflareR2__BucketName`. Host-based development needs the latter configuration key directly. Keep credentials in local environment files or deployment secrets; `VITE_*` variables are exposed to the browser.
+See [test commands and database setup](docs/testing.md). Shared browser E2E coverage is planned for the checkout and scheduling journeys.
 
-### Email delivery: Resend over SMTP
+## Known limitations & roadmap
 
-Email still uses `IEmailSender` and MailKit, including the existing notification delivery job and retries. No Resend SDK or HTTP email endpoint is used. Verify the sending domain `tutorhub.id.vn` in Resend, then create an API key with permission to send from that domain.
+- **Local onboarding:** add a self-contained demo mode with repeatable sample data and local storage/payment adapters.
+- **Journey verification:** bring shared browser E2E tests into CI for student checkout and tutor scheduling.
+- **Financial safeguards:** extend database-level protections beyond transaction and audit records; wallet, ledger, withdrawal, and top-up guards currently rely on EF Core and can be bypassed by raw SQL.
 
-```dotenv
-Smtp__Host=smtp.resend.com
-Smtp__Port=465
-Smtp__UseSsl=true
-Smtp__UserName=resend
-Smtp__Password=
-Smtp__FromAddress=no-reply@tutorhub.id.vn
-Smtp__FromDisplayName=TutorHub
-```
+## Documentation
 
-Set `Smtp__Password` to the actual Resend API key in the local `.env` or deployment secret settings. It is not a Gmail App Password or the password of the sender mailbox. Do not commit the key or expose it in frontend variables. Restart the API after updating configuration.
+[Configuration](docs/configuration.md) · [Deployment](docs/deployment.md) · [API reference](docs/api.md) · [Testing](docs/testing.md) · [Requirements](docs/functional-requirements.md) · [User stories](docs/user-stories.md)
 
-For production Compose, use `SMTP_HOST`, `SMTP_PORT`, `SMTP_USESSL`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_ADDRESS`, and `SMTP_FROM_DISPLAY_NAME` from `.env.production.example`. For a host running .NET directly, use the `Smtp__*` names above.
-
-Port `465` (or `2465`) uses implicit SSL/TLS with `UseSsl=true`. If the hosting environment requires STARTTLS, use port `587` (or `25`/`2587`) with `UseSsl=false`; MailKit requires the TLS upgrade before authenticating. Resend-specific credential and TLS settings are validated at startup. See [Resend SMTP documentation](https://resend.com/docs/send-with-smtp).
-
-Development can explicitly leave `Smtp__Host` empty to use the log-only sender. Production requires a real SMTP configuration. SMTP acceptance confirms handoff to Resend; delivery to the recipient should be checked in the Resend dashboard.
-
-### Frontend
-
-The frontend defaults to the API on port `5129`. To change endpoints, create `src/frontend/.env.local`:
-
-```dotenv
-VITE_API_BASE_URL=http://localhost:5129/api/v1
-VITE_SIGNALR_HUB_URL=http://localhost:5129/hubs/chat
-VITE_NOTIFICATION_HUB_URL=http://localhost:5129/hubs/notifications
-```
-
-Restart Vite after changing environment variables. When changing the frontend address, update CORS and the VNPay return URL as well.
-
-## API Documentation
-
-The local API base URL is `http://localhost:5129/api/v1`. [Swagger UI](http://localhost:5129/swagger) is available in Development and describes request bodies, responses, and authorization requirements.
-
-### Authentication
-
-1. Call `POST /api/v1/auth/login` with an email and password from the local demo accounts or a registered account.
-2. Use the returned `data.accessToken` in `Authorization: Bearer <access-token>` for protected requests. In Swagger's **Authorize** dialog, paste only the token; Swagger adds the prefix.
-3. Call `POST /api/v1/auth/refresh` with the refresh token when needed. Refresh tokens rotate; retain the new token pair returned by the API.
-4. Call `POST /api/v1/auth/logout` with the refresh token to revoke it. Protected operations also enforce student, tutor, or administrator permissions.
-
-### Endpoint groups
-
-Paths below are relative to `/api/v1`; consult Swagger for individual operations and permissions.
-
-| Group | Paths | Purpose |
-| --- | --- | --- |
-| Authentication | `/auth` | Registration, login, token refresh, password recovery, optional Google sign-in. |
-| Discovery | `/tutors`, `/services`, `/subjects`, `/categories` | Tutor profiles, learning packages, and catalog data. |
-| Learning | `/bookings`, `/enrollments`, `/sessions` | Package reservations, enrollments, and lesson scheduling. |
-| Finance | `/payments`, `/wallets/me`, `/transactions`, `/disputes` | VNPay payments, wallet balances, transactions, and disputes. |
-| Communication | `/conversations`, `/notifications`, `/media` | Messaging, notifications, and uploaded media. |
-| Administration | `/admin` | Moderation, disputes, withdrawals, platform settings, and audit records. |
-
-### Further documentation
-
-- [Functional requirements](docs/functional-requirements.md)
-- [Product requirements](docs/prd.md)
-- [User stories](docs/user-stories.md)
-- [OpenAPI snapshot](docs/openapi.json) — use the running API's Swagger UI for its current contract.
-
-## Testing
-
-### Backend
-
-```powershell
-dotnet build src/backend/TutorHub.sln --configuration Release /p:TreatWarningsAsErrors=true
-dotnet test src/backend/TutorHub.sln --configuration Release --no-build
-```
-
-Integration tests use local PostgreSQL and Redis. The database connection is read from the environment or `.env`; the PostgreSQL user needs permission to create and drop the dedicated test database. The harness refuses remote hosts and restricts database names to `tutorhub_integration` or an allowed underscore suffix.
-
-To use a separate test database name:
-
-```powershell
-$env:POSTGRES_TEST_DATABASE='tutorhub_integration_local'
-dotnet test src/test/TutorHub.Api.IntegrationTests --configuration Release
-```
-
-### Frontend
-
-From `src/frontend`:
-
-```powershell
-npm run lint
-npm test
-npm run build
-```
-
-Versioned regression tests are in `src/test` and `src/frontend/test`. They cover domain rules, application handlers, infrastructure behavior, and API/database integration, including financial concurrency and authentication scenarios. Browser E2E checks use Playwright separately; local runners and generated reports are not distributed with this repository.
-
-The [CI workflow](.github/workflows/ci.yml) defines backend build/tests and frontend lint/tests/build for pushes and pull requests targeting `main`. Check workflow results for the specific commit under review.
-
-## Deployment
-
-The web application is deployed at **[https://tutorhub.id.vn/](https://tutorhub.id.vn/)**.
-
-### Production containers
-
-Copy the production template and fill in its required values before starting the stack:
-
-```powershell
-Copy-Item .env.production.example .env.production
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
-```
-
-This starts the API, PostgreSQL, and Redis; host the frontend separately. From `src/frontend`, set the production `VITE_*` endpoints and run `npm ci` followed by `npm run build`. Publish `dist/` to a static host with an SPA fallback to `index.html`, and route HTTPS traffic to the API through your reverse proxy.
-
-[Production Compose](docker-compose.prod.yml) and the [production environment template](.env.production.example) provide the deployment configuration starting point.
-
-- The local Compose API service exposes host port `8080`, uses internal PostgreSQL/Redis hostnames, and enables startup migrations. The frontend is run separately.
-- Outside Development, provide configuration through deployment environment variables, including valid SMTP and allowed browser origins. Swagger is Development-only.
-- Configure trusted reverse proxy IPs through `ReverseProxy__KnownProxies__0`, `ReverseProxy__KnownProxies__1`, and so on.
-- Use `/health` for dependency readiness and `/health/live` for process liveness.
-
-### Continuous integration
-
-GitHub Actions runs backend build/tests and frontend lint/tests/build on pushes and pull requests to `main`. The workflow validates changes; deployment is performed separately.
-
-## Roadmap
-
-Completed milestones and proposed portfolio improvements are listed below. Unchecked items are not a committed delivery schedule.
-
-- [ ] Add product screenshots covering discovery, scheduling, and administration.
-- [x] Deploy the public web application at [tutorhub.id.vn](https://tutorhub.id.vn/).
-- [ ] Add a shared browser E2E suite to CI for the main student and tutor journeys.
-
-Implemented capabilities are listed under [Key Features](#key-features).
-
-## License & Author
+## License & author
 
 Developed by [Nguyen Nguyen](https://github.com/NguyenNguyen0210).
 
-No license file is currently included in this repository; a project license has not been specified.
+A project license has not been specified; no license file is included.
